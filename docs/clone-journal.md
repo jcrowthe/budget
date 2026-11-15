@@ -333,7 +333,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 2 | Discover, area 1 Plan screen (`p_17cd9c4a93fc4e29a08e8f5eddca54c4`) | none | none | failed at load_profile (`source.driver`) |
 | 2026-11-15 | 2 | Discover, area 2 targets and Auto-Assign (`p_5d1242cb6d6a4a9eaaac1d9d9d018506`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
-| 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | pending | running |
+| 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) draft | abandoned by me at acceptance (no source tab); branch kept at `f788d48`, to resume |
 
 ### 2026-11-15 · Plan round 1
 
@@ -540,3 +540,48 @@ Started nothing, and why:
   second Build runs beside it.
 
 Tickets: none were filed at the last review. Backlog unchanged (EXF-453 High, EXF-454 Low). Plan unchanged.
+
+### 2026-11-15 · Review round 3
+
+Children used 7 of 200. Nothing is running.
+
+**What ended:** the profile-fix Build (`p_e9bdeb6d31de438a81905eeaec90f8c8`), abandoned by my answer on its
+card after 29 minutes. Not merged. Main is still `2d82719`.
+
+**Why I abandoned it.** The work was done and reviewed: planned, built, one review finding fixed, reviewer
+approved at `f788d48`, `pnpm check` passing (144 tests). It then looped at acceptance. The Tester runs
+`/workspace/.exfab/bin/source_check.sh`, which fails with "No open tab of the source app (app.ynab.com) in
+the browser", and answers `blocked_env` within about ten seconds. I answered the card three times in side
+turns: Proceed, then Retry with an instruction to open the tab itself, and each time the Tester ran the same
+check and stopped; it did not act on the instruction. A child's browser starts on a blank tab, nobody in this
+Thread opened the source app because the work has no UI, and I cannot reach a child's browser. A fourth
+answer of either kind would have looped again, so I chose Abandon in order to resume.
+
+**What is kept:** branch `exfab/p_e9bdeb6d31de438a81905eeaec90f8c8` at
+`f788d48a2079f94154ea788176f43729bfa11587` and draft pull request #2. I checked the branch: the profile has
+every key the Deploy and Discover templates named, and the diff stays inside its manifest (profile, three
+scripts, script tests, docs; nothing under `apps/` or `scripts/lib/`).
+
+**Decision for the next plan:** resume it with a new Build: `resume_branch`, `resume_head` and
+`resume_thread` as above, and a brief that starts with BROWSER FIRST (the first agent opens the Test Budget
+URL in a new tab and leaves it open). That is what made the source check pass for the scaffold, whose
+agents had opened the source app. Not yet proven for a resume: watch its first minutes.
+
+**Lessons:**
+
+- Every Build brief, UI or not, starts with BROWSER FIRST: open
+  `https://app.ynab.com/542b334b-696e-4418-937a-5e2c21a8b45c/budget` (never the bare site, which could land
+  on another plan), leave the tab open, never close it or kill the browser. Same for Discover and Test user
+  flow.
+- On the `env_stuck` card, Proceed and Retry both go back to the acceptance step, and the Tester does not
+  read the Lead's answer as an instruction. Do not answer it twice the same way.
+- The Build's preflight has the same source-tab check; there Proceed does get past it.
+
+**Tickets filed this review** (both `clone:template`; set priority in the next plan):
+
+1. Build feature: a Build with no UI should not be blocked by the source-tab check, and the Tester should
+   open the source tab itself or act on the Lead's answer.
+2. Build feature (scaffold): write every template's profile keys, not only the Build template's.
+
+**Backlog:** EXF-453 (High), EXF-454 (Low, blocked by EXF-453), plus the two above. No `clone:feature`
+tickets yet.
