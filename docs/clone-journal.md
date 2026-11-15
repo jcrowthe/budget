@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
+Review counters (finished children since that template's last review): Build 1 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -359,12 +359,12 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | PR #11 | merged `129e425` (round 22) |
 | 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | PR #12 | merged `d2e659b` (round 23) |
 | 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | live `129e425` |
-| 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | pending | running |
-| 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | pending | running |
+| 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | PR #15 | running |
+| 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | PR #13 | merged `0c81b09` (round 27) |
 | 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | live `d2e659b` |
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
-| 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | pending | running |
-| 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | pending | running |
+| 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | running |
+| 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2181,3 +2181,54 @@ EXF-483. Nothing started this round.
 - Nothing else can start: the reasons of round 25 stand. Main `d2e659b` is live; nothing to deploy. Flow
   tests wait for the next Deploy.
 - Review cadence: Build 0, Deploy 6, Discover 2.
+
+### 2026-11-15 · Review round 27
+
+Children used 38 of 200. Three Builds are running: EXF-493 (pull request #15), EXF-513 (#16) and EXF-483
+(#14), all past their plan step and in polish or review. No card is waiting.
+
+**Ended: the Build for EXF-489 (edit Assigned), merged as `0c81b09` (PR #13)** after 46 minutes, first gate
+passed (e2e 53 of 53 three times, changed specs 180 of 180). Ticket Done and commented. I read the diff
+before approving (21 files, +1963/-16).
+
+- `PATCH .../months/{month}/categories/{category_id}` `{assigned}` and the tool `set_assigned`, in new files
+  (`routes/month-categories.ts`, `mcp/tools/month-categories.ts`, `services/month-categories.ts` with
+  `setAssignedAndRead`), over the unchanged `setAssigned` and `getPlanMonth`.
+- `packages/schema/src/assigned-edit.ts`: `evaluateAssigned(text, before)`, `formatAssignedInput`,
+  `applyAssigned(month, categoryId, assigned)` (the optimistic update of a cached month), with tests.
+- Web: `plan/AssignedCell.tsx`; `api/assigned.ts` with `useCommitAssigned` (optimistic write, PATCHes sent
+  one after another per plan, refetch when the queue is empty, old value back on failure).
+- Unplanned but harmless: a ref on `AvailablePill`, `amountClass` moved into `format.ts`, and one line in
+  `e2e/accounts.spec.ts` (an exact locator for "Mortgage", because Assigned cells now carry category names).
+- Known, cosmetic: a window-focus refetch can briefly show an older value while edits are queued.
+- Not built by scope: undo and Recent Moves (EXF-504, moves), row selection on open (EXF-498), the Ready to
+  Assign pill (EXF-491).
+
+**Manifests of the three running Builds, all arrived and pairwise disjoint:**
+
+- EXF-493: as noted in the round 27 plan.
+- EXF-513: schema `transactions.ts` and new `register.ts`; Worker transactions service and repository, new
+  route and tools; web `api/transactions.ts`, `register/**`, `pages/account.tsx`; tests. No migration.
+- EXF-483: core `account-types.ts` (`DISPLAY_GROUPS`, `displayGroup`, `sidebarSections`); schema
+  `accounts.ts` and new `ui-state.ts`; one migration (`*_ui_state.sql`) with table, repository, service and
+  route; accounts service and tool; web `api/accounts.ts`, new `api/ui-state.ts`, the shell's sidebar files,
+  `tokens.css`; `e2e/accounts.spec.ts`; tests.
+- `e2e/accounts.spec.ts` was also touched by the merged EXF-489 (one line): EXF-483 will meet it at its
+  refresh. `docs/README.md` likewise for all three.
+
+**For the next plan:**
+
+- **EXF-494 (category create, rename, delete) is unblocked** by this merge. It must stay out of the months
+  files and the Plan header (EXF-493 still running): new route and tool files for category groups and
+  categories; grid rows, toolbar, `collapse.ts`. It cannot import `plan/useDismiss.ts` (EXF-493's popover
+  helper, not merged yet): either wait for EXF-493 to merge first, which is close, or accept a second
+  helper. Prefer to start EXF-494 after EXF-493 merges if that is within a round.
+- Main `0c81b09` is not live (Assigned). Deploy when EXF-493, EXF-513 and EXF-483 have merged too, or
+  sooner if they take long: Assigned alone is worth showing.
+- Add the two brief lines from the template review (foreground commands; list every screenshot kept).
+
+**Ticket writes:** 2 (EXF-489 Done and comment).
+
+**Backlog:** 88 open feature tickets (6 done; 3 in progress: EXF-493, 513, 483), all triaged. Gap: EXF-558
+(High), EXF-454, EXF-560, EXF-562 (Low). Template: fifteen. Finished since each template's last review:
+Build 1, Deploy 6, Discover 2, Test user flow 0.
