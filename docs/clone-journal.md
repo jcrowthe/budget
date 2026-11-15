@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 7, Deploy 4, Test user flow 0,
+Review counters (finished children since that template's last review): Build 8, Deploy 4, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -355,8 +355,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
 | 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | PR #9 | merged `d19f4ff` (round 20) |
 | 2026-11-15 | 19 | Deploy of main `d7a3a40` (`p_c55bb7d4d01947fe848d4849c4333b78`) | EXF-458, 485, 475 | n/a | live `d7a3a40` |
-| 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | pending | running |
-| 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | pending | running |
+| 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | PR #10 | merged `401970d` (round 21) |
+| 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | PR #11 | running |
+| 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1724,3 +1725,45 @@ plan names).
 **Backlog:** 91 open feature tickets (EXF-475, 485, 511 done; EXF-487 in progress). Gap: EXF-561 (in
 progress), EXF-558 (High), EXF-454 and EXF-560 (Low). Template: nine. Finished since each template's last
 review: Build 7, Deploy 4, Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 21
+
+Children used 31 of 200. Two Builds are running: EXF-487 (Plan grid, started in round 19) and EXF-481
+(accounts), started now.
+
+- No ticket was filed at the last review.
+- **EXF-561 merged as `401970d` (PR #10)** between the check-in and this plan; I approved its card after
+  reading the diff (9 files, tests and docs only). Ticket Done and commented. The hand-kept lists are gone:
+  `apps/worker/test/surface.ts` gives `apiPaths()`, `listedToolNames()`, `routeModules`, `toolModules`; a new
+  resource asserts its own surface in its own test file and never edits `openapi.test.ts`, `mcp.test.ts`,
+  `existing-surface.test.ts` or `e2e/mcp.spec.ts`. Its mutation checks passed (empty tool file, duplicate
+  name, pathless route file each fail a named test). Build took 23 minutes.
+- **The grid's manifest arrived** (pull request #11 open): `pages/plan.tsx`, `apps/web/src/plan/**`,
+  `api/months.ts`, `services/budgets.ts`, new `services/default-categories.ts`, `budgets.test.ts`,
+  `months.test.ts`, `e2e/months.spec.ts`, new `e2e/plan-grid.spec.ts` and fixtures, docs. No shared module.
+  As estimated.
+- **Started EXF-481, accounts** (`p_26e65fda71f744f182581e2cffb61047`), now that it adds routes and tools
+  as files only. Checked against the grid's manifest: disjoint. Scope notes:
+  - API `GET/POST .../budgets/{budget_id}/accounts`, `GET .../accounts/{id}`, tools `list_accounts` and
+    `create_account`; balances computed; `on_budget` derived; `date` optional (browser's local date).
+  - Errors in the app's envelope (`name_taken` is 409); loan types 422 until EXF-482.
+  - Account, Starting Balance and history in one batch; the name check race-safe (a unique index on
+    `(budget_id, lower(name))` is allowed as one additive migration).
+  - It may not break the existing minimal `createAccount` / `createTransaction` callers, so it does not need
+    `months.test.ts`, `budgets.test.ts`, `targets.test.ts` or `e2e/months.spec.ts` (the grid edits some).
+  - Pure type rules in `packages/core/src/account-types.ts`: it is the only Build in core now.
+  - Web: the Add Unlinked Account flow in `shell/AddAccountDialog.tsx`, a plain sidebar account list (group
+    labels, name, balance), a minimal account page. It is the only Build in `apps/web/src/shell/**`.
+    Sidebar groups proper are EXF-483, the header EXF-484, the register EXF-513, the bank search EXF-459.
+  - Balance input rejects a non-number with "Enter an amount" (the source's `10+5` quirk is not copied).
+  - Source: look only; the form and picker may be opened and typed in, "Next" never pressed, the bank
+    search never used.
+- **Why nothing else:** the web shell is the bottleneck. EXF-470, 472, 473, 474 (plan menu, display options,
+  shortcuts, sidebar resize) all change `apps/web/src/shell/**`, which accounts now holds; EXF-468 changes
+  `services/budgets.ts`, which the grid holds; everything else is behind the grid or accounts; EXF-558 needs
+  an empty moment.
+- **No Deploy yet:** main `401970d` adds only the targets engine (no screen, no route) and tests over live
+  `d7a3a40`. Deploy when the grid merges.
+- Ticket writes this round: 4 (EXF-481 state and comment, EXF-561 Done and comment). The window from the
+  21:26 burst frees about 22:26 to 22:31 UTC; apply the owed Low triage at the next review after that.
+- Review cadence: Build 8, Deploy 4, Discover 2. The Build template review comes after two more.
