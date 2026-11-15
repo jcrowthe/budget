@@ -790,3 +790,14 @@ https://budget.doxen.dev, `DEPLOY_SHA` `43b7ce9`. Details are in the plan round 
 **Backlog:** EXF-453 In Progress (High). EXF-454 Low, blocked by EXF-453. Template tickets EXF-455, EXF-457
 (High), EXF-456 (Medium). No `clone:feature` tickets yet: the first discovery reports are due. Filing one
 `clone:gap` ticket this review (profile `source.url`).
+
+### 2026-11-15 · Plan round 7
+
+Children used 20 of 200. Ten are running, all started in round 6: nine Discover areas and the EXF-453 Build.
+
+- EXF-458 (profile `source.url` to the Test Budget URL) exists; set to High and blocked by EXF-453. It edits
+  `clone.profile.json`, an always-overlap file, so it waits for the running Build.
+- Started nothing. EXF-458 and EXF-454 both wait on EXF-453; no `clone:feature` tickets exist yet; the live
+  clone has nothing new to deploy or to walk in a flow test.
+- Order after EXF-453 merges: EXF-458 next and alone (it is small and closes a privacy gap for every later
+  child), then the foundation Builds from discovery, then EXF-454.
