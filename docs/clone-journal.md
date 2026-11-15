@@ -353,6 +353,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 | 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
+| 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1482,3 +1483,31 @@ no longer blocked by EXF-485, since it merged; EXF-532 is blocked by EXF-481 onl
 
 **Backlog:** 93 open feature tickets (EXF-485 done), 80 triaged on the tickets, 13 Low still to set. Gap:
 EXF-454, EXF-558 (High). Template: nine. Next: EXF-481 (accounts) and EXF-487 (Plan grid) are unblocked.
+
+### 2026-11-15 · Plan round 18
+
+Children used 27 of 200. Two are running: the Build for EXF-475 (refreshing onto the new main after my Refresh
+on its card; its gate had passed 24 of 24 on the old base) and the Build for EXF-511 started this round.
+
+- EXF-560 (months path bound and two leftovers), filed at the last review, exists; set to Low.
+- **Started EXF-511, the targets engine** (`p_899fecccbbbf452fbdecfc802e0abebf`), High and unblocked now that
+  the engine is on main. It is Worker and `packages/core` only. Scope notes: target fields go on the existing
+  month read model under `target` (no new REST path, no new MCP tool, so the hand-kept lists in
+  `openapi.test.ts` and `mcp.test.ts` are not touched); it creates the `targets` table, shaped for EXF-508,
+  516 and 538; writes are services (`setTarget`, `deleteTarget`); the arithmetic is pure with "today" as an
+  input. Three Clerk jobs: `request.json`, own tab, browser install. Nobody uses the source app. Ticket moved
+  to In Progress and commented.
+- **Why not EXF-481 (accounts) and EXF-487 (Plan grid) yet:** both are unblocked by the engine, but EXF-475
+  is still open and edits `pages/plan.tsx`, `pages/accounts.tsx`, `pages/account.tsx`, the Sidebar and the
+  router, which those two also change. They start as soon as EXF-475 merges, side by side if their manifests
+  are disjoint (grid: Plan page and its components; accounts: accounts routes, the Add Account modal, the
+  account page).
+- Scheduling check for EXF-511 against EXF-475: no shared file expected except `docs/README.md` (one line
+  each). EXF-511 changes `packages/core/src/**` (shared module) alone.
+- Not started: EXF-558 (needs a moment with no other Build running); EXF-468 (overlaps EXF-475).
+- **A hot spot to remove:** every Build that adds a route or an MCP tool edits the same hand-kept lists in
+  `apps/worker/test/openapi.test.ts`, `apps/worker/test/mcp.test.ts` and `e2e/mcp.spec.ts`. With many
+  parallel Builds these will conflict on every merge. File a gap ticket at the next review: derive the
+  expected lists from the route and tool files, or keep one expectation file per resource.
+- Deploy: the engine is merged but has no screen; deploy with EXF-475 once it merges, so the new URLs and the
+  months API go live together.
