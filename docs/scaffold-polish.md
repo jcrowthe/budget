@@ -12,3 +12,4 @@ Source measured by the Designer (YNAB Test Budget plan, dark theme, 1440×900). 
 - [applied] P8 New Plan dialog via the `.dialog.form` variant: 480px, 48px header, "Plan Name" label, 32px input focused on open, Cancel + Create Plan footer; tokens `--buttonSecondaryBackground`, `--buttonSecondaryLabel`. The Add Accounts modal is unaffected.
 - [applied] P9 Add Accounts via `.dialog.modal` + `.dialog-backdrop.top`: 360px, top-aligned, 70px header with centred title, 24px X icon; `--overlay` is now rgba(0,0,0,.33). The close button keeps `aria-label="Close"`.
 - [applied] P10 Filled caret, plus-circle and nav icons (own artwork); `background-color .15s` transition on `.plan-button` and `.add-account`.
+- [applied] P11 `.nav` margin-bottom 4px (card at y=204.4, Add Account at y=320.3) and `.accounts-card` right margin 10.4px + 3px resizer token (card 235.2px wide); plan button, nav links and Add Account untouched.
