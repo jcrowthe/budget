@@ -15,15 +15,16 @@ import {
 import { pickLastOpened, useCurrentPlan } from "./useCurrentPlan";
 
 export function Sidebar() {
-  const { plan, plans } = useCurrentPlan();
+  const { budgetId, plan, plans, isLoading } = useCurrentPlan();
   const monthMatch = useMatch("/:budgetId/budget/:month");
   const onPlan = !!useMatch("/:budgetId/budget/*");
   const [menu, setMenu] = useState(false);
   const [newPlan, setNewPlan] = useState(false);
   const [addAccount, setAddAccount] = useState(false);
   // Links never point at an unknown id: the open plan, else the last-opened one, else "/".
-  const target = plan?.id ?? pickLastOpened(plans)?.id;
-  const viewing = plan ? parseMonthParam(monthMatch?.params.month) : null;
+  // While the plan list loads, keep the id from the URL so an early click cannot jump to another plan.
+  const target = plan?.id ?? (isLoading ? budgetId : undefined) ?? pickLastOpened(plans)?.id;
+  const viewing = plan || isLoading ? parseMonthParam(monthMatch?.params.month) : null;
 
   return (
     <nav className="sidebar" aria-label="Sidebar">

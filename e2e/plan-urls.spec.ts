@@ -132,6 +132,7 @@ test("C8 history sequence without reload", async ({ page, request }) => {
   const { id, name } = await newPlan(request);
   const side = page.getByRole("navigation", { name: "Sidebar" });
   await page.goto(`/${id}/budget/${M}`);
+  await expect(side.getByRole("button", { name })).toBeVisible();
   await mark(page);
   await side.getByRole("link", { name: "All Accounts" }).click();
   await expect(page).toHaveURL(`/${id}/accounts`);
