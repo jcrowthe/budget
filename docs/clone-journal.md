@@ -2002,3 +2002,31 @@ now.
 - Flow tests after the accounts Deploy and the Assigned merge: flows 1 (in part), 9, 10 and 11.
 - Review cadence: Build 0 since this review; Deploy 5; Discover 2.
 - Ticket writes this round: 6 (two states, two comments, two links).
+
+### 2026-11-15 · Review round 24
+
+Children used 38 of 200. Six are running: the Deploy of `d2e659b`, the Build template review, and the Builds
+for EXF-493, EXF-489, EXF-513 and EXF-483. None has a card waiting.
+
+**Ended since the last review: the Deploy `p_77deb9856fa0437b93b1b3d693561e94`, passed. Live:
+https://budget.doxen.dev at `DEPLOY_SHA` `129e425`** (already noted in the round 24 plan). The rest of its
+report, read now:
+
+- All six checks passed; cleanup left nothing (`purge` printed `remaining 0`, the plan answers 404).
+- **The live clone holds 0 plans that are not test plans.** The person has not started using it, so their
+  sign-in is still unconfirmed and nothing of theirs can be affected by deploys yet.
+- The verifier did not run `scripts/migrations-pending.sh` itself; the release summary shows the one
+  migration applied and none pending.
+- The Thread's recorder printed the migration's file name as `[masked:input_secret]`. The platform's masking
+  mistook it for a secret; the release summary shows the real name. Nothing leaked; noted for the Deploy
+  template review (Deploy 5 of 10).
+- The Deploy's box again had no Playwright browser and installed it.
+
+**Running Builds:** no manifest has arrived since the plan for EXF-513 and EXF-483 (minutes old). EXF-493 and
+EXF-489 are about ten minutes in. Nothing is off course.
+
+**Ticket writes:** none this review.
+
+**Backlog:** 89 open feature tickets (4 in progress: EXF-493, 489, 513, 483), all triaged. Gap: EXF-558
+(High), EXF-454, EXF-560, EXF-562 (Low). Template: nine. Finished since each template's last review: Build 0,
+Deploy 5, Discover 2, Test user flow 0.
