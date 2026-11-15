@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 10, Deploy 4, Test user flow 0,
+Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads), Deploy 5, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -358,9 +358,13 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | PR #10 | merged `401970d` (round 21) |
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | PR #11 | merged `129e425` (round 22) |
 | 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | PR #12 | merged `d2e659b` (round 23) |
-| 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | running |
+| 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | live `129e425` |
 | 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | pending | running |
 | 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | pending | running |
+| 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | running |
+| 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | template | none | running |
+| 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | pending | running |
+| 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1955,3 +1959,46 @@ verification report is not written yet; read it at the next review.
 **Backlog:** 89 open feature tickets (5 done: EXF-475, 481, 485, 487, 511; 2 in progress: EXF-493, EXF-489),
 all triaged. Gap: EXF-558 (High), EXF-454, EXF-560, EXF-562 (Low). Template: nine. Finished since each
 template's last review: Build 10 (review due), Deploy 4, Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 24
+
+Children used 38 of 200. Six are running: the Builds for EXF-493 and EXF-489 from round 23 and four started
+now.
+
+- No ticket was filed at the last review.
+- **The Deploy of `129e425` ended, passed: live at `DEPLOY_SHA` `129e425`.** Its checks 1 to 5 passed (a new
+  plan has Bills 3, Needs 4, Wants 4 with `target: null`; the grid renders; collapse and progress bars
+  survive a reload; no console errors). The summary I read was cut after check 5; read the rest (cleanup and
+  the count of plans that are not test plans) at the review.
+- **Started the Deploy of main `d2e659b`** (`p_98f50d74ddb74e78904ef57aa417fcf4`), `gated_commit` `cabddec`
+  (trees equal), no migration. Checks: accounts API on a test plan (create, list, Ready to Assign rises,
+  409, credit card, 422 for a loan), MCP tools, the Add Unlinked Account flow in a browser, cleanup.
+- **Started the Build template review** (`p_ba4466d6501f49e2b08b70e18a4bcd86`, Improve templates, mode
+  review) on all fourteen ended Builds, with the open template tickets named and nine observations: the
+  three Clerk jobs I carry in every brief, resume inputs, card answers not reaching agents, Refresh then
+  Regate for a `docs/README.md` line, the review chain that works, where the time goes in UI Builds,
+  screenshots listed twice and email masking, the polish file as an unplanned file, the digest's counts, and
+  flagging files every feature must edit.
+- I read EXF-513 and EXF-483 and scoped them apart:
+  - **Started EXF-513, the register** (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`): transactions list, get,
+    create, update, delete (plain cases), five MCP tools, the table with sorting and a cleared toggle on the
+    account page. New files under `apps/web/src/register/**`; it holds the transactions schema, service and
+    repository and `pages/account.tsx`. It may not change `activityByMonth` or the Starting Balance rule, and
+    a PATCH may not change payee or category of a credit Starting Balance. Splits, transfers, payees table,
+    flags, imports, reconciled state stay with their tickets.
+  - **Started EXF-483, sidebar groups** (`p_786e77ad3c2c46a1a202ebf11409fdb1`): `group` on the account
+    (REST and MCP, pure function in core), the sidebar groups with totals and collapse, and a small
+    general `ui-state` resource (one table) with the key `collapsed_account_groups`. It holds
+    `apps/web/src/shell/**`, the accounts schema, service, tool and web api, and core `account-types.ts`.
+    STARRED, LOANS and CLOSED are tested from fixtures: no route creates them yet.
+  - Both are disjoint from EXF-493 (Plan header, months files) and EXF-489 (grid rows, new assign files).
+  - Links set: **EXF-484 (account header) after EXF-513** (same page); **EXF-532 (credit engine) after
+    EXF-513** (same repository file, and it replaces the Starting Balance rule).
+- **Later EXF-472 should use the `ui-state` resource** for the progress-bar choice and display options.
+- Needs a quiet moment, alone, because of always-overlap files: EXF-459 (Plaid Link: new Worker variables in
+  `env.ts` and `wrangler.jsonc`) and EXF-558 (`playwright.config.ts`). Plan one when the current six drain.
+- Not started: the YNAB import (EXF-477) until splits, transfers and payees exist, or its history would lose
+  detail; EXF-562 (grid colours) while EXF-489 edits `plan-grid.css` and EXF-483 holds the shell.
+- Flow tests after the accounts Deploy and the Assigned merge: flows 1 (in part), 9, 10 and 11.
+- Review cadence: Build 0 since this review; Deploy 5; Discover 2.
+- Ticket writes this round: 6 (two states, two comments, two links).
