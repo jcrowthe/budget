@@ -1656,3 +1656,23 @@ a shell. Start EXF-481 when EXF-561 merges.
 **Backlog:** 92 open feature tickets (2 in progress: EXF-511, EXF-487). Gap: EXF-561 (in progress), EXF-558
 (High), EXF-454 and EXF-560 (Low). Template: nine. Finished since each template's last review: Build 6,
 Deploy 4, Discover 2, Test user flow 0. Next review is round 20: a check-in.
+
+### 2026-11-15 · Plan round 20
+
+Children used 30 of 200. Three Builds are running, started in rounds 18 and 19: EXF-511 (targets engine),
+EXF-561 (derived test lists) and EXF-487 (Plan grid). Nothing started this round.
+
+- No ticket was filed at the last review, so there is nothing to check.
+- EXF-561 and EXF-487 have no manifest yet (both in their first steps, a few minutes old); the estimates in
+  the round 19 plan stand. EXF-511's manifest is unchanged.
+- **Why nothing new:** every unblocked ticket that is left overlaps a running Build. EXF-481 (accounts) adds
+  routes and tools and waits for EXF-561; it will also hold `apps/web/src/shell/**`. EXF-468 (plan formats)
+  changes the `budgets` files that the grid Build edits for the default categories. EXF-558 edits
+  `playwright.config.ts` (always-overlap) and needs a moment with no other Build. Everything else is behind
+  the grid or accounts.
+- Main is live (`d7a3a40`); nothing merged since, so no Deploy.
+- No flow test yet: the live app has no grid, accounts or register, so a flow test would test a shell.
+- No discovery: 92 feature tickets are open.
+- Review cadence: Build 6, Deploy 4, Discover 2 finished since their last reviews; none is at 10.
+- The review of this round is the check-in. It should ask the person again to open
+  https://budget.doxen.dev in their own browser (the live clone held no plan before the Deploy's test plan).
