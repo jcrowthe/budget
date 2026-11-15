@@ -270,6 +270,15 @@ describe("leftover rules and before creation", () => {
     expect(t(d, NOV, { L: 50000 }).to_go_this_month).toBe(50000);
     expect(t(d, DEC, { L: 50000 }).to_go_this_month).toBe(100000);
   });
+  it("balance by a month counts the leftover in a future month", () => {
+    const d = def({
+      cadence: "custom",
+      behavior: "balance",
+      amount: 600000,
+      due_month: "2027-04-01",
+    });
+    expect(t(d, DEC, { L: 50000 }).needed_this_month).toBe(110000);
+  });
   it("no target before the month it was created", () => {
     expect(run(def({}), "2026-10-01")).toBeNull();
   });
