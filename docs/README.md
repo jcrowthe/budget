@@ -7,3 +7,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Scaffold polish](scaffold-polish.md): Designer polish list for the shell, with applied status
 - [Profile completion design](profile-completion-design.md): clone.profile.json keys for Deploy, Discover and Test-flow; deploy phases, migrations-pending and live-test-plans scripts (spec: [profile-completion-spec.md](profile-completion-spec.md))
 - [Worker hardening design](worker-hardening-design.md): EXF-453 HKDF secrets key, Worker-side Access identity pin, idempotency retry tests (spec: [worker-hardening-spec.md](worker-hardening-spec.md))
+- [Source URL design](source-url-design.md): EXF-458 source.url points at the Test Budget plan; profile test pins it; source check matches by host (spec: [source-url-spec.md](source-url-spec.md))

@@ -6,6 +6,9 @@ const raw = readFileSync(`${root}clone.profile.json`, "utf8");
 // biome-ignore lint/suspicious/noExplicitAny: the profile is free-form JSON
 const profile: any = JSON.parse(raw);
 
+// The YNAB plan "Test Budget": the only source plan a child may open.
+const TEST_PLAN_ID = "542b334b-696e-4418-937a-5e2c21a8b45c";
+
 const REQUIRED = [
   ..."install check e2e_full e2e_specs repeat_flag deploy deploy_phases migrations_pending workers_flag dev"
     .split(" ")
@@ -44,6 +47,13 @@ describe("clone.profile.json", () => {
     expect(v, path).not.toBeNull();
     expect(v, path).not.toBe("");
     if (Array.isArray(v)) expect(v.length, path).toBeGreaterThan(0);
+  });
+
+  it("points source.url at the Test Budget plan only", () => {
+    // The bare site opens whichever plan was used last, which may hold private data.
+    expect(profile.source.url).toMatch(new RegExp(`^https://app\\.ynab\\.com/${TEST_PLAN_ID}/`));
+    expect(profile.source.url).toContain(TEST_PLAN_ID);
+    expect(profile.live.source_test_space).toContain(profile.source.url);
   });
 
   it("has the expected values", () => {
