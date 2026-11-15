@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useMatch } from "react-router";
+import { useAccounts } from "../api/accounts";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { AccountsIcon, CaretIcon, Logo, PlanIcon, PlusCircleIcon, ReflectIcon } from "./icons";
 import { NewPlanDialog } from "./NewPlanDialog";
@@ -12,6 +13,7 @@ import {
   planPath,
   reflectPath,
 } from "./planPaths";
+import { SidebarAccounts } from "./SidebarAccounts";
 import { pickLastOpened, useCurrentPlan } from "./useCurrentPlan";
 
 export function Sidebar() {
@@ -21,6 +23,8 @@ export function Sidebar() {
   const [menu, setMenu] = useState(false);
   const [newPlan, setNewPlan] = useState(false);
   const [addAccount, setAddAccount] = useState(false);
+  const accounts = useAccounts(plan?.id);
+  const accountList = accounts.data ?? [];
   // Links never point at an unknown id: the open plan, else the last-opened one, else "/".
   // While the plan list loads, keep the id from the URL so an early click cannot jump to another plan.
   const target = plan?.id ?? (isLoading ? budgetId : undefined) ?? pickLastOpened(plans)?.id;
@@ -64,10 +68,15 @@ export function Sidebar() {
           All Accounts
         </NavLink>
       </div>
-      <div className="accounts-card">
-        <h5>No Accounts</h5>
-        <p>You can't plan without adding accounts first. How about adding one now?</p>
-      </div>
+      {plan && accountList.length > 0 ? (
+        <SidebarAccounts budgetId={plan.id} accounts={accountList} />
+      ) : null}
+      {!plan || (accounts.isSuccess && accountList.length === 0) ? (
+        <div className="accounts-card">
+          <h5>No Accounts</h5>
+          <p>You can't plan without adding accounts first. How about adding one now?</p>
+        </div>
+      ) : null}
       <button type="button" className="add-account" onClick={() => setAddAccount(true)}>
         <PlusCircleIcon />
         Add Account

@@ -356,7 +356,7 @@ a {
   cursor: default;
 }
 .dialog-backdrop.top {
-  align-items: flex-start;
+  align-items: center;
   padding: 32px 0 64px;
 }
 .dialog.modal {
@@ -414,4 +414,273 @@ a {
 .error {
   color: var(--statusNegative);
   margin: var(--space-2) 0 0;
+}
+
+.nav-accounts {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.nav-account-group {
+  padding-top: var(--space-2);
+}
+.nav-account-group h6 {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  margin: 0 calc(5px + var(--sidebar-resizer)) var(--space-1) var(--space-2);
+  padding-left: 28px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.36px;
+  color: var(--labelPrimary);
+}
+.nav-account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 32px;
+  margin: 0 calc(5px + var(--sidebar-resizer)) var(--space-1) var(--space-2);
+  padding: 0 calc(var(--space-3) + 20px) 0 var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--labelPrimary);
+  text-decoration: none;
+}
+.nav-account-row:hover {
+  background: var(--sidebarHover);
+}
+.nav-account-row.active {
+  background: var(--sidebarActive);
+}
+.nav-account-row .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 32px;
+}
+.nav-account-row .value {
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+/* Dark theme: the negative balance is red text on no fill (source measured on its own .negative class). */
+.nav-account-row .value.negative {
+  padding: 2px 6px;
+  border-radius: 1000px;
+  background: transparent;
+  color: var(--labelNegative);
+  margin: 0 -0.265rem 0.2em 0.5rem;
+}
+
+.dialog.account-modal {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height);
+  display: flex;
+  flex-direction: column;
+  height: min(700px, calc(100vh - 96px));
+}
+.dialog.modal .icon-button.back {
+  right: auto;
+  left: 0;
+}
+.account-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-3) 0;
+}
+.account-modal-footer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--borderSubtle);
+}
+.account-modal-footer button {
+  flex: 1;
+  margin: 0;
+}
+.large {
+  width: 100%;
+  height: 48px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.secondary.large {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.primary.large:disabled {
+  background: var(--menuHover);
+  color: var(--labelTertiary);
+  opacity: 1;
+}
+.primary.large:not(:disabled):hover {
+  background: var(--actionPrimary);
+}
+.account-modal .intro {
+  margin: 0.3rem 0 var(--space-3);
+}
+.account-modal .intro strong {
+  font-weight: 600;
+}
+.account-modal .dialog-head {
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.account-modal .icon-button {
+  color: var(--actionPrimary);
+}
+.account-modal label,
+.account-modal .label {
+  display: block;
+  margin: 0 0 var(--space-1);
+  padding: 0.3em 0 0.1em;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.account-field {
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  margin-bottom: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--inputBorderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--inputBackground);
+}
+.account-field:focus {
+  outline: none;
+  border-color: var(--actionPrimary);
+}
+.account-field.select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-3);
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+.account-field.select svg {
+  width: 16px;
+  height: 16px;
+  padding: 3.2px;
+  flex: none;
+  color: var(--actionPrimary);
+}
+.field-error {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--labelNegative);
+}
+.type-group {
+  margin-bottom: var(--space-3);
+}
+.type-group h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+.type-group p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelSecondary);
+}
+.type-tile {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 56px;
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.type-tile:hover:not(:disabled) {
+  background: var(--menuHover);
+}
+.type-tile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.account-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: var(--space-4);
+}
+.account-success svg {
+  width: 64px;
+  height: 64px;
+  color: var(--statusPositive);
+}
+.account-success h3 {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--font-size-xl);
+}
+.account-success p {
+  margin: 0;
+  color: var(--labelSecondary);
+}
+.account-header {
+  box-sizing: border-box;
+  padding: var(--space-3);
+  background: var(--backgroundSecondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.account-header h1 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+.account-badge {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--labelSecondary);
+}
+.account-balances {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--backgroundSecondary);
+}
+.account-balance {
+  display: flex;
+  flex-direction: column;
+}
+.account-balance .amount {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--statusPositive);
+}
+.account-balance .label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--labelSecondary);
+}
+.account-balances .operator {
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--labelSecondary);
 }

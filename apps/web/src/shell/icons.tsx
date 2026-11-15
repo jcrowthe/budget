@@ -65,3 +65,21 @@ export const Logo = (p: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+export const ChevronLeftIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M15.4 4.6 14 3.2 5.2 12 14 20.8l1.4-1.4L8 12z" />
+  </svg>
+);
+export const CaretRightIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" width="12" height="12" aria-hidden="true" {...p}>
+    <path d="M2 0v12l8-6z" />
+  </svg>
+);
+export const CheckCircleIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.6 14.4L6 12l1.4-1.4 3 3 6.2-6.2L18 8.8z"
+    />
+  </svg>
+);

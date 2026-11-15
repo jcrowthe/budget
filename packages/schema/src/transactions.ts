@@ -4,7 +4,7 @@ import { Milliunits } from "./common/money";
 
 // Repeats core's CLEARED_STATUSES; a Worker test asserts they are equal.
 /** True only for a real calendar date: "2026-02-30" and "2026-13-05" round-trip to a different string. */
-function isCalendarDate(s: string): boolean {
+export function isCalendarDate(s: string): boolean {
   const d = new Date(`${s}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
