@@ -4,6 +4,7 @@ import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as repo from "../repositories/budgets";
+import { defaultCategoryStmts } from "./default-categories";
 
 export function toApi(row: repo.BudgetRow): Budget {
   return {
@@ -50,7 +51,7 @@ export async function createBudget(env: Env, actor: string, input: BudgetCreate)
     before: null,
     after: toApi(row),
   });
-  await db.batch([...batch]);
+  await db.batch([...batch, ...defaultCategoryStmts(db, row.id, actor, now)]);
   return toApi(row);
 }
 

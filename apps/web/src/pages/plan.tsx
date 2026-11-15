@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, useParams } from "react-router";
+import { PlanGrid } from "../plan/PlanGrid";
 import { PageHeader } from "../shell/PageHeader";
 import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
@@ -21,10 +22,13 @@ function PlanPage() {
     timeZone: "UTC",
   });
   return (
-    <>
+    <div className="plan-page">
       <PageHeader variant="plan" title={title} />
-      <div className="page-body" />
-    </>
+      <div className="plan-body">
+        <PlanGrid budgetId={budgetId} month={month} />
+        <aside className="plan-inspector" aria-label="Inspector" />
+      </div>
+    </div>
   );
 }
 

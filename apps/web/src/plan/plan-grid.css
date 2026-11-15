@@ -1,0 +1,438 @@
+/* Colours the grid needs that tokens.css does not have yet. A later Build moves them into tokens.css. */
+:root {
+  --separatorStandard: rgba(255, 255, 255, 0.1);
+  --labelHeading: #f1f1ff;
+  --labelAction: #a3acff;
+  --actionPrimaryDisabled: #383ca3;
+  --labelWarning: #daac00;
+  --segmentedTrack: rgba(114, 116, 132, 0.32);
+  --categoryBalanceZeroLabel: #9b9caa;
+  --categoryBalancePositiveLabel: #0c0d22;
+  --categoryBalancePositiveHover: #508316;
+  --categoryBalanceNegativeLabel: #fff;
+  --categoryBalanceNegativeHover: #912333;
+  --budgetBarFundedSpending: #346011;
+  --budgetBarFundedSpendingStripe: #1d300d;
+  --budgetBarOverspending: #912333;
+  --budgetBarOverspendingStripe: #4c0814;
+}
+
+.plan-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.plan-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.plan-grid {
+  flex: 1;
+  min-width: 562px;
+  overflow-y: auto;
+  --num-col: 18%;
+}
+.plan-grid.bars-on {
+  --num-col: 15%;
+}
+.plan-inspector {
+  flex: none;
+  width: 442px;
+  border-left: 1px solid var(--separatorStandard);
+}
+
+.grid-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 48px;
+  padding-left: var(--space-2);
+  background: var(--backgroundSecondary);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--labelAction);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.toolbar-button svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.toolbar-button:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackground);
+}
+.toolbar-button:disabled {
+  color: var(--actionPrimaryDisabled);
+  cursor: default;
+}
+.segmented {
+  display: flex;
+  margin: 0 16px 0 auto;
+  padding: 2px;
+  border-radius: var(--radius-lg);
+  background: var(--segmentedTrack);
+}
+.segmented button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--inputBorder);
+  cursor: pointer;
+}
+.segmented button svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.segmented button[aria-selected="true"] {
+  background: var(--backgroundTertiary);
+  outline: 1px solid var(--borderSubtle);
+  color: var(--categoryBalanceZeroLabel);
+}
+
+.grid-row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: var(--font-size-sm);
+}
+.cell-margin:first-child {
+  flex: none;
+  width: 14px;
+}
+.cell-margin:last-child {
+  flex: none;
+  width: 16px;
+}
+.cell-collapse {
+  flex: none;
+  width: 16px;
+  display: flex;
+  align-items: center;
+}
+.cell-checkbox {
+  flex: none;
+  box-sizing: border-box;
+  width: 27px;
+  padding: 0 2px 0 8px;
+  display: flex;
+  align-items: center;
+}
+.cell-name {
+  flex: 1;
+  min-width: 0;
+  padding-left: 6px;
+}
+.num,
+.cell-assigned,
+.cell-activity,
+.cell-available {
+  flex: none;
+  box-sizing: border-box;
+  width: var(--num-col);
+  text-align: right;
+}
+.cell-assigned {
+  padding: 0 0 0 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+.cell-activity {
+  padding: 0 2px 0 6px;
+}
+.cell-available {
+  padding: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.header-row {
+  height: 40px;
+  background: var(--backgroundPrimary);
+  border-bottom: 1px solid var(--separatorStandard);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.header-row strong {
+  font-weight: 500;
+}
+.header-row .cell-available strong {
+  font-weight: 700;
+}
+/* Header and group rows: the source's paddings differ from the category rows' (measured from the row's right edge) */
+.header-row .cell-assigned,
+.group-row .cell-assigned {
+  padding: 0 var(--space-1) 0 16px;
+}
+.header-row .cell-activity {
+  padding: 0 0 0 6px;
+}
+.header-row .cell-available,
+.group-row .cell-available {
+  padding: 0 6px 0 16px;
+}
+
+.collapse-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelSecondary);
+  cursor: pointer;
+}
+.collapse-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.checkbox-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 3px;
+}
+.checkbox[aria-checked="true"] .checkbox-box {
+  border-color: var(--actionPrimary);
+  background: var(--actionPrimary);
+}
+.checkbox-box svg {
+  width: 11px;
+  height: 11px;
+}
+
+.group-row {
+  height: 40px;
+  background: var(--backgroundSecondary);
+  color: var(--labelHeading);
+}
+.group-row .cell-name,
+.category-row .cell-name {
+  padding-left: 2px;
+}
+.group-row .cell-name {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.group-name {
+  padding: 0 4px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.add-category {
+  display: flex;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  opacity: 0;
+  cursor: pointer;
+}
+.add-category svg {
+  width: 14px;
+  height: 14px;
+}
+.add-category:hover svg {
+  color: var(--labelAction);
+}
+.group-row:hover .add-category,
+.add-category:focus-visible {
+  opacity: 1;
+}
+.group-row .num {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.category-row {
+  position: relative;
+  height: 36px;
+  background: var(--backgroundPrimary);
+  border-top: 1px solid var(--separatorStandard);
+  color: var(--labelPrimary);
+}
+.bars-on .category-row {
+  height: 44px;
+}
+.category-name {
+  min-width: 0;
+  padding: 2px 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bars-on .category-name {
+  font-size: var(--font-size-md);
+}
+.name-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 20px;
+}
+.status-label {
+  flex: none;
+  padding-right: 4px;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.uncategorized-row .category-name {
+  color: var(--labelWarning);
+}
+.amount {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.amount.zero {
+  color: var(--labelSecondary);
+}
+.assigned-box {
+  box-sizing: border-box;
+  width: 116px;
+  height: 24px;
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  text-align: right;
+}
+.cell-activity {
+  text-align: right;
+}
+
+.available-pill {
+  display: flex;
+  align-items: center;
+  padding: 4px 7px 2px;
+  border: 0;
+  border-radius: 1000px;
+  font: inherit;
+  line-height: 16px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.available-pill.zero {
+  background: var(--inputBackground);
+  color: var(--categoryBalanceZeroLabel);
+}
+.available-pill.positive {
+  background: var(--statusPositive);
+  color: var(--categoryBalancePositiveLabel);
+}
+.available-pill.positive:hover:not(:disabled) {
+  background: var(--categoryBalancePositiveHover);
+}
+.available-pill.negative {
+  background: var(--statusNegative);
+  color: var(--categoryBalanceNegativeLabel);
+}
+.available-pill.negative:hover:not(:disabled) {
+  background: var(--categoryBalanceNegativeHover);
+}
+.available-pill:disabled {
+  cursor: default;
+}
+
+.progress-bar {
+  margin: var(--space-1);
+  padding: 0;
+}
+.progress-track {
+  display: flex;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--inputBackground);
+}
+.progress-segment {
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+.progress-segment[data-kind="funded"] {
+  background: var(--statusPositive);
+}
+.progress-segment[data-kind="spent"] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--budgetBarFundedSpending),
+    var(--budgetBarFundedSpending) 5px,
+    var(--budgetBarFundedSpendingStripe) 5px,
+    var(--budgetBarFundedSpendingStripe) 6px
+  );
+}
+.progress-segment[data-kind="overspent"] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--budgetBarOverspending),
+    var(--budgetBarOverspending) 5px,
+    var(--budgetBarOverspendingStripe) 5px,
+    var(--budgetBarOverspendingStripe) 6px
+  );
+}
+
+.grid-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  color: var(--labelSecondary);
+}
