@@ -505,3 +505,23 @@ finished Threads of another clone in this organization that runs the same templa
 
 **Next plan, once the profile fix has merged:** one Deploy (`expect_commit` = the fix's merge commit) and one
 Discover first; when both pass their profile step, the other eight Discover areas; then EXF-453.
+
+### 2026-11-15 · Review round 2
+
+Children used 7 of 200. One is running: the profile-fix Build (`p_e9bdeb6d31de438a81905eeaec90f8c8`), on
+course, no manifest yet. It is the only Build, so the scheduling rule has nothing to check.
+
+**What ended since the last review** (all already read and acted on in plan round 2):
+
+- Deploy `p_29df4df509e0410592bdd63ec05be67e`: refused at the profile check. No live URL, no DEPLOY_SHA,
+  nothing shipped. For the next plan: start it again after the profile fix merges, with `expect_commit` set
+  to that merge commit and no `gated_commit` unless the fix's gated head still equals the tree.
+- Discover `p_17cd…`, `p_5d12…`, `p_1de9…` (areas 1 to 3): failed at `load_profile`, no tickets, nothing to
+  triage. Start them again with the same inputs after the fix merges.
+- Build `p_bed2…` for EXF-453: abandoned (my cancel). No branch or pull request to resume; a fresh Build
+  later. EXF-453 stays in Backlog, commented.
+
+**Backlog:** EXF-453 (High, hardening) and EXF-454 (Low, shell polish, blocked by EXF-453). No
+`clone:feature` tickets: discovery has not run yet. No tickets filed this review.
+
+**Waiting on:** the profile-fix Build's approval card.
