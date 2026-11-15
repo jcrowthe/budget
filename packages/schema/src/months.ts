@@ -75,7 +75,7 @@ export const MonthCategory = z
   .openapi("MonthCategory");
 
 /** A month input, with the year bounded so a stray 0000-01-01 cannot make the read model span thousands of months. */
-const InputMonth = Month.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199");
+export const InputMonth = Month.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199");
 
 export const AssignedSet = z
   .object({ budget_id: z.uuid(), month: InputMonth, category_id: z.uuid(), assigned: Milliunits })
@@ -97,9 +97,32 @@ export const MoneyMove = z
   })
   .openapi("MoneyMove");
 
+/** Generous cap: the source has no limit on a month note. */
+export const MONTH_NOTE_MAX = 5000;
+
 export const MonthNoteSet = z
-  .object({ budget_id: z.uuid(), month: InputMonth, note: z.string().max(500).nullable() })
+  .object({
+    budget_id: z.uuid(),
+    month: InputMonth,
+    note: z.string().max(MONTH_NOTE_MAX).nullable(),
+  })
   .openapi("MonthNoteSet");
+
+export const MonthNoteUpdate = z
+  .object({ note: z.string().max(MONTH_NOTE_MAX).nullable() })
+  .openapi("MonthNoteUpdate");
+
+export const MonthNote = z
+  .object({ month: Month, note: z.string().nullable() })
+  .openapi("MonthNote");
+
+export const MonthNoteResponse = dataEnvelope(MonthNote).openapi("MonthNoteResponse");
+
+export const MonthRange = z
+  .object({ first_month: Month, last_assigned_month: Month.nullable() })
+  .openapi("MonthRange");
+
+export const MonthRangeResponse = dataEnvelope(MonthRange).openapi("MonthRangeResponse");
 
 export type RtaBreakdown = z.infer<typeof RtaBreakdown>;
 export type MonthCategoryDetail = z.infer<typeof MonthCategoryDetail>;
@@ -110,3 +133,6 @@ export type MonthCategory = z.infer<typeof MonthCategory>;
 export type AssignedSet = z.infer<typeof AssignedSet>;
 export type MoneyMove = z.infer<typeof MoneyMove>;
 export type MonthNoteSet = z.infer<typeof MonthNoteSet>;
+export type MonthNoteUpdate = z.infer<typeof MonthNoteUpdate>;
+export type MonthNote = z.infer<typeof MonthNote>;
+export type MonthRange = z.infer<typeof MonthRange>;

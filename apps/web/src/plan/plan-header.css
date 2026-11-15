@@ -1,0 +1,249 @@
+/* Colours the shell tokens lack yet: the source's names and dark values (as plan-grid.css does). */
+:root {
+  --actionPrimaryActive: #a3acff;
+  --actionPrimaryDisabled: #383ca3;
+  --separatorStandard: rgba(255, 255, 255, 0.1);
+  --backgroundPrimaryElevated: #1f2038;
+  --backgroundSecondaryElevated: #292b3d;
+  --buttonPrimaryBackgroundActive: #7583ff;
+  --buttonSecondaryBackgroundActive: rgba(117, 131, 255, 0.27);
+}
+
+.plan-header {
+  padding: 0;
+  position: relative;
+  z-index: 10;
+}
+.plan-header-calendar {
+  display: flex;
+  align-items: center;
+  flex: 0 0 30%;
+  padding: var(--space-2);
+  position: relative;
+}
+.plan-header-totals {
+  flex: 0 1 auto;
+}
+
+.month-arrow {
+  width: 40px;
+  height: 30px;
+  line-height: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.month-arrow svg {
+  margin-left: 4px;
+}
+.month-arrow:hover:not(:disabled) {
+  color: var(--actionPrimaryActive);
+}
+.month-arrow:disabled {
+  color: var(--actionPrimaryDisabled);
+  cursor: default;
+}
+
+.plan-header-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--space-2);
+  text-align: center;
+}
+.plan-header h1 {
+  margin: 0;
+  line-height: 75%;
+}
+.month-button {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.month-button svg {
+  margin-left: 4px;
+  color: var(--actionPrimary);
+}
+.month-button:hover svg {
+  color: var(--actionPrimaryActive);
+}
+.month-note {
+  display: block;
+  width: 100%;
+  max-width: 7rem;
+  padding: 2px 0 0;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height);
+  color: var(--labelSecondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  cursor: pointer;
+}
+.month-note:hover {
+  text-decoration: underline;
+}
+
+.today-button {
+  margin-left: var(--space-3);
+  min-height: 32px;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.today-button:hover {
+  background: var(--buttonSecondaryBackgroundActive);
+}
+
+.month-picker,
+.month-note-popover {
+  position: absolute;
+  width: 224px;
+  box-sizing: border-box;
+  background: var(--backgroundPrimaryElevated);
+  border-radius: 6.4px;
+  box-shadow: var(--shadowMenu);
+  z-index: 1;
+  color: var(--labelPrimary);
+}
+.popover-arrow {
+  position: absolute;
+  top: -15px;
+  left: calc(50% - 15px);
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 15px solid var(--backgroundPrimaryElevated);
+}
+
+.month-picker-years {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 12.8px;
+  padding: 4.8px 0;
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.month-picker-year {
+  font-size: 17.6px;
+  font-weight: 700;
+}
+.month-picker-year-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--actionPrimaryActive);
+  cursor: pointer;
+}
+.month-picker-year-nav:hover {
+  background: var(--buttonSecondaryBackground);
+}
+.month-picker-months {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 204px;
+  margin: 4.8px 10px;
+}
+.picker-month {
+  width: 46.75px;
+  height: 40.66px;
+  box-sizing: border-box;
+  margin: 2px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.picker-month:hover:not(:disabled) {
+  background: var(--backgroundSecondaryElevated);
+}
+.picker-month.is-current {
+  background: var(--backgroundSecondaryElevated);
+  color: var(--actionPrimary);
+}
+.picker-month.is-selected {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.picker-month.is-selected:hover:not(:disabled) {
+  background: var(--actionPrimaryActive);
+}
+.picker-month:disabled {
+  background: transparent;
+  color: var(--labelTertiary);
+  cursor: default;
+}
+
+.month-note-content {
+  padding: 12.24px 12.24px 0;
+}
+.month-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  min-height: 32px;
+  max-height: 168px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: 500 var(--font-size-sm) var(--font);
+  resize: vertical;
+  outline: none;
+}
+.month-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12.24px;
+  padding-top: 0;
+}
+.month-note-ok {
+  min-height: 32px;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.month-note-ok:hover {
+  background: var(--buttonPrimaryBackgroundActive);
+}
