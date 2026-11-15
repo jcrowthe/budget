@@ -42,8 +42,7 @@ describe("repository hygiene", () => {
   // Profile-completion design doc, Acceptance case 15.
   describe("profile-completion scope", () => {
     const BASE = "2d82719";
-    const git = (...args: string[]) =>
-      execFileSync("git", args, { cwd: root, encoding: "utf8" });
+    const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" });
     let hasBase = true;
     try {
       git("cat-file", "-e", `${BASE}^{commit}`);
