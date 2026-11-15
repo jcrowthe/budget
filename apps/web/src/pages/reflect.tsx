@@ -11,18 +11,21 @@ export const REPORTS = {
   "age-of-money": "Age Of Money",
 } as const;
 
-function ReflectPage() {
-  const { budgetId = "", report } = useParams();
-  const title = report && report in REPORTS ? REPORTS[report as keyof typeof REPORTS] : "";
+function ReportPage({ title }: { title: string }) {
   usePageTitle(title);
-  if (!report) return <Navigate replace to={reflectPath(budgetId, "spending-breakdown")} />;
-  if (!title) return <Navigate replace to={planPath(budgetId)} />;
   return (
     <>
       <PageHeader variant="reflect" title="Reflect" />
       <div className="page-body" />
     </>
   );
+}
+
+function ReflectPage() {
+  const { budgetId = "", report } = useParams();
+  if (!report) return <Navigate replace to={reflectPath(budgetId, "spending-breakdown")} />;
+  if (!Object.hasOwn(REPORTS, report)) return <Navigate replace to={planPath(budgetId)} />;
+  return <ReportPage title={REPORTS[report as keyof typeof REPORTS]} />;
 }
 
 export const page = { path: "/:budgetId/reflect/:report?", element: <ReflectPage /> };

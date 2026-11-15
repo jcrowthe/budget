@@ -188,10 +188,9 @@ export const router = createBrowserRouter([{ element: <AppShell />, children: [.
 
 **`pages/account.tsx`** (new) has the path `"/:budgetId/accounts/:accountId"`.
 
-- Call `usePageTitle("Account Not Found")`.
-- Render `<PageHeader variant="accounts" title="Account not found" />`, then a `page-body` containing
-  `<div className="card"><h2>Account not found</h2><Link to={accountsPath(budgetId)}>All Accounts</Link></div>`.
-- Add a comment: EXF-481 replaces this with the register; an unknown id keeps this state.
+- Return `<Navigate replace to={accountsPath(budgetId)} />` for every id (polish P1: the source replaces an
+  unknown account with All Accounts). No title hook, no card.
+- Add a comment: EXF-481 renders the register for a known id.
 
 **`pages/reflect.tsx`** has the path `"/:budgetId/reflect/:report?"`.
 
@@ -252,14 +251,14 @@ design:
   1. `const resp = page.waitForResponse(r => r.url().endsWith("/api/v1/budgets") && r.request().method() === "GET")`,
      then `page.goto("/")`.
   2. Find `X = argmax(last_opened_at)` in `(await (await resp).json()).data.budgets`.
-  3. Expect the URL to be `/${X.id}/budget/M`, and expect A's `last_opened_at` in that response to be
+  3. Expect the URL to be `/${X.id}/budget`, and expect A's `last_opened_at` in that response to be
      non-null.
 
 **`e2e/shell.spec.ts`**:
 
 - After clicking Reflect, expect the URL `/${id}/reflect/spending-breakdown` and the title
   `Spending Breakdown | ${name} | Budget`.
-- The Plan link `active` check stays (it now holds on `/budget/M`).
+- The Plan link `active` check stays (it holds on `/budget` and `/budget/M`).
 
 **`e2e/plans.spec.ts`**:
 

@@ -179,10 +179,9 @@ step is still there after it. Compare cases name the source state to open live i
 on the Test Budget plan: replace `<id>` with `542b334b-696e-4418-937a-5e2c21a8b45c`, compare titles with
 `Budget` in place of `YNAB`, and compare the URL path pattern.
 
-1. **Plan URL (compare).** Hard-load `/<id>/budget`. The URL becomes `/<id>/budget/M`, history gains no extra
+1. **Plan URL (compare).** Hard-load `/<id>/budget`. The URL stays `/<id>/budget`, history gains no extra
    entry, the title is `Plan | <name> | Budget`, the header shows the month (`Nov 2026`), and the sidebar
-   Plan link is active. Source: `/budget`, title `Plan | Test Budget | YNAB` (the URL difference is
-   kept, as difference 1).
+   Plan link is active. Source: `/budget`, title `Plan | Test Budget | YNAB`.
 2. **Month URLs.**
    - Hard-load `/<id>/budget/M+1`: the URL stays, and the header shows that month.
    - Hard-load each of `/<id>/budget/abcdef`, `/202613` and `/2026`: the URL is replaced with
@@ -191,11 +190,9 @@ on the Test Budget plan: replace `<id>` with `542b334b-696e-4418-937a-5e2c21a8b4
 3. **All Accounts (compare).** Hard-load `/<id>/accounts`: the title is `All Accounts | <name> | Budget`,
    and the All Accounts link is active. Source: `/accounts`, same pattern.
 4. **Account route.** Hard-load `/<id>/accounts/00000000-0000-0000-0000-000000000000`:
-   - The URL stays.
-   - The sidebar shows the plan.
-   - The main area shows "Account not found" with a link "All Accounts" that goes to `/<id>/accounts`.
-   - The title is `Account Not Found | <name> | Budget`.
-   - **No** sidebar link is active.
+   - The URL is replaced with `/<id>/accounts` (as in the source; polish P1).
+   - The sidebar shows the plan, and the All Accounts link is active.
+   - The title is `All Accounts | <name> | Budget`. There is no not-found card.
 5. **Reflect (compare).** Hard-load `/<id>/reflect`: the URL is replaced with
    `/<id>/reflect/spending-breakdown`, and the title is `Spending Breakdown | <name> | Budget`. Hard-load
    each of the other reports; the URL stays and the title matches:
@@ -207,18 +204,19 @@ on the Test Budget plan: replace `<id>` with `542b334b-696e-4418-937a-5e2c21a8b4
    | `income-expense` | `Income v Expense Report \| …` |
    | `age-of-money` | `Age Of Money \| …` |
 
-   Reflect is active on each. `/<id>/reflect/foo` is replaced with `/<id>/budget/M`. Source: the same report
+   Reflect is active on each. `/<id>/reflect/foo` (and `/reflect/constructor`) is replaced with `/<id>/budget`. Source: the same report
    URLs and titles.
 6. **Hard reload.** On each URL from cases 1 to 5, `page.reload()` renders the same screen and title.
 7. **Unknown sub-paths.** Hard-load `/<id>`, `/<id>/nonexistent` and `/<id>/budget/M/extra`: each ends at
-   `/<id>/budget/M`.
+   `/<id>/budget`.
 8. **History sequence (compare).**
    1. Hard-load `/<id>/budget/M` and set the marker.
    2. Click All Accounts, then go in-app to `/<id>/accounts/<made-up id>`. There is no account row yet, so the
-      test pushes it through the history API; see the spec.
+      test pushes it through the history API; it is replaced with `/accounts` (polish P1), leaving two
+      `/accounts` entries.
    3. Click Reflect, which lands on `/reflect/spending-breakdown`.
-   4. Press Back 3 times. The steps are the account (`Account Not Found | …`), then `/accounts`
-      (`All Accounts | …`), then `/budget/M` (`Plan | …`).
+   4. Press Back 3 times. The steps are `/accounts` (`All Accounts | …`), `/accounts` again (the pushed
+      entry that was replaced), then `/budget/M` (`Plan | …`).
    5. Press Forward once: `/accounts` and `All Accounts | …`.
 
    The plan name is kept at every step and the marker survives. Source: the same sequence from Plan.
@@ -249,9 +247,9 @@ on the Test Budget plan: replace `<id>` with `542b334b-696e-4418-937a-5e2c21a8b4
     - Hard-load a deleted plan's id: the same result.
 13. **Root opens the last-opened plan.**
     1. Create A and B. Open `/<A>/budget`, then `/<B>/budget`, then `/<A>/budget`.
-    2. Hard-load `/`. It lands on `/<X>/budget/M`, where X is the plan with the greatest `last_opened_at` in
+    2. Hard-load `/`. It lands on `/<X>/budget`, where X is the plan with the greatest `last_opened_at` in
        the `GET /api/v1/budgets` response the page loaded; with this worker alone, that is A.
-    3. Switch to B with the plan menu's Open Plan submenu: the URL becomes `/<B>/budget/M`, and B's
+    3. Switch to B with the plan menu's Open Plan submenu: the URL becomes `/<B>/budget`, and B's
        `last_opened_at` (GET) is later than A's.
 14. **API.**
     - `PATCH /api/v1/budgets/<id>` with `{opened: true}` returns 200, with `last_opened_at` set within a few

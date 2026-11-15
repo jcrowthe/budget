@@ -98,8 +98,10 @@ test("C5 reflect and reports", async ({ page, request }) => {
     await expect(page).toHaveTitle(`${title} | ${name} | Budget`);
     await expect(page.getByRole("link", { name: "Reflect" })).toHaveClass(/active/);
   }
-  await page.goto(`/${id}/reflect/foo`);
-  await expect(page).toHaveURL(`/${id}/budget`);
+  for (const bad of ["foo", "constructor"]) {
+    await page.goto(`/${id}/reflect/${bad}`);
+    await expect(page).toHaveURL(`/${id}/budget`);
+  }
 });
 
 test("C6 hard reload keeps the screen and title", async ({ page, request }) => {
@@ -133,7 +135,7 @@ test("C8 history sequence without reload", async ({ page, request }) => {
   await mark(page);
   await side.getByRole("link", { name: "All Accounts" }).click();
   await expect(page).toHaveURL(`/${id}/accounts`);
-  // An unknown account is replaced in place, so it adds no entry of its own.
+  // The push adds an entry, which the unknown-account redirect replaces with /accounts: two /accounts entries.
   await inAppPush(page, `/${id}/accounts/${NO_ACCOUNT}`);
   await expect(page).toHaveURL(`/${id}/accounts`);
   await side.getByRole("link", { name: "Reflect" }).click();
@@ -142,7 +144,7 @@ test("C8 history sequence without reload", async ({ page, request }) => {
   await page.goBack();
   await expect(page).toHaveURL(`/${id}/accounts`);
   await expect(page).toHaveTitle(`All Accounts | ${name} | Budget`);
-  await page.goBack();
+  await page.goBack(); // the replaced account entry
   await page.goBack();
   await expect(page).toHaveURL(`/${id}/budget/${M}`);
   await expect(page).toHaveTitle(`Plan | ${name} | Budget`);
