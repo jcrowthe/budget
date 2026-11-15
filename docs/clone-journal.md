@@ -321,8 +321,8 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 3, Deploy 3, Test user flow 0,
-Discover 5. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
+Discover 7. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -337,9 +337,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | none | abandoned by me after 4 minutes: the Clerk never wrote `request.json`; changed nothing |
 | 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | [#3](https://github.com/jcrowthe/budget/pull/3) | merged as `43b7ce9` (25 minutes) |
 | 2026-11-15 | 6 | Deploy (`p_429e665e49e9450eb7137c91c53010db`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `43b7ce9` (5 minutes) |
-| 2026-11-15 | 6 | Discover, area 1 Plan screen (`p_2f3f00938c2b46abaf16bb38900ac39a`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 1 Plan screen (`p_2f3f00938c2b46abaf16bb38900ac39a`) | 15 tickets, EXF-485 to EXF-509 (interleaved) | none | completed (45 minutes) |
 | 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | none | none | running |
-| 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | EXF-481, 482, 483, 484, 486, 488, 490 | none | completed (38 minutes) |
 | 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
@@ -348,7 +348,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | EXF-468 to EXF-478, EXF-480 | none | completed (23 minutes), 12 tickets |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
 | 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341` (3 minutes) |
-| 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | pending | running |
+| 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | [#5](https://github.com/jcrowthe/budget/pull/5) | merged as `4f1fbb3` (17 minutes) |
+| 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | pending | running |
+| 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -996,3 +998,68 @@ configure Plaid's Data Transparency Messaging). No tickets filed.
 
 Totals so far: 22 children. Builds: 3 merged (scaffold, profile fix, EXF-453), 3 abandoned, 1 running.
 Deploys: 2 live, 1 refused. Discover: 2 completed (21 tickets), 3 failed at the profile step, 7 running.
+
+### 2026-11-15 · Plan round 11
+
+Children used 24 of 200. Running: two Builds started this round (EXF-485, EXF-475) and the Discover areas
+still exploring (2, 4, 6, 7, 8 at the start of the round; two more finished while I worked and are triaged at
+the review).
+
+**Ended since the check-in, handled here because Builds depended on it:**
+
+- EXF-458 merged as `4f1fbb3` (pull request #5); ticket Done. `source.url` is now the Test Budget URL, and
+  the source-tab check matches by host, so a tab on any Test Budget page passes. No template step can open
+  the bare site any more. Nothing to deploy from it (profile and a test only).
+- Discover area 1, Plan screen: 15 tickets. Discover area 3, accounts: 7 tickets. Both cleaned up their test
+  data.
+
+**Privacy incident, to tell the person plainly.** Area 1's sign-in check (a template step that ran before my
+notes reached the agent) opened the bare site and **landed on the Programmatik plan's Plan page**, not the
+Test Budget. The person allowed one account page of that plan and nothing else. The agent took the sign-in
+screenshot, then saw the plan was wrong, deleted the screenshot, moved the tab to the Test Budget and
+explored only there; its report says nothing from that plan is in any ticket or screenshot, and its artifact
+list has no sign-in screenshot. The page was in the agent's view for under a minute. Cause closed by EXF-458.
+Earlier I had believed every such open landed on the Test Budget; that was true for the later agents only
+because area 1 had by then moved the tab.
+
+**Triage (all set this round):**
+
+- Engine and grid (area 1): EXF-485 Urgent. High: EXF-487 grid (after 485); EXF-494 category CRUD, EXF-489
+  inline assign, EXF-491 Ready to Assign pill, EXF-493 month navigation (each after 487); EXF-492 move money
+  (after 489). Medium: EXF-495 hide (after 494), EXF-496 reorder (after 494), EXF-498 selection, EXF-500
+  view chips, EXF-509 Activity popover (after 487), EXF-504 Undo/Redo (after 489), EXF-506 Recent Moves
+  (after 492). Low: EXF-502 custom views (after 500).
+- Accounts (area 3): High: EXF-481 account resource and unlinked accounts (after 485), EXF-483 sidebar groups
+  and EXF-484 headers (after 481). Medium: EXF-482 loan types (after 481), EXF-486 edit dialog (after 483),
+  EXF-488 close, reopen, delete (after 486). Low: EXF-490 reorder (after 483).
+- Cross-area links added: EXF-459 (Plaid Link) after EXF-481; EXF-477 import and EXF-476 export after
+  EXF-485 and EXF-481.
+- No duplicates. Area 1 referenced EXF-472 and EXF-473 instead of duplicating them.
+- Open points from area 1's report, for the Builds: Ready to Assign totals were seen only as differences
+  (nine agents shared the plan); the earliest-month limit is inferred; Ctrl+Y is Redo, Ctrl+Shift+Z did
+  nothing; "Show all hidden categories" unhides everything.
+
+**Design decision for the foundation (mine, recorded on the tickets):** the engine Build (EXF-485) also
+creates the `accounts` and `transactions` tables, with the columns EXF-481 lists, because Activity and Ready
+to Assign read them and three tickets would otherwise each invent them. "Inflow: Ready to Assign" is a boolean
+on the transaction. In EXF-485 the writes are services with their history rows; their routes, tools and
+screens come with EXF-494, 489, 492, 493, 481 and the register tickets.
+
+**Started, and why these two together:**
+
+- EXF-485 (engine, core tables, months read model, MCP tool): Worker and `packages/core` only.
+- EXF-475 (plan-scoped URLs, titles, history, `last_opened_at`): web router and shell, plus the existing
+  `budgets` files and one migration.
+- Their manifests are disjoint as briefed: EXF-485 is told not to touch `apps/web/` or the `budgets` files;
+  EXF-475 is told not to touch `packages/core`, to add no API path (so only EXF-485 edits the OpenAPI path
+  list) and to record `last_opened_at` through the existing PATCH. Neither may edit an always-overlap file.
+  Check both manifests when they arrive.
+- Both briefs give the child its **own source tab** (a new tab whose id it stores) and say the browser is
+  shared.
+- Not started: EXF-468 (plan formats): it changes the `budgets` files and the shell, as EXF-475 does.
+
+**Ticket writes are rate limited: 60 per hour for this Thread.** I hit the limit at the end of this round.
+Not done, to do first next round: comment on EXF-485 with the Lead's scope notes; move EXF-475 to In Progress
+and comment with its child and scope notes. Rules from now on: set priority and blocking links in one call;
+triage a discovery report's High tickets first and leave Low ones for a later round; spend comments only
+where a Build needs them.
