@@ -351,7 +351,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | [#5](https://github.com/jcrowthe/budget/pull/5) | merged as `4f1fbb3` (17 minutes) |
 | 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | pending | running |
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
-| 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | none | none | running |
+| 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1317,3 +1317,27 @@ review (still filing; its four new tickets are not in the tracker yet).
 - Started nothing: every open High ticket waits on one of the two Builds; discovery is complete with 94
   tickets, so rule 3 (fewer than 5 open) does not apply; nothing new is merged to deploy.
 - Ticket writes still rate limited at 20:42 UTC.
+
+### 2026-11-15 · Review round 15
+
+Children used 25 of 200. Two are running: the Builds for EXF-485 and EXF-475.
+
+**What ended:** the Improve templates review of the Discover template, completed. Everything I approved was
+filed or posted, so nothing to file again:
+
+- EXF-554: the sign-in check gets the Lead's notes and opens a safe start URL.
+- EXF-555: a masking helper driven by the profile.
+- EXF-556: parallel children in one test space get a prefix and a write guard.
+- EXF-557: tickets carry structured dependencies and a suggested priority; the file action sets links.
+- Evidence comments on EXF-456 and EXF-479.
+
+Its figures for the seven completed Discover children: 85 tickets by its count (94 once areas 6 and 8 are
+included, which finished after it started), about $55 in total, explore steps of 14 to 40 minutes costing
+$2.00 to $11.44, none looped or needed help.
+
+**To set in the next plan** (ticket writes begin to free at about 20:45 UTC): EXF-554 and EXF-555 High (both
+are about the person's private data), EXF-556 and EXF-557 Medium. Then the writes owed since round 11, then
+the journal triage for areas 2, 7, 4, 6 and 8, High tickets first.
+
+**Backlog:** 94 feature tickets (43 triaged on the tickets, 51 in the journal); EXF-454; eight template
+tickets (EXF-455, 456, 457, 479, 554 to 557). No tickets filed this review.
