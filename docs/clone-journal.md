@@ -1480,5 +1480,5 @@ kept for the next plan's starts.
 One link differs from the journal tables on purpose: EXF-511 (targets engine) and EXF-532 (credit engine) are
 no longer blocked by EXF-485, since it merged; EXF-532 is blocked by EXF-481 only.
 
-**Backlog:** 93 open feature tickets (EXF-485 done), 81 triaged on the tickets, 13 Low still to set. Gap:
+**Backlog:** 93 open feature tickets (EXF-485 done), 80 triaged on the tickets, 13 Low still to set. Gap:
 EXF-454, EXF-558 (High). Template: nine. Next: EXF-481 (accounts) and EXF-487 (Plan grid) are unblocked.
