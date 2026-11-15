@@ -60,21 +60,21 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
               <strong>CATEGORY</strong>
             </div>
             <div
-              className="num"
+              className="num cell-assigned"
               role="columnheader"
               title="Add money to each category in this column. This is the fun part. Until the money runs out."
             >
               <strong>ASSIGNED</strong>
             </div>
             <div
-              className="num"
+              className="num cell-activity"
               role="columnheader"
               title={`It's the "We spent how much on WHAT?!" column.`}
             >
               <strong>ACTIVITY</strong>
             </div>
             <div
-              className="num"
+              className="num cell-available"
               role="columnheader"
               title="Do I have enough to buy that handmade didgeridoo? With this column, now you know."
             >

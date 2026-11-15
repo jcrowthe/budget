@@ -73,8 +73,8 @@
   cursor: pointer;
 }
 .toolbar-button svg {
-  width: 13px;
-  height: 13px;
+  width: 0.8rem;
+  height: 0.8rem;
 }
 .toolbar-button:hover:not(:disabled) {
   background: var(--buttonSecondaryBackground);
@@ -97,19 +97,19 @@
   box-sizing: border-box;
   height: 28px;
   padding: 4px 8px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--inputBorder);
   cursor: pointer;
 }
 .segmented button svg {
-  width: 13px;
-  height: 13px;
+  width: 0.8rem;
+  height: 0.8rem;
 }
 .segmented button[aria-selected="true"] {
   background: var(--backgroundTertiary);
-  border-color: var(--borderSubtle);
+  outline: 1px solid var(--borderSubtle);
   color: var(--categoryBalanceZeroLabel);
 }
 
@@ -157,15 +157,15 @@
   text-align: right;
 }
 .cell-assigned {
-  padding: 0 4px 0 16px;
+  padding: 0 0 0 16px;
   display: flex;
   justify-content: flex-end;
 }
 .cell-activity {
-  padding: 0 0 0 6px;
+  padding: 0 2px 0 6px;
 }
 .cell-available {
-  padding: 0 6px 0 16px;
+  padding: 0;
   display: flex;
   justify-content: flex-end;
 }
@@ -186,16 +186,19 @@
 .header-row strong {
   font-weight: 500;
 }
-.header-row .num:last-of-type strong {
+.header-row .cell-available strong {
   font-weight: 700;
 }
-.header-row .num:nth-of-type(1) {
-  padding: 0 4px 0 16px;
+/* Header and group rows: the source's paddings differ from the category rows' (measured from the row's right edge) */
+.header-row .cell-assigned,
+.group-row .cell-assigned {
+  padding: 0 var(--space-1) 0 16px;
 }
-.header-row .num:nth-of-type(2) {
+.header-row .cell-activity {
   padding: 0 0 0 6px;
 }
-.header-row .num:nth-of-type(3) {
+.header-row .cell-available,
+.group-row .cell-available {
   padding: 0 6px 0 16px;
 }
 
@@ -252,6 +255,10 @@
   background: var(--backgroundSecondary);
   color: var(--labelHeading);
 }
+.group-row .cell-name,
+.category-row .cell-name {
+  padding-left: 2px;
+}
 .group-row .cell-name {
   display: flex;
   align-items: center;
@@ -267,7 +274,7 @@
 }
 .add-category {
   display: flex;
-  padding: 0;
+  padding: 0 var(--space-1);
   border: 0;
   background: transparent;
   color: var(--actionPrimary);
@@ -311,9 +318,10 @@
 }
 .name-line {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-2);
+  height: 20px;
 }
 .status-label {
   flex: none;
@@ -347,10 +355,13 @@
 }
 
 .available-pill {
-  padding: 2px 7px;
+  display: flex;
+  align-items: center;
+  padding: 4px 7px 2px;
   border: 0;
   border-radius: 1000px;
   font: inherit;
+  line-height: 16px;
   font-size: var(--font-size-sm);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -379,13 +390,12 @@
 }
 
 .progress-bar {
-  margin: 0 4px;
+  margin: var(--space-1);
   padding: 0;
 }
 .progress-track {
   display: flex;
   height: 4px;
-  margin: 4px 0;
   overflow: hidden;
   border-radius: 16px;
   background: var(--inputBackground);

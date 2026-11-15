@@ -2,10 +2,9 @@
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are (EXF-498 adds keyboard selection)
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
 import { useState } from "react";
-import { PlusCircleIcon } from "../shell/icons";
 import { AvailablePill } from "./AvailablePill";
 import { barSegments, money, statusLabel } from "./format";
-import { CheckIcon, ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
+import { CheckIcon, ChevronDownIcon, ChevronRightSmallIcon, PlusCircleFillIcon } from "./icons";
 import { ProgressBar } from "./ProgressBar";
 
 /** Local visual state only: EXF-498 gives checkboxes their meaning. */
@@ -63,16 +62,16 @@ export function GroupRow({
           aria-label="Add Category"
           title="Add Category"
         >
-          <PlusCircleIcon />
+          <PlusCircleFillIcon />
         </button>
       </div>
-      <div className="num" role="cell">
+      <div className="num cell-assigned" role="cell">
         {money(g.assigned)}
       </div>
-      <div className="num" role="cell">
+      <div className="num cell-activity" role="cell">
         {money(g.activity)}
       </div>
-      <div className="num" role="cell">
+      <div className="num cell-available" role="cell">
         {money(g.available)}
       </div>
       <div className="cell-margin" />
