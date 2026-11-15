@@ -10,7 +10,7 @@ import { accountPath } from "./planPaths";
 const money = (m: number) => formatMoney(m).replace("-", "−");
 const sign = (n: number) => (n < 0 ? "negative" : n === 0 ? "zero" : "positive");
 
-/** The open accounts under typed groups with totals; a group header collapses it (saved per plan). */
+/** The plan's accounts under typed groups (closed ones last) with totals; a group header collapses it (saved per plan). */
 export function SidebarAccounts({
   budgetId,
   accounts,

@@ -72,6 +72,7 @@ test("real accounts: groups, totals and colours", async ({ page, request }) => {
   await addAccount(request, id, "ZZ-TEST Card", "creditCard", 150000);
   await addAccount(request, id, "ZZ-TEST Asset", "otherAsset", 5000000);
   await addAccount(request, id, "ZZ-TEST Liab", "otherLiability", 700000);
+  await addAccount(request, id, "ZZ-TEST Zero", "savings", 0);
   await page.reload();
   await expect(headers(page)).toHaveText(["CASH", "CREDIT", "TRACKING"]);
   await expect(headerValue(page, "credit")).toHaveText("−$150.00");
@@ -79,10 +80,12 @@ test("real accounts: groups, totals and colours", async ({ page, request }) => {
   const card = group(page, "credit").locator(".nav-account-row .value");
   await expect(card).toHaveText("−$150.00");
   await expect(card).toHaveCSS("color", RED);
-  await expect(group(page, "cash").locator(".nav-account-row .value")).toHaveCSS(
-    "color",
-    "rgb(255, 255, 255)",
-  );
+  // Zero and positive rows are white (rgb(255, 255, 255)), not red.
+  for (const name of ["ZZ-TEST Check", "ZZ-TEST Zero"]) {
+    await expect(
+      group(page, "cash").locator(".nav-account-row", { hasText: name }).locator(".value"),
+    ).toHaveCSS("color", "rgb(255, 255, 255)");
+  }
 });
 
 test("collapse is saved and survives a reload", async ({ page, request }) => {
@@ -131,8 +134,10 @@ test("fixture: starred, loans and closed", async ({ page, request }) => {
   await stubAccounts(page, [
     fx({ name: "ZZ-TEST Star", starred: true, balance: 312500 }),
     fx({ name: "ZZ-TEST Card", type: "creditCard", group: "credit", balance: -150000 }),
-    fx({ name: "ZZ-TEST Loan", type: "mortgage", group: "loans", balance: -9000000 }),
+    fx({ name: "ZZ-TEST Card 2", type: "creditCard", group: "credit", balance: -75000 }),
+    fx({ name: "ZZ-TEST Loan", type: "mortgage", group: "loans", balance: -100000000 }),
     fx({ name: "ZZ-TEST Asset", type: "otherAsset", group: "tracking", balance: 5000000 }),
+    fx({ name: "ZZ-TEST Liab", type: "otherLiability", group: "tracking", balance: -700000 }),
     fx({ name: "ZZ-TEST Zeta", closed: true, group: "closed", balance: 1000 }),
     fx({ name: "ZZ-TEST Alpha", closed: true, group: "closed", balance: 2000 }),
   ]);
@@ -147,10 +152,10 @@ test("fixture: starred, loans and closed", async ({ page, request }) => {
   ]);
   await expect(headerValue(page, "starred")).toHaveText("$312.50");
   await expect(headerValue(page, "cash")).toHaveText("$312.50");
-  await expect(headerValue(page, "credit")).toHaveText("−$150.00");
-  await expect(headerValue(page, "loans")).toHaveText("−$9,000.00");
+  await expect(headerValue(page, "credit")).toHaveText("−$225.00");
+  await expect(headerValue(page, "loans")).toHaveText("−$100,000.00");
   await expect(headerValue(page, "loans")).not.toHaveCSS("color", RED);
-  await expect(headerValue(page, "tracking")).toHaveText("$5,000.00");
+  await expect(headerValue(page, "tracking")).toHaveText("$4,300.00");
   await expect(headerValue(page, "closed")).toHaveCount(0);
   await expect(
     sidebar(page).locator(".nav-account-row .name", { hasText: "ZZ-TEST Star" }),
@@ -167,9 +172,9 @@ test("pencil shows on hover and does nothing yet", async ({ page, request }) => 
   await page.goto(`/${id}/budget`);
   const row = sidebar(page).locator(".nav-account-row");
   const pencil = row.getByRole("button", { name: "Edit Account" });
-  await expect(pencil).toBeHidden();
+  await expect(pencil).toHaveCSS("opacity", "0");
   await row.hover();
-  await expect(pencil).toBeVisible();
+  await expect(pencil).not.toHaveCSS("opacity", "0");
   await expect(pencil).toHaveAttribute("title", "Edit Account");
   const url = page.url();
   await pencil.click();
@@ -184,6 +189,7 @@ test("long names truncate with the full name in the title", async ({ page, reque
   await page.goto(`/${id}/budget`);
   const el = sidebar(page).locator(".nav-account-row .name");
   await expect(el).toHaveAttribute("title", name);
+  await expect(el).toHaveCSS("text-overflow", "ellipsis");
   expect(await el.evaluate((n) => n.scrollWidth > n.clientWidth)).toBe(true);
 });
 
