@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 9, Deploy 4, Test user flow 0,
+Review counters (finished children since that template's last review): Build 10, Deploy 4, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -357,7 +357,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 19 | Deploy of main `d7a3a40` (`p_c55bb7d4d01947fe848d4849c4333b78`) | EXF-458, 485, 475 | n/a | live `d7a3a40` |
 | 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | PR #10 | merged `401970d` (round 21) |
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | PR #11 | merged `129e425` (round 22) |
-| 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | PR #12 | running |
+| 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | PR #12 | merged `d2e659b` (round 23) |
 | 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | running |
 | 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | pending | running |
 | 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | pending | running |
@@ -1899,3 +1899,59 @@ and three started now.
 - Review cadence: Build 9 finished since the last Build template review; the next finished Build triggers
   it. Deploy 4, Discover 2.
 - Ticket writes this round: 7 (EXF-562 priority; EXF-493 and EXF-489 state and comment; two links).
+
+### 2026-11-15 · Review round 23
+
+Children used 34 of 200. Three are running: the Deploy of `129e425` (its gate and release have passed; it is
+verifying) and the Builds for EXF-493 (month navigation) and EXF-489 (edit Assigned), both a few minutes old.
+
+**Ended: the Build for EXF-481 (accounts), merged as `d2e659b` (PR #12)** after 45 minutes, first gate
+passed (e2e 38 of 38 three times). Ticket Done and commented. I read the diff before approving (28 files,
++2382/-21).
+
+- API: `GET .../budgets/{budget_id}/accounts` (`include_closed`), `GET .../accounts/{id}`, `POST .../accounts`
+  `{name, type, balance, date?}` answering `{account, starting_balance}`; tools `list_accounts`,
+  `create_account`. `Account` gained `cleared_balance`, `uncleared_balance`, `balance`.
+- Service `addUnlinkedAccount(env, actor, budgetId, input, {today?})`: one batch (history row, account,
+  Starting Balance transaction, its history row), guarded on "sort order is next and the name is free". No
+  migration. The minimal `createAccount` stays (now `on_budget` optional, derived from the type).
+- Core `account-types.ts`: `isOnBudget`, `isLoanType`, `startingBalanceAmount`,
+  `startingBalanceFeedsReadyToAssign`, `STARTING_BALANCE_PAYEE`, the group of a type.
+- `packages/schema/src/amount-input.ts`: `parseAmountInput(text)` (plain amounts only), reusable by other
+  forms.
+- Web: `shell/AddAccountDialog.tsx`, `AccountTypePicker.tsx`, `accountTypeLabels.ts`, `SidebarAccounts.tsx`;
+  `api/accounts.ts`; `pages/account.tsx` with its own `.account-header`.
+- **A rule to replace:** `activityByMonth` in `repositories/transactions.ts` leaves out a credit account's
+  Starting Balance (payee text "Starting Balance", no category, flag off) so it is not counted as
+  uncategorized spending. The Build's reviewer found that the first version also dropped payee-less credit
+  transactions (SQL NULL); fixed with `coalesce` and a test. **Put in the briefs of EXF-513 and EXF-532:**
+  replace the payee-text rule with a proper marker.
+- Case folding of names is ASCII only (SQLite `lower`); EXF-547 can revisit.
+- The Build's own review chain worked as intended here: designer 12 polish items, reviewer one blocking
+  bug, both fixed before the gate.
+- Source use: nothing created; "Next" never pressed; the Designer expanded the source's CLOSED sidebar group
+  and collapsed it again, and restyled one amount in the page's memory to measure a colour, then put it
+  back. No lasting change. The Architect reports the email masked in every screenshot.
+
+**Deploy `p_77deb9856fa0437b93b1b3d693561e94`:** gate passed, release passed, **live at `129e425`**
+(migration `20261115213604_targets.sql` applied, none pending, smoke ok, Access shape combined). Its
+verification report is not written yet; read it at the next review.
+
+**For the next plan:**
+
+- **Build template review is due:** ten Builds have finished since the template was last reviewed (never).
+  Start Improve templates on the Build template with their Thread ids.
+- Deploy main `d2e659b` (accounts) once the running Deploy has ended.
+- Unblocked by accounts: EXF-483 (sidebar groups), EXF-484 (account headers), EXF-513 (register and
+  transactions API), EXF-532 (credit engine), EXF-459 (Plaid Link), EXF-477 (import), EXF-482 (loan types),
+  EXF-546 and EXF-547 (type rules). The shell is free again. Read the tickets and group by files: the
+  sidebar (EXF-483) and the account page (EXF-484, EXF-513) are different files; EXF-532 is core and Worker.
+  They must also stay clear of EXF-493 (Plan header, months files) and EXF-489 (grid rows, new assign files).
+- With the shell free, EXF-562 (grid colours into `tokens.css`) could run, but EXF-489 is editing
+  `plan-grid.css`; after it.
+
+**Ticket writes:** 2 now (EXF-481 Done and comment).
+
+**Backlog:** 89 open feature tickets (5 done: EXF-475, 481, 485, 487, 511; 2 in progress: EXF-493, EXF-489),
+all triaged. Gap: EXF-558 (High), EXF-454, EXF-560, EXF-562 (Low). Template: nine. Finished since each
+template's last review: Build 10 (review due), Deploy 4, Discover 2, Test user flow 0.
