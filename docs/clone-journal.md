@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 6, Deploy 4, Test user flow 0,
+Review counters (finished children since that template's last review): Build 7, Deploy 4, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -353,7 +353,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | PR #7 | merged `d7a3a40` (round 18) |
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 | 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
-| 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | pending | running |
+| 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | PR #9 | merged `d19f4ff` (round 20) |
 | 2026-11-15 | 19 | Deploy of main `d7a3a40` (`p_c55bb7d4d01947fe848d4849c4333b78`) | EXF-458, 485, 475 | n/a | live `d7a3a40` |
 | 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | pending | running |
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | pending | running |
@@ -1676,3 +1676,51 @@ EXF-561 (derived test lists) and EXF-487 (Plan grid). Nothing started this round
 - Review cadence: Build 6, Deploy 4, Discover 2 finished since their last reviews; none is at 10.
 - The review of this round is the check-in. It should ask the person again to open
   https://budget.doxen.dev in their own browser (the live clone held no plan before the Deploy's test plan).
+
+### 2026-11-15 · Review round 20 (check-in)
+
+Children used 30 of 200. Two are running: the Builds for EXF-561 (derived test lists; pull request #10 open)
+and EXF-487 (Plan grid; its Architect has finished studying the source and is reading the code).
+
+**Ended: the Build for EXF-511 (targets engine), merged as `d19f4ff` (PR #9)** in 28 minutes, first gate
+passed, no card but the approval. Ticket Done and commented. I read the diff before approving (15 files,
++2003/-4, exactly the manifest).
+
+- `packages/core/src/targets.ts`: `computeTargetMonth(definition, inputs)`, pure, "today" is an input.
+  `budget-engine.ts` gained optional `targets` and `today` on `EngineInput` and `target` (nullable) on each
+  category of the month detail.
+- Table `targets` (migration `20261115213604_targets.sql`): primary key `category_id`, `budget_id`, `cadence`,
+  `behavior`, `amount`, `day_of_week`, `day_of_month`, `due_date`, `due_month`, `repeat_every`,
+  `repeat_unit`, `created_on`, timestamps.
+- Services `setTarget(env, actor, TargetSet, {today?})` and `deleteTarget(env, actor, TargetDelete)`, each a
+  guarded batch with its history row (entity type `target`, entity id the category id).
+- The design doc says how the next tickets extend it: EXF-508 adds `PUT/DELETE
+  .../categories/{category_id}/target` and the tools `set_category_target` / `delete_category_target`;
+  EXF-516 adds a `snoozed_month` column; EXF-538 adds behaviour values for card targets.
+- **Carry to EXF-508:** the Worker passes today's date in UTC (`todayUtc()`, the same rule as the current
+  month). In the evening in the person's time zone that is tomorrow. The target routes and the month read
+  should accept the client's local date. Commented on EXF-511; put it in the EXF-508 brief.
+- **Effect on the grid Build (EXF-487):** `MonthCategoryDetail.target` is now a required, nullable field of
+  the schema. Its stubbed fixtures need `target: null` after it refreshes onto this merge. Say so in the
+  feedback of its card if the gate trips on it.
+
+**EXF-561's manifest arrived:** the three list tests, new `apps/worker/test/surface.ts` and
+`existing-surface.test.ts`, `docs/conventions.md`, its docs. No shared module. Disjoint from the grid.
+
+**Shared browser, again:** the grid Build's Clerk counted three `app.ynab.com` tabs in its box after opening
+its own. Children do share one browser (evidence for EXF-479). The own-tab rule in every brief stays.
+
+**Not live:** main is `d19f4ff`, live is `d7a3a40`. The targets engine has no screen and no route; deploy it
+with the grid.
+
+**Ticket writes:** two (EXF-511 Done and its comment). The Low triage and two links stay owed until about
+22:26 UTC.
+
+**Check-in sent** (round 20): what is live, what landed and failed since round 10, backlog, risks, next
+steps, and three things only the person can do (try signing in; Plaid Data Transparency Messaging; say
+whether to request removal of the stored discovery screenshots and transcripts that show their email or
+plan names).
+
+**Backlog:** 91 open feature tickets (EXF-475, 485, 511 done; EXF-487 in progress). Gap: EXF-561 (in
+progress), EXF-558 (High), EXF-454 and EXF-560 (Low). Template: nine. Finished since each template's last
+review: Build 7, Deploy 4, Discover 2, Test user flow 0.
