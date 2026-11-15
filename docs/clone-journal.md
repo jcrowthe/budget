@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 3, Deploy 2, Test user flow 0,
+Review counters (finished children since that template's last review): Build 3, Deploy 3, Test user flow 0,
 Discover 4. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -347,7 +347,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | none | none | running |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
-| 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | running |
+| 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341` (3 minutes) |
 | 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -908,3 +908,19 @@ and "Unapproved or Uncategorized" (area 4). Check those areas' tickets cover the
 **Backlog:** 9 `clone:feature` tickets triaged (EXF-459 to EXF-467); area 9 has begun filing EXF-468 onward
 and is still running, so those wait for its report. Gap tickets: EXF-458 In Progress, EXF-454 Low. Template
 tickets: EXF-455, EXF-457 (High), EXF-456 (Medium).
+
+### 2026-11-15 · Plan round 9
+
+Children used 22 of 200. Nine are running: eight Discover areas and the EXF-458 Build.
+
+- EXF-479 (children share one browser tab) exists; set to High.
+- The Deploy of `eabf341` finished while I was in the review: **live** at https://budget.doxen.dev,
+  `DEPLOY_SHA` `eabf341`. With the service token: health 200 with the new sha, `GET /api/v1/budgets` 200,
+  `/mcp` answers `tools/list`; without credentials `/`, `/api/v1/health` and `/mcp` answer 401; the recipes
+  work and left nothing behind; the home page loads with no errors. So the identity pin did not lock the
+  service token out. Not checked by it: whether wrangler printed or hid `ACCESS_ALLOWED_EMAIL`, and the
+  person's own browser sign-in under the pin.
+- Started nothing. EXF-458 is running and touches an always-overlap file, so no other Build runs beside it.
+  The Plaid tickets wait on foundation tickets that the still-running Discover areas have not filed. Area 9
+  is filing its tickets (EXF-468 onward, with EXF-476 export and EXF-477 import among them); they are triaged
+  when it reports. Nothing new is merged to deploy, and the live clone has only the plans example to test.
