@@ -22,7 +22,8 @@ describe("mcp", () => {
       { name: "create_budget", arguments: { name: "ZZ-TEST M" } },
       3,
     );
-    const id = (created.body.result?.structuredContent?.budget as { id: string }).id;
+    const created_budget = created.body.result?.structuredContent?.budget as { id: string };
+    const id = created_budget.id;
     const row = await env.DB.prepare("SELECT actor FROM change_log WHERE entity_id = ?")
       .bind(id)
       .first<{ actor: string }>();
