@@ -1438,3 +1438,8 @@ carry-over Build for EXF-485 started this round (`p_2f4994aa9b7e4993bc14635af25e
 - Not started: EXF-558. It must run alone and two Builds are running. Until it lands, every Build brief
   carries the browser install as a Clerk job.
 - Owed ticket writes unchanged (limit still closed at 20:57 UTC).
+
+Addendum to plan round 17 (20:59 UTC): the carry-over Build's Clerk did all four jobs and printed each check:
+`request.json` with `EXF-485`; own tab opened; HEAD `8b9b465…` with the expected diff shape; the browser cache
+lists `chromium-1255` and `chromium_headless_shell-1255`. EXF-558 set to High (one write got through);
+EXF-559's priority is still owed.
