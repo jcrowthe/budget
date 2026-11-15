@@ -43,17 +43,19 @@ export const setMonthNote = async (
     })
   ).data;
 
-export function useSetMonthNote(budgetId: string, month: Month) {
+export function useSetMonthNote(budgetId: string) {
   const qc = useQueryClient();
-  const key = ["month", budgetId, month];
+  // The month travels in the variables: a re-render (the person moved on) must not retarget the cache keys.
+  const key = (month: Month) => ["month", budgetId, month];
   return useMutation({
-    mutationFn: (note: string | null) => setMonthNote(budgetId, month, note),
-    onMutate: (note) => {
-      qc.setQueryData<MonthDetail>(key, (d) => d && { ...d, note });
+    mutationFn: (v: { month: Month; note: string | null }) =>
+      setMonthNote(budgetId, v.month, v.note),
+    onMutate: (v) => {
+      qc.setQueryData<MonthDetail>(key(v.month), (d) => d && { ...d, note: v.note });
     },
-    onError: () => qc.invalidateQueries({ queryKey: key }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: key });
+    onError: (_e, v) => qc.invalidateQueries({ queryKey: key(v.month) }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: key(v.month) });
       qc.invalidateQueries({ queryKey: ["month-range", budgetId] });
     },
   });

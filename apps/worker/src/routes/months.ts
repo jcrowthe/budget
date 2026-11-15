@@ -104,10 +104,7 @@ export default app
       tags,
       request: {
         params: z.object({
-          budget_id: z
-            .string()
-            .min(1)
-            .openapi({ param: { name: "budget_id", in: "path" } }),
+          budget_id: z.uuid().openapi({ param: { name: "budget_id", in: "path" } }),
           month: InputMonth.openapi({ param: { name: "month", in: "path" } }),
         }),
         body: { required: true, content: { "application/json": { schema: MonthNoteUpdate } } },

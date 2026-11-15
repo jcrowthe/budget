@@ -18,7 +18,7 @@ export const tools: McpToolDef[] = [
     description:
       "Set or clear the free-text note of one plan month. An empty or whitespace-only note clears it. Max 5000 characters.",
     inputSchema: z.object({
-      budget_id: z.string().min(1),
+      budget_id: z.uuid(),
       month: InputMonth,
       note: MonthNoteUpdate.shape.note,
     }),

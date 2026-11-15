@@ -39,7 +39,7 @@ export function PlanHeader({
   const limits = navLimits(useMonthRange(budgetId).data, current);
   const note = useMonth(budgetId, month).data?.note ?? null;
   const { setMonth } = usePlanMonth();
-  const saveNote = useSetMonthNote(budgetId, month);
+  const saveNote = useSetMonthNote(budgetId);
   const [open, setOpen] = useState<Open>(null);
   const monthRef = useRef<HTMLButtonElement>(null);
   const noteRef = useRef<HTMLButtonElement>(null);
@@ -118,7 +118,7 @@ export function PlanHeader({
           <MonthNotePopover
             key={month}
             note={note}
-            onSave={(n) => saveNote.mutate(n)}
+            onSave={(n) => saveNote.mutate({ month, note: n })}
             onClose={() => setOpen(null)}
             triggerRef={noteRef}
             style={open.style}

@@ -49,7 +49,9 @@ test("1 arrows change the month and the URL; a month in the URL loads", async ({
   const id = await newPlan(request);
   await page.goto(`/${id}/budget`);
   await expect(next(page)).toBeEnabled();
+  const gridRead = page.waitForRequest(`**/api/v1/budgets/${id}/months/${M1.iso}`);
   await next(page).click();
+  await gridRead;
   await expect(page).toHaveURL(`/${id}/budget/${M1.key}`);
   await expect(h1(page)).toHaveText(label(M1.key));
   await prev(page).click();
@@ -134,6 +136,12 @@ test("6 month picker", async ({ page, request }) => {
   await dlg.getByRole("button", { name: "Previous Year" }).click();
   await expect(dlg.locator(".picker-month:not(:disabled)")).toHaveCount(0);
   await dlg.getByRole("button", { name: "Next Year" }).click();
+  await dlg.getByRole("button", { name: "Next Year" }).click();
+  // The year after M's: only January is allowed, and only when M is December (M+1 is the furthest month).
+  await expect(dlg.locator(".picker-month:not(:disabled)")).toHaveCount(
+    M1.iso.slice(0, 4) === M.iso.slice(0, 4) ? 0 : 1,
+  );
+  await dlg.getByRole("button", { name: "Previous Year" }).click();
   await dlg.getByRole("button", { name: label(M1.key) }).click();
   await expect(page).toHaveURL(`/${id}/budget/${M1.key}`);
   await expect(dlg).toHaveCount(0);
@@ -211,6 +219,14 @@ test("9 note keys: Shift+Enter, Escape, outside, OK, whitespace clears", async (
   await expect(dlg).toBeVisible();
   await box.pressSequentially("two");
   expect(await box.inputValue()).toBe("one\ntwo");
+  const height = () => box.evaluate((el) => el.getBoundingClientRect().height);
+  // Source: 44px at first, grows with the text, capped at 168px.
+  for (let i = 0; i < 3; i++) await box.press("Shift+Enter");
+  await box.pressSequentially("x");
+  expect(await height()).toBeGreaterThan(44);
+  for (let i = 0; i < 15; i++) await box.press("Shift+Enter");
+  await box.pressSequentially("x");
+  expect(await height()).toBe(168);
   await page.keyboard.press("Escape");
   await expect(dlg).toHaveCount(0);
   await expect(noteLine(page)).toHaveText("Enter a note...");
