@@ -1,0 +1,251 @@
+import {
+  type MonthDetail as CoreMonthDetail,
+  computeMonth,
+  computeMonths,
+  type EngineInput,
+} from "@budget/core/budget-engine";
+import { addMonths, type Month } from "@budget/core/month";
+import {
+  AssignedSet,
+  MoneyMove,
+  type MonthCategory,
+  type MonthDetail,
+  MonthNoteSet,
+  type MonthSummary,
+} from "@budget/schema/months";
+import { sql } from "drizzle-orm";
+import { type Db, getDb } from "../db/client";
+import type { Env } from "../env";
+import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
+import { Conflict, NotFound } from "../middleware/errors";
+import * as budgetsRepo from "../repositories/budgets";
+import * as categoriesRepo from "../repositories/categories";
+import * as groupsRepo from "../repositories/category-groups";
+import * as monthCatRepo from "../repositories/month-categories";
+import * as monthsRepo from "../repositories/months";
+import * as txRepo from "../repositories/transactions";
+
+// Type-level check: the engine's read model and the API schema are the same shape, both ways.
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+const _sameShape: Same<CoreMonthDetail, MonthDetail> = true;
+void _sameShape;
+
+async function requirePlan(db: Db, budgetId: string) {
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+}
+
+const mcEntityId = (categoryId: string, month: string) => `${categoryId}:${month}`;
+
+/** Test seam: builds the setAssigned batch with a custom change_log entry (to prove atomicity). */
+export function buildSetAssignedBatch(
+  db: Db,
+  row: monthCatRepo.MonthCategoryRow,
+  log: ChangeLogEntry,
+  before?: number,
+) {
+  return [
+    changeLogInsertIf(db, log, monthCatRepo.holds(db, row, before)),
+    monthCatRepo.setIfHoldsStmt(db, row, before, row.assigned, row.updatedAt),
+  ] as const;
+}
+
+const MAX_ATTEMPTS = 5;
+
+/**
+ * Both writers below: the change_log insert comes FIRST and the cell write second, each guarded by "the cell
+ * still holds what was read". A lost race writes neither (so the log never records a change that did not
+ * happen); the caller re-reads and retries a few times, then throws Conflict. Concurrent writers never lose
+ * an update and the logged before/after chain matches the data.
+ */
+export async function setAssigned(
+  env: Env,
+  actor: string,
+  input: AssignedSet,
+): Promise<MonthCategory> {
+  const v = AssignedSet.parse(input);
+  const db = getDb(env);
+  await requirePlan(db, v.budget_id);
+  if (!(await categoriesRepo.findActive(db, v.budget_id, v.category_id))) {
+    throw new NotFound("Category");
+  }
+  const result: MonthCategory = {
+    month: v.month,
+    category_id: v.category_id,
+    assigned: v.assigned,
+  };
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = (await monthCatRepo.find(db, v.budget_id, v.month, v.category_id))?.assigned;
+    const row: monthCatRepo.MonthCategoryRow = {
+      budgetId: v.budget_id,
+      month: v.month,
+      categoryId: v.category_id,
+      assigned: v.assigned,
+      updatedAt: new Date().toISOString(),
+    };
+    const [, write] = await db.batch([
+      ...buildSetAssignedBatch(
+        db,
+        row,
+        {
+          budgetId: v.budget_id,
+          actor,
+          action: "update",
+          entityType: "month_category",
+          entityId: mcEntityId(v.category_id, v.month),
+          before: { month: v.month, category_id: v.category_id, assigned: before ?? 0 },
+          after: result,
+        },
+        before,
+      ),
+    ]);
+    if (write.meta.changes > 0) return result;
+  }
+  throw new Conflict("Assigned amount");
+}
+
+/**
+ * Moves `amount` of Assigned in a month from one category to another. A null side is Ready to Assign: only the
+ * other category's Assigned changes. Both sides are guarded on both cells being unchanged, in one batch.
+ */
+export async function moveMoney(
+  env: Env,
+  actor: string,
+  input: MoneyMove,
+): Promise<MonthCategory[]> {
+  const v = MoneyMove.parse(input);
+  const db = getDb(env);
+  await requirePlan(db, v.budget_id);
+  const sides = [
+    { id: v.from_category_id, delta: -v.amount },
+    { id: v.to_category_id, delta: v.amount },
+  ].filter((s): s is { id: string; delta: number } => s.id !== null);
+  for (const s of sides) {
+    if (!(await categoriesRepo.findActive(db, v.budget_id, s.id))) throw new NotFound("Category");
+  }
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const now = new Date().toISOString();
+    const reads = await Promise.all(
+      sides.map(async (s) => ({
+        ...s,
+        cell: { budgetId: v.budget_id, month: v.month, categoryId: s.id },
+        before: (await monthCatRepo.find(db, v.budget_id, v.month, s.id))?.assigned,
+      })),
+    );
+    const out: MonthCategory[] = reads.map((s) => ({
+      month: v.month,
+      category_id: s.id,
+      assigned: (s.before ?? 0) + s.delta,
+    }));
+    // Every statement is guarded on all cells still holding what was read (the log rows run before any write).
+    const allHold = sql`${sql.join(
+      reads.map((s) => sql`exists ${monthCatRepo.holds(db, s.cell, s.before)}`),
+      sql` and `,
+    )}`;
+    const logs = reads.map((s, i) =>
+      changeLogInsertIf(
+        db,
+        {
+          budgetId: v.budget_id,
+          actor,
+          action: "update",
+          entityType: "month_category",
+          entityId: mcEntityId(s.id, v.month),
+          before: { month: v.month, category_id: s.id, assigned: s.before ?? 0 },
+          after: {
+            ...out[i],
+            move: {
+              from_category_id: v.from_category_id,
+              to_category_id: v.to_category_id,
+              amount: v.amount,
+            },
+          },
+        },
+        db.select({ x: sql`1` }).from(sql`(select 1)`).where(allHold),
+      ),
+    );
+    // The first write needs every cell to hold; the second needs the first to have changed a row, so the two
+    // sides are written together or not at all.
+    const writes = reads.map((s, i) =>
+      monthCatRepo.setIfHoldsStmt(
+        db,
+        s.cell,
+        s.before,
+        out[i]?.assigned ?? 0,
+        now,
+        i === 0 ? allHold : sql`changes() > 0`,
+      ),
+    );
+    const stmts = [...logs, ...writes];
+    const results = await db.batch(stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]]);
+    const first = results[logs.length];
+    if (first && first.meta.changes > 0) return out;
+  }
+  throw new Conflict("Assigned amounts");
+}
+
+export async function setMonthNote(
+  env: Env,
+  actor: string,
+  input: MonthNoteSet,
+): Promise<{ month: string; note: string | null }> {
+  const v = MonthNoteSet.parse(input);
+  const db = getDb(env);
+  await requirePlan(db, v.budget_id);
+  const before = await monthsRepo.find(db, v.budget_id, v.month);
+  await db.batch([
+    monthsRepo.upsertNoteStmt(db, {
+      budgetId: v.budget_id,
+      month: v.month,
+      note: v.note,
+      updatedAt: new Date().toISOString(),
+    }),
+    changeLogInsert(db, {
+      budgetId: v.budget_id,
+      actor,
+      action: "update",
+      entityType: "month",
+      entityId: v.month,
+      before: { month: v.month, note: before?.note ?? null },
+      after: { month: v.month, note: v.note },
+    }),
+  ]);
+  return { month: v.month, note: v.note };
+}
+
+async function loadInput(db: Db, budgetId: string, activityBefore: string): Promise<EngineInput> {
+  const [groups, categories, assignments, notes, activity] = await Promise.all([
+    groupsRepo.listActive(db, budgetId),
+    categoriesRepo.listActive(db, budgetId),
+    monthCatRepo.listForBudget(db, budgetId),
+    monthsRepo.listNotes(db, budgetId),
+    txRepo.activityByMonth(db, budgetId, activityBefore),
+  ]);
+  return {
+    groups,
+    categories,
+    assignments: assignments.map((a) => ({
+      categoryId: a.categoryId,
+      month: a.month,
+      assigned: a.assigned,
+    })),
+    activity,
+    notes: notes.map((n) => ({ month: n.month, note: n.note })),
+  };
+}
+
+export async function getPlanMonth(env: Env, budgetId: string, month: Month): Promise<MonthDetail> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  return computeMonth(await loadInput(db, budgetId, addMonths(month, 1)), month);
+}
+
+export async function listPlanMonths(
+  env: Env,
+  budgetId: string,
+  from: Month,
+  to: Month,
+): Promise<MonthSummary[]> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  return computeMonths(await loadInput(db, budgetId, addMonths(to, 1)), from, to);
+}

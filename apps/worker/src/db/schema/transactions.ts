@@ -1,0 +1,28 @@
+import { CLEARED_STATUSES } from "@budget/core/account-types";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const transactions = sqliteTable(
+  "transactions",
+  {
+    id: text("id").primaryKey(),
+    budgetId: text("budget_id").notNull(),
+    accountId: text("account_id").notNull(),
+    date: text("date").notNull(),
+    payeeName: text("payee_name"),
+    categoryId: text("category_id"),
+    inflowToReadyToAssign: integer("inflow_to_ready_to_assign", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    memo: text("memo"),
+    amount: integer("amount").notNull(),
+    cleared: text("cleared", { enum: CLEARED_STATUSES }).notNull().default("uncleared"),
+    approved: integer("approved", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull(),
+    deletedAt: text("deleted_at"),
+  },
+  (t) => [
+    index("transactions_budget_date").on(t.budgetId, t.date),
+    index("transactions_account").on(t.accountId),
+    index("transactions_category").on(t.categoryId),
+  ],
+);

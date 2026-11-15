@@ -34,7 +34,7 @@ describe("mcp", () => {
     expect(init.status).toBe(200);
     const list = await rpc("tools/list", {}, 2);
     const names = (list.body.result.tools as { name: string }[]).map((t) => t.name).sort();
-    expect(names).toEqual(["create_budget", "list_budgets"]);
+    expect(names).toEqual(["create_budget", "get_plan_month", "list_budgets"]);
     const created = await rpc(
       "tools/call",
       { name: "create_budget", arguments: { name: "ZZ-TEST M" } },
