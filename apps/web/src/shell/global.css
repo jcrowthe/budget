@@ -524,9 +524,7 @@ a {
   height: 12px;
 }
 .nav-account-row:hover .edit,
-.nav-account-row:focus-within .edit,
-.nav-account-row .edit:focus-visible,
-.nav-account-row.is-selected .edit {
+.nav-account-row .edit:focus-visible {
   opacity: 0.7;
 }
 .nav-account-row .edit:hover {
