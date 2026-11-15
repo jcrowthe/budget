@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,12 +25,34 @@ function devEnv(state: string) {
   return env;
 }
 
+// Two vite dev servers starting at once share node_modules/.vite and apps/worker/.dev.vars and can
+// starve each other under load, so test files take turns (a mkdir lock; a lock older than 10 min is stale).
+const lock = join(tmpdir(), "budget-dev-server.lock");
+async function acquire() {
+  for (;;) {
+    try {
+      mkdirSync(lock);
+      return;
+    } catch {
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > 600_000)
+          rmSync(lock, { recursive: true, force: true });
+      } catch {
+        // released meanwhile
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+}
+
 // Runs the same vite dev command as `pnpm dev`, on a free port with its own state dir,
 // so it never touches a developer's running server.
 export async function startDevServer(): Promise<{ base: string; stop(): void }> {
+  await acquire();
   const state = mkdtempSync(join(tmpdir(), "budget-dev-"));
   let proc: ChildProcess | undefined;
   const stop = () => {
+    rmSync(lock, { recursive: true, force: true });
     if (proc?.pid) {
       try {
         process.kill(-proc.pid);
