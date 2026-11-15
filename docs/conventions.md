@@ -50,7 +50,11 @@ is an `env.ts` plus `wrangler.jsonc` change.
 - **Actor**: every mutation records who did it in `change_log`: `user:<email>`, `service:<token name>`, or
   `mcp:<actor>` for MCP calls.
 - **Access only**: the Access middleware runs before everything, assets included. No public path, no webhook,
-  no `workers.dev` URL. Secrets go through `src/secrets` only and are never returned or logged.
+  no `workers.dev` URL. Secrets go through `src/secrets` only and are never returned or logged. The Worker also pins identity: an
+  Access user token must carry `ACCESS_ALLOWED_EMAIL` (case-insensitive; empty refuses all), a service token
+  must be listed in `ACCESS_SERVICE_TOKENS`, and locally signed `@localhost` tokens work only when
+  `ENVIRONMENT` is `local`. `SECRETS_ENCRYPTION_KEY` is any string of at least 32 characters (HKDF per key
+  version); the deploy refuses a shorter one.
 - **API shape**: success `{ data: ... }`, errors `{ error: { id, name, detail } }`. Writes accept
   `Idempotency-Key`.
 - **Branding**: the app is "Budget" with its own icon. Never use the source app's name, logo or art in code,
@@ -74,7 +78,7 @@ is an `env.ts` plus `wrangler.jsonc` change.
 - anything else is refused (exit 2) before anything runs
 
 `DEPLOY_E2E=skip` skips only the Playwright run (the gate still runs `pnpm check`). The required variables are
-checked first, in every phase. After each finished phase the script prints a line `PHASE_SECONDS <step>=<s> ...`
+checked first, in every phase (and `SECRETS_ENCRYPTION_KEY` must be at least 32 characters, else exit 2). After each finished phase the script prints a line `PHASE_SECONDS <step>=<s> ...`
 (gate: `checks`, `e2e`; release: `build`, `resources`, `migrations`, `deploy`, `smoke`; a skipped step is `0`),
 and after a release `Live: <url>` and `DEPLOY_SHA=<full sha>`. `DEPLOY_DRY_RUN=1` prints `DRY: ...` instead of
 running the gate or calling Cloudflare.

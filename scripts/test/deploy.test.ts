@@ -8,7 +8,7 @@ const sentinels = {
   ACCESS_ALLOWED_EMAIL: "sentinel-owner-ddd444@example.invalid",
   CF_ACCESS_CLIENT_ID: "sentinel-client-eee555",
   CF_ACCESS_CLIENT_SECRET: "sentinel-secret-fff666",
-  SECRETS_ENCRYPTION_KEY: "sentinel-key-ggg777",
+  SECRETS_ENCRYPTION_KEY: "sentinel-key-ggg777-0123456789abcdef",
 };
 
 function run(env: Record<string, string>) {
@@ -62,6 +62,10 @@ describe("scripts/deploy.sh", () => {
     ).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(out).toMatch(/DRY: POST \/accounts\/<account>\/access\/apps/);
+    expect(out).toMatch(
+      /^DRY: wrangler deploy vars: .*\bACCESS_SERVICE_TOKENS\b.*\bACCESS_ALLOWED_EMAIL\b/m,
+    );
+    expect(out).toContain("DRY: ACCESS_SERVICE_TOKENS entries: 1");
     for (const v of Object.values(sentinels)) expect(out).not.toContain(v);
   });
 });
