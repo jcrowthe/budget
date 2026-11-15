@@ -347,6 +347,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | none | none | running |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
+| 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | running |
+| 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -827,3 +829,18 @@ in their Access token; the Deploy cannot test that, only they can.
 **Backlog:** EXF-458 (High, gap) is now unblocked and is the next Build, alone. EXF-454 (Low) unblocked too,
 but waits: shell-only, and not worth a slot before the foundation. Template tickets EXF-455, EXF-457 (High),
 EXF-456 (Medium). No `clone:feature` tickets yet; discovery reports are due. No tickets filed this review.
+
+### 2026-11-15 · Plan round 8
+
+Children used 22 of 200. Ten are running: eight Discover areas, a Deploy and the EXF-458 Build. One Discover
+child finished while I was starting these; the review triages its tickets.
+
+- No tickets were filed at the last review.
+- Started a Deploy of `eabf341` (EXF-453), `gated_commit` `d525be5…` (trees equal, so the gate skips the full
+  e2e run). Its brief names what changed in the live Worker and what to check: the service token still gets
+  in, unauthenticated requests are still refused, the recipes still work. It cannot check the person's
+  browser sign-in under the new email pin.
+- Started the Build for EXF-458 (profile `source.url` to the Test Budget URL), alone: it is the only Build.
+  Ticket moved to In Progress. A Deploy runs beside it; a Deploy changes nothing in the repository.
+- Not started: EXF-454 (shell polish, Low). It would have to run beside EXF-458, which touches an
+  always-overlap file; and the foundation Builds from discovery should take the next slots.
