@@ -59,6 +59,39 @@ is an `env.ts` plus `wrangler.jsonc` change.
 
 ## Commands
 
-`pnpm check` (lint, typecheck, unit + Worker tests, build), `pnpm dev` (http://localhost:5173, signed in as
-`dev@localhost`), `pnpm e2e` (production bundle on :4173), `bash scripts/deploy.sh` (gate, then release).
+- `pnpm check` (lint, typecheck, unit + Worker tests, build)
+- `pnpm dev` (http://localhost:5173, signed in as `dev@localhost`)
+- `pnpm e2e` (production bundle on :4173)
+- `bash scripts/deploy.sh` (gate, then release; see Deploy phases below)
+
+### Deploy phases
+
+`bash scripts/deploy.sh` is controlled by the `DEPLOY_PHASE` environment variable:
+
+- unset (default): gate, then release
+- `gate`: `pnpm check`, then `pnpm e2e`; changes nothing in production
+- `release`: build, resources, migrations, deploy, smoke test; runs no gate
+- anything else is refused (exit 2) before anything runs
+
+`DEPLOY_E2E=skip` skips only the Playwright run (the gate still runs `pnpm check`). The required variables are
+checked first, in every phase. After each finished phase the script prints a line `PHASE_SECONDS <step>=<s> ...`
+(gate: `checks`, `e2e`; release: `build`, `resources`, `migrations`, `deploy`, `smoke`; a skipped step is `0`),
+and after a release `Live: <url>` and `DEPLOY_SHA=<full sha>`. `DEPLOY_DRY_RUN=1` prints `DRY: ...` instead of
+running the gate or calling Cloudflare.
+
+### Scripts
+
+- `bash scripts/migrations-pending.sh`: read-only. Needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+  Prints the file name of each migration not yet applied to the remote `budget-db`, one per line, nothing when
+  none are pending (all of them when the database does not exist yet). Exit 0 when it can tell; 1 with a message
+  on stderr when it cannot; 2 for a missing variable.
+- `bash scripts/live-test-plans.sh <command>`: manages test plans (name starts with `live.test_prefix`, `ZZ-TEST`)
+  and nothing else; only calls `/api/v1/budgets`. Needs `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`.
+  - `list`: `<id><TAB><name>` per test plan
+  - `create '<name>'`: prints the new id; a name without the prefix is refused (exit 2)
+  - `delete <id>`: re-reads the plan; prints `deleted <id>`; an unprefixed plan is refused (exit 3)
+  - `purge`: prints `deleted <n> remaining <m>`; exit 0 only when `m` is 0; more than 50 matches is refused (exit 3)
+  - Local testing: `LIVE_TEST_PLANS_BASE_URL=http://127.0.0.1:<port>` targets `pnpm dev` (which signs requests
+    itself); add `LIVE_TEST_PLANS_LOCAL_JWT=1` for the e2e server. No Access headers are sent to a local server.
+
 Live flow tests reach the clone with `scripts/access-browser.mjs`.
