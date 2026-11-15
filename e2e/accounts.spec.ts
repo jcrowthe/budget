@@ -80,7 +80,7 @@ test("form, Next rule and picker", async ({ page, request }) => {
     "Asset (e.g. Investment)",
     "Liability",
   ]);
-  await expect(page.getByRole("button", { name: "Mortgage" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Mortgage", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Savings", exact: true }).click();
   await expect(page.getByRole("button", { name: "Savings", exact: true })).toBeVisible();
   await expect(page.getByLabel("What is your current account balance?")).toHaveValue("5");

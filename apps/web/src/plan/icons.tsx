@@ -54,3 +54,22 @@ export const CheckIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m9.5 17.5-5-5 1.9-1.9 3.1 3.1 8.1-8.1 1.9 1.9z" />
   </svg>
 );
+/**
+ * A 2×2 grid of + − × ÷ glyphs filling a 16-unit box. Measured on the source's calculator icon (getBBox, viewBox
+ * 0 0 16 16): 1.5-unit strokes, '+' centred (3.5,3.5) with 7-unit arms, '−' bar x 9–16 at y 2.75–4.25, '×' centred
+ * (3.5,12.5), '÷' bar x 9–16 at y 11.75–13.25 with r=1 dots at (12.5,10) and (12.5,15).
+ */
+export const CalculatorIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} viewBox="0 0 16 16" aria-hidden="true" {...p}>
+    <path d="M0 2.75h7v1.5H0zM2.75 0h1.5v7h-1.5zM9 2.75h7v1.5H9zM9 11.75h7v1.5H9z" />
+    <circle cx="12.5" cy="10" r="1" />
+    <circle cx="12.5" cy="15" r="1" />
+    <path
+      d="M1.2 10.2 5.8 14.8M5.8 10.2 1.2 14.8"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);

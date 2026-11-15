@@ -1,12 +1,14 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are (EXF-498 adds keyboard selection)
 import type { Month } from "@budget/core/month";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useCommitAssigned } from "../api/assigned";
 import { useMonth } from "../api/months";
+import type { CloseHow } from "./AssignedCell";
 import { useCollapsedGroups } from "./collapse";
 import { ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
 import { useProgressBars } from "./progressBars";
-import { CategoryRow, Checkbox, GroupRow, UncategorizedRow } from "./rows";
+import { CategoryRow, Checkbox, type FocusTarget, GroupRow, UncategorizedRow } from "./rows";
 import { Toolbar } from "./Toolbar";
 import "./plan-grid.css";
 
@@ -33,6 +35,43 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [idsKey, setCollapsed]);
+
+  const [editing, setEditing] = useState<string | null>(null);
+  const [focusReq, setFocusReq] = useState<{ id: string; target: FocusTarget; at: number } | null>(
+    null,
+  );
+  const [notice, setNotice] = useState<string | null>(null);
+  const commit = useCommitAssigned(budgetId, month, () =>
+    setNotice("Couldn't save the assigned amount."),
+  );
+  // Visible categories in render order: what ↑/↓ walks.
+  const order = groups.flatMap((g) =>
+    isCollapsed(g.id) ? [] : g.categories.filter((c) => !c.hidden).map((c) => c.id),
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: month is the trigger
+  useEffect(() => setEditing(null), [month]);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  const closeCell = (id: string, how: CloseHow, committed?: Promise<void>) => {
+    const i = order.indexOf(id);
+    if (how === "next" || how === "prev") {
+      setEditing(order[how === "next" ? i + 1 : i - 1] ?? null);
+      return;
+    }
+    setEditing(null);
+    if (how === "tab") {
+      (committed ?? Promise.resolve()).then(() =>
+        setFocusReq({ id, target: "available", at: Date.now() }),
+      );
+    } else if (how === "shiftTab") {
+      setFocusReq({ id, target: "name", at: Date.now() });
+    }
+  };
 
   const headerLabel = allCollapsed ? "Expand all" : "Collapse all";
   return (
@@ -92,6 +131,11 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
           </div>
         ) : (
           <div className="grid-body" role="rowgroup">
+            {notice && (
+              <div className="grid-notice" role="alert">
+                {notice}
+              </div>
+            )}
             {data?.uncategorized && <UncategorizedRow u={data.uncategorized} />}
             {groups.map((g) => {
               const collapsed = isCollapsed(g.id);
@@ -105,7 +149,27 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                   {!collapsed &&
                     g.categories
                       .filter((c) => !c.hidden)
-                      .map((c) => <CategoryRow key={c.id} c={c} bars={bars} />)}
+                      .map((c) => (
+                        <CategoryRow
+                          key={c.id}
+                          c={c}
+                          bars={bars}
+                          editing={editing === c.id}
+                          onOpen={() => {
+                            setEditing(c.id);
+                            setFocusReq(null);
+                            setNotice(null);
+                          }}
+                          onClose={(how, p) => closeCell(c.id, how, p)}
+                          onCommit={(after) => commit(c.id, c.assigned, after)}
+                          focusRequest={
+                            focusReq && focusReq.id === c.id && Date.now() - focusReq.at < 1000
+                              ? focusReq.target
+                              : null
+                          }
+                          onFocusDone={() => setFocusReq(null)}
+                        />
+                      ))}
                 </div>
               );
             })}
