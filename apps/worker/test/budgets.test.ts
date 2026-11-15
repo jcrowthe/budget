@@ -1,7 +1,9 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
-import { buildCreateBatch } from "../src/services/budgets";
+import { changeLogInsert } from "../src/history/change-log";
+import { buildCreateBatch, createBudget } from "../src/services/budgets";
+import { DEFAULT_CATEGORIES, defaultCategoryStmts } from "../src/services/default-categories";
 import { json } from "./helpers";
 
 type B = {
@@ -47,7 +49,7 @@ describe("budgets REST", () => {
     expect(list2.data.budgets.map((b) => b.id)).not.toContain(id);
 
     const { results } = await env.DB.prepare(
-      "SELECT action, actor, before_json, after_json FROM change_log WHERE budget_id = ? ORDER BY created_at, rowid",
+      "SELECT action, actor, before_json, after_json FROM change_log WHERE budget_id = ? AND entity_type = 'budget' ORDER BY created_at, rowid",
     )
       .bind(id)
       .all<{
@@ -123,7 +125,9 @@ describe("last_opened_at (EXF-475)", () => {
     ((await (await json("/api/v1/budgets", { method: "POST" }, { name })).json()) as B).data.budget;
   const logActions = async (id: string) =>
     (
-      await env.DB.prepare("SELECT action FROM change_log WHERE budget_id = ? ORDER BY rowid")
+      await env.DB.prepare(
+        "SELECT action FROM change_log WHERE budget_id = ? AND entity_type = 'budget' ORDER BY rowid",
+      )
         .bind(id)
         .all<{ action: string }>()
     ).results.map((r) => r.action);
@@ -234,5 +238,128 @@ describe("concurrency", () => {
       .first<{ n: number }>();
     expect(row?.n).toBe(ok);
     expect(ok).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("default categories (EXF-487)", () => {
+  const make = async (name: string) =>
+    ((await (await json("/api/v1/budgets", { method: "POST" }, { name })).json()) as B).data.budget;
+  const logRows = async (id: string) =>
+    (
+      await env.DB.prepare(
+        "SELECT action, actor, entity_type, entity_id, after_json FROM change_log WHERE budget_id = ? ORDER BY rowid",
+      )
+        .bind(id)
+        .all<{
+          action: string;
+          actor: string;
+          entity_type: string;
+          entity_id: string;
+          after_json: string | null;
+        }>()
+    ).results;
+
+  it("a new plan has the three groups and eleven categories, all zero", async () => {
+    const b = await make("ZZ-TEST defaults");
+    const month = `${new Date().toISOString().slice(0, 7)}-01`;
+    const res = await json(`/api/v1/budgets/${b.id}/months/${month}`);
+    const { data } = (await res.json()) as {
+      data: {
+        groups: {
+          name: string;
+          sort: number;
+          hidden: boolean;
+          collapsed: boolean;
+          assigned: number;
+          activity: number;
+          available: number;
+          categories: {
+            name: string;
+            sort: number;
+            hidden: boolean;
+            assigned: number;
+            activity: number;
+            available: number;
+          }[];
+        }[];
+      };
+    };
+    expect(data.groups.map((g) => g.name)).toEqual(DEFAULT_CATEGORIES.map((g) => g.group));
+    expect(data.groups.map((g) => g.sort)).toEqual([0, 1, 2]);
+    data.groups.forEach((g, i) => {
+      expect(g.categories.map((c) => c.name)).toEqual(DEFAULT_CATEGORIES[i]?.categories);
+      expect(g.categories.map((c) => c.sort)).toEqual(g.categories.map((_, n) => n));
+      expect([g.hidden, g.collapsed, g.assigned, g.activity, g.available]).toEqual([
+        false,
+        false,
+        0,
+        0,
+        0,
+      ]);
+      for (const c of g.categories) {
+        expect([c.hidden, c.assigned, c.activity, c.available]).toEqual([false, 0, 0, 0]);
+      }
+    });
+  });
+
+  it("writes 15 create rows with the request's actor", async () => {
+    const b = await make("ZZ-TEST defaults log");
+    const rows = await logRows(b.id);
+    expect(rows).toHaveLength(15);
+    expect(rows.every((r) => r.action === "create" && r.actor === "user:tester@localhost")).toBe(
+      true,
+    );
+    expect(rows[0]?.entity_type).toBe("budget");
+    expect(rows.filter((r) => r.entity_type === "category_group")).toHaveLength(3);
+    const cats = rows.filter((r) => r.entity_type === "category");
+    expect(cats).toHaveLength(11);
+    const groupIds = rows.filter((r) => r.entity_type === "category_group").map((r) => r.entity_id);
+    for (const c of cats) {
+      expect(groupIds).toContain(JSON.parse(c.after_json ?? "{}").group_id);
+    }
+  });
+
+  it("createBudget by another actor logs that actor", async () => {
+    const b = await createBudget(env, "mcp:x", { name: "ZZ-TEST defaults mcp" });
+    const rows = await logRows(b.id);
+    expect(rows).toHaveLength(15);
+    expect(rows.every((r) => r.actor === "mcp:x")).toBe(true);
+  });
+
+  it("is atomic: a failing change_log row leaves no plan, group or category", async () => {
+    const db = getDb(env);
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const log = {
+      budgetId: id,
+      actor: "t",
+      action: "create" as const,
+      entityType: "budget",
+      entityId: id,
+      before: null,
+      after: null,
+    };
+    const batch = [
+      ...buildCreateBatch(
+        db,
+        {
+          id,
+          name: "ZZ-TEST defaults atomic",
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+          lastOpenedAt: null,
+        },
+        log,
+      ),
+      ...defaultCategoryStmts(db, id, "t", now),
+      changeLogInsert(db, { ...log, action: "bogus" as "create" }),
+    ];
+    await expect(db.batch(batch as never)).rejects.toThrow();
+    for (const t of ["budgets", "category_groups", "categories"]) {
+      const col = t === "budgets" ? "id" : "budget_id";
+      const row = await env.DB.prepare(`SELECT 1 AS x FROM ${t} WHERE ${col} = ?`).bind(id).first();
+      expect(row).toBeNull();
+    }
   });
 });

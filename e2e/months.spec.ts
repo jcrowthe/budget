@@ -20,7 +20,7 @@ async function rpc(
   return JSON.parse(line ? line.slice(5) : text);
 }
 
-test("month read model: empty plan over REST and MCP, bad month is 422", async ({ request }) => {
+test("month read model: new plan over REST and MCP, bad month is 422", async ({ request }) => {
   const headers = await authHeaders();
   const created = await request.post("/api/v1/budgets", {
     headers,
@@ -32,7 +32,9 @@ test("month read model: empty plan over REST and MCP, bad month is 422", async (
   const res = await request.get(`/api/v1/budgets/${id}/months/${month}`, { headers });
   expect(res.status()).toBe(200);
   const { data } = await res.json();
-  expect(data).toMatchObject({ month, ready_to_assign: 0, groups: [], uncategorized: null });
+  expect(data).toMatchObject({ month, ready_to_assign: 0, uncategorized: null });
+  expect(data.groups.map((g: { name: string }) => g.name)).toEqual(["Bills", "Needs", "Wants"]);
+  expect(data.groups.flatMap((g: { categories: unknown[] }) => g.categories)).toHaveLength(11);
 
   await rpc(
     request,

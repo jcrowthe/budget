@@ -31,6 +31,7 @@ async function readMonth(budgetId: string, month: string) {
   const body = await res.json();
   return MonthDetailResponse.parse(body).data;
 }
+const grp = (d: Detail, id: string) => d.groups.find((g) => g.id === id);
 const row = (d: Detail, name: string) => {
   const c = d.groups.flatMap((g) => g.categories).find((x) => x.name === name);
   if (!c) throw new Error(`no ${name}`);
@@ -97,7 +98,11 @@ describe("worked example through the services", () => {
     expect(row(oct, "Rent")).toEqual([300000, 0, 300000]);
     expect(row(oct, "Groceries")).toEqual([150000, -100000, 50000]);
     expect(row(oct, "Fun")).toEqual([20000, -45000, -25000]);
-    expect(oct.groups[0]).toMatchObject({ assigned: 470000, activity: -145000, available: 325000 });
+    expect(grp(oct, s.group.id)).toMatchObject({
+      assigned: 470000,
+      activity: -145000,
+      available: 325000,
+    });
     expect(oct.ready_to_assign).toBe(30000);
     // Step 4
     await s.tx("2026-11-15", 1000000, undefined, true);
@@ -110,7 +115,11 @@ describe("worked example through the services", () => {
     expect(row(nov, "Rent")).toEqual([450000, 0, 750000]);
     expect(row(nov, "Groceries")).toEqual([205000, -60000, 195000]);
     expect(row(nov, "Fun")).toEqual([0, -50000, -50000]);
-    expect(nov.groups[0]).toMatchObject({ assigned: 655000, activity: -110000, available: 895000 });
+    expect(grp(nov, s.group.id)).toMatchObject({
+      assigned: 655000,
+      activity: -110000,
+      available: 895000,
+    });
     expect(nov.rta_breakdown.cash_overspending_previous).toBe(-25000);
     expect(nov.ready_to_assign).toBe(350000);
     // Step 5: cover
@@ -126,7 +135,11 @@ describe("worked example through the services", () => {
     expect(row(oct, "Groceries")).toEqual([125000, -100000, 25000]);
     nov = await readMonth(bid, NOV);
     expect(row(nov, "Groceries")[2]).toBe(170000);
-    expect(nov.groups[0]).toMatchObject({ assigned: 655000, activity: -110000, available: 870000 });
+    expect(grp(nov, s.group.id)).toMatchObject({
+      assigned: 655000,
+      activity: -110000,
+      available: 870000,
+    });
     expect(nov.ready_to_assign).toBe(375000);
     // Step 6
     let dec = await readMonth(bid, DEC);
@@ -263,8 +276,8 @@ describe("worked example through the services", () => {
 
   it("writes one history row per change with the actor", async () => {
     const s = await seed();
-    const base = (await logs(s.bid)).length; // budget + account + group + 3 categories
-    expect(base).toBe(6);
+    const base = (await logs(s.bid)).length; // budget + 14 defaults + account + group + 3 categories
+    expect(base).toBe(20);
     const g = s.cats.Groceries as string;
     const f = s.cats.Fun as string;
     await s.assign("Rent", OCT, 1000);
