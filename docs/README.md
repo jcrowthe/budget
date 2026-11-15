@@ -15,3 +15,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Plan grid design](plan-grid-design.md): EXF-487 Plan month grid (toolbar, groups, categories, pills, progress bars, local collapse/progress-bar state) and default categories for new plans (spec: [plan-grid-spec.md](plan-grid-spec.md))
 - [Accounts design](accounts-design.md): EXF-481 accounts REST + MCP, Add Unlinked Account with a Starting Balance, race-safe unique names, sidebar account list, minimal account page (spec: [accounts-spec.md](accounts-spec.md))
 - [Accounts polish](accounts-polish.md): Designer polish list for the accounts screens, with applied status
+- [Assigned inline design](assigned-inline-design.md): EXF-489 editable Assigned cell (typing, arithmetic, Enter/Tab/arrows/Escape), optimistic month cache, PATCH `/budgets/{budget_id}/months/{month}/categories/{category_id}` and MCP `set_assigned` (spec: [assigned-inline-spec.md](assigned-inline-spec.md))
