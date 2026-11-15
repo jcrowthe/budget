@@ -53,6 +53,8 @@ describe("clone.profile.json", () => {
     expect(profile.repo.migrations_pending).toBe("bash scripts/migrations-pending.sh");
     expect(profile.health.version_field).toBe("deploy_sha");
     expect(profile.source.driver).toBe("cdp");
+    // Children may open only the Test Budget plan; the bare site opens whichever plan was used last.
+    expect(profile.source.url).toContain("542b334b-696e-4418-937a-5e2c21a8b45c");
     expect(profile.live.health_path).toBe(profile.health.path);
     const map = {
       "CF-Access-Client-Id": "CF_ACCESS_CLIENT_ID",

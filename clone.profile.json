@@ -93,7 +93,7 @@
     "heavy_spec_locks": []
   },
   "source": {
-    "url": "https://app.ynab.com",
+    "url": "https://app.ynab.com/542b334b-696e-4418-937a-5e2c21a8b45c/budget",
     "single_tab": false,
     "signed_out_markers": [
       "/users/sign_in",
