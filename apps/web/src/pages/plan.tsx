@@ -1,21 +1,31 @@
-import { currentMonth } from "@budget/core/month";
+import { useEffect } from "react";
+import { Navigate, useParams } from "react-router";
 import { PageHeader } from "../shell/PageHeader";
-import { PlanGate } from "../shell/PlanGate";
+import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
 function PlanPage() {
+  const { budgetId, month: parsed } = usePlanMonth();
+  const { month: raw } = useParams();
+  // No month in the URL: the source keeps /budget and shows the current month (polish P2).
+  const month = raw === undefined ? localCurrentMonth() : parsed;
   usePageTitle("Plan");
-  const month = new Date(`${currentMonth()}T00:00:00Z`).toLocaleDateString("en-US", {
+  useEffect(() => {
+    if (month) rememberMonth(budgetId, month);
+  }, [budgetId, month]);
+  // A present but invalid month is replaced with the current month's canonical URL.
+  if (!month) return <Navigate replace to={planPath(budgetId, localCurrentMonth())} />;
+  const title = new Date(`${month}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "short",
     year: "numeric",
     timeZone: "UTC",
   });
   return (
-    <PlanGate>
-      <PageHeader variant="plan" title={month} />
+    <>
+      <PageHeader variant="plan" title={title} />
       <div className="page-body" />
-    </PlanGate>
+    </>
   );
 }
 
-export const page = { path: "/:budgetId/budget", element: <PlanPage /> };
+export const page = { path: "/:budgetId/budget/:month?", element: <PlanPage /> };

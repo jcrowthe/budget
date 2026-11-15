@@ -1,0 +1,4 @@
+# Plan URLs: polish list (EXF-475)
+
+- P1 [applied] `pages/account.tsx`: an unknown account id is replaced with `/<id>/accounts` (All Accounts, title `All Accounts | <Plan> | Budget`, All Accounts row active), as measured live in the source. The not-found card and the `Account Not Found` title are removed. This supersedes the Lead's scope note 1 (not-found state), as the polish list directs. Design and spec rows and e2e cases C4, C6 and C8 updated.
+- P2 [applied] `/<id>/budget` with no month stays `/budget` and shows the current month; an unknown sub-path (`PlanFallbackRedirect`) and an unknown report redirect to `/<id>/budget` without a month; a malformed month still becomes `/budget/YYYYMM`. The shared `PlanScope.tsx` already targeted `planPath(budgetId)`, so no shared file changed. Sidebar Plan link keeps `/budget/<m>`. e2e C1, C5, C7, C13 and plans.spec updated.

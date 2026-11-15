@@ -33,6 +33,18 @@ test("create a plan, switch back, and reopen the last used plan", async ({ page 
   await expect(page).toHaveURL(urlA);
   await expect(sidebar.getByRole("button", { name: a })).toBeVisible();
 
+  // Other workers open plans too: compare with the list the page itself loaded.
+  const resp = page.waitForResponse(
+    (r) => r.url().endsWith("/api/v1/budgets") && r.request().method() === "GET",
+  );
   await page.goto("/");
-  await expect(page).toHaveURL(urlA);
+  const budgets = (await (await resp).json()).data.budgets as {
+    id: string;
+    last_opened_at: string | null;
+  }[];
+  const latest = budgets.reduce((a, b) =>
+    (b.last_opened_at ?? "") > (a.last_opened_at ?? "") ? b : a,
+  );
+  await expect(page).toHaveURL(new RegExp(`/${latest.id}/budget$`));
+  expect(budgets.find((b) => urlA.includes(b.id))?.last_opened_at).not.toBeNull();
 });

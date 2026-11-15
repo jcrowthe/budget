@@ -19,8 +19,8 @@ test("the shell loads, navigates and opens the Add Account modal", async ({ page
   await expect(page).toHaveTitle(`Plan | ${name} | Budget`);
 
   await sidebar.getByRole("link", { name: "Reflect" }).click();
-  await expect(page).toHaveURL(`/${id}/reflect`);
-  await expect(page).toHaveTitle(`Reflect | ${name} | Budget`);
+  await expect(page).toHaveURL(`/${id}/reflect/spending-breakdown`);
+  await expect(page).toHaveTitle(`Spending Breakdown | ${name} | Budget`);
   await expect(sidebar.getByRole("link", { name: "Reflect" })).toHaveClass(/active/);
 
   await sidebar.getByRole("link", { name: "All Accounts" }).click();

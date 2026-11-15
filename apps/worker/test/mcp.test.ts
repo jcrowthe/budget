@@ -46,8 +46,8 @@ describe("mcp", () => {
       .first<{ actor: string }>();
     expect(row?.actor.startsWith("mcp:user:")).toBe(true);
     const listed = await rpc("tools/call", { name: "list_budgets", arguments: {} }, 4);
-    expect(
-      (listed.body.result.structuredContent.budgets as { id: string }[]).map((b) => b.id),
-    ).toContain(id);
+    const budgets = listed.body.result.structuredContent.budgets as { id: string }[];
+    expect(budgets.map((b) => b.id)).toContain(id);
+    expect(budgets.find((b) => b.id === id)).toHaveProperty("last_opened_at", null);
   });
 });
