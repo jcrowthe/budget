@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads), Deploy 5, Test user flow 0,
+Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -361,7 +361,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | live `129e425` |
 | 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | pending | running |
 | 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | pending | running |
-| 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | running |
+| 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | live `d2e659b` |
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | template | none | running |
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | pending | running |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | pending | running |
@@ -2051,3 +2051,41 @@ Assigned), EXF-513 (register) and EXF-483 (sidebar groups). Nothing started this
 - No further Deploy until the running one ends. No flow tests yet: start flows 9, 10 and 11, and flow 1 as
   far as it goes, when accounts are live and Assigned has merged and shipped.
 - Review cadence: Build 0, Deploy 5, Discover 2.
+
+### 2026-11-15 · Review round 25
+
+Children used 38 of 200. Five are running: the Build template review (first step) and the Builds for
+EXF-493, EXF-489, EXF-513 and EXF-483. No card is waiting.
+
+**Ended: the Deploy `p_98f50d74ddb74e78904ef57aa417fcf4`, passed. Live: https://budget.doxen.dev at
+`DEPLOY_SHA` `d2e659b`** (accounts). Four minutes; e2e skipped (tree equals the gated head `cabddec`); no
+migration pending before or after.
+
+- Accounts API on a test plan: checking 250000 answered 201 and Ready to Assign became 250000; the same
+  name again answered 409 `name_taken`; a credit card of 150000 shows a balance of -150000, leaves Ready to
+  Assign at 250000 and adds no uncategorized amount; a mortgage answered 422.
+- MCP lists five tools (`create_account`, `create_budget`, `get_plan_month`, `list_accounts`,
+  `list_budgets`) and `list_accounts` equals REST.
+- Web: the sidebar lists accounts under CASH and CREDIT; the form, the picker (four groups, thirteen
+  options) and the success screen work; Done opens the account page; no failed responses, no console
+  errors; the Plan grid still renders.
+- Cleanup left nothing; deleting the plan makes its accounts unreachable (404).
+- Still 0 plans that are not test plans.
+- One thing to watch, not a defect yet: the verifier's first screenshot after "Done" was taken before the
+  account page had rendered; after a reload it was correct. If a flow test sees a blank account page after
+  Done, look at the navigation after creating an account.
+
+**What is live now:** plans and their URLs, the Plan grid with default categories, the budget and targets
+engines behind the API, accounts with Add Unlinked Account. Not yet: editing Assigned, month navigation, the
+register, sidebar groups (all in Builds now).
+
+**For the next plan:** flow tests become worth a child once Assigned is live (flow 1 needs it). Flows 9
+(two plans stay separate) and 11 (Access lock) could run now; flow 10 needs the transactions API. Decide in
+the plan whether to start 9 and 11 now or all four together after the next Deploy. My leaning: wait one
+Deploy, so that each flow test sees accounts, Assigned and the register together.
+
+**Ticket writes:** none this review.
+
+**Backlog:** 89 open feature tickets (4 in progress), all triaged. Gap: EXF-558 (High), EXF-454, EXF-560,
+EXF-562 (Low). Template: nine. Finished since each template's last review: Build 0, Deploy 6, Discover 2,
+Test user flow 0.
