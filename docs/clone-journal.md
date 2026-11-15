@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 2, Deploy 1, Test user flow 0,
+Review counters (finished children since that template's last review): Build 2, Deploy 2, Test user flow 0,
 Discover 3. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -767,3 +767,26 @@ passed on the first run of the release (Deploy `p_429e665e49e9450eb7137c91c53010
 
 **Risks I am watching:** nine agents in one YNAB plan at once (name prefixes are the only separation); the
 Discover children's screenshots are stored as artifacts, so the briefs forbid real data in them.
+
+### 2026-11-15 · Review round 6
+
+Children used 20 of 200. Ten are running: nine Discover areas (all at their explore step, all signed in) and
+the EXF-453 Build (at its plan step, past intake and preflight).
+
+**What ended:** the Deploy `p_429e665e49e9450eb7137c91c53010db`, completed. Live URL
+https://budget.doxen.dev, `DEPLOY_SHA` `43b7ce9`. Details are in the plan round 6 entry above; nothing new.
+
+**What I learned from the running children:**
+
+- The Discover template's sign-in check opens the profile's `source.url`, which is the bare
+  `https://app.ynab.com`, whatever my notes say (the notes reach the explore step, not that one). Area 5's
+  agent did exactly that. It landed on the Test Budget, because that was the plan used last. YNAB opens the
+  last-used plan, so if another plan is ever the last one used, a child's first page would be that plan.
+  Area 5 is the only child allowed onto a Programmatik page, and its brief tells it to return to the Test
+  Budget URL when done, which resets the last-used plan.
+- The fix is in the profile, not the briefs: make `source.url` the Test Budget URL. The source-tab check
+  names the host (`app.ynab.com`), so it should still match; the Build must confirm that. Filing a ticket.
+
+**Backlog:** EXF-453 In Progress (High). EXF-454 Low, blocked by EXF-453. Template tickets EXF-455, EXF-457
+(High), EXF-456 (Medium). No `clone:feature` tickets yet: the first discovery reports are due. Filing one
+`clone:gap` ticket this review (profile `source.url`).
