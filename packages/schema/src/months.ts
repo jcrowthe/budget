@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { CategoryTargetMonth } from "./targets";
 
 export const RtaBreakdown = z
   .object({
@@ -23,6 +24,7 @@ export const MonthCategoryDetail = z
     activity: Milliunits,
     available: Milliunits,
     carried: Milliunits,
+    target: CategoryTargetMonth.nullable(),
   })
   .openapi("MonthCategoryDetail");
 

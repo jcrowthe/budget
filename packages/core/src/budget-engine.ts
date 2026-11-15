@@ -1,6 +1,7 @@
 import type { AccountType } from "./account-types";
 import { addMilliunits, type Milliunits } from "./money";
 import { addMonths, isMonth, type Month, toMonth } from "./month";
+import { computeTargetMonth, type TargetDefinition, type TargetMonth } from "./targets";
 
 // Pure month arithmetic for the Plan: no I/O. See docs/budget-engine-design.md.
 
@@ -37,12 +38,19 @@ export interface EngineNote {
   month: Month;
   note: string | null;
 }
+export interface EngineTarget extends TargetDefinition {
+  categoryId: string;
+}
 export interface EngineInput {
   groups: EngineGroup[];
   categories: EngineCategory[];
   assignments: EngineAssignment[];
   activity: EngineActivity[];
   notes: EngineNote[];
+  /** At most one per category. */
+  targets?: EngineTarget[];
+  /** ISO date; required when `targets` is not empty (the engine never reads the clock). */
+  today?: string;
 }
 
 export type Classified =
@@ -83,6 +91,7 @@ export interface MonthCategoryDetail {
   activity: Milliunits;
   available: Milliunits;
   carried: Milliunits;
+  target: TargetMonth | null;
 }
 export interface MonthGroupDetail {
   id: string;
@@ -292,12 +301,32 @@ export function computeMonth(input: EngineInput, month: Month): MonthDetail {
   const state = states[idx] as MonthState;
   const { rta, breakdown } = rtaFor(p, states, idx);
 
+  const targetsByCat = new Map((input.targets ?? []).map((t) => [t.categoryId, t]));
+  if (targetsByCat.size > 0 && input.today === undefined) {
+    throw new RangeError("today is required when targets are given");
+  }
+  const today = input.today ?? "";
+
   const catsByGroup = new Map<string, EngineCategory[]>();
   for (const c of p.activeCats) {
     const list = catsByGroup.get(c.groupId) ?? [];
     list.push(c);
     catsByGroup.set(c.groupId, list);
   }
+  const targetFor = (categoryId: string, s: CatState): TargetMonth | null => {
+    const t = targetsByCat.get(categoryId);
+    if (!t) return null;
+    const { categoryId: _id, ...def } = t;
+    return computeTargetMonth(def, {
+      month,
+      today,
+      leftover: s.carried,
+      assigned: s.assigned,
+      activity: s.activity,
+      available: s.available,
+      assignedIn: (m) => p.assignedByCatMonth.get(`${m}|${categoryId}`) ?? 0,
+    });
+  };
   const groups: MonthGroupDetail[] = [...input.groups].sort(bySort).map((g) => {
     const cats = (catsByGroup.get(g.id) ?? []).sort(bySort).map((c): MonthCategoryDetail => {
       const s = state.cats.get(c.id) as CatState;
@@ -310,6 +339,7 @@ export function computeMonth(input: EngineInput, month: Month): MonthDetail {
         activity: s.activity,
         available: s.available,
         carried: s.carried,
+        target: targetFor(c.id, s),
       };
     });
     const visible = cats.filter((c) => !c.hidden);
