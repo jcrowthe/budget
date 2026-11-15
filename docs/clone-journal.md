@@ -1229,3 +1229,21 @@ at its approval card.
 **Backlog:** about 98 `clone:feature` tickets: 43 triaged on the tickets, 47 triaged in the journal only
 (areas 2, 7, 4, 6); area 8 still filing. Flow 4 (credit card) needs EXF-532, 535, 537 and 539. No tickets
 filed this review.
+
+### 2026-11-15 · Plan round 14
+
+Children used 25 of 200. Four are running, all started earlier: the Builds for EXF-485 (at its build step) and
+EXF-475 (at its plan step), Discover area 8 and the Improve templates review.
+
+- No tickets were filed at the last review.
+- **EXF-485's manifest arrived; scheduling rule applied.** It touches new files only under
+  `apps/worker/src/db/schema`, `repositories`, `services`, `routes/months.ts`, `mcp/tools/months.ts`,
+  `packages/core/src/budget-engine.ts` and `account-types.ts` (new files in a shared module, no existing core
+  file changed), `packages/schema/src` (new files), one migration, and tests. No always-overlap file. Three
+  existing files it edits that EXF-475 could also edit: `apps/worker/test/openapi.test.ts` (EXF-475 is told
+  not to), `apps/worker/test/mcp.test.ts` and `e2e/mcp.spec.ts` (only if EXF-475 changes the budgets MCP
+  tool's output), and `docs/README.md` (every Build adds a line to the docs index). Check EXF-475's manifest
+  when it arrives; a clash on the docs index alone is a one-line rebase, not a reason to cancel. Whichever
+  merges second gets Refresh at its card.
+- Started nothing: every open High ticket waits on one of the two Builds.
+- Ticket writes still rate limited at 20:37 UTC.
