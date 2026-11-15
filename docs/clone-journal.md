@@ -358,6 +358,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | PR #10 | merged `401970d` (round 21) |
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | PR #11 | merged `129e425` (round 22) |
 | 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | PR #12 | running |
+| 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | running |
+| 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | pending | running |
+| 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1857,3 +1860,42 @@ EXF-545 lost their link to EXF-511 because it is done. Nothing is owed any more.
 **Backlog:** 90 open feature tickets (EXF-475, 485, 487, 511 done; EXF-481 in progress), all triaged. Gap:
 EXF-558 (High), EXF-454 and EXF-560 (Low), plus the one filed now. Template: nine. Finished since each
 template's last review: Build 9, Deploy 4, Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 23
+
+Children used 34 of 200. Four are running: the Build for EXF-481 (accounts, pull request #12) from round 21
+and three started now.
+
+- The gap ticket filed at the last review exists: **EXF-562** (grid colours into `tokens.css`, one sentence
+  in the design doc). Set to Low. It needs a moment when no Build holds the shell.
+- **Started the Deploy of main `129e425`** (`p_77deb9856fa0437b93b1b3d693561e94`), `gated_commit` `0943398`
+  (trees compared: equal). One additive migration (`20261115213604_targets.sql`). Checks asked: a new test
+  plan has Bills, Needs, Wants with 3, 4, 4 categories and `target: null`; the grid in a browser session
+  (collapse and progress bars survive a reload); MCP list unchanged; cleanup. I also asked for a count of
+  plans that are not test plans, to learn whether the person has started using the app.
+- I read EXF-494, 493, 489 and 491 and grouped them by the files they need:
+  - **Started EXF-493, month navigation, picker and note** (`p_d0368f708be6478c8718f93c77174947`): the
+    Plan header's left part as its own component, `pages/plan.tsx`, the months route, tool, service and
+    schema, `api/months.ts`. The limits read returns facts (first month, last assigned month) and the
+    browser applies the rule with its local current month, because the Worker's clock is UTC.
+  - **Started EXF-489, edit Assigned inline** (`p_538c1bb379f84d0d8d3dac0b6ec51136`): `rows.tsx`,
+    `PlanGrid.tsx`, `plan-grid.css`, a new cell component, pure parsing with tests, and the route and tool in
+    new files (`PATCH .../months/{month}/categories/{category_id}`, `set_assigned`) over the existing
+    `setAssigned`. It may not edit the months files that EXF-493 holds.
+  - The two are disjoint from each other and from accounts (which holds `apps/web/src/shell/**`, core,
+    the accounts and transactions schema, service and repositories). Both add a line to `docs/README.md`.
+  - **EXF-494 (category CRUD) waits for EXF-489**: both change the grid rows. Link set. EXF-489 goes first
+    because it is smaller and assigning is the core action; new plans already have categories.
+  - **EXF-491 (Ready to Assign pill) waits for EXF-493**: both change the Plan header. Link set. It also
+    wants the category picker and the moves route (EXF-492).
+- Source rules in the two briefs: look only. EXF-493 may navigate months and open the note popover but never
+  save a note; EXF-489 may open and type in a cell but leaves only with Escape.
+- Not started: EXF-468 (plan formats: its entry point is the plan menu in the shell, and the money format
+  touches the grid's `format.ts`); EXF-558 and EXF-562 (need an empty moment); no flow tests until accounts
+  and Assigned are live.
+- Carry to later briefs: EXF-508 (local date for targets), EXF-472 and EXF-473 (take over the grid's
+  browser-kept settings and shortcuts), the next Build in the grid's docs fixes "fades in" if EXF-562 has
+  not.
+- Review cadence: Build 9 finished since the last Build template review; the next finished Build triggers
+  it. Deploy 4, Discover 2.
+- Ticket writes this round: 7 (EXF-562 priority; EXF-493 and EXF-489 state and comment; two links).
