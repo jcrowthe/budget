@@ -986,3 +986,13 @@ the EXF-458 Build, which is at its checks step with no open card.
   router (shared modules). Order: EXF-475 first (routing under every page), then EXF-468.
 - The data model and engine Build, which everything else needs, waits for areas 1 to 4 to report: its
   tickets do not exist yet.
+
+### 2026-11-15 · Review round 10 (check-in)
+
+Children used 22 of 200. Eight are running: seven Discover areas (1 to 4, 6 to 8) and the EXF-458 Build.
+Nothing ended since the round 9 review. Round 10 is a check-in: sent the person a progress report (live URL,
+what landed and failed, backlog, risks, next steps, and the two things only they can do: try signing in, and
+configure Plaid's Data Transparency Messaging). No tickets filed.
+
+Totals so far: 22 children. Builds: 3 merged (scaffold, profile fix, EXF-453), 3 abandoned, 1 running.
+Deploys: 2 live, 1 refused. Discover: 2 completed (21 tickets), 3 failed at the profile step, 7 running.
