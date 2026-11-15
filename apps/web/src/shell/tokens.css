@@ -1,0 +1,50 @@
+/* Design tokens: the only place colours, spacing and type are defined. Components use variables only. */
+:root {
+  --backgroundPrimary: #0c0d22;
+  --backgroundSecondary: #15172d;
+  --backgroundTertiary: #1f2038;
+  --sidebarBackground: #121330;
+  --sidebarHover: #1b1d48;
+  --sidebarActive: #1c1f58;
+  --menuHover: #292b3d;
+  --labelPrimary: #fff;
+  --labelSecondary: #c4c5cf;
+  --labelTertiary: #9b9caa;
+  --actionPrimary: #7583ff;
+  --buttonPrimaryBackground: #545bfe;
+  --buttonSubtleBackground: rgba(255, 255, 255, 0.15);
+  --buttonSubtleBackgroundHover: rgba(255, 255, 255, 0.2);
+  --inputBackground: #3c3e53;
+  --inputBorder: #727484;
+  --statusPositive: #77ba21;
+  --statusNegative: #bf2e3b;
+  --borderSubtle: rgba(255, 255, 255, 0.08);
+  --labelMuted: rgba(255, 255, 255, 0.7);
+  --shadowMenu: 0 16px 64px rgba(0, 0, 0, 0.2);
+  --overlay: rgba(0, 0, 0, 0.33);
+  --buttonSecondaryBackground: rgba(117, 131, 255, 0.2);
+  --buttonSecondaryLabel: #f1f1ff;
+
+  --sidebar-width: 260px;
+  --nav-row: 40px;
+  --nav-gap: 4px;
+  --radius-xs: 4px;
+  --radius-sm: 5px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 32px;
+  --space-card: 0.65rem;
+  --space-half: 0.2rem;
+  --sidebar-resizer: 3px;
+  --line-height: 1.2;
+
+  --font: "Figtree Variable", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-month: 21px;
+}

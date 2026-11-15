@@ -1,0 +1,417 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: var(--font);
+  font-size: var(--font-size-md);
+  background: var(--backgroundPrimary);
+  color: var(--labelPrimary);
+  overflow: hidden;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: var(--actionPrimary);
+}
+
+.app {
+  line-height: var(--line-height);
+  display: flex;
+  height: 100%;
+}
+.sidebar {
+  width: var(--sidebar-width);
+  flex: none;
+  background: var(--sidebarBackground);
+  border-right: 1px solid var(--borderSubtle);
+  overflow-y: auto;
+  position: relative;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--backgroundPrimary);
+}
+
+.plan-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: calc(var(--sidebar-width) - 17px);
+  height: 46px;
+  margin: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+.plan-button:hover {
+  background: var(--sidebarHover);
+}
+.plan-button .name {
+  flex: 1;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logo {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nav-gap);
+  margin: 0 var(--space-2) var(--nav-gap);
+}
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--nav-row);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--labelPrimary);
+  font-weight: 500;
+  text-decoration: none;
+}
+.nav a:hover {
+  background: var(--sidebarHover);
+}
+.nav a.active {
+  background: var(--sidebarActive);
+}
+.nav svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.accounts-card {
+  margin: var(--space-card) calc(var(--space-card) + var(--sidebar-resizer)) 0 var(--space-card);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--sidebarHover);
+}
+.accounts-card h5 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+.accounts-card p {
+  margin: var(--space-half) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelMuted);
+}
+
+.add-account {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 224px;
+  height: 28px;
+  margin: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSubtleBackground);
+  transition: background-color 0.15s;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.add-account:hover {
+  background: var(--buttonSubtleBackgroundHover);
+}
+.add-account svg {
+  width: 12px;
+  height: 12px;
+}
+
+.menu {
+  position: absolute;
+  top: calc(46px + 2 * var(--space-2));
+  left: var(--space-2);
+  padding: var(--space-1);
+  width: calc(var(--sidebar-width) - 17px);
+  z-index: 20;
+  background: var(--backgroundTertiary);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadowMenu);
+}
+.menu button {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  height: 33px;
+  border-radius: var(--radius-xs);
+  padding: var(--space-2) 12px;
+  border: 0;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover,
+.menu button[aria-expanded="true"] {
+  background: var(--menuHover);
+}
+.menu button .label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu button svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--labelTertiary);
+}
+.menu button svg.chevron {
+  width: 12px;
+  height: 12px;
+}
+.submenu-heading {
+  padding: var(--space-2) 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 14.4px;
+  color: var(--labelSecondary);
+}
+.submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: max-content;
+  padding: var(--space-1);
+  background: var(--backgroundTertiary);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadowMenu);
+}
+.menu-item-wrap {
+  position: relative;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  background: var(--backgroundSecondary);
+}
+.page-header h1 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+.page-header.plan {
+  height: 88px;
+}
+.page-header.plan h1 {
+  font-size: var(--font-size-month);
+}
+.page-header.reflect {
+  height: 64px;
+}
+.page-header.reflect h1 {
+  align-self: stretch;
+  box-sizing: border-box;
+  padding: 20px 0 16px;
+  border-bottom: 4px solid var(--actionPrimary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+.page-header.accounts {
+  height: 61px;
+}
+.page-body {
+  padding: var(--space-4);
+  color: var(--labelSecondary);
+}
+.card {
+  max-width: 420px;
+  margin: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundTertiary);
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay);
+}
+.dialog {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundTertiary);
+}
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.dialog-head h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+.icon-button {
+  border: 0;
+  background: transparent;
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  cursor: pointer;
+}
+.dialog.form {
+  width: 480px;
+  padding: 0;
+  box-shadow: var(--shadowMenu);
+}
+.dialog.form .dialog-head {
+  height: 48px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.dialog.form .dialog-head h2 {
+  font-weight: 600;
+}
+.dialog.form .form-body {
+  padding: var(--space-3) var(--space-3) 0;
+}
+.dialog.form label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.dialog.form .field {
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+.dialog.form .field:focus {
+  outline: none;
+  border-color: var(--buttonPrimaryBackground);
+}
+.dialog.form .dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+.dialog.form .dialog-footer button {
+  height: 32px;
+  margin: 0;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.dialog.form .dialog-footer .secondary {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.dialog.form .dialog-footer .primary {
+  background: var(--buttonPrimaryBackground);
+}
+.dialog.form .dialog-footer .primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dialog-backdrop.top {
+  align-items: flex-start;
+  padding: 32px 0 64px;
+}
+.dialog.modal {
+  width: 360px;
+  padding: 0;
+  border-radius: 0.4rem;
+  box-shadow: var(--shadowMenu);
+}
+.dialog.modal .dialog-head {
+  position: relative;
+  justify-content: center;
+  height: 70px;
+  margin: 0;
+  padding: 27px var(--space-3) 21px;
+}
+.dialog.modal .dialog-head h2 {
+  font-weight: 600;
+}
+.dialog.modal .icon-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+}
+.dialog.modal .icon-button svg {
+  width: 24px;
+  height: 24px;
+}
+.field {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-md);
+  background: var(--inputBackground);
+}
+.primary {
+  margin-top: var(--space-3);
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.error {
+  color: var(--statusNegative);
+  margin: var(--space-2) 0 0;
+}

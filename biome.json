@@ -1,0 +1,22 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.wrangler",
+      "!**/.e2e-state",
+      "!**/.screenshots",
+      "!**/playwright-report",
+      "!**/test-results",
+      "!**/node_modules",
+      "!pnpm-lock.yaml",
+      "!docs",
+      "!clone.profile.json",
+      "!**/worker-configuration.d.ts"
+    ]
+  },
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "css": { "formatter": { "enabled": true } }
+}
