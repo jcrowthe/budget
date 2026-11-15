@@ -365,6 +365,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | running |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | running |
+| 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2232,3 +2233,44 @@ before approving (21 files, +1963/-16).
 **Backlog:** 88 open feature tickets (6 done; 3 in progress: EXF-493, 513, 483), all triaged. Gap: EXF-558
 (High), EXF-454, EXF-560, EXF-562 (Low). Template: fifteen. Finished since each template's last review:
 Build 1, Deploy 6, Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 28
+
+Children used 39 of 200. Four Builds are running: EXF-493 (pull request #15), EXF-513 (#16) and EXF-483 (#14)
+from earlier rounds, and one started now.
+
+- No ticket was filed at the last review.
+- **The child budget needs care.** 39 of 200 children are used and 88 feature tickets are open. One Build
+  per ticket, plus Deploys, flow tests and reviews, would not fit in the 161 that remain. From now on:
+  **group two or three tickets that change the same files into one Build** (the Clerk's `request.json`
+  takes a list), **one Deploy for several merges**, and flow tests in batches after a Deploy. Tell the
+  person at the round 30 check-in that the limit of 200 will probably need raising before parity, with the
+  numbers.
+- **Started one Build for EXF-494 and EXF-495 together** (`p_4f6bdb700cf54bec9c138cdfb3649b02`): category
+  and group create, rename, delete with reassignment, hide and unhide, and collapse saved on the server.
+  This is the first Build with two tickets; watch that the template's later steps treat both (the brief
+  holds both tickets' text and asks for one report with cases named by ticket). Scope notes:
+  - Routes and tools in new files; errors in the app's envelope; new rows at the top without changing what
+    existing callers of the append services get.
+  - Delete with history is one batch (transactions moved, assigned amounts added per month, target row
+    removed, soft deletes, history rows); the statement that moves transactions goes in a repository file
+    of its own, because EXF-513 holds the transactions repository.
+  - `PATCH category_groups {collapsed}` writes no history row; `plan/collapse.ts` drops its browser copy.
+  - A shared category picker (`apps/web/src/plan/`), for EXF-491, EXF-492 and EXF-517.
+  - It may use `plan/useDismiss.ts` only if EXF-493 has merged when it rebases; otherwise its own helper.
+  - It corrects the "fades in" sentence in `docs/plan-grid-design.md` (so EXF-562 keeps only the tokens).
+  - A plain click on a category name opens the edit popover until EXF-498 brings selection.
+  - Out of bounds: the Plan page, header and months files (EXF-493); account page, register, transactions
+    files (EXF-513); shell, accounts files, core (EXF-483).
+  - Source: popovers may be opened and left with Cancel or Escape; never OK, Hide, Delete or an unhide.
+  - Two new lines in every brief from the template review: long commands in the foreground; list every
+    screenshot kept and delete unlisted source captures.
+- **No Deploy now, on purpose:** main `0c81b09` adds Assigned over live `d2e659b`. Three more Builds have
+  pull requests open; one Deploy after they merge ships all four and saves two or three children.
+- No flow tests until that Deploy.
+- **Groupings to use next** (same files, one Build each): EXF-491 with EXF-492 (Ready to Assign pill and
+  move money: both need the picker and the moves route); EXF-484 with EXF-486 (account header and Edit
+  Account); EXF-517 with EXF-507 (inline transactions and the payee picker); EXF-498 with EXF-521
+  (selection and the inspector); EXF-524 with EXF-526 (splits and transfers) if their sizes allow.
+- Review cadence: Build 1, Deploy 6, Discover 2.
+- Ticket writes this round: 4.
