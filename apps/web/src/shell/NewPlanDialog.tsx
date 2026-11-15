@@ -16,24 +16,31 @@ export function NewPlanDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="dialog-backdrop">
-      <form className="dialog" role="dialog" aria-label="New Plan" onSubmit={submit}>
+      <form className="dialog form" role="dialog" aria-label="New Plan" onSubmit={submit}>
         <div className="dialog-head">
           <h2>New Plan</h2>
-          <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
-            ×
+        </div>
+        <div className="form-body">
+          <label htmlFor="new-plan-name">Plan Name</label>
+          {/* biome-ignore lint/a11y/noAutofocus: the source focuses the field when the dialog opens */}
+          <input
+            id="new-plan-name"
+            className="field"
+            // biome-ignore lint/a11y/noAutofocus: see above
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          {create.error ? <p className="error">{create.error.message}</p> : null}
+        </div>
+        <div className="dialog-footer">
+          <button type="button" className="secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="primary" disabled={!name.trim() || create.isPending}>
+            Create Plan
           </button>
         </div>
-        <input
-          className="field"
-          aria-label="Plan name"
-          placeholder="Plan name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        {create.error ? <p className="error">{create.error.message}</p> : null}
-        <button type="submit" className="primary" disabled={!name.trim() || create.isPending}>
-          Create Plan
-        </button>
       </form>
     </div>
   );

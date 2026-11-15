@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { ChevronRightIcon, DocumentIcon, FolderIcon, PlusCircleIcon } from "./icons";
 import { useCurrentPlan } from "./useCurrentPlan";
 
 export function PlanMenu({ onNewPlan, onClose }: { onNewPlan: () => void; onClose: () => void }) {
   const { plan, plans } = useCurrentPlan();
   const navigate = useNavigate();
+  const others = plans.filter((p) => p.id !== plan?.id);
   const [sub, setSub] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -24,7 +26,8 @@ export function PlanMenu({ onNewPlan, onClose }: { onNewPlan: () => void; onClos
   return (
     <div className="menu" role="menu" ref={ref}>
       <button type="button" role="menuitem" onClick={onNewPlan}>
-        New Plan
+        <PlusCircleIcon />
+        <span className="label">New Plan</span>
       </button>
       <div className="menu-item-wrap">
         <button
@@ -35,11 +38,14 @@ export function PlanMenu({ onNewPlan, onClose }: { onNewPlan: () => void; onClos
           onClick={() => setSub(true)}
           onMouseEnter={() => setSub(true)}
         >
-          Open Plan <span aria-hidden="true">›</span>
+          <FolderIcon />
+          <span className="label">Open Plan</span>
+          <ChevronRightIcon className="chevron" />
         </button>
         {sub ? (
           <div className="submenu" role="menu" aria-label="Plans">
-            {plans.map((p) => (
+            <div className="submenu-heading">Recent Plans</div>
+            {others.map((p) => (
               <button
                 type="button"
                 role="menuitem"
@@ -49,8 +55,8 @@ export function PlanMenu({ onNewPlan, onClose }: { onNewPlan: () => void; onClos
                   navigate(`/${p.id}/budget`);
                 }}
               >
-                <span>{p.name}</span>
-                {p.id === plan?.id ? <span aria-hidden="true">✓</span> : null}
+                <DocumentIcon />
+                <span className="label">{p.name}</span>
               </button>
             ))}
           </div>

@@ -21,7 +21,9 @@
   --borderSubtle: rgba(255, 255, 255, 0.08);
   --labelMuted: rgba(255, 255, 255, 0.7);
   --shadowMenu: 0 16px 64px rgba(0, 0, 0, 0.2);
-  --overlay: rgba(0, 0, 0, 0.6);
+  --overlay: rgba(0, 0, 0, 0.33);
+  --buttonSecondaryBackground: rgba(117, 131, 255, 0.2);
+  --buttonSecondaryLabel: #f1f1ff;
 
   --sidebar-width: 260px;
   --nav-row: 40px;
@@ -34,10 +36,14 @@
   --space-2: 8px;
   --space-3: 16px;
   --space-4: 32px;
+  --space-card: 0.65rem;
+  --space-half: 0.2rem;
+  --line-height: 1.2;
 
   --font: "Figtree Variable", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 24px;
+  --font-size-month: 21px;
 }
