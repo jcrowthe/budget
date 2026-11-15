@@ -46,3 +46,19 @@ describe("idempotency", () => {
     expect(res.headers.get("Idempotent-Replayed")).toBeNull();
   });
 });
+
+describe("idempotency under concurrency", () => {
+  it("two concurrent same-key POSTs create exactly one plan", async () => {
+    const [a, b] = await Promise.all([
+      post("race1", { name: "ZZ-TEST race1" }),
+      post("race1", { name: "ZZ-TEST race1" }),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses[0]).toBe(201);
+    expect([201, 409]).toContain(statuses[1]);
+    const count = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM budgets WHERE name = 'ZZ-TEST race1'",
+    ).first<{ n: number }>();
+    expect(count?.n).toBe(1);
+  });
+});

@@ -2,6 +2,14 @@ import type { Context, ErrorHandler, NotFoundHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 
+/** The row changed between the read and the write; the client may retry. */
+export class Conflict extends Error {
+  constructor(what = "Resource") {
+    super(`${what} was modified concurrently`);
+    this.name = "Conflict";
+  }
+}
+
 /** Services throw this; onError turns it into the 404 envelope. */
 export class NotFound extends Error {
   constructor(what = "Resource") {
@@ -12,7 +20,7 @@ export class NotFound extends Error {
 
 export function apiError(
   c: Context,
-  status: 400 | 403 | 404 | 422 | 500,
+  status: 400 | 403 | 404 | 409 | 422 | 500,
   name: string,
   detail: string,
 ) {
@@ -22,6 +30,7 @@ export function apiError(
 /** Never logs request data (bodies and headers may hold financial data or tokens). */
 export const onError: ErrorHandler = (err, c) => {
   if (err instanceof NotFound) return apiError(c, 404, "not_found", err.message);
+  if (err instanceof Conflict) return apiError(c, 409, "conflict", err.message);
   if (err instanceof ZodError)
     return apiError(c, 400, "bad_request", err.issues.map((i) => i.message).join("; "));
   if (err instanceof HTTPException) {

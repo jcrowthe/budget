@@ -50,7 +50,7 @@ ensure_access() {
         session_duration:"24h", app_launcher_visible:false, service_auth_401_redirect:true, policies:$pol}
        + (if $oauth == null then {} else {oauth_configuration:$oauth} end)'
   }
-  local both main app
+  local both main app mcp_app
   both=$(jq -nc --arg a "$allow_id" --arg s "$svc_id" '[{id:$a,precedence:1},{id:$s,precedence:2}]')
 
   ACCESS_SHAPE=combined
@@ -64,10 +64,15 @@ ensure_access() {
     app=$(upsert_app budget "$(app_body budget "$APP_DOMAIN" "" "$both")") || die "Could not create the Access application"
     local only_allow
     only_allow=$(jq -nc --arg a "$allow_id" '[{id:$a,precedence:1}]')
-    upsert_app budget-mcp "$(app_body budget-mcp "$APP_DOMAIN/mcp" "$oauth" "$only_allow")" >/dev/null \
+    mcp_app=$(upsert_app budget-mcp "$(app_body budget-mcp "$APP_DOMAIN/mcp" "$oauth" "$only_allow")") \
       || die "Could not create the Access application for /mcp"
   fi
   ACCESS_AUD_VALUE=$(jq -r '.aud // empty' <<<"$app")
   ACCESS_AUD_VALUE=$(req_id "$ACCESS_AUD_VALUE" "Access audience tag")
+  if [ "$ACCESS_SHAPE" = separate ]; then
+    # /mcp tokens carry the budget-mcp audience; the Worker accepts a comma-separated list.
+    mcp_aud=$(req_id "$(jq -r '.aud // empty' <<<"$mcp_app")" "Access audience tag of the /mcp app")
+    ACCESS_AUD_VALUE="$ACCESS_AUD_VALUE,$mcp_aud"
+  fi
   say "Access ready (shape: $ACCESS_SHAPE)"
 }

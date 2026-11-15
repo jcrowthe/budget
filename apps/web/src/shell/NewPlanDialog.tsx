@@ -7,11 +7,18 @@ export function NewPlanDialog({ onClose }: { onClose: () => void }) {
   const create = useCreateBudget();
   const navigate = useNavigate();
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault();
-    const budget = await create.mutateAsync({ name });
-    onClose();
-    navigate(`/${budget.id}/budget`);
+    // Errors are shown through create.error, so there is nothing to catch here.
+    create.mutate(
+      { name },
+      {
+        onSuccess: (budget) => {
+          onClose();
+          navigate(`/${budget.id}/budget`);
+        },
+      },
+    );
   }
 
   return (

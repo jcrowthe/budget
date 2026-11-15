@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db/client";
 import { idempotencyKeys } from "../db/schema/idempotency-keys";
@@ -7,6 +7,8 @@ import { apiError } from "./errors";
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 const TTL_MS = 24 * 60 * 60 * 1000;
+/** status 0 marks a reservation whose handler has not finished yet. */
+const PENDING = 0;
 
 async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
   const buf = typeof data === "string" ? new TextEncoder().encode(data) : data;
@@ -14,7 +16,11 @@ async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Replays the stored response for a repeated Idempotency-Key (per actor, 24 h). */
+/**
+ * Replays the stored response for a repeated Idempotency-Key (per actor, 24 h).
+ * The key is reserved with one conditional INSERT before the handler runs, so two concurrent requests
+ * with the same key cannot both execute.
+ */
 export function idempotency() {
   return createMiddleware<AppEnv>(async (c, next) => {
     const key = c.req.header("Idempotency-Key");
@@ -24,45 +30,77 @@ export function idempotency() {
     const body = await c.req.raw.clone().arrayBuffer();
     const hash = await sha256Hex(`${c.req.method}\n${path}\n${await sha256Hex(body)}`);
     const db = getDb(c.env);
-    const [row] = await db
-      .select()
-      .from(idempotencyKeys)
-      .where(and(eq(idempotencyKeys.actor, actor), eq(idempotencyKeys.key, key)))
-      .limit(1);
-    const fresh = row && Date.now() - Date.parse(row.createdAt) < TTL_MS;
-    if (row && fresh) {
-      if (row.requestHash !== hash) {
-        return apiError(
-          c,
-          422,
-          "idempotency_key_reused",
-          "Idempotency-Key was used with a different request",
-        );
-      }
-      return new Response(row.responseBody, {
-        status: row.status,
-        headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
-      });
-    }
-    await next();
-    if (c.res.status < 500) {
-      const text = await c.res.clone().text();
-      const values = {
-        actor,
-        key,
-        method: c.req.method,
-        path,
-        requestHash: hash,
-        status: c.res.status,
-        responseBody: text,
-        createdAt: new Date().toISOString(),
-      };
+    const now = new Date();
+    const reservation = {
+      actor,
+      key,
+      method: c.req.method,
+      path,
+      requestHash: hash,
+      status: PENDING,
+      responseBody: "",
+      createdAt: now.toISOString(),
+    };
+
+    // Insert, or take over an expired row, in a single statement.
+    const res = await db
+      .insert(idempotencyKeys)
+      .values(reservation)
+      .onConflictDoUpdate({
+        target: [idempotencyKeys.actor, idempotencyKeys.key],
+        set: reservation,
+        setWhere: lt(idempotencyKeys.createdAt, new Date(now.getTime() - TTL_MS).toISOString()),
+      })
+      .run();
+    if (res.meta.changes === 0) {
+      const [row] = await db
+        .select()
+        .from(idempotencyKeys)
+        .where(and(eq(idempotencyKeys.actor, actor), eq(idempotencyKeys.key, key)))
+        .limit(1);
       if (row) {
-        await db
-          .delete(idempotencyKeys)
-          .where(and(eq(idempotencyKeys.actor, actor), eq(idempotencyKeys.key, key)));
+        if (row.requestHash !== hash) {
+          return apiError(
+            c,
+            422,
+            "idempotency_key_reused",
+            "Idempotency-Key was used with a different request",
+          );
+        }
+        if (row.status === PENDING) {
+          return apiError(
+            c,
+            409,
+            "idempotency_key_in_progress",
+            "A request with this Idempotency-Key is still running",
+          );
+        }
+        return new Response(row.responseBody, {
+          status: row.status,
+          headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
+        });
       }
-      await db.insert(idempotencyKeys).values(values).onConflictDoNothing();
+    }
+
+    const mine = and(
+      eq(idempotencyKeys.actor, actor),
+      eq(idempotencyKeys.key, key),
+      eq(idempotencyKeys.requestHash, hash),
+      eq(idempotencyKeys.status, PENDING),
+    );
+    try {
+      await next();
+    } catch (e) {
+      await db.delete(idempotencyKeys).where(mine);
+      throw e;
+    }
+    if (c.res.status < 500) {
+      await db
+        .update(idempotencyKeys)
+        .set({ status: c.res.status, responseBody: await c.res.clone().text() })
+        .where(mine);
+    } else {
+      await db.delete(idempotencyKeys).where(mine);
     }
   });
 }

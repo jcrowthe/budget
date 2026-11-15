@@ -102,3 +102,45 @@ describe("budgets REST", () => {
     expect(row).toBeNull();
   });
 });
+
+describe("concurrency", () => {
+  it("two concurrent deletes: one 200, one 404 (or 409), exactly one delete log row", async () => {
+    const created = await json("/api/v1/budgets", { method: "POST" }, { name: "ZZ-TEST race-del" });
+    const id = ((await created.json()) as B).data.budget.id;
+    const [a, b] = await Promise.all([
+      json(`/api/v1/budgets/${id}`, { method: "DELETE" }),
+      json(`/api/v1/budgets/${id}`, { method: "DELETE" }),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses[0]).toBe(200);
+    expect([404, 409]).toContain(statuses[1]);
+    const row = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM change_log WHERE entity_id = ? AND action = 'delete'",
+    )
+      .bind(id)
+      .first<{ n: number }>();
+    expect(row?.n).toBe(1);
+  });
+
+  it("concurrent patches never log a change that did not happen", async () => {
+    const created = await json(
+      "/api/v1/budgets",
+      { method: "POST" },
+      { name: "ZZ-TEST race-patch" },
+    );
+    const id = ((await created.json()) as B).data.budget.id;
+    const rs = await Promise.all(
+      ["ZZ-TEST p1", "ZZ-TEST p2"].map((name) =>
+        json(`/api/v1/budgets/${id}`, { method: "PATCH" }, { name }),
+      ),
+    );
+    const ok = rs.filter((r) => r.status === 200).length;
+    const row = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM change_log WHERE entity_id = ? AND action = 'update'",
+    )
+      .bind(id)
+      .first<{ n: number }>();
+    expect(row?.n).toBe(ok);
+    expect(ok).toBeGreaterThanOrEqual(1);
+  });
+});

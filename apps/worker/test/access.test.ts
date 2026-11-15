@@ -107,4 +107,21 @@ describe("access middleware", () => {
       .first<{ actor: string }>();
     expect(row?.actor).toBe("service:ci-token");
   });
+  it("accepts any audience from a comma-separated ACCESS_AUD", async () => {
+    const t = await rs({ email: "me@example.test" }, "mcp-aud");
+    const res = await createApp({ getKey }).request("/api/v1/health", withToken(t), {
+      ...env,
+      ...prod,
+      ACCESS_AUD: "test-aud, mcp-aud",
+    });
+    expect(res.status).toBe(200);
+  });
+  it("does not map a token with a sub and no email to a service actor", async () => {
+    const t = await rs({ common_name: "client-x", sub: "user-uuid" });
+    const res = await createApp({ getKey }).request("/api/v1/health", withToken(t), {
+      ...env,
+      ...prod,
+    });
+    expect(res.status).toBe(403);
+  });
 });

@@ -38,7 +38,8 @@ async function toIdentity(payload: JWTPayload, env: Env): Promise<Identity | nul
   const email = typeof payload.email === "string" && payload.email ? payload.email : null;
   if (email) return { kind: "user", actor: `user:${email}`, email };
   const clientId = typeof payload.common_name === "string" ? payload.common_name : null;
-  if (!clientId) return null;
+  // Service tokens carry common_name and an empty sub; anything else without an email is refused.
+  if (!clientId || payload.sub) return null;
   let name = "unknown";
   try {
     const map = JSON.parse(env.ACCESS_SERVICE_TOKENS || "{}") as Record<string, unknown>;
@@ -71,10 +72,15 @@ export async function identify(
       }
     }
     const team = teamHost(env);
-    if (!team || !env.ACCESS_AUD) return null;
+    // ACCESS_AUD may list several audience tags, comma separated (the /mcp app has its own).
+    const audiences = (env.ACCESS_AUD ?? "")
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
+    if (!team || audiences.length === 0) return null;
     const { payload } = await jwtVerify(token, getKey ?? remoteKeys(team), {
       issuer: `https://${team}`,
-      audience: env.ACCESS_AUD,
+      audience: audiences,
       algorithms: ["RS256"],
     });
     return await toIdentity(payload, env);
