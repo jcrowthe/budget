@@ -321,8 +321,8 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 1, Deploy 1, Test user flow 0,
-Discover 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Review counters (finished children since that template's last review): Build 2, Deploy 1, Test user flow 0,
+Discover 3. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -335,7 +335,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) draft | abandoned by me at acceptance (no source tab); branch kept at `f788d48`, to resume |
 | 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | none | abandoned by me after 4 minutes: the Clerk never wrote `request.json`; changed nothing |
-| 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | pending | running |
+| 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | [#3](https://github.com/jcrowthe/budget/pull/3) | merged as `43b7ce9` (25 minutes) |
 
 ### 2026-11-15 · Plan round 1
 
@@ -666,3 +666,51 @@ Children used 9 of 200. One is running: `p_c533be0335ee4a789be544d6e8498b9a`.
 - Started nothing else, as in rounds 3 and 4: everything else needs the profile keys or overlaps this Build.
 - If this one stalls too, the next step is to ask the person, not a fourth attempt: three Threads lost on
   platform steps for one small change would mean something I cannot route around from the brief.
+
+### 2026-11-15 · Review round 5
+
+Children used 9 of 200. Nothing is running.
+
+**What ended:** the ordinary Build carrying the profile fix (`p_c533be0335ee4a789be544d6e8498b9a`). I
+approved its card in a side turn; it squash-merged as `43b7ce92d2b3cf3a75031f80fb7459c093c52d31` (pull
+request #3), 25 minutes after it started. No ticket to move. Pull request #2 (the first attempt's draft) is
+superseded.
+
+**The profile is now complete on main** for the Deploy and Discover templates: `repo.deploy`,
+`repo.deploy_phases`, `repo.migrations_pending`, `health.version_field`, `source.driver`, `live.health_path`,
+`live.auth_headers_from_env`, `live.auth`, `live.recipes.*`, `live.never_run`. `pnpm check` now fails if a
+required key goes missing.
+
+**What I checked before approving:** gate covered the head (`4d1f87c`, base unchanged). Against the head
+reviewed earlier (`f788d48`) there were three small commits: two fail-closed fixes in the scripts, the rest
+tests. Nothing under `apps/` or `scripts/lib/`.
+
+**Accepted knowingly, to fix next:** the codify step added to `scripts/test/repo-hygiene.test.ts` a block
+asserting that `apps/` and `scripts/lib/` are unchanged since `2d82719` and that nothing outside that
+manifest changed. It fails for the first Build that touches `apps/`. EXF-453 is the next Build, runs alone
+and touches `apps/`: I commented on the ticket that its first step is to delete that block. No other Build
+starts before EXF-453 has merged, or it would hit the same failing test.
+
+**The brief pattern that worked** (use it for every Build):
+
+1. Title line says what the Clerk does first.
+2. Clerk section: numbered jobs, each a command plus the exact output it must print (`request.json` printed
+   back; the source tab; for carried-over work, the fast-forward and the expected head and diff shape).
+3. One line per later role.
+4. Then the context.
+
+**Inferred points for the first Deploy to confirm** (from `docs/profile-completion-design.md`):
+
+- The template runs `repo.deploy` with `DEPLOY_PHASE=gate`, then `DEPLOY_PHASE=release` on the same checkout.
+- It reads a line starting with `PHASE_SECONDS`.
+- `repo.migrations_pending` prints bare file names, one per line; nothing when none.
+- Each `live.recipes.*` value is a command followed by a `# prints …` comment.
+- The health answer's `deploy_sha` is the full sha; the template may compare a short one.
+- Untested locally: the real D1 query in `scripts/migrations-pending.sh` and the whole release.
+
+**Backlog:** EXF-453 (High, gap), EXF-454 (Low, gap, blocked by EXF-453), EXF-455, EXF-457 (High, template),
+EXF-456 (Medium, template). No `clone:feature` tickets yet. No tickets filed this review.
+
+**Next plan:** one Deploy (`expect_commit` `43b7ce9…`, `gated_commit` `4d1f87c`) and one Discover (area 1)
+first; when both are past their profile step, the other eight Discover areas. EXF-453 after the Deploy
+reports.
