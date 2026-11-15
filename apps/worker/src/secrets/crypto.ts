@@ -1,24 +1,41 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-function fromBase64(b64: string): Uint8Array {
-  const bin = atob(b64);
-  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+export const MIN_KEY_CHARS = 32;
+/** Fixed forever; key versioning goes in `info`. */
+export const HKDF_SALT = "budget-secrets-salt";
+export const keyInfo = (version: number) => `budget-secrets-v${version}`;
+
+/** The message is fixed: it never carries the value or its length. */
+export class KeyTooShort extends Error {
+  constructor() {
+    super("SECRETS_ENCRYPTION_KEY must be at least 32 characters");
+    this.name = "KeyTooShort";
+  }
 }
 
-/** The key is base64 of exactly 32 bytes (AES-256). */
-export async function importKey(b64: string): Promise<CryptoKey> {
-  let raw: Uint8Array;
-  try {
-    raw = fromBase64(b64.trim());
-  } catch {
-    throw new Error("Encryption key is not valid base64");
-  }
-  if (raw.byteLength !== 32) throw new Error("Encryption key must be exactly 32 bytes");
-  return crypto.subtle.importKey("raw", raw as BufferSource, "AES-GCM", false, [
-    "encrypt",
-    "decrypt",
+/**
+ * The key is any string of at least 32 characters; HKDF derives the AES-256 key per key version:
+ * AES-256-GCM key = HKDF-SHA-256(utf8(secret.trim()), salt = HKDF_SALT, info = keyInfo(version)).
+ */
+export async function deriveKey(secret: string, version: number): Promise<CryptoKey> {
+  const material = secret.trim();
+  if (material.length < MIN_KEY_CHARS) throw new KeyTooShort();
+  const base = await crypto.subtle.importKey("raw", enc.encode(material), "HKDF", false, [
+    "deriveKey",
   ]);
+  return crypto.subtle.deriveKey(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: enc.encode(HKDF_SALT),
+      info: enc.encode(keyInfo(version)),
+    },
+    base,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
 }
 
 /** Random 96-bit IV per record; the record name is the additional authenticated data. */

@@ -1,5 +1,8 @@
 import { env } from "cloudflare:test";
+import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
+import type { AppEnv } from "../src/env";
+import { idempotency } from "../src/middleware/idempotency";
 import { authed, call } from "./helpers";
 
 const post = async (key: string, body: unknown) =>
@@ -60,5 +63,131 @@ describe("idempotency under concurrency", () => {
       "SELECT COUNT(*) AS n FROM budgets WHERE name = 'ZZ-TEST race1'",
     ).first<{ n: number }>();
     expect(count?.n).toBe(1);
+  });
+});
+
+type Hooks = { beforeSelect?: () => Promise<void>; beforeInsert?: () => Promise<void> };
+
+/** Wraps D1 so the idempotency_keys SELECT and INSERT statements await a hook before they run. */
+function hookD1(real: D1Database, hooks: Hooks): D1Database {
+  const wrapBound = (bound: D1PreparedStatement, hook: () => Promise<void>) =>
+    new Proxy(bound, {
+      get(t, p) {
+        if (p === "run" || p === "all" || p === "raw" || p === "first") {
+          return async (...args: unknown[]) => {
+            await hook();
+            return Reflect.apply(Reflect.get(t, p, t) as () => unknown, t, args);
+          };
+        }
+        const v = Reflect.get(t, p, t);
+        return typeof v === "function" ? v.bind(t) : v;
+      },
+    });
+  return new Proxy(real, {
+    get(t, p) {
+      if (p === "prepare") {
+        return (sql: string) => {
+          const stmt = t.prepare(sql);
+          const q = sql.toLowerCase().trimStart();
+          const hook = q.startsWith("select")
+            ? hooks.beforeSelect
+            : q.startsWith("insert into")
+              ? hooks.beforeInsert
+              : undefined;
+          if (!hook || !q.includes("idempotency_keys")) return stmt;
+          return new Proxy(stmt, {
+            get(st, sp) {
+              if (sp === "bind") {
+                return (...args: unknown[]) => wrapBound(st.bind(...args), hook);
+              }
+              const v = Reflect.get(st, sp, st);
+              return typeof v === "function" ? v.bind(st) : v;
+            },
+          });
+        };
+      }
+      const v = Reflect.get(t, p, t);
+      return typeof v === "function" ? v.bind(t) : v;
+    },
+  });
+}
+
+describe("idempotency reservation retry", () => {
+  const ACTOR = "user:retry@example.test";
+  let calls = 0;
+  const app = new Hono<AppEnv>();
+  app.use("*", (c, next) => {
+    c.set("identity", { kind: "user", actor: ACTOR });
+    return next();
+  });
+  app.use("/api/v1/*", idempotency());
+  app.post("/api/v1/thing", (c) => {
+    calls++;
+    return c.json({ data: { ok: true } }, 201);
+  });
+
+  const send = (key: string, hooks: Hooks) =>
+    app.request(
+      "/api/v1/thing",
+      {
+        method: "POST",
+        headers: { "Idempotency-Key": key, "Content-Type": "application/json" },
+        body: "{}",
+      },
+      { ...env, DB: hookD1(env.DB, hooks) },
+    );
+  const seed = (key: string) =>
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO idempotency_keys (actor, key, method, path, request_hash, status, response_body, created_at) VALUES (?, ?, 'POST', '/api/v1/thing', 'other', 0, '', ?)",
+    )
+      .bind(ACTOR, key, new Date().toISOString())
+      .run();
+  const unseed = (key: string) =>
+    env.DB.prepare("DELETE FROM idempotency_keys WHERE actor = ? AND key = ?")
+      .bind(ACTOR, key)
+      .run();
+
+  it("retries when the reserved row vanishes before it is read", async () => {
+    calls = 0;
+    await seed("retry1");
+    let selects = 0;
+    const res = await send("retry1", {
+      beforeSelect: async () => {
+        if (++selects === 1) await unseed("retry1");
+      },
+    });
+    expect(res.status).toBe(201);
+    expect(calls).toBe(1);
+    expect(selects).toBe(1);
+    expect(res.headers.get("Idempotent-Replayed")).toBeNull();
+    const row = await env.DB.prepare(
+      "SELECT status FROM idempotency_keys WHERE actor = ? AND key = 'retry1'",
+    )
+      .bind(ACTOR)
+      .first<{ status: number }>();
+    expect(row?.status).toBe(201);
+  });
+
+  it("answers 409 when the row vanishes on every attempt", async () => {
+    calls = 0;
+    let inserts = 0;
+    let selects = 0;
+    const res = await send("retry2", {
+      beforeInsert: async () => {
+        inserts++;
+        await seed("retry2");
+      },
+      beforeSelect: async () => {
+        selects++;
+        await unseed("retry2");
+      },
+    });
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { name: string } }).error.name).toBe(
+      "idempotency_key_in_progress",
+    );
+    expect(calls).toBe(0);
+    expect(inserts).toBe(3);
+    expect(selects).toBe(3);
   });
 });

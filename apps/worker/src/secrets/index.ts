@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { secrets } from "../db/schema/secrets";
 import type { Env } from "../env";
-import { importKey, open, seal } from "./crypto";
+import { deriveKey, KeyTooShort, open, seal } from "./crypto";
 
 /** The only code that touches the `secrets` table. Values never leave through routes, tools or logs. */
 export const CURRENT_KEY_VERSION = 1;
@@ -15,11 +15,16 @@ export class SecretsUnavailable extends Error {
 }
 
 async function keyFor(env: Env, version: number): Promise<CryptoKey> {
-  // Rotation: map each older version to its own Worker secret here, then re-seal records lazily.
+  // Rotation: a later version N derives with keyInfo(N) from its own Worker secret; re-seal lazily.
   if (version === 1) {
     if (!env.SECRETS_ENCRYPTION_KEY)
       throw new SecretsUnavailable("SECRETS_ENCRYPTION_KEY is not set");
-    return importKey(env.SECRETS_ENCRYPTION_KEY);
+    try {
+      return await deriveKey(env.SECRETS_ENCRYPTION_KEY, 1);
+    } catch (e) {
+      if (e instanceof KeyTooShort) throw new SecretsUnavailable(e.message);
+      throw e;
+    }
   }
   throw new SecretsUnavailable(`No key for version ${version}`);
 }

@@ -7,7 +7,8 @@
 # DEPLOY_E2E=skip skips the Playwright run (gate only) but still runs pnpm check.
 # Gate = pnpm check, then pnpm e2e. Release = build, resources, migrations, deploy, smoke.
 # After each finished phase it prints one line: PHASE_SECONDS <step>=<seconds> ... (a skipped step prints 0).
-# Any other DEPLOY_PHASE value is refused (exit 2). The required variables are checked in every phase.
+# Any other DEPLOY_PHASE value is refused (exit 2). The required variables are checked in every phase,
+# and SECRETS_ENCRYPTION_KEY must be at least 32 characters.
 set -euo pipefail
 umask 077
 cd "$(dirname "$0")/.."
@@ -47,6 +48,11 @@ phase_report() { phase_close; echo "PHASE_SECONDS$PHASE_LINE"; PHASE_LINE=""; }
 # 0. Preconditions: nothing ships, and no gate runs, before every key is present.
 need CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CF_ACCESS_TEAM_DOMAIN ACCESS_ALLOWED_EMAIL \
   CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET SECRETS_ENCRYPTION_KEY
+# The Worker derives its AES key from SECRETS_ENCRYPTION_KEY (trimmed) and refuses fewer than 32 characters.
+key_trim="${SECRETS_ENCRYPTION_KEY#"${SECRETS_ENCRYPTION_KEY%%[![:space:]]*}"}"
+key_trim="${key_trim%"${key_trim##*[![:space:]]}"}"
+if [ "${#key_trim}" -lt 32 ]; then echo "SECRETS_ENCRYPTION_KEY must be at least 32 characters" >&2; exit 2; fi
+unset key_trim
 for tool in pnpm jq curl git; do command -v "$tool" >/dev/null || die "$tool is required"; done
 case "$DEPLOY_PHASE" in "" | gate | release) ;; *) echo "DEPLOY_PHASE must be unset, gate or release" >&2; exit 2 ;; esac
 export CLOUDFLARE_ACCOUNT_ID
@@ -147,9 +153,17 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
   phase deploy
   SVC_HASH=$(printf '%s' "$CF_ACCESS_CLIENT_ID" | { sha256sum 2>/dev/null || shasum -a 256; } | cut -d' ' -f1)
   SVC_MAP=$(jq -nc --arg h "$SVC_HASH" --arg n "$SERVICE_TOKEN_NAME" '{($h): $n}')
+  DEPLOY_VARS=(ENVIRONMENT "production" DEPLOY_SHA "$DEPLOY_SHA" ACCESS_AUD "$ACCESS_AUD_VALUE"
+    ACCESS_TEAM_DOMAIN "$ACCESS_TEAM" ACCESS_SERVICE_TOKENS "$SVC_MAP" ACCESS_ALLOWED_EMAIL "$ACCESS_ALLOWED_EMAIL")
   if is_dry; then
     echo "DRY: wrangler deploy"
+    names=()
+    for ((i = 0; i < ${#DEPLOY_VARS[@]}; i += 2)); do names+=("${DEPLOY_VARS[i]}"); done
+    echo "DRY: wrangler deploy vars: ${names[*]}"
+    echo "DRY: ACCESS_SERVICE_TOKENS entries: $(jq 'length' <<<"$SVC_MAP")"
   else
+    var_args=()
+    for ((i = 0; i < ${#DEPLOY_VARS[@]}; i += 2)); do var_args+=(--var "${DEPLOY_VARS[i]}:${DEPLOY_VARS[i+1]}"); done
     BUILT_JSON=$(mktemp); TMPFILES+=("$BUILT_JSON")
     jq --arg id "$D1_ID" '.d1_databases[0].database_id = $id' "$WTBUILD" > "$BUILT_JSON"
     # wrangler resolves "main" and "assets.directory" relative to the config file: keep it beside the build.
@@ -157,9 +171,7 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
     cp "$BUILT_JSON" "$BUILT_BESIDE"
     SECRETS_FILE=$(mktemp); TMPFILES+=("$SECRETS_FILE")
     jq -nc --arg k "$SECRETS_ENCRYPTION_KEY" '{SECRETS_ENCRYPTION_KEY: $k}' > "$SECRETS_FILE"
-    (cd "$WORKDIR" && run_wrangler deploy -c "$BUILT_BESIDE" --secrets-file "$SECRETS_FILE" \
-      --var "ENVIRONMENT:production" --var "DEPLOY_SHA:$DEPLOY_SHA" --var "ACCESS_AUD:$ACCESS_AUD_VALUE" \
-      --var "ACCESS_TEAM_DOMAIN:$ACCESS_TEAM" --var "ACCESS_SERVICE_TOKENS:$SVC_MAP")
+    (cd "$WORKDIR" && run_wrangler deploy -c "$BUILT_BESIDE" --secrets-file "$SECRETS_FILE" "${var_args[@]}")
   fi
 
   # 8. Smoke test.

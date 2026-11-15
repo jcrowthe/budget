@@ -27,6 +27,7 @@
     "PUBLIC_HOSTNAME": "budget.doxen.dev",
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
+    "ACCESS_ALLOWED_EMAIL": "",
     "ACCESS_SERVICE_TOKENS": "{}",
     "DEPLOY_SHA": "unknown"
   }

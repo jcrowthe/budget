@@ -7,6 +7,8 @@ export interface Env {
   PUBLIC_HOSTNAME: string;
   ACCESS_TEAM_DOMAIN: string;
   ACCESS_AUD: string;
+  /** The one user email allowed in (compared case-insensitively). Empty: no Access user token is accepted. Set by deploy. */
+  ACCESS_ALLOWED_EMAIL: string;
   /** JSON {sha256hex(client_id): name}, written by deploy. */
   ACCESS_SERVICE_TOKENS: string;
   DEPLOY_SHA: string;
