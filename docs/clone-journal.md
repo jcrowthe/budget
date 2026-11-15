@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 6, Deploy 3, Test user flow 0,
+Review counters (finished children since that template's last review): Build 6, Deploy 4, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -354,7 +354,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 | 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
 | 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | pending | running |
-| 2026-11-15 | 19 | Deploy of main `d7a3a40` (`p_c55bb7d4d01947fe848d4849c4333b78`) | EXF-458, 485, 475 | n/a | running |
+| 2026-11-15 | 19 | Deploy of main `d7a3a40` (`p_c55bb7d4d01947fe848d4849c4333b78`) | EXF-458, 485, 475 | n/a | live `d7a3a40` |
 | 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | pending | running |
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | pending | running |
 
@@ -1615,3 +1615,44 @@ started now.
 - Ticket writes this round: 6 (EXF-561 priority and state, EXF-487 state and comment, EXF-494 comment,
   EXF-561 comment). The 13 Low tickets and two links owed stay owed until the window frees at about 22:26 UTC.
 - The person has still not said whether their browser sign-in works; ask in the round 20 check-in report.
+
+### 2026-11-15 · Review round 19
+
+Children used 30 of 200. Three are running: the Builds for EXF-511 (targets engine; manifest as noted in the
+plan), EXF-561 (derived test lists; no manifest yet) and EXF-487 (Plan grid; no manifest yet).
+
+**Ended: the Deploy `p_c55bb7d4d01947fe848d4849c4333b78`, passed. Live: https://budget.doxen.dev at
+`DEPLOY_SHA` `d7a3a40`** (gate and release both exit 0; four minutes in all; e2e skipped because the tree
+equals the gated head `05588ce`).
+
+- Migrations: both pending ones applied (`20261115203000_budget_engine.sql`,
+  `20261115204324_budgets_last_opened_at.sql`); none pending after.
+- All seven checks passed: health carries the new sha and unauthenticated calls get 401; `GET /budgets` 200
+  with `last_opened_at`; the months API answers 200 for a new test plan (zero, no groups) and 422 for a day
+  that is not the first; MCP lists exactly `create_budget`, `get_plan_month`, `list_budgets` and
+  `get_plan_month` equals REST; in a browser session `/` goes to `/<id>/budget`, the Plan, All Accounts and
+  Reflect pages load with the right titles, an unknown plan shows "Plan not found", no failed responses, no
+  console errors; opening the plan stamped `last_opened_at` and left `last_modified_on` alone; cleanup left
+  nothing.
+- This also gives EXF-475's cases a live check for titles, the root redirect and the not-found screen. Cases
+  9 to 11 (month push, menus, rename) are still tests only; the first flow test of flow 9 covers them.
+- **The live clone has no plan at all** (the plan list was empty before the test plan). So the person has not
+  created one, or has not signed in yet. Nothing on live can be harmed by test plans, but it also means the
+  person's sign-in is still unconfirmed.
+- The Deploy's box had no Playwright browser either and installed it (as my note allowed). EXF-558 remains
+  the proper fix.
+- Access shape still `combined`.
+
+**Running Builds:** nothing off course. EXF-511 has been at 7 visits for a while (implementing). No card is
+waiting.
+
+**For the next plan:** start flow tests for flows 9 and 11 only if they are worth a child now: the live app
+has plans, URLs, titles and the plan menu, but no grid, accounts or register yet. My judgement: wait for the
+grid and accounts to be live, and test flows 1, 2, 9 and 11 together then; one child per flow now would test
+a shell. Start EXF-481 when EXF-561 merges.
+
+**Ticket writes:** none this review. The Low triage and two links stay owed until about 22:26 UTC.
+
+**Backlog:** 92 open feature tickets (2 in progress: EXF-511, EXF-487). Gap: EXF-561 (in progress), EXF-558
+(High), EXF-454 and EXF-560 (Low). Template: nine. Finished since each template's last review: Build 6,
+Deploy 4, Discover 2, Test user flow 0. Next review is round 20: a check-in.
