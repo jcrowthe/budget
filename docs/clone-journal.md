@@ -2158,3 +2158,26 @@ artifacts the person has not yet said whether to have removed. Mention it at the
 **Backlog:** 89 open feature tickets (4 in progress), all triaged. Gap: EXF-558 (High), EXF-454, EXF-560,
 EXF-562 (Low). Template: fifteen (EXF-455, 456, 457, 479, 554 to 557, 559, 563 to 568). Finished since each
 template's last review: Build 0, Deploy 6, Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 27
+
+Children used 38 of 200. Four Builds are running, started in rounds 23 and 24: EXF-493, EXF-489, EXF-513 and
+EXF-483. Nothing started this round.
+
+- No ticket was filed by me at the last review; the six from the Build template review (EXF-563 to EXF-568)
+  exist and have their priorities.
+- **Manifests arrived for two Builds, and they are disjoint:**
+  - EXF-493 (month navigation): `pages/plan.tsx`; new `plan/PlanHeader.tsx`, `MonthPicker.tsx`,
+    `MonthNotePopover.tsx`, `monthNav.ts`, `monthNavIcons.tsx`, `useDismiss.ts`, `plan-header.css`;
+    `api/months.ts`; schema `months.ts`; Worker `routes/months.ts`, `mcp/tools/months.ts`,
+    `services/months.ts`, new `repositories/month-range.ts`; new tests. No shared module, no migration.
+  - EXF-489 (edit Assigned, pull request #13 open): new `plan/AssignedCell.tsx`; `rows.tsx`, `PlanGrid.tsx`,
+    `plan-grid.css`, `plan/icons.tsx`; new `api/assigned.ts`; new schema `month-categories.ts` and
+    `assigned-edit.ts` (the parsing, with tests); new Worker route, tool and service `month-categories`;
+    new tests and `e2e/plan-grid.spec.ts`. No shared module, no migration.
+  - Neither touches the account page, the transactions files, the shell or the accounts files (EXF-513,
+    EXF-483). `plan/useDismiss.ts` from EXF-493 is a popover helper later grid Builds should reuse.
+- EXF-513 and EXF-483 have no manifest yet.
+- Nothing else can start: the reasons of round 25 stand. Main `d2e659b` is live; nothing to deploy. Flow
+  tests wait for the next Deploy.
+- Review cadence: Build 0, Deploy 6, Discover 2.
