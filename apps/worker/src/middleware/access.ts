@@ -34,21 +34,40 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function toIdentity(payload: JWTPayload, env: Env): Promise<Identity | null> {
+type TokenOrigin = "local" | "access";
+
+async function toIdentity(
+  payload: JWTPayload,
+  env: Env,
+  origin: TokenOrigin,
+): Promise<Identity | null> {
   const email = typeof payload.email === "string" && payload.email ? payload.email : null;
-  if (email) return { kind: "user", actor: `user:${email}`, email };
+  if (email) {
+    if (origin === "local") {
+      return email.toLowerCase().endsWith("@localhost")
+        ? { kind: "user", actor: `user:${email}`, email }
+        : null;
+    }
+    // Defence in depth: the Access policy is not the only thing that decides who gets in.
+    const allowed = (env.ACCESS_ALLOWED_EMAIL ?? "").trim().toLowerCase();
+    return allowed !== "" && email.trim().toLowerCase() === allowed
+      ? { kind: "user", actor: `user:${email}`, email }
+      : null;
+  }
   const clientId = typeof payload.common_name === "string" ? payload.common_name : null;
   // Service tokens carry common_name and an empty sub; anything else without an email is refused.
   if (!clientId || payload.sub) return null;
-  let name = "unknown";
   try {
-    const map = JSON.parse(env.ACCESS_SERVICE_TOKENS || "{}") as Record<string, unknown>;
-    const found = map[await sha256Hex(clientId)];
-    if (typeof found === "string" && found) name = found;
+    const map = JSON.parse(env.ACCESS_SERVICE_TOKENS || "{}") as unknown;
+    if (!map || typeof map !== "object") return null;
+    const found = (map as Record<string, unknown>)[await sha256Hex(clientId)];
+    // an unknown token or a malformed map is refused, never recorded as an anonymous service
+    return typeof found === "string" && found
+      ? { kind: "service", actor: `service:${found}` }
+      : null;
   } catch {
-    // a malformed map means "unknown", never a failure to authenticate
+    return null;
   }
-  return { kind: "service", actor: `service:${name}` };
 }
 
 /** Returns the identity for a valid token, or null. Fails closed on any problem. */
@@ -60,16 +79,19 @@ export async function identify(
   if (!token) return null;
   try {
     if (env.ENVIRONMENT === "local" && env.LOCAL_JWT_SECRET) {
+      let local: JWTPayload | null = null;
       try {
-        const { payload } = await jwtVerify(token, new TextEncoder().encode(env.LOCAL_JWT_SECRET), {
-          issuer: LOCAL_ISSUER,
-          audience: LOCAL_AUDIENCE,
-          algorithms: ["HS256"],
-        });
-        return await toIdentity(payload, env);
+        local = (
+          await jwtVerify(token, new TextEncoder().encode(env.LOCAL_JWT_SECRET), {
+            issuer: LOCAL_ISSUER,
+            audience: LOCAL_AUDIENCE,
+            algorithms: ["HS256"],
+          })
+        ).payload;
       } catch {
         // not a local token: fall through to the Access JWKS check
       }
+      if (local) return await toIdentity(local, env, "local");
     }
     const team = teamHost(env);
     // ACCESS_AUD may list several audience tags, comma separated (the /mcp app has its own).
@@ -83,7 +105,7 @@ export async function identify(
       audience: audiences,
       algorithms: ["RS256"],
     });
-    return await toIdentity(payload, env);
+    return await toIdentity(payload, env, "access");
   } catch {
     return null;
   }

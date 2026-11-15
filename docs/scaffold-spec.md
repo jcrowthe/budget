@@ -107,7 +107,7 @@ If a pin fails, use the nearest working version and give the reason in your repo
 
 ## Task 6: Secrets
 
-- **`src/secrets/crypto.ts`:** `importKey(b64)` (exactly 32 bytes, AES-GCM); `seal(key, name, text) →
+- **`src/secrets/crypto.ts`:** `deriveKey(secret, version)` (HKDF-SHA-256 from a key of 32+ characters to AES-256-GCM; see worker-hardening-design.md); `seal(key, name, text) →
   {ciphertext, iv}` (12-byte random IV, AAD = utf8(name)); `open(key, name, ciphertext, iv)`.
 - **`src/secrets/index.ts`** is the only user of the table: `getSecret(env, name)`, `setSecret(env, name,
   value)`, `deleteSecret(env, name)`.

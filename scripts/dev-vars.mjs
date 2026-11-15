@@ -13,6 +13,7 @@ const defaults = {
   ACCESS_SERVICE_TOKENS: "{}",
   DEPLOY_SHA: "local",
   LOCAL_JWT_SECRET: () => randomBytes(32).toString("base64"),
+  // any string of at least 32 characters; the Worker derives the AES key with HKDF
   SECRETS_ENCRYPTION_KEY: () => randomBytes(32).toString("base64"),
 };
 

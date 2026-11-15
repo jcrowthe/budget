@@ -8,7 +8,7 @@ const sentinels = {
   ACCESS_ALLOWED_EMAIL: "sentinel-owner-ddd444@example.invalid",
   CF_ACCESS_CLIENT_ID: "sentinel-client-eee555",
   CF_ACCESS_CLIENT_SECRET: "sentinel-secret-fff666",
-  SECRETS_ENCRYPTION_KEY: "sentinel-key-ggg777",
+  SECRETS_ENCRYPTION_KEY: "sentinel-key-ggg777-0123456789abcdef",
 };
 const root = new URL("../..", import.meta.url).pathname;
 const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
@@ -106,6 +106,31 @@ describe("scripts/deploy.sh phases", () => {
     expect(r.out).not.toContain("DRY:");
     noLeak(r.out);
   });
+
+  it.each(["", "gate", "release"])(
+    "refuses a short SECRETS_ENCRYPTION_KEY in phase %j",
+    (phase) => {
+      const short = "sentinel-short-hhh888-012345678";
+      expect(short.length).toBe(31);
+      for (const value of [short, `  ${short}  `]) {
+        const r = run({
+          ...sentinels,
+          SECRETS_ENCRYPTION_KEY: value,
+          DEPLOY_DRY_RUN: "1",
+          ...(phase ? { DEPLOY_PHASE: phase } : {}),
+        });
+        expect(r.status).toBe(2);
+        expect(r.stderr).toContain("SECRETS_ENCRYPTION_KEY must be at least 32 characters");
+        expect(r.out).not.toContain("DRY:");
+        expect(r.out).not.toContain("Gate");
+        expect(r.out).not.toContain("Build");
+        expect(r.out).not.toContain("31");
+        for (let i = 0; i + 6 <= short.length; i++)
+          expect(r.out).not.toContain(short.slice(i, i + 6));
+        noLeak(r.out);
+      }
+    },
+  );
 
   it("refuses an unknown phase before anything runs", () => {
     const r = run({ ...dry, DEPLOY_PHASE: "relase" });
