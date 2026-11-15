@@ -335,6 +335,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) draft | abandoned by me at acceptance (no source tab); branch kept at `f788d48`, to resume |
 | 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | none | abandoned by me after 4 minutes: the Clerk never wrote `request.json`; changed nothing |
+| 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -651,3 +652,17 @@ template). No `clone:feature` tickets yet.
 
 **Cost so far of getting the profile fix merged:** three Build starts (one finished the work, two lost to
 platform steps), about 40 minutes of wall time, no product risk.
+
+### 2026-11-15 · Plan round 5
+
+Children used 9 of 200. One is running: `p_c533be0335ee4a789be544d6e8498b9a`.
+
+- EXF-457 (Clerk answers ready without writing `request.json`) exists; set to High.
+- Started one ordinary Build, no ticket and no resume inputs, to carry the finished profile fix to merge.
+  Its brief opens with three numbered jobs for the Clerk, each with a command and the output it must print:
+  write `request.json` and print it back; open the Test Budget tab (only if none is open); fast-forward
+  `origin/exfab/p_e9bdeb6d31de438a81905eeaec90f8c8` onto the Thread branch and print `f788d48…` and the
+  diff's shape (15 files, 1632 added, 209 removed). Then one line per later role saying what not to redo.
+- Started nothing else, as in rounds 3 and 4: everything else needs the profile keys or overlaps this Build.
+- If this one stalls too, the next step is to ask the person, not a fourth attempt: three Threads lost on
+  platform steps for one small change would mean something I cannot route around from the brief.
