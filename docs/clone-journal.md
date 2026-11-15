@@ -334,6 +334,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 2 | Discover, area 2 targets and Auto-Assign (`p_5d1242cb6d6a4a9eaaac1d9d9d018506`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) draft | abandoned by me at acceptance (no source tab); branch kept at `f788d48`, to resume |
+| 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -585,3 +586,19 @@ agents had opened the source app. Not yet proven for a resume: watch its first m
 
 **Backlog:** EXF-453 (High), EXF-454 (Low, blocked by EXF-453), plus the two above. No `clone:feature`
 tickets yet.
+
+### 2026-11-15 · Plan round 4
+
+Children used 8 of 200. One is running: the resumed profile-fix Build (`p_eb0f06b647ef427f9ff82ac6f2418ea9`).
+
+- Tickets from the last review exist: EXF-455 (Build loops at acceptance on the source-tab check) set to
+  High; EXF-456 (scaffold writes only its own template's profile keys) set to Medium. Both `clone:template`.
+- Started one Build, no ticket, with `resume_branch` `exfab/p_e9bdeb6d31de438a81905eeaec90f8c8`,
+  `resume_head` `f788d48a2079f94154ea788176f43729bfa11587` and `resume_thread`
+  `p_e9bdeb6d31de438a81905eeaec90f8c8`. Its brief opens with BROWSER FIRST (open the Test Budget URL in a new
+  tab over the DevTools port, leave it open), says the work is finished and must not be planned or built
+  again, and restates the original brief for the acceptance cases.
+- Started nothing else, for the same reasons as round 3: Deploy and Discover need the profile keys; EXF-453
+  overlaps this Build on `scripts/deploy.sh`; EXF-454 is blocked by EXF-453.
+- Plan unchanged: after it merges, one Deploy and one Discover first, then the other eight Discover areas,
+  then EXF-453.
