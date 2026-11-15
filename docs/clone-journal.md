@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
-Discover 0 (reviewed in round 13: the first ten). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 1 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -342,7 +342,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | EXF-481, 482, 483, 484, 486, 488, 490 | none | completed (38 minutes) |
 | 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | EXF-513, 517, 520, 522, 524, 526, 528, 529, 530, 531, 533, 534, 536 | none | completed (50 minutes), 13 tickets |
 | 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
-| 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | EXF-532, 535, 537 to 547 | none | completed (54 minutes), 13 tickets |
 | 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | EXF-497, 499, 501, 503, 505, 507, 510, 512, 515, 518 and one more | none | completed (43 minutes), 11 tickets |
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | EXF-468 to EXF-478, EXF-480 | none | completed (23 minutes), 12 tickets |
@@ -1188,3 +1188,44 @@ the Improve templates review started this round.
   the Lead sets links by hand under a 60-per-hour write limit.
 - Started nothing else: every open High ticket waits on EXF-485 or EXF-475.
 - Ticket writes still rate limited at 20:33 UTC; owed writes as listed in review rounds 11 and 12.
+
+### 2026-11-15 · Review round 13
+
+Children used 25 of 200. Four are running: the Builds for EXF-485 and EXF-475, Discover area 8 (reports) and
+the Improve templates review.
+
+**What ended:** Discover area 6, credit cards, loans and tracking accounts, with 13 tickets. It used only its
+own prefixed accounts and categories. It exercised funded card spending, credit, cash and mixed overspending
+in both orders across a month boundary with Ready to Assign differences measured, paying a card exactly,
+under and over, refunds, card targets, loan payments with the escrow, interest and principal split, and
+tracking transfers.
+
+**Triage decided, not yet written to the tickets** (rate limit):
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-532 | Credit engine: payment categories, funded spending, payments, refunds | High | EXF-485, EXF-481 |
+| EXF-535 | Credit engine: credit vs cash overspending, mixed attribution, covering | High | EXF-532 |
+| EXF-537 | Plan: Credit Card Payments rows, PAYMENT header, payment inspector | High | EXF-532, EXF-487, EXF-521 |
+| EXF-539 | Credit card account page: Payment pill and Record Payment | High | EXF-532, EXF-526 |
+| EXF-538 | Credit card payment targets | Medium | EXF-511, EXF-537 |
+| EXF-546 | Tracking accounts: rules, transfers, balance updates | Medium | EXF-513, EXF-526 |
+| EXF-547 | Account type rules for credit and debt (sign at entry, effect on the plan) | Medium | EXF-481 |
+| EXF-540 | Loan engine and Account Activity; Record Payment | Medium | EXF-482, EXF-513 |
+| EXF-541 | Loan account page: tiles, payoff date, progress chart | Low | EXF-540 |
+| EXF-542 | Loan Add Activity: credit, fee, interest | Low | EXF-540 |
+| EXF-543 | Loan Update Balance wizard | Low | EXF-540 |
+| EXF-544 | Loan payoff simulator | Low | EXF-541 |
+| EXF-545 | Loan paired category and Debt Payment Target | Low | EXF-540, EXF-511 |
+
+**Possible overlap to resolve before building:** EXF-547 states account-type rules that EXF-481 (sign at
+entry, on-plan or tracking) and EXF-546 (tracking) also state. Read the three side by side before any of them
+is built after EXF-481; if EXF-547 adds nothing once those are done, close it as covered.
+
+**For the engine:** EXF-532 and EXF-535 extend the month read model that EXF-485 is building. The EXF-485
+brief asked for the credit rules to be addable without changing existing fields; check that in its design doc
+at its approval card.
+
+**Backlog:** about 98 `clone:feature` tickets: 43 triaged on the tickets, 47 triaged in the journal only
+(areas 2, 7, 4, 6); area 8 still filing. Flow 4 (credit card) needs EXF-532, 535, 537 and 539. No tickets
+filed this review.
