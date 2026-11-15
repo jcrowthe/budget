@@ -1,0 +1,9 @@
+# Local state and artefacts
+node_modules/
+dist/
+.wrangler/
+.e2e-state/
+.screenshots/
+test-results/
+playwright-report/
+.dev.vars

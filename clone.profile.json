@@ -1,0 +1,82 @@
+{
+  "repo": {
+    "install": "pnpm install --frozen-lockfile",
+    "check": "pnpm check",
+    "e2e_full": "pnpm e2e",
+    "e2e_specs": "pnpm e2e {specs}",
+    "repeat_flag": "--repeat-each={n}",
+    "workers_flag": "--workers={n}",
+    "dev": "pnpm dev"
+  },
+  "ports": {
+    "dev_web": 5173,
+    "dev_api": 8787,
+    "e2e_web": 4173,
+    "e2e_api": 8788
+  },
+  "health": {
+    "dev_url": "http://localhost:{dev_api}/api/v1/health",
+    "path": "/api/v1/health"
+  },
+  "paths": {
+    "web_ui": ["apps/web/src/**", "apps/web/index.html", "apps/web/public/**"],
+    "tests": ["e2e/**", "apps/*/test/**", "packages/*/test/**"],
+    "shared_modules": [
+      "packages/core/src/engine/**",
+      "packages/schema/src/common/**",
+      "apps/worker/src/app.ts",
+      "apps/worker/src/middleware/**",
+      "apps/worker/src/db/client.ts",
+      "apps/worker/src/history/**",
+      "apps/web/src/shell/**",
+      "apps/web/src/api/client.ts"
+    ],
+    "sensitive": [
+      "apps/worker/src/middleware/access.ts",
+      "apps/worker/src/secrets/**",
+      "apps/worker/migrations/**",
+      "apps/worker/wrangler.jsonc",
+      "scripts/deploy.sh",
+      ".gitignore"
+    ],
+    "always_overlap": [
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "apps/*/package.json",
+      "packages/*/package.json",
+      "tsconfig*.json",
+      "apps/worker/wrangler.jsonc",
+      "playwright.config.ts"
+    ],
+    "migrations": {
+      "dir": "apps/worker/migrations",
+      "prefix_width": 14
+    },
+    "docs_index": "docs/README.md",
+    "docs_dir": "docs",
+    "e2e_state_dir": ".e2e-state",
+    "scratch_dir": "/workspace/scratch",
+    "screenshots_dir": ".screenshots"
+  },
+  "box": {
+    "cpu_count": "cgroup",
+    "e2e_full_lock": "/tmp/budget-e2e-full.lock",
+    "heavy_spec_locks": []
+  },
+  "source": {
+    "url": "https://app.ynab.com",
+    "single_tab": false,
+    "signed_out_markers": ["/users/sign_in", "Just a moment", "Verify you are human"]
+  },
+  "live": {
+    "url": "https://budget.doxen.dev",
+    "test_prefix": "ZZ-TEST",
+    "source_test_space": "YNAB plan \"Test Budget\" (542b334b-696e-4418-937a-5e2c21a8b45c): the only source plan a child may modify",
+    "never_touch": [
+      "On the live clone: every plan whose name does not start with ZZ-TEST",
+      "On the source: every plan except Test Budget; Programmatik (85810fb1-ae94-4b3e-ab0c-7cc96c0d7a59) is view-only and only /accounts/f6b37d1e-db76-4c1f-b151-02df87c08a89",
+      "Plaid Production Items: never create, repair or remove one"
+    ]
+  }
+}
