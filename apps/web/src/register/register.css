@@ -1,0 +1,252 @@
+:root {
+  --register-separator: rgba(255, 255, 255, 0.1);
+  --register-label-action: #a3acff;
+  --register-row-selected: #1b1d48;
+  --register-needs-category: #daac00;
+  --register-needs-category-label: #362c05;
+  --register-icon-muted: #727484;
+}
+
+.register {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--backgroundPrimary);
+}
+
+/* The page's .main scrolls, so the toolbar and the header row stick to its top. */
+.register-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 var(--space-2);
+  background: var(--backgroundPrimary);
+  border-top: 1px solid var(--register-separator);
+  border-bottom: 1px solid var(--register-separator);
+}
+.register-toolbar .toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.register .toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.register .toolbar-button.primary svg {
+  color: var(--register-label-action);
+}
+.register .toolbar-button:hover {
+  background: var(--buttonSubtleBackground);
+}
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 var(--space-1);
+  border: 0;
+  background: var(--register-separator);
+}
+.search-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.search-box svg {
+  position: absolute;
+  left: 10px;
+  color: var(--labelSecondary);
+  pointer-events: none;
+}
+.search-box input {
+  box-sizing: border-box;
+  width: 192px;
+  height: 32px;
+  padding: 0 8px 0 28px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.register-scroll {
+  min-height: 0;
+}
+.register-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelPrimary);
+}
+.register-table .col-check,
+.register-table .col-cleared {
+  width: 36px;
+}
+.register-table .col-date {
+  width: 96px;
+}
+.register-table .col-payee,
+.register-table .col-memo {
+  width: 16%;
+}
+.register-table.no-category .col-payee,
+.register-table.no-category .col-memo {
+  width: auto;
+}
+.register-table .col-amount {
+  width: 10%;
+}
+.register-table th {
+  position: sticky;
+  top: 48px;
+  z-index: 2;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 6.4px;
+  background: var(--backgroundPrimary);
+  border-right: 1px solid var(--register-separator);
+  border-bottom: 1px solid var(--register-separator);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-align: left;
+  text-transform: uppercase;
+}
+.register-table th.sortable {
+  padding-right: 20px;
+}
+.register-table th.is-active .sort-button {
+  font-weight: 600;
+}
+.register-table th.num {
+  text-align: right;
+}
+.register-table th.num.is-active .sort-button {
+  margin-right: 16px;
+}
+.sort-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.sort-icon {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+}
+.register-table td {
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 6.4px;
+  border-bottom: 1px solid var(--register-separator);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.register-table tbody tr {
+  cursor: pointer;
+}
+.register-table tbody tr.is-checked td {
+  background: var(--register-row-selected);
+}
+.register-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.register-table td.num {
+  padding-right: 6.4px;
+}
+.register-table .cell-check,
+.register-table .cell-cleared {
+  text-align: center;
+}
+.register-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 1px solid var(--register-icon-muted);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.register-checkbox.is-on {
+  border-color: var(--buttonPrimaryBackground);
+  background: var(--buttonPrimaryBackground);
+}
+.cleared-button {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.cleared-button.is-uncleared {
+  color: var(--register-icon-muted);
+}
+.cleared-button.is-cleared,
+.cleared-button.is-reconciled {
+  color: var(--statusPositive);
+}
+.cleared-button:disabled {
+  cursor: default;
+}
+.register-table th.cell-cleared svg {
+  color: var(--labelSecondary);
+}
+.category-not-needed {
+  color: var(--labelSecondary);
+}
+.needs-category {
+  display: inline-block;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--register-needs-category);
+  border-radius: 24px;
+  background: var(--register-needs-category);
+  color: var(--register-needs-category-label);
+  font-size: 12px;
+  line-height: 20px;
+}
+.register-table td.register-message {
+  height: auto;
+  padding: var(--space-3);
+  border-bottom: 0;
+  color: var(--labelSecondary);
+  cursor: default;
+  white-space: normal;
+}
+.register-message button {
+  margin-left: var(--space-2);
+}

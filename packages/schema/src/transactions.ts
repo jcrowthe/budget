@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
+import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 
 // Repeats core's CLEARED_STATUSES; a Worker test asserts they are equal.
@@ -53,3 +54,70 @@ export type ClearedStatus = z.infer<typeof ClearedStatus>;
 export type Transaction = z.infer<typeof Transaction>;
 export type TransactionCreate = z.input<typeof TransactionCreate>;
 export type TransactionCreateParsed = z.output<typeof TransactionCreate>;
+
+/** What a request may set: reconciling is not available through the transactions routes (EXF-533). */
+export const PlainClearedStatus = z.enum(["uncleared", "cleared"]);
+
+export const TransactionDetail = Transaction.extend({
+  category_name: z.string().nullable(),
+  category_group_name: z.string().nullable(),
+  updated_at: z.string(),
+}).openapi("TransactionDetail");
+
+export const AccountBalances = z
+  .object({ cleared: Milliunits, uncleared: Milliunits, working: Milliunits })
+  .openapi("AccountBalances");
+
+const requestDate = IsoDate.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199").refine(
+  isCalendarDate,
+  { message: "date must be a real calendar date" },
+);
+
+const requestFields = {
+  account_id: z.string().min(1),
+  date: requestDate,
+  amount: Milliunits,
+  payee_name: z.string().max(200).nullable().optional(),
+  category_id: z.string().min(1).nullable().optional(),
+  inflow_to_ready_to_assign: z.boolean().optional(),
+  memo: z.string().max(500).nullable().optional(),
+  // Checked in the service, so "reconciled" gets its own 422 detail.
+  cleared: z.string().optional(),
+  approved: z.boolean().optional(),
+};
+
+export const TransactionCreateRequest = z
+  .object(requestFields)
+  .strict()
+  .openapi("TransactionCreateRequest");
+
+const updateFields = z
+  .object({
+    account_id: requestFields.account_id.optional(),
+    date: requestFields.date.optional(),
+    amount: requestFields.amount.optional(),
+    payee_name: requestFields.payee_name,
+    category_id: requestFields.category_id,
+    inflow_to_ready_to_assign: requestFields.inflow_to_ready_to_assign,
+    memo: requestFields.memo,
+    cleared: requestFields.cleared,
+    approved: requestFields.approved,
+  })
+  .strict();
+
+/** The PATCH fields without the "at least one" rule, for the MCP tool's input shape. */
+export const transactionUpdateShape = updateFields.shape;
+
+export const TransactionUpdateRequest = updateFields
+  .refine((o) => Object.keys(o).length > 0, "Nothing to update")
+  .openapi("TransactionUpdateRequest");
+
+export const TransactionResponse = dataEnvelope(z.object({ transaction: TransactionDetail }));
+export const TransactionListResponse = dataEnvelope(
+  z.object({ transactions: z.array(TransactionDetail), balances: AccountBalances }),
+);
+
+export type TransactionDetail = z.infer<typeof TransactionDetail>;
+export type AccountBalances = z.infer<typeof AccountBalances>;
+export type TransactionCreateRequest = z.input<typeof TransactionCreateRequest>;
+export type TransactionUpdateRequest = z.input<typeof TransactionUpdateRequest>;
