@@ -334,7 +334,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 2 | Discover, area 2 targets and Auto-Assign (`p_5d1242cb6d6a4a9eaaac1d9d9d018506`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) draft | abandoned by me at acceptance (no source tab); branch kept at `f788d48`, to resume |
-| 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) | running |
+| 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | none | abandoned by me after 4 minutes: the Clerk never wrote `request.json`; changed nothing |
 
 ### 2026-11-15 · Plan round 1
 
@@ -602,3 +602,52 @@ Children used 8 of 200. One is running: the resumed profile-fix Build (`p_eb0f06
   overlaps this Build on `scripts/deploy.sh`; EXF-454 is blocked by EXF-453.
 - Plan unchanged: after it merges, one Deploy and one Discover first, then the other eight Discover areas,
   then EXF-453.
+
+### 2026-11-15 · Review round 4
+
+Children used 8 of 200. Nothing is running. Main is still `2d82719`; the profile fix has not merged.
+
+**What ended:** the resume Build (`p_eb0f06b647ef427f9ff82ac6f2418ea9`), abandoned by my answer on its
+second card, four minutes after it started. It changed no file and opened no pull request.
+
+**What happened, from its trace:**
+
+1. `intake` (Clerk): opened the source tab as the BROWSER FIRST block said (it reported three
+   `app.ynab.com` tabs), spent the rest of its time reading the old Thread, then answered `ready` saying
+   `request.json` was prepared. It never wrote `/workspace/.exfab/request.json`.
+2. `resume` (code): `jq: Could not open file /workspace/.exfab/request.json`, then "MISSING: request.json
+   names no resume branch". The card that followed said the old work "is not on origin", which is wrong: it
+   is on origin at `f788d48`. I answered Rebuild with an instruction to fast-forward the old commits.
+3. `preflight` (code): "request.json is missing: the intake step did not write it." No source-tab failure
+   this time. Retry would hit the same missing file; Proceed would run without a file later code steps read.
+   I abandoned.
+
+**What is kept:** the finished work, untouched, on `origin/exfab/p_e9bdeb6d31de438a81905eeaec90f8c8` at
+`f788d48a2079f94154ea788176f43729bfa11587` (draft pull request #2).
+
+**Decision for the next plan:** do not use the resume inputs. Start an ordinary Build whose brief follows
+the pattern another clone's Lead used successfully for the same situation (their Thread
+`p_701c393d6f6c4d4897cb6aa73a5062fd`, which merged):
+
+- The first lines address the Clerk: write `request.json` with `"tickets": []` and
+  `"reserved_migrations": []`, no resume field, and print it back with `jq`; open the source tab with the
+  exact command; put the finished commits on the Thread branch first
+  (`git merge --ff-only origin/exfab/p_e9bdeb6d31de438a81905eeaec90f8c8`).
+- Then: the work is finished, build nothing new; what the diff must look like, so later agents recognise it.
+
+**Lessons (add to every Build brief from now on):**
+
+- Keep the Clerk's part short and first, with a print-back check on `request.json`. A long brief led this
+  Clerk to read history instead of doing its two jobs.
+- BROWSER FIRST works when it is in the brief: the first agent runs it.
+- A card answer's text is not a reliable way to instruct a child's agents. Put instructions in the brief.
+
+**Tickets:** commented on EXF-455 with the evidence that the brief-level workaround opens the tab. Filing one
+new `clone:template` ticket: the Clerk can answer ready without writing `request.json`, and the resume
+card then misreports the cause.
+
+**Backlog:** EXF-453 (High), EXF-454 (Low, blocked by EXF-453), EXF-455 (High, template), EXF-456 (Medium,
+template). No `clone:feature` tickets yet.
+
+**Cost so far of getting the profile fix merged:** three Build starts (one finished the work, two lost to
+platform steps), about 40 minutes of wall time, no product risk.
