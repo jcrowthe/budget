@@ -54,10 +54,10 @@ observed on 2026-11-15 on the Test Budget plan, when the current month was 2026-
 
    | URL | Page file | Behaviour | Title screen name |
    |---|---|---|---|
-   | `/:budgetId/budget/:month?` | `plan.tsx` (existed as `/:budgetId/budget`) | no month, or an invalid `YYYYMM`: **replace** with `/budget/<current local month>`. Otherwise the header shows the month (`Nov 2026`) | `Plan` |
+   | `/:budgetId/budget/:month?` | `plan.tsx` (existed as `/:budgetId/budget`) | no month: stays `/budget` and shows the current local month. An invalid `YYYYMM`: **replace** with `/budget/<current local month>`. Otherwise the header shows the month (`Nov 2026`) | `Plan` |
    | `/:budgetId/accounts` | `accounts.tsx` (existed) | unchanged | `All Accounts` |
-   | `/:budgetId/accounts/:accountId` | `account.tsx` (new) | no accounts exist yet (EXF-481), so every id shows an **Account not found** card inside the plan, with a link to All Accounts | `Account Not Found` |
-   | `/:budgetId/reflect/:report?` | `reflect.tsx` (existed as `/:budgetId/reflect`) | no report: **replace** with `/reflect/spending-breakdown`. Unknown report: **replace** with `/<id>/budget`. Header stays `Reflect` | report title from the table in the spec |
+   | `/:budgetId/accounts/:accountId` | `account.tsx` (new) | no accounts exist yet (EXF-481), so every id is **replaced** with `/<id>/accounts`, as in the source (polish P1) | `All Accounts` |
+   | `/:budgetId/reflect/:report?` | `reflect.tsx` (existed as `/:budgetId/reflect`) | no report: **replace** with `/reflect/spending-breakdown`. Unknown report: **replace** with `/<id>/budget` (no month, polish P2). Header stays `Reflect` | report title from the table in the spec |
    | `/:budgetId`, `/:budgetId/<anything else>` | router built-ins | **replace** with `/<id>/budget` | — |
    | `/` | `home.tsx` (existed) | **replace** with `/<latest opened plan>/budget`. With no plans, the existing "Create your first plan" card | `Budget` |
    | other `*` | `not-found.tsx` (existed) | unchanged | — |
@@ -156,13 +156,13 @@ its `Open Plan` title; Plan Settings and rename UI; account data.
 
 ## Differences from the source kept on purpose
 
-1. **`/budget` with no month** is replaced with `/budget/YYYYMM` (the source keeps `/budget`). This follows
-   the Lead's note 2, and gives every Plan view one canonical URL.
+1. **`/budget` with no month** keeps the URL `/budget` and shows the current month, as the source does (polish
+   P2). Only the sidebar link and a malformed month use `/budget/YYYYMM`.
 2. **Out-of-range months** are not detected: only a malformed month (anything other than `YYYYMM` with year
    19xx–20xx and month 01–12) falls back to the current month. The plan's month range does not exist until
    EXF-485 and EXF-493.
-3. **Unknown account:** an Account not found card inside the plan, rather than a silent replace with
-   `/accounts` (Lead's note 1). Its title is `Account Not Found | <Plan> | Budget`.
+3. **Unknown account:** silently replaced with `/accounts`, as in the source (polish P1; this supersedes the
+   not-found card of the Lead's note 1).
 4. **`/reflect`** always lands on `spending-breakdown`, which is ticket AC2. The source's "last report"
    memory belongs with the Reflect tab bar.
 5. **Unknown plan link** goes to `/` (Lead's note 4; the plans list is EXF-471). A single-segment unknown

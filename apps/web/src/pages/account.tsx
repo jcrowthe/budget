@@ -1,23 +1,11 @@
-import { Link, useParams } from "react-router";
-import { PageHeader } from "../shell/PageHeader";
+import { Navigate, useParams } from "react-router";
 import { accountsPath } from "../shell/planPaths";
-import { usePageTitle } from "../shell/useCurrentPlan";
 
-// EXF-481 replaces this with the register; an unknown id keeps this state.
+// The source silently replaces an unknown account id with All Accounts (measured live, EXF-475 polish P1).
+// No accounts exist yet, so every id is unknown; EXF-481 renders the register for a known id.
 function AccountPage() {
   const { budgetId = "" } = useParams();
-  usePageTitle("Account Not Found");
-  return (
-    <>
-      <PageHeader variant="accounts" title="Account not found" />
-      <div className="page-body">
-        <div className="card">
-          <h2>Account not found</h2>
-          <Link to={accountsPath(budgetId)}>All Accounts</Link>
-        </div>
-      </div>
-    </>
-  );
+  return <Navigate replace to={accountsPath(budgetId)} />;
 }
 
 export const page = { path: "/:budgetId/accounts/:accountId", element: <AccountPage /> };

@@ -172,7 +172,8 @@ export const router = createBrowserRouter([{ element: <AppShell />, children: [.
 **`pages/plan.tsx`** has the path `"/:budgetId/budget/:month?"`.
 
 - Read `{ budgetId, month }` from `usePlanMonth()`.
-- If `month` is null, return
+- A missing month (`:month` absent) renders the current month at `/budget` with no redirect (polish P2). If
+  the month is present but invalid, return
   `<Navigate replace to={planPath(budgetId, localCurrentMonth())} />`. This covers a missing or invalid
   month.
 - Otherwise:

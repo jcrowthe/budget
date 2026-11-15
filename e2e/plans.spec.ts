@@ -17,7 +17,7 @@ test("create a plan, switch back, and reopen the last used plan", async ({ page 
   await page.getByRole("button", { name: "Create Plan" }).click();
   // Wait for the new name first: an existing plan may already be open at a similar URL.
   await expect(sidebar.getByRole("button", { name: a })).toBeVisible();
-  await expect(page).toHaveURL(/\/[0-9a-f-]{36}\/budget\/\d{6}$/);
+  await expect(page).toHaveURL(/\/[0-9a-f-]{36}\/budget$/);
   const urlA = page.url();
 
   await sidebar.getByRole("button", { name: a }).click();
@@ -45,6 +45,6 @@ test("create a plan, switch back, and reopen the last used plan", async ({ page 
   const latest = budgets.reduce((a, b) =>
     (b.last_opened_at ?? "") > (a.last_opened_at ?? "") ? b : a,
   );
-  await expect(page).toHaveURL(new RegExp(`/${latest.id}/budget/\\d{6}$`));
+  await expect(page).toHaveURL(new RegExp(`/${latest.id}/budget$`));
   expect(budgets.find((b) => urlA.includes(b.id))?.last_opened_at).not.toBeNull();
 });

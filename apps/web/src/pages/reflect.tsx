@@ -1,6 +1,6 @@
 import { Navigate, useParams } from "react-router";
 import { PageHeader } from "../shell/PageHeader";
-import { localCurrentMonth, planPath, reflectPath } from "../shell/planPaths";
+import { planPath, reflectPath } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
 export const REPORTS = {
@@ -16,7 +16,7 @@ function ReflectPage() {
   const title = report && report in REPORTS ? REPORTS[report as keyof typeof REPORTS] : "";
   usePageTitle(title);
   if (!report) return <Navigate replace to={reflectPath(budgetId, "spending-breakdown")} />;
-  if (!title) return <Navigate replace to={planPath(budgetId, localCurrentMonth())} />;
+  if (!title) return <Navigate replace to={planPath(budgetId)} />;
   return (
     <>
       <PageHeader variant="reflect" title="Reflect" />

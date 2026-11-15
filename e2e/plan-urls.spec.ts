@@ -51,10 +51,11 @@ const mark = (page: Page) =>
   });
 const marker = (page: Page) => page.evaluate(() => (window as unknown as { __m?: number }).__m);
 
-test("C1 plan URL becomes the canonical month URL", async ({ page, request }) => {
+test("C1 plan URL keeps /budget and shows the current month", async ({ page, request }) => {
   const { id, name } = await newPlan(request);
   await page.goto(`/${id}/budget`);
-  await expect(page).toHaveURL(`/${id}/budget/${M}`);
+  // The source keeps /budget with no month and shows the current month (polish P2).
+  await expect(page).toHaveURL(`/${id}/budget`);
   await expect(page).toHaveTitle(`Plan | ${name} | Budget`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(monthLabel(M));
   await expect(page.getByRole("link", { name: "Plan", exact: true })).toHaveClass(/active/);
@@ -78,22 +79,13 @@ test("C3 all accounts", async ({ page, request }) => {
   await expect(page.getByRole("link", { name: "All Accounts" })).toHaveClass(/active/);
 });
 
-test("C4 unknown account shows not found inside the plan", async ({ page, request }) => {
+test("C4 unknown account is replaced with All Accounts", async ({ page, request }) => {
   const { id, name } = await newPlan(request);
   await page.goto(`/${id}/accounts/${NO_ACCOUNT}`);
-  await expect(page).toHaveURL(`/${id}/accounts/${NO_ACCOUNT}`);
-  await expect(page).toHaveTitle(`Account Not Found | ${name} | Budget`);
-  await expect(
-    page.getByRole("navigation", { name: "Sidebar" }).getByRole("button", { name }),
-  ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Account not found", level: 2 })).toBeVisible();
-  await expect(page.getByRole("link", { name: "All Accounts" }).last()).toHaveAttribute(
-    "href",
-    `/${id}/accounts`,
-  );
-  await expect(page.getByRole("navigation", { name: "Sidebar" }).locator("a.active")).toHaveCount(
-    0,
-  );
+  // Source, measured live: an unknown account id is silently replaced with /accounts (polish P1).
+  await expect(page).toHaveURL(`/${id}/accounts`);
+  await expect(page).toHaveTitle(`All Accounts | ${name} | Budget`);
+  await expect(page.getByRole("link", { name: "All Accounts" })).toHaveClass(/active/);
 });
 
 test("C5 reflect and reports", async ({ page, request }) => {
@@ -107,7 +99,7 @@ test("C5 reflect and reports", async ({ page, request }) => {
     await expect(page.getByRole("link", { name: "Reflect" })).toHaveClass(/active/);
   }
   await page.goto(`/${id}/reflect/foo`);
-  await expect(page).toHaveURL(`/${id}/budget/${M}`);
+  await expect(page).toHaveURL(`/${id}/budget`);
 });
 
 test("C6 hard reload keeps the screen and title", async ({ page, request }) => {
@@ -115,7 +107,6 @@ test("C6 hard reload keeps the screen and title", async ({ page, request }) => {
   const urls: [string, string][] = [
     [`/${id}/budget/${M}`, `Plan | ${name} | Budget`],
     [`/${id}/accounts`, `All Accounts | ${name} | Budget`],
-    [`/${id}/accounts/${NO_ACCOUNT}`, `Account Not Found | ${name} | Budget`],
     [`/${id}/reflect/net-worth`, `Net Worth Report | ${name} | Budget`],
   ];
   for (const [url, title] of urls) {
@@ -131,7 +122,7 @@ test("C7 unknown sub-paths land on the plan", async ({ page, request }) => {
   const { id } = await newPlan(request);
   for (const p of [`/${id}`, `/${id}/nonexistent`, `/${id}/budget/${M}/extra`]) {
     await page.goto(p);
-    await expect(page).toHaveURL(`/${id}/budget/${M}`);
+    await expect(page).toHaveURL(`/${id}/budget`);
   }
 });
 
@@ -142,15 +133,16 @@ test("C8 history sequence without reload", async ({ page, request }) => {
   await mark(page);
   await side.getByRole("link", { name: "All Accounts" }).click();
   await expect(page).toHaveURL(`/${id}/accounts`);
+  // An unknown account is replaced in place, so it adds no entry of its own.
   await inAppPush(page, `/${id}/accounts/${NO_ACCOUNT}`);
-  await expect(page).toHaveTitle(`Account Not Found | ${name} | Budget`);
+  await expect(page).toHaveURL(`/${id}/accounts`);
   await side.getByRole("link", { name: "Reflect" }).click();
   await expect(page).toHaveURL(`/${id}/reflect/spending-breakdown`);
-  await page.goBack();
-  await expect(page).toHaveTitle(`Account Not Found | ${name} | Budget`);
+  await expect(page).toHaveTitle(`Spending Breakdown | ${name} | Budget`);
   await page.goBack();
   await expect(page).toHaveURL(`/${id}/accounts`);
   await expect(page).toHaveTitle(`All Accounts | ${name} | Budget`);
+  await page.goBack();
   await page.goBack();
   await expect(page).toHaveURL(`/${id}/budget/${M}`);
   await expect(page).toHaveTitle(`Plan | ${name} | Budget`);
@@ -263,13 +255,13 @@ test("C13 root opens the last-opened plan", async ({ page, request }) => {
     last_opened_at: string | null;
   }[];
   const x = budgets.reduce((p, c) => ((c.last_opened_at ?? "") > (p.last_opened_at ?? "") ? c : p));
-  await expect(page).toHaveURL(`/${x.id}/budget/${M}`);
+  await expect(page).toHaveURL(`/${x.id}/budget`);
   expect(budgets.find((p) => p.id === a.id)?.last_opened_at).not.toBeNull();
 
   await side.getByRole("button").first().click();
   await page.getByRole("menuitem", { name: /Open Plan/ }).click();
   await page.getByRole("menuitem", { name: b.name }).click();
-  await expect(page).toHaveURL(`/${b.id}/budget/${M}`);
+  await expect(page).toHaveURL(`/${b.id}/budget`);
   await expect
     .poll(async () => {
       const list = (
