@@ -279,12 +279,14 @@
   background: transparent;
   color: var(--actionPrimary);
   opacity: 0;
-  transition: opacity 0.15s;
   cursor: pointer;
 }
 .add-category svg {
   width: 14px;
   height: 14px;
+}
+.add-category:hover svg {
+  color: var(--labelAction);
 }
 .group-row:hover .add-category,
 .add-category:focus-visible {

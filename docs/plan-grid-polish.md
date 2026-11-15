@@ -8,3 +8,4 @@
 - P6 [applied] Toggle tabs have no border, the selected tab uses a 1px `--borderSubtle` outline, svgs are 0.8rem, both icons redrawn edge to edge (own artwork).
 - P7 [applied] Undo, Redo and Clock icons redrawn to span ~1–23 of the viewBox.
 - P8 [scoped] New plan-local `PlusCircleFillIcon` in `plan/icons.tsx`, used by the toolbar and the group ⊕; `shell/icons.tsx` is untouched.
+- P9 [applied] Removed the ⊕ opacity transition (the source's is none); the icon turns `--labelAction` on pointer hover.
