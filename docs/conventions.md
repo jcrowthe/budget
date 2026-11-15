@@ -29,9 +29,13 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
    `usePageTitle("Widgets")` for the `<Page> | <Plan> | Budget` title, and the variables in
    `apps/web/src/shell/tokens.css` (never raw colours). Plan pages use a `/:budgetId/...` path and need no
    gate: the router nests them in `PlanScope` (plan resolved, not-found handled, open recorded).
-10. **Tests**: `apps/worker/test/widgets.test.ts` (REST, change_log rows, atomicity), `e2e/widgets.spec.ts`
-    (the user flow). Name test data `ZZ-TEST <random>`; no spec may assume an empty database. Update
-    `test/openapi.test.ts` only if you must; adding a route changes its expected path list, so extend the list.
+10. **Tests**: `apps/worker/test/widgets.test.ts` (REST, change_log rows, atomicity, and the resource's own
+    surface: `expect(await apiPaths()).toEqual(expect.arrayContaining([...]))` with its paths and the same
+    with `listedToolNames()` for its tools, both from `test/surface.ts`), `e2e/widgets.spec.ts` (the user
+    flow). Name test data `ZZ-TEST <random>`; no spec may assume an empty database. Never edit
+    `apps/worker/test/openapi.test.ts`, `apps/worker/test/mcp.test.ts` or `e2e/mcp.spec.ts`: they derive the
+    route and tool lists from the globs (every route file contributes a path, every tool file exports a
+    tool, no two tools share a name, `tools/list` matches the tool files), so a new resource adds files only.
 
 ## Shared modules: one Build at a time
 
