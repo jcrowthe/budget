@@ -14,33 +14,20 @@ and screenshots (grid only, sidebar cropped) are in `/workspace/scratch/source/a
 `05-typed-400-zoom3x.png`. Nothing was committed in the source: every edit was discarded with Escape. Commit
 behaviour (keys, arithmetic, effects) comes from the ticket, as the Lead directs.
 
-- **Closed cell.** A right-aligned box, 116×24, with a 1px transparent border and 4px radius. It sits inside the
-  132×44 cell, which has 16px left padding. The amount is 14px, weight 500, tabular. Zero is `#c4c5cf`; other
-  amounts are `#fff`. The amount is a focusable `<button>` with `cursor: text`.
-- **Hover.** The box gets a 1px `#7583ff` border and a `#0c0d22` background. A calculator icon (18×22 button,
-  16px glyph of + − × ÷ in a 2×2 grid, fill `#727484`, `#7583ff` on its own hover) fades in at the box's left.
-  Its opacity goes from 0 to 1.
-- **Open.** Clicking the amount turns the box into a plain `<input type="text">`:
-  - The box border is `#545bfe`, or `#7583ff` while the pointer is over it. There is no focus ring or box-shadow.
-  - The input has a transparent background, no border, 0 3px padding, white 14px/500 text and is right-aligned.
-  - The calculator icon stays visible. It has `tabindex=-1` and `aria-hidden` (not clicked during the study).
-  - The value has no currency sign and two decimals ("0.00"), and it is fully selected (selectionStart 0, end 4).
-- **Typing.** A digit replaces the selection ("400"). An operator typed first appends to the value: the field
-  shows the raw `0.00+50`. Nothing is evaluated while typing.
-- **Escape.** It discards, and focus goes to `<body>`.
-- **Row order.** Each row is checkbox → name (a focusable `<button>`) → Assigned → Activity → Available pill.
-  The pill is a `<button>`, and it is `disabled` at $0.00.
-- **Group rows.** The Assigned subtotal is not editable: no input, default cursor, no hover change.
-- **Row selection.** In the source, opening the cell also checks the row's checkbox and turns the row background
-  `#1b1d48`. This grid has no selected-row style yet, so that is left to EXF-498 (Lead note 6).
-- **From the ticket (commit behaviour):**
-  - Enter commits and blurs. Tab commits and moves to the row's Available pill. Shift+Tab moves to the name.
-  - ↓/↑ commit and open the next/previous category's cell, skipping group rows and crossing groups.
-  - Escape cancels.
-  - Arithmetic: 400.00 then "+50" gives 450.00, 100.00 "*2" gives 200.00, 200.00 "/4" gives 50.00, 50.00 "-10"
-    gives 40.00, and 0.00 "*2" gives 0.00. "12.345" gives 12.35, "1,234.5" gives 1,234.50, "abc" gives 0.00.
-  - Negative amounts are allowed.
-  - Ready to Assign moves by the opposite of the change.
+- **Closed / hover.** A right-aligned 116×24 box (1px transparent border, 4px radius) in the 132×44 cell; the
+  amount is a focusable `<button>` (14px/500, tabular, zero `#c4c5cf`, else `#fff`, `cursor: text`). Hover: 1px
+  `#7583ff` border, `#0c0d22` background, and an 18×22 calculator icon (+ − × ÷ glyph, fill `#727484`) fades in
+  at the box's left.
+- **Open.** A plain `<input type="text">` replaces the amount: border `#545bfe` (`#7583ff` while hovered), no
+  focus ring, transparent input, 0 3px padding, white right-aligned text; value "0.00" (no currency sign), fully
+  selected; the icon stays (`tabindex=-1`, `aria-hidden`).
+- **Typing.** A digit replaces the selection; an operator typed first appends (`0.00+50`); nothing is evaluated
+  while typing. Escape discards and focus goes to `<body>`.
+- **Row.** Checkbox → name (focusable `<button>`) → Assigned → Activity → Available pill (`<button>`, `disabled`
+  at $0.00). Group subtotals are not editable. The source also checks the row and paints it `#1b1d48`; this grid
+  has no selected style yet, so that is EXF-498's (Lead note 6).
+- **Commit behaviour (ticket).** Keys and arithmetic as listed in the ticket; negative amounts allowed; Ready to
+  Assign moves by the opposite of the change.
 
 ## Approach
 
@@ -137,17 +124,11 @@ plan or category is a tool error (`isError`) whose text contains "not found".
 
 - `setAssignedAmount(budgetId, month, categoryId, assigned)` sends the PATCH with a fresh `Idempotency-Key` and
   parses `AssignedResultResponse`.
-- `useCommitAssigned(budgetId, month, onError)` returns
-  `commit(categoryId: string, before: Milliunits, after: Milliunits): Promise<void>`. The promise resolves
-  after the optimistic write; the request goes on in the background.
-  1. It awaits `cancelQueries(["month", budgetId, month])`.
-  2. It sets the query data with `applyAssigned(…, after)`.
-  3. It fires the request.
-  - **On error:** if the cached category still shows `after`, it applies `applyAssigned(…, before)` (an inverse
-    update, not a snapshot restore, so a later edit of another category survives). Then it calls `onError`.
-  - **On settle:** it runs `invalidateQueries({ queryKey: ["month", budgetId] })`. This prefix covers every
-    cached month of the plan, because Assigned in one month changes rollover and RTA in later months, and
-    `assigned_in_future` changes earlier months' RTA.
+- `useCommitAssigned(budgetId, month, onError)` returns `commit(categoryId, before, after): Promise<void>`,
+  resolving once the optimistic write is in the cache (steps in spec T7). On error it re-applies `before` only
+  if the cache still shows `after` (an inverse update, so a later edit of another category survives), then calls
+  `onError`. On settle it invalidates `["month", budgetId]`: every cached month of the plan, because Assigned in
+  one month changes later months' rollover and RTA, and `assigned_in_future` changes earlier months' RTA.
 
 ### Grid (user-visible)
 
@@ -225,9 +206,7 @@ plan or category is a tool error (`isError`) whose text contains "not found".
 - The calculator popover (the icon is drawn but inert).
 - Plan currency formats (EXF-468).
 - Month navigation and header (EXF-493).
-- Not edited: `routes/months.ts`, `mcp/tools/months.ts`, `services/months.ts`, `packages/schema/src/months.ts`,
-  `apps/web/src/api/months.ts`, `apps/worker/test/months.test.ts`, `apps/web/src/pages/plan.tsx`,
-  `apps/web/src/shell/**`, `packages/core/src/**`, any `always_overlap` file, and the four surface tests.
+- Every file in the spec's "Do not edit" list (Lead notes 2 and 7).
 
 ## Acceptance
 
@@ -309,10 +288,7 @@ Unless stated otherwise:
     - One `change_log` row has actor `user:tester@localhost`, `entity_type 'month_category'`, and before/after
       assigned values.
     - −5000 is accepted.
-    - It answers 404 for an unknown plan uuid, the non-uuid `nope`, a deleted plan, an unknown category uuid, and
-      another plan's category.
-    - It answers 422 for month `2026-11-15`, month `0000-01-01`, `assigned: 1.5`, `assigned: "400"`, and a
-      missing `assigned`.
+    - Every 404 and 422 row of the error table above answers as listed.
 16. **MCP parity.** Worker test: `set_assigned` on another category answers the same shape and values as GET.
     - Its `change_log` row has actor `mcp:user:tester@localhost`.
     - An unknown category returns `isError`.
@@ -320,17 +296,8 @@ Unless stated otherwise:
 17. **Surface.** In `month-categories.test.ts`, `apiPaths()` contains
     `/api/v1/budgets/{budget_id}/months/{month}/categories/{category_id}` and `listedToolNames()` contains
     `set_assigned`.
-18. **Parser units.** `packages/schema/test/assigned-edit.test.ts` covers:
-    - every ticket row;
-    - grouping;
-    - the `$` and unicode operators;
-    - leading `+ * / x` continuation;
-    - leading `-` as a negative;
-    - `-12.00+5` gives −7000;
-    - precedence (`2+3*4` gives 14000);
-    - divide by zero, empty text and `1.2.3`, which give 0;
-    - half-away-from-zero rounding;
-    - `formatAssignedInput` and `applyAssigned`.
+18. **Parser units.** `packages/schema/test/assigned-edit.test.ts` passes with every case listed in spec T2
+    (ticket rows, negatives, normalisation, precedence, zero results, `formatAssignedInput`, `applyAssigned`).
 19. **No regression.** `e2e/plan-grid.spec.ts` passes unchanged, and `pnpm check` passes.
 
 ## Manifest
