@@ -349,7 +349,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
 | 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341` (3 minutes) |
 | 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | [#5](https://github.com/jcrowthe/budget/pull/5) | merged as `4f1fbb3` (17 minutes) |
-| 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | pending | running |
+| 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | [#6](https://github.com/jcrowthe/budget/pull/6) open | abandoned by me at the gate (no Playwright browser in its box); branch kept at `8b9b465`, to carry over |
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 
@@ -1354,3 +1354,64 @@ EXF-475 (its architect is writing the spec after studying the source; no card).
   its links; the scope comments on EXF-485 and EXF-475; then the Medium and Low tickets. The next block of
   writes frees between about 21:01 and 21:07, the largest at about 21:25.
 - Started nothing: every open High ticket waits on EXF-485 or EXF-475; nothing new is merged to deploy.
+
+### 2026-11-15 · Review round 16
+
+Children used 25 of 200. One is running: the Build for EXF-475.
+
+**What ended:** the Build for EXF-485 (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`), abandoned by my answer on its
+second gate card, 27 minutes after it started. Not merged; main is still `4f1fbb3`. EXF-485 stays In Progress.
+
+**The work is finished and kept.** Branch `exfab/p_2088a38c1bed40b7b99f7b9f90ef1ea4` at
+`8b9b465fb95fc5c2dd7b805945b082c7825b08ea`, pull request #6: three commits, 35 files, 2886 lines added and 2
+removed against main `4f1fbb3`; nothing under `apps/web/` and none of the `budgets` files. Reviewer-approved
+(its one blocking finding, impossible dates such as `2026-13-05` breaking later months, was fixed with a
+test), acceptance 12 of 12, `pnpm check` green with 183 tests.
+
+**Why the gate failed.** The final gate runs the full e2e suite. The five browser specs (`plans`, `shell`,
+`shell-compare`) failed in 2 to 4 ms each: "Executable doesn't exist at
+/home/exfab/.cache/ms-playwright/...". No Playwright browser was installed in that box, because nobody in
+the Thread had run a browser spec: the work is API-only. The seven API specs passed. Earlier Builds passed
+this gate only because some agent in each had installed the browser while working.
+
+**Why I abandoned.** On the `gate_stuck` card I chose Retry with an instruction to run
+`pnpm exec playwright install chromium`. The gate failed the same way, and the gate_fix Implementer answered
+blocked again without installing anything: it does not see the Lead's card answer, it will not download a
+browser on its own, and a Retry gives it one try, not four. A second Retry would have looped.
+
+**What the engine built** (from its architect's and implementer's reports; verify at the next approval card):
+
+- Tables, one migration `20261115203000_budget_engine.sql`: `category_groups`, `categories` (with
+  `budget_id`), `month_categories`, `months`, `accounts`, `transactions`. Plural names; `sort_order` and
+  `deleted_at` in storage (the API field is `sort`); groups and categories have `updated_at`;
+  `transactions.cleared` is text (`uncleared`, `cleared`, `reconciled`); no SQL CHECK on `accounts.type`.
+- Services for later tickets: `createCategoryGroup`, `createCategory`, `setAssigned`, `moveMoney` (an empty
+  side means Ready to Assign), `setMonthNote`, `getPlanMonth`, `listPlanMonths`, `createAccount`,
+  `createTransaction`.
+- Rules: only on-plan accounts count; uncategorized acts like a category with nothing assigned; the inflow
+  flag wins over a category; credit accounts are treated as cash for now behind one function,
+  `classifyTransaction`, so the credit tickets extend it; a transaction whose category was deleted counts as
+  uncategorized.
+- Known issue it accepted: `setAssigned` and `moveMoney` read the "before" value for history outside the
+  write, so two simultaneous writes can record a stale "before". Must be fixed before Undo (EXF-504, EXF-530)
+  relies on history. Two nits: a hand-built 422 in `routes/months.ts`, a misplaced comment.
+
+**Decisions for the next plan:**
+
+- Carry the work over with an ordinary Build (the pattern that merged the profile fix): Clerk jobs, each with
+  a command and the output it must print: write `request.json`; open the Thread's own source tab;
+  fast-forward `origin/exfab/p_2088a38c1bed40b7b99f7b9f90ef1ea4` and print `8b9b465…` and the diff shape; and
+  **install the browser**: `pnpm install --frozen-lockfile && pnpm exec playwright install chromium`, then
+  list `~/.cache/ms-playwright`.
+- From now on every Build brief has the browser install as a Clerk job, until the ticket below lands.
+- EXF-475 may hit the same gate failure if nobody in its Thread installed the browser; it is a UI Build, so
+  its agents probably ran browser specs. If it does, carry it over the same way.
+
+**Tickets filed this review:**
+
+1. `clone:gap`: e2e runs on the box's system Chrome, so the gate needs no downloaded browser.
+2. `clone:template`: the gate fails on a box without the Playwright browser, the gate_fix step cannot fix it,
+   and the Lead's card answer does not reach the agent.
+
+**Backlog:** 94 feature tickets (43 triaged on the tickets, 51 in the journal); gap: EXF-454 and one being
+filed; template: eight and one being filed.
