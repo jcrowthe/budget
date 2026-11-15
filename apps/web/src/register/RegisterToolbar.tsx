@@ -4,10 +4,10 @@ import { CaretDownIcon, FileUpIcon, PlusCircleIcon, RedoIcon, SearchIcon, UndoIc
 export function RegisterToolbar({ name }: { name: string }) {
   return (
     <div className="register-toolbar" role="toolbar" aria-label="Register toolbar">
-      <div className="toolbar-group">
+      <div className="toolbar-group left">
         <button
           type="button"
-          className="toolbar-button primary"
+          className="toolbar-button"
           title="Add new transaction"
           data-ticket="EXF-517"
         >
@@ -33,7 +33,7 @@ export function RegisterToolbar({ name }: { name: string }) {
           Redo
         </button>
       </div>
-      <div className="toolbar-group">
+      <div className="toolbar-group right">
         <button
           type="button"
           className="toolbar-button"

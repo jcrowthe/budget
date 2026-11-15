@@ -1,6 +1,4 @@
 :root {
-  --register-separator: rgba(255, 255, 255, 0.1);
-  --register-label-action: #a3acff;
   --register-row-selected: #1b1d48;
   --register-needs-category: #daac00;
   --register-needs-category-label: #362c05;
@@ -24,66 +22,60 @@
   align-items: center;
   justify-content: space-between;
   height: 48px;
-  padding: 0 var(--space-2);
+  padding: 0;
   background: var(--backgroundPrimary);
-  border-top: 1px solid var(--register-separator);
-  border-bottom: 1px solid var(--register-separator);
+  border-top: 1px solid var(--separatorStandard);
+  border-bottom: 1px solid var(--separatorStandard);
 }
 .register-toolbar .toolbar-group {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
 }
-.register .toolbar-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 4px 8px;
-  border: 0;
-  border-radius: var(--radius-lg);
-  background: transparent;
-  color: var(--labelPrimary);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
+.register-toolbar .toolbar-group.left {
+  padding-left: var(--space-2);
 }
-.register .toolbar-button.primary svg {
-  color: var(--register-label-action);
+.register-toolbar .toolbar-group.right {
+  padding: 0 var(--space-3) 0 var(--space-4);
 }
-.register .toolbar-button:hover {
-  background: var(--buttonSubtleBackground);
+/* The icons' width and height attributes set their size (16, 12 and 8). */
+.register .toolbar-button svg {
+  width: auto;
+  height: auto;
 }
 .toolbar-divider {
   width: 1px;
   height: 16px;
-  margin: 0 var(--space-1);
+  margin: 0 0 0 var(--space-3);
   border: 0;
-  background: var(--register-separator);
+  background: var(--borderSubtle);
+}
+.toolbar-divider + .toolbar-button {
+  margin-left: var(--space-3);
 }
 .search-box {
   position: relative;
   display: inline-flex;
   align-items: center;
+  margin-left: var(--space-3);
 }
 .search-box svg {
   position: absolute;
   left: 10px;
-  color: var(--labelSecondary);
+  color: var(--labelTertiary);
   pointer-events: none;
 }
 .search-box input {
   box-sizing: border-box;
   width: 192px;
   height: 32px;
-  padding: 0 8px 0 28px;
+  padding: 0 0 0 28px;
   border: 1px solid var(--inputBorder);
   border-radius: var(--radius-xs);
-  background: transparent;
+  background: var(--backgroundPrimary);
   color: var(--labelPrimary);
   font: inherit;
   font-size: var(--font-size-sm);
+  font-weight: 500;
 }
 
 .register-scroll {
@@ -124,17 +116,14 @@
   height: 32px;
   padding: 0 6.4px;
   background: var(--backgroundPrimary);
-  border-right: 1px solid var(--register-separator);
-  border-bottom: 1px solid var(--register-separator);
+  border-right: 1px solid var(--separatorStandard);
+  border-bottom: 1px solid var(--separatorStandard);
   color: var(--labelSecondary);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.6px;
   text-align: left;
   text-transform: uppercase;
-}
-.register-table th.sortable {
-  padding-right: 20px;
 }
 .register-table th.is-active .sort-button {
   font-weight: 600;
@@ -163,14 +152,17 @@
 .register-table td {
   box-sizing: border-box;
   height: 36px;
-  padding: 0 6.4px;
-  border-bottom: 1px solid var(--register-separator);
+  padding: 1.6px 1.6px 1.6px 6.4px;
+  border-bottom: 1px solid var(--separatorStandard);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .register-table tbody tr {
   cursor: pointer;
+}
+.register-table tbody tr.is-checked {
+  cursor: text;
 }
 .register-table tbody tr.is-checked td {
   background: var(--register-row-selected);
@@ -180,36 +172,63 @@
   font-variant-numeric: tabular-nums;
 }
 .register-table td.num {
-  padding-right: 6.4px;
+  padding: 1.6px 6.4px 1.6px 1.6px;
 }
-.register-table .cell-check,
-.register-table .cell-cleared {
-  text-align: center;
+.register-table th.cell-check,
+.register-table td.cell-check {
+  padding: 0 0 0 var(--space-2);
+  text-align: left;
 }
+.register-table th.cell-check {
+  border-right: 0;
+}
+.register-table td.cell-cleared {
+  padding: 0 6.4px;
+  text-align: left;
+}
+/* A 17x17 button (padding 2px, margin 0 1px) around the 13px square. */
 .register-checkbox {
   display: inline-flex;
+  box-sizing: content-box;
+  width: 13px;
+  height: 13px;
+  margin: 0 1px;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  vertical-align: middle;
+  cursor: pointer;
+}
+.register-checkbox .box {
+  display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   width: 13px;
   height: 13px;
-  padding: 0;
   border: 1px solid var(--register-icon-muted);
   border-radius: 3px;
-  background: transparent;
-  color: var(--labelPrimary);
-  cursor: pointer;
 }
-.register-checkbox.is-on {
+.register-checkbox.is-on .box {
   border-color: var(--buttonPrimaryBackground);
   background: var(--buttonPrimaryBackground);
 }
 .cleared-button {
   display: inline-flex;
+  align-items: flex-start;
+  box-sizing: border-box;
+  width: 16px;
+  height: 20px;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
+  vertical-align: middle;
+}
+.cleared-button svg {
+  position: relative;
+  top: 2px;
 }
 .cleared-button.is-uncleared {
   color: var(--register-icon-muted);
@@ -221,8 +240,15 @@
 .cleared-button:disabled {
   cursor: default;
 }
+.register-table th.cell-cleared {
+  padding: 0 0 0 6.4px;
+  text-align: left;
+  color: var(--labelTertiary);
+}
 .register-table th.cell-cleared svg {
-  color: var(--labelSecondary);
+  position: relative;
+  top: 1px;
+  color: var(--labelTertiary);
 }
 .category-not-needed {
   color: var(--labelSecondary);

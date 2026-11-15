@@ -49,7 +49,9 @@ function Box({
       className={`register-checkbox${state ? " is-on" : ""}`}
       onClick={onClick}
     >
-      {state === "mixed" ? <MinusIcon /> : state ? <CheckIcon /> : null}
+      <span className="box">
+        {state === "mixed" ? <MinusIcon /> : state ? <CheckIcon /> : null}
+      </span>
     </button>
   );
 }
