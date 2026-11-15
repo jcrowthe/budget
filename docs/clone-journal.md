@@ -1786,3 +1786,19 @@ request #11 open) and EXF-481 (accounts; just started, with its Clerk).
 **Backlog:** 91 open feature tickets (2 in progress: EXF-487, EXF-481). Gap: EXF-558 (High), EXF-454 and
 EXF-560 (Low); EXF-561 done. Template: nine. Finished since each template's last review: Build 8, Deploy 4,
 Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 22
+
+Children used 31 of 200. Two Builds are running: EXF-487 (Plan grid, pull request #11, polishing) and EXF-481
+(accounts, started last round). Nothing started this round.
+
+- No ticket was filed at the last review.
+- **Why nothing new:** unchanged from round 21. The remaining unblocked tickets change the web shell
+  (accounts holds it) or the budgets service (the grid holds it); the rest wait for the grid or accounts;
+  EXF-558 needs a moment with no Build running.
+- I considered starting the API half of EXF-494 (category-group and category routes, Worker only), which
+  would be disjoint from both running Builds. Not done: it would leave one ticket half built, and the grid
+  is close to its gate. If the grid's card shows a long wait, split it properly with a new ticket at a
+  review instead.
+- No Deploy: main `401970d` is still the targets engine and tests over live `d7a3a40`.
+- Review cadence unchanged: Build 8, Deploy 4, Discover 2.
