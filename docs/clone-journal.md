@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
-Discover 9. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 10 (review due: start Improve templates on the Discover template in the next plan). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -340,7 +340,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 1 Plan screen (`p_2f3f00938c2b46abaf16bb38900ac39a`) | 15 tickets, EXF-485 to EXF-509 (interleaved) | none | completed (45 minutes) |
 | 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | EXF-508, 511, 514, 516, 519, 521, 523, 525, 527 and one more | none | completed (47 minutes), 10 tickets |
 | 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | EXF-481, 482, 483, 484, 486, 488, 490 | none | completed (38 minutes) |
-| 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | EXF-513, 517, 520, 522, 524, 526, 528, 529, 530, 531, 533, 534, 536 | none | completed (50 minutes), 13 tickets |
 | 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | EXF-497, 499, 501, 503, 505, 507, 510, 512, 515, 518 and one more | none | completed (43 minutes), 11 tickets |
@@ -1134,3 +1134,41 @@ and is triaged at the next one.
   `budgets` files and the shell; nothing new is merged to deploy.
 - Ticket writes are still rate limited (20:31 UTC; the budget frees from about 21:05). Owed writes stay as
   listed in review round 11.
+
+### 2026-11-15 · Review round 12
+
+Children used 24 of 200. Four are running: the Builds for EXF-485 and EXF-475 (at their plan step) and
+Discover areas 6 (credit) and 8 (reports).
+
+**What ended:** Discover area 4, the transaction register, with 13 tickets. It worked only with its own
+prefixed accounts, categories, payees and small made-up import files, and deleted all of them. It did observe
+matching and unmatching of imported rows (through file import), which area 5 could only take from the help
+pages: use its tickets to check EXF-464 when the Plaid work starts.
+
+**Triage decided, not yet written to the tickets** (rate limit, as in review round 11):
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-513 | Register foundation: transactions API, table, sorting, balances | High | EXF-481 |
+| EXF-517 | Add and edit a transaction inline | High | EXF-513 |
+| EXF-524 | Split transactions | High | EXF-517 |
+| EXF-526 | Transfers between accounts | High | EXF-517 |
+| EXF-533 | Reconcile an account | High | EXF-517 |
+| EXF-534 | All Accounts register | Medium | EXF-513 |
+| EXF-520 | Selection and action bar (bulk edit) | Medium | EXF-517 |
+| EXF-522 | Transaction flags | Medium | EXF-513 |
+| EXF-528 | Register search | Medium | EXF-513 |
+| EXF-529 | Register View options, running balance | Medium | EXF-513 |
+| EXF-530 | Undo and Redo in the register | Medium | EXF-517 |
+| EXF-531 | File Import: CSV, TSV, OFX, QFX, QIF | Medium | EXF-517 |
+| EXF-536 | Transaction images (receipts, stored in R2) | Low | EXF-517 |
+
+No duplicates. EXF-513 is the register's foundation and extends the `transactions` table the engine Build
+creates. With it, the foundation chain is: EXF-485, then EXF-481 and EXF-487 side by side, then EXF-513 and
+the Plan tickets.
+
+**Discover cadence reached:** ten Discover children have finished (three failed at the profile step, seven
+completed). Start Improve templates on the Discover template in the next plan with those ten Thread ids.
+
+**Backlog:** about 85 `clone:feature` tickets: 43 triaged on the tickets, 34 triaged in the journal only
+(areas 2, 7 and 4), areas 6 and 8 still filing. No tickets filed this review.
