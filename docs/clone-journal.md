@@ -525,3 +525,18 @@ course, no manifest yet. It is the only Build, so the scheduling rule has nothin
 `clone:feature` tickets: discovery has not run yet. No tickets filed this review.
 
 **Waiting on:** the profile-fix Build's approval card.
+
+### 2026-11-15 · Plan round 3
+
+Children used 7 of 200. One is running: the profile-fix Build (`p_e9bdeb6d31de438a81905eeaec90f8c8`). Main is
+still at `2d82719`.
+
+Started nothing, and why:
+
+- Deploy and Discover stop without the profile keys that Build adds (plan step 1: nothing that relies on the
+  profile starts until the fix has merged).
+- EXF-453 edits `scripts/deploy.sh` and always-overlap files, as the running Build does.
+- EXF-454 is blocked by EXF-453, and the running Build touches `clone.profile.json` (always-overlap), so no
+  second Build runs beside it.
+
+Tickets: none were filed at the last review. Backlog unchanged (EXF-453 High, EXF-454 Low). Plan unchanged.
