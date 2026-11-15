@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 3, Deploy 3, Test user flow 0,
-Discover 4. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 5. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -345,7 +345,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
-| 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | EXF-468 to EXF-478, EXF-480 | none | completed (23 minutes), 12 tickets |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
 | 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341` (3 minutes) |
 | 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | pending | running |
@@ -924,3 +924,51 @@ Children used 22 of 200. Nine are running: eight Discover areas and the EXF-458 
   The Plaid tickets wait on foundation tickets that the still-running Discover areas have not filed. Area 9
   is filing its tickets (EXF-468 onward, with EXF-476 export and EXF-477 import among them); they are triaged
   when it reports. Nothing new is merged to deploy, and the live clone has only the plans example to test.
+
+### 2026-11-15 · Review round 9
+
+Children used 22 of 200. Eight are running: seven Discover areas (1 to 4, 6 to 8) and the EXF-458 Build.
+
+**What ended:**
+
+- Deploy `p_daa5ffd48c364b16a2058d8d143820cb`: live at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341`
+  (recorded in plan round 9).
+- Discover area 9, plan management and settings (`p_ebbda25af70d450ea6fe87f368173e55`): completed in 23
+  minutes with twelve `clone:feature` tickets. It worked read-and-cancel as briefed: no setting saved, no plan
+  created, renamed, reset or deleted; the plans list page was not opened.
+
+**Triage of area 9 (priority; blocked by):**
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-468 | Plan formats: currency, number format, placement, date format (Plan Settings) | High | none |
+| EXF-475 | Plan-scoped URLs, page titles and browser history | High | none |
+| EXF-477 | Import a plan from a YNAB export zip | High | foundation tickets, to link when filed |
+| EXF-469 | New Plan dialog | Medium | EXF-468 |
+| EXF-470 | Plan menu: full entry list, sections, Open Plan submenu | Medium | none |
+| EXF-471 | Plans list page with create and delete | Medium | EXF-469 |
+| EXF-476 | Export Plan: zip with Plan and Register files | Medium | foundation tickets, to link when filed |
+| EXF-472 | Display Options: theme, progress bars, balance style | Low | none |
+| EXF-473 | Keyboard Shortcuts dialog and universal shortcuts | Low | none |
+| EXF-474 | Sidebar collapse, expand and resize | Low | none |
+| EXF-478 | Make a Fresh Start | Low | none |
+| EXF-480 | Plan flag names (Edit Flags) | Low | register flags (area 4), to link |
+
+None is a duplicate. EXF-468 and EXF-475 are foundation: every screen formats amounts and lives under a plan
+URL, so they go early. EXF-477 is the person's decision 4 (their YNAB history); the export format in EXF-476
+is its specification. EXF-471 and EXF-478 rest on help pages and interface text only (no screenshots).
+
+**EXF-454 changed:** area 9 measured the source's plan menu at 243px, not 240px, so the width may need no
+change. Commented on the ticket and blocked it by EXF-470, which rebuilds the menu.
+
+**Privacy notes from its report, for the person:** it opened the bare site once in the sign-in check (landed
+on the Test Budget; EXF-458 fixes the cause); recent-plan names appeared once in its own working output and
+are in no ticket, screenshot or file; plan names in the menu screenshots were replaced with placeholders.
+
+**Not exploring, unless the person asks:** the account-level "open last used plan" setting (an
+account-settings page) and "Hide Amounts". **To check against areas 4 and 8 when they report:** Export
+Selected Transactions, the Reflect export file format, file import into an account.
+
+**Backlog now:** 21 `clone:feature` tickets (9 Plaid, 12 plan management), all triaged. Gap: EXF-458 In
+Progress; EXF-454 Low, blocked by EXF-470. Template: EXF-455, EXF-457, EXF-479 (High), EXF-456 (Medium).
+The core areas (plan grid, targets, accounts, register, credit, scheduled, reports) have not reported yet.
