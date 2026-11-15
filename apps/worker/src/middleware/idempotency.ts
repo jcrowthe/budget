@@ -42,44 +42,58 @@ export function idempotency() {
       createdAt: now.toISOString(),
     };
 
-    // Insert, or take over an expired row, in a single statement.
-    const res = await db
-      .insert(idempotencyKeys)
-      .values(reservation)
-      .onConflictDoUpdate({
-        target: [idempotencyKeys.actor, idempotencyKeys.key],
-        set: reservation,
-        setWhere: lt(idempotencyKeys.createdAt, new Date(now.getTime() - TTL_MS).toISOString()),
-      })
-      .run();
-    if (res.meta.changes === 0) {
+    // Insert, or take over an expired row, in a single statement. The handler runs only if THIS request's
+    // own write created or took over the row. If the row vanished between our insert and our read (its
+    // owner failed and released it), try again; never fall through without a reservation.
+    let reserved = false;
+    for (let attempt = 0; attempt < 3 && !reserved; attempt++) {
+      const res = await db
+        .insert(idempotencyKeys)
+        .values(reservation)
+        .onConflictDoUpdate({
+          target: [idempotencyKeys.actor, idempotencyKeys.key],
+          set: reservation,
+          setWhere: lt(idempotencyKeys.createdAt, new Date(now.getTime() - TTL_MS).toISOString()),
+        })
+        .run();
+      if (res.meta.changes > 0) {
+        reserved = true;
+        break;
+      }
       const [row] = await db
         .select()
         .from(idempotencyKeys)
         .where(and(eq(idempotencyKeys.actor, actor), eq(idempotencyKeys.key, key)))
         .limit(1);
-      if (row) {
-        if (row.requestHash !== hash) {
-          return apiError(
-            c,
-            422,
-            "idempotency_key_reused",
-            "Idempotency-Key was used with a different request",
-          );
-        }
-        if (row.status === PENDING) {
-          return apiError(
-            c,
-            409,
-            "idempotency_key_in_progress",
-            "A request with this Idempotency-Key is still running",
-          );
-        }
-        return new Response(row.responseBody, {
-          status: row.status,
-          headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
-        });
+      if (!row) continue;
+      if (row.requestHash !== hash) {
+        return apiError(
+          c,
+          422,
+          "idempotency_key_reused",
+          "Idempotency-Key was used with a different request",
+        );
       }
+      if (row.status === PENDING) {
+        return apiError(
+          c,
+          409,
+          "idempotency_key_in_progress",
+          "A request with this Idempotency-Key is still running",
+        );
+      }
+      return new Response(row.responseBody, {
+        status: row.status,
+        headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
+      });
+    }
+    if (!reserved) {
+      return apiError(
+        c,
+        409,
+        "idempotency_key_in_progress",
+        "A request with this Idempotency-Key is still running",
+      );
     }
 
     const mine = and(
