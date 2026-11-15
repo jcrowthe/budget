@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
-Discover 1 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -344,7 +344,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | EXF-532, 535, 537 to 547 | none | completed (54 minutes), 13 tickets |
 | 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | EXF-497, 499, 501, 503, 505, 507, 510, 512, 515, 518 and one more | none | completed (43 minutes), 11 tickets |
-| 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | EXF-548 to EXF-553 | none | completed (58 minutes), 6 tickets |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | EXF-468 to EXF-478, EXF-480 | none | completed (23 minutes), 12 tickets |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
 | 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341` (3 minutes) |
@@ -1247,3 +1247,61 @@ EXF-475 (at its plan step), Discover area 8 and the Improve templates review.
   merges second gets Refresh at its card.
 - Started nothing: every open High ticket waits on one of the two Builds.
 - Ticket writes still rate limited at 20:37 UTC.
+
+### 2026-11-15 · Review round 14
+
+Children used 25 of 200. Three are running: the Builds for EXF-485 and EXF-475, and the Improve templates
+review, which is filing what I approved.
+
+**What ended:** Discover area 8, Reflect, with 6 tickets. Own prefixed data only, all deleted, filters reset.
+It captured the export files of each report. **All nine discovery areas have now reported: about 104
+`clone:feature` tickets.**
+
+**Triage of area 8, decided here, not yet on the tickets** (rate limit):
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-548 | Report shell: tabs, date range, category and account filters, drill-down, export dialog | Medium | EXF-513, EXF-475 |
+| EXF-549 | Spending Breakdown | Medium | EXF-548 |
+| EXF-550 | Spending Trends | Medium | EXF-548 |
+| EXF-551 | Net Worth | Medium | EXF-548 |
+| EXF-552 | Income v Expense | Medium | EXF-548 |
+| EXF-553 | Age of Money | Low | EXF-548 |
+
+**Improve templates (Discover), answered in a side turn: approved all.** Four new template tickets and two
+evidence comments; no duplicates. The comments on EXF-456 and EXF-479 are posted. The four new tickets were
+not yet in the tracker at 20:41 UTC; check next round and file any that is missing.
+
+1. Sign-in check gets the Lead's notes and opens a safe `source.start_url`, never the bare `source.url`.
+2. A masking helper driven by profile keys (`source.mask_selectors`, `source.redact_text`,
+   `source.allowed_url_prefixes`). I added: a way to remove or redact a stored screenshot afterwards.
+3. Parallel children in one test space: a `test_prefix` input, a read-back check before every write, and
+   `source.test_spaces` so each child can have its own space.
+4. Tickets carry structured dependencies and a priority suggestion; the file action sets blocking links.
+
+Its comment on EXF-479 tempers my ticket: two tab listings suggest some boxes had separate browsers, so
+"one shared browser" is not proven for every box. Popovers closing under an agent can also come from the
+source app syncing other agents' writes.
+
+**Privacy: the exposure was wider than I recorded in plan round 11.** From the review's reading of the
+transcripts:
+
+- **Three** discovery children, not one, landed on the Programmatik plan's Plan page in the template's
+  sign-in step: areas 1, 2 and 3. That step printed the plan's name, an account name, category amounts and
+  the account email into their transcripts; two `signed_in` answers named the plan. Each sign-in screenshot
+  was deleted in the next step.
+- Other plans' names were printed into tool output in two Threads (areas 9 and 7) when the plan menu opened.
+- The account email is visible in some stored screenshots: the sign-in capture in area 5's outputs, one
+  early sidebar capture in area 3's, and probably about 90 full-window captures in area 7's.
+- Area 5 left an unmasked capture of the permitted Programmatik account page in `/tmp` in its box.
+- None of this is in the repository or in a ticket, by the agents' reports and the review. I have not viewed
+  the images. I cannot delete transcripts or artifacts.
+- Told the person in the side turn's message; offered to raise removal of the stored artifacts as a request
+  if they want it.
+- Rules for every later brief that touches the source: own tab; the test plan URL only; never open the plan
+  menu unless the ticket needs it, and then hide its entries first; mask the sidebar identity in every
+  capture; print no page text from outside the test plan.
+
+**Backlog:** about 104 feature tickets: 43 triaged on the tickets, 53 triaged in the journal only (areas 2,
+7, 4, 6, 8), the rest are the eight not yet looked at individually in area 2 and 7's tails. Gap: EXF-454.
+Template: EXF-455, 456, 457, 479 and four being filed. No tickets filed by me this review.
