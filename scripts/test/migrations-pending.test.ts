@@ -85,6 +85,16 @@ describe("scripts/migrations-pending.sh", () => {
     expect(r.stdout).toBe("");
   });
 
+  it("fails when a successful query answers without a results array", () => {
+    const r = run({
+      "GET https://": dbList,
+      "POST https://": { status: 200, body: { success: true, result: [] } },
+    });
+    expect(r.status).toBe(1);
+    expect(r.stdout).toBe("");
+    expect(r.stderr).toContain("unexpected D1 query response");
+  });
+
   it("fails with a message on an API error", () => {
     const r = run({
       "GET https://": dbList,

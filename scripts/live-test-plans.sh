@@ -97,7 +97,7 @@ case "$CMD" in
   create)
     api POST /api/v1/budgets "$(jq -nc --arg n "$2" '{name: $n}')"
     expect POST /api/v1/budgets 201
-    jq -r '.data.budget.id' "$tmp/body"
+    jq -er '.data.budget.id // empty' "$tmp/body" || fail "ERROR: create answered without a plan id"
     ;;
   delete)
     id="$2"

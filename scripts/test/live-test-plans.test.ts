@@ -169,8 +169,6 @@ describe("auth routing", () => {
   });
 
   it("refuses a non-local base URL, and the JWT flag without an override", () => {
-    const r = run(["list"], { LIVE_TEST_PLANS_BASE_URL: "https://example.com", ...creds });
-    expect(r.status).toBe(2);
     const j = run(["list"], { LIVE_TEST_PLANS_LOCAL_JWT: "1", ...creds });
     expect(j.status).toBe(2);
   });
@@ -250,6 +248,17 @@ describe("live mode", () => {
     expect(r.status).toBe(1);
     expect(r.out).toContain("answered 500");
     expect(r.out).not.toContain("remaining");
+  });
+
+  it("refuses a non-local base URL override and never calls curl", () => {
+    const before = log();
+    const r = live(["list"], {
+      LIVE_TEST_PLANS_BASE_URL: "https://example.com",
+      CF_ACCESS_CLIENT_ID: CLIENT_ID,
+      CF_ACCESS_CLIENT_SECRET: CLIENT_SECRET,
+    });
+    expect(r.status).toBe(2);
+    expect(log()).toBe(before);
   });
 
   it("names both missing variables and never calls curl", () => {

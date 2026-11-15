@@ -27,7 +27,9 @@ err=$(mktemp)
 trap 'rm -f "$err"' EXIT
 if out=$(cf_api POST "/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$db_id/query" \
   '{"sql":"SELECT name FROM d1_migrations ORDER BY id"}' 2>"$err"); then
-  applied=$(jq -r '.result[0].results[]?.name' <<<"$out")
+  jq -e '.result[0].results | type == "array"' <<<"$out" >/dev/null 2>&1 \
+    || { echo "ERROR: unexpected D1 query response" >&2; exit 1; }
+  applied=$(jq -r '.result[0].results[].name' <<<"$out")
 elif grep -q 'no such table' "$err"; then
   applied=""
 else
