@@ -1,53 +1,55 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { call, localToken } from "./helpers";
-
-async function rpc(method: string, params: unknown, id = 1) {
-  const res = await call("/mcp", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json, text/event-stream",
-      "Cf-Access-Jwt-Assertion": await localToken(),
-      Host: "localhost",
-    },
-    body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
-  });
-  const text = await res.text();
-  const data =
-    text.startsWith("event:") || text.includes("\ndata:") || text.startsWith("data:")
-      ? text
-          .split("\n")
-          .find((l) => l.startsWith("data:"))
-          ?.slice(5)
-      : text;
-  return { status: res.status, body: JSON.parse(data ?? "{}") };
-}
+import { listedToolNames, mcpRpc, toolFileNames, toolModules } from "./surface";
 
 describe("mcp", () => {
   it("lists tools and creates a budget with an mcp actor", async () => {
-    const init = await rpc("initialize", {
-      protocolVersion: "2025-06-18",
-      capabilities: {},
-      clientInfo: { name: "test", version: "1" },
-    });
+    const init = await mcpRpc(
+      "initialize",
+      {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "test", version: "1" },
+      },
+      1,
+    );
     expect(init.status).toBe(200);
-    const list = await rpc("tools/list", {}, 2);
-    const names = (list.body.result.tools as { name: string }[]).map((t) => t.name).sort();
-    expect(names).toEqual(["create_budget", "get_plan_month", "list_budgets"]);
-    const created = await rpc(
+    const list = await mcpRpc("tools/list", {}, 2);
+    const names = (list.body.result?.tools ?? []).map((t) => t.name);
+    expect(names).toEqual(expect.arrayContaining(["create_budget", "list_budgets"]));
+    const created = await mcpRpc(
       "tools/call",
       { name: "create_budget", arguments: { name: "ZZ-TEST M" } },
       3,
     );
-    const id = created.body.result.structuredContent.budget.id as string;
+    const id = created.body.result?.structuredContent?.budget.id as string;
     const row = await env.DB.prepare("SELECT actor FROM change_log WHERE entity_id = ?")
       .bind(id)
       .first<{ actor: string }>();
     expect(row?.actor.startsWith("mcp:user:")).toBe(true);
-    const listed = await rpc("tools/call", { name: "list_budgets", arguments: {} }, 4);
-    const budgets = listed.body.result.structuredContent.budgets as { id: string }[];
+    const listed = await mcpRpc("tools/call", { name: "list_budgets", arguments: {} }, 4);
+    const budgets = listed.body.result?.structuredContent?.budgets as { id: string }[];
     expect(budgets.map((b) => b.id)).toContain(id);
     expect(budgets.find((b) => b.id === id)).toHaveProperty("last_opened_at", null);
+  });
+
+  it("the tool glob finds tool files", () => {
+    expect(Object.keys(toolModules).length).toBeGreaterThan(0);
+  });
+
+  it.each(Object.keys(toolModules).sort())("tool file %s exports at least one tool", (file) => {
+    const tools = toolModules[file]?.tools ?? [];
+    expect(Array.isArray(tools)).toBe(true);
+    expect(tools.length).toBeGreaterThan(0);
+  });
+
+  it("no two tools share a name", () => {
+    const names = toolFileNames();
+    const dupes = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
+    expect(dupes).toEqual([]);
+  });
+
+  it("tools/list lists exactly the tools the tool files export", async () => {
+    expect((await listedToolNames()).sort()).toEqual([...toolFileNames()].sort());
   });
 });

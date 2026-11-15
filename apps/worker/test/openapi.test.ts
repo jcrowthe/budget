@@ -1,19 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { json } from "./helpers";
+import { apiDocument, apiPaths, routeFilePaths, routeModules } from "./surface";
 
 describe("openapi", () => {
-  it("lists every glob-registered route", async () => {
-    const res = await json("/api/v1/openapi.json");
-    const doc = (await res.json()) as { openapi: string; paths: Record<string, unknown> };
-    expect(doc.openapi).toBe("3.1.0");
-    expect(Object.keys(doc.paths).sort()).toEqual(
-      [
-        "/api/v1/budgets",
-        "/api/v1/budgets/{budget_id}/months",
-        "/api/v1/budgets/{budget_id}/months/{month}",
-        "/api/v1/budgets/{id}",
-        "/api/v1/health",
-      ].sort(),
-    );
+  it("serves an OpenAPI 3.1.0 document", async () => {
+    expect((await apiDocument()).openapi).toBe("3.1.0");
+  });
+
+  it("every path is under /api/v1/", async () => {
+    const offenders = (await apiPaths()).filter((p) => !p.startsWith("/api/v1/"));
+    expect(offenders).toEqual([]);
+  });
+
+  it("the route glob finds route files", () => {
+    expect(Object.keys(routeModules).length).toBeGreaterThan(0);
+  });
+
+  it.each(Object.keys(routeModules).sort())(
+    "route file %s contributes at least one path",
+    async (file) => {
+      const mod = routeModules[file];
+      if (!mod) throw new Error(`no route module ${file}`);
+      const paths = routeFilePaths(mod);
+      expect(paths.length).toBeGreaterThan(0);
+      expect(await apiPaths()).toEqual(expect.arrayContaining(paths));
+    },
+  );
+
+  it("every documented path comes from a route file", async () => {
+    const fromFiles = [...new Set(Object.values(routeModules).flatMap(routeFilePaths))].sort();
+    expect((await apiPaths()).sort()).toEqual(fromFiles);
   });
 });
