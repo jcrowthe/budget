@@ -79,16 +79,13 @@ export default app
       const { from, to } = c.req.valid("query");
       const span = monthIndex(to) - monthIndex(from);
       if (span < 0 || span >= MAX_MONTHS) {
-        return c.json(
-          {
-            error: {
-              id: "422",
-              name: "unprocessable_entity",
-              detail: `"to" must not be before "from", and the range at most ${MAX_MONTHS} months`,
-            },
-          },
+        // apiError's status is a union; the route declares 422 in `errors`, so narrow it for the typed handler.
+        return apiError(
+          c,
           422,
-        );
+          "unprocessable_entity",
+          `"to" must not be before "from", and the range at most ${MAX_MONTHS} months`,
+        ) as never;
       }
       return c.json({ data: { months: await listPlanMonths(c.env, budget_id, from, to) } }, 200);
     },

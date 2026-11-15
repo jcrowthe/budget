@@ -41,6 +41,22 @@ export async function maxSort(db: Db, budgetId: string): Promise<number> {
 }
 
 /** Returns an UNEXECUTED statement for `db.batch`. */
-export function insertStmt(db: Db, row: CategoryGroupRow) {
-  return db.insert(categoryGroups).values(row);
+/** A `SELECT 1` that holds while `sort` is still the next free sort_order, for the guarded insert. */
+export function sortIsNext(db: Db, budgetId: string, sort: number) {
+  return db
+    .select({ x: sql`1` })
+    .from(sql`(select 1)`)
+    .where(
+      sql`(select coalesce(max(${categoryGroups.sortOrder}), -1) + 1 from ${categoryGroups} where ${categoryGroups.budgetId} = ${budgetId} and ${categoryGroups.deletedAt} is null) = ${sort}`,
+    );
+}
+
+/** Inserts the row only while its sort_order is still the next free one (so concurrent creates never share one). */
+export function insertIfSortStmt(db: Db, row: CategoryGroupRow) {
+  const r = row;
+  return db
+    .insert(categoryGroups)
+    .select(
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
+    );
 }

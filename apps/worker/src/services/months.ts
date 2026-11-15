@@ -13,10 +13,11 @@ import {
   MonthNoteSet,
   type MonthSummary,
 } from "@budget/schema/months";
+import { sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
-import { type ChangeLogEntry, changeLogInsert } from "../history/change-log";
-import { NotFound } from "../middleware/errors";
+import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
+import { Conflict, NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
@@ -40,10 +41,22 @@ export function buildSetAssignedBatch(
   db: Db,
   row: monthCatRepo.MonthCategoryRow,
   log: ChangeLogEntry,
+  before?: number,
 ) {
-  return [monthCatRepo.setStmt(db, row), changeLogInsert(db, log)] as const;
+  return [
+    changeLogInsertIf(db, log, monthCatRepo.holds(db, row, before)),
+    monthCatRepo.setIfHoldsStmt(db, row, before, row.assigned, row.updatedAt),
+  ] as const;
 }
 
+const MAX_ATTEMPTS = 5;
+
+/**
+ * Both writers below: the change_log insert comes FIRST and the cell write second, each guarded by "the cell
+ * still holds what was read". A lost race writes neither (so the log never records a change that did not
+ * happen); the caller re-reads and retries a few times, then throws Conflict. Concurrent writers never lose
+ * an update and the logged before/after chain matches the data.
+ */
 export async function setAssigned(
   env: Env,
   actor: string,
@@ -55,36 +68,44 @@ export async function setAssigned(
   if (!(await categoriesRepo.findActive(db, v.budget_id, v.category_id))) {
     throw new NotFound("Category");
   }
-  const before = await monthCatRepo.find(db, v.budget_id, v.month, v.category_id);
-  const row: monthCatRepo.MonthCategoryRow = {
-    budgetId: v.budget_id,
-    month: v.month,
-    categoryId: v.category_id,
-    assigned: v.assigned,
-    updatedAt: new Date().toISOString(),
-  };
   const result: MonthCategory = {
     month: v.month,
     category_id: v.category_id,
     assigned: v.assigned,
   };
-  await db.batch([
-    ...buildSetAssignedBatch(db, row, {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = (await monthCatRepo.find(db, v.budget_id, v.month, v.category_id))?.assigned;
+    const row: monthCatRepo.MonthCategoryRow = {
       budgetId: v.budget_id,
-      actor,
-      action: "update",
-      entityType: "month_category",
-      entityId: mcEntityId(v.category_id, v.month),
-      before: { month: v.month, category_id: v.category_id, assigned: before?.assigned ?? 0 },
-      after: result,
-    }),
-  ]);
-  return result;
+      month: v.month,
+      categoryId: v.category_id,
+      assigned: v.assigned,
+      updatedAt: new Date().toISOString(),
+    };
+    const [, write] = await db.batch([
+      ...buildSetAssignedBatch(
+        db,
+        row,
+        {
+          budgetId: v.budget_id,
+          actor,
+          action: "update",
+          entityType: "month_category",
+          entityId: mcEntityId(v.category_id, v.month),
+          before: { month: v.month, category_id: v.category_id, assigned: before ?? 0 },
+          after: result,
+        },
+        before,
+      ),
+    ]);
+    if (write.meta.changes > 0) return result;
+  }
+  throw new Conflict("Assigned amount");
 }
 
 /**
  * Moves `amount` of Assigned in a month from one category to another. A null side is Ready to Assign: only the
- * other category's Assigned changes. One batch: the upserts add a delta, so concurrent moves never lose one.
+ * other category's Assigned changes. Both sides are guarded on both cells being unchanged, in one batch.
  */
 export async function moveMoney(
   env: Env,
@@ -98,42 +119,68 @@ export async function moveMoney(
     { id: v.from_category_id, delta: -v.amount },
     { id: v.to_category_id, delta: v.amount },
   ].filter((s): s is { id: string; delta: number } => s.id !== null);
-  const now = new Date().toISOString();
-  const stmts = [];
-  const out: MonthCategory[] = [];
   for (const s of sides) {
     if (!(await categoriesRepo.findActive(db, v.budget_id, s.id))) throw new NotFound("Category");
-    const before = (await monthCatRepo.find(db, v.budget_id, v.month, s.id))?.assigned ?? 0;
-    const after = { month: v.month, category_id: s.id, assigned: before + s.delta };
-    out.push(after);
-    stmts.push(
-      monthCatRepo.addStmt(db, {
-        budgetId: v.budget_id,
-        month: v.month,
-        categoryId: s.id,
-        delta: s.delta,
-        updatedAt: now,
-      }),
-      changeLogInsert(db, {
-        budgetId: v.budget_id,
-        actor,
-        action: "update",
-        entityType: "month_category",
-        entityId: mcEntityId(s.id, v.month),
-        before: { month: v.month, category_id: s.id, assigned: before },
-        after: {
-          ...after,
-          move: {
-            from_category_id: v.from_category_id,
-            to_category_id: v.to_category_id,
-            amount: v.amount,
+  }
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const now = new Date().toISOString();
+    const reads = await Promise.all(
+      sides.map(async (s) => ({
+        ...s,
+        cell: { budgetId: v.budget_id, month: v.month, categoryId: s.id },
+        before: (await monthCatRepo.find(db, v.budget_id, v.month, s.id))?.assigned,
+      })),
+    );
+    const out: MonthCategory[] = reads.map((s) => ({
+      month: v.month,
+      category_id: s.id,
+      assigned: (s.before ?? 0) + s.delta,
+    }));
+    // Every statement is guarded on all cells still holding what was read (the log rows run before any write).
+    const allHold = sql`${sql.join(
+      reads.map((s) => sql`exists ${monthCatRepo.holds(db, s.cell, s.before)}`),
+      sql` and `,
+    )}`;
+    const logs = reads.map((s, i) =>
+      changeLogInsertIf(
+        db,
+        {
+          budgetId: v.budget_id,
+          actor,
+          action: "update",
+          entityType: "month_category",
+          entityId: mcEntityId(s.id, v.month),
+          before: { month: v.month, category_id: s.id, assigned: s.before ?? 0 },
+          after: {
+            ...out[i],
+            move: {
+              from_category_id: v.from_category_id,
+              to_category_id: v.to_category_id,
+              amount: v.amount,
+            },
           },
         },
-      }),
+        db.select({ x: sql`1` }).from(sql`(select 1)`).where(allHold),
+      ),
     );
+    // The first write needs every cell to hold; the second needs the first to have changed a row, so the two
+    // sides are written together or not at all.
+    const writes = reads.map((s, i) =>
+      monthCatRepo.setIfHoldsStmt(
+        db,
+        s.cell,
+        s.before,
+        out[i]?.assigned ?? 0,
+        now,
+        i === 0 ? allHold : sql`changes() > 0`,
+      ),
+    );
+    const stmts = [...logs, ...writes];
+    const results = await db.batch(stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]]);
+    const first = results[logs.length];
+    if (first && first.meta.changes > 0) return out;
   }
-  await db.batch(stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]]);
-  return out;
+  throw new Conflict("Assigned amounts");
 }
 
 export async function setMonthNote(

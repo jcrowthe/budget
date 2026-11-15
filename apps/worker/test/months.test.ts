@@ -323,6 +323,137 @@ describe("worked example through the services", () => {
   });
 });
 
+describe("concurrent writers", () => {
+  type Chain = { before: number; after: number };
+  async function chain(bid: string, categoryId: string): Promise<Chain[]> {
+    const { results } = await env.DB.prepare(
+      "SELECT before_json, after_json FROM change_log WHERE budget_id = ? AND entity_type = 'month_category' AND entity_id = ? ORDER BY created_at, rowid",
+    )
+      .bind(bid, `${categoryId}:${OCT}`)
+      .all<{ before_json: string; after_json: string }>();
+    return results.map((r) => ({
+      before: JSON.parse(r.before_json).assigned,
+      after: JSON.parse(r.after_json).assigned,
+    }));
+  }
+  const cell = async (bid: string, categoryId: string) =>
+    (
+      await env.DB.prepare(
+        "SELECT assigned FROM month_categories WHERE budget_id = ? AND month = ? AND category_id = ?",
+      )
+        .bind(bid, OCT, categoryId)
+        .first<{ assigned: number }>()
+    )?.assigned ?? 0;
+
+  it("setAssigned: every logged change happened, and the chain ends at the final value", async () => {
+    const s = await seed();
+    const rent = s.cats.Rent as string;
+    const calls = await Promise.allSettled(
+      [100, 200, 300].map((assigned) =>
+        setAssigned(env, actor, { budget_id: s.bid, month: OCT, category_id: rent, assigned }),
+      ),
+    );
+    const ok = calls.filter((c) => c.status === "fulfilled").length;
+    const c = await chain(s.bid, rent);
+    expect(c.length).toBe(ok);
+    expect(ok).toBeGreaterThan(0);
+    let prev = 0;
+    for (const link of c) {
+      expect(link.before).toBe(prev);
+      prev = link.after;
+    }
+    expect(prev).toBe(await cell(s.bid, rent));
+  });
+
+  it("moveMoney: no lost update, and each log row's before matches the running total", async () => {
+    const s = await seed();
+    const rent = s.cats.Rent as string;
+    const fun = s.cats.Fun as string;
+    const calls = await Promise.allSettled(
+      [1, 2, 3].map(() =>
+        moveMoney(env, actor, {
+          budget_id: s.bid,
+          month: OCT,
+          from_category_id: null,
+          to_category_id: rent,
+          amount: 10,
+        }),
+      ),
+    );
+    const ok = calls.filter((c) => c.status === "fulfilled").length;
+    expect(ok).toBe(3);
+    const c = await chain(s.bid, rent);
+    expect(c.map((l) => [l.before, l.after])).toEqual([
+      [0, 10],
+      [10, 20],
+      [20, 30],
+    ]);
+    expect(await cell(s.bid, rent)).toBe(30);
+
+    // Two-sided moves in both directions at once keep the pair's total and the chains exact.
+    await Promise.allSettled([
+      moveMoney(env, actor, {
+        budget_id: s.bid,
+        month: OCT,
+        from_category_id: rent,
+        to_category_id: fun,
+        amount: 5,
+      }),
+      moveMoney(env, actor, {
+        budget_id: s.bid,
+        month: OCT,
+        from_category_id: fun,
+        to_category_id: rent,
+        amount: 2,
+      }),
+    ]);
+    const [r, f] = [await cell(s.bid, rent), await cell(s.bid, fun)];
+    expect(r + f).toBe(30);
+    for (const [id, final] of [
+      [rent, r],
+      [fun, f],
+    ] as const) {
+      const ch = await chain(s.bid, id);
+      let prev = 0;
+      for (const link of ch) {
+        expect(link.before).toBe(prev);
+        prev = link.after;
+      }
+      expect(prev).toBe(final);
+    }
+  });
+
+  it("concurrent creates get distinct sort orders", async () => {
+    const s = await seed();
+    const group = await createCategoryGroup(env, actor, { budget_id: s.bid, name: "More" });
+    const made = await Promise.all(
+      ["A", "B", "C"].map((name) =>
+        createCategory(env, actor, { budget_id: s.bid, group_id: group.id, name }),
+      ),
+    );
+    expect(new Set(made.map((c) => c.sort)).size).toBe(3);
+    const accts = await Promise.all(
+      ["A", "B", "C"].map((name) =>
+        createAccount(env, actor, { budget_id: s.bid, name, type: "cash", on_budget: true }),
+      ),
+    );
+    expect(new Set(accts.map((a) => a.sort)).size).toBe(3);
+  });
+
+  it("refuses years outside 1900 to 2199", async () => {
+    const s = await seed();
+    await expect(
+      setAssigned(env, actor, {
+        budget_id: s.bid,
+        month: "0000-01-01",
+        category_id: s.cats.Rent as string,
+        assigned: 1,
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
+    await expect(s.tx("0000-01-01", 1000)).rejects.toBeInstanceOf(ZodError);
+  });
+});
+
 describe("errors and rules", () => {
   it("returns 404 and 422", async () => {
     const missing = await json(`/api/v1/budgets/${crypto.randomUUID()}/months/${NOV}`);

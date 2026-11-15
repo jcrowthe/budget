@@ -72,14 +72,17 @@ export const MonthCategory = z
   .object({ month: Month, category_id: z.uuid(), assigned: Milliunits })
   .openapi("MonthCategory");
 
+/** A month input, with the year bounded so a stray 0000-01-01 cannot make the read model span thousands of months. */
+const InputMonth = Month.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199");
+
 export const AssignedSet = z
-  .object({ budget_id: z.uuid(), month: Month, category_id: z.uuid(), assigned: Milliunits })
+  .object({ budget_id: z.uuid(), month: InputMonth, category_id: z.uuid(), assigned: Milliunits })
   .openapi("AssignedSet");
 
 export const MoneyMove = z
   .object({
     budget_id: z.uuid(),
-    month: Month,
+    month: InputMonth,
     from_category_id: z.uuid().nullable(),
     to_category_id: z.uuid().nullable(),
     amount: Milliunits.positive(),
@@ -93,7 +96,7 @@ export const MoneyMove = z
   .openapi("MoneyMove");
 
 export const MonthNoteSet = z
-  .object({ budget_id: z.uuid(), month: Month, note: z.string().max(500).nullable() })
+  .object({ budget_id: z.uuid(), month: InputMonth, note: z.string().max(500).nullable() })
   .openapi("MonthNoteSet");
 
 export type RtaBreakdown = z.infer<typeof RtaBreakdown>;

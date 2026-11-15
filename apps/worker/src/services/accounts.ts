@@ -1,10 +1,12 @@
 import { type Account, AccountCreate } from "@budget/schema/accounts";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
-import { changeLogInsert } from "../history/change-log";
-import { NotFound } from "../middleware/errors";
+import { changeLogInsertIf } from "../history/change-log";
+import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
+
+const MAX_ATTEMPTS = 5;
 
 export function accountToApi(row: accountsRepo.AccountRow): Account {
   return {
@@ -30,30 +32,38 @@ export async function createAccount(
   const v = AccountCreate.parse(input);
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, v.budget_id))) throw new NotFound("Plan");
-  const row: accountsRepo.AccountRow = {
-    id: crypto.randomUUID(),
-    budgetId: v.budget_id,
-    name: v.name,
-    type: v.type,
-    onBudget: v.on_budget,
-    note: v.note ?? null,
-    starred: false,
-    closed: false,
-    sortOrder: (await accountsRepo.maxSort(db, v.budget_id)) + 1,
-    createdAt: new Date().toISOString(),
-    deletedAt: null,
-  };
-  await db.batch([
-    accountsRepo.insertStmt(db, row),
-    changeLogInsert(db, {
-      budgetId: row.budgetId,
-      actor,
-      action: "create",
-      entityType: "account",
-      entityId: row.id,
-      before: null,
-      after: accountToApi(row),
-    }),
-  ]);
-  return accountToApi(row);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const row: accountsRepo.AccountRow = {
+      id: crypto.randomUUID(),
+      budgetId: v.budget_id,
+      name: v.name,
+      type: v.type,
+      onBudget: v.on_budget,
+      note: v.note ?? null,
+      starred: false,
+      closed: false,
+      sortOrder: (await accountsRepo.maxSort(db, v.budget_id)) + 1,
+      createdAt: new Date().toISOString(),
+      deletedAt: null,
+    };
+    // Log first, both guarded on "this sort_order is still the next free one": a lost race writes neither.
+    const [, result] = await db.batch([
+      changeLogInsertIf(
+        db,
+        {
+          budgetId: row.budgetId,
+          actor,
+          action: "create",
+          entityType: "account",
+          entityId: row.id,
+          before: null,
+          after: accountToApi(row),
+        },
+        accountsRepo.sortIsNext(db, row.budgetId, row.sortOrder),
+      ),
+      accountsRepo.insertIfSortStmt(db, row),
+    ]);
+    if (result.meta.changes > 0) return accountToApi(row);
+  }
+  throw new Conflict("Account order");
 }

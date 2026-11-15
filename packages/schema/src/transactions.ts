@@ -34,7 +34,7 @@ export const TransactionCreate = z
   .object({
     budget_id: z.uuid(),
     account_id: z.uuid(),
-    date: IsoDate,
+    date: IsoDate.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199"),
     amount: Milliunits,
     category_id: z.uuid().nullable().optional(),
     inflow_to_ready_to_assign: z.boolean().default(false),

@@ -26,6 +26,22 @@ export async function maxSort(db: Db, budgetId: string): Promise<number> {
   return r?.m ?? -1;
 }
 
-export function insertStmt(db: Db, row: AccountRow) {
-  return db.insert(accounts).values(row);
+/** A `SELECT 1` that holds while `sort` is still the next free sort_order, for the guarded insert. */
+export function sortIsNext(db: Db, budgetId: string, sort: number) {
+  return db
+    .select({ x: sql`1` })
+    .from(sql`(select 1)`)
+    .where(
+      sql`(select coalesce(max(${accounts.sortOrder}), -1) + 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null) = ${sort}`,
+    );
+}
+
+/** Inserts the row only while its sort_order is still the next free one (so concurrent creates never share one). */
+export function insertIfSortStmt(db: Db, row: AccountRow) {
+  const r = row;
+  return db
+    .insert(accounts)
+    .select(
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
+    );
 }

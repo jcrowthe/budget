@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { monthCategories } from "../db/schema/month-categories";
 
@@ -28,36 +28,59 @@ export async function find(
   return row;
 }
 
-interface SetInput {
+interface Cell {
   budgetId: string;
   month: string;
   categoryId: string;
-  assigned: number;
-  updatedAt: string;
 }
 
-/** Upsert that sets Assigned to an absolute value. */
-export function setStmt(db: Db, v: SetInput) {
+const sameCell = (c: Cell) =>
+  and(
+    eq(monthCategories.budgetId, c.budgetId),
+    eq(monthCategories.month, c.month),
+    eq(monthCategories.categoryId, c.categoryId),
+  );
+
+/**
+ * A `SELECT 1` that holds while the cell is still what was read: its row holds `before`, or (when `before` is
+ * undefined, the row was missing) there is still no row. For `changeLogInsertIf`.
+ */
+export function holds(db: Db, c: Cell, before: number | undefined) {
+  if (before === undefined) {
+    return db
+      .select({ x: sql`1` })
+      .from(sql`(select 1)`)
+      .where(sql`not exists (select 1 from ${monthCategories} where ${sameCell(c)})`);
+  }
   return db
-    .insert(monthCategories)
-    .values(v)
-    .onConflictDoUpdate({
-      target: [monthCategories.budgetId, monthCategories.month, monthCategories.categoryId],
-      set: { assigned: v.assigned, updatedAt: v.updatedAt },
-    });
+    .select({ x: sql`1` })
+    .from(monthCategories)
+    .where(and(sameCell(c), eq(monthCategories.assigned, before)));
 }
 
-/** Upsert that adds `delta` to Assigned, so concurrent moves never lose an update. */
-export function addStmt(db: Db, v: Omit<SetInput, "assigned"> & { delta: number }) {
-  const { delta, ...row } = v;
+/**
+ * Sets the cell to `assigned` only while it still holds `before` (see `holds`); otherwise it changes 0 rows.
+ * `guard` is an extra condition: a two-sided move guards its first write on both cells holding and its second
+ * on `changes() > 0` (the first write changed a row), so both sides are written or neither.
+ */
+export function setIfHoldsStmt(
+  db: Db,
+  c: Cell,
+  before: number | undefined,
+  assigned: number,
+  updatedAt: string,
+  guard: SQL = sql`1`,
+) {
+  const prev = guard;
+  if (before === undefined) {
+    return db
+      .insert(monthCategories)
+      .select(
+        sql`select ${c.budgetId}, ${c.month}, ${c.categoryId}, ${assigned}, ${updatedAt} where not exists (select 1 from ${monthCategories} where ${sameCell(c)}) and ${prev}`,
+      );
+  }
   return db
-    .insert(monthCategories)
-    .values({ ...row, assigned: delta })
-    .onConflictDoUpdate({
-      target: [monthCategories.budgetId, monthCategories.month, monthCategories.categoryId],
-      set: {
-        assigned: sql`${monthCategories.assigned} + excluded.assigned`,
-        updatedAt: v.updatedAt,
-      },
-    });
+    .update(monthCategories)
+    .set({ assigned, updatedAt })
+    .where(and(sameCell(c), eq(monthCategories.assigned, before), prev));
 }
