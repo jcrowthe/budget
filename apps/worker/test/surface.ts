@@ -33,7 +33,7 @@ export async function apiPaths(): Promise<string[]> {
 type RpcBody = {
   result?: {
     tools?: { name: string }[];
-    structuredContent?: { budget: { id: string }; budgets: { id: string }[] };
+    structuredContent?: Record<string, unknown>;
   };
 };
 
