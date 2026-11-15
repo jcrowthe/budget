@@ -142,6 +142,22 @@ describe("create account", () => {
   });
 });
 
+describe("engine counting", () => {
+  it("still counts a payee-less uncategorised credit transaction", async () => {
+    const bid = await plan();
+    const r = (await (
+      await post(bid, { name: "Card", type: "creditCard", balance: 0, date: DAY })
+    ).json()) as Json;
+    const before = (await month(bid, NEXT_MONTH)).ready_to_assign;
+    await env.DB.prepare(
+      "insert into transactions (id, budget_id, account_id, date, payee_name, amount, cleared, approved, inflow_to_ready_to_assign, created_at) values (?, ?, ?, ?, NULL, -40000, 'uncleared', 1, 0, ?)",
+    )
+      .bind(crypto.randomUUID(), bid, r.data.account.id, DAY, new Date().toISOString())
+      .run();
+    expect((await month(bid, NEXT_MONTH)).ready_to_assign).toBe(before - 40000);
+  });
+});
+
 describe("read accounts", () => {
   it("lists in creation order, hides closed on request, gets one", async () => {
     const bid = await plan();
@@ -186,7 +202,7 @@ describe("read accounts", () => {
 });
 
 describe("refusals", () => {
-  it("rejects duplicate names in Json case, closed ones included", async () => {
+  it("rejects duplicate names in any case, closed ones included", async () => {
     const bid = await plan();
     const r = (await (
       await post(bid, { name: "D3 Savings", type: "savings", balance: 1, date: DAY })

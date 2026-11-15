@@ -81,7 +81,8 @@ export async function activityByMonth(
         not(
           and(
             inArray(accounts.type, UNCOUNTED_STARTING_TYPES),
-            eq(transactions.payeeName, STARTING_BALANCE_PAYEE),
+            // null-safe: a payee-less row must not make the whole NOT(...) NULL and drop out of the WHERE
+            sql`coalesce(${transactions.payeeName}, '') = ${STARTING_BALANCE_PAYEE}`,
             isNull(transactions.categoryId),
             eq(transactions.inflowToReadyToAssign, false),
           ) as SQLWrapper,
