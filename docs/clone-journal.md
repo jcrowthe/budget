@@ -2030,3 +2030,24 @@ EXF-489 are about ten minutes in. Nothing is off course.
 **Backlog:** 89 open feature tickets (4 in progress: EXF-493, 489, 513, 483), all triaged. Gap: EXF-558
 (High), EXF-454, EXF-560, EXF-562 (Low). Template: nine. Finished since each template's last review: Build 0,
 Deploy 5, Discover 2, Test user flow 0.
+
+### 2026-11-15 · Plan round 25
+
+Children used 38 of 200. Six are running, all started in rounds 23 and 24: the Deploy of `d2e659b`
+(accounts), the Build template review, and the Builds for EXF-493 (month navigation), EXF-489 (edit
+Assigned), EXF-513 (register) and EXF-483 (sidebar groups). Nothing started this round.
+
+- No ticket was filed at the last review.
+- None of the four Builds has a manifest yet (all with their Architect); the estimates in the plans of
+  rounds 23 and 24 stand. Check each against the others when it arrives.
+- **Why nothing new:** the four Builds hold the Plan page and header, the grid, the months files, the
+  account page, the transactions files, the shell, the accounts files and core's account types. Every
+  remaining unblocked ticket needs one of those: loan types (EXF-482) and the type rules (EXF-546, EXF-547)
+  need the accounts files and the add-account dialog; the plan menu, display options, shortcuts and sidebar
+  resize (EXF-470, 472, 473, 474) need the shell; plan formats (EXF-468) need the plan menu and the grid's
+  money format. The rest wait for the grid Builds or the register.
+- Next in line, by what frees them: EXF-494 after EXF-489; EXF-491 after EXF-493; EXF-484 and EXF-532 after
+  EXF-513; EXF-482 and EXF-486 after EXF-483.
+- No further Deploy until the running one ends. No flow tests yet: start flows 9, 10 and 11, and flow 1 as
+  far as it goes, when accounts are live and Assigned has merged and shipped.
+- Review cadence: Build 0, Deploy 5, Discover 2.
