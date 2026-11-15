@@ -972,3 +972,17 @@ Selected Transactions, the Reflect export file format, file import into an accou
 **Backlog now:** 21 `clone:feature` tickets (9 Plaid, 12 plan management), all triaged. Gap: EXF-458 In
 Progress; EXF-454 Low, blocked by EXF-470. Template: EXF-455, EXF-457, EXF-479 (High), EXF-456 (Medium).
 The core areas (plan grid, targets, accounts, register, credit, scheduled, reports) have not reported yet.
+
+### 2026-11-15 · Plan round 10
+
+Children used 22 of 200. Eight are running, all started earlier: seven Discover areas (1 to 4, 6 to 8) and
+the EXF-458 Build, which is at its checks step with no open card.
+
+- No tickets were filed at the last review.
+- Started nothing. Two High feature tickets have nothing blocking them (EXF-468 plan formats, EXF-475
+  plan-scoped URLs), but EXF-458 edits `clone.profile.json`, an always-overlap file, so no Build runs beside
+  it. They start when it has merged.
+- EXF-468 and EXF-475 may not run side by side either: both change the plans resource and the web shell or
+  router (shared modules). Order: EXF-475 first (routing under every page), then EXF-468.
+- The data model and engine Build, which everything else needs, waits for areas 1 to 4 to report: its
+  tickets do not exist yet.
