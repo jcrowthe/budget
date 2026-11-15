@@ -352,6 +352,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | [#6](https://github.com/jcrowthe/budget/pull/6) open | abandoned by me at the gate (no Playwright browser in its box); branch kept at `8b9b465`, to carry over |
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
+| 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1415,3 +1416,25 @@ browser on its own, and a Retry gives it one try, not four. A second Retry would
 
 **Backlog:** 94 feature tickets (43 triaged on the tickets, 51 in the journal); gap: EXF-454 and one being
 filed; template: eight and one being filed.
+
+### 2026-11-15 · Plan round 17
+
+Children used 26 of 200. Two are running: the Build for EXF-475 (pull request #7 open as a draft) and the
+carry-over Build for EXF-485 started this round (`p_2f4994aa9b7e4993bc14635af25e92b1`).
+
+- Tickets from the last review exist: EXF-558 (e2e on the system Chrome, `clone:gap`) and EXF-559 (gate on a
+  box without a browser, `clone:template`). Priorities to set when the write limit frees: both High; EXF-558
+  runs alone (it edits `playwright.config.ts`, an always-overlap file).
+- Started the carry-over Build for EXF-485: an ordinary Build, four Clerk jobs with print-back checks (write
+  `request.json`; own source tab; fast-forward `origin/exfab/p_2088a38c1bed40b7b99f7b9f90ef1ea4` to
+  `8b9b465…`, 35 files, 2886 added, 2 removed; install dependencies and the Playwright browser and list the
+  cache). One line per later role saying what not to redo; the Implementer runs the full e2e; anyone fixing a
+  gate failure may install the browser. EXF-485 was already In Progress.
+- **EXF-475's manifest arrived; scheduling rule applied.** It touches the `budgets` Worker files, one
+  migration, the web router, shell and pages, `e2e/shell.spec.ts`, `e2e/plans.spec.ts`, and
+  `docs/README.md` and `docs/conventions.md`. Against EXF-485's manifest the only shared file is
+  `docs/README.md` (each adds a line to the docs index). No always-overlap file in either. They stay side by
+  side; whichever merges second gets Refresh at its card. Both briefs say to keep both lines.
+- Not started: EXF-558. It must run alone and two Builds are running. Until it lands, every Build brief
+  carries the browser install as a Clerk job.
+- Owed ticket writes unchanged (limit still closed at 20:57 UTC).
