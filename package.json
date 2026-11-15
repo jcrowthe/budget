@@ -1,0 +1,25 @@
+{
+  "name": "budget",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "check": "biome check . && pnpm -r typecheck && vitest run && pnpm --filter @budget/web build",
+    "dev": "node scripts/dev-vars.mjs && bash scripts/db-migrate-local.sh \"$PWD/.wrangler/state\" && pnpm --filter @budget/web exec vite --port 5173 --strictPort",
+    "e2e": "playwright test",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@cloudflare/vitest-plugin": "1.8.2",
+    "@cloudflare/workers-types": "5.20261115.1",
+    "@playwright/test": "1.65.1",
+    "@types/node": "^22.20.5",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0",
+    "wrangler": "4.162.0"
+  }
+}
