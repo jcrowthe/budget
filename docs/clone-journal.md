@@ -362,7 +362,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | pending | running |
 | 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | pending | running |
 | 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | live `d2e659b` |
-| 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | template | none | running |
+| 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | pending | running |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | pending | running |
 
@@ -2104,3 +2104,57 @@ the Builds for EXF-493, EXF-489, EXF-513 and EXF-483. Nothing started this round
   flow 10 needs the transactions API, both in Builds now. Four flow tests after the next Deploy tell more
   than two now and two reruns later.
 - Review cadence: Build 0, Deploy 6, Discover 2.
+
+### 2026-11-15 · Review round 26
+
+Children used 38 of 200. Four Builds are running: EXF-493, EXF-489, EXF-513 and EXF-483. No card is waiting.
+
+**Ended: the Build template review `p_ba4466d6501f49e2b08b70e18a4bcd86`, completed.** It read all fourteen
+ended Builds and every open template ticket, filed six tickets and posted five evidence comments. Its report
+records the decision `approve_all` with two remarks applied while filing. **No proposals card reached me for
+this review** (the Discover review in round 13 did send me one), so that decision was not mine: either the
+person answered it on the Thread page or the template now decides differently. I have read every proposal
+now and I agree with each; nothing to file again.
+
+New template tickets, priorities set now as the report suggests:
+
+- **EXF-563 (High):** commands wrapped in a background-and-poll wait hold a step until its full timeout
+  after the command has finished. This was the largest single time cost: 19.7 of 21.7 minutes in one review
+  step of the grid Build, nearly 10 minutes in a gate fix of the profile-fix Build.
+- **EXF-564 (High):** write the docs-index line at land and catch a moved base before the approval card
+  (three cards instead of one for EXF-475).
+- **EXF-567 (High):** the `screenshots` output has one entry per file, matches the disk and lists every
+  undeclared capture. Privacy: 9 undeclared source captures stayed on disk in the accounts Build.
+- **EXF-565 (Medium):** codify never turns a one-time scope check into a permanent test.
+- **EXF-566 (Medium):** the approval digest counts what the report says and reaches the card as written.
+- **EXF-568 (Medium):** the Architect flags files that every feature of its kind must edit.
+- Evidence comments on EXF-455, 457, 559, 479 and 555. Nothing closes.
+
+Its answers to my questions, to act on:
+
+1. **Resume is broken in the template** (the resume step reads the branch only from `request.json`); my
+   input was fine. Keep carrying commits over with an ordinary Build.
+2. **Card answers do not reach agents**, confirmed on all four non-approval cards. Keep every instruction in
+   the brief.
+3. Where the time goes in UI Builds: the plan step 12 to 18 minutes, polish 9 to 12, and the stuck wait
+   above. The gate itself is under 3 minutes.
+4. **In EXF-475 the polish step reversed my scope note 1 and I approved it.** I read that diff at the time
+   and accepted what it did; noted here so I check scope notes against the polish list at every card.
+
+**Two things I add to every Build brief from now on:**
+
+- "Run long commands in the foreground and wait for them to return; do not start a command in the
+  background and poll for it with a timeout loop" (until EXF-563 is fixed).
+- "List every screenshot you keep, and delete any capture of the source you do not list" (until EXF-567).
+
+**Privacy follow-up:** nine undeclared source captures stayed on disk in the box of the accounts Build
+(`p_26e65fda…`). Boxes are not the repository and nothing was committed, but this adds to the stored
+artifacts the person has not yet said whether to have removed. Mention it at the next check-in.
+
+**Running Builds:** nothing off course; no manifests read this turn.
+
+**Ticket writes:** 6 (the priorities above).
+
+**Backlog:** 89 open feature tickets (4 in progress), all triaged. Gap: EXF-558 (High), EXF-454, EXF-560,
+EXF-562 (Low). Template: fifteen (EXF-455, 456, 457, 479, 554 to 557, 559, 563 to 568). Finished since each
+template's last review: Build 0, Deploy 6, Discover 2, Test user flow 0.
