@@ -15,6 +15,8 @@
   --budgetBarFundedSpendingStripe: #1d300d;
   --budgetBarOverspending: #912333;
   --budgetBarOverspendingStripe: #4c0814;
+  --inputBorderActive: #545bfe;
+  --iconFillSecondary: #727484;
 }
 
 .plan-page {
@@ -355,6 +357,96 @@
 }
 .cell-activity {
   text-align: right;
+}
+.category-row:not(.uncategorized-row) .assigned-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+}
+.category-row:not(.uncategorized-row) .assigned-box:hover {
+  border-color: var(--actionPrimary);
+  background: var(--backgroundPrimary);
+}
+.assigned-box.is-editing,
+.category-row .assigned-box.is-editing:hover {
+  border-color: var(--inputBorderActive);
+  background: var(--backgroundPrimary);
+  box-shadow: none;
+}
+.category-row .assigned-box.is-editing:hover {
+  border-color: var(--actionPrimary);
+}
+.calculator-button {
+  flex: none;
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  opacity: 0;
+  color: var(--iconFillSecondary);
+  cursor: pointer;
+}
+.assigned-box:hover .calculator-button,
+.assigned-box.is-editing .calculator-button {
+  opacity: 1;
+}
+.calculator-button svg {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0 2px;
+}
+.calculator-button:hover {
+  color: var(--actionPrimary);
+}
+.assigned-box .amount {
+  flex: 1;
+  min-width: 0;
+  padding: 3px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--labelPrimary);
+  text-align: right;
+  cursor: text;
+}
+.assigned-box .amount.zero {
+  color: var(--labelSecondary);
+}
+.assigned-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 22px;
+  padding: 0 3px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+button.category-name {
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: default;
+}
+.grid-notice {
+  padding: var(--space-2) var(--space-3);
+  background: var(--statusNegative);
+  color: var(--categoryBalanceNegativeLabel);
+  font-size: var(--font-size-sm);
 }
 
 .available-pill {
