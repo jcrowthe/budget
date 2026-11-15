@@ -32,6 +32,16 @@ export const ChevronRightIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M3.5 0.5 9 6l-5.5 5.5-1.4-1.4L6.2 6 2.1 1.9z" />
   </svg>
 );
+export const ChevronDownIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" {...p}>
+    <path d="M0.5 3.5 6 9l5.5-5.5-1.4-1.4L6 6.2 1.9 2.1z" />
+  </svg>
+);
+export const PencilIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" {...p}>
+    <path d="M8.6 0.9a1 1 0 0 1 1.4 0l1.1 1.1a1 1 0 0 1 0 1.4L4.3 10.2 1 11l0.8-3.3z" />
+  </svg>
+);
 export const PlusCircleIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} aria-hidden="true" {...p}>
     <path

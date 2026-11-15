@@ -7,7 +7,7 @@ export const tools: McpToolDef[] = [
   {
     name: "list_accounts",
     description:
-      "List a plan's accounts in display order. Each has cleared_balance, uncleared_balance and balance in milliunits (1000 = one currency unit); debts are negative.",
+      "List a plan's accounts in display order. Each has cleared_balance, uncleared_balance and balance in milliunits (1000 = one currency unit); debts are negative. Each has group: cash, credit, loans, tracking or closed (closed accounts of any type).",
     inputSchema: z.object({ budget_id: z.string().min(1), include_closed: z.boolean().optional() }),
     run: async (input: { budget_id: string; include_closed?: boolean }, { env }) => ({
       accounts: await listAccounts(env, input.budget_id, { includeClosed: input.include_closed }),

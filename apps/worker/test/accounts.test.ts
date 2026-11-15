@@ -1,3 +1,5 @@
+import { ACCOUNT_TYPES, DISPLAY_GROUPS, displayGroup } from "@budget/core/account-types";
+import { AccountGroup } from "@budget/schema/accounts";
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
@@ -351,5 +353,54 @@ describe("minimal createAccount", () => {
       on_budget: true,
     });
     expect([a.on_budget, b.on_budget]).toEqual([false, true]);
+  });
+});
+
+describe("group", () => {
+  it("the schema enum equals core's DISPLAY_GROUPS", () => {
+    expect(AccountGroup.options).toEqual([...DISPLAY_GROUPS]);
+  });
+
+  it("is the same in REST and MCP for every type, open and closed", async () => {
+    const bid = await plan();
+    const ids = new Map<string, string>();
+    for (const type of ACCOUNT_TYPES) {
+      const a = await createAccount(env, actor, { budget_id: bid, name: `ZZ ${type}`, type });
+      ids.set(a.id, type);
+    }
+    await mcpRpc(
+      "initialize",
+      { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+      1,
+    );
+    const both = async () => {
+      const rest = (await (await json(base(bid))).json()) as Json;
+      const mcp = await mcpRpc(
+        "tools/call",
+        { name: "list_accounts", arguments: { budget_id: bid } },
+        5,
+      );
+      const listed = (mcp.body.result?.structuredContent as Json).accounts as Json[];
+      return { rest: rest.data.accounts as Json[], mcp: listed };
+    };
+    const groups = (list: Json[]) => Object.fromEntries(list.map((a) => [a.id, a.group]));
+    let r = await both();
+    expect(r.rest).toHaveLength(13);
+    expect(groups(r.mcp)).toEqual(groups(r.rest));
+    for (const [id, type] of ids) {
+      expect(groups(r.rest)[id]).toBe(displayGroup(type as never, false));
+    }
+    expect(new Set(Object.values(groups(r.rest)))).toEqual(
+      new Set(["cash", "credit", "loans", "tracking"]),
+    );
+    const [starredId] = [...ids.keys()];
+    await env.DB.prepare("UPDATE accounts SET starred = 1 WHERE id = ?").bind(starredId).run();
+    r = await both();
+    expect(groups(r.rest)[starredId as string]).toBe("cash");
+    await env.DB.prepare("UPDATE accounts SET closed = 1 WHERE budget_id = ?").bind(bid).run();
+    r = await both();
+    expect(r.rest).toHaveLength(13);
+    expect(Object.values(groups(r.rest)).every((g) => g === "closed")).toBe(true);
+    expect(groups(r.mcp)).toEqual(groups(r.rest));
   });
 });

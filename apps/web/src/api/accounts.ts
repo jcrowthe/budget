@@ -33,11 +33,11 @@ export const createAccount = async (budgetId: string, input: AccountCreateReques
     })
   ).data;
 
-/** The plan's open accounts, in display order. */
+/** All the plan's accounts, closed included, in display order. */
 export const useAccounts = (budgetId: string | undefined) =>
   useQuery({
     queryKey: ["accounts", budgetId],
-    queryFn: () => listAccounts(budgetId ?? "", { includeClosed: false }),
+    queryFn: () => listAccounts(budgetId ?? "", { includeClosed: true }),
     enabled: !!budgetId,
   });
 

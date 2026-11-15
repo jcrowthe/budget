@@ -126,14 +126,14 @@ test("checking, credit, asset, liability, zero", async ({ page, request }) => {
   await add(page, "ZZ-TEST Card", "Credit Card", "150");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(sidebar.getByText("CREDIT", { exact: true })).toBeVisible();
-  await expect(sidebar.getByRole("link", { name: /ZZ-TEST Card/ })).toContainText("-$150.00");
+  await expect(sidebar.getByRole("link", { name: /ZZ-TEST Card/ })).toContainText("−$150.00");
   await add(page, "ZZ-TEST Asset", "Asset (e.g. Investment)", "5000");
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByText("Tracking Account: Asset")).toBeVisible();
   await add(page, "ZZ-TEST Liab", "Liability", "700");
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByText("Tracking Account: Liability")).toBeVisible();
-  await expect(sidebar.getByRole("link", { name: /ZZ-TEST Liab/ })).toContainText("-$700.00");
+  await expect(sidebar.getByRole("link", { name: /ZZ-TEST Liab/ })).toContainText("−$700.00");
   expect(await readyToAssign(request, id)).toBe(before + 251000);
 
   await add(page, "ZZ-TEST Zero", "Savings", "0");
