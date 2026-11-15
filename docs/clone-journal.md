@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
-Discover 7. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 9. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -338,12 +338,12 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | [#3](https://github.com/jcrowthe/budget/pull/3) | merged as `43b7ce9` (25 minutes) |
 | 2026-11-15 | 6 | Deploy (`p_429e665e49e9450eb7137c91c53010db`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `43b7ce9` (5 minutes) |
 | 2026-11-15 | 6 | Discover, area 1 Plan screen (`p_2f3f00938c2b46abaf16bb38900ac39a`) | 15 tickets, EXF-485 to EXF-509 (interleaved) | none | completed (45 minutes) |
-| 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | EXF-508, 511, 514, 516, 519, 521, 523, 525, 527 and one more | none | completed (47 minutes), 10 tickets |
 | 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | EXF-481, 482, 483, 484, 486, 488, 490 | none | completed (38 minutes) |
 | 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
-| 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | EXF-497, 499, 501, 503, 505, 507, 510, 512, 515, 518 and one more | none | completed (43 minutes), 11 tickets |
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | EXF-468 to EXF-478, EXF-480 | none | completed (23 minutes), 12 tickets |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
@@ -1063,3 +1063,62 @@ Not done, to do first next round: comment on EXF-485 with the Lead's scope notes
 and comment with its child and scope notes. Rules from now on: set priority and blocking links in one call;
 triage a discovery report's High tickets first and leave Low ones for a later round; spend comments only
 where a Build needs them.
+
+### 2026-11-15 · Review round 11
+
+Children used 24 of 200. Five are running: the Builds for EXF-485 and EXF-475 (three minutes in, no manifest
+yet) and Discover areas 4 (register), 6 (credit) and 8 (reports), which are already filing tickets.
+
+**What ended:** Discover area 2 (targets, Auto-Assign, inspector, right panel) with 10 tickets, and Discover
+area 7 (scheduled transactions, payees, rules) with 11. Both created only their own prefixed data and deleted
+it; area 2 never ran the plan-wide Auto-Assign. Area 7 notes that the plan menu showed other plans' names and
+that it deleted the one screenshot that captured them at once.
+
+**Triage decided, not yet written to the tickets.** Ticket writes are rate limited to 60 an hour and the
+budget is spent until about 21:05 UTC (most of this hour's writes were made between 20:01 and 20:27). Apply
+these in the next plan rounds, High first, one call per ticket with priority and links together.
+
+Area 2:
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-511 | Targets engine: needed this month, funded, status | High | EXF-485 |
+| EXF-521 | Category inspector: header, Available breakdown, notes | High | EXF-487 |
+| EXF-508 | Target form: create, edit, delete | High | EXF-511, EXF-521 |
+| EXF-514 | Targets display: grid text, pill, progress bar, Target card | High | EXF-508 |
+| EXF-519 | Auto-Assign: per category, multi-select, plan-wide | High | EXF-511, EXF-521 |
+| EXF-523 | Right panel: month summary and multi-selection summary | Medium | EXF-487 |
+| EXF-516 | Snooze a target, Shift+Z, Snoozed view | Medium | EXF-514 |
+| EXF-525 | Cost to Be Me and expected income | Low | EXF-511 |
+| EXF-527 | Assigned in Future Months | Low | EXF-523 |
+
+Area 7:
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-507 | Payee picker: sections, new, transfer, hidden, system payees | High | EXF-517 |
+| EXF-497 | Scheduled transactions: create, edit, delete, 13 repeat options | Medium | EXF-517 |
+| EXF-499 | Coming due: Enter Now and the daily job | Medium | EXF-497 |
+| EXF-505 | Upcoming scheduled transactions on categories | Medium | EXF-497, EXF-487 |
+| EXF-510 | Manage Payees: list, search, rename, hide, delete, unused | Medium | EXF-513 |
+| EXF-515 | Remembered category per payee | Medium | EXF-517 |
+| EXF-501 | Scheduled splits and scheduled transfers | Low | EXF-497, EXF-524, EXF-526 |
+| EXF-503 | Make Repeating | Low | EXF-497 |
+| EXF-512 | Combine payees | Low | EXF-510 |
+| EXF-518 | Payee renaming rules on file import | Low | EXF-510, EXF-531 |
+
+Also owed from round 11's plan: the scope comment on EXF-485; EXF-475 to In Progress with its comment. And
+when area 4 reports, link EXF-467 (Plaid payee renaming) after EXF-510, and EXF-480 (flag names) after
+EXF-522.
+
+**Seen already from the areas still running** (to triage at their reports): register tickets EXF-513
+(transactions API and register table; the register's foundation, after EXF-481), EXF-517 (add and edit
+inline), EXF-520, 522, 524, 526, 528 to 531, 533, 534; credit engine tickets EXF-532 and EXF-535.
+
+**No duplicates found** between areas 2, 7 and the earlier ones. Two overlaps to watch, not duplicates:
+EXF-504 (Undo/Redo on the Plan) with EXF-530 (in the register), which should share one mechanism over
+`change_log`; and EXF-518 with EXF-467, both payee renaming, one for files and one for Plaid.
+
+**Backlog:** about 70 `clone:feature` tickets, 43 triaged on the tickets, 21 triaged here only, the rest
+arriving. Gap: EXF-454. Template: EXF-455, EXF-457, EXF-479 (High), EXF-456 (Medium). No tickets filed this
+review.
