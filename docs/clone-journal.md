@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 5, Deploy 3, Test user flow 0,
+Review counters (finished children since that template's last review): Build 6, Deploy 3, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -350,7 +350,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 8 | Deploy of `eabf341` (`p_daa5ffd48c364b16a2058d8d143820cb`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `eabf341` (3 minutes) |
 | 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | [#5](https://github.com/jcrowthe/budget/pull/5) | merged as `4f1fbb3` (17 minutes) |
 | 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | [#6](https://github.com/jcrowthe/budget/pull/6) open | abandoned by me at the gate (no Playwright browser in its box); branch kept at `8b9b465`, to carry over |
-| 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
+| 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | PR #7 | merged `d7a3a40` (round 18) |
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 | 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
 | 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | pending | running |
@@ -1511,3 +1511,54 @@ on its card; its gate had passed 24 of 24 on the old base) and the Build for EXF
   expected lists from the route and tool files, or keep one expectation file per resource.
 - Deploy: the engine is merged but has no screen; deploy with EXF-475 once it merges, so the new URLs and the
   months API go live together.
+
+### 2026-11-15 · Review round 18
+
+Children used 27 of 200. One is running (the Build for EXF-511, targets engine; no manifest yet, 6 visits).
+
+**Ended: the Build for EXF-475 (plan-scoped URLs), merged as `d7a3a40` (PR #7).** Ticket moved to Done and
+commented. Its road: gate 24 of 24 on the old base, then the engine merged, I answered Refresh, then Regate,
+and the full run on base `0eb64f8` passed (check, e2e 25 of 25 three times, changed specs 160 of 160, no
+flakes). Acceptance 11 pass, 3 partial (month push, menus, rename: green tests, not driven live), 0 fail.
+I read the diff before approving: 27 files, +1250/-78.
+
+- What landed: pages nested under `/:budgetId` with a `PlanScope` layout in the shell (it replaces
+  `PlanGate`), `planPaths` helpers, `useCurrentPlan`, page titles, history behaviour, a not-found screen for
+  an unknown plan, and `/` opening the last opened plan.
+- `budgets.last_opened_at` (migration `20261115204324_budgets_last_opened_at.sql`). `PATCH /budgets/{id}`
+  accepts `opened: true` and stamps it; with no name in the patch this writes no `change_log` row and does
+  not bump `last_modified_on` ("opening is not a change"). No new API path, no new MCP tool.
+- Known difference, by the ticket: the source's `/reflect` goes to the last-visited report; the clone always
+  opens spending breakdown. Raise again when the reports are built (EXF-548 and later).
+- Unplanned files: `apps/worker/test/mcp.test.ts` and `docs/plan-urls-polish.md`. Harmless, but the first one
+  is the hot spot again (see below).
+- The Build removed its own source screenshots for cases 3 and 4 (register data) and masked the email in the
+  others. Good behaviour; nothing for me to clean.
+
+**For the next plan:**
+
+- Main is `d7a3a40`; live is still `eabf341`. Start a Deploy with `expect_commit` `d7a3a40`. Two migrations
+  are pending on the live database: `20261115203000_budget_engine.sql` and
+  `20261115204324_budgets_last_opened_at.sql`.
+- Start EXF-481 (accounts) and EXF-487 (Plan grid). Neither may touch `packages/core/src/**`,
+  `services/months.ts` or `routes/months.ts` while EXF-511 runs. Both will add to the shell that EXF-475 just
+  changed (`Sidebar.tsx` for accounts): tell the grid Build to stay out of `apps/web/src/shell/**` and
+  `router.tsx`, so that only the accounts Build holds the shared web modules.
+- Flows 9 and 11 can get a first live drive once the Deploy is live; cases 9 to 11 of EXF-475 get their live
+  check there.
+- Ask the person again to open https://budget.doxen.dev in their browser after the Deploy.
+
+**New ticket filed with this review (gap):** the hand-kept expectation lists. `apps/worker/test/openapi.test.ts`
+(the full path list), `apps/worker/test/mcp.test.ts` and `e2e/mcp.spec.ts` (the full tool list) are edited by
+every Build that adds a route or a tool; three Builds have touched them so far (scaffold, EXF-485, EXF-475)
+and the accounts, register, Plaid and import Builds all will. Fix: derive the expected lists from the route
+and tool files, or keep one expectation file per resource. Set its priority in the next plan (High; it must
+run alone like EXF-558, since it edits files every Build edits).
+
+**Ticket writes:** two used now (EXF-475 Done and its comment). About 50 were used between 21:26 and 21:31
+UTC, so the window frees from about 22:26 UTC. Still owed, all Low: EXF-525, 527, 501, 503, 512, 518, 536,
+541, 542, 543, 544, 545, 553; and the links EXF-467 after EXF-510, EXF-480 after EXF-522.
+
+**Backlog:** 92 open feature tickets (EXF-475 and EXF-485 done; EXF-511 in progress). Gap: EXF-454, EXF-558
+(High), EXF-560 (Low), plus the one filed now. Template: nine. Finished Builds since the Build template's
+last review: 6 of 10.
