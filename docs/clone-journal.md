@@ -1341,3 +1341,16 @@ the journal triage for areas 2, 7, 4, 6 and 8, High tickets first.
 
 **Backlog:** 94 feature tickets (43 triaged on the tickets, 51 in the journal); EXF-454; eight template
 tickets (EXF-455, 456, 457, 479, 554 to 557). No tickets filed this review.
+
+### 2026-11-15 · Plan round 16
+
+Children used 25 of 200. Two are running, both started in round 11: the Builds for EXF-485 (building) and
+EXF-475 (its architect is writing the spec after studying the source; no card).
+
+- No tickets were filed by me at the last review; EXF-554 to EXF-557 exist (filed by the template review).
+- Ticket writes: three got through before the limit closed again at 20:45 UTC. Done: EXF-475 to In Progress;
+  EXF-554 and EXF-555 to High. Still owed, in this order: EXF-556 and EXF-557 Medium; the High tickets of the
+  journal triage (EXF-513, 517, 521, 511, 508, 514, 519, 507, 524, 526, 533, 532, 535, 537, 539), each with
+  its links; the scope comments on EXF-485 and EXF-475; then the Medium and Low tickets. The next block of
+  writes frees between about 21:01 and 21:07, the largest at about 21:25.
+- Started nothing: every open High ticket waits on EXF-485 or EXF-475; nothing new is merged to deploy.
