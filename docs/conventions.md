@@ -59,6 +59,32 @@ is an `env.ts` plus `wrangler.jsonc` change.
 
 ## Commands
 
-`pnpm check` (lint, typecheck, unit + Worker tests, build), `pnpm dev` (http://localhost:5173, signed in as
-`dev@localhost`), `pnpm e2e` (production bundle on :4173), `bash scripts/deploy.sh` (gate, then release).
+- `pnpm check` (lint, typecheck, unit + Worker tests, build)
+- `pnpm dev` (http://localhost:5173, signed in as `dev@localhost`)
+- `pnpm e2e` (production bundle on :4173)
+- `bash scripts/deploy.sh` (gate, then release; see Deploy phases below)
+
+### Deploy phases
+
+`bash scripts/deploy.sh` supports three modes controlled by the `DEPLOY_PHASE` environment variable:
+
+- `DEPLOY_PHASE` unset (default): runs gate, then release (same as today)
+- `DEPLOY_PHASE=gate`: runs checks and e2e tests only; changes nothing in production
+- `DEPLOY_PHASE=release`: runs release steps only (no gate); assumes gate already passed
+
+`DEPLOY_E2E=skip` skips the Playwright run but still runs `pnpm check` in the gate phase. The deploy script
+prints timing for each completed phase as `PHASE_SECONDS <name>=<seconds> ...`.
+
+### Scripts
+
+- `bash scripts/deploy.sh` (gate and/or release; see phases above)
+- `bash scripts/migrations-pending.sh` (lists pending D1 migrations; exit 0 when none are pending)
+- `bash scripts/live-test-plans.sh <command>` (manage test plans on the live clone)
+  - `list`: print id and name of every plan whose name starts with the test prefix
+  - `create '<name>'`: create a plan (name must start with the test prefix)
+  - `delete <id>`: delete a plan (its name must start with the test prefix)
+  - `purge`: delete all plans whose name starts with the test prefix; exit 0 only when 0 remain
+  - `delete_import`: print the not-applicable message
+  - `routes`: print the route map
+
 Live flow tests reach the clone with `scripts/access-browser.mjs`.

@@ -6,7 +6,10 @@
     "e2e_specs": "pnpm e2e {specs}",
     "repeat_flag": "--repeat-each={n}",
     "workers_flag": "--workers={n}",
-    "dev": "pnpm dev"
+    "dev": "pnpm dev",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy_phases": true,
+    "migrations_pending": "bash scripts/migrations-pending.sh"
   },
   "ports": {
     "dev_web": 5173,
@@ -16,7 +19,8 @@
   },
   "health": {
     "dev_url": "http://localhost:{dev_api}/api/v1/health",
-    "path": "/api/v1/health"
+    "path": "/api/v1/health",
+    "version_field": "deploy_sha"
   },
   "paths": {
     "web_ui": [
@@ -95,14 +99,45 @@
       "/users/sign_in",
       "Just a moment",
       "Verify you are human"
-    ]
+    ],
+    "driver": "cdp"
   },
   "live": {
     "url": "https://budget.doxen.dev",
     "test_prefix": "ZZ-TEST",
     "test_space": "A plan on the live clone whose name starts with ZZ-TEST (create one if none exists)",
     "source_test_space": "YNAB plan \"Test Budget\": https://app.ynab.com/542b334b-696e-4418-937a-5e2c21a8b45c/budget (the only source plan a child may modify)",
+    "health_path": "/api/v1/health",
+    "auth_headers_from_env": {
+      "CF-Access-Client-Id": "CF_ACCESS_CLIENT_ID",
+      "CF-Access-Client-Secret": "CF_ACCESS_CLIENT_SECRET"
+    },
+    "auth": {
+      "env": ["CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET"],
+      "headers": ["CF-Access-Client-Id", "CF-Access-Client-Secret"],
+      "scripts": "curl with the two headers via config on a pipe for URLs under live.url, never argv; see scripts/lib/cf.sh",
+      "browser": "scripts/access-browser.mjs: attachAccess(context) injects the service-token headers for budget.doxen.dev only; `node scripts/access-browser.mjs storage-state <out.json>` writes a CF_Authorization cookie storageState when Access issues one (exit 3 in strict service-token mode)"
+    },
+    "recipes": {
+      "get": "bash scripts/live-test-plans.sh list",
+      "create": "bash scripts/live-test-plans.sh create '<name>'",
+      "delete": "bash scripts/live-test-plans.sh delete <id>",
+      "purge": "bash scripts/live-test-plans.sh purge",
+      "delete_import": "Not applicable yet: the app has no imports.",
+      "routes": "/ and non-API paths: single-page app; /api/v1/budgets: REST (read budgets, create/update plan, read plan, update plan, delete plan); /api/v1 other routes: REST (read only); /mcp: MCP endpoint; test plans managed only through scripts/live-test-plans.sh"
+    },
+    "never_run": [
+      "wrangler d1 execute --remote with any statement other than SELECT",
+      "wrangler delete, wrangler d1 delete, wrangler r2 bucket delete, wrangler secret delete",
+      "wrangler secret put or bulk outside scripts/deploy.sh",
+      "wrangler d1 time-travel restore without explicit authorization",
+      "any Cloudflare API call that creates, changes or deletes a resource not named for this app (Worker budget, D1 budget-db, R2 budget-files, Access applications budget and budget-mcp, Access policies budget-allow-owner and budget-service-auth, the DNS record named exactly budget.doxen.dev)",
+      "anything that changes or deletes the wildcard DNS record *.doxen.dev",
+      "scripts/deploy.sh with DEPLOY_PHASE=release or unset outside the Deploy template",
+      "any Plaid call against the production environment that creates, updates or removes an Item"
+    ],
     "never_touch": [
+      "Cloudflare Workers, D1 databases, R2 buckets, Access applications, policies, service tokens and DNS records that are not named for this app (the account holds other resources)",
       "On the clone: every plan whose name does not start with ZZ-TEST",
       "On the clone: every Plaid Item in the Production environment (never create, repair or remove one; tests use Plaid Sandbox only)",
       "On the source: every YNAB plan other than \"Test Budget\"; plan \"Programmatik\" (85810fb1-ae94-4b3e-ab0c-7cc96c0d7a59) is view-only and only its account page /accounts/f6b37d1e-db76-4c1f-b151-02df87c08a89; no other plan is opened or read, and nothing from the plan list is recorded"
@@ -114,7 +149,6 @@
       },
       "browser_helper": "scripts/access-browser.mjs: attachAccess(context) injects the service-token headers for budget.doxen.dev; `node scripts/access-browser.mjs storage-state <out.json>` writes a CF_Authorization cookie storageState when Access issues one (exit 3 in strict service-token mode)"
     },
-    "deploy": "bash scripts/deploy.sh",
     "deploy_env": [
       "CLOUDFLARE_API_TOKEN",
       "CLOUDFLARE_ACCOUNT_ID",
