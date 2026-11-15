@@ -123,7 +123,8 @@ case "$CMD" in
       expect DELETE "/api/v1/budgets/$id" 200
       n=$((n + 1))
     done
-    m=$(list_ids | grep -c . || true)
+    left=$(list_ids) # its own step: a failed re-list must stop the script, not read as "0 remaining"
+    m=$(printf '%s' "$left" | grep -c . || true)
     echo "deleted $n remaining $m"
     [ "$m" -eq 0 ]
     ;;

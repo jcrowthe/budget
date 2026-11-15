@@ -224,6 +224,34 @@ describe("live mode", () => {
     expect(l).not.toContain(CLIENT_SECRET);
   });
 
+  it("fails (exit 1, no 'remaining 0') when the re-list after a purge answers 500", () => {
+    const id = "11111111-1111-1111-1111-111111111111";
+    const list = { data: { budgets: [{ id, name: "ZZ-TEST a" }] } };
+    const r = live(["purge"], {
+      CF_ACCESS_CLIENT_ID: CLIENT_ID,
+      CF_ACCESS_CLIENT_SECRET: CLIENT_SECRET,
+      FAKE_CURL_ROUTES: JSON.stringify({
+        "GET https://budget.doxen.dev/api/v1/budgets/": {
+          status: 200,
+          body: { data: { budget: { id, name: "ZZ-TEST a" } } },
+        },
+        "DELETE https://budget.doxen.dev/api/v1/budgets/": {
+          status: 200,
+          body: { data: { deleted: true } },
+        },
+        "GET https://budget.doxen.dev/api/v1/budgets": {
+          seq: [
+            { status: 200, body: list },
+            { status: 500, body: {} },
+          ],
+        },
+      }),
+    });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain("answered 500");
+    expect(r.out).not.toContain("remaining");
+  });
+
   it("names both missing variables and never calls curl", () => {
     const before = log();
     const r = live(["list"], {});
