@@ -6,6 +6,9 @@ const raw = readFileSync(`${root}clone.profile.json`, "utf8");
 // biome-ignore lint/suspicious/noExplicitAny: the profile is free-form JSON
 const profile: any = JSON.parse(raw);
 
+// The YNAB plan "Test Budget": the only source plan a child may open.
+const TEST_PLAN_ID = "542b334b-696e-4418-937a-5e2c21a8b45c";
+
 const REQUIRED = [
   ..."install check e2e_full e2e_specs repeat_flag deploy deploy_phases migrations_pending workers_flag dev"
     .split(" ")
@@ -46,6 +49,13 @@ describe("clone.profile.json", () => {
     if (Array.isArray(v)) expect(v.length, path).toBeGreaterThan(0);
   });
 
+  it("points source.url at the Test Budget plan only", () => {
+    // The bare site opens whichever plan was used last, which may hold private data.
+    expect(profile.source.url).toMatch(new RegExp(`^https://app\\.ynab\\.com/${TEST_PLAN_ID}/`));
+    expect(profile.source.url).toContain(TEST_PLAN_ID);
+    expect(profile.live.source_test_space).toContain(profile.source.url);
+  });
+
   it("has the expected values", () => {
     expect(profile.repo.deploy).toBe("bash scripts/deploy.sh");
     expect(profile.live.deploy).toBe("bash scripts/deploy.sh");
@@ -53,8 +63,6 @@ describe("clone.profile.json", () => {
     expect(profile.repo.migrations_pending).toBe("bash scripts/migrations-pending.sh");
     expect(profile.health.version_field).toBe("deploy_sha");
     expect(profile.source.driver).toBe("cdp");
-    // Children may open only the Test Budget plan; the bare site opens whichever plan was used last.
-    expect(profile.source.url).toContain("542b334b-696e-4418-937a-5e2c21a8b45c");
     expect(profile.live.health_path).toBe(profile.health.path);
     const map = {
       "CF-Access-Client-Id": "CF_ACCESS_CLIENT_ID",
