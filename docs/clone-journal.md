@@ -329,7 +329,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 |---|---|---|---|---|---|
 | 2026-11-15 | 1 | Build feature, scaffold (`p_f3914d573e1043c8a1968e6f1b7f2db4`) | none | [#1](https://github.com/jcrowthe/budget/pull/1) | merged as `2d82719` |
 | 2026-11-15 | 2 | Deploy (`p_29df4df509e0410592bdd63ec05be67e`) | none | none | refused at the profile check; nothing shipped |
-| 2026-11-15 | 2 | Build feature, EXF-453 hardening (`p_bed242fbbbc24340b340793fd1631f76`) | EXF-453 | none | cancelled by me after ten minutes (sequencing) |
+| 2026-11-15 | 2 | Build feature, EXF-453 hardening (`p_bed242fbbbc24340b340793fd1631f76`) | EXF-453 | none | cancelled by me after three minutes (sequencing) |
 | 2026-11-15 | 2 | Discover, area 1 Plan screen (`p_17cd9c4a93fc4e29a08e8f5eddca54c4`) | none | none | failed at load_profile (`source.driver`) |
 | 2026-11-15 | 2 | Discover, area 2 targets and Auto-Assign (`p_5d1242cb6d6a4a9eaaac1d9d9d018506`) | none | none | failed at load_profile |
 | 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
@@ -483,7 +483,7 @@ finished Threads of another clone in this organization that runs the same templa
 
 **Decisions:**
 
-- Cancelled the hardening Build ten minutes in. The profile fix is on the critical path and must change
+- Cancelled the hardening Build three minutes in. The profile fix is on the critical path and must change
   `scripts/deploy.sh` for the phases; the hardening Build edits that file too, and both touch
   `paths.always_overlap`, so by the scheduling rule they cannot run together. EXF-453 stays in the backlog
   (commented) and restarts after the profile fix merges and the first Deploy reports, so a deploy-script fix,
