@@ -14,3 +14,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Test surface design](test-surface-design.md): EXF-561 API path and MCP tool tests derived from the route/tool globs; a new resource never edits openapi.test.ts, mcp.test.ts or e2e/mcp.spec.ts (spec: [test-surface-spec.md](test-surface-spec.md))
 - [Plan grid design](plan-grid-design.md): EXF-487 Plan month grid (toolbar, groups, categories, pills, progress bars, local collapse/progress-bar state) and default categories for new plans (spec: [plan-grid-spec.md](plan-grid-spec.md))
 - [Accounts design](accounts-design.md): EXF-481 accounts REST + MCP, Add Unlinked Account with a Starting Balance, race-safe unique names, sidebar account list, minimal account page (spec: [accounts-spec.md](accounts-spec.md))
+- [Accounts polish](accounts-polish.md): Designer polish list for the accounts screens, with applied status
