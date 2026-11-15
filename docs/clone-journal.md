@@ -354,6 +354,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
 | 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
 | 2026-11-15 | 18 | Build feature, EXF-511 targets engine (`p_899fecccbbbf452fbdecfc802e0abebf`) | EXF-511 | pending | running |
+| 2026-11-15 | 19 | Deploy of main `d7a3a40` (`p_c55bb7d4d01947fe848d4849c4333b78`) | EXF-458, 485, 475 | n/a | running |
+| 2026-11-15 | 19 | Build feature, EXF-561 derived test lists (`p_68476e6ced7c47b3b7e89f96a101fc1d`) | EXF-561 | pending | running |
+| 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1562,3 +1565,53 @@ UTC, so the window frees from about 22:26 UTC. Still owed, all Low: EXF-525, 527
 **Backlog:** 92 open feature tickets (EXF-475 and EXF-485 done; EXF-511 in progress). Gap: EXF-454, EXF-558
 (High), EXF-560 (Low), plus the one filed now. Template: nine. Finished Builds since the Build template's
 last review: 6 of 10.
+
+### 2026-11-15 · Plan round 19
+
+Children used 30 of 200. Four are running: the Build for EXF-511 (targets engine) from last round, and three
+started now.
+
+- The gap ticket filed at the last review exists: **EXF-561** (derive the API path list and MCP tool list in
+  tests). Set to High.
+- EXF-511's manifest arrived: `packages/core` (`targets.ts`, `budget-engine.ts`), `packages/schema`
+  (`targets.ts`, `months.ts`), migration `20261115213604_targets.sql`, Worker `targets` table, repository and
+  service, `services/months.ts`, new tests only. As estimated; nothing under `apps/web`, no list test.
+- **Started the Deploy of main `d7a3a40`** (`p_c55bb7d4d01947fe848d4849c4333b78`), `gated_commit` `05588ce`
+  (I compared the trees: equal). It ships the engine, the months API and the plan-scoped URLs, with two
+  additive migrations. Checks asked: pending migrations before and after, health, `last_opened_at`, the months
+  API on a `ZZ-TEST` plan, the MCP tool list, the new URLs in a browser session, cleanup.
+- **Started EXF-561** (`p_68476e6ced7c47b3b7e89f96a101fc1d`), small, first, because every Build that adds a
+  route or tool edits the same three test files. Scope: those three files, step 10 of `docs/conventions.md`,
+  new test files; no other existing test, nothing under `apps/worker/src`, `apps/web`, `packages`, `scripts`.
+  It must show that the derived checks fail on an empty tool file, a duplicate tool name and a route file
+  with no path.
+- **Started EXF-487, the Plan month grid** (`p_33dc46ec590f4e2688c8437eee9cc5eb`). Scoped to be disjoint from
+  the other three:
+  - No new route or tool. The ticket's `PATCH category_groups {collapsed}` moves to EXF-494 (commented
+    there); the grid starts from the read model's `collapsed` and keeps changes in the browser.
+  - Default groups and categories for a new plan are created in `createBudget` in this Build (the ticket
+    lists them, no other ticket does, and without them the grid is empty everywhere). Existing plans are not
+    backfilled. Tests that assume an empty new plan change (`months.test.ts`, `budgets.test.ts`,
+    `e2e/months.spec.ts`).
+  - Values are tested with a stubbed month response in Playwright, because no route creates categories,
+    assignments or transactions yet.
+  - Stays out of `apps/web/src/shell/**`, `router.tsx`, `api/client.ts` (so the accounts Build can hold the
+    shared web modules), out of core and the months files (EXF-511), out of the three list tests (EXF-561).
+    Colours with no token become named custom properties in the grid's own CSS; a later Build moves them
+    into `tokens.css`.
+  - Progress-bar choice in the browser until EXF-472; shortcuts on the page until EXF-473; toolbar buttons,
+    checkboxes and the hover icon drawn without actions (EXF-494, EXF-498, the undo ticket).
+  - The source app may be looked at (own tab, Test Budget, Plan page only), never changed; the email is
+    masked in screenshots.
+- **Why not EXF-481 (accounts) now:** it adds routes and MCP tools, so it edits the three list tests that
+  EXF-561 rewrites. It starts when EXF-561 merges. It will be the one Build holding `apps/web/src/shell/**`
+  (Sidebar, AddAccountDialog).
+- Possible cross-Build effect to watch at the cards: once the grid merges, a new plan has eleven categories.
+  If EXF-511's tests assume an empty new plan, whichever merges second meets it at its refresh and gate.
+- To carry into later briefs: EXF-472 takes over the progress-bar setting from the browser copy; EXF-473 takes
+  over the two collapse shortcuts; EXF-468 the money format.
+- Not started: EXF-558 (needs a moment with no other Build running; the Clerk's browser-install job covers
+  for it). No flow test yet: flows 9 and 11 get a first live drive when the Deploy is live.
+- Ticket writes this round: 6 (EXF-561 priority and state, EXF-487 state and comment, EXF-494 comment,
+  EXF-561 comment). The 13 Low tickets and two links owed stay owed until the window frees at about 22:26 UTC.
+- The person has still not said whether their browser sign-in works; ask in the round 20 check-in report.
