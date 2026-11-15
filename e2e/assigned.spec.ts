@@ -268,6 +268,32 @@ test("group rows are not editable", async ({ page }) => {
   await open(page);
   await groupRow(page, "Bills").locator(".cell-assigned").click();
   await expect(page.getByRole("textbox")).toHaveCount(0);
+  await expect(groupRow(page, "Bills").locator(".num")).toHaveText(["$0.00", "$0.00", "$0.00"]);
+});
+
+test("two quick commits on one category: the last value wins", async ({ page, request }) => {
+  await open(page);
+  let first = true;
+  await page.route("**/months/*/categories/*", async (route) => {
+    if (route.request().method() === "PATCH" && first) {
+      first = false;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    await route.continue();
+  });
+  await amountOf(page, RENT).click();
+  await page.keyboard.type("400");
+  await page.keyboard.press("Enter");
+  await amountOf(page, RENT).click();
+  await page.keyboard.type("+50");
+  const second = page.waitForResponse(
+    (r) => isPatch(r) && r.request().postData()?.includes("450000") === true,
+  );
+  await page.keyboard.press("Enter");
+  await second;
+  await expect(amountOf(page, RENT)).toHaveText("$450.00");
+  expect(await apiAssigned(request, ym(0), RENT)).toBe(450000);
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 async function rpc(request: Req, method: string, params: unknown, id: number) {

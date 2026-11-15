@@ -118,7 +118,7 @@ export function AssignedCell({
     // biome-ignore lint/a11y/useKeyWithClickEvents: same
     <div className="assigned-box" onClick={onOpen}>
       <Calculator />
-      <button type="button" className={amountClass(assigned)} onClick={onOpen}>
+      <button type="button" className={amountClass(assigned)}>
         {money(assigned)}
       </button>
     </div>
