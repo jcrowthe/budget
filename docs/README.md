@@ -17,3 +17,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Accounts polish](accounts-polish.md): Designer polish list for the accounts screens, with applied status
 - [Assigned inline design](assigned-inline-design.md): EXF-489 editable Assigned cell (typing, arithmetic, Enter/Tab/arrows/Escape), optimistic month cache, PATCH `/budgets/{budget_id}/months/{month}/categories/{category_id}` and MCP `set_assigned` (spec: [assigned-inline-spec.md](assigned-inline-spec.md))
 - [Sidebar groups design](sidebar-groups-design.md): EXF-483 typed sidebar account groups (STARRED, CASH, CREDIT, LOANS, TRACKING, CLOSED) with totals and collapse, derived account `group` in REST/MCP, `ui-state` resource (spec: [sidebar-groups-spec.md](sidebar-groups-spec.md))
+- [Sidebar groups polish](sidebar-groups-polish.md): EXF-483 polish list

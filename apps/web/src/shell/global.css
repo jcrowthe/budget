@@ -442,6 +442,9 @@ a {
   height: 8px;
   margin: 0 8px 0 12px;
   flex: none;
+  /* Source measured: svg position: relative; top: -1px (chevron y 213 vs 214). */
+  position: relative;
+  top: -1px;
 }
 .nav-account-block .label {
   flex: 1 1 0;
@@ -537,6 +540,8 @@ a {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--labelPrimary);
+  /* Source measured: .nav-account-value margin-bottom -0.2em (computed -2.4px). */
+  margin-bottom: -0.2em;
 }
 /* Dark theme: the negative balance is red text on no fill (source measured on its own .negative class). */
 .nav-account-group .value.negative {
@@ -545,11 +550,11 @@ a {
   background: transparent;
   color: var(--labelNegative);
   font-weight: 600;
-  margin: 0 -0.265rem 0.2em 0.5rem;
+  margin: 0 -0.265rem 0 0.5rem;
 }
 .nav-account-group.loans .value.negative {
   padding: 0;
-  margin: 0;
+  margin: 0 0 -0.2em;
   color: inherit;
   font-weight: inherit;
 }
