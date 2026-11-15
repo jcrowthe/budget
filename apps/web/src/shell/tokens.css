@@ -18,6 +18,8 @@
   --inputBorder: #727484;
   --statusPositive: #77ba21;
   --statusNegative: #bf2e3b;
+  --labelNegative: #ee5867;
+  --inputBorderSubtle: #56596c;
   --borderSubtle: rgba(255, 255, 255, 0.08);
   --labelMuted: rgba(255, 255, 255, 0.7);
   --shadowMenu: 0 16px 64px rgba(0, 0, 0, 0.2);

@@ -1,4 +1,8 @@
 import { z } from "@hono/zod-openapi";
+import { IsoDate } from "./common/dates";
+import { dataEnvelope } from "./common/envelope";
+import { Milliunits } from "./common/money";
+import { isCalendarDate, Transaction } from "./transactions";
 
 // Repeats core's ACCOUNT_TYPES (schema does not depend on core); a Worker test asserts they are equal.
 export const AccountType = z
@@ -31,6 +35,9 @@ export const Account = z
     closed: z.boolean(),
     sort: z.number().int(),
     created_at: z.string(),
+    cleared_balance: Milliunits,
+    uncleared_balance: Milliunits,
+    balance: Milliunits,
   })
   .openapi("Account");
 
@@ -39,11 +46,33 @@ export const AccountCreate = z
     budget_id: z.uuid(),
     name: z.string().trim().min(1).max(100),
     type: AccountType,
-    on_budget: z.boolean(),
+    on_budget: z.boolean().optional(),
     note: z.string().max(500).nullable().optional(),
   })
   .openapi("AccountCreate");
 
+export const AccountCreateRequest = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(100),
+    type: AccountType,
+    balance: Milliunits,
+    date: IsoDate.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199")
+      .refine(isCalendarDate, "date must be a real calendar date")
+      .optional(),
+  })
+  .openapi("AccountCreateRequest");
+
+export const AccountResponse = dataEnvelope(z.object({ account: Account })).openapi(
+  "AccountResponse",
+);
+export const AccountListResponse = dataEnvelope(z.object({ accounts: z.array(Account) })).openapi(
+  "AccountListResponse",
+);
+export const AccountCreateResponse = dataEnvelope(
+  z.object({ account: Account, starting_balance: Transaction }),
+).openapi("AccountCreateResponse");
+
 export type AccountType = z.infer<typeof AccountType>;
 export type Account = z.infer<typeof Account>;
 export type AccountCreate = z.infer<typeof AccountCreate>;
+export type AccountCreateRequest = z.input<typeof AccountCreateRequest>;
