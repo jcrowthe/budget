@@ -44,4 +44,11 @@ describe("months schemas", () => {
     ).toBe(false);
     expect(TransactionCreate.safeParse({ ...base, amount: 1.5 }).success).toBe(false);
   });
+  it("TransactionCreate refuses dates that are not on the calendar", () => {
+    const base = { budget_id: id(), account_id: id(), amount: 1000 };
+    for (const date of ["2026-13-05", "2026-00-10", "2026-02-30"]) {
+      expect(TransactionCreate.safeParse({ ...base, date }).success, date).toBe(false);
+    }
+    expect(TransactionCreate.safeParse({ ...base, date: "2028-02-29" }).success).toBe(true);
+  });
 });

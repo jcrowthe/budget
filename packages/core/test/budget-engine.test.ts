@@ -205,8 +205,6 @@ describe("properties", () => {
     for (const input of cases) {
       const month = MONTHS[2] as string;
       const x = 7000;
-      const from =
-        input.assignments.find((a) => a.categoryId === RENT && a.month === month)?.assigned ?? 0;
       const withMove = (toRta: boolean): EngineInput => ({
         ...input,
         assignments: [
@@ -215,7 +213,6 @@ describe("properties", () => {
           ...(toRta ? [] : [assign(GRO, month, x)]),
         ],
       });
-      void from;
       for (const m of MONTHS.slice(0, 3)) {
         const before = computeMonth(input, m).ready_to_assign;
         expect(computeMonth(withMove(false), m).ready_to_assign).toBe(before);
