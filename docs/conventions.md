@@ -27,7 +27,8 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
    step 3. The web app calls only `/api/v1`; there is no private endpoint for the UI.
 9. **Page** `apps/web/src/pages/widgets.tsx`: `export const page = { path, element }`. Use
    `usePageTitle("Widgets")` for the `<Page> | <Plan> | Budget` title, and the variables in
-   `apps/web/src/shell/tokens.css` (never raw colours).
+   `apps/web/src/shell/tokens.css` (never raw colours). Plan pages use a `/:budgetId/...` path and need no
+   gate: the router nests them in `PlanScope` (plan resolved, not-found handled, open recorded).
 10. **Tests**: `apps/worker/test/widgets.test.ts` (REST, change_log rows, atomicity), `e2e/widgets.spec.ts`
     (the user flow). Name test data `ZZ-TEST <random>`; no spec may assume an empty database. Update
     `test/openapi.test.ts` only if you must; adding a route changes its expected path list, so extend the list.

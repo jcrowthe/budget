@@ -31,11 +31,24 @@ export function unchanged(row: Pick<BudgetRow, "id" | "updatedAt">): SQL {
   ) as SQL;
 }
 
-export function updateStmt(db: Db, before: BudgetRow, patch: { name?: string }, updatedAt: string) {
+export function updateStmt(
+  db: Db,
+  before: BudgetRow,
+  patch: { name?: string; lastOpenedAt?: string },
+  updatedAt: string,
+) {
   return db
     .update(budgets)
     .set({ ...patch, updatedAt })
     .where(unchanged(before));
+}
+
+/** Stamps last_opened_at only: unguarded by updated_at, and does not touch updated_at. */
+export function markOpenedStmt(db: Db, id: string, at: string) {
+  return db
+    .update(budgets)
+    .set({ lastOpenedAt: at })
+    .where(and(eq(budgets.id, id), isNull(budgets.deletedAt)));
 }
 
 export function softDeleteStmt(db: Db, before: BudgetRow, at: string) {

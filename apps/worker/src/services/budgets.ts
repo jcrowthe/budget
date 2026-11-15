@@ -11,6 +11,7 @@ export function toApi(row: repo.BudgetRow): Budget {
     name: row.name,
     created_at: row.createdAt,
     last_modified_on: row.updatedAt,
+    last_opened_at: row.lastOpenedAt ?? null,
   };
 }
 
@@ -38,6 +39,7 @@ export async function createBudget(env: Env, actor: string, input: BudgetCreate)
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
+    lastOpenedAt: null,
   };
   const batch = buildCreateBatch(db, row, {
     budgetId: row.id,
@@ -73,9 +75,17 @@ export async function updateBudget(
   const before = await repo.findActive(db, id);
   if (!before) throw new NotFound("Plan");
   const now = new Date().toISOString();
+  // Opening a plan is not a change: no change_log, no last_modified_on bump (EXF-475).
+  if (patch.opened === true && patch.name === undefined) {
+    const res = await repo.markOpenedStmt(db, id, now);
+    if (res.meta.changes === 0) throw new NotFound("Plan");
+    return toApi({ ...before, lastOpenedAt: now });
+  }
+  const lastOpenedAt = patch.opened === true ? now : undefined;
   const after = {
     ...before,
     ...(patch.name === undefined ? {} : { name: patch.name }),
+    ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
     updatedAt: now,
   };
   const [, result] = await db.batch([
@@ -92,7 +102,15 @@ export async function updateBudget(
       },
       repo.existsUnchanged(db, before),
     ),
-    repo.updateStmt(db, before, patch.name === undefined ? {} : { name: patch.name }, now),
+    repo.updateStmt(
+      db,
+      before,
+      {
+        ...(patch.name === undefined ? {} : { name: patch.name }),
+        ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
+      },
+      now,
+    ),
   ]);
   if (result.meta.changes === 0) return lostRace(db, id);
   return toApi(after);

@@ -9,3 +9,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Worker hardening design](worker-hardening-design.md): EXF-453 HKDF secrets key, Worker-side Access identity pin, idempotency retry tests (spec: [worker-hardening-spec.md](worker-hardening-spec.md))
 - [Source URL design](source-url-design.md): EXF-458 source.url points at the Test Budget plan; profile test pins it; source check matches by host (spec: [source-url-spec.md](source-url-spec.md))
 - [Budget engine design](budget-engine-design.md): EXF-485 month read model (Assigned/Activity/Available, rollover, Ready to Assign), core tables, write services, months REST + get_plan_month (spec: [budget-engine-spec.md](budget-engine-spec.md))
+- [Plan URLs design](plan-urls-design.md): EXF-475 plan-scoped URLs, page titles, browser history, `last_opened_at` via PATCH `opened` (spec: [plan-urls-spec.md](plan-urls-spec.md))
