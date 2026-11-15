@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Budget">
+  <rect width="32" height="32" rx="8" fill="#545BFE"/>
+  <path d="M10 7h7.5a4.5 4.5 0 0 1 2.6 8.2A4.8 4.8 0 0 1 18 25h-8V7Zm3.2 3v4.2h4a2.1 2.1 0 0 0 0-4.2h-4Zm0 7.2V22H18a2.4 2.4 0 0 0 0-4.8h-4.8Z" fill="#fff" fill-rule="evenodd"/>
+</svg>
