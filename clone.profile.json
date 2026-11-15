@@ -10,33 +10,51 @@
   },
   "ports": {
     "dev_web": 5173,
-    "dev_api": 8787,
+    "dev_api": 5173,
     "e2e_web": 4173,
-    "e2e_api": 8788
+    "e2e_api": 4173
   },
   "health": {
     "dev_url": "http://localhost:{dev_api}/api/v1/health",
     "path": "/api/v1/health"
   },
   "paths": {
-    "web_ui": ["apps/web/src/**", "apps/web/index.html", "apps/web/public/**"],
-    "tests": ["e2e/**", "apps/*/test/**", "packages/*/test/**"],
+    "web_ui": [
+      "apps/web/src/**",
+      "apps/web/index.html",
+      "apps/web/public/**"
+    ],
+    "tests": [
+      "e2e/**",
+      "apps/*/test/**",
+      "packages/*/test/**",
+      "scripts/test/**"
+    ],
     "shared_modules": [
-      "packages/core/src/engine/**",
+      "packages/core/src/**",
       "packages/schema/src/common/**",
       "apps/worker/src/app.ts",
       "apps/worker/src/middleware/**",
+      "apps/worker/src/secrets/**",
       "apps/worker/src/db/client.ts",
       "apps/worker/src/history/**",
+      "apps/worker/src/mcp/server.ts",
+      "apps/worker/src/mcp/types.ts",
+      "apps/web/src/api/client.ts",
       "apps/web/src/shell/**",
-      "apps/web/src/api/client.ts"
+      "apps/web/src/router.tsx"
     ],
     "sensitive": [
       "apps/worker/src/middleware/access.ts",
       "apps/worker/src/secrets/**",
       "apps/worker/migrations/**",
       "apps/worker/wrangler.jsonc",
+      "apps/web/dev/**",
       "scripts/deploy.sh",
+      "scripts/lib/**",
+      "scripts/access-browser.mjs",
+      "scripts/local-jwt.mjs",
+      "scripts/dev-vars.mjs",
       ".gitignore"
     ],
     "always_overlap": [
@@ -46,8 +64,14 @@
       "apps/*/package.json",
       "packages/*/package.json",
       "tsconfig*.json",
+      "biome.json",
+      "vitest.config.ts",
+      "apps/worker/vitest.config.ts",
+      "apps/web/vite.config.ts",
+      "playwright.config.ts",
       "apps/worker/wrangler.jsonc",
-      "playwright.config.ts"
+      "apps/worker/src/env.ts",
+      "clone.profile.json"
     ],
     "migrations": {
       "dir": "apps/worker/migrations",
@@ -67,16 +91,38 @@
   "source": {
     "url": "https://app.ynab.com",
     "single_tab": false,
-    "signed_out_markers": ["/users/sign_in", "Just a moment", "Verify you are human"]
+    "signed_out_markers": [
+      "/users/sign_in",
+      "Just a moment",
+      "Verify you are human"
+    ]
   },
   "live": {
     "url": "https://budget.doxen.dev",
     "test_prefix": "ZZ-TEST",
-    "source_test_space": "YNAB plan \"Test Budget\" (542b334b-696e-4418-937a-5e2c21a8b45c): the only source plan a child may modify",
+    "test_space": "A plan on the live clone whose name starts with ZZ-TEST (create one if none exists)",
+    "source_test_space": "YNAB plan \"Test Budget\": https://app.ynab.com/542b334b-696e-4418-937a-5e2c21a8b45c/budget (the only source plan a child may modify)",
     "never_touch": [
-      "On the live clone: every plan whose name does not start with ZZ-TEST",
-      "On the source: every plan except Test Budget; Programmatik (85810fb1-ae94-4b3e-ab0c-7cc96c0d7a59) is view-only and only /accounts/f6b37d1e-db76-4c1f-b151-02df87c08a89",
-      "Plaid Production Items: never create, repair or remove one"
+      "On the clone: every plan whose name does not start with ZZ-TEST",
+      "On the clone: every Plaid Item in the Production environment (never create, repair or remove one; tests use Plaid Sandbox only)",
+      "On the source: every YNAB plan other than \"Test Budget\"; plan \"Programmatik\" (85810fb1-ae94-4b3e-ab0c-7cc96c0d7a59) is view-only and only its account page /accounts/f6b37d1e-db76-4c1f-b151-02df87c08a89; no other plan is opened or read, and nothing from the plan list is recorded"
+    ],
+    "access": {
+      "headers": {
+        "CF-Access-Client-Id": "env CF_ACCESS_CLIENT_ID",
+        "CF-Access-Client-Secret": "env CF_ACCESS_CLIENT_SECRET"
+      },
+      "browser_helper": "scripts/access-browser.mjs: attachAccess(context) injects the service-token headers for budget.doxen.dev; `node scripts/access-browser.mjs storage-state <out.json>` writes a CF_Authorization cookie storageState when Access issues one (exit 3 in strict service-token mode)"
+    },
+    "deploy": "bash scripts/deploy.sh",
+    "deploy_env": [
+      "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CF_ACCESS_TEAM_DOMAIN",
+      "ACCESS_ALLOWED_EMAIL",
+      "CF_ACCESS_CLIENT_ID",
+      "CF_ACCESS_CLIENT_SECRET",
+      "SECRETS_ENCRYPTION_KEY"
     ]
   }
 }
