@@ -338,12 +338,12 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | [#3](https://github.com/jcrowthe/budget/pull/3) | merged as `43b7ce9` (25 minutes) |
 | 2026-11-15 | 6 | Deploy (`p_429e665e49e9450eb7137c91c53010db`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `43b7ce9` (5 minutes) |
 | 2026-11-15 | 6 | Discover, area 1 Plan screen (`p_2f3f00938c2b46abaf16bb38900ac39a`) | 15 tickets, EXF-485 to EXF-509 (interleaved) | none | completed (45 minutes) |
-| 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | EXF-508, 511, 514, 516, 519, 521, 523, 525, 527 and one more | none | completed (47 minutes), 10 tickets |
+| 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | EXF-508, 511, 514, 516, 519, 521, 523, 525, 527 | none | completed (47 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | EXF-481, 482, 483, 484, 486, 488, 490 | none | completed (38 minutes) |
 | 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | EXF-513, 517, 520, 522, 524, 526, 528, 529, 530, 531, 533, 534, 536 | none | completed (50 minutes), 13 tickets |
 | 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | EXF-532, 535, 537 to 547 | none | completed (54 minutes), 13 tickets |
-| 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | EXF-497, 499, 501, 503, 505, 507, 510, 512, 515, 518 and one more | none | completed (43 minutes), 11 tickets |
+| 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | EXF-497, 499, 501, 503, 505, 507, 510, 512, 515, 518 | none | completed (43 minutes), 10 tickets |
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | EXF-548 to EXF-553 | none | completed (58 minutes), 6 tickets |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | EXF-468 to EXF-478, EXF-480 | none | completed (23 minutes), 12 tickets |
 | 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
@@ -1254,8 +1254,9 @@ Children used 25 of 200. Three are running: the Builds for EXF-485 and EXF-475, 
 review, which is filing what I approved.
 
 **What ended:** Discover area 8, Reflect, with 6 tickets. Own prefixed data only, all deleted, filters reset.
-It captured the export files of each report. **All nine discovery areas have now reported: about 104
-`clone:feature` tickets.**
+It captured the export files of each report. **All nine discovery areas have now reported: 94 `clone:feature`
+tickets** (EXF-459 to EXF-553, less the template ticket EXF-479). Earlier entries that say areas 2 and 7
+filed 10 and 11 tickets, or give totals of about 70, 85 or 98, overcounted: they filed 9 and 10.
 
 **Triage of area 8, decided here, not yet on the tickets** (rate limit):
 
@@ -1302,6 +1303,6 @@ transcripts:
   menu unless the ticket needs it, and then hide its entries first; mask the sidebar identity in every
   capture; print no page text from outside the test plan.
 
-**Backlog:** about 104 feature tickets: 43 triaged on the tickets, 53 triaged in the journal only (areas 2,
-7, 4, 6, 8), the rest are the eight not yet looked at individually in area 2 and 7's tails. Gap: EXF-454.
+**Backlog:** 94 feature tickets: 43 triaged on the tickets (areas 5, 9, 1, 3) and 51 triaged in the journal
+only (areas 2, 7, 4, 6, 8). Gap: EXF-454.
 Template: EXF-455, 456, 457, 479 and four being filed. No tickets filed by me this review.
