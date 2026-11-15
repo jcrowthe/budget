@@ -321,12 +321,19 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 1, Deploy 0, Test user flow 0,
-Discover 0. Last template-ticket sweep: none yet (due about round 30).
+Review counters (finished children since that template's last review): Build 1, Deploy 1, Test user flow 0,
+Discover 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
 |---|---|---|---|---|---|
 | 2026-11-15 | 1 | Build feature, scaffold (`p_f3914d573e1043c8a1968e6f1b7f2db4`) | none | [#1](https://github.com/jcrowthe/budget/pull/1) | merged as `2d82719` |
+| 2026-11-15 | 2 | Deploy (`p_29df4df509e0410592bdd63ec05be67e`) | none | none | refused at the profile check; nothing shipped |
+| 2026-11-15 | 2 | Build feature, EXF-453 hardening (`p_bed242fbbbc24340b340793fd1631f76`) | EXF-453 | none | cancelled by me after ten minutes (sequencing) |
+| 2026-11-15 | 2 | Discover, area 1 Plan screen (`p_17cd9c4a93fc4e29a08e8f5eddca54c4`) | none | none | failed at load_profile (`source.driver`) |
+| 2026-11-15 | 2 | Discover, area 2 targets and Auto-Assign (`p_5d1242cb6d6a4a9eaaac1d9d9d018506`) | none | none | failed at load_profile |
+| 2026-11-15 | 2 | Discover, area 3 accounts (`p_1de9980b363444c8a1d738fe29cac7cd`) | none | none | failed at load_profile |
+| 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -441,3 +448,60 @@ can sign in from a browser.
 **Next plan:** start the nine Discover areas side by side and the first Deploy with `expect_commit` `2d82719`.
 Git note: I merged `origin/main` into this branch (no history rewrite) so the journal sits on top of the
 scaffold.
+
+### 2026-11-15 · Plan round 2
+
+Children used 7 of 200. One is running: the profile-fix Build.
+
+**Tickets:** both tickets from the review exist. EXF-453 (hardening) set to High. EXF-454 (shell polish) set
+to Low and blocked by EXF-453.
+
+**What I started, and what went wrong:** I started the first Deploy, the hardening Build for EXF-453, and the
+first three of nine Discover areas. Within a minute the Deploy had refused and all three Discover children had
+failed, all at the profile check. Nothing shipped, and they cost nothing (no agent step ran).
+
+- Deploy: `clone.profile.json` lacks `repo.deploy`, `repo.migrations_pending`, `health.version_field`,
+  `live.auth_headers_from_env`, `live.recipes.create/get/delete/purge/routes`, `live.never_run`.
+- Discover: `clone.profile.json has no source.driver`.
+
+**Cause:** the scaffold Build filled the keys its own template uses. My brief said "fill every key your
+template defines", and a Build does not know the other templates' keys. I did not know them either.
+
+**How I found the full list:** the Deploy names its missing keys; Discover names only the first. I read
+finished Threads of another clone in this organization that runs the same template versions (a Deploy's
+`profile` output, and the first step of a Discover and of a Test user flow). From those:
+
+- Discover needs `source.url`, `source.driver` (`cdp`), `source.single_tab`, `source.signed_out_markers`,
+  `paths.screenshots_dir`, `paths.scratch_dir`.
+- Deploy with `repo.deploy_phases: true` runs `repo.deploy` with `DEPLOY_PHASE=gate` (and `DEPLOY_E2E=skip`
+  when the tree equals the gated commit), then with `DEPLOY_PHASE=release`. It reads `PHASE_SECONDS` lines,
+  compares `health.version_field` with a short sha, and reports pending migrations from
+  `repo.migrations_pending`.
+- Test user flow dumps `live.*`, `source.*` and `paths.*`; its keys look covered by the Deploy's list.
+- Those transcripts contained the other project's personal data. I use only the key names and the contract,
+  and record nothing else from them.
+
+**Decisions:**
+
+- Cancelled the hardening Build ten minutes in. The profile fix is on the critical path and must change
+  `scripts/deploy.sh` for the phases; the hardening Build edits that file too, and both touch
+  `paths.always_overlap`, so by the scheduling rule they cannot run together. EXF-453 stays in the backlog
+  (commented) and restarts after the profile fix merges and the first Deploy reports, so a deploy-script fix,
+  if one is needed, does not collide with it either.
+- Started one Build with no ticket (plan step 1: a Build fixes the profile, and nothing that relies on it
+  starts until it merges). It adds the keys, the deploy phases, `scripts/migrations-pending.sh`,
+  `scripts/live-test-plans.sh` (test plans carry the `ZZ-TEST` prefix) and a test that fails when a required
+  profile key is missing. The phase contract is inferred; its report will say how each inferred point was
+  built, to read against the first Deploy.
+- The other six Discover areas were not started.
+
+**Lessons:**
+
+- Start one child of a template that has never run on this profile and see it pass its profile step before
+  starting the rest. Three Discover starts were wasted (budget only; no cost).
+- Tell a discovery child to open the source app itself: its browser starts on a blank tab.
+- Discover notes are written (area boundaries, the `D1` to `D9` name prefixes so nine agents can share the
+  Test Budget, the data rules); reuse the three failed children's inputs and write the other six the same way.
+
+**Next plan, once the profile fix has merged:** one Deploy (`expect_commit` = the fix's merge commit) and one
+Discover first; when both pass their profile step, the other eight Discover areas; then EXF-453.
