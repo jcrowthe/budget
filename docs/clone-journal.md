@@ -348,3 +348,48 @@ Children used 1 of 200. (The round brief names a limit of 1000; the platform's l
   the scaffold builds. `PLAID_PRODUCTION_SECRET` is optional until Plaid approves production access.
 - Next round: when the scaffold has merged, start the nine Discover areas side by side and, once the
   Cloudflare credentials are set, the first Deploy.
+
+### 2026-11-15 · Plan round 1, continued: credentials arrived
+
+Children used 1 of 200. The scaffold Build is still running (no outputs yet); nothing else started, because
+nothing else can run before its profile exists.
+
+The person provided all ten keys. Read-only checks (statuses only, no values printed or stored):
+
+- Cloudflare token: active, and it is an **account-owned** token. It verifies at
+  `/accounts/{id}/tokens/verify`; `/user/...` endpoints answer 401. Scripts must not call user-level endpoints.
+- It can read the `doxen.dev` zone, DNS, Workers scripts and routes, D1, R2, Access apps and Access service
+  tokens. No Worker `budget`, D1 `budget-db`, R2 `budget-files` or Access app for the hostname exists yet.
+- It cannot read the Access organization (403). The deploy must take the team domain from
+  `CF_ACCESS_TEAM_DOMAIN`, not look it up. The team's JWKS endpoint answers with keys, so the domain is real.
+- The identity-provider list came back empty. I cannot tell whether that is the token's scope or the
+  organization. The service-token smoke test will not catch a missing login method: the person's first browser
+  sign-in is the real test. Ask them to try it right after the first Deploy.
+- The service token whose id was provided exists in the account.
+- DNS: `budget.doxen.dev` has **no record of its own**. The LAN address comes from a wildcard `*.doxen.dev`
+  A record. So there is nothing to delete: the Worker's custom domain adds a specific record that wins over
+  the wildcard. The wildcard must not be touched.
+- Plaid Sandbox: works, and issues a link token for Transactions.
+- Plaid Production: the secret is accepted, but a link token is refused with `INVALID_LINK_CUSTOMIZATION`: a
+  Data Transparency Messaging use case must be configured in the Plaid dashboard (Link customization). Only
+  the person can do that. It blocks linking real banks, nothing before that. The Sandbox and Production
+  secrets provided are the same value.
+- `SECRETS_ENCRYPTION_KEY` is 32 characters from the base64 alphabet: about 24 bytes, not the base64 of
+  32 bytes that the scaffold brief assumed.
+
+Decisions:
+
+- **Key derivation.** Rather than send the person back for another key, the secrets module derives its
+  AES-256 key with HKDF-SHA-256 from the value's bytes (key version in the `info`), and refuses values shorter
+  than 32 characters. Any high-entropy string then works, and the format can no longer break a deploy. This
+  must be settled before the first deploy, because changing it later means re-encrypting.
+- I cannot message a running child. **At the scaffold's approval card, check these and request changes for
+  any that is missing:**
+  1. HKDF derivation as above, with a `scripts/deploy.sh` preflight on the key's length that prints nothing.
+  2. No user-level Cloudflare API calls; token check through the account endpoint.
+  3. DNS step deletes nothing when no record named exactly `budget.doxen.dev` exists, and never touches the
+     wildcard.
+  4. No dependency on reading the Access organization.
+
+To tell the person: configure a Data Transparency Messaging use case in Plaid before linking real banks; try a
+browser sign-in after the first Deploy.
