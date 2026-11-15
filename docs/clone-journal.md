@@ -2089,3 +2089,18 @@ Deploy, so that each flow test sees accounts, Assigned and the register together
 **Backlog:** 89 open feature tickets (4 in progress), all triaged. Gap: EXF-558 (High), EXF-454, EXF-560,
 EXF-562 (Low). Template: nine. Finished since each template's last review: Build 0, Deploy 6, Discover 2,
 Test user flow 0.
+
+### 2026-11-15 · Plan round 26
+
+Children used 38 of 200. Five are running, all started in rounds 23 and 24: the Build template review and
+the Builds for EXF-493, EXF-489, EXF-513 and EXF-483. Nothing started this round.
+
+- No ticket was filed at the last review.
+- Main is `d2e659b` and it is live: nothing to deploy.
+- No manifest has arrived yet for the four Builds (EXF-493 and EXF-489 are ten minutes into their
+  Architect step, which for the grid and accounts Builds took about fifteen).
+- **Builds:** nothing can start beside the four; the reasons of round 25 stand.
+- **Flow tests: decided to wait one Deploy.** Flows 9 and 11 could run now, but flow 1 needs Assigned and
+  flow 10 needs the transactions API, both in Builds now. Four flow tests after the next Deploy tell more
+  than two now and two reruns later.
+- Review cadence: Build 0, Deploy 6, Discover 2.
