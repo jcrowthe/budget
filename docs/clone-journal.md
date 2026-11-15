@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
-Discover 10 (review due: start Improve templates on the Discover template in the next plan). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 0 (reviewed in round 13: the first ten). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -351,6 +351,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 8 | Build feature, EXF-458 source URL (`p_aa92546acd0641409ad3e7199c73f53b`) | EXF-458 | [#5](https://github.com/jcrowthe/budget/pull/5) | merged as `4f1fbb3` (17 minutes) |
 | 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | pending | running |
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
+| 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | none | none | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1172,3 +1173,18 @@ completed). Start Improve templates on the Discover template in the next plan wi
 
 **Backlog:** about 85 `clone:feature` tickets: 43 triaged on the tickets, 34 triaged in the journal only
 (areas 2, 7 and 4), areas 6 and 8 still filing. No tickets filed this review.
+
+### 2026-11-15 · Plan round 13
+
+Children used 25 of 200. Five are running: the Builds for EXF-485 and EXF-475, Discover areas 6 and 8, and
+the Improve templates review started this round.
+
+- No tickets were filed at the last review.
+- Started Improve templates in review mode on the Discover template with its first ten finished Threads
+  (three failed at the profile step, seven completed). Its notes carry the required sentence, point at the
+  open template tickets (EXF-455, 456, 457, 479) so it adds evidence instead of duplicating, and ask it to
+  check four things I saw: the sign-in check runs before the Lead's notes arrive; nine agents shared one
+  test plan; agents masked personal details on their own initiative; dependencies are written as titles, so
+  the Lead sets links by hand under a 60-per-hour write limit.
+- Started nothing else: every open High ticket waits on EXF-485 or EXF-475.
+- Ticket writes still rate limited at 20:33 UTC; owed writes as listed in review rounds 11 and 12.
