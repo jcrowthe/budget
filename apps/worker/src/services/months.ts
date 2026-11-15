@@ -23,7 +23,9 @@ import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
 import * as monthCatRepo from "../repositories/month-categories";
 import * as monthsRepo from "../repositories/months";
+import * as targetsRepo from "../repositories/targets";
 import * as txRepo from "../repositories/transactions";
+import { todayUtc } from "./targets";
 
 // Type-level check: the engine's read model and the API schema are the same shape, both ways.
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
@@ -212,13 +214,19 @@ export async function setMonthNote(
   return { month: v.month, note: v.note };
 }
 
-async function loadInput(db: Db, budgetId: string, activityBefore: string): Promise<EngineInput> {
-  const [groups, categories, assignments, notes, activity] = await Promise.all([
+async function loadInput(
+  db: Db,
+  budgetId: string,
+  activityBefore: string,
+  withTargets = false,
+): Promise<EngineInput> {
+  const [groups, categories, assignments, notes, activity, targetRows] = await Promise.all([
     groupsRepo.listActive(db, budgetId),
     categoriesRepo.listActive(db, budgetId),
     monthCatRepo.listForBudget(db, budgetId),
     monthsRepo.listNotes(db, budgetId),
     txRepo.activityByMonth(db, budgetId, activityBefore),
+    withTargets ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
   ]);
   return {
     groups,
@@ -230,13 +238,20 @@ async function loadInput(db: Db, budgetId: string, activityBefore: string): Prom
     })),
     activity,
     notes: notes.map((n) => ({ month: n.month, note: n.note })),
+    targets: targetRows.map((r) => ({ categoryId: r.categoryId, ...targetsRepo.toDefinition(r) })),
   };
 }
 
-export async function getPlanMonth(env: Env, budgetId: string, month: Month): Promise<MonthDetail> {
+export async function getPlanMonth(
+  env: Env,
+  budgetId: string,
+  month: Month,
+  today: string = todayUtc(),
+): Promise<MonthDetail> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  return computeMonth(await loadInput(db, budgetId, addMonths(month, 1)), month);
+  const input = await loadInput(db, budgetId, addMonths(month, 1), true);
+  return computeMonth({ ...input, today }, month);
 }
 
 export async function listPlanMonths(
