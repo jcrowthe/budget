@@ -53,3 +53,5 @@ export const pillTitle = (available: number): string => {
   }
   return "";
 };
+
+export const amountClass = (n: number): string => (n === 0 ? "amount zero" : "amount");

@@ -54,3 +54,9 @@ export const CheckIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m9.5 17.5-5-5 1.9-1.9 3.1 3.1 8.1-8.1 1.9 1.9z" />
   </svg>
 );
+/** A 2×2 grid of + − × ÷ glyphs: the calculator hint of the Assigned cell. */
+export const CalculatorIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M6.5 2h1v2.5H10v1H7.5V8h-1V5.5H4v-1h2.5zM14 4.5h6v1h-6zM6.8 14.2l.7-.7 1.4 1.4 1.4-1.4.7.7-1.4 1.4 1.4 1.4-.7.7-1.4-1.4-1.4 1.4-.7-.7 1.4-1.4zM16.2 13.5a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8zM14 16.5h6v1h-6zM16.2 18.7a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z" />
+  </svg>
+);

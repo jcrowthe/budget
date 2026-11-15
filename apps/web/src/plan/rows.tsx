@@ -1,9 +1,10 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are (EXF-498 adds keyboard selection)
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
-import { barSegments, money, statusLabel } from "./format";
+import { amountClass, barSegments, money, statusLabel } from "./format";
 import { CheckIcon, ChevronDownIcon, ChevronRightSmallIcon, PlusCircleFillIcon } from "./icons";
 import { ProgressBar } from "./ProgressBar";
 
@@ -23,8 +24,6 @@ export function Checkbox({ label }: { label: string }) {
     </button>
   );
 }
-
-const amountClass = (n: number) => (n === 0 ? "amount zero" : "amount");
 
 export function GroupRow({
   g,
@@ -79,8 +78,40 @@ export function GroupRow({
   );
 }
 
-export function CategoryRow({ c, bars }: { c: MonthCategoryDetail; bars: boolean }) {
+export type FocusTarget = "available" | "name";
+
+export function CategoryRow({
+  c,
+  bars,
+  editing,
+  onOpen,
+  onClose,
+  onCommit,
+  focusRequest,
+  onFocusDone,
+}: {
+  c: MonthCategoryDetail;
+  bars: boolean;
+  editing: boolean;
+  onOpen: () => void;
+  onClose: (how: CloseHow, committed?: Promise<void>) => void;
+  onCommit: (after: number) => Promise<void>;
+  focusRequest: FocusTarget | null;
+  onFocusDone: () => void;
+}) {
   const label = bars ? statusLabel(c) : null;
+  const nameRef = useRef<HTMLButtonElement>(null);
+  const pillRef = useRef<HTMLButtonElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: c.available re-runs it when a disabled pill becomes enabled
+  useEffect(() => {
+    if (focusRequest === "name") {
+      nameRef.current?.focus();
+      onFocusDone();
+    } else if (focusRequest === "available" && pillRef.current && !pillRef.current.disabled) {
+      pillRef.current.focus();
+      onFocusDone();
+    }
+  }, [focusRequest, c.available, onFocusDone]);
   return (
     <div className="grid-row category-row" role="row" aria-level={2}>
       <div className="cell-margin" />
@@ -90,24 +121,29 @@ export function CategoryRow({ c, bars }: { c: MonthCategoryDetail; bars: boolean
       </div>
       <div className="cell-name" role="rowheader">
         <div className="name-line">
-          <span className="category-name" title={c.name}>
+          {/* Inert until EXF-494's rename popover */}
+          <button type="button" ref={nameRef} className="category-name" title={c.name}>
             {c.name}
-          </span>
+          </button>
           {label && <span className="status-label">{label}</span>}
         </div>
         {bars && <ProgressBar segments={barSegments(c)} />}
       </div>
       <div className="cell-assigned" role="cell">
-        {/* EXF-489 replaces this box with the input */}
-        <div className="assigned-box">
-          <span className={amountClass(c.assigned)}>{money(c.assigned)}</span>
-        </div>
+        <AssignedCell
+          name={c.name}
+          assigned={c.assigned}
+          editing={editing}
+          onOpen={onOpen}
+          onClose={onClose}
+          onCommit={onCommit}
+        />
       </div>
       <div className="cell-activity" role="cell">
         <span className={amountClass(c.activity)}>{money(c.activity)}</span>
       </div>
       <div className="cell-available" role="cell">
-        <AvailablePill amount={c.available} />
+        <AvailablePill ref={pillRef} amount={c.available} />
       </div>
       <div className="cell-margin" />
     </div>
