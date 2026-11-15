@@ -321,7 +321,30 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Children used 0 of 200.
+Review counters (finished children since that template's last review): Build 0, Deploy 0, Test user flow 0,
+Discover 0. Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
 |---|---|---|---|---|---|
+| 2026-11-15 | 1 | Build feature, scaffold (`p_f3914d573e1043c8a1968e6f1b7f2db4`) | none | pending | running |
+
+### 2026-11-15 · Plan round 1
+
+Children used 1 of 200. (The round brief names a limit of 1000; the platform's live counter says 200. I quote
+200, the stricter figure, until the person or a budget card says otherwise.)
+
+- State: no runnable project, no `clone.profile.json`, no tickets, no children before this round.
+- Started the scaffold Build and nothing else: every other child stops without the profile it writes. There is
+  no ticket for it; the brief was the whole input. It asks for: the monorepo, the Access JWT check in front of
+  everything, the secrets module, one vertical slice (plans: table, service with `change_log`, REST, MCP tools,
+  shell UI) as the worked example, `pnpm check` / `pnpm dev` / `pnpm e2e`, `scripts/deploy.sh` (gate, then
+  release with the DNS replacement and the Access setup), and the profile with test prefix `ZZ-TEST`.
+- Asked it to register routes, MCP tools and pages by file convention and to timestamp migrations, so later
+  Builds have disjoint manifests. Its report will say whether that worked and what remains in
+  `paths.always_overlap`.
+- The scaffold cannot run the release (no credentials). Unverified until the first Deploy: the Access setup,
+  Managed OAuth beside Service Auth, the DNS replacement, the smoke test.
+- Requested the credentials from the person this round (the keys in section 3), so they can gather them while
+  the scaffold builds. `PLAID_PRODUCTION_SECRET` is optional until Plaid approves production access.
+- Next round: when the scaffold has merged, start the nine Discover areas side by side and, once the
+  Cloudflare credentials are set, the first Deploy.
