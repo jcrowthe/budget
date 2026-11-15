@@ -322,7 +322,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 ## 7. Progress log
 
 Review counters (finished children since that template's last review): Build 3, Deploy 2, Test user flow 0,
-Discover 3. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
+Discover 4. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
@@ -341,7 +341,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | none | none | running |
-| 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | EXF-459 to EXF-467 | none | completed (20 minutes), 9 tickets |
 | 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
@@ -844,3 +844,67 @@ child finished while I was starting these; the review triages its tickets.
   Ticket moved to In Progress. A Deploy runs beside it; a Deploy changes nothing in the repository.
 - Not started: EXF-454 (shell polish, Low). It would have to run beside EXF-458, which touches an
   always-overlap file; and the foundation Builds from discovery should take the next slots.
+
+### 2026-11-15 · Review round 8
+
+Children used 22 of 200. Ten are running: eight Discover areas, the Deploy of `eabf341` and the EXF-458 Build.
+
+**What ended:** Discover area 5, linked accounts (`p_1dca579d8d604381bbdd2de216b284ee`), completed in 20
+minutes with nine `clone:feature` tickets, EXF-459 to EXF-467. It stayed inside its limits: on the
+Programmatik account page it only hovered and read; its screenshots of that page mask every payee, category,
+memo, amount, balance and account name; nothing real went into a ticket.
+
+**Triage (priority; blocked by):**
+
+| Ticket | What | Priority | Blocked by |
+|---|---|---|---|
+| EXF-459 | Connect a bank with Plaid Link from the Add Accounts bank search | High | none yet |
+| EXF-460 | Manage Bank Connections: list, detail, nickname, Reset, Remove | Medium | EXF-459 |
+| EXF-461 | Link a bank account to a plan account, with a Starting Balance; unlink | High | EXF-459 |
+| EXF-462 | Import transactions from Plaid: scheduled sync and Sync now | High | EXF-461 |
+| EXF-463 | Imported transactions: approve, reject, "This needs a category", banner | High | EXF-462 |
+| EXF-464 | Match imported to hand-entered transactions, and unmatch | Medium | EXF-462 |
+| EXF-465 | Connection status: sidebar icon, header badge, Repair banner, update mode | Medium | EXF-462 |
+| EXF-466 | Pending bank transactions and Enter Now | Low | EXF-463 |
+| EXF-467 | Imported payee renaming rules and Bank Import Details | Low | EXF-462 |
+
+All nine also need accounts (area 3) and the register (area 4), whose tickets do not exist yet; EXF-467
+needs Manage Payees (area 7). Add those blocking links when those areas report. No Plaid Build starts before
+the foundation. None is a duplicate or out of scope.
+
+**Choices the area-5 agent made that are not from the source** (keep in mind when briefing the Builds):
+"Sync now" is ours (the source has no manual import); the Plaid error to status mapping and the copy for
+statuses it could not see; imports start on the link date for a never-reconciled account; match tie-break is
+closest date then oldest entry; "editing an unapproved transaction approves it" is an assumption. EXF-464 and
+EXF-466 are from the help pages only. Two wording slips it flagged itself: EXF-461's "with the user actor"
+(its own criterion 8 expects `mcp:` for MCP calls) and EXF-466 labelling Plaid details as "help".
+
+**Left for other areas, from its report:** reconcile against the bank balance (area 4); Manage Payees rename
+rules (area 7); the plan's "Uncategorized Transactions" section (area 1); the register filters "Is: Matched"
+and "Unapproved or Uncategorized" (area 4). Check those areas' tickets cover them; file what is missing then.
+
+**What I learned: the children share one browser.**
+
+- Area 5 reported "The browser tab is shared with other agents: it moved to other Test Budget pages during
+  my session." Earlier, a fresh Build's Clerk counted three `app.ynab.com` tabs in a box no agent had used.
+  The DevTools port is the same in every box. So there is one signed-in Chrome for the whole project, and
+  every child that finds "the" source tab drives the same tab.
+- Consequences. (1) Correctness: nine agents navigating one tab step on each other; they notice and
+  re-navigate, and area 1 once dragged another agent's category and put it back. (2) Privacy: while area 5 had
+  the tab on the Programmatik account page, another agent reading or capturing "its" tab would have seen that
+  page. Area 5 has finished and left the tab on the Test Budget, and no other child may open that page, so
+  the window is closed. When the other eight report, read their process notes for any sign they saw a page
+  they should not have; their screenshots are artifacts on the platform, not in the repository.
+- The Bank Connections dialog, opened from the Test Budget, lists the person's real bank connections (they
+  belong to the user, not the plan). Area 5 masked them. Children on accounts or bank work will see it too.
+- From now on every brief that touches the source says: open **your own** tab, keep its target id, and drive
+  only that tab. And no two children are on a non-test page at once (only area 5 ever was).
+- Not cancelling the eight running Discover children: they are 25 minutes into work of about that length,
+  they are coping, and their tickets are being filed. Flow tests later check the behaviour they describe.
+- Filing a `clone:template` ticket.
+
+**Running Builds and the scheduling rule:** EXF-458 is the only Build; no manifest yet.
+
+**Backlog:** 9 `clone:feature` tickets triaged (EXF-459 to EXF-467); area 9 has begun filing EXF-468 onward
+and is still running, so those wait for its report. Gap tickets: EXF-458 In Progress, EXF-454 Low. Template
+tickets: EXF-455, EXF-457 (High), EXF-456 (Medium).
