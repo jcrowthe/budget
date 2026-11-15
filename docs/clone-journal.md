@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 2, Deploy 2, Test user flow 0,
+Review counters (finished children since that template's last review): Build 3, Deploy 2, Test user flow 0,
 Discover 3. Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -346,7 +346,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
 | 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | none | none | running |
-| 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | pending | running |
+| 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | [#4](https://github.com/jcrowthe/budget/pull/4) | merged as `eabf341` (17 minutes) |
 
 ### 2026-11-15 · Plan round 1
 
@@ -801,3 +801,29 @@ Children used 20 of 200. Ten are running, all started in round 6: nine Discover 
   clone has nothing new to deploy or to walk in a flow test.
 - Order after EXF-453 merges: EXF-458 next and alone (it is small and closes a privacy gap for every later
   child), then the foundation Builds from discovery, then EXF-454.
+
+### 2026-11-15 · Review round 7
+
+Children used 20 of 200. Nine are running: the nine Discover areas, about 20 minutes in.
+
+**What ended:** the EXF-453 Build. I approved its card in a side turn; it squash-merged as
+`eabf341c96392b1ce5d2853ed7f9248641d237a5` (pull request #4) 17 minutes after it started, with no stall: the
+brief pattern (Clerk jobs first, each with a print-back) worked a second time. Ticket moved to Done.
+
+**What it changed:** the secrets module derives its AES-256 key with HKDF-SHA-256 from any key of 32
+characters or more (the person's key now works); the Worker itself accepts only `ACCESS_ALLOWED_EMAIL` and
+service tokens in its map, and fails closed otherwise; the idempotency retry and 409 branches are tested;
+the stale hygiene test is gone, so Builds that touch `apps/` no longer trip on it.
+
+**Checked before shipping it:** the hardened Worker refuses a service token whose `common_name` claim is
+not in its map. With the credentials in my box I made one read-only call to the live health route and
+decoded the Access cookie: `common_name` equals `CF_ACCESS_CLIENT_ID`, `sub` is empty, no email claim. So the
+tests' and scripts' service token will still get in after the deploy.
+
+**Not live yet:** live is still `43b7ce9`. The next plan deploys `eabf341` (`gated_commit` `d525be5…`, trees
+equal). After that deploy the person's browser sign-in depends on `ACCESS_ALLOWED_EMAIL` matching the email
+in their Access token; the Deploy cannot test that, only they can.
+
+**Backlog:** EXF-458 (High, gap) is now unblocked and is the next Build, alone. EXF-454 (Low) unblocked too,
+but waits: shell-only, and not worth a slot before the foundation. Template tickets EXF-455, EXF-457 (High),
+EXF-456 (Medium). No `clone:feature` tickets yet; discovery reports are due. No tickets filed this review.
