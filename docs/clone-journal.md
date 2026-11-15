@@ -1306,3 +1306,14 @@ transcripts:
 **Backlog:** 94 feature tickets: 43 triaged on the tickets (areas 5, 9, 1, 3) and 51 triaged in the journal
 only (areas 2, 7, 4, 6, 8). Gap: EXF-454.
 Template: EXF-455, 456, 457, 479 and four being filed. No tickets filed by me this review.
+
+### 2026-11-15 · Plan round 15
+
+Children used 25 of 200. Three are running, all started earlier: the Builds for EXF-485 (building) and
+EXF-475 (still at its plan step after 14 minutes, no manifest yet, no open card), and the Improve templates
+review (still filing; its four new tickets are not in the tracker yet).
+
+- No tickets were filed by me at the last review.
+- Started nothing: every open High ticket waits on one of the two Builds; discovery is complete with 94
+  tickets, so rule 3 (fewer than 5 open) does not apply; nothing new is merged to deploy.
+- Ticket writes still rate limited at 20:42 UTC.
