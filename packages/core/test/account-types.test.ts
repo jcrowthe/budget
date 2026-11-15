@@ -7,11 +7,11 @@ import {
   DISPLAY_GROUPS,
   type DisplayGroup,
   displayGroup,
-  type SidebarAccountLike,
-  sidebarSections,
   isLoanType,
   isOnBudget,
   positiveMeansOwed,
+  type SidebarAccountLike,
+  sidebarSections,
   startingBalanceAmount,
   startingBalanceFeedsReadyToAssign,
 } from "../src/account-types";

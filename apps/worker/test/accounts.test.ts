@@ -1,6 +1,6 @@
+import { env } from "cloudflare:test";
 import { ACCOUNT_TYPES, DISPLAY_GROUPS, displayGroup } from "@budget/core/account-types";
 import { AccountGroup } from "@budget/schema/accounts";
-import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
 import * as accountsRepo from "../src/repositories/accounts";
@@ -380,7 +380,8 @@ describe("group", () => {
         { name: "list_accounts", arguments: { budget_id: bid } },
         5,
       );
-      const listed = (mcp.body.result?.structuredContent as Json).accounts as Json[];
+      const sc = mcp.body.result?.structuredContent as Json;
+      const listed = sc.accounts as Json[];
       return { rest: rest.data.accounts as Json[], mcp: listed };
     };
     const groups = (list: Json[]) => Object.fromEntries(list.map((a) => [a.id, a.group]));
