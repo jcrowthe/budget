@@ -1122,3 +1122,15 @@ EXF-504 (Undo/Redo on the Plan) with EXF-530 (in the register), which should sha
 **Backlog:** about 70 `clone:feature` tickets, 43 triaged on the tickets, 21 triaged here only, the rest
 arriving. Gap: EXF-454. Template: EXF-455, EXF-457, EXF-479 (High), EXF-456 (Medium). No tickets filed this
 review.
+
+### 2026-11-15 · Plan round 12
+
+Children used 24 of 200. Four are running: the Builds for EXF-485 and EXF-475 (both at their plan step, past
+intake and preflight, no open card) and two Discover areas; a third Discover area finished since the review
+and is triaged at the next one.
+
+- No tickets were filed at the last review.
+- Started nothing. Every open High ticket waits on EXF-485 or EXF-475; EXF-468 overlaps EXF-475 on the
+  `budgets` files and the shell; nothing new is merged to deploy.
+- Ticket writes are still rate limited (20:31 UTC; the budget frees from about 21:05). Owed writes stay as
+  listed in review round 11.
