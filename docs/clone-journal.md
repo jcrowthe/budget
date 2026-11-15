@@ -336,6 +336,17 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 2 | Build feature, profile fix (`p_e9bdeb6d31de438a81905eeaec90f8c8`) | none | [#2](https://github.com/jcrowthe/budget/pull/2) draft | abandoned by me at acceptance (no source tab); branch kept at `f788d48`, to resume |
 | 2026-11-15 | 4 | Build feature, profile fix resumed (`p_eb0f06b647ef427f9ff82ac6f2418ea9`) | none | none | abandoned by me after 4 minutes: the Clerk never wrote `request.json`; changed nothing |
 | 2026-11-15 | 5 | Build feature, profile fix carried over, ordinary Build (`p_c533be0335ee4a789be544d6e8498b9a`) | none | [#3](https://github.com/jcrowthe/budget/pull/3) | merged as `43b7ce9` (25 minutes) |
+| 2026-11-15 | 6 | Deploy (`p_429e665e49e9450eb7137c91c53010db`) | none | none | **live** at https://budget.doxen.dev, `DEPLOY_SHA` `43b7ce9` (5 minutes) |
+| 2026-11-15 | 6 | Discover, area 1 Plan screen (`p_2f3f00938c2b46abaf16bb38900ac39a`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 2 targets and Auto-Assign (`p_940e7584759144a19491a447beb60fe0`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 3 accounts (`p_8f7b7c29a6404af9b7329fe46cf09295`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 4 register (`p_7841a17514924dd39f237af2070af80e`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 5 linked accounts, view-only (`p_1dca579d8d604381bbdd2de216b284ee`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 6 credit cards and loans (`p_4eb8623564154f3589232ae289e58e3d`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 7 scheduled transactions and payees (`p_98d4f5de89aa4e6e83b29bd111e2196c`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 8 Reflect (`p_73da15272400437f8d2c57fa10f63d3f`) | none | none | running |
+| 2026-11-15 | 6 | Discover, area 9 plan management, settings, export format (`p_ebbda25af70d450ea6fe87f368173e55`) | none | none | running |
+| 2026-11-15 | 6 | Build feature, EXF-453 hardening (`p_3d67d55e73834f6ca92c9ec15cfbfebd`) | EXF-453 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -714,3 +725,45 @@ EXF-456 (Medium, template). No `clone:feature` tickets yet. No tickets filed thi
 **Next plan:** one Deploy (`expect_commit` `43b7ce9…`, `gated_commit` `4d1f87c`) and one Discover (area 1)
 first; when both are past their profile step, the other eight Discover areas. EXF-453 after the Deploy
 reports.
+
+### 2026-11-15 · Plan round 6
+
+Children used 20 of 200. Ten are running: nine Discover areas and the EXF-453 Build. The Deploy started this
+round has already finished.
+
+**The clone is live:** https://budget.doxen.dev at `43b7ce92d2b3cf3a75031f80fb7459c093c52d31`. First deploy,
+passed on the first run of the release (Deploy `p_429e665e49e9450eb7137c91c53010db`, 5 minutes).
+
+- Gate: `pnpm check` 42 s; e2e skipped because the tree equalled the gated head.
+- Release: D1 `budget-db` and R2 `budget-files` created, three migrations applied, Worker deployed on the
+  custom domain, smoke test ok.
+- **Access shape: `combined`.** One application holds Managed OAuth, the Allow policy and the Service Auth
+  policy; Cloudflare accepted it. The open question from the architecture is answered at the API level. Not
+  yet tried: an MCP client actually signing in through Managed OAuth.
+- Verified live by the Deploy's verifier: unauthenticated `/`, `/api/v1/health` and `/mcp` answer 401; with
+  the service token `/api/v1/budgets` answers 200 and `/mcp` lists `list_budgets` and `create_budget`; the
+  test-plan recipes (create, list, delete, purge) work and left nothing behind; the home page loads in a
+  browser with no errors.
+- **Access issues a `CF_Authorization` cookie to the service token**, so flow-test children can hold a
+  browser session (`scripts/access-browser.mjs storage-state`).
+- The inferred contract fits: `PHASE_MODE=split`, the `PHASE_SECONDS` line is read, the health sha is
+  compared by prefix, `repo.migrations_pending` listed the three files before and none after.
+- Not done by the verifier: it did not look at D1, R2, DNS or the Worker directly, and it did not open the
+  Reflect or Accounts pages.
+- **Not yet known: whether the person can sign in from a browser.** Ask them to try.
+
+**What I started and why:**
+
+- Deploy and Discover area 1 first; both passed their profile step within 80 seconds, so the profile fix
+  works for both templates. Then Discover areas 2 to 9. All nine briefs open with BROWSER FIRST and the rule
+  never to open the bare site; each agent names what it creates `D1 ` to `D9 ` so nine can share the Test
+  Budget. Area 5 may open one extra URL, the permitted Programmatik account page, look-only, recording no real
+  payee or amount. Area 9 is read-and-cancel, and specifies the export file format for the importer.
+- EXF-453 as soon as the Deploy had passed (no deploy-script fix to collide with). It runs alone: it is the
+  only Build. Its step 0 deletes the stale hygiene test. Ticket moved to In Progress.
+- Not started: EXF-454 (blocked by EXF-453; it also needs the shell untouched by others). No Test user flow
+  yet: the live clone has only the plans example, so flows 1 to 10 have nothing to walk; flow 11 (the Access
+  lock) was in effect checked by the Deploy's verifier. First flow tests after the foundation Builds.
+
+**Risks I am watching:** nine agents in one YNAB plan at once (name prefixes are the only separation); the
+Discover children's screenshots are stored as artifacts, so the briefs forbid real data in them.
