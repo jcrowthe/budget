@@ -72,7 +72,7 @@
   margin-left: 4px;
   color: var(--actionPrimary);
 }
-.month-button:hover svg {
+.plan-header-date:hover .month-button svg {
   color: var(--actionPrimaryActive);
 }
 .month-note {
@@ -125,6 +125,9 @@
   box-shadow: var(--shadowMenu);
   z-index: 1;
   color: var(--labelPrimary);
+}
+.month-picker {
+  height: 12.3em;
 }
 .popover-arrow {
   position: absolute;
@@ -223,6 +226,8 @@
   background: var(--inputBackground);
   color: var(--labelPrimary);
   font: 500 var(--font-size-sm) var(--font);
+  display: block;
+  line-height: 1.2;
   resize: vertical;
   outline: none;
 }
@@ -230,7 +235,6 @@
   display: flex;
   justify-content: flex-end;
   padding: 12.24px;
-  padding-top: 0;
 }
 .month-note-ok {
   min-height: 32px;
@@ -246,4 +250,15 @@
 }
 .month-note-ok:hover {
   background: var(--buttonPrimaryBackgroundActive);
+}
+
+.plan-header button:focus-visible {
+  outline: auto 1px var(--actionPrimary);
+}
+.today-button:focus-visible,
+.month-note-ok:focus-visible {
+  outline-offset: 2px;
+}
+.month-note-ok:focus-visible {
+  outline-width: 2px;
 }
