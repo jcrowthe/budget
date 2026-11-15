@@ -1767,3 +1767,22 @@ Children used 31 of 200. Two Builds are running: EXF-487 (Plan grid, started in 
 - Ticket writes this round: 4 (EXF-481 state and comment, EXF-561 Done and comment). The window from the
   21:26 burst frees about 22:26 to 22:31 UTC; apply the owed Low triage at the next review after that.
 - Review cadence: Build 8, Deploy 4, Discover 2. The Build template review comes after two more.
+
+### 2026-11-15 · Review round 21
+
+Children used 31 of 200. Two Builds are running: EXF-487 (Plan grid; at its polish step, 14 visits, pull
+request #11 open) and EXF-481 (accounts; just started, with its Clerk).
+
+- **Ended since the last review: the Build for EXF-561**, merged as `401970d`. I had already recorded it in
+  the round 21 plan (ticket Done and commented there), because the plan came before this review.
+- Nothing else ended. Nothing is off course. No card is waiting.
+- The grid Build has stored 18 polish screenshots (clone and source pairs). My brief told it to mask the
+  email in every source capture; check the card's notes on that when it arrives, and remember that after its
+  refresh onto main its fixtures need `target: null` (the targets engine merged after it started).
+- Main `401970d`, live `d7a3a40`. Deploy when the grid merges.
+- Ticket writes: none now (22:18 UTC; the window frees from about 22:26). Owed, all Low: EXF-525, 527, 501,
+  503, 512, 518, 536, 541, 542, 543, 544, 545, 553; links EXF-467 after EXF-510, EXF-480 after EXF-522.
+
+**Backlog:** 91 open feature tickets (2 in progress: EXF-487, EXF-481). Gap: EXF-558 (High), EXF-454 and
+EXF-560 (Low); EXF-561 done. Template: nine. Finished since each template's last review: Build 8, Deploy 4,
+Discover 2, Test user flow 0.
