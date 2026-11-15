@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 4, Deploy 3, Test user flow 0,
+Review counters (finished children since that template's last review): Build 5, Deploy 3, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -352,7 +352,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 11 | Build feature, EXF-485 budget engine and core tables (`p_2088a38c1bed40b7b99f7b9f90ef1ea4`) | EXF-485 | [#6](https://github.com/jcrowthe/budget/pull/6) open | abandoned by me at the gate (no Playwright browser in its box); branch kept at `8b9b465`, to carry over |
 | 2026-11-15 | 11 | Build feature, EXF-475 plan-scoped URLs (`p_744621e075094dd988d0cc04103db917`) | EXF-475 | pending | running |
 | 2026-11-15 | 13 | Improve templates, review of ten Discover Threads (`p_cf95d417013546b7bc7ac3be0e864c67`) | filed EXF-554 to EXF-557 | none | completed (11 minutes); all proposals approved |
-| 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | pending | running |
+| 2026-11-15 | 17 | Build feature, EXF-485 carried over, ordinary Build (`p_2f4994aa9b7e4993bc14635af25e92b1`) | EXF-485 | [#8](https://github.com/jcrowthe/budget/pull/8) | merged as `0eb64f8` (28 minutes) |
 
 ### 2026-11-15 · Plan round 1
 
@@ -1443,3 +1443,42 @@ Addendum to plan round 17 (20:59 UTC): the carry-over Build's Clerk did all four
 `request.json` with `EXF-485`; own tab opened; HEAD `8b9b465…` with the expected diff shape; the browser cache
 lists `chromium-1255` and `chromium_headless_shell-1255`. EXF-558 set to High (one write got through);
 EXF-559's priority is still owed.
+
+### 2026-11-15 · Review round 17
+
+Children used 26 of 200. One is running: the Build for EXF-475, past acceptance (11 pass, 3 partial, none
+failed) and on its way to the gate.
+
+**What ended:** the carry-over Build for EXF-485. I approved its card in a side turn; it squash-merged as
+`0eb64f85a0577681ad6300b96640872a1083e5fa` (pull request #8). EXF-485 is Done, with a comment listing what
+later tickets can rely on. Pull request #6 (the first attempt) is superseded.
+
+**The budget engine is on main**: the first feature. The gate ran the full e2e 12 of 12 three times, browser
+specs included, because the Clerk had installed the browser.
+
+**What I checked before approving** (read at the gated head `0b8aa7d`): one commit beyond the head approved
+earlier, eleven files, inside the manifest. It fixes the stale-history issue the first review had only
+accepted: `setAssigned` and `moveMoney` now write the history row and the cell together under a guard that the
+cell still holds what was read, retry up to five times, then throw Conflict. So the history chain matches the
+data and no update is lost; under heavy simultaneous writes some moves are rejected (12 of 27 in a stress
+run), which a single-user app can live with. The migration has the six tables as briefed; `classifyTransaction`
+is the single place for counting rules, ready for the credit tickets.
+
+**Known issues carried forward** (filing one low gap ticket): no upper bound on the month in
+`GET /months/{month}` (year 9999 takes about a second); `docs/budget-engine-design.md:137` still describes the
+old move write; a leftover docstring in `repositories/category-groups.ts`.
+
+**EXF-475:** its base has moved (the engine merged). At its card expect Refresh, not Approve: both Builds add
+a line to `docs/README.md`.
+
+**Ticket writes: the limit freed and I applied most of the triage held in the journal.** Done on the tickets
+now: every High and Medium ticket of areas 2, 7, 4, 6 and 8 with its links (38 tickets), plus EXF-559 High,
+EXF-556 and EXF-557 Medium. Still owed, all Low: EXF-525, 527, 501, 503, 512, 518, 536, 541, 542, 543, 544,
+545, 553; and the links EXF-467 after EXF-510, EXF-480 after EXF-522. About 13 writes are left this hour,
+kept for the next plan's starts.
+
+One link differs from the journal tables on purpose: EXF-511 (targets engine) and EXF-532 (credit engine) are
+no longer blocked by EXF-485, since it merged; EXF-532 is blocked by EXF-481 only.
+
+**Backlog:** 93 open feature tickets (EXF-485 done), 81 triaged on the tickets, 13 Low still to set. Gap:
+EXF-454, EXF-558 (High). Template: nine. Next: EXF-481 (accounts) and EXF-487 (Plan grid) are unblocked.
