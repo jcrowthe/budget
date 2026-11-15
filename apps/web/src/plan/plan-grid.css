@@ -279,6 +279,7 @@
   background: transparent;
   color: var(--actionPrimary);
   opacity: 0;
+  transition: opacity 0.15s;
   cursor: pointer;
 }
 .add-category svg {
@@ -375,7 +376,7 @@
   background: var(--statusPositive);
   color: var(--categoryBalancePositiveLabel);
 }
-.available-pill.positive:hover {
+.available-pill.positive:hover:not(:disabled) {
   background: var(--categoryBalancePositiveHover);
 }
 .available-pill.negative {

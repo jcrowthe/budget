@@ -48,10 +48,7 @@ export function useCollapsedGroups(
   });
   const changes = local.budgetId === budgetId ? local.changes : {};
   const base = loadCollapsed(budgetId, groups ?? []);
-  const isCollapsed = useCallback(
-    (id: string) => changes[id] ?? base[id] ?? false,
-    [changes, base],
-  );
+  const isCollapsed = (id: string) => changes[id] ?? base[id] ?? false;
   const setCollapsed = useCallback(
     (ids: string[], collapsed: boolean) => {
       const next = Object.fromEntries(ids.map((id) => [id, collapsed]));

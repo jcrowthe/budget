@@ -5,7 +5,6 @@ import { authHeaders, testName } from "./support/auth";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const now = new Date();
-const M = `${now.getFullYear()}${pad(now.getMonth() + 1)}`;
 const ISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
 
 type Req = import("@playwright/test").APIRequestContext;
@@ -255,7 +254,6 @@ test("the month in the URL drives the request", async ({ page }) => {
   req = page.waitForRequest(/\/months\/\d{4}-\d{2}-01$/);
   await page.goto(`/${planId}/budget`);
   expect((await req).url()).toMatch(new RegExp(`/months/${ISO}$`));
-  expect(M).toContain(ISO.slice(0, 4));
 });
 
 test("the grid never shows the source app's name", async ({ page }) => {
