@@ -66,25 +66,32 @@ is an `env.ts` plus `wrangler.jsonc` change.
 
 ### Deploy phases
 
-`bash scripts/deploy.sh` supports three modes controlled by the `DEPLOY_PHASE` environment variable:
+`bash scripts/deploy.sh` is controlled by the `DEPLOY_PHASE` environment variable:
 
-- `DEPLOY_PHASE` unset (default): runs gate, then release (same as today)
-- `DEPLOY_PHASE=gate`: runs checks and e2e tests only; changes nothing in production
-- `DEPLOY_PHASE=release`: runs release steps only (no gate); assumes gate already passed
+- unset (default): gate, then release
+- `gate`: `pnpm check`, then `pnpm e2e`; changes nothing in production
+- `release`: build, resources, migrations, deploy, smoke test; runs no gate
+- anything else is refused (exit 2) before anything runs
 
-`DEPLOY_E2E=skip` skips the Playwright run but still runs `pnpm check` in the gate phase. The deploy script
-prints timing for each completed phase as `PHASE_SECONDS <name>=<seconds> ...`.
+`DEPLOY_E2E=skip` skips only the Playwright run (the gate still runs `pnpm check`). The required variables are
+checked first, in every phase. After each finished phase the script prints a line `PHASE_SECONDS <step>=<s> ...`
+(gate: `checks`, `e2e`; release: `build`, `resources`, `migrations`, `deploy`, `smoke`; a skipped step is `0`),
+and after a release `Live: <url>` and `DEPLOY_SHA=<full sha>`. `DEPLOY_DRY_RUN=1` prints `DRY: ...` instead of
+running the gate or calling Cloudflare.
 
 ### Scripts
 
-- `bash scripts/deploy.sh` (gate and/or release; see phases above)
-- `bash scripts/migrations-pending.sh` (lists pending D1 migrations; exit 0 when none are pending)
-- `bash scripts/live-test-plans.sh <command>` (manage test plans on the live clone)
-  - `list`: print id and name of every plan whose name starts with the test prefix
-  - `create '<name>'`: create a plan (name must start with the test prefix)
-  - `delete <id>`: delete a plan (its name must start with the test prefix)
-  - `purge`: delete all plans whose name starts with the test prefix; exit 0 only when 0 remain
-  - `delete_import`: print the not-applicable message
-  - `routes`: print the route map
+- `bash scripts/migrations-pending.sh`: read-only. Needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+  Prints the file name of each migration not yet applied to the remote `budget-db`, one per line, nothing when
+  none are pending (all of them when the database does not exist yet). Exit 0 when it can tell; 1 with a message
+  on stderr when it cannot; 2 for a missing variable.
+- `bash scripts/live-test-plans.sh <command>`: manages test plans (name starts with `live.test_prefix`, `ZZ-TEST`)
+  and nothing else; only calls `/api/v1/budgets`. Needs `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`.
+  - `list`: `<id><TAB><name>` per test plan
+  - `create '<name>'`: prints the new id; a name without the prefix is refused (exit 2)
+  - `delete <id>`: re-reads the plan; prints `deleted <id>`; an unprefixed plan is refused (exit 3)
+  - `purge`: prints `deleted <n> remaining <m>`; exit 0 only when `m` is 0; more than 50 matches is refused (exit 3)
+  - Local testing: `LIVE_TEST_PLANS_BASE_URL=http://127.0.0.1:<port>` targets `pnpm dev` (which signs requests
+    itself); add `LIVE_TEST_PLANS_LOCAL_JWT=1` for the e2e server. No Access headers are sent to a local server.
 
 Live flow tests reach the clone with `scripts/access-browser.mjs`.

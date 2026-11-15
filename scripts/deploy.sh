@@ -4,7 +4,10 @@
 # DEPLOY_PHASE=release: run release steps only (no gate), end with smoke test.
 # DEPLOY_PHASE unset: run gate, then release (default).
 # DEPLOY_DRY_RUN=1 runs every step without calling Cloudflare or running the gate (mutations print "DRY: ...").
-# DEPLOY_E2E=skip skips the Playwright run but still runs pnpm check in the gate.
+# DEPLOY_E2E=skip skips the Playwright run (gate only) but still runs pnpm check.
+# Gate = pnpm check, then pnpm e2e. Release = build, resources, migrations, deploy, smoke.
+# After each finished phase it prints one line: PHASE_SECONDS <step>=<seconds> ... (a skipped step prints 0).
+# Any other DEPLOY_PHASE value is refused (exit 2). The required variables are checked in every phase.
 set -euo pipefail
 umask 077
 cd "$(dirname "$0")/.."
@@ -21,8 +24,9 @@ DEPLOY_E2E="${DEPLOY_E2E:-}"
 
 TMPFILES=()
 WT=""
-PHASE_STARTS=()
-PHASE_NAMES=()
+PHASE_LINE=""
+PHASE_OPEN=""
+PHASE_T0=0
 
 cleanup() {
   local f
@@ -31,26 +35,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-phase_start() {
-  PHASE_STARTS+=("$SECONDS")
-  PHASE_NAMES+=("$1")
+# phase NAME: closes the open step (records its seconds) and opens NAME.
+phase_close() {
+  [ -z "$PHASE_OPEN" ] || PHASE_LINE="$PHASE_LINE $PHASE_OPEN=$((SECONDS - PHASE_T0))"
+  PHASE_OPEN=""
 }
-
-phase_seconds() {
-  local i name start
-  for i in "${!PHASE_NAMES[@]}"; do
-    name="${PHASE_NAMES[$i]}"
-    start="${PHASE_STARTS[$i]:-0}"
-    printf '%s=' "$name"
-    printf '%d' $((SECONDS - start))
-    [ $((i + 1)) -lt ${#PHASE_NAMES[@]} ] && printf ' '
-  done
-}
+phase() { phase_close; PHASE_OPEN="$1"; PHASE_T0=$SECONDS; }
+phase_skip() { phase_close; PHASE_LINE="$PHASE_LINE $1=0"; }
+phase_report() { phase_close; echo "PHASE_SECONDS$PHASE_LINE"; PHASE_LINE=""; }
 
 # 0. Preconditions: nothing ships, and no gate runs, before every key is present.
 need CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CF_ACCESS_TEAM_DOMAIN ACCESS_ALLOWED_EMAIL \
   CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET SECRETS_ENCRYPTION_KEY
 for tool in pnpm jq curl git; do command -v "$tool" >/dev/null || die "$tool is required"; done
+case "$DEPLOY_PHASE" in "" | gate | release) ;; *) echo "DEPLOY_PHASE must be unset, gate or release" >&2; exit 2 ;; esac
 export CLOUDFLARE_ACCOUNT_ID
 DEPLOY_SHA=$(git rev-parse HEAD)
 [ -z "$(git status --porcelain)" ] || echo "WARNING: the working tree is dirty; only the committed $DEPLOY_SHA is shipped." >&2
@@ -58,25 +56,22 @@ DEPLOY_SHA=$(git rev-parse HEAD)
 if [ "$DEPLOY_PHASE" != "release" ]; then
   # Gate
   say "Gate: pnpm check, then the local Playwright run"
-  phase_start "checks"
-  if is_dry; then echo "DRY: gate"; else pnpm check; fi
+  phase checks
+  if is_dry; then echo "DRY: gate: pnpm check"; else pnpm check; fi
   if [ "$DEPLOY_E2E" = "skip" ]; then
-    say "Skipping Playwright run (DEPLOY_E2E=skip)"
+    say "Skipping the Playwright run (DEPLOY_E2E=skip)"
+    phase_skip e2e
   else
-    phase_start "e2e"
-    if ! is_dry; then pnpm e2e; fi
+    phase e2e
+    if is_dry; then echo "DRY: gate: pnpm e2e"; else pnpm e2e; fi
   fi
-  say "PHASE_SECONDS $(phase_seconds)"
+  phase_report
 fi
 
 if [ "$DEPLOY_PHASE" != "gate" ]; then
-  # Reset timing for release phase
-  PHASE_STARTS=()
-  PHASE_NAMES=()
-
   # Build the committed sha in a separate worktree (the main HEAD is untouched).
   say "Build $DEPLOY_SHA"
-  phase_start "build"
+  phase build
   if is_dry; then
     echo "DRY: build"
     WTBUILD="$ROOT/apps/web/dist/budget/wrangler.json"
@@ -91,8 +86,8 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
   WORKDIR="${WT:-$ROOT}"
 
   # 1. Release step 1 (the preconditions above) is done. Step 2: resources.
+  phase resources
   say "Resources: D1 budget-db, R2 budget-files"
-  phase_start "migrations"
   DB_EXISTED=1
   D1_ID=$(cf_api GET "/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database?name=budget-db&per_page=100" | jq -r '.result[]? | select(.name == "budget-db") | .uuid' | head -n1)
   if [ -z "$D1_ID" ]; then
@@ -143,12 +138,13 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
 
   # 7. Remote migrations, then deploy.
   say "Migrations (remote) and deploy"
+  phase migrations
   if is_dry; then
     echo "DRY: wrangler d1 migrations apply"
   else
     (cd "$WORKDIR" && run_wrangler d1 migrations apply budget-db --remote -c "$WORKDIR/apps/worker/wrangler.jsonc")
   fi
-  phase_start "deploy"
+  phase deploy
   SVC_HASH=$(printf '%s' "$CF_ACCESS_CLIENT_ID" | { sha256sum 2>/dev/null || shasum -a 256; } | cut -d' ' -f1)
   SVC_MAP=$(jq -nc --arg h "$SVC_HASH" --arg n "$SERVICE_TOKEN_NAME" '{($h): $n}')
   if is_dry; then
@@ -168,7 +164,7 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
 
   # 8. Smoke test.
   say "Smoke test"
-  phase_start "smoke"
+  phase smoke
   if is_dry; then
     echo "DRY: smoke test (health with service token; unauthenticated /, /api/v1/health, /mcp refused)"
   else
@@ -200,7 +196,7 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
     fi
   fi
 
-  say "PHASE_SECONDS $(phase_seconds)"
+  phase_report
   echo "Live: https://$HOST"
   echo "DEPLOY_SHA=$DEPLOY_SHA"
 fi

@@ -1,176 +1,102 @@
-import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const root = new URL("../..", import.meta.url).pathname;
+const raw = readFileSync(`${root}clone.profile.json`, "utf8");
+// biome-ignore lint/suspicious/noExplicitAny: the profile is free-form JSON
+const profile: any = JSON.parse(raw);
 
-interface Profile {
-  repo?: {
-    deploy?: string;
-    deploy_phases?: boolean;
-    migrations_pending?: string;
-    install?: string;
-    check?: string;
-    e2e_full?: string;
-    e2e_specs?: string;
-    repeat_flag?: string;
-    workers_flag?: string;
-  };
-  health?: {
-    version_field?: string;
-    path?: string;
-    dev_url?: string;
-  };
-  source?: {
-    driver?: string;
-    url?: string;
-    single_tab?: boolean;
-    signed_out_markers?: string[];
-  };
-  paths?: {
-    docs_dir?: string;
-    screenshots_dir?: string;
-    scratch_dir?: string;
-    shared_modules?: string[];
-    always_overlap?: string[];
-  };
-  live?: {
-    url?: string;
-    test_prefix?: string;
-    test_space?: string;
-    health_path?: string;
-    auth_headers_from_env?: Record<string, string>;
-    auth?: {
-      env?: string[];
-      headers?: string[];
-      scripts?: string;
-      browser?: string;
+const REQUIRED = [
+  ..."install check e2e_full e2e_specs repeat_flag deploy deploy_phases migrations_pending workers_flag dev"
+    .split(" ")
+    .map((k) => `repo.${k}`),
+  "health.path",
+  "health.version_field",
+  "health.dev_url",
+  "source.url",
+  "source.single_tab",
+  "source.signed_out_markers",
+  "source.driver",
+  ..."docs_dir screenshots_dir scratch_dir shared_modules always_overlap web_ui tests sensitive docs_index e2e_state_dir"
+    .split(" ")
+    .map((k) => `paths.${k}`),
+  "paths.migrations.dir",
+  ..."url test_space test_prefix health_path auth_headers_from_env auth.env auth.headers auth.scripts auth.browser recipes.get recipes.create recipes.delete recipes.purge recipes.delete_import recipes.routes never_run never_touch deploy access deploy_env access.headers access.browser_helper source_test_space"
+    .split(" ")
+    .map((k) => `live.${k}`),
+  "ports.dev_web",
+  "ports.dev_api",
+  "ports.e2e_web",
+  "ports.e2e_api",
+  "box.cpu_count",
+  "box.e2e_full_lock",
+];
+
+function get(path: string) {
+  // biome-ignore lint/suspicious/noExplicitAny: walking free-form JSON
+  return path.split(".").reduce((o: any, k) => o?.[k], profile);
+}
+
+describe("clone.profile.json", () => {
+  it.each(REQUIRED)("has %s", (path) => {
+    const v = get(path);
+    expect(v, path).not.toBeUndefined();
+    expect(v, path).not.toBeNull();
+    expect(v, path).not.toBe("");
+    if (Array.isArray(v)) expect(v.length, path).toBeGreaterThan(0);
+  });
+
+  it("has the expected values", () => {
+    expect(profile.repo.deploy).toBe("bash scripts/deploy.sh");
+    expect(profile.live.deploy).toBe("bash scripts/deploy.sh");
+    expect(profile.repo.deploy_phases).toBe(true);
+    expect(profile.repo.migrations_pending).toBe("bash scripts/migrations-pending.sh");
+    expect(profile.health.version_field).toBe("deploy_sha");
+    expect(profile.source.driver).toBe("cdp");
+    expect(profile.live.health_path).toBe(profile.health.path);
+    const map = {
+      "CF-Access-Client-Id": "CF_ACCESS_CLIENT_ID",
+      "CF-Access-Client-Secret": "CF_ACCESS_CLIENT_SECRET",
     };
-    recipes?: {
-      get?: string;
-      create?: string;
-      delete?: string;
-      purge?: string;
-      delete_import?: string;
-      routes?: string;
-    };
-    never_run?: string[];
-    never_touch?: string[];
-  };
-}
-
-function loadProfile(): Profile {
-  const profilePath = new URL("../../clone.profile.json", import.meta.url).pathname;
-  const content = readFileSync(profilePath, "utf8");
-  return JSON.parse(content) as Profile;
-}
-
-function fileExists(path: string): boolean {
-  return existsSync(new URL(path, `file://${root}/`).pathname);
-}
-
-describe("clone.profile.json configuration", () => {
-  const profile = loadProfile();
-
-  it("has all required repo keys", () => {
-    expect(profile.repo).toBeDefined();
-    expect(profile.repo?.deploy).toBeDefined();
-    expect(profile.repo?.deploy_phases).toBe(true);
-    expect(profile.repo?.migrations_pending).toBeDefined();
-    expect(profile.repo?.install).toBeDefined();
-    expect(profile.repo?.check).toBeDefined();
-    expect(profile.repo?.e2e_full).toBeDefined();
-    expect(profile.repo?.e2e_specs).toBeDefined();
-    expect(profile.repo?.repeat_flag).toBeDefined();
+    expect(profile.live.auth_headers_from_env).toEqual(map);
+    expect(profile.live.auth.env).toEqual(Object.values(map));
+    expect(profile.live.auth.headers).toEqual(Object.keys(map));
+    expect(profile.live.recipes.delete_import).toBe("Not applicable yet: the app has no imports.");
+    for (const k of ["get", "create", "delete", "purge"]) {
+      expect(profile.live.recipes[k]).toMatch(/^bash scripts\/live-test-plans\.sh /);
+    }
   });
 
-  it("has all required health keys", () => {
-    expect(profile.health).toBeDefined();
-    expect(profile.health?.version_field).toBe("deploy_sha");
-    expect(profile.health?.path).toBeDefined();
+  it("lists the never_run and never_touch lines", () => {
+    const run: string[] = profile.live.never_run;
+    for (const line of [
+      "wrangler d1 execute --remote with any statement other than SELECT",
+      "wrangler delete, wrangler d1 delete, wrangler r2 bucket delete, wrangler secret delete",
+      "wrangler secret put or bulk outside scripts/deploy.sh",
+      "wrangler d1 time-travel restore without the person's say-so",
+      "any Cloudflare API call that creates, changes or deletes a resource not named for this app (Worker budget, D1 budget-db, R2 budget-files, Access applications budget and budget-mcp, Access policies budget-allow-owner and budget-service-auth, the DNS record named exactly budget.doxen.dev)",
+      "anything that changes or deletes the wildcard DNS record *.doxen.dev",
+      "scripts/deploy.sh with DEPLOY_PHASE=release or unset outside the Deploy template",
+      "any Plaid call against the production environment that creates, updates or removes an Item",
+    ]) {
+      expect(run).toContain(line);
+    }
+    expect(profile.live.never_touch).toContain(
+      "Cloudflare Workers, D1 databases, R2 buckets, Access applications, policies, service tokens and DNS records that are not named for this app (the account holds the person's other resources)",
+    );
+    expect(profile.live.never_touch.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("has all required source keys", () => {
-    expect(profile.source).toBeDefined();
-    expect(profile.source?.driver).toBe("cdp");
-    expect(profile.source?.url).toBeDefined();
-    expect(profile.source?.single_tab).toBeDefined();
-    expect(profile.source?.signed_out_markers).toBeDefined();
-  });
-
-  it("has all required paths keys", () => {
-    expect(profile.paths).toBeDefined();
-    expect(profile.paths?.docs_dir).toBeDefined();
-    expect(profile.paths?.screenshots_dir).toBeDefined();
-    expect(profile.paths?.scratch_dir).toBeDefined();
-    expect(profile.paths?.shared_modules).toBeDefined();
-    expect(profile.paths?.always_overlap).toBeDefined();
-  });
-
-  it("has all required live keys", () => {
-    expect(profile.live).toBeDefined();
-    expect(profile.live?.url).toBeDefined();
-    expect(profile.live?.test_prefix).toBeDefined();
-    expect(profile.live?.test_space).toBeDefined();
-    expect(profile.live?.health_path).toBe("/api/v1/health");
-    expect(profile.live?.auth_headers_from_env).toBeDefined();
-    expect(profile.live?.auth).toBeDefined();
-    expect(profile.live?.recipes).toBeDefined();
-    expect(profile.live?.never_run).toBeDefined();
-    expect(profile.live?.never_touch).toBeDefined();
-  });
-
-  it("has auth_headers_from_env with correct structure", () => {
-    const headers = profile.live?.auth_headers_from_env;
-    expect(headers).toBeDefined();
-    expect(headers?.["CF-Access-Client-Id"]).toBe("CF_ACCESS_CLIENT_ID");
-    expect(headers?.["CF-Access-Client-Secret"]).toBe("CF_ACCESS_CLIENT_SECRET");
-  });
-
-  it("has auth with required fields", () => {
-    const auth = profile.live?.auth;
-    expect(auth?.env).toEqual(["CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET"]);
-    expect(auth?.headers).toEqual(["CF-Access-Client-Id", "CF-Access-Client-Secret"]);
-    expect(auth?.scripts).toBeDefined();
-    expect(auth?.browser).toBeDefined();
-  });
-
-  it("has recipes with all required commands", () => {
-    const recipes = profile.live?.recipes;
-    expect(recipes?.get).toBeDefined();
-    expect(recipes?.create).toBeDefined();
-    expect(recipes?.delete).toBeDefined();
-    expect(recipes?.purge).toBeDefined();
-    expect(recipes?.delete_import).toBeDefined();
-    expect(recipes?.routes).toBeDefined();
-  });
-
-  it("has never_run restrictions", () => {
-    const neverRun = profile.live?.never_run;
-    expect(neverRun).toBeDefined();
-    expect(Array.isArray(neverRun)).toBe(true);
-    expect(neverRun?.length).toBeGreaterThan(0);
-  });
-
-  it("has never_touch restrictions", () => {
-    const neverTouch = profile.live?.never_touch;
-    expect(neverTouch).toBeDefined();
-    expect(Array.isArray(neverTouch)).toBe(true);
-    expect(neverTouch?.length).toBeGreaterThan(0);
-  });
-
-  it("referenced scripts exist", () => {
-    expect(fileExists("scripts/deploy.sh")).toBe(true);
-    expect(fileExists("scripts/migrations-pending.sh")).toBe(true);
-    expect(fileExists("scripts/live-test-plans.sh")).toBe(true);
-  });
-
-  it("scripts are executable", () => {
-    const scripts = ["scripts/deploy.sh", "scripts/migrations-pending.sh", "scripts/live-test-plans.sh"];
-    for (const script of scripts) {
-      const path = new URL(script, `file://${root}/`).pathname;
-      const stat = execSync(`stat -c '%a' "${path}"`, { encoding: "utf8" }).trim();
-      expect(Number(stat.slice(-1))).toBeGreaterThanOrEqual(1);
+  it("names only scripts that exist, and runs executable shell scripts", () => {
+    const names = new Set(raw.match(/scripts\/[A-Za-z0-9_./-]+\.(sh|mjs)/g) ?? []);
+    expect(names.size).toBeGreaterThan(0);
+    for (const n of names) expect(existsSync(`${root}${n}`), n).toBe(true);
+    for (const n of [
+      "scripts/deploy.sh",
+      "scripts/migrations-pending.sh",
+      "scripts/live-test-plans.sh",
+    ]) {
+      expect(statSync(`${root}${n}`).mode & 0o111, n).not.toBe(0);
     }
   });
 });
