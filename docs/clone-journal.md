@@ -321,12 +321,12 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 0, Deploy 0, Test user flow 0,
+Review counters (finished children since that template's last review): Build 1, Deploy 0, Test user flow 0,
 Discover 0. Last template-ticket sweep: none yet (due about round 30).
 
 | Date | Round | Child (template, Thread) | Ticket | Pull request | Outcome |
 |---|---|---|---|---|---|
-| 2026-11-15 | 1 | Build feature, scaffold (`p_f3914d573e1043c8a1968e6f1b7f2db4`) | none | pending | running |
+| 2026-11-15 | 1 | Build feature, scaffold (`p_f3914d573e1043c8a1968e6f1b7f2db4`) | none | [#1](https://github.com/jcrowthe/budget/pull/1) | merged as `2d82719` |
 
 ### 2026-11-15 · Plan round 1
 
@@ -393,3 +393,51 @@ Decisions:
 
 To tell the person: configure a Data Transparency Messaging use case in Plaid before linking real banks; try a
 browser sign-in after the first Deploy.
+
+### 2026-11-15 · Review round 1
+
+Children used 1 of 200. Nothing is running.
+
+**What ended:** the scaffold Build. I approved its card in a side turn; it squash-merged as `2d82719`
+(pull request #1). It ran about ten and a half hours from start to merge.
+
+**What I checked before approving** (read at the gated head `c093de0`): gate covered the head, acceptance 17
+of 17. The Access check is in front of every route including static assets and fails closed; the local test
+token is accepted only when `ENVIRONMENT` is `local`; `workers.dev` and preview URLs are off; nothing
+sensitive is committed (`.screenshots/` is ignored). `scripts/deploy.sh` makes no user-level Cloudflare calls,
+does not read the Access organization, and its DNS step only considers a record named exactly
+`budget.doxen.dev`, so the wildcard is safe.
+
+**What I learned:**
+
+- Registration by file convention works (`import.meta.glob` for routes, MCP tools and pages). A feature adds
+  files and edits none; `docs/conventions.md` is the ten-step recipe. Brief every Build to follow it.
+- Profile: `paths.shared_modules` and `paths.always_overlap` are set. `apps/worker/src/env.ts` and
+  `wrangler.jsonc` are in `always_overlap`: a Build that adds a binding or variable cannot run beside another.
+- Migrations: 14-digit UTC timestamp prefix, no journal file.
+- The live browser helper is `scripts/access-browser.mjs` (service-token headers, or a cookie storage state).
+- Access shape: the script first tries one application with Managed OAuth and both policies; if Cloudflare
+  rejects that, it creates a second application for `/mcp`. Which one holds is known after the first Deploy.
+- Correction to my earlier note: the key derivation does not have to precede the first deploy. Nothing is
+  encrypted until a feature stores a secret, so the deadline is the first Build that stores one (Plaid). The
+  first deploy uploads the key as given and never imports it.
+
+**Defect carried forward:** the secrets module requires base64 of exactly 32 bytes; the person's key is a
+32-character string, so `setSecret` would throw. Filed as a hardening ticket (below), which must merge before
+any Plaid Build.
+
+**Tickets filed this review** (set priority and links in the next plan):
+
+1. Harden the shared Worker modules: HKDF key derivation with a deploy preflight; the Worker also pins the
+   allowed email and refuses unknown service tokens; test the idempotency retry and 409 branch.
+2. Shell polish: plan menu is 243px against the source's 240px; hover and active colours unmeasured.
+
+**Backlog:** empty apart from those two. No `clone:feature` tickets yet: discovery has not run.
+
+**Still unverified until the first Deploy:** the Access application and policies, Managed OAuth beside Service
+Auth, the custom domain over the wildcard record, remote migrations, the smoke test, and whether the person
+can sign in from a browser.
+
+**Next plan:** start the nine Discover areas side by side and the first Deploy with `expect_commit` `2d82719`.
+Git note: I merged `origin/main` into this branch (no history rewrite) so the journal sits on top of the
+scaffold.
