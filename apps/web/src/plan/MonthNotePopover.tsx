@@ -45,7 +45,7 @@ export function MonthNotePopover({
           onInput={(e) => {
             const el = e.currentTarget;
             el.style.height = "auto";
-            el.style.height = `${Math.min(Math.max(el.scrollHeight, 44), 168)}px`;
+            el.style.height = `${Math.min(Math.max(el.scrollHeight + el.offsetHeight - el.clientHeight, 44), 168)}px`;
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {

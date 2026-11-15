@@ -2,6 +2,7 @@
 :root {
   --actionPrimaryActive: #a3acff;
   --actionPrimaryDisabled: #383ca3;
+  --actionSecondary: #3c3e53;
   --separatorStandard: rgba(255, 255, 255, 0.1);
   --backgroundPrimaryElevated: #1f2038;
   --backgroundSecondaryElevated: #292b3d;
@@ -230,6 +231,7 @@
   line-height: 1.2;
   resize: vertical;
   outline: none;
+  scrollbar-color: var(--actionSecondary) transparent;
 }
 .month-note-actions {
   display: flex;
