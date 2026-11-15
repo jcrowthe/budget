@@ -30,6 +30,7 @@ test("MCP lists tools, creates a plan that REST then shows", async ({ request })
   const tools = await rpc(request, "tools/list", {}, 2);
   expect(tools.result.tools.map((t: { name: string }) => t.name).sort()).toEqual([
     "create_budget",
+    "get_plan_month",
     "list_budgets",
   ]);
   const name = testName("mcp");
