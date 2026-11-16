@@ -11,3 +11,4 @@
 - P9 [scoped] `.account-modal .secondary.large:hover:not(:disabled)` background rgba(117,131,255,.27); `.secondary.large` unchanged globally.
 - P10 [applied] `.bank-note` `font-style: normal`; design doc corrected.
 - P11 [applied] "continue setting up this account" is an inline `span role="button"` (tabIndex 0, Enter/Space) so it wraps; accessible name unchanged.
+- P1 [scoped] `.account-modal-body` gets `scrollbar-color: var(--inputBackground) transparent` (source rgb(60,62,83) = #3c3e53; `--actionSecondary` is defined in plan CSS held by other Builds, same value) and `color-scheme: dark`; no global rule on `body` (not requested).

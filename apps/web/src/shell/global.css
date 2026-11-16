@@ -571,6 +571,9 @@ a {
   left: 0;
 }
 .account-modal-body {
+  /* Source (dark): scrollbar-color rgb(60,62,83) transparent; #3c3e53 = --inputBackground */
+  scrollbar-color: var(--inputBackground) transparent;
+  color-scheme: dark;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
