@@ -18,6 +18,7 @@ export function Popover({
   onClose,
   className,
   dismissOnOutside,
+  scrim,
   gap = ARROW_H,
   children,
 }: {
@@ -27,6 +28,8 @@ export function Popover({
   onClose: () => void;
   className?: string;
   dismissOnOutside?: boolean;
+  /** A dimmed overlay (the Ready to Assign breakdown); others keep it transparent. */
+  scrim?: boolean;
   gap?: number;
   children: ReactNode;
 }) {
@@ -96,7 +99,7 @@ export function Popover({
   return createPortal(
     // biome-ignore lint/a11y/noStaticElementInteractions: the overlay only catches an outside mousedown; Escape is the keyboard route
     <div
-      className="popover-overlay"
+      className={`popover-overlay${scrim ? " has-scrim" : ""}`}
       onMouseDown={(e) => {
         if (dismissOnOutside && e.target === e.currentTarget) closeRef.current();
       }}

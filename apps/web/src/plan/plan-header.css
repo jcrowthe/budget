@@ -31,6 +31,8 @@
 }
 .plan-header-totals {
   flex: 0 1 auto;
+  align-self: stretch;
+  padding: var(--space-2);
 }
 
 .month-arrow {
@@ -311,7 +313,6 @@
 .rta-amount {
   display: flex;
   align-items: center;
-  gap: 6px;
   font-size: 21px;
   font-weight: 700;
   line-height: 25.2px;
@@ -323,9 +324,9 @@
 }
 .rta-info {
   opacity: 0;
+  margin-left: var(--space-2);
 }
-.rta-summary:hover .rta-info,
-.rta-summary:focus-visible .rta-info,
+.rta-info:hover,
 .rta-box.is-negative .rta-info {
   opacity: 1;
 }
@@ -397,13 +398,13 @@
   fill: var(--backgroundPrimaryElevated);
 }
 .rta-breakdown-title {
-  margin: 0 24px 12px;
+  margin: 0 var(--space-3) 12.24px;
   color: var(--labelSecondary);
   font-size: 16px;
   font-weight: 500;
 }
 .rta-card {
-  margin: 0 16px;
+  margin: 0 12.24px var(--space-3);
   padding: 24px;
   border-radius: 8px;
   background: var(--backgroundSecondaryElevated);
@@ -411,9 +412,19 @@
 .rta-block-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
+  line-height: var(--line-height);
+}
+.rta-block-header svg {
+  margin-right: var(--space-2);
+}
+.rta-block-header span {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.rta-block {
+  margin-bottom: var(--space-2);
 }
 .rta-block-header.is-plus {
   color: #77ba21;
@@ -429,9 +440,9 @@
   font-size: var(--font-size-md);
 }
 .rta-rule {
-  margin: 16px 0;
+  margin: 6px 0;
   border: 0;
-  border-top: 1px solid var(--separatorStandard);
+  border-top: 1px solid var(--borderSubtle);
 }
 .rta-total {
   display: flex;
@@ -445,22 +456,35 @@
 .rta-total.is-negative {
   color: var(--labelNegative);
 }
+.rta-total > :last-child {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height);
+}
 .rta-message {
   margin: 8px 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height);
   color: var(--labelSecondary);
 }
 .rta-help {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 16px 16px 0;
-  padding: 12px 16px;
+  margin: 0 12.24px;
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height);
   border-radius: 8px;
   background: var(--helpboxBackground);
   color: var(--labelPrimary);
 }
 .rta-help svg {
   flex: none;
+  width: 32px;
+  height: 24px;
+  margin-right: 0;
   color: #545bfe;
 }
 
@@ -489,4 +513,9 @@
   color: var(--labelTertiary);
   opacity: 0.5;
   cursor: default;
+}
+
+/* Scrim of the breakdown only. Source: .modal-popup overlay rgba(0,0,0,.33). */
+.popover-overlay.has-scrim {
+  background: var(--overlay);
 }

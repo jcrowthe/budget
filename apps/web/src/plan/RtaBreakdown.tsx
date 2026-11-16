@@ -42,39 +42,44 @@ export function RtaBreakdown({
       width={540}
       gap={8}
       dismissOnOutside
+      scrim
       label="Ready to Assign Breakdown"
       className="rta-breakdown"
       onClose={onClose}
     >
       <h2 className="rta-breakdown-title">Ready to Assign Breakdown</h2>
       <div className="rta-card">
-        <div className="rta-block-header is-plus">
-          <AddCircleFillIcon width={24} height={24} />
-          <span>{signed(plus)}</span>
+        <div className="rta-block">
+          <div className="rta-block-header is-plus">
+            <AddCircleFillIcon width={16} height={16} />
+            <span>{signed(plus)}</span>
+          </div>
+          {plus !== 0 && (
+            <>
+              <Line
+                text={`Ready to Assign left over from ${prev}`}
+                amount={b.left_over_from_previous}
+              />
+              <Line text={`Inflow: Ready to Assign transactions in ${here}`} amount={b.inflows} />
+            </>
+          )}
         </div>
-        {plus !== 0 && (
-          <>
-            <Line
-              text={`Ready to Assign left over from ${prev}`}
-              amount={b.left_over_from_previous}
-            />
-            <Line text={`Inflow: Ready to Assign transactions in ${here}`} amount={b.inflows} />
-          </>
-        )}
         <hr className="rta-rule" />
-        <div className="rta-block-header is-minus">
-          <SubtractCircleFillIcon width={24} height={24} />
-          <span>{signed(minus)}</span>
+        <div className="rta-block">
+          <div className="rta-block-header is-minus">
+            <SubtractCircleFillIcon width={16} height={16} />
+            <span>{signed(minus)}</span>
+          </div>
+          {minus !== 0 && (
+            <>
+              <Line text={`Cash overspending in ${prev}`} amount={b.cash_overspending_previous} />
+              <Line text={`Assigned in ${here}`} amount={b.assigned_in_month} />
+              {b.assigned_in_future !== 0 && (
+                <Line text="Assigned in Future" amount={b.assigned_in_future} />
+              )}
+            </>
+          )}
         </div>
-        {minus !== 0 && (
-          <>
-            <Line text={`Cash overspending in ${prev}`} amount={b.cash_overspending_previous} />
-            <Line text={`Assigned in ${here}`} amount={b.assigned_in_month} />
-            {b.assigned_in_future !== 0 && (
-              <Line text="Assigned in Future" amount={b.assigned_in_future} />
-            )}
-          </>
-        )}
         <hr className="rta-rule" />
         <div className={`rta-total is-${state}`}>
           <span>Total Ready to Assign</span>
