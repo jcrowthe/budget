@@ -23,6 +23,11 @@ export const AccountType = z
   ])
   .openapi("AccountType");
 
+// Repeats core's DISPLAY_GROUPS; a Worker test asserts they are equal.
+export const AccountGroup = z
+  .enum(["cash", "credit", "loans", "tracking", "closed"])
+  .openapi("AccountGroup");
+
 export const Account = z
   .object({
     id: z.uuid(),
@@ -33,6 +38,7 @@ export const Account = z
     note: z.string().nullable(),
     starred: z.boolean(),
     closed: z.boolean(),
+    group: AccountGroup,
     sort: z.number().int(),
     created_at: z.string(),
     cleared_balance: Milliunits,
@@ -73,6 +79,7 @@ export const AccountCreateResponse = dataEnvelope(
 ).openapi("AccountCreateResponse");
 
 export type AccountType = z.infer<typeof AccountType>;
+export type AccountGroup = z.infer<typeof AccountGroup>;
 export type Account = z.infer<typeof Account>;
 export type AccountCreate = z.infer<typeof AccountCreate>;
 export type AccountCreateRequest = z.input<typeof AccountCreateRequest>;

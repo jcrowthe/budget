@@ -36,6 +36,62 @@ export function accountGroup(type: AccountType): AccountGroup {
   return "tracking";
 }
 
+export const DISPLAY_GROUPS = ["cash", "credit", "loans", "tracking", "closed"] as const;
+export type DisplayGroup = (typeof DISPLAY_GROUPS)[number];
+
+const DISPLAY_OF: Record<AccountGroup, DisplayGroup> = {
+  cash: "cash",
+  credit: "credit",
+  loan: "loans",
+  tracking: "tracking",
+};
+
+/** The account's group as REST/MCP report it: "closed" for any closed account, else by type. */
+export function displayGroup(type: AccountType, closed: boolean): DisplayGroup {
+  return closed ? "closed" : DISPLAY_OF[accountGroup(type)];
+}
+
+export const SIDEBAR_SECTIONS = [
+  "starred",
+  "cash",
+  "credit",
+  "loans",
+  "tracking",
+  "closed",
+] as const;
+export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number];
+export interface SidebarAccountLike {
+  id: string;
+  name: string;
+  starred: boolean;
+  closed: boolean;
+  group: DisplayGroup;
+  balance: number;
+}
+
+/** Non-empty sections in SIDEBAR_SECTIONS order; total = sum of balances, null for "closed". */
+export function sidebarSections<T extends SidebarAccountLike>(
+  accounts: readonly T[],
+): { name: SidebarSection; rows: T[]; total: number | null }[] {
+  const out: { name: SidebarSection; rows: T[]; total: number | null }[] = [];
+  for (const name of SIDEBAR_SECTIONS) {
+    let rows: T[];
+    if (name === "starred") rows = accounts.filter((a) => a.starred && !a.closed);
+    else if (name === "closed") {
+      rows = accounts
+        .filter((a) => a.closed)
+        .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+    } else rows = accounts.filter((a) => !a.closed && a.group === name);
+    if (rows.length === 0) continue;
+    out.push({
+      name,
+      rows,
+      total: name === "closed" ? null : rows.reduce((n, a) => n + a.balance, 0),
+    });
+  }
+  return out;
+}
+
 export function isLoanType(type: AccountType): boolean {
   return accountGroup(type) === "loan";
 }

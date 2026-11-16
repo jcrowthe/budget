@@ -1,4 +1,5 @@
 import {
+  displayGroup,
   isLoanType,
   isOnBudget,
   STARTING_BALANCE_PAYEE,
@@ -50,6 +51,7 @@ export function accountToApi(
     note: row.note,
     starred: row.starred,
     closed: row.closed,
+    group: displayGroup(row.type, row.closed),
     sort: row.sortOrder,
     created_at: row.createdAt,
     cleared_balance: b.cleared,

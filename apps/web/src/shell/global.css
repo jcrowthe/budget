@@ -424,36 +424,71 @@ a {
 .nav-account-group {
   padding-top: var(--space-2);
 }
-.nav-account-group h6 {
+.nav-account-block {
   display: flex;
   align-items: center;
+  width: calc(100% - 13px - var(--sidebar-resizer));
   height: 32px;
   margin: 0 calc(5px + var(--sidebar-resizer)) var(--space-1) var(--space-2);
-  padding-left: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelPrimary);
+  cursor: pointer;
+  font: inherit;
+}
+.nav-account-block .chevron {
+  width: 8px;
+  height: 8px;
+  margin: 0 8px 0 12px;
+  flex: none;
+  /* Source measured: svg position: relative; top: -1px (chevron y 213 vs 214). */
+  position: relative;
+  top: -1px;
+}
+.nav-account-block .label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 1.36px;
-  color: var(--labelPrimary);
+  line-height: 1.2;
+}
+.nav-account-block .slot-right {
+  width: 16px;
+  margin: 0 8px;
+  flex: none;
 }
 .nav-account-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
+  position: relative;
   height: 32px;
   margin: 0 calc(5px + var(--sidebar-resizer)) var(--space-1) var(--space-2);
-  padding: 0 calc(var(--space-3) + 20px) 0 var(--space-4);
   border-radius: var(--radius-md);
-  color: var(--labelPrimary);
-  text-decoration: none;
 }
-.nav-account-row:hover {
+.nav-account-row:hover:not(.is-selected) {
   background: var(--sidebarHover);
 }
-.nav-account-row.active {
+.nav-account-row.is-selected {
   background: var(--sidebarActive);
 }
-.nav-account-row .name {
+.nav-account-link {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+.nav-account-link .slot-left {
+  width: 16px;
+  margin: 0 8px;
+  flex: none;
+}
+.nav-account-link .name {
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -462,19 +497,65 @@ a {
   font-weight: 500;
   line-height: 32px;
 }
-.nav-account-row .value {
+.nav-account-link .slot-right {
+  width: 20px;
+  margin: 0 8px;
   flex: none;
+}
+.nav-account-row .edit {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelPrimary);
+  cursor: pointer;
+  opacity: 0;
+}
+.nav-account-row .edit svg {
+  width: 12px;
+  height: 12px;
+}
+.nav-account-row:hover .edit,
+.nav-account-row .edit:focus-visible {
+  opacity: 0.7;
+}
+.nav-account-row .edit:hover {
+  opacity: 1;
+}
+.nav-account-block .value,
+.nav-account-link .value {
+  flex: none;
+  max-width: 13rem;
   font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--labelPrimary);
+  /* Source measured: .nav-account-value margin-bottom -0.2em (computed -2.4px). */
+  margin-bottom: -0.2em;
 }
 /* Dark theme: the negative balance is red text on no fill (source measured on its own .negative class). */
-.nav-account-row .value.negative {
+.nav-account-group .value.negative {
   padding: 2px 6px;
   border-radius: 1000px;
   background: transparent;
   color: var(--labelNegative);
-  margin: 0 -0.265rem 0.2em 0.5rem;
+  font-weight: 600;
+  margin: 0 -0.265rem 0 0.5rem;
+}
+.nav-account-group.loans .value.negative {
+  padding: 0;
+  margin: 0 0 -0.2em;
+  color: inherit;
+  font-weight: inherit;
 }
 
 .dialog.account-modal {

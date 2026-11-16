@@ -1,4 +1,4 @@
-import type { AccountGroup, AccountType } from "@budget/core/account-types";
+import type { AccountType, SidebarSection } from "@budget/core/account-types";
 
 export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking",
@@ -54,8 +54,11 @@ export const ACCOUNT_BADGE: Partial<Record<AccountType, string>> = {
   otherLiability: "Tracking Account: Liability",
 };
 
-export const SIDEBAR_GROUPS: [AccountGroup, string][] = [
-  ["cash", "CASH"],
-  ["credit", "CREDIT"],
-  ["tracking", "TRACKING"],
-];
+export const SIDEBAR_LABELS: Record<SidebarSection, string> = {
+  starred: "STARRED",
+  cash: "CASH",
+  credit: "CREDIT",
+  loans: "LOANS",
+  tracking: "TRACKING",
+  closed: "CLOSED",
+};
