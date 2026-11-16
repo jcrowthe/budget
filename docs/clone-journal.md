@@ -8814,3 +8814,59 @@ Discover 2; Test user flow 1.
 Record Payment); the Build template review with the ten Builds finished since the last one; Reconcile
 (EXF-533, High) now that the account page and the register are free; flows 2 and 4 again after the
 Deploy.
+
+### 2026-11-16 · Plan round 102
+
+Children used 119 of 200. Three started now; five are running. Main `49012cd`, live `11273cf` (read
+by me at 20:00Z); no migration pending. The person has not answered the round-100 check-in.
+
+- **The ticket filed at the last review exists: EXF-674** (Record Payment's leftovers); Low; blocked
+  by EXF-537 for its first item.
+- **Started: Deploy `D28` of `49012cd`** (`p_c5f4c4dd34e6468291873f3625c19427`; prefix `ZZ-TEST D28`;
+  gated head `7e1aa13`, tree equal to main's; no migration). It ships Export Plan's API and Record
+  Payment with the register leftovers.
+  - Checks, with my figures by hand: a card with 200.00 of funded spending; Record Payment walked in
+    the browser (the pill 200.00, the row dated today with 200.00 prefilled, "Payment from ZZ
+    Checking", both rows named "Payment: ..."); through REST nothing left to pay (422), 50.00 more
+    (the payment category −50.00), the two refused sources, the card's own payment category
+    refused; through MCP 10.00 from savings (−60.00; card +60.00; checking 750.00; savings 490.00);
+    the pill −$60.00 in red with the minus sign; `?record-payment`; a shift+click range of three
+    rows; Move to Account on All Accounts (opened, nothing moved); the export of the test plan (file
+    names, BOM and CRLF, the two month rows, the purchase's row, the transfer rows; the tool equal to
+    REST; 404 for an unknown plan); 1024×700; 77 tools expected.
+  - **New live rules for the export:** only the test plan's own id is ever exported ("an export of
+    any other plan would put the owner's money into your output"); `now` only as the real time (the
+    far-future fault, EXF-670, is not fixed on main yet); the files are deleted at the end.
+- **Started: the Build template review** (`p_dd5c621340c8478aab2076a69de29eb8`), the ten Builds
+  finished since the last one (run list from this journal: six merged, four lost to boxes), with the
+  standing notes line. Asked first: what in the Designer step makes it break written source limits
+  (four of the ten, ending with accounts created in the source), and a change that holds without my
+  prose; then the lost boxes and the traceless preflight card; a channel from the Lead to a running
+  Build; the "flake" that failed in every full run; tickets overturned by the source; acceptance
+  marked partial without looking; colliding file names; what worked; cost.
+- **Started: the Reconcile Build** (`p_c4fd5a318a554da3b478910b86939c29`, EXF-533 High, with
+  EXF-664).
+  - **Nobody opens the source** (my rule since the Record Payment Designer: a Build whose screens the
+    source test plan cannot show gets no source at all; the Clerk opens the tab for the preflight
+    only). Everything from the ticket's text, "not compared: built from the ticket".
+  - Added: two reconciles at once write nothing twice; D1 calls fixed for 10 and 1,000 cleared rows;
+    the adjustment on a credit card and on a tracking account decided and tested; the header shared
+    with the Payment pill must fit at 1024×700; "one request for one thing" (the lesson of the
+    Plan-page Build's double fetch); the Tester looks at every state in the clone.
+  - Not in it: hiding reconciled rows (EXF-529), file import's rule (EXF-531), the help link.
+  - One migration: `20261116101400_account_reconciled_at.sql`. Documents named `reconcile-*` in the
+    brief.
+  - **Scheduling rule:** it holds the account page, the register, the transactions and accounts
+    services, the shortcut registry; none of these is in the Plan-page Build's manifest or in the
+    import Build's (which reads the transactions service and writes with its own repository). It
+    changes no shared module. Shared lines only in the timestamp test's list, the accounts coverage
+    file and `docs/README.md`.
+- **Running besides:** the Plan-page Build (`p_8baaff851d044a5ea2fcccb712be3809`, reworking) and the
+  plan import Build (`p_b71911bc33cb444db359bb72047a1a75`, implementing).
+- **Not started:** flows 2 and 4 wait for `D28`.
+- **Cards while `D28` is in flight:** before answering a Build's card I read live; a merge is
+  approved only after the release is done.
+
+Ticket writes: 5 (EXF-674's priority and link; EXF-533 and EXF-664 to In Progress with a comment
+each). Review cadence: Build 0 since the review now running, Deploy 6 (the seventh running), Discover
+2, Test user flow 1.
