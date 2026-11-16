@@ -328,3 +328,82 @@ test("the panel is a third of the body, resizes with the mouse and keeps its wid
 
 const header = (page: Page, label = "Check all") =>
   page.getByRole("checkbox", { name: label, exact: true });
+
+// Case 20 (look). Every value below is the source's, as recorded in docs/plan-panel-design.md ("What the
+// source shows", measured on the test plan's Plan page, dark theme).
+const css = (loc: ReturnType<typeof panel>, props: string[]) =>
+  loc.evaluate((el, ps) => {
+    const st = getComputedStyle(el);
+    return Object.fromEntries(ps.map((p) => [p, st.getPropertyValue(p)]));
+  }, props);
+
+test("the panel's colours and sizes match the source in its three states", async ({ page }) => {
+  await openPlan(page, s);
+  const p = panel(page);
+  // Panel: #0C0D22 with a 1px left border.
+  expect(await css(p, ["background-color", "border-left-width"])).toEqual({
+    "background-color": "rgb(12, 13, 34)",
+    "border-left-width": "1px",
+  });
+  // Resize handle: 3 px wide ew-resize strip; hover shows an 8×40 #7583FF pill.
+  const handle = p.getByRole("separator", { name: "Resize panel" });
+  expect(await css(handle, ["cursor"])).toEqual({ cursor: "ew-resize" });
+  expect(Math.round((await handle.boundingBox())?.width ?? 0)).toBe(3);
+  await handle.hover();
+  const pillEl = p.locator(".panel-resizer-indicator");
+  await expect(pillEl).toHaveCSS("opacity", "1");
+  expect(await css(pillEl, ["background-color", "width", "height"])).toEqual({
+    "background-color": "rgb(117, 131, 255)",
+    width: "8px",
+    height: "40px",
+  });
+
+  // State 1, nothing selected: the summary card is #15172D, radius 8; h2 14px/600 #F1F1FF; rows 14px #C4C5CF.
+  const card = p.locator(".panel-card").first();
+  expect(await css(card, ["background-color", "border-top-left-radius"])).toEqual({
+    "background-color": "rgb(21, 23, 45)",
+    "border-top-left-radius": "8px",
+  });
+  expect(
+    await css(card.locator(".panel-card-title"), ["font-size", "font-weight", "color"]),
+  ).toEqual({ "font-size": "14px", "font-weight": "600", color: "rgb(241, 241, 255)" });
+  const val = card.locator(".panel-row-value").first();
+  expect(await css(val, ["font-size", "font-weight", "color"])).toEqual({
+    "font-size": "14px",
+    "font-weight": "600",
+    color: "rgb(196, 197, 207)",
+  });
+  expect(
+    await css(card.locator(".panel-row-label").first(), ["font-size", "font-weight", "color"]),
+  ).toEqual({ "font-size": "14px", "font-weight": "500", color: "rgb(196, 197, 207)" });
+
+  // State 2, two selected: h2 "N Categories Selected" 21px/700.
+  await select(page, RENT);
+  await realClick(page, box(page, PHONE));
+  const h2 = p.getByRole("heading", { level: 2, name: "2 Categories Selected" });
+  await expect(h2).toBeVisible();
+  expect(await css(h2, ["font-size", "font-weight"])).toEqual({
+    "font-size": "21px",
+    "font-weight": "700",
+  });
+
+  // State 3, one selected: h1 21px/700, #727484 pencil, Notes block at least 64px tall,
+  // cards 16px apart.
+  await select(page, GROCERIES);
+  const h1 = p.getByRole("heading", { level: 1, name: GROCERIES });
+  await expect(h1).toBeVisible();
+  expect(await css(h1, ["font-size", "font-weight"])).toEqual({
+    "font-size": "21px",
+    "font-weight": "700",
+  });
+  expect(
+    await css(p.getByRole("button", { name: `Edit category: ${GROCERIES}` }), ["color"]),
+  ).toEqual({ color: "rgb(114, 116, 132)" });
+  const cards = p.locator(".panel-card");
+  const a = await cards.nth(0).boundingBox();
+  const b = await cards.nth(1).boundingBox();
+  expect(Math.round((b?.y ?? 0) - ((a?.y ?? 0) + (a?.height ?? 0)))).toBe(16);
+  const note = p.locator(".note-display");
+  await expect(note).toHaveText("Enter a note...");
+  expect((await note.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(64);
+});
