@@ -66,6 +66,10 @@ async function expectSubmenuReachable(page: Page, request: APIRequestContext, aN
   expect((s?.y ?? 0) + (s?.height ?? 0)).toBeLessThanOrEqual(vp?.height ?? 0);
   // Source (Designer, 1440\u00d7900): the submenu starts at the Open Plan row's right edge and row top.
   const row = await item(page, "Open Plan").boundingBox();
+  // Every submenu row is topmost at its own centre before anything is clicked.
+  const subRows = sub(page).getByRole("menuitem");
+  for (let i = 0; i < (await subRows.count()); i++)
+    await mouseClick(page, subRows.nth(i), { click: false });
   if (aName === undefined) {
     expect(s?.x).toBeCloseTo((row?.x ?? 0) + (row?.width ?? 0), 0);
     expect(s?.y).toBeCloseTo(row?.y ?? 0, 0);
@@ -102,6 +106,11 @@ test.describe("1440×900", () => {
     await expect.poll(() => css(np, "background-color")).toBe("rgb(41, 43, 61)");
     expect(await css(np, "color")).toBe("rgb(255, 255, 255)");
     await page.keyboard.press("Escape");
+    // Active/hover fill of the Plan item: rgb(28, 31, 88), measured in the source (docs/plan-menu-design.md, as in shell-compare.spec.ts).
+    const planLink = side(page).getByRole("link", { name: "Plan", exact: true });
+    expect(await css(planLink, "background-color")).toBe("rgb(28, 31, 88)");
+    await planLink.hover();
+    await expect.poll(() => css(planLink, "background-color")).toBe("rgb(28, 31, 88)");
     const reflect = side(page).getByRole("link", { name: "Reflect", exact: true });
     await reflect.hover();
     await expect.poll(() => css(reflect, "background-color")).toBe("rgb(27, 29, 72)");
@@ -323,6 +332,8 @@ test.describe("1024×480", () => {
     const s = await sub(page).boundingBox();
     expect(s?.y).toBeGreaterThanOrEqual(8);
     expect((s?.y ?? 0) + (s?.height ?? 0)).toBeLessThanOrEqual(480 - 8 + 0.5);
+    expect(s?.x).toBeGreaterThanOrEqual(8);
+    expect((s?.x ?? 0) + (s?.width ?? 0)).toBeLessThanOrEqual(1024 - 8 + 0.5);
     await page.mouse.move((m?.x ?? 0) + 100, (m?.y ?? 0) + (m?.height ?? 0) / 2);
     await page.mouse.wheel(0, 400);
     await expect.poll(() => menu(page).evaluate((el) => el.scrollTop)).toBeGreaterThan(0);

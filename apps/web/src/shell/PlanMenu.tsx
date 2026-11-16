@@ -262,7 +262,7 @@ export function PlanMenu({
           ? {
               "aria-haspopup": "menu" as const,
               "aria-expanded": sub,
-              "aria-controls": "plan-submenu",
+              ...(sub ? { "aria-controls": "plan-submenu" } : {}),
               onMouseEnter: () => openSub(false),
             }
           : inSub
