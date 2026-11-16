@@ -1,7 +1,8 @@
 import { IsoDate } from "@budget/schema/common/dates";
 import { ErrorBody } from "@budget/schema/common/envelope";
-import { REGISTER_SORT_COLUMNS } from "@budget/schema/register";
+import { PLAN_SORT_COLUMNS, REGISTER_SORT_COLUMNS } from "@budget/schema/register";
 import {
+  PlanTransactionListResponse,
   TransactionCreateRequest,
   TransactionListResponse,
   TransactionResponse,
@@ -15,6 +16,7 @@ import {
   deleteTransaction,
   getTransaction,
   listAccountTransactions,
+  listPlanTransactions,
   TransactionRefused,
   updateTransaction,
 } from "../services/transactions";
@@ -83,6 +85,38 @@ export default app
       const { budget_id, account_id } = c.req.valid("param");
       const q = c.req.valid("query");
       const data = await listAccountTransactions(c.env, budget_id, account_id, {
+        sinceDate: q.since_date,
+        sort: q.sort,
+        dir: q.dir,
+      });
+      return c.json({ data }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/transactions",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id") }),
+        query: z.object({
+          since_date: IsoDate.optional(),
+          sort: z.enum(PLAN_SORT_COLUMNS).optional(),
+          dir: z.enum(["asc", "desc"]).optional(),
+        }),
+      },
+      responses: {
+        200: json(
+          PlanTransactionListResponse,
+          "Every account's transactions with account_name, and the open accounts' balances",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const q = c.req.valid("query");
+      const data = await listPlanTransactions(c.env, budget_id, {
         sinceDate: q.since_date,
         sort: q.sort,
         dir: q.dir,

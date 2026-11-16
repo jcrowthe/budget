@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
-import { isCalendarDate, Transaction } from "./transactions";
+import { AccountBalances, isCalendarDate, Transaction } from "./transactions";
 
 // Repeats core's ACCOUNT_TYPES (schema does not depend on core); a Worker test asserts they are equal.
 export const AccountType = z
@@ -68,6 +68,19 @@ export const AccountCreateRequest = z
   })
   .openapi("AccountCreateRequest");
 
+const accountUpdateFields = z.object({ starred: z.boolean().optional() }).strict();
+
+/** The PATCH fields without the "at least one" rule, for the MCP tool's input shape. */
+export const accountUpdateShape = accountUpdateFields.shape;
+
+export const AccountUpdateRequest = accountUpdateFields
+  .refine((o) => Object.keys(o).length > 0, "Nothing to update")
+  .openapi("AccountUpdateRequest");
+
+export const AccountSummaryResponse = dataEnvelope(z.object({ balances: AccountBalances })).openapi(
+  "AccountSummaryResponse",
+);
+
 export const AccountResponse = dataEnvelope(z.object({ account: Account })).openapi(
   "AccountResponse",
 );
@@ -83,3 +96,4 @@ export type AccountGroup = z.infer<typeof AccountGroup>;
 export type Account = z.infer<typeof Account>;
 export type AccountCreate = z.infer<typeof AccountCreate>;
 export type AccountCreateRequest = z.input<typeof AccountCreateRequest>;
+export type AccountUpdateRequest = z.input<typeof AccountUpdateRequest>;

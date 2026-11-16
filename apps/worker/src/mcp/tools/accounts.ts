@@ -1,6 +1,11 @@
-import { AccountCreateRequest } from "@budget/schema/accounts";
+import { AccountCreateRequest, accountUpdateShape } from "@budget/schema/accounts";
 import { z } from "zod";
-import { addUnlinkedAccount, listAccounts } from "../../services/accounts";
+import {
+  addUnlinkedAccount,
+  getAccount,
+  listAccounts,
+  updateAccount,
+} from "../../services/accounts";
 import type { McpToolDef } from "../types";
 
 export const tools: McpToolDef[] = [
@@ -12,6 +17,32 @@ export const tools: McpToolDef[] = [
     run: async (input: { budget_id: string; include_closed?: boolean }, { env }) => ({
       accounts: await listAccounts(env, input.budget_id, { includeClosed: input.include_closed }),
     }),
+  },
+  {
+    name: "get_account",
+    description:
+      "One account with cleared_balance, uncleared_balance and balance in milliunits, starred, closed and group.",
+    inputSchema: z.object({ budget_id: z.string().min(1), account_id: z.string().min(1) }),
+    run: async (input: { budget_id: string; account_id: string }, { env }) => ({
+      account: await getAccount(env, input.budget_id, input.account_id),
+    }),
+  },
+  {
+    name: "update_account",
+    description:
+      "Change an account. starred adds it to or removes it from the sidebar's STARRED group; a closed account cannot be starred (422). Send only what changes.",
+    inputSchema: z.object({
+      budget_id: z.string().min(1),
+      account_id: z.string().min(1),
+      ...accountUpdateShape,
+    }),
+    run: async (
+      input: { budget_id: string; account_id: string; starred?: boolean },
+      { env, actor },
+    ) => {
+      const { budget_id, account_id, ...patch } = input;
+      return { account: await updateAccount(env, actor, budget_id, account_id, patch) };
+    },
   },
   {
     name: "create_account",
