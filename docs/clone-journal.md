@@ -8013,3 +8013,23 @@ cadence of its own.
 
 **Next plan:** nothing to start: the Deploy is in flight (no flow test and no approval under it), and
 every free ticket needs files the two Builds hold.
+
+### 2026-11-16 · Plan round 93
+
+Children used 109 of 200. Nothing started; four are running (Deploy `D25`, the Test user flow
+template review, the Plan-page Build, the carry-over of scheduled transactions and the Reflect
+fixes). Main `b84f513`, live `85f3cc9` (`D25` is at its gate). No tickets were filed at the last
+review. The person has not answered the check-in.
+
+- **Why nothing new:** a Deploy is in flight, so no flow test (it would run against a version about
+  to change) and no second Deploy; every unblocked ticket needs the Plan page, the register or the
+  account pages, which the two Builds hold; Export Plan (EXF-476) waits for the scheduled
+  transactions table; the private screens wait for the person's word.
+- **Cards:** no Build is approved while `D25` runs. The carry-over's card, when it comes on base
+  `85f3cc9`, gets Regate (main is `b84f513`).
+
+Declared for the tree, unchanged: flow 4 on live after `D25`; Export Plan after the carry-over
+merges; the Deploy of that merge with flows 7 and 8 after it.
+
+Ticket writes: 0. Review cadence: Build 6, Deploy 3 (the fourth running), Discover 2, Test user flow
+0.
