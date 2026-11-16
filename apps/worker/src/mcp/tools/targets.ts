@@ -1,7 +1,8 @@
+import { InputMonth } from "@budget/schema/months";
 import { TargetBody, Today } from "@budget/schema/targets";
 import { z } from "zod";
 import { NotFound } from "../../middleware/errors";
-import { deleteTarget, setTarget } from "../../services/targets";
+import { deleteTarget, setTarget, setTargetSnooze } from "../../services/targets";
 import { dates, Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
@@ -40,6 +41,32 @@ export const tools: McpToolDef[] = [
       if (!isId(input.budget_id)) throw new NotFound("Plan");
       if (!isId(input.category_id)) throw new NotFound("Category");
       return { deleted: await deleteTarget(env, actor, input) };
+    },
+  },
+  {
+    name: "snooze_target",
+    description: `Snooze or unsnooze a category's target for one month. While snoozed the category counts as having no target: it is not underfunded and is left out of Auto-Assign's Underfunded and Reduce Overfunding; the target is active again from the next month. Only the owner's current month can be snoozed (decided by today) and only a category with a target; otherwise the call is refused and nothing is stored. ${MONTH} ${dates("today")} Returns { month, category_id, snoozed }. The change is recorded in the history with its actor.`,
+    inputSchema: z.object({
+      budget_id: Id,
+      month: InputMonth,
+      category_id: Id,
+      snoozed: z.boolean(),
+      today: Today.optional(),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        month: string;
+        category_id: string;
+        snoozed: boolean;
+        today?: string;
+      },
+      { env, actor },
+    ) => {
+      if (!isId(input.budget_id)) throw new NotFound("Plan");
+      if (!isId(input.category_id)) throw new NotFound("Category");
+      const { today, ...rest } = input;
+      return setTargetSnooze(env, actor, rest, { today });
     },
   },
 ];

@@ -8,6 +8,7 @@ export const SidebarGroupName = z
 /** Interface state, one line per key. A later Build adds a key here and nowhere else. */
 export const UI_STATE_FIELDS = {
   collapsed_account_groups: z.array(SidebarGroupName).max(6),
+  snooze_tip_seen: z.boolean(),
 };
 export type UiStateKey = keyof typeof UI_STATE_FIELDS;
 export const UiState = z.object(UI_STATE_FIELDS).partial().openapi("UiState");

@@ -151,6 +151,12 @@ export const Today = IsoDate.refine((s) => isCalendarDate(s) && YEAR_RANGE.test(
   message: "today must be a real date, YYYY-MM-DD",
 });
 
+export const TargetSnoozeBody = z.object({ snoozed: z.boolean() }).openapi("TargetSnoozeBody");
+export const TargetSnooze = z
+  .object({ month: Month, category_id: z.uuid(), snoozed: z.boolean() })
+  .openapi("TargetSnooze");
+export const TargetSnoozeResponse = dataEnvelope(TargetSnooze).openapi("TargetSnoozeResponse");
+
 export const TargetResponse = dataEnvelope(z.object({ target: Target })).openapi("TargetResponse");
 export const TargetDeletedResponse = dataEnvelope(z.object({ deleted: Target })).openapi(
   "TargetDeletedResponse",
@@ -171,3 +177,4 @@ export type Target = z.infer<typeof Target>;
 export type TargetSet = z.input<typeof TargetSet>;
 export type TargetBody = z.input<typeof TargetBody>;
 export type TargetDelete = z.infer<typeof TargetDelete>;
+export type TargetSnooze = z.infer<typeof TargetSnooze>;

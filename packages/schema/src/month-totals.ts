@@ -1,5 +1,6 @@
 import type { CategoryMonth } from "./month-categories";
 import type { MonthCategoryDetail, MonthDetail, MonthTotals } from "./months";
+import { type PlanView, viewCategories } from "./plan-views";
 
 /** Every category that is not hidden, in a group that is not hidden, in grid order. */
 export function visibleCategories(d: MonthDetail): MonthCategoryDetail[] {
@@ -41,4 +42,12 @@ export function categoryMonth(d: MonthDetail, id: string): CategoryMonth | null 
     }
   }
   return null;
+}
+
+/** Totals over exactly the categories a view shows (the same function the grid uses). */
+export function viewTotals(d: MonthDetail, view: PlanView): MonthTotals {
+  return monthTotals(
+    d,
+    viewCategories(d, view).map((c) => c.id),
+  );
 }

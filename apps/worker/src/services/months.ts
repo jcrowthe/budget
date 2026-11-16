@@ -5,7 +5,7 @@ import {
   type EngineInput,
 } from "@budget/core/budget-engine";
 import { addMonths, type Month, toMonth } from "@budget/core/month";
-import { monthTotals } from "@budget/schema/month-totals";
+import { monthTotals, viewTotals } from "@budget/schema/month-totals";
 import {
   AssignedSet,
   MoneyMove,
@@ -18,7 +18,9 @@ import {
   type MonthSummary,
   type MonthTotals,
 } from "@budget/schema/months";
+import { type PlanView, viewDetail } from "@budget/schema/plan-views";
 import { sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
@@ -29,6 +31,7 @@ import * as groupsRepo from "../repositories/category-groups";
 import * as monthCatRepo from "../repositories/month-categories";
 import * as monthRangeRepo from "../repositories/month-range";
 import * as monthsRepo from "../repositories/months";
+import * as snoozesRepo from "../repositories/target-snoozes";
 import * as targetsRepo from "../repositories/targets";
 import * as txRepo from "../repositories/transactions";
 import { todayUtc } from "./targets";
@@ -38,7 +41,7 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 // The API's category also carries its `note`, which the engine does not know: attached after computeMonth.
 type EngineShape = Omit<MonthDetail, "groups"> & {
   groups: (Omit<MonthGroupDetail, "categories"> & {
-    categories: Omit<MonthCategoryDetail, "note">[];
+    categories: Omit<MonthCategoryDetail, "note" | "target_snoozed">[];
   })[];
 };
 const _sameShape: Same<CoreMonthDetail, EngineShape> = true;
@@ -269,14 +272,19 @@ async function loadInput(
   activityBefore: string,
   withTargets = false,
 ): Promise<EngineInput & { categoryNotes: Map<string, string | null> }> {
-  const [groups, categories, assignments, notes, activity, targetRows] = await Promise.all([
-    groupsRepo.listActive(db, budgetId),
-    categoriesRepo.listActive(db, budgetId),
-    monthCatRepo.listForBudget(db, budgetId),
-    monthsRepo.listNotes(db, budgetId),
-    txRepo.activityByMonth(db, budgetId, activityBefore),
-    withTargets ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
-  ]);
+  const [groups, categories, assignments, notes, activity, targetRows, snoozeRows] =
+    await Promise.all([
+      groupsRepo.listActive(db, budgetId),
+      categoriesRepo.listActive(db, budgetId),
+      monthCatRepo.listForBudget(db, budgetId),
+      monthsRepo.listNotes(db, budgetId),
+      txRepo.activityByMonth(db, budgetId, activityBefore),
+      withTargets ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+      withTargets ? snoozesRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+    ]);
+  const snoozedBy = new Map<string, Month[]>();
+  for (const r of snoozeRows)
+    snoozedBy.set(r.categoryId, [...(snoozedBy.get(r.categoryId) ?? []), r.month]);
   return {
     categoryNotes: new Map(categories.map((c) => [c.id, c.note ?? null])),
     groups,
@@ -288,7 +296,25 @@ async function loadInput(
     })),
     activity,
     notes: notes.map((n) => ({ month: n.month, note: n.note })),
-    targets: targetRows.map((r) => ({ categoryId: r.categoryId, ...targetsRepo.toDefinition(r) })),
+    targets: targetRows.map((r) => ({
+      categoryId: r.categoryId,
+      ...targetsRepo.toDefinition(r),
+      snoozed_months: snoozedBy.get(r.categoryId) ?? [],
+    })),
+  };
+}
+
+function withNotes(detail: CoreMonthDetail, notes: Map<string, string | null>): MonthDetail {
+  return {
+    ...detail,
+    groups: detail.groups.map((g) => ({
+      ...g,
+      categories: g.categories.map((c) => ({
+        ...c,
+        note: notes.get(c.id) ?? null,
+        target_snoozed: c.target?.status === "snoozed",
+      })),
+    })),
   };
 }
 
@@ -297,18 +323,26 @@ export async function getPlanMonth(
   budgetId: string,
   month: Month,
   today: string = todayUtc(),
+  view: PlanView = "all",
 ): Promise<MonthDetail> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
   const input = await loadInput(db, budgetId, addMonths(month, 1), true);
-  const detail = computeMonth({ ...input, today }, month);
-  return {
-    ...detail,
-    groups: detail.groups.map((g) => ({
-      ...g,
-      categories: g.categories.map((c) => ({ ...c, note: input.categoryNotes.get(c.id) ?? null })),
-    })),
-  };
+  return viewDetail(withNotes(computeMonth({ ...input, today }, month), input.categoryNotes), view);
+}
+
+/** Several months on one read of the plan (no view), for Auto-Assign's history. */
+export async function getPlanMonths(
+  env: Env,
+  budgetId: string,
+  months: Month[],
+  today: string = todayUtc(),
+): Promise<MonthDetail[]> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const latest = months.reduce((a, b) => (a > b ? a : b));
+  const input = await loadInput(db, budgetId, addMonths(latest, 1), true);
+  return months.map((m) => withNotes(computeMonth({ ...input, today }, m), input.categoryNotes));
 }
 
 /**
@@ -321,8 +355,14 @@ export async function getMonthSummary(
   month: Month,
   categoryIds?: string[],
   today: string = todayUtc(),
+  view?: PlanView,
 ): Promise<MonthTotals> {
   const detail = await getPlanMonth(env, budgetId, month, today);
+  if (view !== undefined) {
+    if (categoryIds)
+      throw new HTTPException(422, { message: "Give category_ids or view, not both" });
+    return viewTotals(detail, view);
+  }
   if (categoryIds) {
     const known = new Set(detail.groups.flatMap((g) => g.categories.map((c) => c.id)));
     if (categoryIds.some((id) => !known.has(id))) throw new NotFound("Category");

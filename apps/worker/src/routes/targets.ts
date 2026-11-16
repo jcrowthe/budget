@@ -1,10 +1,18 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
-import { TargetBody, TargetDeletedResponse, TargetResponse, Today } from "@budget/schema/targets";
+import { InputMonth } from "@budget/schema/months";
+import {
+  TargetBody,
+  TargetDeletedResponse,
+  TargetResponse,
+  TargetSnoozeBody,
+  TargetSnoozeResponse,
+  Today,
+} from "@budget/schema/targets";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { ZodError } from "zod";
 import type { AppEnv } from "../env";
 import { apiError, NotFound } from "../middleware/errors";
-import { deleteTarget, setTarget } from "../services/targets";
+import { deleteTarget, SnoozeRefused, setTarget, setTargetSnooze } from "../services/targets";
 
 const tags = ["Targets"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -107,5 +115,47 @@ export default app
         category_id,
       });
       return c.json({ data: { deleted } }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "put",
+      path: "/budgets/{budget_id}/months/{month}/categories/{category_id}/target-snooze",
+      tags,
+      request: {
+        params: params.extend({
+          month: InputMonth.openapi({ param: { name: "month", in: "path" } }),
+        }),
+        query: z.object({
+          today: Today.optional().openapi({
+            description:
+              "The owner's local date (YYYY-MM-DD); it decides the current month. Default: the server's UTC date",
+          }),
+        }),
+        body: { required: true, content: { "application/json": { schema: TargetSnoozeBody } } },
+      },
+      responses: {
+        200: json(TargetSnoozeResponse, "The snooze as stored"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, category_id, month } = c.req.valid("param");
+      const { today } = c.req.valid("query");
+      requireIds(budget_id, category_id);
+      try {
+        const data = await setTargetSnooze(
+          c.env,
+          c.get("identity").actor,
+          { budget_id, month, category_id, snoozed: c.req.valid("json").snoozed },
+          { today },
+        );
+        return c.json({ data }, 200);
+      } catch (e) {
+        if (e instanceof SnoozeRefused) {
+          return apiError(c, 422, "snooze_refused", e.message) as never;
+        }
+        throw e;
+      }
     },
   );
