@@ -124,6 +124,8 @@ for (const vp of VIEWPORTS) {
       await expect(next(page)).toBeDisabled();
       await expect(prev(page)).toBeEnabled();
       await chooseRange(page, "Sep 2026 – Nov 2026", "This Month");
+      // Wait for the new range before shifting it (the arrow shifts whatever range is shown).
+      await expect(dateButton(page, "Nov 2026")).toBeVisible();
       await mouseClick(page, prev(page));
       await expect(dateButton(page, "Oct 2026")).toBeVisible();
     });
