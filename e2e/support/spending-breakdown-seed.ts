@@ -270,8 +270,7 @@ export async function segmentPoint(
   const p = await seg.evaluate((el) => {
     el.ownerSVGElement?.scrollIntoView({ block: "center" });
     const r = el.getBoundingClientRect();
-    // Near the bar's left edge: the month marker's hover circle covers the middle of a short top segment.
-    const x = r.left + r.width * 0.15;
+    const x = r.left + r.width / 2;
     const y = r.top + r.height / 2;
     return { x, y, hit: document.elementFromPoint(x, y) === el };
   });

@@ -17,7 +17,7 @@ const INFO =
   "This column highlights the difference between your spending in individual months and your average monthly spending for the selected time period.";
 
 export function TrendsTable({ data }: { data: SpendingTrends }) {
-  const empty = data.series.length === 0;
+  const empty = data.months.every((m) => m.series.length === 0);
   const rows = [...data.months].reverse();
   return (
     <section className="st-card st-table-card" aria-label="Spending by month table">

@@ -80,6 +80,26 @@ export function TrendsChart({
         ))}
         <line className="st-grid st-zero" x1={left} x2={width - RIGHT} y1={y(0)} y2={y(0)} />
         <line className="st-grid" x1={left} x2={width - RIGHT} y1={axisY} y2={axisY} />
+        {/* Hover circles sit under the bars, so a click on a segment is never taken by a marker. */}
+        {months.map((m, i) => (
+          <g key={m.month}>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: hover target of the marker; the table holds the same figures */}
+            <circle
+              className="st-hit"
+              cx={cx(i)}
+              cy={y(m.total)}
+              r={10}
+              onMouseEnter={() =>
+                showTip(
+                  [monthLabel(m.month), minusMoney(m.total), "Total Spending"],
+                  cx(i),
+                  y(m.total) - 5,
+                )
+              }
+              onMouseLeave={() => setTip(null)}
+            />
+          </g>
+        ))}
         {months.map((m, i) => {
           let pos = 0;
           let neg = 0;
@@ -134,21 +154,6 @@ export function TrendsChart({
         {months.map((m, i) => (
           <g key={m.month}>
             <circle className="st-marker" data-month={m.month} cx={cx(i)} cy={y(m.total)} r={5} />
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: hover target of the marker; the table holds the same figures */}
-            <circle
-              className="st-hit"
-              cx={cx(i)}
-              cy={y(m.total)}
-              r={10}
-              onMouseEnter={() =>
-                showTip(
-                  [monthLabel(m.month), minusMoney(m.total), "Total Spending"],
-                  cx(i),
-                  y(m.total) - 5,
-                )
-              }
-              onMouseLeave={() => setTip(null)}
-            />
           </g>
         ))}
       </svg>

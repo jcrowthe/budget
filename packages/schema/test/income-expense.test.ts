@@ -169,6 +169,20 @@ describe("computeIncomeExpense: payees", () => {
     expect(d.income.total.total).toBe(-160000);
   });
 
+  it("names the no-payee row (no payee) even when a row carries a payee_name", () => {
+    const d = computeIncomeExpense({
+      income: [
+        inc("2026-11-05", 10000, [null, "Typed Name"]),
+        inc("2026-11-06", 5000, [null, null]),
+      ],
+      spending: [],
+      span: { start_month: "2026-11-01", end_month: "2026-11-01" },
+    });
+    expect(d.income.payees.map((p) => [p.payee_id, p.name, p.total])).toEqual([
+      [null, "(no payee)", 15000],
+    ]);
+  });
+
   it("is empty with no rows", () => {
     const d = computeIncomeExpense({
       income: [],

@@ -73,7 +73,7 @@ export function computeIncomeExpense(input: {
     const key = r.payee_id ?? NO_PAYEE_ID;
     const p = payees.get(key) ?? {
       id: r.payee_id,
-      name: r.payee_name ?? NO_PAYEE_NAME,
+      name: r.payee_id === null ? NO_PAYEE_NAME : (r.payee_name ?? NO_PAYEE_NAME),
       sums: new Sums(n),
     };
     p.sums.add(i, r.amount);

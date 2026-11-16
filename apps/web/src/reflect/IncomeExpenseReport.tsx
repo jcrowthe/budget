@@ -42,7 +42,7 @@ function Cells({
   tone?: "net";
 }) {
   const cell = (value: number, column: string, month: string | null, i: number) => {
-    const cls = value === 0 || Math.abs(value) < 5 ? "zero" : tone ? changeClass(value) : "";
+    const cls = Math.abs(value) < 5 ? "zero" : tone ? changeClass(value) : "";
     return (
       <td key={column} className={`ie-amt${i === 0 ? " ie-first-amt" : ""}`}>
         {selector ? (
