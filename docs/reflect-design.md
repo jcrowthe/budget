@@ -24,7 +24,7 @@ What the source shows (details and sizes in the notes):
   categories indented 16px, indigo checkboxes; footer links Select All / Select None, buttons Cancel / Done.
   **Account popover** (12): same, "Search All Accounts", bold section rows with their own checkbox.
 - **Net Worth, empty** (16–19): one card with the summary (Net Worth `$0.00` 28px; ■ Assets `$0.00`, ■ Debts
-  `-$0.00`, Change in Net Worth **$0.00** grey `0.0%`) and the chart (zero line, tick `11/26`, hollow white
+  `$0.00` (the source shows `-$0.00`; EXF-591 overrides it), Change in Net Worth **$0.00** grey `0.0%`) and the chart (zero line, tick `11/26`, hollow white
   point; hover tooltip Debts / Assets / Net Worth); a second card with the table header and "No information to
   show".
 - Not visible in the test plan: non-empty figures, bars, y ticks, rows; enabled grid months; the Hidden tag;

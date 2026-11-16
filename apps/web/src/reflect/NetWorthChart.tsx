@@ -1,29 +1,14 @@
+import { niceTicks } from "@budget/schema/reflect-format";
 import { monthLabel, shortMonthLabel } from "@budget/schema/report-range";
 import type { NetWorth } from "@budget/schema/reports";
 import { useEffect, useRef, useState } from "react";
 import { money, tickMoney } from "./format";
 
+export { niceTicks };
+
 // 300px plot plus a 20px axis (source: computed layout of the Net Worth chart).
 const HEIGHT = 320;
 const PAD = { left: 72, right: 16, top: 0, bottom: 20 };
-
-/** Whole-dollar-friendly ticks (milliunits) covering [min, max]; none when everything is zero. */
-export function niceTicks(min: number, max: number, count = 5): number[] {
-  if (min === 0 && max === 0) return [];
-  const range = (max - min) / 1000 || 1;
-  const rough = range / (count - 1);
-  const mag = 10 ** Math.floor(Math.log10(rough));
-  // The smallest 1/2/2.5/5/10 × 10^n step whose ticks fit in count ticks.
-  for (const f of [1, 2, 2.5, 5, 10, 20]) {
-    const step = f * mag * 1000;
-    const lo = Math.floor(min / step);
-    const hi = Math.ceil(max / step);
-    if (hi - lo + 1 <= count) {
-      return Array.from({ length: hi - lo + 1 }, (_, k) => Math.round((lo + k) * step));
-    }
-  }
-  return [];
-}
 
 export function NetWorthChart({ data }: { data: NetWorth }) {
   const box = useRef<HTMLDivElement>(null);

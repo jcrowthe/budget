@@ -11,6 +11,8 @@ export interface ReportState {
   facts: RangeFacts;
   /** The browser's local date, YYYY-MM-DD. */
   today: string;
+  /** Set while a Spending Breakdown group is drilled: the category filter lists only that group. */
+  categoryGroupId: string | null;
   update: (patch: ReportSettingsUpdate) => void;
 }
 
