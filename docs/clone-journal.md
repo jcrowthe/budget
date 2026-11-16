@@ -5112,3 +5112,20 @@ review: Build 0 (the review is running), Deploy 5, Discover 2, Test user flow 5.
 **Next plan:** nothing to start while main waits for EXF-593 and the three Builds hold the Plan page,
 the register and the reports. Cards: straight to Regate when the base has moved; the Deploy the moment
 EXF-593 has merged.
+
+### 2026-11-16 · Plan round 62
+
+Children used 75 of 200. Four are running, all from round 61: the targets carry-over (at polish), the
+EXF-593 Build (designed, in its build step), the Reflect Build (in its plan step) and the Build template
+review. Main `6c73a00`, live `4e3eb7a`. No ticket was filed at the last review.
+
+**Started nothing.** Between them the three Builds hold the Plan page with months and targets and
+`packages/core`, the register with the transactions, accounts and payees files, and Reflect with the
+reports files. Every open ticket that is not a private screen needs one of those. No Deploy: main waits
+for EXF-593. No flow test: flows 2 and 9 run after that release.
+
+**Declared for the rounds after:** the Deploy when EXF-593 merges; EXF-462 (import from Plaid) on the
+files EXF-593 frees; the credit engine (EXF-532 with EXF-535) when the carry-over frees `packages/core`;
+Auto-Assign with snooze (EXF-519, EXF-516) on the Plan page after the carry-over.
+
+Ticket writes: 0. Review cadence: Build 0 (review running), Deploy 5, Discover 2, Test user flow 5.
