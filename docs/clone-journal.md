@@ -370,6 +370,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
 | 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | completed (9 minutes): flow 9 `new_gaps` (EXF-571), flow 11 `parity` |
 | 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | running |
+| 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | running |
+| 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2729,3 +2731,43 @@ do so at its refresh, and I say so in that card's feedback.
 EXF-570 (High, in progress), EXF-571 (High), EXF-558 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562
 (Low). Template: fifteen. Flow verdicts: 9 `new_gaps`, 11 `parity`. Finished since each template's last
 review: Build 5, Deploy 7, Discover 2, Test user flow 1.
+
+### 2026-11-16 · Plan round 34
+
+Children used 45 of 200. Four are running: the categories Build (EXF-494, EXF-495; pull request #17, fixing
+what I sent back), the account-pages Build (EXF-484, 534, 570; pull request #19), and two started now.
+
+- No ticket was filed at the last review.
+- **Started the Deploy of main `82aac3a`** (`p_35445feed3ef4e338886f6265c7210d1`), `gated_commit` `fd719d4`
+  (trees equal). It ships the register and Plaid Link, with two additive migrations, and is the first
+  release whose script pushes the Plaid credentials into the live database (encrypted). Checks: the
+  script's one status line; `GET /api/v1/plaid/credentials` shows both environments set and no value; a
+  test plan is a sandbox plan; institution search and a link token through Plaid Sandbox; the transactions
+  API with balances after create, clear and delete; thirteen MCP tools; the register and the bank search in
+  a browser. **It may not create a bank connection on live** (no route removes one yet) and may not click a
+  bank. It must say how it counts plans that are not test plans.
+- **Started one Build for EXF-571, EXF-470 and EXF-454, the plan menu**
+  (`p_5ee85fcef22241cf8600622a07cc8158`). EXF-571 (High) is the reason: on live, nobody can switch plans
+  with a mouse. Scope:
+  - the menu and its submenu rendered outside the sidebar's scroll box; every row tested with a real mouse
+    move and click at its centre, at two window sizes;
+  - the full entry list; **entries whose feature is not built are shown disabled**; a later Build enables
+    its entry by adding one file in a folder outside the shell, collected with `import.meta.glob`, so eight
+    later tickets do not each need the shell;
+  - Log Out to `/cdn-cgi/access/logout`; the plan button shows the signed-in identity from a new
+    `GET /api/v1/me`;
+  - re-measured width and hover and active colours through `tokens.css`; a favicon;
+  - **in the source the Open Plan entry is never hovered or clicked** (its submenu lists the person's other
+    plans); only the first level of the menu is studied.
+  - It holds the shell. Out of bounds: the grid and categories files; the account pages, register, accounts
+    and transactions files.
+- **EXF-460 with EXF-461 (Manage Bank Connections, linking bank accounts) wait for this Build**: they need
+  the shell (the sidebar's Bank Connections button, the add-account dialog), and EXF-461 also needs the
+  accounts files that the account-pages Build holds.
+- Later menu tickets (EXF-468, 472, 473, 476, 478, 480, 510, 460) should each add their menu-action file;
+  put that in their briefs.
+- Flow 10 after this Deploy; flows 1 and 2 after the categories Build ships.
+- The template-ticket sweep moves to about round 36, with the Deploy template review if it is due (Deploy 7
+  of 10; 8 after this one).
+- Review cadence: Build 5, Deploy 7, Discover 2, Test user flow 1.
+- Ticket writes this round: 5.
