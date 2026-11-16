@@ -7301,3 +7301,62 @@ report is for the next review.) Main `8ec621e`, live `8ec621e`.
 
 Ticket writes: 1 (EXF-631 priority). Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 8
 (the ninth is running).
+
+### 2026-11-16 · Review round 84
+
+Children used 102 of 200. One ended: the template-ticket sweep. Five are running: the shell Build
+(polish, head `459f5fb`, now on base `8ec621e`), the credit engine carry-over, scheduled transactions
+(designed), the Reflect fixes (planned) and the flow test for flow 2. Main and live `8ec621e`.
+
+**Template-ticket sweep** (`p_552c46323a86456abb5d968e351a103e`; 13 minutes): seventeen comments posted,
+EXF-455 closed as superseded, no new ticket, nothing failed. Thirty-four template tickets are open.
+- **Priorities set now, as it proposed:** EXF-611 to Urgent (retry in a fresh box and a card that
+  shows the cause: the mitigation within reach while EXF-612's cause is unknown); EXF-582 to High (it
+  now holds the Deploy slice that removes the file hand-offs which lost three Deploys); EXF-578 up to
+  Medium; EXF-457 and EXF-554 down to Medium; EXF-565 and EXF-568 down to Low. Urgent now: EXF-573,
+  EXF-611, EXF-612.
+- **Its ordered list is the hand-over document** for whoever maintains the templates and the
+  platform: every ticket grouped by what has to change (the platform's boxes and hand-offs; the Build
+  template's prompts; its code steps and gate; the Deploy template; Discover and Test user flow; the
+  profile's schema), ordered by what each has cost this clone, with its kind (prompt text, code step,
+  profile key, platform work). It is in the sweep's report in full, and the inventory of about 25
+  proposed profile keys is on EXF-456.
+- Cheapest fixes with the most return, by its figures: EXF-563 (about 3.4 hours of idle waiting in 11
+  Builds; prompt text and a helper), EXF-585 (the first answer failed in 7 of 8 Deploys), EXF-628
+  (prompt text only).
+- The app work it noticed is ticketed since the last review (EXF-631).
+
+**Scheduled transactions: design read and accepted** (`docs/scheduled-transactions-design.md` at
+`423ea8c`; comment on EXF-497).
+- Manifest against the credit carry-over, the shell and the Reflect Builds: disjoint. One new table;
+  no query over `transactions` changes. It touches `services/transactions.ts` (one exported helper;
+  free since the register merge) and `services/plaid-sync.ts` (an optional cap for the cron's shared
+  budget); `app.ts` is not touched after all (routes are collected by a glob).
+- It states D1 calls per operation (2 to 8; the bulk request 5 whatever the ids; entering what is due
+  3) and keeps the cron's invocation at 41 with the bank sync.
+- Added by the Architect, accepted: a `/bulk` route for Enter Now and Delete over several rows; a
+  write token on each schedule as the race guard.
+- **Two limits of this Build to ticket when it merges:** entering what is due is triggered by the
+  account pages only (the Plan page and Reflect are other Builds' files); deleting a category leaves
+  its schedules uncategorized.
+- **Nothing could be compared with the source:** the test plan has no schedule and **its Add
+  Transaction button is disabled, because the test plan's accounts are all closed.** That also means
+  no later Build can compare the add row there. If the register's entry is to be compared again, the
+  test plan needs an open account: a change in the source's test plan, which the person allowed for
+  that plan but which I have kept children from making. To raise at the next check-in.
+
+**Running:**
+- **Shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`): in polish, rebased onto `8ec621e`.
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): building the carry-over tasks.
+- **Reflect fixes** (`p_7aa8691536924481bf53c457c86b24ea`): planned (`3e0f6ca`).
+- **Flow 2** (`p_e031b218fd5b42bf981f4d1bfa178a3b`): walking on live.
+
+**Ticket writes:** 8 (seven priorities; comment on EXF-497).
+
+**Backlog:** 56 open feature tickets (41 done; 6 in progress). Gap: open EXF-558, EXF-560, EXF-562,
+EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630, EXF-631; in progress EXF-614, EXF-621, EXF-625,
+EXF-626. Template: thirty-four (three Urgent). Flow verdicts unchanged. Finished since each template's
+last review: Build 2, Deploy 2, Discover 2, Test user flow 8; the next template-ticket sweep is due
+about round 114.
+
+**Next plan:** nothing free to start; wait for the cards (the shell Build first) and the flow test.
