@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Manage test plans (names starting with live.test_prefix) on the live clone, and nothing else.
 #   list                 <id><TAB><name> for every prefixed plan
-#   create '<name>'      creates a plan, prints its id (name must start with the prefix)
+#   create '<name>'      creates a Sandbox plan (bank_environment sandbox), prints its id (name must start with the prefix)
 #   delete <id>          re-reads the plan, deletes it only if prefixed; prints "deleted <id>"
 #   purge                deletes every prefixed plan (max 50); prints "deleted <n> remaining <m>"
 # Exit: 0 ok, 1 runtime/HTTP error or plans left, 2 usage refused, 3 target refused.
@@ -95,7 +95,7 @@ case "$CMD" in
     jq -r --arg p "$PREFIX" '.data.budgets[] | select(.name | startswith($p)) | [.id, .name] | @tsv' "$tmp/body"
     ;;
   create)
-    api POST /api/v1/budgets "$(jq -nc --arg n "$2" '{name: $n}')"
+    api POST /api/v1/budgets "$(jq -nc --arg n "$2" '{name: $n, bank_environment: "sandbox"}')"
     expect POST /api/v1/budgets 201
     jq -er '.data.budget.id // empty' "$tmp/body" || fail "ERROR: create answered without a plan id"
     ;;

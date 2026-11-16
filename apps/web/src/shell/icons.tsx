@@ -93,3 +93,8 @@ export const CheckCircleIcon = (p: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+export const BankIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 3 3 8v2h18V8l-9-5ZM5 12v6h2v-6H5Zm4 0v6h2v-6H9Zm4 0v6h2v-6h-2Zm4 0v6h2v-6h-2ZM3 19v2h18v-2H3Z" />
+  </svg>
+);

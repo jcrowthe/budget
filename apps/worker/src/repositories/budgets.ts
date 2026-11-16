@@ -34,7 +34,11 @@ export function unchanged(row: Pick<BudgetRow, "id" | "updatedAt">): SQL {
 export function updateStmt(
   db: Db,
   before: BudgetRow,
-  patch: { name?: string; lastOpenedAt?: string },
+  patch: {
+    name?: string;
+    lastOpenedAt?: string;
+    bankEnvironment?: "production" | "sandbox";
+  },
   updatedAt: string,
 ) {
   return db

@@ -102,6 +102,7 @@ describe("budgets REST", () => {
         updatedAt: now,
         deletedAt: null,
         lastOpenedAt: null,
+        bankEnvironment: "production",
       },
       {
         budgetId: id,
@@ -349,6 +350,7 @@ describe("default categories (EXF-487)", () => {
           updatedAt: now,
           deletedAt: null,
           lastOpenedAt: null,
+          bankEnvironment: "production",
         },
         log,
       ),

@@ -765,3 +765,214 @@ a {
   font-weight: 600;
   color: var(--labelSecondary);
 }
+
+/* Bank search (Add Accounts) */
+.bank-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bank-note {
+  display: block;
+  margin: -2px 0 var(--space-3);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--labelSecondary);
+}
+.env-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-size: 12px;
+  font-weight: 600;
+}
+.bank-search h3 {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.bank-search .bank-error {
+  margin: 0 0 var(--space-2);
+}
+.popular-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.bank-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  height: 64px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--borderSubtle);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.bank-tile img {
+  max-width: 100%;
+  max-height: 40px;
+  object-fit: contain;
+}
+.bank-tile svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--labelSecondary);
+}
+.bank-tile:hover:not(:disabled) {
+  background: var(--menuHover);
+}
+.bank-tile:disabled,
+.institution-row:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  color: var(--labelSecondary);
+}
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--borderSubtle);
+}
+.institution-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.institution-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bank-logo.round {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.bank-logo.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--menuHover);
+  color: var(--labelSecondary);
+}
+.bank-logo.placeholder svg {
+  width: 24px;
+  height: 24px;
+}
+.institution-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.institution-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+.institution-row:hover:not(:disabled) .institution-name {
+  color: var(--actionPrimary);
+}
+.institution-country {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelSecondary);
+}
+.institution-domain {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelTertiary);
+}
+.institution-row > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--inputBorder);
+}
+.bank-no-match {
+  margin: var(--space-3) 0 0;
+}
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--actionPrimary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.bank-connected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: var(--space-4);
+}
+.bank-connected > svg {
+  width: 64px;
+  height: 64px;
+  color: var(--statusPositive);
+}
+.bank-connected h3 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--font-size-xl);
+}
+.bank-connected > p {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+}
+.bank-connected h4 {
+  align-self: flex-start;
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.bank-connected ul {
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.bank-connected li {
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--borderSubtle);
+}
+.bank-account-main {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.bank-account-sub {
+  color: var(--labelSecondary);
+}
+.done-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+}
