@@ -7827,3 +7827,45 @@ plan's contents, Plaid dashboard, stored captures); child budget 105 of 200.
 first Test user flow template review; a Plan-page Build (EXF-537 with EXF-622, 623, 624, 616 and the
 new panel-width gap) can start now, since the credit Build has released `apps/web/src/plan/**` and
 the carry-over's manifest does not touch it; set the new ticket's priority.
+
+### 2026-11-16 · Plan round 91
+
+Children used 106 of 200. One started now; three are running. Main `b84f513`, live `85f3cc9` (the
+credit engine and its migration wait for a Deploy). The person has not answered the check-in.
+
+- **The ticket filed at the last review exists: EXF-646** (the Plan's right panel at 1024 px). Set to
+  Medium and started with the Build below.
+- **Started: the Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): EXF-537 (Credit Card
+  Payments rows, the PAYMENT header, the card payment inspector with its five states, the `payment`
+  object in REST and the tool `get_card_payment_status`) with the page's layout gaps EXF-622, 623,
+  624, 616 and 646. One Build because all six are in `apps/web/src/plan/**`.
+  - **Taken out of EXF-537 and said on the ticket:** Record Payment only opens the card's account
+    page (its payment row is EXF-539, in files the carry-over holds); "Create a Debt Payoff Target"
+    waits for EXF-538; help links are left out (no help pages).
+  - **Layout asked for as one design, not four patches:** at 1024×700 the panel is wide enough for
+    its cards, the grid gives up the width, the target text gives way before the name, the Available
+    pill stays whole; the sidebar at its 600 px maximum is designed for and tested; 1440×900 unchanged.
+  - **D1 calls:** card balances for the pills and the inspector by set queries; the month read may
+    rise from 8 by a fixed number only; the counting test gets the new number with 1 and 10 cards.
+  - **Source limits, with one sentence new:** building temporary elements in the source page is
+    writing into the page, named as what the last Designer did. The payment screens and the source at
+    1024 px are "not compared".
+  - No migration expected. It may change `packages/core/src/**` (no other Build holds a shared
+    module). Out of bounds: the carry-over's files (register, account pages, Reflect, scheduled
+    transactions, the timestamp test's list).
+- **Not started:**
+  - **Deploy `D25`:** the flow 9 run is on live now (at its step 5 of the browser walk); a release
+    under it would change the version it is testing. It starts when that run ends.
+  - **Export Plan (EXF-476):** its Register file lists scheduled transactions, whose table is not on
+    main yet; it starts after the carry-over merges, so one Build can do the whole file. It will be
+    told to add no dependency (a store-only zip by hand), because `package.json` is always-overlap.
+  - Everything else unblocked needs the register, the account pages or the Plan page, which the two
+    Builds hold; the private screens still wait for the person's word.
+- **Running besides:** the carry-over of scheduled transactions and the Reflect fixes
+  (`p_65ee74c0816d452899f054187504cc58`; checks and ten specs green on `85f3cc9`; it must rebase onto
+  `b84f513`); flow 9's fourth run (`p_4eb0cb81def14945807989a771db369c`).
+- **Cards:** the carry-over's card will come on a base that may be `85f3cc9`: then Regate, not
+  Approve. No Deploy is in flight, so a card on `b84f513` can be approved.
+
+Ticket writes: 12 (six tickets to In Progress, EXF-646 also to Medium; six comments). Review cadence: Build 6, Deploy 3, Discover 2, Test user flow 9 (the tenth
+running).
