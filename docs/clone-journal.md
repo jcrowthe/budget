@@ -6263,3 +6263,88 @@ its way to the gate), the register Build (after polish) and the flow tests for f
 
 Ticket writes: 3 (EXF-615 priority and state, EXF-553 state and comment). Review cadence: Build 8,
 Deploy 9, Discover 2, Test user flow 6.
+
+### 2026-11-16 · Review round 75
+
+Children used 89 of 200. One ended (the flow test for flows 5 and 10); three are running: the Plan-page
+Build, the register Build and the Age of Money Build. Main `033e011`, live `c9e9d1c`, both unchanged.
+
+**Flows 5 and 10 on live `c9e9d1c`** (`p_1a06c903df354fd0ad9f020e918dccac`, prefix `ZZ-TEST F74`, 23
+minutes). No new gap, no ticket filed.
+
+- **Cleanup checked first, and by me as well.** Its report: connection removed (`deleted: true`,
+  `plaid: removed`), both plans purged (`deleted 2 remaining 0`), the count of plans that are not
+  `ZZ-TEST` is 1. My own SELECT on live (numbers only): 0 bank connections, 0 bank accounts, 0 live
+  test plans, 1 other plan. The owner's plan was not opened.
+- **Flow 5 (link a Sandbox bank, import): `parity_known_gaps`.** All fifteen testable steps passed.
+  - Through the app's own Add Account screen and Plaid's window: First Platypus Bank, 14 bank accounts.
+  - First sync: 12 rows from the start date on, 137 older ones skipped; signs right (a refund is an
+    inflow to Ready to Assign); every import unapproved, cleared, with its import id; balance
+    110000 + 765080 = 875080 on all three reads.
+  - A second sync adds nothing. A rejected and a deleted import do not come back, also when a second
+    linked account makes the sync read the whole history again. Approved and categorized rows stay.
+  - Matching: a hand entry 3 days before a bank row of the same amount became one row (hand fields
+    kept, cleared, the import's id on it); one 12 days before was left alone and the import arrived
+    beside it.
+  - The same bank account linked in a second plan imports there without touching the first.
+  - No access token, item id or secret in any of 96 saved answers. History rows carry `service:plaid`
+    for the imports, `mcp:service:…` and `service:…` for the rest.
+  - After removal the accounts stay as plain unlinked accounts with their rows.
+  - **Known gaps, all screens:** nothing in the register marks an unapproved row except the category
+    pill (EXF-463), no linked icon or manual match (EXF-461, EXF-464), no status or repair (EXF-465),
+    no pending rows (EXF-466), no payee rules (EXF-467), no Manage Bank Connections or Link Account
+    screens (EXF-460, EXF-461). These wait for the person's word on the bank screens.
+- **The sync table** (the evidence EXF-613 left open; posted on EXF-613):
+
+  | call | time | added | matched | skipped | has_more |
+  |---|---|---|---|---|---|
+  | first sync, one linked account | 128 ms | 12 | 0 | 137 | false |
+  | again | 41 ms | 0 | 0 | 0 | false |
+  | after approve, reject, delete | 26 ms | 0 | 0 | 0 | false |
+  | after linking a second account | 50 ms | 4 | 0 | 184 | false |
+  | second plan, REST | 1450 ms | 11 | 1 | 321 | false |
+
+  No failure, no timeout, `sync_failed_at` null throughout.
+- **What this run did not prove, plainly:**
+  - `has_more` was never true. The Sandbox bank's history is too small to reach the 45-call bound, so
+    the stop-and-continue path is proven by the Worker tests only. The first real bank with a long
+    history is where it first runs on live.
+  - The daily cron was not seen running. I checked that it is registered on the live Worker
+    (`0 3 * * *`); no connection may stay overnight under my own rule, so its first real run is after
+    the person connects a bank.
+- **Flow 10 (REST and MCP): `parity`**, third run. 59 tools; 72 operations, 55 with a tool, 17 with a
+  written exclusion, 0 with neither. Every description states what it returns, milliunits, date and
+  month formats, and names its timestamps (14 tools called to check, 0 unnamed fields: EXF-587 holds on
+  live). Transfers, splits, targets, Spending Breakdown, Net Worth, closed-account refusal and the payee
+  inflow default all read the same through REST and MCP and match hand arithmetic. Six wrong calls give
+  a sentence and create nothing. Without the service token everything answers 401.
+  - One stale text, not a customer gap: the exclusion reason for `GET /me` still says "another Build
+    adds the route". For the next Build that touches `apps/worker/test/mcp-coverage/`.
+- **A fact I had not written down:** deleting a plan is a soft delete. Live holds 37 deleted `ZZ-TEST`
+  plans with their rows (0 not deleted). Harmless at this size; I may only SELECT on live, so they stay.
+  If the person ever wants them gone for good, that is a small feature (purge deleted plans), not a
+  manual clean-up.
+- The Tester needed five script runs to get through Plaid's window (its own selectors); nothing was
+  left behind by the four failed ones (0 connections before the fifth).
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): head `3219500` on base `033e011`; rework
+  accepted by its own Tester (layout spec green, plan-panel 110/110 at ten repeats under load, snooze
+  test renamed, source not opened). On its way through the gate; the card comes next.
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): head `d493aff`, thirteen polish items
+  handled, before its gate. Its manifest now also lists an export service and `packages/schema/src/ui-state.ts`
+  (also in the Plan-page Build's manifest: the second to merge rebases; I look at that file on its card).
+- **Age of Money Build** (`p_38ee9709f6664cb8bbdf1208634375e3`): designed, being built.
+
+**Ticket writes:** 1 (comment on EXF-613).
+
+**Backlog:** 59 open feature tickets (35 done; 6 in progress: EXF-500, 516, 519, 520, 522, 553). Gap:
+open EXF-558, EXF-560, EXF-562, EXF-589, EXF-614, EXF-615 (in progress). Template: twenty-nine.
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `parity_known_gaps`; 5 `parity_known_gaps` (with the
+import); 8 `new_gaps` (fixed, rerun owed); 9 `new_gaps` (EXF-614, Low); 10 `parity`; 11 `parity`;
+3, 4, 6, 7 not run. Finished since each template's last review: Build 8, Deploy 9, Discover 2, Test
+user flow 7.
+
+**Next plan:** nothing new can start beside the three Builds without touching their files; wait for
+the cards. First merge of the Plan-page or register Build → Deploy `D21` (the tenth; ships the two
+Reflect reports too), then the Deploy template review, then flows 3 and 8.
