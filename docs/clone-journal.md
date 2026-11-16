@@ -6950,3 +6950,81 @@ review: Build 0, Deploy 0, Discover 2, Test user flow 8.
 label ticket and EXF-621 (the Reflect files are held by nobody). The Plan-page gaps (EXF-622, EXF-623,
 EXF-624, EXF-616) wait for the credit engine merge. Register merge → Deploy `D22` → scheduled
 transactions and the API half of Export Plan.
+
+### 2026-11-16 · Plan round 81
+
+Children used 99 of 200. Four started now; five are running with the shell Build (designed, head
+`51f2885`). Main `8ec621e`, live `357bc4f`. Journal branch merged up to main.
+
+**Three children ended since review 80; their full record is for review 81. What this plan needed
+from them:**
+- **The register Build merged as `8ec621e`** (third card, approved in a side turn: gate on `5ebac3c`,
+  353 of 353 three times, no flakes; the merge commit's tree equals the gated head `43519e5`). I read
+  the rework: `prepare()` takes pre-read lines, other sides, accounts and category names and makes no
+  database call when it has them; approve and reject read once per attempt; the counting test asserts
+  the same number of calls for 10 and for 100 rows and at most 20, and failed on the old code (clear
+  28 against 217, approve 44 against 424, reject 22 against 202); the rule is in `docs/conventions.md`.
+  Three small known issues accepted. 68 tools on main; migration `20261116101000_transaction_flags.sql`
+  pending on live.
+- **The credit engine Build ended without a pull request, by my Abandon at its `checks_stuck` card.**
+  Its box had lost the platform's files (the preflight had said so); `pnpm check` passed by hand three
+  times with 1,476 tests while the platform's `checks` step failed with no log. The branch has
+  everything (head `a8ed5b7`).
+- **The Build template review ended**; I approved all twelve proposals in a side turn (three new
+  tickets, eight evidence comments). Its findings are for review 81, among them: **Designers went
+  outside the named place in six of seven Builds**, which I follow up there.
+- The ticket filed at the last review exists: **EXF-626** (Income v Expense's cut labels), set to Low.
+
+**Started:**
+1. **Deploy `D22`** (`p_dcdf16fb4bdc45e58b02a72506cae2cd`; `expect_commit` `8ec621e`, gated head
+   `43519e5`, trees identical). Two merges: Age of Money and the register.
+   - **The check this release most needs:** 60 unapproved rows approved in one call, and bulk actions
+     over 60 rows in one call each: the proof on live of the fixed number of database calls (EXF-620).
+     The create request takes `approved` false, so no bank is needed.
+   - Also: clear, categorize, flag, memo, move, duplicate, delete with balances I derived (440000,
+     450000 and −10000, 445000, 465000), the export, Age of Money through REST, MCP and the tab; 68
+     tools; at 1024×700 a measured look at the action bar.
+   - New standing lines: "never print response headers"; "DIFFERS FROM THE BRIEF: expected …, read …";
+     compare the health value with `origin/main`, not the local HEAD.
+   - **No Build card is approved while it runs.**
+2. **The credit engine, carried over** (`p_d256d73e55104993a05ccac960529443`). I merged the old branch
+   onto main `8ec621e` in a throwaway worktree first: clean, 55 files, 3,422 insertions. The Clerk
+   merges it with exact commands and stops if the head is not `a8ed5b7`. New work only: the calls per
+   handler stated (the new conventions rule), the ticket's misprint in example B accepted (722.77), a
+   measured check at 1024×700, the backfill checked for name clashes. Its Designer, Reviewer and
+   Tester run for the first time.
+3. **Scheduled transactions** (`p_900d4c34d7c6414a980c2d1d87cfba26`; EXF-497 with EXF-499; they block
+   the plan import EXF-477 and flow 7). The register files are free since the merge.
+   - **My decisions:** hyphenated paths; plain rows only (no scheduled splits or transfers); a pure
+     recurrence module in `packages/schema` with the ticket's examples as tests; **entering what is
+     due has two callers**: the web app when a plan opens, with the browser's date, and the daily cron
+     as a backstop with the day before the UTC date, so it never enters a transaction dated in the
+     owner's future (the app has no time zone setting). The cron's part shares the invocation's call
+     budget with the bank sync and has a counting test.
+   - For scheduled rows the action bar offers Enter Now and Delete; the other bulk actions are drawn
+     disabled (a ticket after the merge).
+   - **Manifest estimate against the others:** its own new files, `register/**`, `scheduled.ts`,
+     `sync-budget.ts`, one line in `app.ts` (shared; nobody else changes it). It must not edit the
+     accounts service (the credit carry-over holds it) nor `wrangler.jsonc`.
+   - Source: the test plan's All Accounts register; the add row may be opened to see the calendar and
+     the Repeat select and is left with Cancel.
+4. **Reflect narrow-window fixes** (`p_7aa8691536924481bf53c457c86b24ea`; EXF-625, EXF-626, EXF-621).
+   Small, web only. **No source app:** nothing at 1024 px can be compared in a tab that is never
+   resized. (An outright ban has not bound a Designer before; if this one opens the source anyway, the
+   place is the test plan's Reflect, which holds no private data.)
+
+**Changed in every brief from now on** (from the template review and today's losses): the Clerk
+creates no other file under `.exfab` and lists the directory; "if the platform's files are missing,
+say so at once and do not re-run checks that pass" (my earlier line "request.json is normally gone"
+was wrong: in a healthy box it stays); source captures with the plain call and no options, the tab's
+size read before and after; nothing written into the source page; a test for a finding run against the
+old code by the step that writes it; a departure from an acceptance case listed separately; a measured
+check at 1024×700 for new text.
+
+**Not started:** the template-ticket sweep (next round, once the three new template tickets have
+priorities); Export Plan's API half (after the credit engine: it reads the month figures that Build
+changes); the Plan-page gaps EXF-622, 623, 624, 616 (after the credit engine); the private screens.
+
+Ticket writes: 10 (EXF-626 priority and state; EXF-625, 621, 497, 499 to In Progress; comments on
+EXF-625, 497, 499, 532). Review cadence: Build 2 since the review (the register Build and the
+abandoned credit Build), Deploy 0, Discover 2, Test user flow 8.
