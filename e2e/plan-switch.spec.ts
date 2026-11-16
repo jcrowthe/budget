@@ -91,20 +91,24 @@ test("switching plans shows nothing of the previous plan while the next month lo
     "$40.00",
   );
 
+  // Y's month request is held until the test lets it go, so the checks below never depend on timing.
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => {
+    release = r;
+  });
   await page.route(`**/api/v1/budgets/${y.id}/months/*`, async (route) => {
-    await new Promise((r) => setTimeout(r, 2000));
+    await held;
     await route.continue().catch(() => {});
   });
-  const started = Date.now();
   await switchTo(page, x, y);
   await expect(page).toHaveURL(new RegExp(`/${y.id}/budget`));
   await expect(planButton(page, y.name)).toBeVisible();
   const assignedBox = page.locator(".assigned-box");
   await expectNothingOfX(page, assignedBox);
   await page.waitForTimeout(1000);
-  expect(Date.now() - started).toBeLessThan(2000);
   await expectNothingOfX(page, assignedBox);
   await expect(page.getByRole("treegrid", { name: "Plan" })).toHaveAttribute("aria-busy", "true");
+  release();
 
   // Then the new plan's own figures.
   await expect(page.locator(".category-row").first()).toBeVisible({ timeout: 10000 });
