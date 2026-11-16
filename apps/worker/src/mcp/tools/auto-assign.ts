@@ -27,7 +27,7 @@ const checkScope = (i: ScopeInput) => {
 export const tools: McpToolDef[] = [
   {
     name: "preview_auto_assign",
-    description: `What each Auto-Assign option would do for a month, without changing anything. ${MONTH} ${MONEY} ${STRATEGIES} ${SCOPE} Returns { category_count, underfunded, assigned_last_month, spent_last_month, average_assigned, average_spent, reduce_overfunding, reset_available, reset_assigned }: underfunded is the amount that would be added and reduce_overfunding the amount that would be removed; the others are the resulting total Assigned (reset_available and reset_assigned are 0). ${TODAY}`,
+    description: `What each Auto-Assign option would do for a month, without changing anything. ${MONTH} ${MONEY} ${STRATEGIES} ${SCOPE} Returns { category_count, underfunded, assigned_last_month, spent_last_month, average_assigned, average_spent, reduce_overfunding, reset_available, reset_assigned }: underfunded is the amount that would be added and reduce_overfunding the amount that would be removed; the others are the resulting total Assigned (reset_available and reset_assigned are 0). ${TODAY} Credit card payment categories are left out of underfunded, reduce_overfunding, spent_last_month and average_spent.`,
     inputSchema: z.object({ budget_id: Id, month: InputMonth, ...scopeShape }),
     run: async (input: { budget_id: string; month: string } & ScopeInput, { env }) => {
       checkScope(input);
@@ -42,7 +42,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "auto_assign",
-    description: `Apply one Auto-Assign option to a month. This changes Assigned at once, with no confirmation; each changed category is recorded in the history with its actor, and Ready to Assign may go negative. ${MONTH} ${MONEY} ${STRATEGIES} ${SCOPE} Returns { month, strategy, changed }: the category-months whose Assigned changed (month, category_id, assigned). ${TODAY}`,
+    description: `Apply one Auto-Assign option to a month. This changes Assigned at once, with no confirmation; each changed category is recorded in the history with its actor, and Ready to Assign may go negative. ${MONTH} ${MONEY} ${STRATEGIES} ${SCOPE} Returns { month, strategy, changed }: the category-months whose Assigned changed (month, category_id, assigned). ${TODAY} Credit card payment categories are left out of underfunded, reduce_overfunding, spent_last_month and average_spent.`,
     inputSchema: z.object({
       budget_id: Id,
       month: InputMonth,

@@ -45,6 +45,7 @@ export function defaultCategoryStmts(
       sortOrder: gi,
       hidden: false,
       collapsed: false,
+      kind: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -73,6 +74,8 @@ export function defaultCategoryStmts(
         updatedAt: now,
         deletedAt: null,
         note: null,
+        kind: null,
+        accountId: null,
       };
       stmts.push(
         categoriesRepo.insertIfSortStmt(db, cat),

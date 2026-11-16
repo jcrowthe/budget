@@ -1,4 +1,4 @@
-import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { categoryGroups } from "../db/schema/category-groups";
 import { jsonBool } from "./guards";
@@ -58,7 +58,7 @@ export function insertIfSortStmt(db: Db, row: CategoryGroupRow) {
   return db
     .insert(categoryGroups)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.kind} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
     );
 }
 
@@ -103,7 +103,7 @@ export function insertIfStmt(db: Db, r: CategoryGroupRow, guard: SQL) {
   return db
     .insert(categoryGroups)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.kind} where ${guard}`,
     );
 }
 

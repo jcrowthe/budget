@@ -64,7 +64,7 @@ export function insertIfSortStmt(db: Db, row: CategoryRow) {
   return db
     .insert(categories)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note} where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note}, ${r.kind}, ${r.accountId} where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
     );
 }
 
@@ -108,7 +108,7 @@ export function insertIfStmt(db: Db, r: CategoryRow, guard: SQL) {
   return db
     .insert(categories)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note} where ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note}, ${r.kind}, ${r.accountId} where ${guard}`,
     );
 }
 
@@ -246,3 +246,20 @@ export function allActive(ids: readonly string[]): SQL {
 export function activeInActiveGroup(budgetId: string, id: string): SQL {
   return sql`exists (select 1 from ${categories} c join ${categoryGroups} g on g.id = c.group_id where c.id = ${id} and c.budget_id = ${budgetId} and c.deleted_at is null and g.deleted_at is null)`;
 }
+
+/** The live payment category of a credit account (EXF-532), or undefined. */
+export async function findPaymentCategory(
+  db: Db,
+  accountId: string,
+): Promise<CategoryRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.accountId, accountId), isNull(categories.deletedAt)))
+    .limit(1);
+  return row;
+}
+
+/** `categoryJson()` plus the payment category's `kind` and `account_id`. */
+export const paymentCategoryJson = (): SQL =>
+  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(sql`hidden`)}, 'note', note, 'kind', kind, 'account_id', account_id)`;

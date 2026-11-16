@@ -10,6 +10,7 @@ import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
 import * as snoozesRepo from "../repositories/target-snoozes";
 import * as repo from "../repositories/targets";
+import { PaymentLocked } from "./credit-payments";
 
 const MAX_ATTEMPTS = 5;
 
@@ -53,9 +54,9 @@ export async function setTarget(
   const today = opts.today === undefined ? undefined : IsoDate.parse(opts.today);
   const db = getDb(env);
   await requirePlan(db, v.budget_id);
-  if (!(await categoriesRepo.findActive(db, v.budget_id, v.category_id))) {
-    throw new NotFound("Category");
-  }
+  const cat = await categoriesRepo.findActive(db, v.budget_id, v.category_id);
+  if (!cat) throw new NotFound("Category");
+  if (cat.kind !== null) throw new PaymentLocked("payment_category_target");
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await repo.find(db, v.budget_id, v.category_id);
     const now = new Date().toISOString();
