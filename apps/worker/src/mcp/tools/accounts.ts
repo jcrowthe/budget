@@ -45,7 +45,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "update_account",
-    description: `Change an account; send only what changes. name must be unique among the plan's accounts ignoring case (a blank or taken name is a tool error); note is free text up to 500 characters (null or blank clears it); starred adds it to or removes it from the sidebar's STARRED group, and a closed account cannot be starred (tool error). ${MONEY} Returns { account } with id, name, note, type, starred, closed, group, cleared_balance, uncleared_balance, balance and can_delete. ${timestamps(["created_at"])}`,
+    description: `Change an account; send only what changes. name must be unique among the plan's accounts ignoring case (a blank or taken name is a tool error); note is free text up to 500 characters (null or blank clears it); starred adds it to or removes it from the sidebar's STARRED group, and a closed account cannot be starred (tool error). ${MONEY} Returns { account } with id, name, note, type, starred, closed, group, cleared_balance, uncleared_balance, balance and can_delete. ${timestamps(["created_at"])} Renaming a credit account renames its payment category.`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id,
@@ -99,14 +99,14 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "delete_account",
-    description: `Delete an account and its Starting Balance transaction (both soft-deleted; Ready to Assign follows). Refused with a tool error when the account has any other transaction, or, for a closed account, any transaction at all: close it instead to keep its history. A linked account is unlinked. Returns { account_id, deleted_transaction_ids }. ${MONEY}`,
+    description: `Delete an account and its Starting Balance transaction (both soft-deleted; Ready to Assign follows). Refused with a tool error when the account has any other transaction, or, for a closed account, any transaction at all: close it instead to keep its history. A linked account is unlinked. Returns { account_id, deleted_transaction_ids }. ${MONEY} Deleting a credit account removes its payment category, refused (409) while that category has assigned money or transactions.`,
     inputSchema: z.object({ budget_id: Id, account_id: Id }),
     run: async (input: { budget_id: string; account_id: string }, { env, actor }) =>
       deleteAccount(env, actor, input.budget_id, input.account_id),
   },
   {
     name: "create_account",
-    description: `Add an unlinked account with a Starting Balance transaction. ${MONEY} balance is entered as shown: for credit cards, lines of credit and other liabilities a positive number means money owed and is stored negative. Loan types are not supported yet. ${dates("date")} date defaults to today (UTC). Returns { account, starting_balance }: the new account with its balances, and the Starting Balance transaction. ${timestamps(["created_at", "updated_at"])}`,
+    description: `Add an unlinked account with a Starting Balance transaction. ${MONEY} balance is entered as shown: for credit cards, lines of credit and other liabilities a positive number means money owed and is stored negative. Loan types are not supported yet. ${dates("date")} date defaults to today (UTC). Returns { account, starting_balance }: the new account with its balances, and the Starting Balance transaction. ${timestamps(["created_at", "updated_at"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
     inputSchema: z.object({ budget_id: Id, ...AccountCreateRequest.shape }),
     run: async (
       input: { budget_id: string } & z.input<typeof AccountCreateRequest>,
@@ -118,7 +118,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "create_accounts_from_bank",
-    description: `Add bank accounts of a connection as new linked accounts of a plan. Each gets a Starting Balance transaction (cleared, approved) dated today equal to the bank's current balance; ${MONEY} What is owed on a credit card or loan is negative; no balance from the bank gives 0. The account type follows the bank account's type (checking, savings, creditCard, a loan type, otherwise otherAsset); overrides, keyed by bank_account_id, may set a name and any type but cash. Cash accounts are refused (tool error). A bank account already linked in this plan, or a name already used, is an error and nothing is created. A bank account of a connection in another environment than the plan's is not found. ${dates("today", "import_start_date")} today is the link date and defaults to the UTC date. Returns { created: [{ account, starting_balance }] } in the order of bank_account_ids; each account has linked true, bank_account_id and import_start_date. ${timestamps(["created_at", "updated_at"])}`,
+    description: `Add bank accounts of a connection as new linked accounts of a plan. Each gets a Starting Balance transaction (cleared, approved) dated today equal to the bank's current balance; ${MONEY} What is owed on a credit card or loan is negative; no balance from the bank gives 0. The account type follows the bank account's type (checking, savings, creditCard, a loan type, otherwise otherAsset); overrides, keyed by bank_account_id, may set a name and any type but cash. Cash accounts are refused (tool error). A bank account already linked in this plan, or a name already used, is an error and nothing is created. A bank account of a connection in another environment than the plan's is not found. ${dates("today", "import_start_date")} today is the link date and defaults to the UTC date. Returns { created: [{ account, starting_balance }] } in the order of bank_account_ids; each account has linked true, bank_account_id and import_start_date. ${timestamps(["created_at", "updated_at"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
     inputSchema: z.object({ budget_id: Id, ...accountsFromBankFields }),
     run: async (input: { budget_id: string } & AccountsFromBankRequest, { env, actor }) => {
       const { budget_id, ...rest } = input;

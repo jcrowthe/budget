@@ -100,22 +100,22 @@ test("collapse is saved and survives a reload", async ({ page, request }) => {
   const saved = page.waitForResponse(
     (r) => r.url().includes("/ui-state") && r.request().method() === "PUT",
   );
-  await page.getByRole("button", { name: "collapse CREDIT" }).click();
+  await page.getByRole("button", { name: "collapse CREDIT", exact: true }).click();
   await expect(group(page, "credit").locator(".nav-account-row")).toHaveCount(0);
   await expect(headerValue(page, "credit")).toHaveText("−$150.00");
-  await expect(page.getByRole("button", { name: "open CREDIT" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "open CREDIT", exact: true })).toBeVisible();
   await saved;
   await page.reload();
-  await expect(page.getByRole("button", { name: "open CREDIT" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "open CREDIT", exact: true })).toBeVisible();
   const res = await request.get(`/api/v1/budgets/${id}/ui-state`, { headers: await authHeaders() });
   expect((await res.json()).data.ui_state.collapsed_account_groups).toEqual(["credit"]);
   const saved2 = page.waitForResponse(
     (r) => r.url().includes("/ui-state") && r.request().method() === "PUT",
   );
-  await page.getByRole("button", { name: "open CREDIT" }).click();
+  await page.getByRole("button", { name: "open CREDIT", exact: true }).click();
   await saved2;
   await page.reload();
-  await expect(page.getByRole("button", { name: "collapse CREDIT" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "collapse CREDIT", exact: true })).toBeVisible();
   await expect(group(page, "credit").locator(".nav-account-row")).toHaveCount(1);
 });
 
@@ -128,8 +128,8 @@ test("a failed save keeps the screen state, silently", async ({ page, request })
       : route.continue(),
   );
   await page.goto(`/${id}/budget`);
-  await page.getByRole("button", { name: "collapse CASH" }).click();
-  await expect(page.getByRole("button", { name: "open CASH" })).toBeVisible();
+  await page.getByRole("button", { name: "collapse CASH", exact: true }).click();
+  await expect(page.getByRole("button", { name: "open CASH", exact: true })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 

@@ -1,11 +1,11 @@
 import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
-import { targetPill } from "@budget/schema/target-wording";
 import type { ReactNode } from "react";
 import { AvailablePill } from "../AvailablePill";
-import { money, signed } from "../format";
+import { categoryPill, money, signed } from "../format";
 import { PencilIcon } from "../icons";
 import { NotesCard } from "./NotesCard";
+import { OverspentMessage } from "./overspentMessage";
 import { PanelCard } from "./PanelCard";
 import { PanelTooltip } from "./PanelTooltip";
 import { TargetCard } from "./TargetCard";
@@ -33,33 +33,36 @@ export function CategoryInspector({
   /** The Auto-Assign card, drawn between the Target and Notes cards. */
   autoAssign: ReactNode;
 }) {
-  // Credit card spending is not built (EXF-532): all of a category's activity is cash spending.
   const rows: [string, string][] = [
     ["Cash Left Over From Last Month", money(c.carried)],
     ["Assigned This Month", signed(c.assigned)],
-    ["Cash Spending", signed(c.activity)],
-    ["Credit Spending", signed(0)],
+    ["Cash Spending", signed(c.cash_spending)],
+    ["Credit Spending", signed(c.credit_spending)],
   ];
-  const pill = c.target ? targetPill(c) : null;
+  const pill = categoryPill(c);
+  // A credit card payment category belongs to its account: no pencil and no target until its own inspector.
+  const payment = c.kind !== null;
   return (
     <>
       <div className="panel-heading">
         <h1 className="panel-title" title={c.name}>
           {c.name}
         </h1>
-        <PanelTooltip text="Edit Category" align="end">
-          {(trigger) => (
-            <button
-              type="button"
-              {...trigger}
-              className="panel-pencil"
-              aria-label={`Edit category: ${c.name}`}
-              onClick={(e) => onEdit(e.currentTarget)}
-            >
-              <PencilIcon />
-            </button>
-          )}
-        </PanelTooltip>
+        {!payment && (
+          <PanelTooltip text="Edit Category" align="end">
+            {(trigger) => (
+              <button
+                type="button"
+                {...trigger}
+                className="panel-pencil"
+                aria-label={`Edit category: ${c.name}`}
+                onClick={(e) => onEdit(e.currentTarget)}
+              >
+                <PencilIcon />
+              </button>
+            )}
+          </PanelTooltip>
+        )}
       </div>
       <PanelCard
         id="panel-balance"
@@ -76,15 +79,18 @@ export function CategoryInspector({
             </span>
           </div>
         ))}
+        <OverspentMessage c={c} />
       </PanelCard>
-      <TargetCard
-        key={c.id}
-        budgetId={budgetId}
-        month={month}
-        category={c}
-        collapsed={targetCollapsed}
-        onToggle={onToggleTarget}
-      />
+      {!payment && (
+        <TargetCard
+          key={c.id}
+          budgetId={budgetId}
+          month={month}
+          category={c}
+          collapsed={targetCollapsed}
+          onToggle={onToggleTarget}
+        />
+      )}
       {autoAssign}
       <NotesCard budgetId={budgetId} categoryId={c.id} note={c.note} />
     </>

@@ -9,6 +9,8 @@
   --categoryBalanceZeroLabel: #9b9caa;
   --categoryBalancePositiveLabel: #0c0d22;
   --categoryBalancePositiveHover: #508316;
+  --categoryBalanceWarningBackground: #f6c91d;
+  --categoryBalanceWarningBackgroundActive: #daac00;
   --categoryBalanceNegativeLabel: #fff;
   --categoryBalanceNegativeHover: #912333;
   --budgetBarFundedSpending: #346011;
@@ -165,6 +167,9 @@
   padding: 0 2px 0 6px;
 }
 .cell-available {
+  /* EXF-535: the widest pill (card icon and "−$1,200.00") shows in full at 1024px. Acceptance overrides polish P7
+     (the source clips there, 84.3px); at wider windows the 15-18% column is wider than this anyway. */
+  min-width: 7.5rem;
   padding: 0;
   display: flex;
   justify-content: flex-end;
@@ -480,6 +485,15 @@ button.category-name {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  /* 1024px: the pill shrinks in its column and clips, as the source's does (measured: 84.3px cell) */
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.available-pill .pill-amount {
+  min-width: 0;
+  overflow: hidden;
 }
 .available-pill.zero {
   background: var(--inputBackground);
@@ -493,12 +507,22 @@ button.category-name {
   background: var(--categoryBalancePositiveHover);
 }
 .available-pill.cautious {
-  background: var(--statusCautious);
+  background: var(--categoryBalanceWarningBackground);
   color: var(--categoryBalanceCautiousLabel);
+}
+.available-pill.cautious:hover:not(:disabled) {
+  background: var(--categoryBalanceWarningBackgroundActive);
 }
 .available-pill .pill-icon {
   flex: none;
   margin: -1px 4px 0 0;
+}
+/* EXF-535: the credit-overspent pill keeps the label colour for its card icon, with the source's .35rem gap. */
+.available-pill.credit .pill-icon {
+  fill: currentColor;
+  /* source: the icon is 13x13 and sits 4.5px under the pill's top (padding 2px); ours is 4px/2px, so the 2px
+     bottom margin puts the 15px margin box in the 16px content box */
+  margin: 0 0.35rem 2px 0;
 }
 .status-label strong {
   font-weight: 700;

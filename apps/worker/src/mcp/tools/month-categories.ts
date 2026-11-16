@@ -8,7 +8,7 @@ import type { McpToolDef } from "../types";
 export const tools: McpToolDef[] = [
   {
     name: "get_month_category",
-    description: `One category's figures for one month of a plan. ${MONTH} ${MONEY} Returns { leftover, assigned, cash_activity, credit_activity, available, note }: leftover is carried from the previous month; credit_activity is 0 until credit card spending exists, so all activity is cash_activity; available = leftover + assigned + cash_activity + credit_activity; note is the category's note (the same in every month) or null.`,
+    description: `One category's figures for one month of a plan. ${MONTH} ${MONEY} Returns { leftover, assigned, cash_activity, credit_activity, available, note }: leftover is carried from the previous month; credit_activity is the net spending on credit accounts (credit card and line of credit) and cash_activity everything else; available = leftover + assigned + cash_activity + credit_activity; note is the category's note (the same in every month) or null. Credit overspending is overspent card spending that becomes card debt and leaves Ready to Assign alone; cash overspending is taken from next month's Ready to Assign.`,
     inputSchema: z.object({ budget_id: Id, month: AssignedMonth, category_id: Id }),
     run: async (input: { budget_id: string; month: string; category_id: string }, { env }) =>
       getMonthCategory(env, input.budget_id, input.month, input.category_id),

@@ -297,7 +297,10 @@ export default app
       request: { params: z.object({ budget_id: budgetParam, account_id: accountParam }) },
       responses: {
         200: json(AccountDeleteResponse, "The deleted account and its Starting Balance"),
-        409: json(ErrorBody, "has_transactions: the account has other transactions"),
+        409: json(
+          ErrorBody,
+          "has_transactions: the account has other transactions; payment_category_has_history: its payment category has assigned money or transactions",
+        ),
         ...errors,
       },
     }),

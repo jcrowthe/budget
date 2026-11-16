@@ -76,7 +76,17 @@ export interface AutoAssignInput {
   last_spent: number;
   average_assigned: number;
   average_spent: number;
+  /** A credit card payment category: it has no target yet and its activity is not spending (EXF-532). */
+  payment: boolean;
 }
+
+/** The strategies that leave a credit card payment category's Assigned unchanged. */
+export const PAYMENT_SKIPS: readonly AutoAssignStrategy[] = [
+  "underfunded",
+  "reduce_overfunding",
+  "spent_last_month",
+  "average_spent",
+];
 
 /** The most months an average looks back over. */
 export const AVERAGE_MONTHS = 12;
@@ -131,6 +141,7 @@ const removable = (c: AutoAssignInput): number => {
 
 /** The Assigned a category gets from one strategy. */
 export function autoAssignResult(c: AutoAssignInput, s: AutoAssignStrategy): number {
+  if (c.payment && PAYMENT_SKIPS.includes(s)) return c.assigned;
   switch (s) {
     case "underfunded":
       return c.assigned + (active(c)?.to_go_this_month ?? 0);
@@ -155,14 +166,18 @@ export function autoAssignResult(c: AutoAssignInput, s: AutoAssignStrategy): num
 export function autoAssignPreview(cs: readonly AutoAssignInput[]): AutoAssignPreview {
   const sum = (f: (c: AutoAssignInput) => number) => cs.reduce((n, c) => n + f(c), 0);
   const total = (s: AutoAssignStrategy) => sum((c) => autoAssignResult(c, s));
+  // Payment categories are left out of the four sums that would read their targets or their activity.
+  const others = cs.filter((c) => !c.payment);
+  const sumOthers = (f: (c: AutoAssignInput) => number) => others.reduce((n, c) => n + f(c), 0);
+  const totalOthers = (s: AutoAssignStrategy) => sumOthers((c) => autoAssignResult(c, s));
   return {
     category_count: cs.length,
-    underfunded: sum((c) => active(c)?.to_go_this_month ?? 0),
+    underfunded: sumOthers((c) => active(c)?.to_go_this_month ?? 0),
     assigned_last_month: total("assigned_last_month"),
-    spent_last_month: total("spent_last_month"),
+    spent_last_month: totalOthers("spent_last_month"),
     average_assigned: total("average_assigned"),
-    average_spent: total("average_spent"),
-    reduce_overfunding: sum(removable),
+    average_spent: totalOthers("average_spent"),
+    reduce_overfunding: sumOthers(removable),
     // The resulting Available of every category is 0 by construction.
     reset_available: 0,
     reset_assigned: 0,

@@ -7,6 +7,12 @@ const cat = (id: string, o: Partial<MonthCategoryDetail> = {}): MonthCategoryDet
   name: id,
   sort: 0,
   hidden: false,
+  kind: null,
+  account_id: null,
+  cash_spending: 0,
+  credit_spending: 0,
+  overspent: null,
+  state: "ok" as const,
   assigned: 0,
   activity: 0,
   available: 0,
@@ -35,6 +41,7 @@ const detail = (): MonthDetail => ({
       name: "G1",
       sort: 0,
       hidden: false,
+      kind: null,
       collapsed: false,
       assigned: 0,
       activity: 0,
@@ -56,6 +63,7 @@ const detail = (): MonthDetail => ({
       name: "G2",
       sort: 1,
       hidden: true,
+      kind: null,
       collapsed: false,
       assigned: 0,
       activity: 0,
@@ -100,6 +108,12 @@ describe("categoryMonth", () => {
       available: 140000,
       note: "n",
     });
+  });
+  it("splits activity into cash and credit (EXF-535)", () => {
+    const d = detail();
+    const c = d.groups[0]?.categories.find((x) => x.id === "a");
+    if (c) Object.assign(c, { activity: -70000, credit_spending: -40000 });
+    expect(categoryMonth(d, "a")).toMatchObject({ cash_activity: -30000, credit_activity: -40000 });
   });
   it("is null for an unknown id", () => {
     expect(categoryMonth(detail(), "zz")).toBeNull();
