@@ -386,7 +386,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | completed (17 minutes): flow 9 `new_gaps` (EXF-586), flow 10 `new_gaps` (EXF-587), flow 1 `parity_known_gaps` |
 | 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
-| 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | running |
+| 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | live `b09078b` (6 minutes) |
 | 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -3967,3 +3967,48 @@ with EXF-551; EXF-579 with EXF-569) and two children started now.
   transactions tool file.
 - Ticket writes: 8 (four to In Progress, four comments).
 - Review cadence: Build 3, Deploy 0, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 47
+
+Children used 61 of 200. Four Builds are running: EXF-517 with EXF-507 (refreshing onto the new main after
+its first card); EXF-548 with EXF-551 (second polish pass applied); EXF-579 with EXF-569; and the Plan-page
+Build for EXF-498, 523, 521 and 586 (just started).
+
+**Ended: the Deploy of main `b09078b`** (`p_19af5f217da344c69a6bc314de0cfbaa`), six minutes.
+**Live: https://budget.doxen.dev at `b09078b`.**
+
+- Migration `20261116100300_bank_connections_reset.sql` applied; none pending. Smoke ok; e2e skipped on an
+  equal tree.
+- All six checks passed: moves and a cover through REST with the second cover refused (422) and a readable
+  404 for an unknown category; **38 MCP tools**, `move_money` agreeing with REST; bank-connection reads (an
+  empty list, a 404, a readable tool error); the Ready to Assign box, its breakdown, Assign, Move and Fix
+  This reachable with a real mouse at both window sizes; purge `remaining 0`.
+- One plan that is not a test plan, counted with the expression
+  `[.data.budgets[]|select(.name|startswith("ZZ-TEST")|not)]|length`: the person's.
+- Small deviations it reported itself: it assigned 300.00 where I asked for 30.00; one direct DELETE of its
+  own test transaction.
+- "The deploy output has no `plaid credentials:` line": the same as before (EXF-583).
+
+**The transactions Build's first card (side turn): Refresh.** Its gate had run on base `3007076` and main
+had moved to `b09078b`. The branch merges with main without conflict. I read it then, so the next card is
+quick: gate e2e 145 of 145 three times; the migration is additive and can run twice; the Starting Balance
+rule keys on the system payee; `list_payees` with its coverage file; tool descriptions name the payee
+fields.
+
+- **For the next Deploy:** `20261116100100_payees.sql` sorts before `20261116100300`, which is already
+  applied on live. Ask the Deploy to confirm that the pending list shows it and that the release applies
+  it (and, after the release, that `GET .../payees` answers on a test plan). The same holds for
+  `20261116100200_report_settings.sql`.
+
+**Running Builds:** Reflect head `a2edcf4` (second polish pass); test infrastructure head `cc26aea`; the
+Plan-page Build has no commit yet.
+
+**Main and live are both `b09078b`.** The Ready to Assign box is live, so flow 1's known gap is closed on
+live; run flow 1 again together with flow 2 after the transactions Build is deployed (one child).
+
+**Ticket writes:** none.
+
+**Backlog:** 77 open feature tickets (18 done; 7 in progress: EXF-517, 507, 548, 551, 498, 523, 521). Gap:
+EXF-558 (High), EXF-587 (Medium), EXF-560, EXF-562 (Low); in progress EXF-586 (High), EXF-569, EXF-579.
+Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished since
+each template's last review: Build 3, Deploy 1, Discover 2, Test user flow 3.
