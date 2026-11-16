@@ -6577,3 +6577,50 @@ Build 9, **Deploy 10**, Discover 2, Test user flow 7.
 **Next plan:** the Deploy template review (mode review, the ten Threads above, with the cookie slip
 and the two "Lead's expectation was wrong, the check was not bent" cases as notes); flows 3 and 8 on
 live `357bc4f`. Nothing else is free for a Build: scheduled transactions wait for the register merge.
+
+### 2026-11-16 · Plan round 78
+
+Children used 93 of 200. Two started now; five are running with the register Build (regating), the Age
+of Money Build and the credit engine Build (designing). Main `357bc4f`, live `357bc4f`. No tickets were
+filed at the last review, so none to check.
+
+- **Started: the Deploy template review** (`p_6421e2b6101a4c0db86039e8aa12df1c`; Improve templates,
+  mode review, the ten Deploys since round 43). The six tickets of the last Deploy review are all still
+  open, so I asked mainly for new evidence on them and for:
+  1. what differed in the two Deploys that did not run (EXF-612 refused, EXF-611 parked) and the
+     smallest change that removes the dependency on a file an agent writes;
+  2. a rule against printing response headers of live calls (the cookie in `D21`'s transcript; I told
+     the reviewer not to copy the value);
+  3. shrinking my 7,000 to 12,000 character briefs: which rules and checks can be template, profile or
+     code; and keeping the behaviour "the verifier does not bend a check to a wrong expectation";
+  4. whether the template already refuses when main is not the expected commit;
+  5. a migration numbered below ones already applied: by design or by luck;
+  6. where the 7 to 25 minutes go.
+  With the standing line: "Post evidence for an existing ticket with comment_ticket or in your report;
+  never file stand-in tickets."
+- **Started: flows 3 and 8 on live** (`p_3f1312fc03934e6c89f48296cbe4425f`; prefix `ZZ-TEST F78`).
+  - Flow 3, first run: three target kinds (two set in the browser), assigning by hand, snooze and
+    Shift+Z, plan-wide Auto-Assign Underfunded, spending, the five views, December (carry, the 50.00 of
+    cash overspending out of Ready to Assign, the targets' December needs), Auto-Assign for one
+    category in December and what it does to November's Ready to Assign, the popover's Auto tab,
+    editing and deleting a target, MCP, the history table.
+  - Flow 8, second run: a five-month plan with income, four spending categories, a refund, a transfer
+    between cash accounts and a categorized transfer to a loan; Net Worth, Spending Breakdown, Spending
+    Trends and Income v Expense with drill-downs, a filter, exports, MCP, no other plan's figures on
+    first paint, an empty plan.
+  - **A new rule in the brief, from the last Deploy:** "If a figure the Lead gives does not match what
+    you read, do not adjust the check and do not assume the app is wrong: report both with your own
+    arithmetic. The Lead's figures are derived by hand and have been wrong before." And "never print
+    the response headers of a call to the live app".
+  - Figures I derived and am less sure of, so I know where to look first if they are reported as
+    different: whether Underfunded also counts an overspent category (step 3.10 expects 50.00; it may
+    read 100.00); November's Ready to Assign after assigning in December (840.00); the average daily
+    spending (45.63 over 153 days).
+  - No source app, no bank connection.
+- **No Build started:** the register, reports, plan and core files are all held; scheduled
+  transactions wait for the register merge.
+- **Cards now safe to approve** (no Deploy in flight) when their gate is on `357bc4f`.
+
+Declared for the tree as well: scheduled transactions (EXF-497, EXF-499) and Deploy `D22`.
+
+Ticket writes: 0. Review cadence: Build 9, Deploy 0 (review running), Discover 2, Test user flow 7.
