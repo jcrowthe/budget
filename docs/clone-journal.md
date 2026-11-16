@@ -6503,3 +6503,77 @@ findings) and the Age of Money Build (polish applied). Main `357bc4f`, live `c9e
 
 Ticket writes: 5 (EXF-616 priority; EXF-532 and EXF-535 to In Progress, each with a comment). Review
 cadence: Build 9, Deploy 9 (the tenth is running), Discover 2, Test user flow 7.
+
+### 2026-11-16 · Review round 77
+
+Children used 91 of 200. One ended (Deploy `D21`, shipped); three are running: the register Build
+(regating on the new base), the Age of Money Build (after review fixes) and the credit engine Build
+(designing). Main `357bc4f`, **live `357bc4f`**: nothing merged is waiting.
+
+**Deploy `D21` shipped `357bc4f`** (`p_dc763853fd914adfb4b6fe1852320767`, 25 minutes) to
+https://budget.doxen.dev. I read the health endpoint myself: `deploy_sha` `357bc4f…`; the pending
+script prints nothing.
+
+- Gate: check passed, the e2e run skipped because the tree equals the gated head `e555934`. Release:
+  the Time Travel bookmark ran first; `20261116100700_target_snoozes.sql` applied (its lower number was
+  no obstacle); smoke ok.
+- **Live now, checked on a test plan:** a monthly target, the Auto-Assign preview (`underfunded`
+  100000), snooze on and off (status `snoozed`, figures unchanged, and **a snoozed target leaves the
+  Underfunded preview: 0**), Auto-Assign Underfunded (Ready to Assign 500000 → 400000), the views
+  through REST, Spending Trends and Income v Expense with 12.34 of spending; **64 tools**; in the
+  browser at both sizes the chips, the panel, the snooze switch and both report tabs, no failed
+  request, no console error.
+- **The Auto-Assign card holds its height on live:** with the preview held back a second, the Notes
+  card's top edge was 1183 px before and after at 1440×900 and 1429 px before and after at 1024×700.
+- **Two of my expectations were wrong, and the Deploy reported them as they were instead of bending
+  the check:**
+  - I expected the Underfunded view to be empty in the browser, but my own step 2g had overspent a
+    category first, and the Underfunded view also lists overspent categories (by design, in
+    `packages/schema/src/plan-views.ts`). The empty view was shown on the Snoozed chip instead.
+  - I wrote that a Snoozed chip "appears" on snoozing. The chip is always in the row; only the view's
+    content changes.
+- **Two things I asked to be read, not asserted:** a Starting Balance is not income in Income v
+  Expense (income total 0; by the report's design); a snoozed target is not underfunded.
+- **One slip by the Deploy's Verifier:** a `curl -i` printed the response headers of an authenticated
+  `/mcp` call into its transcript, including a `CF_Authorization` cookie value. That is a short-lived
+  Access session token, not the service token's secret; it stays inside the platform's transcript and
+  expires on its own. No rotation needed. It goes into the Deploy template review as evidence for a
+  rule: never print response headers of a live call.
+- Cleanup: `deleted 1 remaining 0`; plans not named `ZZ-TEST`: 1. The owner's plan was not opened.
+
+**This was the tenth Deploy since the Deploy template's review.** The ten: `p_19af5f217da344c69a6bc314de0cfbaa`,
+`p_8e0dbe332cab411d953c0e3eb9b6768c`, `p_440603eb108042738ca17f4ef6e712ba`,
+`p_e549c296232b4f06be26ddeb660f709a`, `p_749540e03f854b349882000bee3249b2`,
+`p_ad9c4b07f40441a9b48e8c57f69fdfb0` (parked at intake, cancelled), `p_3e2eeca31173462c8bb9ef7b3bcc1676`
+(refused: `deploy.env` missing), `p_a6a99ac78c284ea7bef1a14072609fe8`,
+`p_0d0b7a1cf82b47e8a58ef3627a6978bd`, `p_dc763853fd914adfb4b6fe1852320767`. The review starts at the
+next plan.
+
+**Two cards answered in side turns since the plan:**
+- **Register Build, first card: Regate.** Its gate was clean (309 of 309 three times, no flakes, no
+  known issues) but ran on base `033e011`; main was `357bc4f`, with four files changed on both sides.
+  The branch has since merged main (head `717902f`) and is gating again. The Deploy has ended, so its
+  next card can be approved if the gate is on `357bc4f`.
+- **Credit engine Build, preflight failed: Proceed without.** I could not see the trace (the child's
+  transcript shows only agent messages; my box has no browser). The note covered both causes. Since
+  then the Architect says it has the preflight lines and its source study worked (styles only), so the
+  source is reachable; the cause will be in its design's "Preflight" section, and I read it there.
+
+**Running:**
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): regating on `357bc4f`.
+- **Age of Money Build** (`p_38ee9709f6664cb8bbdf1208634375e3`): head `6ea9b99` on base `033e011`; its
+  first card will need a regate too.
+- **Credit engine Build** (`p_34bc1879fb924226b6a197db43cfeb20`): the Architect is mapping every
+  category and group operation the payment group must refuse.
+
+**Ticket writes:** 0.
+
+**Backlog:** 59 open feature tickets (38 done; 5 in progress: EXF-520, 522, 553, 532, 535). Gap: open
+EXF-558, EXF-560, EXF-562, EXF-589, EXF-614, EXF-616 and EXF-615 (in progress). Template:
+twenty-nine. **Flow verdicts:** unchanged; flow 3 (targets, Auto-Assign) can now run on live, and flow
+8 (Reflect) can be rerun with four of five reports live. Finished since each template's last review:
+Build 9, **Deploy 10**, Discover 2, Test user flow 7.
+
+**Next plan:** the Deploy template review (mode review, the ten Threads above, with the cookie slip
+and the two "Lead's expectation was wrong, the check was not bent" cases as notes); flows 3 and 8 on
+live `357bc4f`. Nothing else is free for a Build: scheduled transactions wait for the register merge.
