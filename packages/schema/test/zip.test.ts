@@ -39,6 +39,19 @@ describe("storeZip", () => {
     expect(v.getUint16(12, true)).toBe(((2026 - 1980) << 9) | (11 << 5) | 15);
   });
 
+  it("writes the optional HH:mm in the local and central headers, and nothing without it", () => {
+    const small = [{ name: "a.txt", data: utf8("x") }];
+    const timed = storeZip(small, "2026-11-15", "19:51");
+    const v = new DataView(timed.buffer);
+    const want = (19 << 11) | (51 << 5);
+    expect(v.getUint16(10, true)).toBe(want);
+    const centralStart = 30 + "a.txt".length + 1;
+    expect(v.getUint32(centralStart, true)).toBe(0x02014b50);
+    expect(v.getUint16(centralStart + 12, true)).toBe(want);
+    expect(storeZip(small, "2026-11-15")).toEqual(storeZip(small, "2026-11-15", undefined));
+    expect(new DataView(storeZip(small, "2026-11-15").buffer).getUint16(10, true)).toBe(0);
+  });
+
   it("is read back byte for byte by a standard reader (Python's zipfile)", () => {
     const dir = mkdtempSync(join(tmpdir(), "zip-test-"));
     const path = join(dir, "out.zip");
