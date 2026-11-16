@@ -218,6 +218,16 @@ function Table({
     document.fonts?.ready.then(measure);
   }, [data, collapsed]);
   const w = ieWidths(width, c + 2, needs.first, needs.amount);
+  // A shortened label shows its full text on hover; a whole one shows no tooltip, as in the source (EXF-626).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-check when widths or rows change
+  useLayoutEffect(() => {
+    for (const th of tableRef.current?.querySelectorAll<HTMLElement>("tbody th.ie-first") ?? []) {
+      if (th.querySelector(".ie-sr")) continue;
+      const el = th.querySelector<HTMLElement>(".ie-label") ?? th;
+      if (el.scrollWidth > el.clientWidth) th.title = el.textContent ?? "";
+      else th.removeAttribute("title");
+    }
+  }, [w.first, data, collapsed]);
   const empty = <td colSpan={c + 2} />;
   const cells = (
     label: string,
@@ -237,7 +247,7 @@ function Table({
   );
   const heading = (key: string, label: string, cls: string): ReactNode => (
     <tr className={`ie-heading ${cls}`}>
-      <th scope="row" className="ie-first" title={label}>
+      <th scope="row" className="ie-first">
         <button
           type="button"
           className="ie-toggle"
@@ -261,7 +271,7 @@ function Table({
     const shut = collapsed.has(key);
     return (
       <tr className="ie-group">
-        <th scope="row" className="ie-first" title={label}>
+        <th scope="row" className="ie-first">
           <button
             type="button"
             className="ie-toggle"
@@ -284,7 +294,7 @@ function Table({
     key: string,
   ) => (
     <tr key={key} className={`ie-item ${cls}`}>
-      <th scope="row" className="ie-first" title={label}>
+      <th scope="row" className="ie-first">
         {label}
       </th>
       {cells(label, f, selector)}
@@ -298,7 +308,7 @@ function Table({
     cats: boolean,
   ) => (
     <tr className={`ie-total ${cls}`}>
-      <th scope="row" className="ie-first" title={label}>
+      <th scope="row" className="ie-first">
         {label}
       </th>
       {cells(label, f, selector, cats)}
@@ -399,7 +409,7 @@ function Table({
         <tbody>
           {spacer}
           <tr className="ie-heading net">
-            <th scope="row" className="ie-first" title="Net Income">
+            <th scope="row" className="ie-first">
               Net Income
             </th>
             <td colSpan={c + 2} />
