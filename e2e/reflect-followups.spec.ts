@@ -147,6 +147,8 @@ for (const vp of [
       await mouseClick(page, page.getByRole("button", { name: "All Categories", exact: true }));
       const pop = page.getByRole("dialog", { name: "Select Categories" });
       await expect(pop).toBeVisible();
+      // The list fills when the plan's month arrives: measure only once the last category is in it.
+      await expect(pop.getByText("Many 11", { exact: true })).toBeAttached();
       const m = await pop.evaluate((el) => {
         const list = el.querySelector(".filter-list") as HTMLElement;
         const r = el.getBoundingClientRect();
