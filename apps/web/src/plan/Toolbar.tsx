@@ -9,11 +9,24 @@ import {
   UndoIcon,
 } from "./icons";
 
-/** The four action buttons do nothing yet: EXF-494 (Category Group) and the undo ticket give them actions. */
-export function Toolbar({ bars, setBars }: { bars: boolean; setBars: (on: boolean) => void }) {
+/** Undo, Redo and Recent Moves do nothing yet (the undo ticket gives them actions). */
+export function Toolbar({
+  bars,
+  setBars,
+  onAddGroup,
+}: {
+  bars: boolean;
+  setBars: (on: boolean) => void;
+  onAddGroup: (anchor: HTMLElement) => void;
+}) {
   return (
     <div className="grid-toolbar" role="row">
-      <button type="button" className="toolbar-button" title="Add Category Group">
+      <button
+        type="button"
+        className="toolbar-button"
+        title="Add Category Group"
+        onClick={(e) => onAddGroup(e.currentTarget)}
+      >
         <PlusCircleFillIcon />
         Category Group
       </button>
