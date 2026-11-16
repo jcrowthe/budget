@@ -10,5 +10,7 @@
 - P8 [applied] Stacking breakpoint moved from 1279px to 1342px.
 - P9 [applied] `.sb-row.active` (row whose popover is open) uses the hover style; rows get `transition: background-color 0.15s`.
 - P10 [applied] Bottom fade on the list card (`.sb-list-fade`, 80px gradient, `hidden` when not scrollable or at the end; card is `position: relative; overflow: hidden`).
+- P10b [applied] The list card takes the left column's height at 1343px and wider (`contain: size`, `min-height: 0`) and its body scrolls (`flex: 1 1 0`, `min-height: 0`), so the fade shows at the top of a long list and hides at its end; the stacked layout keeps its natural height.
+- P11 [applied] The toggle's 8px gap moved from the track to each option (source: track gap normal, the gap sits inside each button).
 
 Also: `get_spending_breakdown` / `list_report_transactions` are called in `mcp-timestamps.test.ts` and `list_report_transactions` uses `dates("date")` (new base test from EXF-587).

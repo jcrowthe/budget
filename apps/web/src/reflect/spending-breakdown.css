@@ -65,13 +65,14 @@
   width: 226px;
   height: 32px;
   padding: 2px;
-  gap: var(--space-2);
   border-radius: var(--radius-lg);
   /* source --fillSecondary #72748452, measured on the Spending Breakdown toggle track */
   background: var(--reflect-fill-secondary);
 }
 .sb-toggle-option {
   flex: 1 1 0;
+  /* source: the 0.5rem gap sits inside each button, the track's gap is normal */
+  gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border: 0;
   border-radius: var(--radius-md);
@@ -194,6 +195,7 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  min-height: 0;
   padding: 24px 0 8px;
 }
 .sb-list-head {
@@ -364,6 +366,17 @@
 .sb-popover-range {
   color: var(--labelTertiary);
   font-size: var(--font-size-sm);
+}
+
+/* Two columns: the list card takes the left column's height (source: height 100%, min-height 0) and its body scrolls. */
+@media (min-width: 1343px) {
+  .sb-list-card {
+    contain: size;
+  }
+  .sb-list-body {
+    flex: 1 1 0;
+    min-height: 0;
+  }
 }
 
 @media (max-width: 1342px) /* source: .single-column up to window 1342 */ {
