@@ -33,7 +33,7 @@ export function SpendingBreakdownReport({
 }) {
   const { budgetId, span, settings, today } = useReportState();
   const groupBy = drill ? "category" : mode;
-  const { data } = useSpendingBreakdown(
+  const { data, isError } = useSpendingBreakdown(
     budgetId,
     span,
     settings.excluded_category_ids,
@@ -51,7 +51,8 @@ export function SpendingBreakdownReport({
   const excluded = new Set(settings.excluded_category_ids);
   const noCategories = ids.length > 0 && ids.every((id) => excluded.has(id));
 
-  if (!data) return null;
+  if (!data)
+    return isError ? <p className="sb-popover-note">The report could not be loaded.</p> : null;
   const empty = data.total === 0;
   const pick = (item: SpendingItem, x: number, y: number) => {
     setHoverId(null);
@@ -149,16 +150,17 @@ export function SpendingBreakdownReport({
         items={data.items}
         mode={groupBy}
         noCategories={noCategories}
-        activeId={
-          popover
-            ? "category_id" in popover.selector
-              ? popover.selector.category_id
-              : UNCATEGORIZED_ID
-            : null
-        }
+        activeId={popover ? activeRowId(popover.selector) : null}
         onPick={pick}
       />
       {popover && <TransactionPopover {...popover} onClose={() => setPopover(null)} />}
     </div>
   );
+}
+
+/** The list row whose transactions the popover shows. */
+function activeRowId(selector: PopoverState["selector"]): string | null {
+  if ("category_id" in selector) return selector.category_id ?? null;
+  if ("group_id" in selector) return selector.group_id ?? null;
+  return "uncategorized" in selector ? UNCATEGORIZED_ID : null;
 }

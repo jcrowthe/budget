@@ -6,6 +6,7 @@ import { addAccount, dateButton, NOW, newPlan, openReport, seedExample } from ".
 import { seedSpendingExample } from "./support/spending-breakdown-seed";
 
 // EXF-588: the Reflect frame's follow-ups (never another plan's figures, the axis, the anchoring).
+// The page remount on a plan change protects first; the placeholder option is the second guard and is unit-tested in packages/schema/test/placeholder.test.ts.
 
 /** Goes to another address without leaving the page (the app's own history, as a link would). */
 const goClientSide = (page: Page, url: string) =>
