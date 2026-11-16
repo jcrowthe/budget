@@ -28,6 +28,7 @@ const CONNECTION = {
       status: "connected",
       provider: "Plaid",
       last_synced_at: null,
+      last_reset_at: null,
       created_at: "2030-01-01T00:00:00Z",
       accounts: [
         {
@@ -40,6 +41,7 @@ const CONNECTION = {
           current_balance: 110000,
           available_balance: null,
           balance_updated_at: null,
+          linked_account_id: null,
         },
       ],
     },
