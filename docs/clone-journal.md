@@ -383,7 +383,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
 | 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | live `41bee46` (6 minutes) |
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
-| 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | running |
+| 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | completed (17 minutes): flow 9 `new_gaps` (EXF-586), flow 10 `new_gaps` (EXF-587), flow 1 `parity_known_gaps` |
 | 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
 
@@ -3730,3 +3730,51 @@ and the flow tests on live. **Nothing started this round.**
   3. After EXF-548 with EXF-551: EXF-549 with EXF-550 (spending reports) once splits and transfers exist.
   4. One Deploy when two or three of the running Builds have merged; then flows 2 and 8.
 - Review cadence: Build 1, Deploy 0, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Review round 44
+
+Children used 59 of 200. Five Builds are running: EXF-491 with EXF-492; EXF-517 with EXF-507 (second
+polish round); EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574; EXF-579 with EXF-569.
+
+**Ended: the flow tests on live `41bee46`** (`p_b3b54aec56044df2a755ef5d984061f4`), 17 minutes, three flows
+in one child. It opened nothing in the source, read no row of the submenu but its own, kept no capture
+with the submenu open, and left nothing behind.
+
+- **Flow 9, second run: `new_gaps`.** EXF-571 is confirmed fixed (the submenu opens beside its row at both
+  window sizes; the test plan's row is topmost and clickable). Everything else passed. **One new gap,
+  EXF-586 (High):** after a switch the Plan page shows the previous plan's amounts and month note under
+  the new plan's name until the new month loads (300 ms normally, as long as the request takes).
+  - Cause, read in the code: `api/months.ts` gives the month query `placeholderData: keepPreviousData`,
+    right between months of one plan, wrong between plans.
+  - The same pattern: `api/bank-connections.ts` line 73 on main, and `api/reports.ts` line 117 on the
+    Reflect Build's branch. **At the Reflect Build's card: Request changes if it is still there.**
+  - Fix after EXF-491 with EXF-492 merges (it holds `api/months.ts`); ride with the next Plan-page Build.
+  - The plan button oddity is settled: "Budget" shows for 25 to 54 ms on a fresh load, then the name. Not
+    a gap.
+- **Flow 10, second run: `new_gaps`.** EXF-572 is confirmed fixed: 41 REST operations, 33 tools, every
+  operation has a tool but the by-design list; the sixteen newer tools agree with REST; history actors
+  right for all 31 rows. **One new gap, EXF-587 (Medium):** nine tools return timestamps without saying
+  their format; four of them say "dates are YYYY-MM-DD" while `updated_at` is a date-time. Fix: a
+  `DATETIME` text in `mcp/tool-text.ts` and a check in the description test. The tool files are held now
+  (transactions, bank connections); do it with the next Worker Build that is free of them.
+  - Its side note, not a gap: `list_plan_months` for a month before the plan's first month shows
+    Ready to Assign reduced by later assignments. Matches the source's "assigned in future" rule; look
+    again when EXF-527 is built.
+- **Flow 1, first run: `parity_known_gaps`.** New Plan from the menu, group and categories (create, rename,
+  hide, unhide, delete with no dialog for a category with no money, as the source does), an account,
+  assigning with arithmetic, reload, next month with carried Available: all pass. Known: no Ready to Assign
+  box on screen (EXF-491, in progress), no currency in the New Plan dialog (EXF-469), no Undo (EXF-504).
+- A grouped flow test works: three flows, one child, 17 minutes.
+
+**Running Builds, branch heads read:** transaction entry `22dc658` (polish round two); bank connections
+`b0c753e` (an e2e fixture carries the new fields; still no web file); Reflect `9c660a2`; Ready to Assign
+`c91aff2`; test infrastructure `85d2f8e` (design).
+
+**Main and live are both `41bee46`.**
+
+**Ticket writes:** 3 (EXF-586 to High with the cause in a comment; EXF-587 to Medium).
+
+**Backlog:** 78 open feature tickets (16 done; 7 in progress). Gap: EXF-558 and EXF-586 (High), EXF-587
+(Medium), EXF-560, EXF-562 (Low); in progress EXF-569, EXF-574, EXF-579. Template: twenty-six. Flow
+verdicts: 1 `parity_known_gaps`, 9 `new_gaps` (EXF-586), 10 `new_gaps` (EXF-587), 11 `parity`. Finished
+since each template's last review: Build 1, Deploy 0, Discover 2, Test user flow 3.
