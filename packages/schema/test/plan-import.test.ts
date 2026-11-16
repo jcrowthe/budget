@@ -202,6 +202,12 @@ describe("rules and edges", () => {
     );
   });
 
+  it("asks nothing when every format reads the dates alike", () => {
+    const p = build(regOf('"A","","10/10/2026","P","","","","",$1.00,$0.00,"Cleared"'));
+    expect(p.dateQuestion).toBeNull();
+    expect(p.transactions[0]?.date).toBe("2026-10-10");
+  });
+
   it("refuses dates no format reads", () => {
     expect(() => build(regOf('"A","","31/31/2026","P","","","","",$1.00,$0.00,"Cleared"'))).toThrow(
       /No date format/,

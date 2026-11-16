@@ -438,7 +438,14 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
       }
     }
   } else if (dateTexts.size > 0) {
-    const candidates = dateCandidates([...dateTexts]);
+    // Formats that read every date alike (all days equal to their months) are one answer, not a question.
+    const seen = new Set<string>();
+    const candidates = dateCandidates([...dateTexts]).filter((f) => {
+      const signature = [...dateTexts].map((t) => parseDate(t, f)).join("|");
+      if (seen.has(signature)) return false;
+      seen.add(signature);
+      return true;
+    });
     if (candidates.length === 0) {
       throw new ImportError("bad_date", "No date format reads every date of the Register file");
     }
