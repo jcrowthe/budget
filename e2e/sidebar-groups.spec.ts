@@ -212,3 +212,40 @@ test("an empty plan shows no groups", async ({ page, request }) => {
   await expect(sidebar(page).getByRole("button", { name: "Add Account" })).toBeVisible();
   await expect(sidebar(page).locator(".nav-account-group")).toHaveCount(0);
 });
+
+test("header and row geometry match the source", async ({ page, request }) => {
+  const id = await newPlan(request);
+  await stubAccounts(page, [
+    fx({ name: "ZZ-TEST Zeta", closed: true, group: "closed", balance: 1000 }),
+    fx({ name: "ZZ-TEST Alpha", closed: true, group: "closed", balance: 2000 }),
+  ]);
+  await page.goto(`/${id}/budget`);
+  const g = group(page, "closed");
+  const header = g.locator(".nav-account-block");
+  const px = async (loc: ReturnType<typeof g.locator>, prop: string) =>
+    loc.evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
+  // Measured in "Test Budget" (source) — design doc, Acceptance case 13.
+  const hb = (await header.boundingBox())!;
+  expect(hb.height).toBe(32);
+  const label = header.locator(".label");
+  expect(await px(label, "font-size")).toBe("12px");
+  expect(await px(label, "font-weight")).toBe("500");
+  expect(await px(label, "letter-spacing")).toBe("1.36px");
+  const lb = (await label.boundingBox())!;
+  expect(lb.x - hb.x).toBe(28);
+  const chev = (await header.locator("svg").first().boundingBox())!;
+  expect(chev.width).toBe(8);
+  expect(chev.height).toBe(8);
+  const rows = g.locator(".nav-account-row");
+  await expect(rows).toHaveCount(2);
+  const r0 = (await rows.nth(0).boundingBox())!;
+  const r1 = (await rows.nth(1).boundingBox())!;
+  expect(r0.height).toBe(32);
+  expect(r1.y - r0.y).toBe(36);
+  const name = rows.nth(0).locator(".name");
+  expect(await px(name, "font-size")).toBe("14px");
+  expect(await px(name, "font-weight")).toBe("500");
+  const nb = (await name.boundingBox())!;
+  const sb = (await sidebar(page).boundingBox())!;
+  expect(nb.x - sb.x).toBe(40);
+});
