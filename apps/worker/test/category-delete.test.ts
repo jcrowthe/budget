@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
 import { changeLog } from "../src/db/schema/change-log";
 import * as categoriesRepo from "../src/repositories/categories";
+import * as groupsRepo from "../src/repositories/category-groups";
 import * as targetsRepo from "../src/repositories/targets";
 import { createAccount } from "../src/services/accounts";
 import { createCategory, createCategoryGroup } from "../src/services/categories";
@@ -282,6 +283,40 @@ describe("delete with reassignment", () => {
     });
     await expect(db.batch([...stmts, failing] as never)).rejects.toThrow(/NOT NULL|constraint/i);
     expect(await snap()).toBe(before);
+  });
+
+  it("a group delete whose plan went stale changes nothing (a category deleted, or one added)", async () => {
+    for (const interleave of ["deleted", "added"] as const) {
+      const s = await seed();
+      const extra = (
+        await createCategory(env, actor, { budget_id: s.bid, group_id: s.g.id, name: "Extra" })
+      ).id;
+      await s.tx("2026-10-12", -1000, s.fun);
+      const db = getDb(env);
+      const grp = (await groupsRepo.findActive(db, s.bid, s.g.id)) as groupsRepo.CategoryGroupRow;
+      const cats = await categoriesRepo.listActiveInGroup(db, s.g.id);
+      const other = group(await month(s.bid, NOV), "Bills").categories[0]?.id as string;
+      const plan = {
+        budgetId: s.bid,
+        actor,
+        now: new Date().toISOString(),
+        categoryIds: cats.map((c) => c.id),
+        group: grp,
+        categories: cats,
+        targetId: other,
+        targets: [],
+      };
+      if (interleave === "deleted") await s.del(extra);
+      else await createCategory(env, actor, { budget_id: s.bid, group_id: s.g.id, name: "Late" });
+      const results = await db.batch(buildDeleteBatch(db, plan) as never);
+      expect((results as { meta: { changes: number } }[]).at(-1)?.meta.changes).toBe(0);
+      const rows = await env.DB.prepare(
+        "select (select count(*) from category_groups where id = ? and deleted_at is null) g, (select count(*) from categories where group_id = ? and deleted_at is null) c, (select count(*) from transactions where category_id = ?) t",
+      )
+        .bind(s.g.id, s.g.id, s.fun)
+        .first<{ g: number; c: number; t: number }>();
+      expect(rows).toEqual({ g: 1, c: interleave === "deleted" ? 2 : 4, t: 1 });
+    }
   });
 
   it("MCP delete_category and delete_category_group equal REST", async () => {

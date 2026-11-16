@@ -40,7 +40,7 @@ export const tools: McpToolDef[] = [
   {
     name: "delete_category",
     description:
-      "Delete a category. If it has transactions or assigned amounts, reassign_to (another category) is required: its transactions and assigned amounts move to that category, and Ready to Assign is unchanged.",
+      "Delete a category. If it has transactions or assigned amounts, reassign_to (another category) is required: its transactions and assigned amounts move to that category, and Ready to Assign is unchanged, except that in later months it rises when the merge cancels cash overspending.",
     inputSchema: z.object({ budget_id, category_id, reassign_to: z.string().min(1).optional() }),
     run: async (
       input: { budget_id: string; category_id: string; reassign_to?: string },

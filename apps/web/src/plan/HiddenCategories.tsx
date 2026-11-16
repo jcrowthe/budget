@@ -14,9 +14,12 @@ import { Popover } from "./Popover";
 export function HiddenCategoriesRow({
   groups,
   budgetId,
+  onError,
 }: {
   groups: MonthGroupDetail[];
   budgetId: string;
+  /** Runs when an unhide fails (the grid shows its notice). */
+  onError: () => void;
 }) {
   const actions = useCategoryActions(budgetId);
   const [open, setOpen] = useState(false);
@@ -32,7 +35,7 @@ export function HiddenCategoriesRow({
 
   const act = (fn: () => Promise<unknown>) => {
     setOpen(false);
-    void fn();
+    fn().catch(onError);
   };
 
   return (

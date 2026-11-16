@@ -9,7 +9,8 @@ import { money } from "./format";
  * passes which categories to leave out.
  *
  * - `groups`: the month read model's groups.
- * - `value`: the picked category id, or null. `onChange(id)` runs when one is picked.
+ * - `value`: the picked category id, or null. `onChange(id)` runs when one is picked, and `onChange(null)` when
+ *   the text is edited away from the picked name.
  * - `exclude`: category ids to leave out; groups left empty are dropped.
  * - `includeHidden` (default true): hidden categories and groups of hidden groups stay pickable, as in the source.
  * - `placeholder` (default "Select category"), `label` (the field's accessible name), `autoFocus`.
@@ -27,7 +28,7 @@ export function CategoryPicker({
 }: {
   groups: MonthGroupDetail[];
   value: string | null;
-  onChange: (id: string) => void;
+  onChange: (id: string | null) => void;
   exclude?: ReadonlySet<string>;
   placeholder?: string;
   label: string;
@@ -81,6 +82,7 @@ export function CategoryPicker({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-activedescendant={open && flat[active] ? `${listId}-${flat[active].id}` : undefined}
         aria-label={label}
         placeholder={placeholder}
         // biome-ignore lint/a11y/noAutofocus: the dialog that holds it asks for it
@@ -88,6 +90,7 @@ export function CategoryPicker({
         value={text}
         onFocus={() => setOpen(true)}
         onChange={(e) => {
+          if (value !== null && e.target.value !== selectedName) onChange(null);
           setText(e.target.value);
           setActive(0);
           setOpen(true);
@@ -116,12 +119,11 @@ export function CategoryPicker({
           <div className="picker-heading">Plan Categories</div>
           {shown.map((g) => (
             <div key={g.id} className="picker-group" role="presentation">
-              <div className="picker-group-name">
-                <span className="picker-group-prefix">Group:</span> {g.name}
-              </div>
+              <div className="picker-group-name">{g.name}</div>
               {g.categories.map((c) => (
                 <div
                   key={c.id}
+                  id={`${listId}-${c.id}`}
                   role="option"
                   tabIndex={-1}
                   aria-selected={c.id === value}

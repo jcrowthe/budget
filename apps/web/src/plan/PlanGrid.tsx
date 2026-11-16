@@ -319,7 +319,13 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                 </div>
               );
             })}
-            {data && <HiddenCategoriesRow groups={data.groups} budgetId={budgetId} />}
+            {data && (
+              <HiddenCategoriesRow
+                groups={data.groups}
+                budgetId={budgetId}
+                onError={() => setNotice("Couldn't unhide.")}
+              />
+            )}
           </div>
         )}
       </div>
