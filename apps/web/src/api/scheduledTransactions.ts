@@ -5,7 +5,6 @@ import {
   ScheduledCreateResponse,
   type ScheduledTransactionCreate,
   ScheduledTransactionListResponse,
-  ScheduledTransactionResponse,
   type ScheduledTransactionUpdate,
 } from "@budget/schema/scheduled-transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -61,9 +60,9 @@ export function useUpdateScheduled(budgetId: string) {
           method: "PATCH",
           body: v.body,
           idempotencyKey: crypto.randomUUID(),
-          schema: ScheduledTransactionResponse,
+          schema: ScheduledCreateResponse,
         })
-      ).data.scheduled_transaction,
+      ).data,
     onSuccess: () => invalidatePlan(qc, budgetId),
   });
 }

@@ -1,4 +1,3 @@
-import { IsoDate } from "@budget/schema/common/dates";
 import {
   ScheduledTransactionCreate as CreateSchema,
   SCHEDULER_ACTOR,
@@ -98,12 +97,12 @@ export const tools: McpToolDef[] = [
   {
     name: "enter_due_scheduled_transactions",
     description: `Enter what is due in a plan: every schedule whose date_next is on or before the day gets one real, unapproved, uncleared transaction dated its date_next, then moves to the first date after the day (missed dates in between are not entered); a one-off is removed. Running it again enters nothing more. The day is today, or else the server's UTC date. It enters at most 100 schedules per call, oldest first: call again while has_more is true. Entries are recorded as service:scheduler. ${NOT_SUPPORTED} ${dates("day", "date", "today")} Returns { day, entered: [{ scheduled_transaction_id, transaction_id, date }], has_more }.`,
-    inputSchema: z.object({ budget_id: Id, today: IsoDate.optional() }),
+    inputSchema: z.object({ budget_id: Id, today: Today.optional() }),
     run: async (input: { budget_id: string; today?: string }, { env }) => {
       if (!(await budgetsRepo.findActive(getDb(env), input.budget_id))) throw new NotFound("Plan");
       return enterDue(env, {
         budgetIds: [input.budget_id],
-        day: Today.parse(input.today ?? new Date().toISOString().slice(0, 10)),
+        day: input.today ?? new Date().toISOString().slice(0, 10),
         actor: SCHEDULER_ACTOR,
       });
     },

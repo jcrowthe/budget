@@ -208,7 +208,11 @@ export function ActionBar({
   const doScheduled = (op: "enter_now" | "delete") => {
     if (schedIds.length === 0) return;
     void guard(async () => {
-      await scheduledBulk.mutateAsync({ op, ids: schedIds });
+      const r = await scheduledBulk.mutateAsync({ op, ids: schedIds });
+      if (r.skipped.length > 0) {
+        setError("The scheduled transaction changed; reload it");
+        return;
+      }
       clear();
     });
   };

@@ -21,9 +21,9 @@ export async function cronRun(
       day: dayBefore(now.toISOString().slice(0, 10)),
       actor: SCHEDULER_ACTOR,
     });
-  } catch {
+  } catch (e) {
     // A failed scheduler never stops the bank sync.
-    console.error("scheduler failed");
+    console.error("scheduler failed", e);
   }
   await syncDueConnections(env, now, run, { maxRuns: SCHEDULED_MAX_RUNS - SCHEDULER_CRON_CALLS });
 }
