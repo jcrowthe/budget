@@ -1,6 +1,8 @@
-import { and, asc, eq, isNull, type SQLWrapper, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
+import { bankAccounts } from "../db/schema/bank-accounts";
+import { transactions } from "../db/schema/transactions";
 
 export type AccountRow = typeof accounts.$inferSelect;
 
@@ -42,7 +44,7 @@ export function insertIfSortStmt(db: Db, row: AccountRow) {
   return db
     .insert(accounts)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt}, ${r.bankAccountId}, ${r.importStartDate} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
     );
 }
 
@@ -78,12 +80,22 @@ export async function nameTaken(db: Db, budgetId: string, name: string): Promise
 }
 
 /** `SELECT 1` that holds while `sort` is the next free sort_order and no account of the plan has this name. */
-export function newAccountGuard(db: Db, budgetId: string, sort: number, name: string) {
+export function newAccountGuard(
+  db: Db,
+  budgetId: string,
+  sort: number,
+  name: string,
+  bankAccountId: string | null = null,
+) {
+  const link =
+    bankAccountId === null
+      ? sql``
+      : sql` and exists (select 1 from ${bankAccounts} where ${bankAccounts.id} = ${bankAccountId}) and not exists (select 1 from ${accounts} a2 where a2.budget_id = ${budgetId} and a2.deleted_at is null and a2.bank_account_id = ${bankAccountId})`;
   return db
     .select({ x: sql`1` })
     .from(sql`(select 1)`)
     .where(
-      sql`(select coalesce(max(${accounts.sortOrder}), -1) + 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null) = ${sort} and not exists (select 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null and lower(${accounts.name}) = lower(${name}))`,
+      sql`(select coalesce(max(${accounts.sortOrder}), -1) + 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null) = ${sort} and not exists (select 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null and lower(${accounts.name}) = lower(${name}))${link}`,
     );
 }
 
@@ -93,7 +105,7 @@ export function insertIfStmt(db: Db, row: AccountRow, guard: SQLWrapper) {
   return db
     .insert(accounts)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt} where exists ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt}, ${r.bankAccountId}, ${r.importStartDate} where exists ${guard}`,
     );
 }
 
@@ -118,4 +130,134 @@ export function setStarredIfStmt(db: Db, before: AccountRow, starred: boolean) {
 /** `SELECT 1` that holds once the account row exists. */
 export function existsStmt(db: Db, id: string) {
   return db.select({ x: sql`1` }).from(accounts).where(eq(accounts.id, id));
+}
+
+/** bank account id → account id, for the plan's active accounts linked to one of `bankAccountIds`. */
+export async function linksForPlan(
+  db: Db,
+  budgetId: string,
+  bankAccountIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (bankAccountIds.length === 0) return out;
+  const rows = await db
+    .select({ id: accounts.id, bank: accounts.bankAccountId })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        inArray(accounts.bankAccountId, bankAccountIds),
+      ),
+    );
+  for (const r of rows) if (r.bank) out.set(r.bank, r.id);
+  return out;
+}
+
+export async function findByBankAccount(
+  db: Db,
+  budgetId: string,
+  bankAccountId: string,
+): Promise<AccountRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        eq(accounts.bankAccountId, bankAccountId),
+      ),
+    )
+    .limit(1);
+  return row;
+}
+
+/** The latest date of the account's active reconciled transactions, or null. */
+export async function latestReconciledDate(db: Db, accountId: string): Promise<string | null> {
+  const [r] = await db
+    .select({ d: sql<string | null>`max(${transactions.date})` })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.accountId, accountId),
+        eq(transactions.cleared, "reconciled"),
+        isNull(transactions.deletedAt),
+      ),
+    );
+  return r?.d ?? null;
+}
+
+function linkCondition(before: AccountRow, bankAccountId: string) {
+  return and(
+    eq(accounts.id, before.id),
+    isNull(accounts.deletedAt),
+    isNull(accounts.bankAccountId),
+    eq(accounts.closed, false),
+    eq(accounts.type, before.type),
+    sql`exists (select 1 from ${bankAccounts} where ${bankAccounts.id} = ${bankAccountId})`,
+    sql`not exists (select 1 from ${accounts} a2 where a2.budget_id = ${before.budgetId} and a2.deleted_at is null and a2.bank_account_id = ${bankAccountId})`,
+  );
+}
+
+/** A `SELECT 1` that holds while the account can still be linked to the bank account. */
+export function linkHolds(db: Db, before: AccountRow, bankAccountId: string) {
+  return db.select({ x: sql`1` }).from(accounts).where(linkCondition(before, bankAccountId));
+}
+
+export function setLinkIfStmt(
+  db: Db,
+  before: AccountRow,
+  bankAccountId: string,
+  importStartDate: string,
+) {
+  return db
+    .update(accounts)
+    .set({ bankAccountId, importStartDate })
+    .where(linkCondition(before, bankAccountId));
+}
+
+function unlinkCondition(before: AccountRow) {
+  return and(
+    eq(accounts.id, before.id),
+    isNull(accounts.deletedAt),
+    before.bankAccountId === null
+      ? isNull(accounts.bankAccountId)
+      : eq(accounts.bankAccountId, before.bankAccountId),
+  );
+}
+
+/** A `SELECT 1` that holds while the account is still linked to the bank account of `before`. */
+export function unlinkHolds(db: Db, before: AccountRow) {
+  return db.select({ x: sql`1` }).from(accounts).where(unlinkCondition(before));
+}
+
+export function unlinkIfStmt(db: Db, before: AccountRow) {
+  return db
+    .update(accounts)
+    .set({ bankAccountId: null, importStartDate: null })
+    .where(unlinkCondition(before));
+}
+
+const ofConnection = (connectionId: string) =>
+  sql`select ${bankAccounts.id} from ${bankAccounts} where ${bankAccounts.bankConnectionId} = ${connectionId}`;
+
+/** Every account row (any plan) linked to a bank account of the connection. */
+export async function linkedToConnection(db: Db, connectionId: string): Promise<AccountRow[]> {
+  return db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        isNull(accounts.deletedAt),
+        sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`,
+      ),
+    );
+}
+
+export function unlinkByConnectionStmt(db: Db, connectionId: string) {
+  return db
+    .update(accounts)
+    .set({ bankAccountId: null, importStartDate: null })
+    .where(sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`);
 }

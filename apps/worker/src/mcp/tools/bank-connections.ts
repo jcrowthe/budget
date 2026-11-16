@@ -9,7 +9,7 @@ import { Id, MONEY } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const FIELDS =
-  "id, display_id, institution_name, nickname, status, provider, last_synced_at, last_reset_at and accounts (each with id, name, mask, type, subtype, current_balance and available_balance, null when unknown, and linked_account_id, null until accounts can be linked)";
+  "id, display_id, institution_name, nickname, status, provider, last_synced_at, last_reset_at and accounts (each with id, name, mask, type, subtype, current_balance and available_balance, null when unknown, and linked_account_id (the account of this plan linked to it, or null))";
 
 export const tools: McpToolDef[] = [
   {

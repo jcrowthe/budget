@@ -80,3 +80,23 @@ export function deleteAccountsStmt(db: Db, connectionId: string) {
 export function deleteConnectionStmt(db: Db, id: string) {
   return db.delete(bankConnections).where(eq(bankConnections.id, id));
 }
+
+/** The bank account when its connection is of `environment`; another environment's is not found. */
+export async function findBankAccountInEnvironment(
+  db: Db,
+  environment: "production" | "sandbox",
+  bankAccountId: string,
+): Promise<BankAccountRow | undefined> {
+  const [r] = await db
+    .select({ a: bankAccounts })
+    .from(bankAccounts)
+    .innerJoin(bankConnections, eq(bankConnections.id, bankAccounts.bankConnectionId))
+    .where(and(eq(bankAccounts.id, bankAccountId), eq(bankConnections.environment, environment)))
+    .limit(1);
+  return r?.a;
+}
+
+export async function findBankAccountById(db: Db, id: string): Promise<BankAccountRow | undefined> {
+  const [r] = await db.select().from(bankAccounts).where(eq(bankAccounts.id, id)).limit(1);
+  return r;
+}
