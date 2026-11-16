@@ -7181,3 +7181,24 @@ Build 2, Deploy 1, Discover 2, Test user flow 8.
 **Next plan:** nothing free to start; wait for `D23` and the cards. After `D23`: a flow test for flow 2
 again (bulk actions, flags, the register export) with a check that 60 imported rows can be rejected in
 one call needs a Sandbox bank, so it goes with the next run of flow 5.
+
+### 2026-11-16 · Plan round 83
+
+Children used 101 of 200. Nothing started; six are running: Deploy `D23` (at its gate), the credit
+engine carry-over (the Implementer is on the carry-over tasks), the shell Build (implemented, head
+`de012f7`, base `5ebac3c`), scheduled transactions and the Reflect fixes (no commit yet) and the
+template-ticket sweep. Main `8ec621e`, live `357bc4f`. No tickets were filed at the last review.
+
+- **Why nothing new:** the four Builds hold the shell, the Plan page with the engine, the register
+  with the transactions files, and Reflect. Every unblocked ticket needs one of those. The private
+  screens still wait for the person's word.
+- **No second Deploy and no flow test** while `D23` is in flight: a flow test on live would run against
+  a version that is about to change.
+- **Cards:** none is approved while `D23` runs. The shell Build's card, when it comes, gets a Regate
+  (its base is two merges old).
+
+Declared for the tree: Export Plan's API half (EXF-476) and the Plan page's card rows with the
+Plan-page gaps (EXF-537 with EXF-622, 623, 624, 616), both after the credit engine merges; flow 2
+again after `D23`; the next Deploy after the next merges.
+
+Ticket writes: 0. Review cadence: Build 2, Deploy 1, Discover 2, Test user flow 8.
