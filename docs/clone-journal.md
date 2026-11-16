@@ -9008,3 +9008,34 @@ Discover 2, Test user flow 1.
 
 **Next plan:** start the Reconcile carry-over now, early in the window (its Clerk merges
 `origin/exfab/p_c4fd5a318a554da3b478910b86939c29`, head `11219d7`).
+
+### 2026-11-16 · Plan round 104
+
+Children used 121 of 200. One started now; five are running. Main and live `49012cd`. No tickets were
+filed at the last review. The person has not answered the round-100 check-in.
+
+- **Started: the Reconcile carry-over** (`p_a270cac61bad4df890e73afd054985a3`, EXF-533 with EXF-664).
+  Its Clerk merges `origin/exfab/p_c4fd5a318a554da3b478910b86939c29` (head `11219d7`: the design,
+  the spec and one index line; I tried the merge on main `49012cd` in a throwaway worktree: clean, 3
+  files, 270 insertions). The Architect does not redesign; the decisions I accept are listed in the
+  brief. Nobody opens the source.
+  - **Two lines changed in the brief after what the pause showed:** a step that finds the platform's
+    files missing says so in its first line and then **goes on with its own step and commits**
+    (answering blocked ended the last Thread and saved nothing that a commit would not save better);
+    and "commit often", so a pause loses nothing.
+  - Started now because the rate-limit window opened at 23:01Z: a long Build should have as much of
+    it as possible.
+  - Scheduling rule as at plan 102: it holds the account page, the register, the transactions and
+    accounts services and the shortcut registry; nothing of the Plan-page Build's or the import
+    Build's manifests; no shared module; one migration (`20261116101400`).
+- **Not started:** nothing else. Five children in one rate-limit window is already more than I would
+  choose (the last window ended early with five); I add none until one ends.
+- **Running besides:** the Plan-page Build (rework committed), the plan import Build (code and tests
+  committed), both resumed in new boxes and likely to fail at their next code step; the Build
+  template review; flows 2 and 4 on live.
+- **Cards:** a `checks` or gate card with no log from a resumed Build: Abandon, then carry over. A
+  clean card on main: approve (a flow test is on live, a merge does not touch it); no Deploy until
+  the flow test ends.
+
+Ticket writes: 1 (EXF-533). Review cadence: Build 1, Deploy 7, Discover 2, Test user flow 1 (one
+running).
