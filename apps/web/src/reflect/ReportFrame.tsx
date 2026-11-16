@@ -68,7 +68,7 @@ export function ReportFrame({
           <button
             type="button"
             className="export-button"
-            disabled={!onExport}
+            disabled={!onExport || !state}
             onClick={() => (state?.settings.hide_export_dialog ? run() : setDialog(true))}
           >
             <FileTextIcon width={16} height={16} />

@@ -202,12 +202,11 @@
 }
 .month-grid {
   position: absolute;
-  top: 56px;
-  left: 0;
+  bottom: 0;
+  left: calc(100% + 24px);
   z-index: 2;
   box-sizing: border-box;
-  width: 100%;
-  min-width: 220px;
+  width: 240px;
   padding: 8px;
   border-radius: var(--radius-md);
   background: var(--backgroundSecondary);
