@@ -4834,3 +4834,65 @@ rework; EXF-508 with EXF-514 and EXF-592, designed) and the Deploy started now.
   disjoint; (3) then the import (EXF-462), which needs the transactions files after (1).
 - Ticket writes: 1 (EXF-593 priority and link).
 - Review cadence: Build 9, Deploy 4, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 59
+
+Children used 71 of 200. One child ended: the Deploy. Two are open: the transfers and splits Build (in its
+regate) and the targets Build (**parked by the platform, `infra_failed`**).
+
+**Ended: the Deploy of `4e3eb7a` (`p_749540e03f854b349882000bee3249b2`), passed, 10 minutes.**
+**Live is https://budget.doxen.dev at `4e3eb7a`**, equal to main. No migration. Account editing is live.
+
+- Gate skipped the browser run (tree equal to the gated `22de333`); checks 119 s; release 34 s; smoke ok;
+  health without credentials 401, `/mcp` without credentials 401.
+- REST on its own test plan, all pass against the figures in the brief: rename and note; empty name 422
+  `name_required`; a name differing only in case 409 `name_taken`; `adjust-balance` on a cash account
+  (+62500, payee "Manual Balance Adjustment", cleared, Ready to Assign follows; the same call again does
+  nothing); on an asset (Ready to Assign does not move); `can_delete` turns false; DELETE 409
+  `has_transactions`; close (adjustment with memo "Closed Account", balance 0, group closed, star
+  removed), reopen, delete of a fresh account (Ready to Assign falls back).
+- MCP: **50 tools**, the four new ones present; `delete_account` refusal is readable.
+- Web, real mouse, at 1440 and 1024 wide: both pencils open Edit Account; rename, both error texts,
+  Cancel/X/Escape; Delete on a fresh account, Close on one with history; the close dialog's figure and
+  information box; the closed account's dialog (no balance field, Re-open, Delete disabled). No failed
+  request, no console error.
+- Its own slip, told plainly: the first browser run used a wrong expected amount and left a dialog open;
+  it fixed its script and ran everything again. Only its own plan was touched.
+- Cleanup: `purge 'ZZ-TEST D16'` printed `deleted 1 remaining 0`. Owner-plan count 1, by the exact
+  expression, numbers only. No Plaid call, no plan menu, no bare `/`.
+- **One finding, already inside EXF-587:** `list_payees` lists both system payees ("Starting Balance",
+  "Manual Balance Adjustment") and has no way to leave them out. Evidence added to EXF-587 as a comment.
+
+**The transfers and splits Build** (`p_ed951d9308614f88bc3289bed3b27d78`): its third card came with a
+gate on base `113ced4` while main was `4e3eb7a`, so I chose **Regate** (side turn). The rework is right:
+`monthlySums` leaves out split lines, 50 lines of new tests. Its branch is now rebased onto `4e3eb7a`
+(head `d987185`) and it is in `final_gate`. My Regate note: no new scope; do not fix the accounts
+repository's balance sum (EXF-593); list every reader of `transactions` (the Tester said that list was
+not made). **The Deploy has released, so nothing holds the approval back now** except the gate itself.
+- When it merges: EXF-526 and EXF-524 Done, and start the EXF-593 Build at once. **Main will then hold
+  transfers and splits without EXF-593: no Deploy until EXF-593 has merged.**
+
+**The targets Build** (`p_74b956498a4b4ce1bed94c516291a48f`, EXF-508, EXF-514, EXF-592, PR #33): the
+Architect and the Implementer finished (head `972ece4`, `pnpm check` 854 tests, its own specs three
+times); then the platform's `checks` step failed for an infrastructure reason and the Thread is
+**parked with one open card**. Nothing in its work points to the cause. The card has not reached me yet.
+- What I read of it, for its card: the source limits held (a sub-agent of the Architect worked only in
+  the Thread's own tab on the test plan's Plan page, opened Create Target, left by Cancel and Escape,
+  saved nothing; 25 cropped captures in scratch); the Implementer did not open the source.
+  `packages/core/src/targets.ts` gets only `targetBar`. Month reads take `today`. No migration.
+- Two things outside its manifest: small edits to `e2e/plan-grid.spec.ts` and `e2e/month-nav.spec.ts`
+  so their URL matchers accept `?today=`. Acceptable.
+- One deliberate difference it recorded for EXF-592 point 2 (selecting a row does not open its Assigned
+  field). I accept it: the field saves on blur.
+- Its branch is behind main by one merge (account editing); its first gate will rebase it.
+- **For the plan:** if the card comes, answer it (retry). If the Thread stays parked with no card for a
+  round, start a new Build with its resume inputs rather than wait.
+
+**Ticket writes:** 1 (the comment on EXF-587).
+
+**Backlog:** 70 open feature tickets (26 done; 4 in progress: EXF-526, 524, 508, 514). Gap: EXF-593
+(High); EXF-587, EXF-588, EXF-590 (Medium); EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 (Low); in
+progress EXF-592. Template: twenty-six. Flow verdicts unchanged (1 `parity_known_gaps`, 2 `new_gaps`,
+5 `parity_known_gaps`, 8 `new_gaps`, 9 `new_gaps` with its gap fixed and a rerun owed, 10 `new_gaps`,
+11 `parity`). Finished since each template's last review: Build 9, Deploy 5, Discover 2, Test user
+flow 5. **Round 60's review is a check-in.**
