@@ -391,7 +391,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | live `3a3a977` (6 minutes) |
 | 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | pending | running |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
-| 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | running |
+| 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4350,3 +4350,39 @@ Children used 65 of 200. Four are running, all from earlier rounds: the Plan-pag
   close together. Approve whichever card arrives first if its base is still main; the other then goes
   straight to Regate.
 - Review cadence: Build 6, Deploy 2, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 52
+
+Children used 65 of 200. Three Builds are running: the Plan-page Build (EXF-498, 523, 521, 586; a spec fix
+after a gate run, head `223fac8`), the Worker half of EXF-461 (review fixes, head `441ea32`), EXF-526 with
+EXF-524 (designed, building).
+
+**Ended: the flow tests on live `3a3a977`** (`p_01e3392182944b22b75a9e0234f7aa17`), 14 minutes, two flows.
+No source app; every control reached with a real mouse; the prefixed purge left nothing.
+
+- **Flow 1, second run: `parity_known_gaps`.** All eight steps pass, with the Ready to Assign box in its
+  three states, the breakdown, Assign and Fix This at both window sizes. The only known gap is the Auto
+  tab (EXF-519).
+- **Flow 2, first run as far as built: `new_gaps`.** All twelve steps pass: outflow with arithmetic, inflow
+  to Ready to Assign, date keys, the remembered category, overspending and Cover, Move, edit and clear,
+  the uncategorized pill, All Accounts, API and MCP agreeing, no page errors. Splits and transfers skipped
+  as briefed. **One new gap, EXF-590 (Medium):** a payee whose last transaction went to Ready to Assign
+  gets no remembered category, because the payees read remembers a category id only.
+  - Fix after the transfers and splits Build (it holds the payees and register files); ride with EXF-587.
+- Two rounds of flow tests with no source app and no trouble on live: the brief's rules hold for testers.
+
+**Running Builds, heads read:**
+
+- EXF-461 Worker: "unlink per account as read; removal deletes hold only while nothing links to the
+  connection": its Reviewer is working the race between linking and removing a connection. Good.
+- Plan-page: at its gate, one spec fixed ("the slow-first-save test waits for the held PATCH").
+- Transfers and splits: building.
+
+**Main is `df5afbe`; live is `3a3a977`** (one merge behind: Reflect).
+
+**Ticket writes:** 2 (EXF-590 priority and comment).
+
+**Backlog:** 75 open feature tickets (21 done; 6 in progress). Gap: EXF-587, EXF-588, EXF-590 (Medium),
+EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress EXF-586 (High). Template: twenty-six. Flow verdicts:
+1 `parity_known_gaps`, 2 `new_gaps` (EXF-590; splits and transfers not built), 9 and 10 `new_gaps`,
+11 `parity`. Finished since each template's last review: Build 6, Deploy 2, Discover 2, Test user flow 4.
