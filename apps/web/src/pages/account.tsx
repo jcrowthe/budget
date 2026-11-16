@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { Navigate, useParams } from "react-router";
 import { useAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
+import { Register } from "../register/Register";
 import { ACCOUNT_BADGE, ACCOUNT_TYPE_LABEL } from "../shell/accountTypeLabels";
 import { PageHeader } from "../shell/PageHeader";
 import { accountsPath } from "../shell/planPaths";
@@ -42,6 +43,7 @@ function AccountPage() {
           </Fragment>
         ))}
       </div>
+      <Register key={account.id} account={account} />
     </>
   );
 }
