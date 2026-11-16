@@ -1,4 +1,5 @@
 import { addMonths, monthGrid, monthTitle } from "@budget/schema/date-entry";
+import { FREQUENCIES, FREQUENCY_LABELS, type Frequency } from "@budget/schema/recurrence";
 import { ChevronCircleLeftIcon, ChevronCircleRightIcon } from "../plan/monthNavIcons";
 import { Dropdown } from "./Dropdown";
 
@@ -12,6 +13,10 @@ export function Calendar({
   today,
   onMonth,
   onPick,
+  frequency,
+  onFrequency,
+  onRepeatBlur,
+  onRepeatEscape,
 }: {
   anchor: HTMLElement;
   month: string;
@@ -19,6 +24,11 @@ export function Calendar({
   today: string;
   onMonth: (firstOfMonth: string) => void;
   onPick: (iso: string) => void;
+  /** The Repeat select shows only when `onFrequency` is given (a new row, a scheduled row). */
+  frequency?: Frequency;
+  onFrequency?: (f: Frequency) => void;
+  onRepeatBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+  onRepeatEscape?: () => void;
 }) {
   // mousedown never leaves the date field, so its focus (and this calendar) stay.
   const keep = (e: React.MouseEvent) => e.preventDefault();
@@ -82,6 +92,31 @@ export function Calendar({
             </div>
           ))}
         </div>
+        {onFrequency ? (
+          <div className="calendar-repeat">
+            <label htmlFor="calendar-repeat-select">Repeat:</label>
+            <select
+              id="calendar-repeat-select"
+              aria-label="Repeat"
+              value={frequency ?? "never"}
+              onChange={(e) => onFrequency(e.target.value as Frequency)}
+              onBlur={onRepeatBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRepeatEscape?.();
+                }
+              }}
+            >
+              {FREQUENCIES.map((f) => (
+                <option key={f} value={f}>
+                  {FREQUENCY_LABELS[f]}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
       </div>
     </Dropdown>
   );

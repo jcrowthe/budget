@@ -278,8 +278,9 @@ Defaults:
    - two markers; x labels `Oct`/`2026` and `Nov`/`2026`; y labels exactly `0 days` and `140 days`;
    - hover the Oct marker's centre: the tooltip shows `Oct 2026` and `114 days`, below the point (tooltip top >
      marker centre y);
-   - hover the Nov marker's centre, its lower edge (centre y + 6), and a point in Nov's column 40px above the marker:
-     each time the tooltip is `Nov 2026` / `122 days`, which equals "Current";
+   - hover the Nov marker's centre, its lower edge (centre y + 6), and a point in Nov's column 40px above the marker, or
+     the plot's top edge (+1px) where the marker sits less than 40px under it (EXF-621): each time the tooltip is
+     `Nov 2026` / `122 days`, which equals "Current"; and 40px above the Oct marker shows `Oct 2026` / `114 days`;
    - the hovered marker has class `selected` and its fill is `rgb(147, 213, 62)`;
    - a click on the Oct marker opens no dialog and leaves the URL unchanged.
 6. (553-4) Example:

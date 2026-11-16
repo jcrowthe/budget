@@ -60,15 +60,21 @@
 
 .ie-heading th,
 .ie-heading td {
-  height: 39px;
   border-bottom: 1px solid var(--ie-row-line);
   background: var(--backgroundPrimary);
   font-size: 18px;
   font-weight: 600;
   text-align: left;
 }
+/* Source (.income-expense-h1 button): line-height 1.2 (21.6px), text x 316, caret x 302 (margin-left 2px). */
 .ie-heading .ie-toggle {
-  line-height: 1;
+  gap: 6px;
+  line-height: 1.2;
+  vertical-align: top;
+}
+.ie-heading .ie-toggle svg {
+  /* Source (.income-expense-h1 button): caret top = row top + 14.0px, centred on the text; row 38.6px. */
+  margin: -2px 0 0 2px;
 }
 .ie-heading.income th {
   color: var(--statusPositive);
@@ -80,6 +86,7 @@
   color: var(--labelPrimary);
 }
 .ie-toggle {
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -90,7 +97,14 @@
   cursor: pointer;
   font: inherit;
 }
+.ie-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .ie-toggle svg {
+  flex-shrink: 0;
   width: 8px;
   height: 8px;
   color: var(--labelPrimary);
