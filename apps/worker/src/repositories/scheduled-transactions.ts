@@ -179,9 +179,17 @@ export async function categoryNames(
   db: Db,
   budgetId: string,
   categoryId: string,
-): Promise<{ name: string; groupName: string | null } | undefined> {
+): Promise<
+  | { name: string; groupName: string | null; kind: string | null; accountId: string | null }
+  | undefined
+> {
   const [r] = await db
-    .select({ name: categories.name, groupName: categoryGroups.name })
+    .select({
+      name: categories.name,
+      groupName: categoryGroups.name,
+      kind: categories.kind,
+      accountId: categories.accountId,
+    })
     .from(categories)
     .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
     .where(
@@ -192,5 +200,7 @@ export async function categoryNames(
       ),
     )
     .limit(1);
-  return r ? { name: r.name, groupName: r.groupName ?? null } : undefined;
+  return r
+    ? { name: r.name, groupName: r.groupName ?? null, kind: r.kind, accountId: r.accountId }
+    : undefined;
 }

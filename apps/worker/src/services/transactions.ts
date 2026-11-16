@@ -1,4 +1,5 @@
 import { CREDIT_ACCOUNT_TYPES } from "@budget/core/account-types";
+import { OWN_PAYMENT_TEXT } from "@budget/schema/card-payments";
 import {
   type PlanSortColumn,
   type RegisterSortColumn,
@@ -399,7 +400,7 @@ async function validate(
   budgetId: string,
   merged: txRepo.TransactionRow,
   account: accountsRepo.AccountRow,
-  known?: ReadonlyMap<string, unknown>,
+  known?: ReadonlyMap<string, { kind: string | null; accountId: string | null }>,
 ) {
   if (merged.categoryId && merged.inflowToReadyToAssign) {
     throw unprocessable(
@@ -409,13 +410,22 @@ async function validate(
   if (!account.onBudget && (merged.categoryId || merged.inflowToReadyToAssign)) {
     throw unprocessable("Tracking accounts do not take a category");
   }
-  if (
-    merged.categoryId &&
-    !(known
-      ? known.has(merged.categoryId)
-      : await categoriesRepo.findActive(db, budgetId, merged.categoryId))
-  ) {
-    throw unprocessable("Category not found in this plan");
+  if (merged.categoryId) {
+    const category = known
+      ? known.get(merged.categoryId)
+      : await categoriesRepo.findActive(db, budgetId, merged.categoryId);
+    if (!category) throw unprocessable("Category not found in this plan");
+    refuseOwnPaymentCategory(account, category);
+  }
+}
+
+/** D5: a row on a card may not use that card's own payment category (payments are transfers). */
+export function refuseOwnPaymentCategory(
+  account: { id: string; name: string },
+  category: { kind: string | null; accountId: string | null } | undefined,
+) {
+  if (category?.kind === "credit_card_payment" && category.accountId === account.id) {
+    throw new TransactionRefused(422, "own_payment_category", OWN_PAYMENT_TEXT(account.name));
   }
 }
 
@@ -863,7 +873,10 @@ export type Reads = {
   lines: ReadonlyMap<string, txRepo.LineRow[]>;
   others: ReadonlyMap<string, txRepo.TransactionDetailRow>;
   accounts: ReadonlyMap<string, accountsRepo.AccountRow>;
-  categories: ReadonlyMap<string, { categoryName: string; groupName: string }>;
+  categories: ReadonlyMap<
+    string,
+    { categoryName: string; groupName: string; kind: string | null; accountId: string | null }
+  >;
 };
 
 export async function prepare(
@@ -1184,11 +1197,9 @@ async function readAll(db: Db, budgetId: string, ids: readonly string[]) {
 
 /** The lines (by parent) and the transfer other sides of these rows, in two set queries. */
 async function linksOf(db: Db, budgetId: string, rows: readonly txRepo.TransactionDetailRow[]) {
-  const lines = new Map<string, txRepo.LineRow[]>();
-  for (const l of await txRepo.listLines(db, budgetId, { parentIds: rows.map((r) => r.id) })) {
-    const k = l.parentTransactionId as string;
-    lines.set(k, [...(lines.get(k) ?? []), l]);
-  }
+  const lines = linesByParent(
+    await txRepo.listLines(db, budgetId, { parentIds: rows.map((r) => r.id) }),
+  );
   const otherIds = rows.flatMap((r) => (r.transferTransactionId ? [r.transferTransactionId] : []));
   return { lines, others: await txRepo.findDetailMany(db, budgetId, otherIds) };
 }
@@ -1196,7 +1207,7 @@ async function linksOf(db: Db, budgetId: string, rows: readonly txRepo.Transacti
 /** The rows as the API shows them, read with two set queries. */
 async function detailsOf(db: Db, budgetId: string, ids: readonly string[]) {
   const rows = await readAll(db, budgetId, ids);
-  const { lines } = await linksOf(db, budgetId, rows);
+  const lines = linesByParent(await txRepo.listLines(db, budgetId, { parentIds: ids }));
   return rows.map((r) => transactionDetailToApi(r, lines.get(r.id) ?? []));
 }
 

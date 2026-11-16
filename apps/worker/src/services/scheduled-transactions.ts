@@ -24,6 +24,7 @@ import { resolvePayee } from "./payees";
 import {
   CLOSED_NO_NEW,
   enteredTransactionWrites,
+  refuseOwnPaymentCategory,
   TransactionRefused,
   transactionDetailToApi,
 } from "./transactions";
@@ -168,7 +169,8 @@ async function checkRules(
   if (m.categoryId && changedCategory) {
     const c = await repo.categoryNames(db, budgetId, m.categoryId);
     if (!c) throw unprocessable("Category not found in this plan");
-    category = c;
+    refuseOwnPaymentCategory(acc, c);
+    category = { name: c.name, groupName: c.groupName };
   }
   return { account: acc, category };
 }
@@ -330,7 +332,7 @@ export async function updateScheduled(
           onBudget: before.accountOnBudget,
         }
       : undefined,
-    v.category_id !== undefined && v.category_id !== null,
+    (v.category_id !== undefined && v.category_id !== null) || accountId !== before.accountId,
   );
   const hasPayee = v.payee_id !== undefined || v.payee_name !== undefined;
 

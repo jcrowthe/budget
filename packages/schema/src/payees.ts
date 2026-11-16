@@ -62,7 +62,12 @@ const TRANSFER_NAME_PREFIX = "Transfer : ";
 export function payeeMenu(
   payees: Payee[],
   text: string,
-  opts: { currentAccountId?: string | null; transfers?: boolean } = {},
+  opts: {
+    currentAccountId?: string | null;
+    transfers?: boolean;
+    /** The label an entry shows; the typed text matches it too (default: "To/From <account>"). */
+    transferLabel?: (p: Payee) => string;
+  } = {},
 ): PayeeMenu {
   const t = text.trim();
   const ordinary = payees.filter((p) => !p.transfer_account_id);
@@ -80,7 +85,8 @@ export function payeeMenu(
               : p.name;
             return (
               p.name.toLowerCase().includes(needle) ||
-              `to/from ${name}`.toLowerCase().includes(needle)
+              `to/from ${name}`.toLowerCase().includes(needle) ||
+              (opts.transferLabel?.(p) ?? "").toLowerCase().includes(needle)
             );
           })
           .sort(compareNames);

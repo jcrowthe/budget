@@ -27,11 +27,10 @@ export async function account(bid: string, type = "checking", balance = 500000) 
   return ((await res.json()) as Json).data.account.id as string;
 }
 
-export async function category(bid: string) {
+export async function category(bid: string, suffix = "Groceries") {
   const m = (await (await json(`/api/v1/budgets/${bid}/months/${MONTH}`)).json()) as Json;
-  return m.data.groups
-    .flatMap((g: Json) => g.categories)
-    .find((c: Json) => c.name.endsWith("Groceries")).id as string;
+  return m.data.groups.flatMap((g: Json) => g.categories).find((c: Json) => c.name.endsWith(suffix))
+    .id as string;
 }
 
 export async function tx(bid: string, body: Json): Promise<Json> {
