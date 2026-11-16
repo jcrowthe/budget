@@ -1,4 +1,15 @@
-import { and, desc, eq, inArray, type SQLWrapper, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lte,
+  notInArray,
+  or,
+  type SQLWrapper,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "../db/client";
 import { bankAccounts } from "../db/schema/bank-accounts";
 import { bankConnections } from "../db/schema/bank-connections";
@@ -70,9 +81,88 @@ export function connectionExists(db: Db, id: string) {
 export function updateConnectionStmt(
   db: Db,
   id: string,
-  set: Partial<Pick<BankConnectionRow, "nickname" | "status" | "lastResetAt" | "updatedAt">>,
+  set: Partial<
+    Pick<
+      BankConnectionRow,
+      | "nickname"
+      | "status"
+      | "lastResetAt"
+      | "updatedAt"
+      | "syncCursor"
+      | "lastSyncedAt"
+      | "syncErrorSince"
+      | "syncAccounts"
+      | "syncLoopCursor"
+    >
+  >,
+  guard?: SQLWrapper,
 ) {
-  return db.update(bankConnections).set(set).where(eq(bankConnections.id, id));
+  return db
+    .update(bankConnections)
+    .set(set)
+    .where(and(eq(bankConnections.id, id), guard ? sql`exists ${guard}` : undefined));
+}
+
+/** A `SELECT 1` that holds while the connection's `sync_cursor` is still `cursor` (null-safe). */
+export function cursorIs(db: Db, id: string, cursor: string | null) {
+  return db
+    .select({ one: sql`1` })
+    .from(bankConnections)
+    .where(and(eq(bankConnections.id, id), sql`${bankConnections.syncCursor} is ${cursor}`));
+}
+
+export async function findById(db: Db, id: string): Promise<BankConnectionRow | undefined> {
+  const [r] = await db.select().from(bankConnections).where(eq(bankConnections.id, id)).limit(1);
+  return r;
+}
+
+export async function accountsOf(db: Db, connectionId: string): Promise<BankAccountRow[]> {
+  return db.select().from(bankAccounts).where(eq(bankAccounts.bankConnectionId, connectionId));
+}
+
+/** Writes the bank account's balances while `guard` holds. */
+export function updateBalancesStmt(
+  db: Db,
+  bankAccountId: string,
+  b: { current: number | null; available: number | null; at: string },
+  guard?: SQLWrapper,
+) {
+  return db
+    .update(bankAccounts)
+    .set({ currentBalance: b.current, availableBalance: b.available, balanceUpdatedAt: b.at })
+    .where(and(eq(bankAccounts.id, bankAccountId), guard ? sql`exists ${guard}` : undefined));
+}
+
+/** Connections the schedule may sync: not needing a repair, never synced or last synced at or before `before`. */
+export async function listDue(db: Db, before: string): Promise<BankConnectionRow[]> {
+  return db
+    .select()
+    .from(bankConnections)
+    .where(
+      and(
+        notInArray(bankConnections.status, ["login_required", "broken"]),
+        or(isNull(bankConnections.lastSyncedAt), lte(bankConnections.lastSyncedAt, before)),
+      ),
+    )
+    .orderBy(bankConnections.createdAt, bankConnections.id);
+}
+
+/** Connections of the environment with a bank account linked to a live account of the plan. */
+export async function listForPlanLinks(
+  db: Db,
+  budgetId: string,
+  environment: "production" | "sandbox",
+): Promise<BankConnectionRow[]> {
+  return db
+    .select()
+    .from(bankConnections)
+    .where(
+      and(
+        eq(bankConnections.environment, environment),
+        sql`exists (select 1 from accounts a join bank_accounts b on b.id = a.bank_account_id where b.bank_connection_id = ${bankConnections.id} and a.budget_id = ${budgetId} and a.deleted_at is null)`,
+      ),
+    )
+    .orderBy(bankConnections.createdAt, bankConnections.id);
 }
 
 export function deleteAccountsStmt(db: Db, connectionId: string, guard?: SQLWrapper) {

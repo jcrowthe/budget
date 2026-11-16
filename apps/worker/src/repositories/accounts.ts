@@ -407,3 +407,19 @@ export async function linkedToConnection(db: Db, connectionId: string): Promise<
 export function noLinksToConnection(connectionId: string) {
   return sql`not exists (select 1 from ${accounts} where ${accounts.deletedAt} is null and ${accounts.bankAccountId} in (${ofConnection(connectionId)}))`;
 }
+
+/** The earliest date of the account's live Starting Balance rows, or null. */
+export async function startingBalanceDate(db: Db, accountId: string): Promise<string | null> {
+  const [r] = await db
+    .select({ d: sql<string | null>`min(${transactions.date})` })
+    .from(transactions)
+    .innerJoin(payees, eq(payees.id, transactions.payeeId))
+    .where(
+      and(
+        eq(transactions.accountId, accountId),
+        countsInBalance(),
+        eq(payees.system, "starting_balance"),
+      ),
+    );
+  return r?.d ?? null;
+}

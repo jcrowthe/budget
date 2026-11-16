@@ -5,6 +5,7 @@ import {
   removeBankConnection,
   renameBankConnection,
 } from "../../services/bank-connections";
+import { syncBankConnection, syncPlan } from "../../services/plaid-sync";
 import { Id, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
@@ -50,5 +51,14 @@ export const tools: McpToolDef[] = [
     inputSchema: z.object({ budget_id: Id, bank_connection_id: Id }),
     run: async (input: { budget_id: string; bank_connection_id: string }, { env, actor }) =>
       removeBankConnection(env, actor, input.budget_id, input.bank_connection_id),
+  },
+  {
+    name: "sync_bank_connections",
+    description: `Sync with the bank now (this contacts the bank through Plaid). It imports new posted transactions into the plan's linked accounts as unapproved transactions, matches them to transactions entered by hand, and may add, change and delete unapproved transactions (an approved, edited or rejected transaction is never changed or brought back; a reconciled one is never changed). ${MONEY} Plaid's own sign is the opposite and is converted: an import's amount is negative for money leaving the account. With bank_connection_id: one connection; without: every connection linked to an account of the plan, in turn. Safe to run again. Returns the sync result { bank_connection_id, status, added, matched, modified, removed, skipped, has_more, last_synced_at }; without bank_connection_id Returns { results }, one such result per connection. status is connected, delayed (the bank did not answer: try later), login_required or broken (the connection needs the owner in the app) or not_set_up. has_more true means the bank has more to read: call again. ${timestamps(["last_synced_at"], ["last_synced_at"])}`,
+    inputSchema: z.object({ budget_id: Id, bank_connection_id: Id.optional() }),
+    run: async (input: { budget_id: string; bank_connection_id?: string }, { env }) =>
+      input.bank_connection_id
+        ? syncBankConnection(env, input.budget_id, input.bank_connection_id)
+        : syncPlan(env, input.budget_id),
   },
 ];

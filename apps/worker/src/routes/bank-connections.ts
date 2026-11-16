@@ -9,9 +9,11 @@ import {
   BankConnectionUpdate,
   LinkTokenCreate,
   LinkTokenResponse,
+  PlanSyncResponse,
+  SyncResultResponse,
 } from "@budget/schema/bank-connections";
 import { ErrorBody } from "@budget/schema/common/envelope";
-import { createRoute, OpenAPIHono, type z } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
@@ -27,6 +29,7 @@ import {
   removeBankConnection,
   renameBankConnection,
 } from "../services/bank-connections";
+import { syncBankConnection, syncPlan } from "../services/plaid-sync";
 
 const tags = ["Bank connections"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -254,4 +257,50 @@ export default app
         return refusalOr(c, err);
       }
     },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/bank-connections/{id}/sync",
+      tags,
+      request: idRequest,
+      responses: {
+        200: json(
+          SyncResultResponse,
+          "One sync run: the counts and the connection's status (a bank error is a status, not an error)",
+        ),
+        ...idErrors,
+      },
+    }),
+    async (c) =>
+      c.json(
+        {
+          data: await syncBankConnection(
+            c.env,
+            c.req.valid("query").budget_id,
+            c.req.valid("param").id,
+          ),
+        },
+        200,
+      ),
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/sync",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: z
+            .string()
+            .min(1)
+            .openapi({ param: { name: "budget_id", in: "path" } }),
+        }),
+      },
+      responses: {
+        200: json(PlanSyncResponse, "One sync run for each connection linked to the plan"),
+        ...errors,
+      },
+    }),
+    async (c) => c.json({ data: await syncPlan(c.env, c.req.valid("param").budget_id) }, 200),
   );

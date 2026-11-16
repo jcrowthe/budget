@@ -58,6 +58,13 @@ export const Account = z
       description:
         "True when DELETE would succeed: an open account whose only transaction is its Starting Balance (or none), a closed account with no transactions",
     }),
+    unapproved_count: z.number().int().min(0).default(0).openapi({
+      description: "Live transactions of the account that are not approved yet (imports to review)",
+    }),
+    needs_attention_count: z.number().int().min(0).default(0).openapi({
+      description:
+        "Live transactions that are unapproved or need a category (an on-plan account, no category, not Ready to Assign, not a split or an on-plan transfer or a Starting Balance)",
+    }),
   })
   .openapi("Account");
 

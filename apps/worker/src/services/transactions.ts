@@ -25,8 +25,10 @@ import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
+import * as importsRepo from "../repositories/imports";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
+import { runGroups, type StatementGroup } from "./batch-groups";
 import { resolvePayee } from "./payees";
 import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
@@ -46,6 +48,11 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
     cleared: row.cleared,
     approved: row.approved,
     created_at: row.createdAt,
+    import_id: row.importId ?? null,
+    source: row.source ?? null,
+    imported_payee: row.importedPayee ?? null,
+    bank_description: row.bankDescription ?? null,
+    matched: (row.importId ?? null) !== null && (row.source ?? null) === null,
   };
 }
 
@@ -187,10 +194,13 @@ export function transactionDetailToApi(
   };
 }
 
-type LogRow = txRepo.TransactionRow & { categoryName: string | null; groupName: string | null };
+export type LogRow = txRepo.TransactionRow & {
+  categoryName: string | null;
+  groupName: string | null;
+};
 
 /** The change_log copy of a row: the API shape without `updated_at`, with its lines. */
-function logShape(row: LogRow, lines: readonly txRepo.LineRow[] = []) {
+export function logShape(row: LogRow, lines: readonly txRepo.LineRow[] = []) {
   return {
     ...transactionToApi(row),
     category_name: row.categoryName,
@@ -201,7 +211,7 @@ function logShape(row: LogRow, lines: readonly txRepo.LineRow[] = []) {
   };
 }
 
-async function namesOf(db: Db, budgetId: string, categoryId: string | null | undefined) {
+export async function namesOf(db: Db, budgetId: string, categoryId: string | null | undefined) {
   if (!categoryId) return { categoryName: null, groupName: null };
   const cat = await categoriesRepo.findActive(db, budgetId, categoryId);
   return {
@@ -271,13 +281,18 @@ export async function listAccountTransactions(
   env: Env,
   budgetId: string,
   accountId: string,
-  opts: { sinceDate?: string; sort?: RegisterSortColumn; dir?: SortDir } = {},
+  opts: {
+    sinceDate?: string;
+    sort?: RegisterSortColumn;
+    dir?: SortDir;
+    needs?: "approval_or_category";
+  } = {},
 ): Promise<{ transactions: TransactionDetail[]; balances: AccountBalances }> {
   const db = getDb(env);
   await activePlan(db, budgetId);
   await activeAccount(db, budgetId, accountId);
   const [rows, balances, lines] = await Promise.all([
-    txRepo.listDetailForAccount(db, budgetId, accountId, opts.sinceDate),
+    txRepo.listDetailForAccount(db, budgetId, accountId, opts.sinceDate, opts.needs),
     balancesOf(db, budgetId, accountId),
     txRepo.listLines(db, budgetId, { accountId, sinceDate: opts.sinceDate }),
   ]);
@@ -292,12 +307,17 @@ export async function listAccountTransactions(
 export async function listPlanTransactions(
   env: Env,
   budgetId: string,
-  opts: { sinceDate?: string; sort?: PlanSortColumn; dir?: SortDir } = {},
+  opts: {
+    sinceDate?: string;
+    sort?: PlanSortColumn;
+    dir?: SortDir;
+    needs?: "approval_or_category";
+  } = {},
 ): Promise<{ transactions: PlanTransaction[]; balances: AccountBalances }> {
   const db = getDb(env);
   await activePlan(db, budgetId);
   const [rows, open, lines] = await Promise.all([
-    txRepo.listDetailForPlan(db, budgetId, opts.sinceDate),
+    txRepo.listDetailForPlan(db, budgetId, opts.sinceDate, opts.needs),
     txRepo.openAccountsBalances(db, budgetId),
     txRepo.listLines(db, budgetId, { sinceDate: opts.sinceDate }),
   ]);
@@ -727,6 +747,28 @@ async function mutate(
       statements.push(txRepo.softDeleteLinesIfStmt(db, id, now, guard));
       for (const r of plan.lines.rows) statements.push(txRepo.insertIfStmt(db, r, guard));
     }
+    // A row the user deletes that came from the bank is never imported again.
+    const deleted = [
+      ...(kind === "delete" ? [before] : []),
+      ...plan.others.flatMap((o) => (o.kind === "delete" ? [o.row] : [])),
+    ];
+    for (const d of deleted) {
+      if (!d.importId) continue;
+      statements.push(
+        importsRepo.tombstoneIfStmt(
+          db,
+          {
+            accountId: d.accountId,
+            importId: d.importId,
+            budgetId,
+            reason: "deleted",
+            transactionId: d.id,
+          },
+          guard,
+          now,
+        ),
+      );
+    }
     for (const o of plan.others) {
       if (o.kind === "insert") statements.push(txRepo.insertIfStmt(db, o.row, guard));
       else if (o.kind === "delete")
@@ -859,7 +901,8 @@ async function prepare(
     memo: p.memo === undefined ? before.memo : (clean(p.memo) ?? null),
     amount: p.amount ?? before.amount,
     cleared: cleared ?? before.cleared,
-    approved: p.approved ?? before.approved,
+    // Saving an edit approves the row, unless the request says approved: false.
+    approved: p.approved ?? true,
   };
   plan.after = after;
   if (isTransfer && !transferAfterId) {
@@ -1020,4 +1063,203 @@ export async function deleteTransaction(
   id: string,
 ): Promise<TransactionDetail> {
   return mutate(env, actor, budgetId, id, "delete", undefined);
+}
+
+/** Distinct ids in the order first given. */
+const distinct = (ids: readonly string[]) => [...new Set(ids)];
+
+async function readAll(db: Db, budgetId: string, ids: readonly string[]) {
+  const rows = await Promise.all(ids.map((id) => txRepo.findDetail(db, budgetId, id)));
+  return rows.map((r) => {
+    if (!r) throw new NotFound("Transaction");
+    return r;
+  });
+}
+
+/**
+ * Approves the transactions (1 to 100): each row, its split lines and the other side of a transfer. An
+ * approved row is returned as it is, with no write. Any unknown id refuses the whole request first.
+ */
+export async function approveTransactions(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  ids: readonly string[],
+): Promise<TransactionDetail[]> {
+  const db = getDb(env);
+  await activePlan(db, budgetId);
+  const wanted = distinct(ids);
+  let pending = wanted;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && pending.length > 0; attempt++) {
+    const rows = (await readAll(db, budgetId, pending)).filter((r) => !r.approved);
+    const now = new Date().toISOString();
+    const covered = new Set<string>();
+    const groups: StatementGroup[] = [];
+    const owners: string[] = [];
+    for (const row of rows) {
+      if (covered.has(row.id)) continue;
+      const lines = await txRepo.listLines(db, budgetId, { parentId: row.id });
+      const other = row.transferTransactionId
+        ? await txRepo.findDetail(db, budgetId, row.transferTransactionId)
+        : undefined;
+      const otherOpen = other && !other.approved ? other : undefined;
+      covered.add(row.id);
+      if (otherOpen) covered.add(otherOpen.id);
+      const guards = [
+        txRepo.holdsAt(db, row),
+        ...(otherOpen ? [txRepo.holdsAt(db, otherOpen)] : []),
+      ];
+      const guard = guards.length > 1 ? txRepo.allHold(guards) : (guards[0] as SQLWrapper);
+      const stmts: unknown[] = [
+        changeLogInsertIf(
+          db,
+          {
+            budgetId,
+            actor,
+            action: "update",
+            entityType: "transaction",
+            entityId: row.id,
+            before: logShape(row, lines),
+            after: logShape({ ...row, approved: true }, lines),
+          },
+          guard,
+        ),
+      ];
+      if (otherOpen) {
+        stmts.push(
+          changeLogInsertIf(
+            db,
+            {
+              budgetId,
+              actor,
+              action: "update",
+              entityType: "transaction",
+              entityId: otherOpen.id,
+              before: logShape(otherOpen),
+              after: logShape({ ...otherOpen, approved: true }),
+            },
+            guard,
+          ),
+        );
+      }
+      if (lines.length > 0) {
+        stmts.push(
+          txRepo.syncLinesIfStmt(
+            db,
+            row.id,
+            {
+              accountId: row.accountId,
+              date: row.date,
+              cleared: row.cleared,
+              approved: true,
+              updatedAt: now,
+            },
+            guard,
+          ),
+        );
+      }
+      if (otherOpen) {
+        stmts.push(
+          txRepo.updateIfStmt(db, otherOpen.id, { approved: true, updatedAt: now }, guard),
+        );
+      }
+      // The row's own write comes last, and only succeeds when the other side's did.
+      const selfGuard = otherOpen
+        ? txRepo.allHold([txRepo.holdsAt(db, row), txRepo.writtenAt(db, otherOpen.id, now)])
+        : guard;
+      stmts.push(txRepo.updateIfStmt(db, row.id, { approved: true, updatedAt: now }, selfGuard));
+      groups.push(stmts);
+      owners.push(row.id);
+    }
+    const results = await runGroups(db, groups);
+    pending = owners.filter((_, i) => (results[i]?.[(results[i]?.length ?? 1) - 1] ?? 0) === 0);
+    // A request id that was the other side of a covered row is done when that row was.
+    if (pending.length === 0) break;
+  }
+  if (pending.length > 0) throw new Conflict("Transaction");
+  return Promise.all(wanted.map((id) => detailOf(db, budgetId, id)));
+}
+
+/**
+ * Rejects unapproved imports: each is deleted and its import id recorded, so it never comes back.
+ * Refused without a write when an id is unknown (404), approved (409) or not an import (422).
+ */
+export async function rejectTransactions(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  ids: readonly string[],
+): Promise<TransactionDetail[]> {
+  const db = getDb(env);
+  await activePlan(db, budgetId);
+  const wanted = distinct(ids);
+  const out = new Map<string, TransactionDetail>();
+  let pending = wanted;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && pending.length > 0; attempt++) {
+    const rows = await readAll(db, budgetId, pending);
+    for (const r of rows) {
+      if (r.approved) {
+        throw new TransactionRefused(
+          409,
+          "transaction_approved",
+          "An approved transaction cannot be rejected",
+        );
+      }
+    }
+    for (const r of rows) {
+      if (!r.importId || r.transferTransactionId) {
+        throw new TransactionRefused(
+          422,
+          "not_imported",
+          "Only an imported transaction can be rejected",
+        );
+      }
+    }
+    const now = new Date().toISOString();
+    const groups: StatementGroup[] = [];
+    const details: TransactionDetail[] = [];
+    for (const row of rows) {
+      const lines = await txRepo.listLines(db, budgetId, { parentId: row.id });
+      const guard = txRepo.holdsAt(db, row);
+      groups.push([
+        changeLogInsertIf(
+          db,
+          {
+            budgetId,
+            actor,
+            action: "delete",
+            entityType: "transaction",
+            entityId: row.id,
+            before: logShape(row, lines),
+            after: null,
+          },
+          guard,
+        ),
+        importsRepo.tombstoneIfStmt(
+          db,
+          {
+            accountId: row.accountId,
+            importId: row.importId as string,
+            budgetId,
+            reason: "rejected",
+            transactionId: row.id,
+          },
+          guard,
+          now,
+        ),
+        txRepo.softDeleteLinesIfStmt(db, row.id, now, guard),
+        txRepo.softDeleteIfStmt(db, row.id, now, guard),
+      ]);
+      details.push(transactionDetailToApi(row, lines));
+    }
+    const results = await runGroups(db, groups, 120);
+    pending = [];
+    for (const [i, row] of rows.entries()) {
+      const r = results[i] ?? [];
+      if ((r[r.length - 1] ?? 0) > 0) out.set(row.id, details[i] as TransactionDetail);
+      else pending.push(row.id);
+    }
+  }
+  if (pending.length > 0) throw new Conflict("Transaction");
+  return wanted.map((id) => out.get(id) as TransactionDetail);
 }
