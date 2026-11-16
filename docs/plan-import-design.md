@@ -229,12 +229,6 @@ All Worker or unit tests; nothing is compared with the source. `planClock` = 202
     `openapi`, `mcp`, `mcp-coverage`, `mcp-descriptions`, `mcp-timestamps` pass; `apiPaths()` / `listedToolNames()`
     contain the three operations and tools.
 
-## Manifest
-
-touches: [packages/schema/src/zip.ts, packages/schema/test/zip.test.ts, packages/schema/src/plan-import.ts, packages/schema/src/plan-import-read.ts, packages/schema/test/plan-import*.test.ts, packages/schema/src/plan-export.ts, packages/schema/test/plan-export.test.ts, apps/worker/migrations/20261116101300_plan_imports.sql, apps/worker/src/db/schema/plan-imports.ts, apps/worker/src/repositories/plan-import.ts, apps/worker/src/services/plan-import.ts, apps/worker/src/services/plan-import-compare.ts, apps/worker/src/services/plan-clock.ts, apps/worker/src/services/plan-export.ts, apps/worker/src/routes/plan-import.ts, apps/worker/src/routes/plan-export.ts, apps/worker/src/mcp/tools/plan-import.ts, apps/worker/src/mcp/tools/plan-export.ts, apps/worker/test/plan-import*.test.ts, apps/worker/test/plan-import-helpers.ts, apps/worker/test/plan-export*.test.ts, apps/worker/test/plan-export-helpers.ts, apps/worker/test/mcp-coverage/budgets.ts, apps/worker/test/mcp-timestamps.test.ts, docs/plan-import-design.md, docs/plan-import-spec.md, docs/plan-export-design.md, docs/README.md]
-shared: []
-migrations: 1
-
 ## As built (departures from the plan above, and measured numbers)
 
 - `ImportError` lives in `plan-import-read.ts` (re-exported by `plan-import.ts`) so the two files do not import each
@@ -252,3 +246,48 @@ migrations: 1
   state machine is then split (store / parse / compare) without changing the API, as written above.
 - Not covered by a test: the cron never runs against a half-written plan only because `listDue` joins active plans
   (`plan-import-steps.test.ts` inserts a due schedule into a hidden plan to prove it).
+
+## Carry-over (Build `p_51a143af…`, 2026-11-16)
+
+Merged from `0b970a0` onto main `49012cd` without conflict (35 files, +6,496 −15). The decisions above stand and
+still fit main: `listActive`/`findActive`, the scheduler's `listDue` (inner join on active plans,
+`repositories/scheduled-transactions.ts`) and the bank sync's `livePlanIds` (`repositories/imports.ts:74`, used at
+`services/plaid-sync.ts:208`) and its link guard (`imports.ts:234`) are the only reads across plans
+(`grep` of `apps/worker/src` for the `budgets` table), and each skips a hidden plan. Re-run here:
+`plan-import-calls.test.ts` passes and logs `17 invocations, slowest 3225 ms (start), dry run 3179 ms; max D1 3, max
+R2 2` (logs need `--silent=false`). New work is spec task 12; the points of the Lead's brief:
+
+1. **Criteria → tests.** EXF-477 1: `plan-import.test.ts` "case 1 …creates the plan…"; 2: "case 2 …TSV pair…", "…$17.34
+   …", schema `plan-import-read.test.ts` "amounts"; 3: "case 3 …\=bonus…"; 4: "case 4 …asks in the dry run…", "…a day of
+   14…"; 5: `plan-import-roundtrip.test.ts` "criterion 5" (two tests); 6: "case 6 …dry run…" and the large dry run in
+   `plan-import-calls.test.ts`; 7: `plan-import-roundtrip.test.ts` "criterion 7" (single and stepped). Fixture F
+   already holds all eight things the Lead names (card `Sample Visa` with its payment category and card spending,
+   split, transfer, schedule, hidden `Old`/`Old Hobby`, red flag, reconciled transfer, Dec 2026 assignment ahead of
+   the pinned Nov), but the test does not say so: **task 12a** asserts them in the first export. EXF-670 1–3:
+   `plan-export-now.test.ts` (four tests) and schema `plan-export.test.ts` "EXF-670 now bound"; 4: `plan-export-design.md`
+   line 170 (done).
+2. **Large file**: the test above (≤ 40 asserted per invocation). Repeated / simultaneous continues:
+   `plan-import-steps.test.ts` "two concurrent continues…" and "a step repeated after it was applied…"; the large
+   test's final D1 counts prove no chunk was written twice.
+3. **Invisible until done**: covered: list (REST, `list_budgets`), by id (REST plan, accounts, months, export;
+   `get_budget`), `enterDue` over all plans, no `change_log`; cancel, 25 h sweep and failed steps leave nothing in D1
+   or R2; a visible plan untouched by cancel. **Missing, task 12b–d**: the bank sync, a plan-scoped tool other than
+   `get_budget`, and a plan **deleted by the owner** surviving cancel and sweep.
+4. **Hand-written source-style files**, all covered: source-prefixed compressed zip built from parts
+   (`SAMPLE_ZIP_NAME` from `SRC`, `deflatedZip`) in case 1 and `plan-import-zip.test.ts`; `.csv` with `$` (case 1,
+   "$17.34"); `.tsv` with `€` after and `,` decimals (case 2); formula guard (case 3); every day ≤ 12 (case 4); unpaired
+   transfer (schema "a self-transfer and an unpaired transfer…"); flag `Tax` (case 1, schema "flags by colour name");
+   `Credit Card Payments: Sample Visa` without that account (case 1).
+5. **Conflict** with the Plan-page Build: none at `49012cd`. If it merged before a rebase: keep every entry of both
+   sides in `mcp-timestamps.test.ts`; in `plan-export-calls.test.ts` keep both changes and expect what the code then
+   makes (16 expected), and write that number in `plan-export-design.md`, `plan-export-now.test.ts` ("15 D1 calls")
+   and this doc's EXF-670 section.
+6. **Out of bounds**: the branch touches none of the Lead's list, no shared module, no `paths.always_overlap` file,
+   nothing under `apps/web/` or `e2e/`. Task 12 adds tests only; if one fails because of an out-of-bounds file
+   or of code outside the manifest (e.g. `services/scheduled-transactions.ts`, `services/plaid-sync.ts`), stop and report the file and why rather than change it.
+
+## Manifest
+
+touches: [packages/schema/src/zip.ts, packages/schema/test/zip.test.ts, packages/schema/src/plan-import.ts, packages/schema/src/plan-import-read.ts, packages/schema/test/plan-import*.test.ts, packages/schema/src/plan-export.ts, packages/schema/test/plan-export.test.ts, apps/worker/migrations/20261116101300_plan_imports.sql, apps/worker/src/db/schema/plan-imports.ts, apps/worker/src/repositories/plan-import.ts, apps/worker/src/services/plan-import.ts, apps/worker/src/services/plan-import-compare.ts, apps/worker/src/services/plan-clock.ts, apps/worker/src/services/plan-export.ts, apps/worker/src/routes/plan-import.ts, apps/worker/src/routes/plan-export.ts, apps/worker/src/mcp/tools/plan-import.ts, apps/worker/src/mcp/tools/plan-export.ts, apps/worker/test/plan-import*.test.ts, apps/worker/test/plan-import-helpers.ts, apps/worker/test/plan-export*.test.ts, apps/worker/test/plan-export-helpers.ts, apps/worker/test/mcp-coverage/budgets.ts, apps/worker/test/mcp-timestamps.test.ts, docs/plan-import-design.md, docs/plan-import-spec.md, docs/plan-export-design.md, docs/README.md]
+shared: []
+migrations: 1

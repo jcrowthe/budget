@@ -311,3 +311,41 @@ Each case checks the database (`env.DB`) as well as the response; plan names sta
 The design's line in `docs/README.md` (union merge; keep every line at a rebase). `pnpm check` passes. Report the
 case 10 log line, the D1/R2 maxima, each acceptance case with its test, and that nothing in the source app was opened
 or pressed and no file from it was used.
+
+## Task 12: carry-over (tests only; design § Carry-over)
+
+No source change. Each test checks D1 as well as the response; run each new or changed file once and quote it
+passing. If a test fails, read the code it exercises before deciding; if the fix would touch a file outside the
+manifest, stop and report it.
+
+- **12a, round-trip coverage** (`plan-import-roundtrip.test.ts`, test "gives identical Plan and Register files
+  (single call)"): before the import, assert the first export holds each thing the Lead names, by a row of the
+  Plan or Register text: a `Credit Card Payments: Sample Visa` Plan row and a `Sample Visa` Register row; `Split (1/2) food`
+  and `Split (2/2) ` rows; the pair `Transfer : Rainy Day` / `Transfer : Main Checking`; the 2026-12-01 `Landlord`
+  row (scheduled, after `now`); Plan rows `Hidden Categories: Old
+  Hobby` and `Hidden Categories: Hobby`; flag
+  `Red` on the split rows; `Reconciled` on the transfer rows; a `Dec 2026` Plan row with Assigned `$50.00` for
+  `Groceries 🛒`. Read the exact strings from the export (the format is `plan-export-design.md`'s); do not change F.
+  After the import, assert in D1 of the new plan: one `creditCard` account with a payment category (`kind` set,
+  `account_id` = it), one split parent with 2 lines, 2 rows with `transfer_transaction_id`, 1 `scheduled_transactions`,
+  ≥ 1 hidden category, a `flag_color = 'red'` row, 2 `reconciled` rows, a `month_categories` row for `2026-12-01`.
+- **12b, bank sync skips a half-written plan** (new `apps/worker/test/plan-import-hidden.test.ts`): `setupPlaid()`,
+  `stubBank()`, `world1()` from `plaid-sync-helpers.ts` (a visible Sandbox plan, a connection, `ZZ Checking` linked);
+  start a stepped import (`singleCallRows` 0, `chunkRows` 7, restored after) and run one continue; by SQL set
+  `bank_account_id` of one account of the hidden plan to the connection's other bank account (`bank["ZZ Savings"]` or
+  the second id); `feed.pages` holds one added transaction for each bank account; run the connection's sync
+  (`syncOne(w.plan, w.conn)`, and `syncDueConnections(env, …)` as `plaid-sync-budget.test.ts` does). Expected: the
+  visible plan's linked account gets its row (the sync ran); the hidden plan's transaction count, accounts and
+  `change_log` are unchanged and no row of it has `source = 'plaid'`. Then cancel: nothing of it is left.
+- **12c, plan-scoped tools** (same file or `plan-import-steps.test.ts` case 8): between steps, `get_month` (or the
+  tool that reads `/months/{m}`) and the accounts list tool on the hidden plan id → `isError` true.
+- **12d, an owner-deleted plan survives cancel and sweep** (new file): (i) `buildF()` then `DELETE /budgets/{id}` →
+  snapshot of its rows in every table of `TABLES_OF_PLAN` plus its `budgets` row (`deleted_at` set); (ii) an import
+  run to done, then its plan deleted the same way, snapshot; (iii) a stepped import left `writing`. Then: cancel of
+  (iii) → 200 and (iii) gone; cancel of (ii) → 409 `import_finished`; with `planClock.now` 25 h later a small POST
+  (sweep) → 201. Expected: the snapshots of (i) and (ii) are equal before and after, both `budgets` rows still exist
+  with `deleted_at` set, and their R2 listing under `plan-imports/` is empty. Also set (ii)'s `r2_key` to a
+  dummy key by SQL before the sweep: the sweep clears the key and keeps every row.
+- **Report** (Implementer): the case-10 line from `npx vitest run test/plan-import-calls.test.ts --silent=false`
+  in `apps/worker` (busiest invocation's D1 and R2, invocations, slowest step and time), and the criteria list of the
+  design's Carry-over with any test added here.
