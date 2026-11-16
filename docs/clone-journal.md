@@ -7534,3 +7534,56 @@ Reflect fixes (both in their gates on `85f3cc9`) and the credit engine carry-ove
   is in its gate now; one Deploy ships both merges.
 
 Ticket writes: 0. Review cadence: Build 3, Deploy 2, Discover 2, Test user flow 9.
+
+### 2026-11-16 · Review round 87
+
+Children used 102 of 200. Two Builds ended without merging, both lost to the platform's boxes during
+their regates: scheduled transactions (abandoned by me at its card) and the Reflect fixes (parked
+`infra_failed`, cancelled by me now). One Build is running: the credit engine carry-over. Main
+`85f3cc9`, live `8ec621e`.
+
+**What happened, in order:**
+- 15:56: three cards on one base; I approved the shell Build and chose Regate for the other two.
+- About 16:00: **both regating Builds found themselves in rebuilt boxes at the same minute.** In each,
+  `/workspace/.exfab` held only `bin`, `desktop-keeper.json` and `prompts` (no gate report, no
+  `request.json`) and the Playwright browser was gone, so every browser spec failed in about 3 ms. Each
+  Implementer reinstalled the browser, ran `pnpm check` and its own specs by hand on the new base
+  (all passing: 1,303 tests and 62 specs for scheduled transactions; 49 specs for Reflect) and
+  answered blocked for want of a gate report.
+- **Scheduled transactions** (`p_900d4c34d7c6414a980c2d1d87cfba26`): a "gate still fails" card. I
+  chose Retry once, because the platform's `bin` directory was there and the gate had run. Twenty-nine
+  seconds later the same step was called again with no report: the gate was not running at all. At the
+  second card I chose **Abandon**.
+- **Reflect fixes** (`p_7aa8691536924481bf53c457c86b24ea`): parked with `infra_failed`; **no card
+  reached me** (EXF-611). I found it by reading its status in this review and cancelled it.
+- Evidence posted on EXF-612. **Nine children lost to this fault today** (six Builds, three Deploys).
+  Two at the same minute suggests the boxes of running Threads were rebuilt together.
+
+**Nothing of the work is lost.** Both branches are complete, reviewed, accepted and were gated clean on
+`8ec621e`; both heads already contain main `85f3cc9`:
+- scheduled transactions: `origin/exfab/p_900d4c34d7c6414a980c2d1d87cfba26` at `2e5e291`;
+- Reflect fixes: `origin/exfab/p_7aa8691536924481bf53c457c86b24ea` at `4fb2983`.
+Their files are disjoint (register and Worker against Reflect). **One carry-over Build merges both**:
+one child instead of two, one gate instead of two, and no second collision in the docs index.
+
+**What I would do differently:** with three cards on one base I regated two Builds at once. Each
+regate is one more pass through a box that may be rebuilt; two Builds were exposed for one merge. The
+platform fault is the cause, but a Build that is finished should spend as little time as possible
+between its gate and its merge. Next time: approve one, and let the others wait at their cards (a card
+costs nothing) until the merge has landed, then regate one at a time, the cheapest gate first.
+
+**Running:** the credit engine carry-over (`p_d256d73e55104993a05ccac960529443`): acceptance passed
+(a narrow-window case added and green; one source comparison by its Tester); its test-writing step
+was at work; its gate comes next. Its box was not hit, as far as its reports show.
+
+**Ticket writes:** 2 (comments on EXF-612 and EXF-497).
+
+**Backlog:** unchanged: 54 open feature tickets (43 done; 4 in progress: EXF-532, 535, 497, 499). Gap:
+open EXF-558, EXF-560, EXF-562, EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630, EXF-631, EXF-635,
+EXF-636, EXF-637; in progress EXF-621, EXF-625, EXF-626. Template: thirty-four (EXF-573, EXF-611,
+EXF-612 Urgent). Flow verdicts unchanged. Finished since each template's last review: Build 5 (one
+merged, four lost or abandoned), Deploy 2, Discover 2, Test user flow 9.
+
+**Next plan:** the carry-over Build for scheduled transactions and the Reflect fixes together (test
+the double merge in a throwaway worktree first). A Deploy for the shell merge alone is now worth it:
+the next merge is an hour away again.
