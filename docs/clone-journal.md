@@ -9205,3 +9205,24 @@ tickets filed by the review (thirty-eight open). Finished since each template's 
 
 **Next plan:** nothing to start (three Builds hold the Plan page, the account page and register, and
 the import; main and live are equal).
+
+### 2026-11-16 · Plan round 106
+
+Children used 123 of 200. Nothing started; four are running (the Plan-page, plan import and Reconcile
+carry-overs, and the Build template review finishing its writes). Main and live `49012cd` (read by
+me at 23:42Z). The person has not answered the round-100 check-in.
+
+- **The Build template review's four tickets exist, and its eleven comments are posted** (the open
+  template tickets it extends were all updated at 23:38Z to 23:39Z). Priorities set: **EXF-682**
+  High (a note from the Lead reaches every later step of a running Build); **EXF-684** High (the
+  Tester looks at every screen; what PARTIAL may mean); **EXF-683** Medium ("the acceptance case
+  contradicts the source" comes to the Lead as a card); **EXF-685** Medium (file names from the
+  ticket id). EXF-573, EXF-611 and EXF-612 stay Urgent.
+- **Why nothing new:** the three Builds hold the Plan page, the account page and register, and the
+  import; every other unblocked ticket needs one of those or a shared module, or waits on the
+  person's word. Main and live are equal: no Deploy, no flow test. And I add nothing more to this
+  rate-limit window (opened 23:01Z): three long Builds are in it already.
+- **Cards:** answered at once. A clean card on main: approve. A checks or gate card with no log:
+  Abandon and carry over.
+
+Ticket writes: 4 (four priorities). Review cadence: Build 3, Deploy 7, Discover 2, Test user flow 2.
