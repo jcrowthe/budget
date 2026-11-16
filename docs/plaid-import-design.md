@@ -7,76 +7,69 @@ REST and MCP. **No screen changes**: nothing under `apps/web/` changes. Spec:
 
 ## Source
 
-**Not compared: forbidden by the Lead; no screen changed.** A linked account in the source shows the owner's
-real bank data, so nobody opens, reads or captures the source app in this Build. The behaviour comes from the
-two tickets (help-page rules) and the Lead's scope notes 1 to 15, which override the tickets. There are no
-study notes and no screenshots. The proof against Plaid's real Sandbox is a later flow test on the live app.
+**Not compared: forbidden by the Lead; no screen changed** (a linked account in the source shows real bank
+data). Behaviour comes from the two tickets (help-page rules) and the Lead's notes (rounds 66, 67; "note *n*"
+= this Build's brief), which override them. No study notes, no screenshots; the proof against Plaid's
+Sandbox is a later flow test on the live app. **Plaid calls added: `/transactions/sync` and `/accounts/get`
+only; nothing creates, updates or removes a Plaid Item (note 13).**
 
 ## What exists (read in the code)
 
 `plaidFor().post()`, `PlaidApiError(status, errorCode)`, `getAccessToken`, `plaidToMilliunits`;
-`bank_connections` (`status`, `last_synced_at`, unused `sync_cursor`); `bank_accounts` balances in Plaid's
-sign. A connection belongs to an environment, not a plan: a bank account may be linked in **several plans**.
-Closing an account unlinks it. `insertIfStmt` lists columns **positionally** (Drizzle order); `mutate()` does
-every PATCH/DELETE under `holdsAt` guards. `PlaidItemSync` and `scheduled()` are stubs (cron daily 03:00).
+`bank_connections` (unused `sync_cursor`); `bank_accounts` balances. A connection belongs to an environment,
+so a bank account may be linked in **several plans**. Closing an account unlinks it. `insertIfStmt` lists
+columns **positionally**; `mutate()` guards with `holdsAt`. `PlaidItemSync`, `scheduled()`: stubs (cron 03:00).
 
 ## Approach
 
-```
-route / MCP / scheduled ──► requestSync(env, conn) ──► DO PlaidItemSync (one per Item, idFromName(plaid_item_id))
-                                                         └─ coalesces: running ? await running : runSync(env, id)
-runSync: read state ─► Plaid /transactions/sync pages ─► Plaid /accounts/get ─► pure decisions
-         ─► write chunks (guarded, idempotent) ─► final batch: cursor + balances + last_synced_at + status
-```
-
-Decisions of notes 3–6 are pure functions in `packages/schema/src/plaid-import.ts` (unit-tested, no
-database); `services/plaid-sync.ts` reads, calls Plaid and writes.
+Route, MCP or `scheduled()` → `requestSync` → DO `PlaidItemSync` (one per Item; coalesces) → `runSync`: read
+state → Plaid pages → `/accounts/get` → pure decisions (`packages/schema/src/plaid-import.ts`, unit-tested)
+→ guarded, idempotent write chunks → final batch (cursor, balances, `last_synced_at`, status).
 
 ### One run (`runSync(env, connectionId, opts)`)
 
-1. **State.** The connection row; if its status is `login_required` or `broken`, return that status at once
-   (no Plaid call, nothing written). The token (`getAccessToken`); missing → status `broken`. The
-   credentials (`plaidFor(env, row.environment)`); `PlaidNotSetUp` → status `not_set_up` (reported, not stored).
-2. **Links.** Every non-deleted account of a non-deleted plan linked to one of the connection's bank accounts
-   (`linkedToConnection`). The link set `sync_accounts` = sorted `account_id:import_start_date` of the open
-   ones. If the stored `sync_accounts` lacks one of them (a new link since the cursor was taken), the run
-   starts from a **null cursor** (a full re-sync is always safe: see "never twice"); otherwise from
-   `sync_cursor`.
-3. **Fetch.** `/transactions/sync` (`count: 500`, `options.include_original_description: true`, `cursor` only
-   when not null) page after page until `has_more` is false or the run holds `MAX_UPDATES_PER_RUN` (500)
-   updates; then `has_more` of the run is Plaid's. `TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION` drops the
-   pages and restarts from the run's start cursor (at most 3 restarts, then status `delayed`). Then
-   `/accounts/get` for balances. **Any Plaid error before the writes: nothing is written** except the
-   connection's status (and `sync_error_since` when null) in one batch with its change_log row; the cursor
-   and `last_synced_at` stay.
-4. **Net changes** (pure `netChanges`): later pages win; an id in `removed` drops its earlier `added` /
-   `modified`; pending entries are dropped (EXF-466). A `modified` id that is not known is treated as `added`
-   (the rules still apply, so a skipped one stays skipped).
-5. **Decide** per linked account (reads chunked at 90 ids per `IN`, D1's 100-parameter limit): known
-   import ids, tombstones, the Starting Balance date, the latest reconciled date, the match candidates, the
-   plan's payees with `last_category_id`.
-6. **Write** in chunks (`SYNC_STATEMENTS_PER_BATCH` = 90). One import's statements never straddle a chunk.
-   Then the **final batch**: `sync_cursor` = the last page's `next_cursor`, `sync_accounts`,
-   `last_synced_at`, `status = connected`, `sync_error_since = null`, the bank accounts' balances, and one
-   `bank_connection` change_log row; guarded on `sync_cursor` still being the value read at step 1.
+1. **State.** Connection row; status `login_required` / `broken` → return it (no Plaid call, no write).
+   Token (`getAccessToken`) missing → store `broken`. `plaidFor(env, row.environment)` throws
+   `PlaidNotSetUp` → `not_set_up` (returned, not stored).
+2. **Links.** Live accounts of live plans linked to the connection's bank accounts (`linkedToConnection`);
+   `sync_accounts` = sorted `account_id:import_start_date` of the open ones. Stored set lacks one (a link
+   newer than the cursor) → **full re-read** from a null cursor (see "Re-read"); else from `sync_cursor`.
+   **No open linked account** (note 14): no `/transactions/sync` call; the run costs **one Plaid request**
+   (`/accounts/get`), writes balances, `last_synced_at`, status, `sync_accounts = ''`, keeps both cursors.
+3. **Fetch, bounded (note 10).** `/transactions/sync` (`count: 500`, `include_original_description`,
+   `cursor` unless null or `''`) until `has_more` is false, or 500 updates held (`MAX_UPDATES_PER_RUN`), or 4
+   pages read (`MAX_PAGES_PER_RUN`); the run's `has_more` is the last page's. The cursor reached is saved
+   **with** what the run wrote; the next run goes on. Plaid restarts a `TRANSACTIONS_SYNC_MUTATION_DURING_
+   PAGINATION` **from the first cursor of the pagination loop**, so a run ending with `has_more` keeps that
+   start in `sync_loop_cursor` (`''` = start of feed, null = no open loop); on that error the run drops its
+   pages and restarts from `sync_loop_cursor ?? run start` (3 restarts, then `delayed`). Then `/accounts/get`.
+   **A Plaid error writes nothing** but the status (and `sync_error_since` when null) with its change_log row.
+4. **Net changes** (`netChanges`): later pages win; `removed` drops an earlier `added`/`modified`; pending
+   dropped (EXF-466); an unknown `modified` id is treated as `added` (rules still apply).
+5. **Decide** per linked account (reads chunked at 90 ids, D1's 100-parameter limit): known ids,
+   tombstones, Starting Balance date, latest reconciled date, match candidates, payees.
+6. **Write** in chunks of ≤ 90 statements (`SYNC_STATEMENTS_PER_BATCH`); one import never straddles two.
+   **Final batch**, guarded on `sync_cursor` = the value read in step 1: `sync_cursor`, `sync_loop_cursor`,
+   `sync_accounts`, `last_synced_at`, `status connected`, `sync_error_since null`, balances, one
+   `bank_connection` change_log row.
 
-### Never twice (notes 2, 3)
+### Never twice (notes 1, 2)
 
-- **Known import id** = a **live** row of the same plan with that `import_id`, or a tombstone of the plan
-  with it. Plaid's `transaction_id` is unique, so the plan-wide check also covers a row the user moved to
-  another account. Unique index `transactions_budget_import (budget_id, import_id) WHERE import_id IS NOT NULL
+- **Known import id** = a **live** row of the plan with that `import_id`, or a tombstone of the plan (also
+  covers a row the user moved to another account). Unique index `transactions_budget_import (budget_id, import_id) WHERE import_id IS NOT NULL
   AND deleted_at IS NULL`: a second live insert is impossible in any account.
 - **Tombstone** `import_tombstones (account_id, import_id)` primary key, plus `budget_id`, `reason`
-  (`rejected` | `deleted`), `transaction_id`, `created_at`. Written by reject and by **every user deletion
-  of a row that carries an `import_id`** (DELETE, and the other side of a deleted transfer), in the same batch.
-  So a deleted row without a tombstone is only ever a **bank removal** (note 6, no tombstone, "may come
-  back"), which is why the index and the check look at live rows only.
-- **Ordering**: the cursor is written last. A crash after chunk *k* repeats the run from the old cursor and
-  every statement is then a no-op (inserts guarded by "not known", matches by `holdsAt`, modified/removed
-  re-decided from fresh reads, payees inserted only if missing and referenced by name): **a repeat changes
-  nothing**, change_log included.
+  (`rejected` | `deleted` | `duplicate`), `transaction_id` (null for `duplicate`), `created_at`. Written by
+  reject and by **every user deletion of a row that carries an `import_id`** (DELETE, and the other side of a
+  deleted transfer), in the same batch; and by a `recovery_duplicate` skip (reason `duplicate`), so a later
+  re-read, which runs without the recovery rule, cannot insert that copy. A deleted row without a tombstone
+  is only ever a **bank removal** ("may come back"), which is why the index and the check look at live rows
+  only.
+- **Ordering**: cursors last. A crash after chunk *k* repeats from the old cursor; every statement is then a
+  no-op (inserts guarded by "not known", matches by `holdsAt`, updates re-decided from fresh reads, payees
+  inserted if missing, referenced by name): **a repeat changes nothing**, change_log included.
 
-### Never import (note 3), pure `skipReason`
+### Never import, pure `skipReason`
 
 | reason | rule |
 |---|---|
@@ -85,82 +78,83 @@ database); `services/plaid-sync.ts` reads, calls Plaid and writes.
 | `before_start` | `date < import_start_date` or `date <` the live Starting Balance row's date |
 | `before_reconciled` | `date < latest reconciled date − 3 days` (`latestReconciledDate`) |
 | `known` | known import id (above) |
-| `recovery_duplicate` | the run "came back" and no match was found, and a live row of the account has the same date and amount |
+| `recovery_duplicate` | the run "came back", no match was found, and a live row of the account has the same date and amount (writes a `duplicate` tombstone) |
 
 **"Came back"** (EXF-465 not built): `bank_connections.sync_error_since` is set by the first failed run and
 cleared by the next successful run. A run that **starts** with it set applies `recovery_duplicate`. A repair
 (`finishReset` sets `connected`) leaves it set, so the first sync after a repair also applies it.
 
-### Writing an import (notes 1, 4)
+### Writing an import
 
-`amount = 0 − plaidToMilliunits(t.amount)`; `date = t.date`; `cleared`; `approved false`; `source 'plaid'`;
-`import_id = transaction_id`; `imported_payee = t.name`; `bank_description = original_description ?? name`;
-`import_date/import_amount/import_payee_name` = the same date, amount and payee name (kept for EXF-464).
-**Payee**: `(merchant_name || name)` trimmed, at most 200 chars; empty → no payee. Found by exact name among
-the plan's live **ordinary** payees (never a system or transfer payee), else created (one create per name per
-run). **Category** (pure `categoryFor`): accounts that take no category (tracking, loan) → none; else the
-payee's `last_category_id` when it has one; else an inflow (`amount > 0`) into checking or savings → Ready to
-Assign; else none. Renaming rules (EXF-467) and the 2-of-3 rule (EXF-515) are not built.
+`amount = 0 − plaidToMilliunits(t.amount)`; `date`; `cleared`; `approved false`; `source 'plaid'`; `import_id
+= transaction_id`; `imported_payee = name`; `bank_description = original_description ?? name`;
+`import_date/amount/payee_name` = the bank's values (for EXF-464's unmatch). **Payee**: `(merchant_name ||
+name)` trimmed, ≤ 200 chars, empty → none; exact name among the plan's live **ordinary** payees, else created
+once per run. **Category** (`categoryFor`): no-category account (tracking, loan) → none; else the payee's
+`last_category_id`; else an inflow into checking or savings → Ready to Assign; else none. A bank account
+linked in two plans gets one import in each; two imports of one transfer stay two plain rows.
 
-A bank account linked in two plans gets one import in each. **Two imports that are the two sides of one
-transfer stay two plain rows**; they are not joined (later work).
+### Automatic matching (note 4), pure `pickMatch`
 
-### Automatic matching (note 5), pure `pickMatch`
+Candidates: live non-line rows of the same account, `import_id IS NULL AND source IS NULL` (hand-entered,
+never matched), same `amount`, dates ≤ 10 days apart. Closest date, then oldest `created_at`, then id; a
+candidate is used once per run. A split parent matches by its total; a transfer row of this account can.
+The matched row keeps payee, memo, date, amount and category; it takes `import_id`, `imported_payee`,
+`bank_description`, `import_*` (**stored for a later unmatch**), `cleared` (stays `reconciled`), `approved
+true`; split lines follow; `source` stays NULL. **`matched` = `import_id IS NOT NULL AND source IS NULL`.**
+The update is guarded by the candidate's `holdsAt`, then the import's own insert by "not known": if the
+user edits the candidate meanwhile, the import is inserted as its own row.
 
-Candidates: live rows of the same account, not split lines, `import_id IS NULL AND source IS NULL`
-(hand-entered, never matched), same `amount`, `|date − import date| ≤ 10` days. Closest date wins, then the
-oldest `created_at`, then id. One candidate per import; a candidate used in the run is not used again. A
-split parent is a candidate by its total; a transfer row of this account can be, a row of another account
-never. The matched row keeps payee, memo, date and category; it takes `import_id`, `imported_payee`,
-`bank_description`, `import_date/amount/payee_name`, `cleared = cleared` (stays `reconciled` when
-reconciled) and `approved = true`; a split parent's lines follow (`syncLinesIfStmt`). It stays
-`source = NULL`. **`matched` = `import_id IS NOT NULL AND source IS NULL`.** The match update is guarded by
-the candidate's `holdsAt`; right after it comes the import's own insert, guarded by "not known": if the user
-changed the candidate meanwhile, the import is inserted instead, so nothing is lost.
+### Modified, removed and re-read (notes 9, 11), pure `modifiedPlan` / `removedPlan`
 
-### Modified and removed (note 6), pure `modifiedPlan`
+An entry whose `import_id` is on a **live row of the plan** is "already imported", whether it arrives as
+`modified` **or as `added`** (a re-read sends everything as `added`): never inserted, and:
+- **Reconciled** (`cleared = 'reconciled'`), whatever else: only `bank_description` may change; `removed`
+  does nothing. Never its amount, date, payee, `cleared` or `import_*` (note 11).
+- **Unapproved and unmatched** (`approved = 0 AND source = 'plaid'`): follows the bank (date, amount, payee
+  as for an insert, `imported_payee`, `bank_description`, `import_*`); `removed` soft-deletes it, **no
+  tombstone**.
+- **Anything else** (approved, edited, matched): only `bank_description` and the internal `import_*` copies
+  (not in the API); `removed` does nothing.
+- An update whose values are already there writes **nothing** (no statement, no change_log row). Each
+  statement is guarded on the row's `updated_at` as read: a user edit during the run wins. Counted in
+  `modified` only when written.
 
-- **Unapproved and unmatched** (`approved = 0 AND source = 'plaid'`): `modified` follows the bank (date,
-  amount, payee as for an insert, `imported_payee`, `bank_description`, `import_*`); `removed` soft-deletes
-  it, **no tombstone**.
-- **Anything else** (approved or matched): `modified` updates only `bank_description` (and the internal
-  `import_*` copies, not in the API); `removed` does nothing.
-- An update whose values are already there writes nothing. Each statement is guarded on the row's
-  `updated_at` as read: a user edit during the run wins.
+**Re-read** (note 3, sharpened by note 9): so a full re-read leaves approved, edited, matched and reconciled
+rows exactly as they were, never brings back a rejected, deleted or duplicate-skipped entry (tombstone →
+`known`), and imports only what is new to the plan (the later-linked account's rows, by the normal rules
+and matching).
 
-### Concurrency (note 7)
+### Concurrency (note 6)
 
-`PlaidItemSync.fetch` keeps `running: Promise<SyncResult> | null` in memory: a request while a run is in
-progress awaits the same promise and gets the same result. The object stores **nothing** (no storage, no
-secret; the token is read per run). `requestSync` calls `env.PLAID_ITEM_SYNC.get(idFromName(plaid_item_id))`
-with `POST https://plaid-item-sync/run {connection_id}`; a non-200 answer throws (route 500).
+`PlaidItemSync.fetch` keeps `running: Promise<SyncResult> | null` in memory; a request during a run awaits
+the same promise. It stores **nothing** (the token is read per run). `requestSync` →
+`PLAID_ITEM_SYNC.get(idFromName(plaid_item_id))`, `POST https://plaid-item-sync/run {connection_id}`;
+non-200 throws (route 500).
 
-### When it runs (note 8)
+### When it runs (note 6)
 
-- `POST /bank-connections/{id}/sync?budget_id=` (the plan decides the environment, like the other `{id}`
-  routes) → one run.
-- `POST /budgets/{budget_id}/sync` → every connection of the plan's environment with a bank account linked
-  to a live account of that plan, one after the other.
-- `scheduled()` → `syncDueConnections(env, now)`: every connection (both environments) whose
-  `last_synced_at` is null or older than 6 hours **and** whose status is not `login_required` / `broken`;
-  per connection up to `MAX_RUNS_PER_CONNECTION` (5) runs while `has_more`; an error on one connection is
-  caught and the next goes on. Right at any cron frequency; `wrangler.jsonc` is not touched.
+- `POST /bank-connections/{id}/sync?budget_id=` (the plan picks the environment) → one run.
+- `POST /budgets/{budget_id}/sync` → each connection of the plan's environment linked to a live account of
+  the plan, in turn.
+- `scheduled()` → `syncDueConnections`: every connection (both environments), `last_synced_at` null or
+  older than 6 h, status not `login_required`/`broken`; up to 5 runs each while `has_more`; one
+  connection's error is caught and the next goes on. Right at any cron frequency; `wrangler.jsonc` untouched.
 
 ### Statuses
 
-`connected` · `delayed` (temporary: network, 5xx, rate limit, institution down, mutation restarts used up,
-any unknown code) · `login_required` (needs repair: `ITEM_LOGIN_REQUIRED` and the other credential and
-consent codes listed in the spec) · `broken` (no token, `ITEM_NOT_FOUND`, `INVALID_ACCESS_TOKEN`) ·
-`not_set_up` (no credentials; returned, never stored). A status change is one `bank_connection` change_log row.
+`connected` · `delayed` (network, 5xx, rate limit, institution down, restarts used up, unknown code) ·
+`login_required` (credential and consent codes, listed in the spec) · `broken` (no token, `ITEM_NOT_FOUND`,
+`INVALID_ACCESS_TOKEN`) · `not_set_up` (no credentials; returned, never stored). A status change is one
+`bank_connection` change_log row.
 
-### History and secrets (note 10)
+### History and secrets (note 8)
 
-Every insert, match, update and delete of a sync, every payee it creates, and the connection update have a
-change_log row with actor **`service:plaid`** (the conventions name `service:<token name>`; one line is added
-to say `service:plaid` is the sync's actor), whoever asked for the sync. Approve, reject and PATCH use the
-caller's actor (`user:…`, `mcp:…`). The access token is read through `plaid/tokens.ts` and passed only to
-`plaid/transactions.ts`; it is never in a result, log line, change_log row, the DO's storage or an error
-message (`PlaidApiError` carries only status and code).
+Every insert, match, update, delete and payee of a sync, and the connection update, has a change_log row
+with actor **`service:plaid`** (one line in `docs/conventions.md`), whoever asked. Approve, reject, PATCH:
+the caller's actor. The access token goes from `plaid/tokens.ts` only to `plaid/transactions.ts`; never in a
+result, log line, change_log row, DO storage or error (`PlaidApiError` holds status and code); the sync's
+only log line is `console.error` with the connection id.
 
 ### Balances and figures (note 12)
 
@@ -173,42 +167,45 @@ read are untouched. The new count queries (below) are new functions.
 **Migration `apps/worker/migrations/20261116100800_plaid_import.sql`** (additive, no row rewritten; every
 existing row gets nulls): `transactions` + `import_id`, `source`, `imported_payee`, `bank_description`,
 `import_date`, `import_amount`, `import_payee_name`; unique index `transactions_budget_import`; table
-`import_tombstones` + index `(budget_id, import_id)`; `bank_connections` + `sync_error_since`, `sync_accounts`.
+`import_tombstones` + index `(budget_id, import_id)`; `bank_connections` + `sync_error_since`, `sync_accounts`, `sync_loop_cursor`.
 
 **Transaction resource** (`Transaction` schema, so every read and change_log copy): `import_id`, `source`
 (`"plaid"` | null), `imported_payee`, `bank_description`, `matched` (boolean).
 
-**Account resource**: `unapproved_count` (live, non-line rows with `approved = 0`) and
-`needs_attention_count` (live, non-line rows that are unapproved **or** need a category: on-plan account,
-no category, no Ready to Assign flag, not a split parent, not a transfer whose other account is on-plan, not
-a Starting Balance). Both `.default(0)` in the schema; exact in the list/get reads and every response built
-from `accountFacts`.
+**Account resource**: `unapproved_count` (live non-line rows, `approved = 0`) and `needs_attention_count`
+(live non-line rows unapproved **or** needing a category: on-plan account, no category, no Ready to Assign
+flag, not a split parent, not a transfer to an on-plan account, not a Starting Balance). `.default(0)` in the
+schema; exact in every read built from `accountFacts`.
 
 **Approve and reject (EXF-463, API only)**
 
 | Operation | Body | Answer | MCP |
 |---|---|---|---|
-| `GET /budgets/{budget_id}/transactions?needs=approval_or_category` and `GET …/accounts/{account_id}/transactions?needs=…` | | same shape, only rows that need attention | `list_unapproved_transactions` |
-| `POST /budgets/{budget_id}/transactions/approve` | `{ ids }` 1–100 | 200 `{ transactions }` after; 404 if any id unknown (nothing written) | `approve_transactions` |
-| `POST /budgets/{budget_id}/transactions/reject` | `{ ids }` 1–100 | 200 `{ transactions }` as they were; 409 `transaction_approved`; 422 `not_imported` (nothing written) | `reject_transactions` |
+| `GET …/transactions?needs=approval_or_category` (plan and account lists) | | same shape, rows needing attention | `list_unapproved_transactions` |
+| `POST /budgets/{budget_id}/transactions/approve` | `{ ids }` 1–100 | 200 `{ transactions }` after; 404 any unknown | `approve_transactions` |
+| `POST /budgets/{budget_id}/transactions/reject` | `{ ids }` 1–100 | 200 `{ transactions }` as they were; 409 `transaction_approved`; 422 `not_imported` | `reject_transactions` |
 | `POST /bank-connections/{id}/sync?budget_id=` | | 200 `SyncResult` | `sync_bank_connections` |
 | `POST /budgets/{budget_id}/sync` | | 200 `{ results: SyncResult[] }` | `sync_bank_connections` |
 
 `SyncResult = { bank_connection_id, status, added, matched, modified, removed, skipped, has_more,
-last_synced_at }`. Approve sets `approved` on each row, its split lines and the other side of a transfer;
-an approved row is returned unchanged with no write. Reject soft-deletes each row and writes its tombstone in
+last_synced_at }`. Tool descriptions (note 15): money in milliunits, outflows negative, Plaid's opposite sign
+converted; `sync_bank_connections` contacts the bank and may add, change and delete unapproved transactions;
+`reject_transactions` is refused for an approved one; `update_transaction`: saving approves.
+
+Approve sets `approved` on each row, its split lines and the other side of a transfer; an approved row is
+returned unchanged with no write. A refused request writes nothing. Reject soft-deletes each row and writes its tombstone in
 one batch per row group. **PATCH** approves an unapproved row unless the body sends `approved: false`;
 `mirror()` carries approval to a transfer's other side. **DELETE** of a row with an `import_id` writes a
-tombstone. `update_transaction`'s description says it approves; no `categorize_transaction` tool.
+tombstone. No `categorize_transaction` tool.
 
 ## Downstream effects
 
 - Web: responses gain fields only (account counts default to 0, so stubbed e2e answers still parse). A web
   PATCH now approves.
 - `packages/schema/test/register.test.ts` fixture gains the five transaction fields (typecheck).
-- Coverage: `transactions.ts` file gains two operations, the two GETs list both tools;
-  `bank-connections.ts` gains two operations. `mcp-timestamps.test.ts` gains three calls and one
-  `NOT_CALLED` entry.
+- Coverage: `transactions.ts` gains two operations, the two GETs list both tools; `bank-connections.ts`
+  gains two. `mcp-timestamps.test.ts` gains four calls, each next to its resource's calls; `NOT_CALLED`
+  stays empty.
 
 ## Out of scope
 
@@ -219,51 +216,66 @@ open · new bank accounts appearing at the bank.
 
 ## Acceptance
 
-Worker tests with the Plaid stand-in and made-up credentials. Default setup: Sandbox plan, connection via
-`POST /bank-connections` (stub), checking account via `POST …/accounts/from-bank` with `today: 2026-03-10`.
+Worker tests, Plaid stand-in, `SENTINEL` credentials; never Plaid, never the live app. Setup: Sandbox plan,
+connection via `POST /bank-connections` (stub), checking via `POST …/accounts/from-bank`, `today: 2026-03-10`.
 
-1. **(462-1)** Stub page: posted outflow 12.34 and inflow 50 dated 2026-03-12, one pending. Sync → 200
-   `added: 2`, `status: connected`; rows `approved false`, `cleared`, `source plaid`, `import_id` = Plaid id,
-   amounts −12340 and 50000; no pending row.
-2. **(462-2)** The inflow has `inflow_to_ready_to_assign true`; the outflow from a new payee has no category;
-   after a hand row with payee "ZZ Cafe" and a category, an import from merchant "ZZ Cafe" takes it.
-3. **(462-3)** Sync again (stub returns nothing new) → `added 0`, same rows, no new change_log rows. Sync
-   with the cursor set back to null and the same page → `added 0`.
-4. **(462-4)** Reject one import; set the cursor to null; sync the same page → not back. Same after a hand
-   `DELETE`. Tombstone rows exist with reason `rejected` / `deleted`.
-5. **(462-5)** Rows dated before `import_start_date`, before the Starting Balance date, and 4 days before
-   the latest reconciled row (set reconciled in D1) → not imported, `skipped` counts them; 3 days before → imported.
-6. **(462-6)** A later page adds one → imported. `removed` of an unapproved import → deleted, no tombstone;
-   of an approved one → unchanged. `modified` of an unapproved import → date, amount, payee follow; of an
-   approved one → only `bank_description` changes.
-7. **(462-7)** change_log has a `create` row per import with actor `service:plaid`; no change_log text and no
-   response contains any `SENTINEL` value.
-8. **(462-8)** Connections with `last_synced_at` null, 7 h ago, 1 h ago, and null with status
-   `login_required`: `scheduled()` syncs the first two only (their `last_synced_at` move, the others' do not).
-9. **(462-9)** After success `last_synced_at` and the bank account balances change. Stub answers 400
-   `ITEM_LOGIN_REQUIRED` → `status login_required`, cursor and `last_synced_at` unchanged; 500 → `delayed`.
+1. **(462-1)** Outflow 12.34, inflow 50 (2026-03-12), one pending. Sync → `added: 2`, `connected`; rows
+   `approved false`, `cleared`, `source plaid`, `import_id` = Plaid id, −12340 / 50000; no pending row.
+2. **(462-2)** The inflow has `inflow_to_ready_to_assign true`; the outflow (new payee) no category; after a
+   hand row with payee "ZZ Cafe" and a category, an import from merchant "ZZ Cafe" takes that category.
+3. **(462-3)** Sync again, and again with the cursor nulled → `added 0`, same rows, no new change_log rows.
+4. **(462-4)** Reject one import; cursor null; same page → not back. Same after a hand `DELETE`. Tombstones
+   with reason `rejected` / `deleted`.
+5. **(462-5)** Dated before `import_start_date`, before the Starting Balance date, 4 days before the latest
+   reconciled row (reconciled set in D1) → not imported, counted in `skipped`; 3 days before → imported.
+6. **(462-6)** A later page adds one → imported. `removed` of an unapproved import → deleted, no tombstone; of
+   an approved one → unchanged. `modified` of an unapproved import → date, amount, payee follow; of an
+   approved one → only `bank_description`.
+7. **(462-7)** change_log has one `create` row per import, actor `service:plaid`.
+8. **(462-8)** Connections with `last_synced_at` null, 7 h ago, 1 h ago, and null + `login_required`:
+   `scheduled()` syncs the first two only.
+9. **(462-9)** Success moves `last_synced_at` and the balances. 400 `ITEM_LOGIN_REQUIRED` → `login_required`,
+   cursor and `last_synced_at` unchanged; 500 → `delayed`.
 10. **(462-10)** MCP `sync_bank_connections` with and without `bank_connection_id` → the same counts.
-11. **(462-11)** `runSync` with a DB whose 2nd `batch` throws once → throws; next run → every import exactly
-    once, cursor saved, change_log has one row per import.
-12. **(462-12)** Two `POST …/sync` at once with a slow stub → one `/transactions/sync` call, equal answers.
-13. **(462-13)** Hand outflow 12340 dated 3 days before an import of −12.34 → one row: hand payee, memo,
-    date, category; `cleared`, `approved`, `matched true`, `import_id` set; `matched 1, added 0`. 12-day gap or
-    12350 → no match, two rows. Two candidates 2 and 5 days away → the 2-day one.
-14. **(462-14)** Linked account closed in D1 and an unlinked bank account → balances updated, no rows.
-    Plan A imports N rows; plan B gets the same rows by hand → equal account balances and equal month read.
-15. **(462-15)** One page of 500 added → `added 500`, 500 rows, 500 `create` change_log rows.
-16. **(462)** `TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION` on page 2 once → the run restarts and
-    imports each row once. Recovery: after a failed run, an import with the date and amount of an existing
-    row is skipped (`recovery_duplicate`); without the failure it is imported.
+11. **(462-11, Lead)** `runSync` with a DB whose 2nd `batch` throws once → throws, cursor unchanged; next run
+    → every import exactly once, cursor saved, one change_log `create` per import, no second live copy.
+12. **(462-12, Lead)** Two `POST …/sync` at once with a slow stub → one `/transactions/sync` call, equal
+    answers.
+13. **(462-13)** Hand outflow 12340 three days before an import of −12.34 → one row: hand payee, memo, date,
+    category; `cleared`, `approved`, `matched true`, `import_id` set; `matched 1, added 0`. 12-day gap or
+    12350 → two rows. Candidates 2 and 5 days away → the 2-day one.
+14. **(462-14, note 14)** A linked account closed in D1, and an unlinked bank account → balances updated, no
+    rows. A connection with no linked account → one Plaid call (`/accounts/get`), balances and
+    `last_synced_at` updated, `sync_cursor` unchanged.
+15. **(462-15)** One page of 500 added → `added 500`, 500 rows, 500 `create` rows.
+16. **(462)** Mutation error on page 2 once → restart, each row once. After a failed run, an import with
+    the date and amount of an existing row is skipped, tombstoned `duplicate`, and not inserted by a later
+    re-read; without the failure it is imported.
 17. **(463-a)** After a sync of N, `GET …/accounts` shows `unapproved_count N`, `needs_attention_count N`;
     `?needs=approval_or_category` returns exactly those N.
-18. **(463-b)** Approve a categorized one → unapproved −1 and attention −1; an uncategorized one →
-    unapproved −1, attention unchanged. Approving one side of a transfer approves the other.
-19. **(463-c)** Reject → row gone; an approved id → 409 `transaction_approved`, nothing written; re-sync →
-    not back.
+18. **(463-b)** Approve a categorized one → unapproved −1, attention −1; an uncategorized one → unapproved
+    −1, attention unchanged. Approving one side of a transfer approves the other.
+19. **(463-c)** Reject → row gone; an approved id → 409 `transaction_approved`, nothing written; re-sync → not
+    back.
 20. **(463-d)** `PATCH {category_id}` on an unapproved import → `approved true`.
-21. **(463-e)** The three tools do 17–20 with `mcp:` actors in change_log; `apiPaths()` and
-    `listedToolNames()` include the four new paths and four new tools.
+21. **(463-e)** The three tools do 17–20 with `mcp:` actors; `apiPaths()` and `listedToolNames()` include the
+    four new paths and four new tools.
+22. **(note 9) Later link.** A linked; six entries; a hand row matching entry 4. Sync. Approve row 1;
+    `PATCH` row 2 (memo, category); reject row 3; row 5 `reconciled` in D1; row 6 unapproved. Snapshot A's
+    rows (all columns, deleted too) and change_log count. Link B to the second bank account; sync: the stub
+    gets **no** cursor and serves A's six again as `added` plus B's. A's rows equal the snapshot column for
+    column (`updated_at` too), row 3 not back, no change_log row for A; B's rows imported.
+23. **(note 11)** `modified` with new amount, date, name and description for a reconciled import → only
+    `bank_description` changes; `removed` of a reconciled unapproved import → kept; a reconciled hand row
+    matched → stays `reconciled`, date, amount, payee unchanged.
+24. **(note 10) Bounded run.** Six pages of 100 → run 1: `has_more true`, 400 rows, `sync_cursor` = page 4's,
+    `sync_loop_cursor ''`; run 2: 600 rows, `has_more false`, loop cursor null. Variant: run 2's first call
+    answers the mutation error once → next call has no cursor; 600 rows, each once. `scheduled()` on the
+    same feed does both runs.
+25. **(Lead) Same as by hand.** Plan A imports N rows (Ready to Assign and payee-categorized); plan B gets
+    them by hand → equal account balances and equal month read (activity, available, Ready to Assign).
+26. **(Lead) No token.** Over a success, a 400, a 500 and a thrown fetch, with `console.*` spied: no
+    response, log argument or `change_log` text (whole table) holds any `SENTINEL` value.
 
 ## Manifest
 
@@ -271,7 +283,3 @@ touches: [apps/worker/migrations/20261116100800_plaid_import.sql, apps/worker/sr
 shared: []
 migrations: 1
 
-Beyond note 15's list: `db/schema/bank-connections.ts` (two columns), `repositories/imports.ts`
-(tombstones, new), `repositories/payees.ts` (insert by name), `services/transaction-pairs.ts` (approval
-follows), `mcp/tools/accounts.ts` (count descriptions), `packages/schema/test/register.test.ts` (fixture),
-`docs/conventions.md` (actor line).
