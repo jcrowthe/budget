@@ -5985,3 +5985,42 @@ template's last review: Build 6, Deploy 8, Discover 2, Test user flow 6.
 
 **Next plan:** if the Plan-page Build has not merged, deploy the import alone and run flow 5 against the
 Sandbox; read EXF-477 and start it.
+
+### 2026-11-16 · Plan round 72
+
+Children used 86 of 200. One started now; four are running with the Plan-page Build (still in its final
+gate after 35 minutes there, 41 visits), the two-report Reflect Build and the EXF-613 Build. Main
+`9e77748`, live `e2bcd35`. No ticket was filed by me at the last review; EXF-614 (from the flow test)
+is triaged Low.
+
+**Started: the register's selection, action bar and flags** (`p_7bb9ae1dcb8e4106b60f405a6002857e`;
+EXF-520, EXF-522).
+- Why now: flow 2 showed the register has no way to delete a transaction; the register's web files and
+  the transactions files of the Worker are free since the import merged.
+- Every bulk action goes through the single action's rules (both sides of a transfer, a split's lines,
+  a tombstone for an imported row; a duplicate is a hand-entered row without import fields). Approve
+  and Reject in the bar are built (their API is on main); Match, Unmatch and Make Repeating are drawn
+  disabled. Flags: a nullable `flag_color`, migration `20261116101000_...`; names and "Edit Flags" stay
+  with EXF-480.
+- A chore in a free file: the second copy of `localToday` in `apps/web/src/api/accounts.ts`.
+- **Source: the strictest wording yet, because every control there changes data:** the test plan's All
+  Accounts register; rows may be ticked, the More menu and the flag menu opened and the Memo dialog
+  left with Cancel; no action clicked, no shortcut key pressed, no double-click, no typing.
+- Holds `apps/web/src/register/**`, `api/transactions.ts`, the transactions services, repository,
+  routes and tools. Disjoint from EXF-613 (the sync's own files; both briefs name the other's), the
+  Plan-page Build and the Reflect Build.
+
+**EXF-477 (plan import from a YNAB export) read and not started:** it needs credit card payment
+categories, scheduled transactions and flags to bring a real plan over whole, and its format comes
+from EXF-476. Blocked by EXF-476, EXF-532 and EXF-497 now.
+
+**No Deploy this round, once more:** the Plan-page Build is still in its gate. **Decision for the next
+plan, fixed now so I do not drift: if its card has not come by then, deploy `9e77748` alone** and run
+flow 5 against the Sandbox; EXF-613's Build wants that evidence.
+
+**Migration names in flight:** `100700` target snoozes (Plan-page Build), `100900` offered to EXF-613 and
+to the Reflect Build (neither expects one; if both take it, the second renames at its rebase),
+`101000` flags.
+
+Ticket writes: 6 (two to In Progress, one blocking link set, three comments). Review cadence: Build 6,
+Deploy 8, Discover 2, Test user flow 6.
