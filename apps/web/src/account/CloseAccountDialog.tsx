@@ -1,5 +1,5 @@
-import { formatMoney } from "@budget/core/money";
 import type { Account } from "@budget/schema/accounts";
+import { screenMoney } from "@budget/schema/screen-money";
 import { useEffect, useRef } from "react";
 import { CloseIcon } from "../shell/icons";
 import "./edit-account.css";
@@ -50,7 +50,7 @@ export function CloseAccountDialog({
         <div className="form-body">
           <p className="close-text">
             Before you can close this account, the balance will have to be zeroed out. An adjustment
-            transaction will be created for {formatMoney(-account.balance)}.
+            transaction will be created for {screenMoney(-account.balance)}.
           </p>
           {account.on_budget ? (
             <div className="info-box">
