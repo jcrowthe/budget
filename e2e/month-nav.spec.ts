@@ -49,7 +49,9 @@ test("1 arrows change the month and the URL; a month in the URL loads", async ({
   const id = await newPlan(request);
   await page.goto(`/${id}/budget`);
   await expect(next(page)).toBeEnabled();
-  const gridRead = page.waitForRequest(`**/api/v1/budgets/${id}/months/${M1.iso}`);
+  const gridRead = page.waitForRequest(
+    new RegExp(`/api/v1/budgets/${id}/months/${M1.iso}(\\?today=\\d{4}-\\d{2}-\\d{2})?$`),
+  );
   await next(page).click();
   await gridRead;
   await expect(page).toHaveURL(`/${id}/budget/${M1.key}`);

@@ -278,12 +278,14 @@ test("states: error with retry, no groups, loading", async ({ page }) => {
 
 test("the month in the URL drives the request", async ({ page }) => {
   const other = `${now.getFullYear() + 1}03`;
-  let req = page.waitForRequest(/\/months\/\d{4}-\d{2}-01$/);
+  let req = page.waitForRequest(/\/months\/\d{4}-\d{2}-01(\?today=\d{4}-\d{2}-\d{2})?$/);
   await page.goto(`/${planId}/budget/${other}`);
-  expect((await req).url()).toMatch(new RegExp(`/months/${other.slice(0, 4)}-03-01$`));
-  req = page.waitForRequest(/\/months\/\d{4}-\d{2}-01$/);
+  expect((await req).url()).toMatch(
+    new RegExp(`/months/${other.slice(0, 4)}-03-01(\\?today=\\d{4}-\\d{2}-\\d{2})?$`),
+  );
+  req = page.waitForRequest(/\/months\/\d{4}-\d{2}-01(\?today=\d{4}-\d{2}-\d{2})?$/);
   await page.goto(`/${planId}/budget`);
-  expect((await req).url()).toMatch(new RegExp(`/months/${ISO}$`));
+  expect((await req).url()).toMatch(new RegExp(`/months/${ISO}(\\?today=\\d{4}-\\d{2}-\\d{2})?$`));
 });
 
 test("the grid never shows the source app's name", async ({ page }) => {

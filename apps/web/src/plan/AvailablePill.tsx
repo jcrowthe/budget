@@ -35,7 +35,7 @@ export function AvailablePill({
   const Icon = icon ? ICONS[icon] : null;
   const content = (
     <>
-      {Icon && <Icon className="pill-icon" width={14} height={14} />}
+      {Icon && <Icon className="pill-icon" width={14} height={14} data-icon={icon} />}
       {money(amount)}
     </>
   );
