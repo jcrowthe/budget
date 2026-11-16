@@ -14,6 +14,22 @@ export const RtaBreakdown = z
   })
   .openapi("RtaBreakdown");
 
+/** A credit card's payment status for one month (EXF-537); see docs/card-payments-design.md. */
+export const CardPayment = z
+  .object({
+    state: z.enum(["paid_off", "overpaid", "enough", "overspent_categories", "underfunded"]),
+    underfunded: Milliunits,
+    overspent_categories: Milliunits,
+    current_balance: Milliunits,
+    prior_balance: Milliunits,
+    spending_and_outflows: Milliunits,
+    interest_charges: Milliunits,
+    payments_and_inflows: Milliunits,
+    available: Milliunits,
+    paid: Milliunits,
+  })
+  .openapi("CardPayment");
+
 export const MonthCategoryDetail = z
   .object({
     id: z.string(),
@@ -31,6 +47,7 @@ export const MonthCategoryDetail = z
     available: Milliunits,
     carried: Milliunits,
     target: CategoryTargetMonth.nullable(),
+    payment: CardPayment.nullable(),
     note: z.string().nullable(),
     target_snoozed: z.boolean(),
   })
@@ -146,6 +163,7 @@ export const MonthRange = z
 
 export const MonthRangeResponse = dataEnvelope(MonthRange).openapi("MonthRangeResponse");
 
+export type CardPayment = z.infer<typeof CardPayment>;
 export type RtaBreakdown = z.infer<typeof RtaBreakdown>;
 export type MonthCategoryDetail = z.infer<typeof MonthCategoryDetail>;
 export type MonthGroupDetail = z.infer<typeof MonthGroupDetail>;

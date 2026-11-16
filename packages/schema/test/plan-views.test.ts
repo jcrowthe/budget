@@ -52,6 +52,7 @@ const cat = (id: string, o: Partial<MonthCategoryDetail> = {}): MonthCategoryDet
   target: null,
   note: null,
   target_snoozed: false,
+  payment: null,
   ...o,
 });
 

@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
-import { MonthCategory } from "./months";
+import { MonthCategory, type MonthCategoryDetail, type MonthDetail } from "./months";
 import { PlanView } from "./plan-views";
 import type { CategoryTargetMonth } from "./targets";
 
@@ -15,6 +15,8 @@ export const AUTO_ASSIGN_STRATEGIES = [
   "spent_last_month",
   "average_assigned",
   "average_spent",
+  "paid_last_month",
+  "average_paid",
   "reduce_overfunding",
   "reset_available",
   "reset_assigned",
@@ -30,6 +32,8 @@ export const AutoAssignPreview = z
     spent_last_month: Milliunits,
     average_assigned: Milliunits,
     average_spent: Milliunits,
+    paid_last_month: Milliunits,
+    average_paid: Milliunits,
     reduce_overfunding: Milliunits,
     reset_available: Milliunits,
     reset_assigned: Milliunits,
@@ -64,6 +68,8 @@ export interface MonthFigures {
   month: string;
   assigned: number;
   activity: number;
+  /** A card's Payments made by transfers from another account (>= 0); 0 for an ordinary category. */
+  paid: number;
 }
 
 export interface AutoAssignInput {
@@ -76,17 +82,23 @@ export interface AutoAssignInput {
   last_spent: number;
   average_assigned: number;
   average_spent: number;
+  last_paid: number;
+  average_paid: number;
+  /** A payment category's Total Underfunded; set only when it is the only category in scope. */
+  payment_underfunded: number;
   /** A credit card payment category: it has no target yet and its activity is not spending (EXF-532). */
   payment: boolean;
 }
 
 /** The strategies that leave a credit card payment category's Assigned unchanged. */
 export const PAYMENT_SKIPS: readonly AutoAssignStrategy[] = [
-  "underfunded",
   "reduce_overfunding",
   "spent_last_month",
   "average_spent",
 ];
+
+/** The strategies that leave an ordinary category's Assigned unchanged (they read card payments). */
+export const ORDINARY_SKIPS: readonly AutoAssignStrategy[] = ["paid_last_month", "average_paid"];
 
 /** The most months an average looks back over. */
 export const AVERAGE_MONTHS = 12;
@@ -108,18 +120,28 @@ export function historyFigures(
   month: string,
   previous: readonly MonthFigures[],
   firstMonth: string,
-): Pick<AutoAssignInput, "last_assigned" | "last_spent" | "average_assigned" | "average_spent"> {
+): Pick<
+  AutoAssignInput,
+  | "last_assigned"
+  | "last_spent"
+  | "average_assigned"
+  | "average_spent"
+  | "last_paid"
+  | "average_paid"
+> {
   const byMonth = new Map(previous.map((p) => [monthIndex(p.month), p]));
   const m = monthIndex(month);
   const last = byMonth.get(m - 1);
   const from = Math.max(monthIndex(firstMonth), m - AVERAGE_MONTHS);
   let assigned = 0;
   let spent = 0;
+  let paid = 0;
   let n = 0;
   for (let i = from; i < m; i++) {
     const f = byMonth.get(i);
     assigned += f?.assigned ?? 0;
     spent += spending(f?.activity ?? 0);
+    paid += f?.paid ?? 0;
     n++;
   }
   return {
@@ -127,14 +149,16 @@ export function historyFigures(
     last_spent: spending(last?.activity ?? 0),
     average_assigned: meanCent(assigned, n),
     average_spent: meanCent(spent, n),
+    last_paid: last?.paid ?? 0,
+    average_paid: meanCent(paid, n),
   };
 }
 
 /** A snoozed target counts as no target. */
-const active = (c: AutoAssignInput) =>
+const active = (c: Pick<AutoAssignInput, "target">) =>
   c.target && c.target.status !== "snoozed" ? c.target : null;
 
-const removable = (c: AutoAssignInput): number => {
+const removable = (c: Pick<AutoAssignInput, "assigned" | "target">): number => {
   const t = active(c);
   return t ? Math.min(t.overfunded, Math.max(c.assigned, 0)) : 0;
 };
@@ -142,9 +166,10 @@ const removable = (c: AutoAssignInput): number => {
 /** The Assigned a category gets from one strategy. */
 export function autoAssignResult(c: AutoAssignInput, s: AutoAssignStrategy): number {
   if (c.payment && PAYMENT_SKIPS.includes(s)) return c.assigned;
+  if (!c.payment && ORDINARY_SKIPS.includes(s)) return c.assigned;
   switch (s) {
     case "underfunded":
-      return c.assigned + (active(c)?.to_go_this_month ?? 0);
+      return c.assigned + (c.payment ? c.payment_underfunded : (active(c)?.to_go_this_month ?? 0));
     case "assigned_last_month":
       return c.last_assigned;
     case "spent_last_month":
@@ -153,6 +178,10 @@ export function autoAssignResult(c: AutoAssignInput, s: AutoAssignStrategy): num
       return c.average_assigned;
     case "average_spent":
       return c.average_spent;
+    case "paid_last_month":
+      return c.last_paid;
+    case "average_paid":
+      return c.average_paid;
     case "reduce_overfunding":
       return c.assigned - removable(c);
     case "reset_available":
@@ -162,22 +191,56 @@ export function autoAssignResult(c: AutoAssignInput, s: AutoAssignStrategy): num
   }
 }
 
+export interface HiddenInput {
+  assigned: number;
+  target: CategoryTargetMonth | null;
+  payment: boolean;
+  payment_underfunded: number;
+}
+
+/**
+ * The two amounts that decide whether their buttons show (EXF-624): the web computes them from the cached
+ * month, the service from its own reads, with this one function. A payment category adds its Total Underfunded
+ * only when `payment_underfunded` is set (it is the only category in scope).
+ */
+export function hiddenAmounts(cs: readonly HiddenInput[]): {
+  underfunded: number;
+  reduce_overfunding: number;
+} {
+  let underfunded = 0;
+  let reduce = 0;
+  for (const c of cs) {
+    if (c.payment) {
+      underfunded += c.payment_underfunded;
+      continue;
+    }
+    underfunded += active(c)?.to_go_this_month ?? 0;
+    reduce += removable(c);
+  }
+  return { underfunded, reduce_overfunding: reduce };
+}
+
 /** Each button's amount over a set of categories. Underfunded and Reduce Overfunding are amounts added or removed. */
 export function autoAssignPreview(cs: readonly AutoAssignInput[]): AutoAssignPreview {
   const sum = (f: (c: AutoAssignInput) => number) => cs.reduce((n, c) => n + f(c), 0);
   const total = (s: AutoAssignStrategy) => sum((c) => autoAssignResult(c, s));
-  // Payment categories are left out of the four sums that would read their targets or their activity.
+  // Payment categories are left out of the sums that would read their targets or their activity.
   const others = cs.filter((c) => !c.payment);
+  const cards = cs.filter((c) => c.payment);
   const sumOthers = (f: (c: AutoAssignInput) => number) => others.reduce((n, c) => n + f(c), 0);
+  const sumCards = (f: (c: AutoAssignInput) => number) => cards.reduce((n, c) => n + f(c), 0);
   const totalOthers = (s: AutoAssignStrategy) => sumOthers((c) => autoAssignResult(c, s));
+  const hidden = hiddenAmounts(cs.map((c) => ({ ...c })));
   return {
     category_count: cs.length,
-    underfunded: sumOthers((c) => active(c)?.to_go_this_month ?? 0),
+    underfunded: hidden.underfunded,
     assigned_last_month: total("assigned_last_month"),
     spent_last_month: totalOthers("spent_last_month"),
     average_assigned: total("average_assigned"),
     average_spent: totalOthers("average_spent"),
-    reduce_overfunding: sumOthers(removable),
+    paid_last_month: sumCards((c) => autoAssignResult(c, "paid_last_month")),
+    average_paid: sumCards((c) => autoAssignResult(c, "average_paid")),
+    reduce_overfunding: hidden.reduce_overfunding,
     // The resulting Available of every category is 0 by construction.
     reset_available: 0,
     reset_assigned: 0,
@@ -192,9 +255,27 @@ export interface AutoAssignOption {
   title: string | null;
 }
 
-/** The buttons in order, with the ones that are hidden left out. */
-export function autoAssignOptions(p: AutoAssignPreview, scope: "one" | "many"): AutoAssignOption[] {
-  const s = scope === "one" ? "" : "s";
+export type AutoAssignScope = "one" | "many" | "payment";
+
+/** The height of the Auto-Assign card for these options: the source's arithmetic (EXF-616). */
+export function autoAssignHeight(options: readonly AutoAssignOption[]): number {
+  const n = options.length;
+  const g = new Set(options.map((o) => o.group)).size;
+  return 88 + 32 * n + 2 * (n - g) + 16 * (g - 1);
+}
+
+/**
+ * The buttons in order, with the ones that are hidden left out. Underfunded and Reduce Overfunding are left out
+ * at 0 in every scope (EXF-624); the rows are decided by `hidden` when given (the web draws them before the
+ * preview arrives), else by `p`.
+ */
+export function autoAssignOptions(
+  p: AutoAssignPreview,
+  scope: AutoAssignScope,
+  hidden?: { underfunded: number; reduce_overfunding: number },
+): AutoAssignOption[] {
+  const s = scope === "many" ? "s" : "";
+  const decide = hidden ?? p;
   const all: AutoAssignOption[] = [
     { strategy: "underfunded", group: 1, label: "Underfunded", amount: p.underfunded, title: null },
     {
@@ -212,6 +293,13 @@ export function autoAssignOptions(p: AutoAssignPreview, scope: "one" | "many"): 
       title: null,
     },
     {
+      strategy: "paid_last_month",
+      group: 2,
+      label: "Paid Last Month",
+      amount: p.paid_last_month,
+      title: null,
+    },
+    {
       strategy: "average_assigned",
       group: 2,
       label: "Average Assigned",
@@ -224,6 +312,13 @@ export function autoAssignOptions(p: AutoAssignPreview, scope: "one" | "many"): 
       label: "Average Spent",
       amount: p.average_spent,
       title: "Assign your historical average spent. Though you're above average in my book.",
+    },
+    {
+      strategy: "average_paid",
+      group: 2,
+      label: "Average Paid",
+      amount: p.average_paid,
+      title: "Assign your historical average paid to this card.",
     },
     {
       strategy: "reduce_overfunding",
@@ -249,8 +344,35 @@ export function autoAssignOptions(p: AutoAssignPreview, scope: "one" | "many"): 
     },
   ];
   return all.filter((o) => {
-    if (o.strategy === "underfunded") return !(scope === "one" && o.amount === 0);
-    if (o.strategy === "reduce_overfunding") return o.amount !== 0;
+    if (o.strategy === "underfunded") return decide.underfunded !== 0;
+    if (o.strategy === "reduce_overfunding")
+      return scope !== "payment" && decide.reduce_overfunding !== 0;
+    if (o.strategy === "spent_last_month" || o.strategy === "average_spent")
+      return scope !== "payment";
+    if (o.strategy === "paid_last_month" || o.strategy === "average_paid")
+      return scope === "payment";
     return true;
+  });
+}
+
+/**
+ * The inputs of `hiddenAmounts` for the categories `ids` of a month read. A payment category's Total
+ * Underfunded counts only when it is the only category in scope.
+ */
+export function monthHiddenInputs(detail: MonthDetail, ids: readonly string[]): HiddenInput[] {
+  const byId = new Map<string, MonthCategoryDetail>(
+    detail.groups.flatMap((g) => g.categories).map((c) => [c.id, c]),
+  );
+  return ids.flatMap((id): HiddenInput[] => {
+    const c = byId.get(id);
+    if (!c) return [];
+    return [
+      {
+        assigned: c.assigned,
+        target: c.target,
+        payment: c.kind === "credit_card_payment",
+        payment_underfunded: ids.length === 1 && c.payment ? c.payment.underfunded : 0,
+      },
+    ];
   });
 }

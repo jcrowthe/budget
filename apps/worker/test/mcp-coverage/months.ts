@@ -1,5 +1,10 @@
 import type { Coverage, OperationKey } from "../mcp-coverage-types";
 
+export const toolsWithoutOperation: Record<string, string> = {
+  get_card_payment_status:
+    "Keyed by account: the payment object of GET /budgets/{budget_id}/months/{month}/categories/{category_id} for the card's payment category",
+};
+
 export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/months": { tool: "list_plan_months" },
   "GET /budgets/{budget_id}/months/{month}": { tool: "get_plan_month" },
