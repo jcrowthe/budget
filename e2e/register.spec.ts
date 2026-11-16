@@ -64,7 +64,9 @@ test("toolbar, columns, Starting Balance and tracking account", async ({ page, r
   await expect(start).toContainText("Inflow: Ready to Assign");
   await expect(start).toContainText("$500.00");
   await expect(start.getByRole("button", { name: "This transaction is cleared" })).toBeVisible();
-  await expect(start).toContainText(/\d\d\/\d\d\/\d{4}/);
+  await expect(start).toContainText(
+    `${TODAY.slice(5, 7)}/${TODAY.slice(8, 10)}/${TODAY.slice(0, 4)}`,
+  );
   await expect(rows(page).filter({ hasText: "ZZ Alpha" })).toContainText("This needs a category");
 
   await page.goto(`/${s.plan}/accounts/${s.asset}`);
@@ -91,8 +93,12 @@ test("sorting", async ({ page, request }) => {
   await expect(head("DATE")).toHaveAttribute("aria-sort", "descending");
   expect(await payees(page)).toEqual(["ZZ Alpha", "ZZ Gamma", "ZZ Beta", "Starting Balance"]);
   await click("OUTFLOW");
+  await expect(head("OUTFLOW")).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("th[aria-sort]")).toHaveCount(1);
   expect((await payees(page)).slice(0, 2)).toEqual(["ZZ Alpha", "ZZ Gamma"]);
   await click("INFLOW");
+  await expect(head("INFLOW")).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("th[aria-sort]")).toHaveCount(1);
   expect((await payees(page)).slice(0, 2)).toEqual(["Starting Balance", "ZZ Beta"]);
 });
 
@@ -110,20 +116,35 @@ test("cleared toggle moves the balances without a reload", async ({ page, reques
   await expect(row.getByRole("button", { name: "This transaction is cleared" })).toBeVisible();
   await expect(balance("Cleared Balance")).toHaveText("$475.00");
   await expect(balance("Working Balance")).toHaveText("$480.00");
+  // Clearing leaves the working balance unchanged, so the sidebar row still reads it.
+  await expect(
+    page.getByRole("navigation", { name: "Sidebar" }).locator(".nav-account-row").first(),
+  ).toContainText("$480.00");
   await row.getByRole("button", { name: "This transaction is cleared" }).click();
   await expect(balance("Cleared Balance")).toHaveText("$500.00");
+  await expect(balance("Uncleared Balance")).toHaveText("-$20.00");
+  await expect(balance("Working Balance")).toHaveText("$480.00");
 });
 
 test("selection and the error state", async ({ page, request }) => {
   const s = await seed(request);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   const all = page.getByRole("checkbox", { name: "Select all transactions" });
+  await expect(rows(page)).toHaveCount(4);
+  // The shell may write on page load (e.g. the plan's last-opened time); only selection is under test.
+  const writes: string[] = [];
+  page.on("request", (r) => {
+    if (r.method() !== "GET") writes.push(r.url());
+  });
   await rows(page).first().getByRole("checkbox").click();
+  await expect(rows(page).first()).toHaveClass(/is-checked/);
   await expect(all).toHaveAttribute("aria-checked", "mixed");
   await all.click();
   await expect(all).toHaveAttribute("aria-checked", "true");
   await all.click();
   await expect(all).toHaveAttribute("aria-checked", "false");
+  await expect(page.locator("tr.is-checked")).toHaveCount(0);
+  expect(writes).toEqual([]);
 
   await page.route("**/accounts/*/transactions", (route) =>
     route.fulfill({ status: 500, body: "{}" }),

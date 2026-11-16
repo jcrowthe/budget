@@ -82,7 +82,7 @@ const requestFields = {
   inflow_to_ready_to_assign: z.boolean().optional(),
   memo: z.string().max(500).nullable().optional(),
   // Checked in the service, so "reconciled" gets its own 422 detail.
-  cleared: z.string().optional(),
+  cleared: ClearedStatus.optional(),
   approved: z.boolean().optional(),
 };
 
