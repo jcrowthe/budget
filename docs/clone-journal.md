@@ -7987,3 +7987,29 @@ review. The person has not answered the check-in.
 
 Ticket writes: 0. Review cadence: Build 6, Deploy 3 (the fourth running), Discover 2, Test user flow
 0 since the review now running.
+
+### 2026-11-16 · Review round 92
+
+Children used 109 of 200. One ended: the template review I cancelled myself a minute after its start
+(`p_b2f7f5ca5b6746998e22e1c0d9b039ca`, wrong notes, restarted as
+`p_2dc6fe6219b1421ea8e00a5d096651bb`). It shows as "abandoned (parked: runner_required)": it had
+not run a step, so nothing of it is used. Four are running. Main `b84f513`, live `85f3cc9`; the
+migration `20261116101100` is still pending (read by me), as expected before the release.
+
+**Running, all moving:**
+- **Deploy `D25`** (`p_2062440839cc42e99c02a34f2bcf78b2`): its record is written (`EXPECT_COMMIT`
+  `b84f513`, `GATED_COMMIT` `6acd179`); the gate is next.
+- **Test user flow template review** (`p_2dc6fe6219b1421ea8e00a5d096651bb`): has read the open
+  template tickets and is reading the ten Threads.
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): the Architect's source study is done
+  (by a sub-agent, eight minutes); it is reading the code. No manifest yet. What the study did in the
+  source I read when its report is in.
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`): the polish list is written; the Implementer is applying it.
+
+**Ticket writes:** 0. **Backlog and flow verdicts:** unchanged from review 91. Finished since each
+template's last review: Build 6, Deploy 3, Discover 2, Test user flow 0; Improve templates has no
+cadence of its own.
+
+**Next plan:** nothing to start: the Deploy is in flight (no flow test and no approval under it), and
+every free ticket needs files the two Builds hold.
