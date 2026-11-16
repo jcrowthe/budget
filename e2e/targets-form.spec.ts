@@ -319,6 +319,16 @@ test("a bad amount is refused at the form, Cancel discards, another selection di
   await expect(card(page).getByRole("button", { name: "Create Target" })).toBeVisible();
 });
 
+test("Edit Target, then Save with nothing changed closes the form", async ({ page, request }) => {
+  await putTarget(request, s, RENT, MONTHLY, today);
+  await openPlan(page, s);
+  await page.locator(".category-name", { hasText: RENT }).click();
+  await realClick(page, card(page).getByRole("button", { name: "Edit Target" }));
+  await realClick(page, form(page).getByRole("button", { name: "Save Target" }));
+  await expect(form(page)).toHaveCount(0);
+  await expect(card(page).getByRole("button", { name: "Edit Target" })).toBeVisible();
+});
+
 test("Delete removes the target at once and leaves the amounts alone", async ({
   page,
   request,

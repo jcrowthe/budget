@@ -1,5 +1,5 @@
 import type { Month } from "@budget/core/month";
-import type { MonthCategoryDetail } from "@budget/schema/months";
+import type { MonthCategoryDetail, MonthDetail } from "@budget/schema/months";
 import {
   draftFromTarget,
   draftToBody,
@@ -13,11 +13,11 @@ import {
   targetHeading,
   targetMessage,
 } from "@budget/schema/target-wording";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { localToday } from "../../api/accounts";
 import { useCommitAssigned } from "../../api/assigned";
 import { useDeleteTarget, useSaveTarget } from "../../api/targets";
+import { localToday } from "../../api/today";
 import { money } from "../format";
 import { TargetRingIcon } from "../icons";
 import { PanelCard } from "./PanelCard";
@@ -79,7 +79,14 @@ export function TargetCard({
   const save = useSaveTarget(budgetId);
   const del = useDeleteTarget(budgetId);
   const [assignError, setAssignError] = useState(false);
-  const assign = useCommitAssigned(budgetId, month, () => setAssignError(true));
+  // The to-go the Assign button has added; the button stays disabled until the month read shows another figure.
+  const [assigning, setAssigning] = useState<number | null>(null);
+  const assign = useCommitAssigned(budgetId, month, () => {
+    setAssigning(null);
+    setAssignError(true);
+  });
+  // Subscribes the card to the month query, so a refetch that changes nothing still re-renders it.
+  useQuery<MonthDetail>({ queryKey: ["month", budgetId, month], enabled: false });
   const reads = qc.getQueryState(["month", budgetId, month])?.dataUpdateCount ?? 0;
   const succeeded = useRef(false);
 
@@ -91,6 +98,13 @@ export function TargetCard({
       succeeded.current = false;
     }
   }, [reads, waitingFor]);
+
+  // A new to-go figure means the month was read again after the Assign.
+  const toGo = targetMessage(c)?.assign ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clears when the figure changes
+  useEffect(() => {
+    setAssigning((a) => (a !== null && a !== toGo ? null : a));
+  }, [toGo]);
 
   const today = localToday();
   const busy = waitingFor !== null;
@@ -196,8 +210,11 @@ export function TargetCard({
               <button
                 type="button"
                 className="target-assign"
+                disabled={assigning !== null}
                 onClick={() => {
+                  if (assigning !== null) return;
                   setAssignError(false);
+                  setAssigning(message.assign as number);
                   void assign(c.id, c.assigned, c.assigned + (message.assign as number));
                 }}
               >

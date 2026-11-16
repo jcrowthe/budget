@@ -107,6 +107,33 @@ test("Assign meets the target, then spending shows in the status", async ({ page
   await expect(status(page, RENT)).toHaveText("Funded. Spent $30.00 of $100.00");
 });
 
+test("a second click on Assign while the month is read again adds nothing", async ({
+  page,
+  request,
+}) => {
+  await putTarget(request, s, RENT, MONTHLY10, today);
+  await assign(request, s, RENT, 40000);
+  await openPlan(page, s);
+  await select(page, RENT);
+  // Hold the month read that follows the write, so the card still shows the old to-go figure.
+  let hold = false;
+  await page.route(/\/months\/[^/?]+(\?.*)?$/, async (route) => {
+    if (hold && route.request().method() === "GET") await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
+  const button = card(page).getByRole("button", { name: "Assign", exact: true });
+  hold = true;
+  await realClick(page, button);
+  await expect(button).toBeDisabled();
+  await button.dispatchEvent("click"); // a click that arrives anyway
+  await expect(card(page).getByRole("status")).toHaveText("You've met your target!");
+  await expect
+    .poll(async () => (await readCategory(request, s, RENT, TODAY, today)).assigned)
+    .toBe(100000);
+  await page.waitForTimeout(500);
+  expect((await readCategory(request, s, RENT, TODAY, today)).assigned).toBe(100000);
+});
+
 test("yearly 1,200 with 100 assigned is on track", async ({ page, request }) => {
   const due = lastOfMonth(today, 11);
   await putTarget(

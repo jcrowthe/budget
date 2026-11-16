@@ -5,9 +5,9 @@ import {
   TargetResponse,
 } from "@budget/schema/targets";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { localToday } from "./accounts";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite } from "./monthCache";
+import { localToday } from "./today";
 
 const path = (budgetId: string, categoryId: string): `/api/v1/${string}` =>
   `/api/v1/budgets/${budgetId}/categories/${categoryId}/target`;

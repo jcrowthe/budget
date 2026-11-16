@@ -347,7 +347,7 @@ export function TargetForm({
                     value={draft.dueYear}
                     onChange={(e) => set({ dueYear: Number(e.target.value) })}
                   >
-                    {yearOptions(today).map((y) => (
+                    {withYear(yearOptions(today), draft.dueYear).map((y) => (
                       <option key={y} value={y}>
                         {y}
                       </option>
@@ -404,4 +404,9 @@ export function TargetForm({
       />
     );
   }
+}
+
+/** The year range, plus the draft's own year when a saved target lies outside it. */
+function withYear(years: number[], y: number): number[] {
+  return years.includes(y) ? years : [...years, y].sort((a, b) => a - b);
 }
