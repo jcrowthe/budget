@@ -8283,8 +8283,8 @@ credit, `20261116101200` scheduled; read by me after merging main into this bran
 - **Three things left out, filed with this review:** the action bar's other actions on scheduled
   rows are drawn disabled; due schedules are entered only when an account page opens or by the 03:00
   UTC job, not from the Plan page; a deleted category's schedules keep no category.
-- **This was the second carry-over of this work to get through**, after its first Thread's box was
-  lost at the gate. Its own gate ran at 17:30Z in a box that kept its files.
+- **A carry-over again:** the two Threads that first built this (`p_900d...` and `p_7aa8...`) lost
+  their boxes at their gates; this one's gate ran at 17:30Z in a box that kept its files.
 
 **The platform, as far as I can see it:** the gate above ran fine at 17:30Z, twelve minutes after
 `D26` lost a file within a minute. So boxes are not failing every time; I cannot tell more.
