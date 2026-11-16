@@ -141,18 +141,6 @@ export function AddAccountDialog({
                   linkOpen.current = v;
                 }}
               />
-              {variant === "sidebar" ? (
-                <>
-                  <div className="or-divider">or</div>
-                  <button
-                    type="button"
-                    className="secondary large"
-                    onClick={() => setScreen("form")}
-                  >
-                    Add an Unlinked Account
-                  </button>
-                </>
-              ) : null}
             </>
           ) : null}
           {screen === "connected" && connection ? <BankConnected connection={connection} /> : null}

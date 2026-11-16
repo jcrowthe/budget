@@ -224,14 +224,38 @@ export function BankSearch({
           <br />
           Don't worry, you can still{" "}
           {variant === "sidebar" ? (
-            <button type="button" className="link-button" onClick={onUnlinked}>
+            // An inline span (not a <button>) so the sentence wraps inside the phrase.
+            // biome-ignore lint/a11y/useSemanticElements: must stay inline to wrap like running text
+            <span
+              role="button"
+              tabIndex={0}
+              className="link-button"
+              onClick={onUnlinked}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onUnlinked();
+                }
+              }}
+            >
               continue setting up this account
-            </button>
+            </span>
           ) : (
             "continue setting up this account"
           )}
           .
         </p>
+      ) : null}
+
+      {!showResults && variant === "sidebar" ? (
+        <>
+          <div className="or-divider">
+            <span>or</span>
+          </div>
+          <button type="button" className="secondary large" onClick={onUnlinked}>
+            Add an Unlinked Account
+          </button>
+        </>
       ) : null}
     </div>
   );

@@ -96,9 +96,12 @@ test("typing lists at most 10 results; clearing brings back Popular Options", as
   await expect(rows.first()).not.toContainText("www.");
   await expect(rows.first()).toHaveAttribute("title", "https://www.zz-test-bank-0.example/");
   await expect(dialog.getByRole("heading", { name: "Popular Options" })).toHaveCount(0);
+  // The "or" divider and the unlinked button go with Popular Options (source behaviour).
+  await expect(dialog.getByRole("button", { name: "Add an Unlinked Account" })).toHaveCount(0);
   expect(requests.some((r) => r.url.includes("query=plat"))).toBe(true);
   await page.getByLabel("Search for your bank").fill("");
   await expect(dialog.getByRole("heading", { name: "Popular Options" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Add an Unlinked Account" })).toBeVisible();
 });
 
 test("no match: the sentence, and the link opens the unlinked flow", async ({ page, request }) => {
@@ -112,6 +115,7 @@ test("no match: the sentence, and the link opens the unlinked flow", async ({ pa
     ),
   ).toBeVisible();
   await expect(dialog.getByText("Don't worry, you can still")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Add an Unlinked Account" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "continue setting up this account" }).click();
   await expect(page.getByRole("dialog", { name: "Add Unlinked Account" })).toBeVisible();
 });

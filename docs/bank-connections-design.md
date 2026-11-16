@@ -15,7 +15,7 @@ screenshots: `/workspace/scratch/source/bank-connections/notes.md`, `01-start.pn
 
 - Same 360×700 modal shell as the existing `account-modal` (header 70px, centred `h1` "Add Accounts", Close X).
   Input focused on open; **Escape closes the modal**; reopening starts empty.
-- Label "Search for your bank" (14px/600), 48px input without placeholder, autocomplete/spellcheck off, italic
+- Label "Search for your bank" (14px/600), 48px input without placeholder, autocomplete/spellcheck off, (not italic: font-style normal, measured)
   note "Search by institution name or web address (URL)" (12px/500 `--labelSecondary`, margin -2px 0 16px).
 - Empty query: `h3` "Popular Options" (14px/500), grid 2×158px, gap 8px/12px, 10 tiles 158×64 (border
   `--borderSubtle`, radius 10px, logo only), divider "or", secondary 48px "Add an Unlinked Account".
@@ -183,7 +183,7 @@ Browser cases use the e2e server (stubs where said) or `pnpm dev`; compare cases
 plan "Test Budget", dark theme, 1600×813, sidebar **Add Account**; never click a bank in the source.
 
 1. **Start screen (compare)**. Open a plan, click sidebar "Add Account". Expect dialog "Add Accounts", no Back,
-   focused input, label "Search for your bank", italic note, "Popular Options" with tiles (stubbed list), "or"
+   focused input, label "Search for your bank", note, "Popular Options" with tiles (stubbed list), "or"
    divider, "Add an Unlinked Account". Compare with the source start screen (layout, sizes, colours; tiles hold
    Plaid logos/names instead of banners).
 2. **Connections variant**. Open `/<plan>/budget?add-accounts=connections`. Expect a Back arrow, no "or", no
