@@ -20,6 +20,7 @@ async function startSplit(page: Page, plan: string, checking: string, total: str
   await button(page, "Add Transaction").click();
   await parentOutflow(page).fill(total);
   await parentCategory(page).click();
+  await expect(option(page, "D4 Dining")).toBeVisible();
   await realClick(page, button(page, "Split (Multiple Categories)"));
   await expect(parentCategory(page)).toHaveValue(SPLIT);
 }
@@ -46,6 +47,8 @@ for (const size of [
     // The category footer: one full-width Split, no Payment/Transfer.
     await parentOutflow(page).fill("100");
     await parentCategory(page).click();
+    // The plan's categories load after the list opens and move its footer.
+    await expect(option(page, "D4 Dining")).toBeVisible();
     await expect(button(page, "Payment/Transfer")).toHaveCount(0);
     await realClick(page, button(page, "Split (Multiple Categories)"));
 

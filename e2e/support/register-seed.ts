@@ -166,7 +166,21 @@ export async function realClick(
   target: import("@playwright/test").Locator,
 ) {
   await target.scrollIntoViewIfNeeded();
-  const box = await target.boundingBox();
+  // A list that is still loading moves its footer: wait until the box has stopped moving.
+  let box = await target.boundingBox();
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(100);
+    const next = await target.boundingBox();
+    const still =
+      !!box &&
+      !!next &&
+      box.x === next.x &&
+      box.y === next.y &&
+      box.width === next.width &&
+      box.height === next.height;
+    box = next;
+    if (still) break;
+  }
   expect(box, "the control has a box").not.toBeNull();
   const { x, y, width, height } = box as { x: number; y: number; width: number; height: number };
   const cx = x + width / 2;
