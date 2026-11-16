@@ -3706,3 +3706,27 @@ me this time; I approved all nine proposals with three changes.
 in progress EXF-569, EXF-574, EXF-579. Template: twenty-six (EXF-573 Urgent; EXF-563, 576, 580, 581 High).
 Flow verdicts: 9 and 10 `new_gaps` (fixes live, running again), 11 `parity`, 1 running. Finished since each
 template's last review: Build 1, Deploy 0, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 44
+
+Children used 59 of 200. Six are running, all from earlier rounds: five Builds (EXF-491 with EXF-492;
+EXF-517 with EXF-507; EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574; EXF-579 with EXF-569)
+and the flow tests on live. **Nothing started this round.**
+
+- No ticket was filed at the last review. The six tickets the Deploy review filed have their priorities.
+- Main and live are both `41bee46`: nothing to deploy.
+- **Why nothing new:** each ready ticket needs files a running Build holds (the Plan page, the register and
+  `services/accounts.ts`, the bank connection files), or `playwright.config.ts` (EXF-558), or has a screen
+  whose counterpart in the source shows private data.
+- Checked: the two Builds that may change no screen have no file under `apps/web/` (the bank-connection
+  Build) and none under `apps/web/` or `apps/worker/` (the test-infrastructure Build).
+- **Order of work once Builds merge:**
+  1. After EXF-517 with EXF-507: EXF-461 (linked accounts through the Add Account flow) first, because it
+     leads to live bank data; then EXF-524 with EXF-526 (splits and transfers); then EXF-532 (credit).
+     These three all need the transactions files, so they run one after another unless their manifests
+     turn out disjoint.
+  2. After EXF-491 with EXF-492: EXF-508 with EXF-514 (targets on screen), then EXF-521 with EXF-498
+     (inspector), then EXF-519 (Auto-Assign).
+  3. After EXF-548 with EXF-551: EXF-549 with EXF-550 (spending reports) once splits and transfers exist.
+  4. One Deploy when two or three of the running Builds have merged; then flows 2 and 8.
+- Review cadence: Build 1, Deploy 0, Discover 2, Test user flow 2.
