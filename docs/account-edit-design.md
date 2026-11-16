@@ -26,19 +26,15 @@ Seen (closed account, dark theme, 1600×813):
 - Header pencil: tooltip "Edit Account" (already built). Sidebar row pencil: on hover, title "Edit Account".
 - A closed account's page: Add Transaction, File Import and Undo are disabled.
 
-Captures kept: `01-dialog-default.png`, `03-dialog-notes-focused.png`, `06-dialog-from-header.png`,
-`hover-{reopen,del,cancel,save,close}.png`, `04-account-header-pencil-hover.png`,
-`05-closed-account-toolbar-addtx{,-hover}.png`, all cropped (no sidebar).
+Captures (cropped, no sidebar) are listed in the notes.
 
 Not compared (not visible in the test plan): the open-account dialog (balance section, Delete Account / Close
 Account), the error bars, the "Close Account" dialog, every saved state. They are built from the tickets and
 the look of the app's own dialogs (`NewPlanDialog`, `AddAccountDialog`).
 
-Source study (Architect step): expanded the CLOSED group, hovered a closed account's row, clicked its pencil
-(dialog opened), hovered the dialog's buttons, clicked into Notes without typing, left with Escape; opened that
-account's page, hovered the header pencil and Add Transaction, clicked the header pencil, hovered the buttons,
-left with Cancel; clicked "Plan" in the sidebar and collapsed CLOSED again. Nothing typed, nothing saved; the
-plan menu, Bank Connections, Add Account, Link Account and other plans were never opened.
+Architect's study: expanded CLOSED, opened a closed account's dialog from its row pencil and from its page's
+header pencil, hovered the buttons, clicked into Notes without typing, left with Escape and Cancel, went back to
+Plan. Nothing saved; no plan menu, Bank Connections, Add Account, Link Account or other plan opened.
 
 ## Approach
 
@@ -125,16 +121,8 @@ payee picker (`payeeMenu` filters `system !== null`), so AC 486-12 holds without
 `update_account` (name, note, starred), `adjust_account_balance`, `close_account`, `reopen_account`,
 `delete_account`. Descriptions use `MONEY` and `DATE` from `mcp/tool-text.ts`, say what they return, and
 `delete_account` says it is refused (tool error with the 409 message) unless the only transaction is the
-Starting Balance, or, for a closed account, there is none. Coverage lines in
-`apps/worker/test/mcp-coverage/accounts.ts`:
-
-```
-"POST /budgets/{budget_id}/accounts/{account_id}/adjust-balance": { tool: "adjust_account_balance" },
-"POST /budgets/{budget_id}/accounts/{account_id}/close": { tool: "close_account" },
-"POST /budgets/{budget_id}/accounts/{account_id}/reopen": { tool: "reopen_account" },
-"DELETE /budgets/{budget_id}/accounts/{account_id}": { tool: "delete_account" },
-```
-(`PATCH` keeps its existing `update_account` line.)
+Starting Balance, or, for a closed account, there is none. One coverage line per new operation in
+`apps/worker/test/mcp-coverage/accounts.ts` (the spec lists them); `PATCH` keeps `update_account`.
 
 ### Web
 
@@ -183,8 +171,8 @@ Starting Balance, or, for a closed account, there is none. Coverage lines in
 - `Account` gains `can_delete` (required): `e2e/sidebar-groups.spec.ts`'s fixture adds it; its "pencil … does
   nothing yet" test becomes "opens Edit Account". Change-log `after` of every account write gains `can_delete`.
 - `account-links.ts` builds accounts with the new facts helper (its `balancesOf` call), no rule change.
-- Ready to Assign moves by an on-plan adjustment; a closed account's history still counts (the engine joins
-  non-deleted accounts, closed included), and the closing adjustment zeroes its contribution.
+- A closed account's history still counts in Ready to Assign (the engine joins every non-deleted account); the
+  closing adjustment zeroes its contribution.
 
 ## Out of scope / left
 
@@ -205,8 +193,7 @@ the current month's read. Cases marked *compare* reproduce in the source: the te
 a closed account's sidebar pencil (or its page's header pencil) → Edit Account, dark theme, default window; leave
 with Cancel/X/Escape only.
 
-1. **[486] Both pencils open the dialog.** Checking "ZZ-TEST Chk" at 250.00 with note "n1" (PATCH). From the
-   account page, click the header pencil → dialog "Edit Account", nickname "ZZ-TEST Chk" focused, notes "n1",
+1. **[486] Both pencils open the dialog.** Checking "ZZ-TEST Chk" at 250.00, note "n1" (PATCH). Click the header pencil → dialog "Edit Account", nickname "ZZ-TEST Chk" focused, notes "n1",
    balance `250.00`, URL unchanged. Escape. Hover the sidebar row, click its pencil → same dialog. Repeat at
    1024×700.
 2. **[486] Labels by kind.** Checking shows "Working Balance"; an Asset and a Liability show "Today's Balance";

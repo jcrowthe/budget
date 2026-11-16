@@ -127,7 +127,13 @@ Verify: `apps/worker/test/account-edit.test.ts` and `account-close.test.ts` (tas
   transaction, or, for a closed account, any transaction at all: close it instead. Returns { account_id,
   deleted_transaction_ids }." `MONEY` is not needed (no money in or out); include it only if
   `mcp-descriptions.test.ts` requires it for this shape.
-- `apps/worker/test/mcp-coverage/accounts.ts`: the four lines in the design doc.
+- `apps/worker/test/mcp-coverage/accounts.ts` adds:
+  ```
+  "POST /budgets/{budget_id}/accounts/{account_id}/adjust-balance": { tool: "adjust_account_balance" },
+  "POST /budgets/{budget_id}/accounts/{account_id}/close": { tool: "close_account" },
+  "POST /budgets/{budget_id}/accounts/{account_id}/reopen": { tool: "reopen_account" },
+  "DELETE /budgets/{budget_id}/accounts/{account_id}": { tool: "delete_account" },
+  ```
 
 Verify: `pnpm check` (coverage and description tests pass without edits to them).
 
