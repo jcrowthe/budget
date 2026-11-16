@@ -143,3 +143,21 @@ export const LogoutIcon = (p: IconProps) => (
     <path d="M4 3h9a1 1 0 0 1 1 1v3h-2V5H6v14h6v-2h2v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm12.5 4.5L21 12l-4.5 4.5-1.4-1.4 2.1-2.1H9v-2h8.2l-2.1-2.1 1.4-1.4Z" />
   </svg>
 );
+
+// Own artwork: a window with a hollow left panel and a triangle pointing at the panel (close) or away (open).
+export const SidebarCloseIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm1 2a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h2V4H5Zm4 0v16h10a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H9Zm9 5v6l-6-3 6-3Z"
+    />
+  </svg>
+);
+export const SidebarOpenIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm1 2a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h2V4H5Zm4 0v16h10a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H9Zm3 5 6 3-6 3V9Z"
+    />
+  </svg>
+);

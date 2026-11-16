@@ -1,0 +1,162 @@
+/* Keyboard Shortcuts dialog, key caps and the shortcut tooltip. Tokens only (shell/tokens.css). */
+@keyframes shortcuts-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dialog.shortcuts {
+  width: 640px;
+  max-width: calc(100vw - 32px);
+  padding: 0;
+  box-shadow: var(--shadowMenu);
+  animation: shortcuts-in 0.15s;
+}
+.dialog.shortcuts .dialog-head {
+  height: 48px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.dialog.shortcuts .dialog-head h2 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  line-height: var(--line-height);
+}
+.dialog.shortcuts .icon-button {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--actionPrimary);
+}
+.dialog.shortcuts .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.shortcuts-scroll {
+  max-height: calc(100vh - 8rem);
+  overflow: auto;
+  padding: var(--space-3) var(--space-3) 0;
+  font: 500 var(--font-size-sm) / 1.5 var(--font);
+  outline: none;
+  scrollbar-color: var(--inputBackground) transparent;
+}
+.shortcuts-scroll h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  line-height: var(--line-height);
+}
+.shortcuts-scroll ul {
+  column-count: 2;
+  column-gap: 24px;
+  margin: 14px 0;
+  padding: 0 0 var(--space-3);
+  list-style: none;
+}
+.shortcuts-scroll li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--borderSubtle);
+  break-inside: avoid;
+}
+.key-caps {
+  display: flex;
+  gap: var(--space-1);
+}
+.key-caps.is-dialog .key-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--keyCapBackground);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+}
+.key-caps .key-cap.then {
+  background: transparent;
+}
+.dialog.shortcuts .dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3);
+}
+.dialog.shortcuts.overflowed .dialog-footer {
+  border-top: 1px solid var(--separatorStandard);
+}
+.dialog.shortcuts .dialog-footer .primary {
+  height: 32px;
+  margin: 0;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.dialog.shortcuts .dialog-footer .primary:hover {
+  background: var(--actionPrimary);
+}
+
+.shortcut-tip-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.shortcut-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 18rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--tooltipBackground);
+  color: var(--tooltipLabel);
+  box-shadow: var(--tooltipShadow);
+  font-size: 12px;
+  font-weight: 400;
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+  animation: tip-in 0.2s 0.5s both;
+}
+.shortcut-tooltip.is-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.shortcut-tooltip.is-start {
+  left: 0;
+}
+.key-caps.is-tooltip .key-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--keyCapTooltipBackground);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  font-family: inherit;
+}

@@ -9,6 +9,15 @@ export function placeMenu(button: Rect, vh: number) {
   return { left: button.left, top, maxHeight: Math.max(0, vh - top - MENU_EDGE) };
 }
 
+/** Beside the collapsed rail, level with its top button. */
+export function placeMenuBeside(button: Rect, railRight: number, vh: number) {
+  return {
+    left: railRight + MENU_GAP,
+    top: button.top,
+    maxHeight: Math.max(0, vh - button.top - MENU_EDGE),
+  };
+}
+
 /** At the right edge of the Open Plan row; flips to its left, then shifts, when there is no room. Always inside the window. */
 export function placeSubmenu(
   menu: Rect,
