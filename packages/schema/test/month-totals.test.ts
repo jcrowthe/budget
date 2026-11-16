@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryMonth, monthTotals } from "../src/month-totals";
+import { categoryMonth, monthTotals, viewTotals } from "../src/month-totals";
 import type { MonthCategoryDetail, MonthDetail } from "../src/months";
 
 const cat = (id: string, o: Partial<MonthCategoryDetail> = {}): MonthCategoryDetail => ({
@@ -13,6 +13,7 @@ const cat = (id: string, o: Partial<MonthCategoryDetail> = {}): MonthCategoryDet
   carried: 0,
   target: null,
   note: null,
+  target_snoozed: false,
   ...o,
 });
 
@@ -102,5 +103,23 @@ describe("categoryMonth", () => {
   });
   it("is null for an unknown id", () => {
     expect(categoryMonth(detail(), "zz")).toBeNull();
+  });
+});
+
+describe("viewTotals", () => {
+  it("totals only what the view shows", () => {
+    expect(viewTotals(detail(), "money_available")).toEqual({
+      leftover: 70000,
+      assigned: 150000,
+      activity: -30000,
+      available: 190000,
+    });
+    expect(viewTotals(detail(), "overspent")).toEqual({
+      leftover: 0,
+      assigned: 0,
+      activity: 0,
+      available: 0,
+    });
+    expect(viewTotals(detail(), "all")).toEqual(monthTotals(detail()));
   });
 });

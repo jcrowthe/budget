@@ -24,6 +24,7 @@ export function endWrite(qc: QueryClient, budgetId: string): void {
   pending.delete(budgetId);
   void qc.invalidateQueries({ queryKey: ["month", budgetId] });
   void qc.invalidateQueries({ queryKey: ["month-list", budgetId] });
+  void qc.invalidateQueries({ queryKey: ["auto-assign", budgetId] });
 }
 
 const queues = new Map<string, Promise<unknown>>();

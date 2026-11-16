@@ -1,12 +1,19 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are (EXF-498 adds keyboard selection)
 import type { Month } from "@budget/core/month";
+import {
+  type PlanView,
+  VIEW_EMPTY_TEXT,
+  VIEW_HIDDEN_FOOTER,
+  viewDetail,
+} from "@budget/schema/plan-views";
 import { useEffect, useState } from "react";
 import { useCommitAssigned } from "../api/assigned";
 import { useCategoryActions } from "../api/categories";
 import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
+import { localCurrentMonth } from "../shell/planPaths";
 import type { CloseHow } from "./AssignedCell";
 import { CoverPopover } from "./CoverPopover";
 import { useCollapsedGroups } from "./collapse";
@@ -30,6 +37,7 @@ import {
   visibleSelection,
 } from "./selection";
 import { usePlanShortcuts } from "./shortcuts";
+import { useToggleSnooze } from "./snooze";
 import { Toolbar } from "./Toolbar";
 import "./plan-grid.css";
 
@@ -59,18 +67,25 @@ export function PlanGrid({
   selection,
   onSelection,
   editRequest,
+  view,
+  onViewAll,
 }: {
   budgetId: string;
   month: Month;
   selection: Selection;
   onSelection: (f: (s: Selection) => Selection) => void;
   editRequest: EditRequest | null;
+  /** The Plan view in use; anything but "all" narrows the rows (see plan-views.ts). */
+  view: PlanView;
+  onViewAll: () => void;
 }) {
   const q = useMonth(budgetId, month);
   const data = q.data;
   const [bars, setBars] = useProgressBars();
   const { isCollapsed, setCollapsed } = useCollapsedGroups(budgetId, data?.groups);
-  const groups = (data?.groups ?? []).filter((g) => !g.hidden);
+  const shown = data && viewDetail(data, view);
+  const groups = (shown?.groups ?? []).filter((g) => !g.hidden);
+  const inView = view !== "all";
   const ids = groups.map((g) => g.id);
   const allCollapsed = groups.length > 0 && groups.every((g) => isCollapsed(g.id));
 
@@ -92,7 +107,13 @@ export function PlanGrid({
   // Every selectable category, collapsed groups included (Uncategorized is never one).
   const all = groups.flatMap((g) => g.categories.filter((c) => !c.hidden).map((c) => c.id));
   const selected = new Set(visibleSelection(selection, all));
+  const snooze = useToggleSnooze(budgetId, month);
   usePlanShortcuts({
+    onSnooze: () => {
+      if (selected.size !== 1 || month !== localCurrentMonth()) return;
+      const c = groups.flatMap((g) => g.categories).find((x) => selected.has(x.id));
+      if (c?.target) snooze.toggle(c.id, !c.target_snoozed);
+    },
     onStep: (dir) => onSelection((s) => step(s, order, dir)),
     onExtend: (dir) => onSelection((s) => extend(s, order, dir)),
     onSelectAll: () => onSelection((s) => selectAll(all, s)),
@@ -277,53 +298,58 @@ export function PlanGrid({
             bars={bars}
             setBars={setBars}
             onAddGroup={(anchor) => setPop({ kind: "add-group", anchor })}
+            addGroupDisabled={inView}
           />
-          <div className="grid-row header-row" role="row">
-            <div className="cell-margin" />
-            <div className="cell-collapse">
-              <button
-                type="button"
-                className="collapse-button"
-                aria-label={headerLabel}
-                title={headerLabel}
-                onClick={() => setCollapsed(ids, !allCollapsed)}
+          {!(inView && groups.length === 0 && data) && (
+            <div className="grid-row header-row" role="row">
+              <div className="cell-margin" />
+              <div className="cell-collapse">
+                <button
+                  type="button"
+                  className="collapse-button"
+                  aria-label={headerLabel}
+                  title={headerLabel}
+                  onClick={() => setCollapsed(ids, !allCollapsed)}
+                >
+                  {allCollapsed ? <ChevronRightSmallIcon /> : <ChevronDownIcon />}
+                </button>
+              </div>
+              <div className="cell-checkbox">
+                <Checkbox
+                  label={
+                    all.length > 0 && selected.size === all.length ? "Uncheck all" : "Check all"
+                  }
+                  checked={checkState(all, selected)}
+                  onChange={() => onSelection((s) => headerClick(s, all))}
+                />
+              </div>
+              <div className="cell-name" role="columnheader">
+                <strong>CATEGORY</strong>
+              </div>
+              <div
+                className="num cell-assigned"
+                role="columnheader"
+                title="Add money to each category in this column. This is the fun part. Until the money runs out."
               >
-                {allCollapsed ? <ChevronRightSmallIcon /> : <ChevronDownIcon />}
-              </button>
+                <strong>ASSIGNED</strong>
+              </div>
+              <div
+                className="num cell-activity"
+                role="columnheader"
+                title={`It's the "We spent how much on WHAT?!" column.`}
+              >
+                <strong>ACTIVITY</strong>
+              </div>
+              <div
+                className="num cell-available"
+                role="columnheader"
+                title="Do I have enough to buy that handmade didgeridoo? With this column, now you know."
+              >
+                <strong>AVAILABLE</strong>
+              </div>
+              <div className="cell-margin" />
             </div>
-            <div className="cell-checkbox">
-              <Checkbox
-                label={all.length > 0 && selected.size === all.length ? "Uncheck all" : "Check all"}
-                checked={checkState(all, selected)}
-                onChange={() => onSelection((s) => headerClick(s, all))}
-              />
-            </div>
-            <div className="cell-name" role="columnheader">
-              <strong>CATEGORY</strong>
-            </div>
-            <div
-              className="num cell-assigned"
-              role="columnheader"
-              title="Add money to each category in this column. This is the fun part. Until the money runs out."
-            >
-              <strong>ASSIGNED</strong>
-            </div>
-            <div
-              className="num cell-activity"
-              role="columnheader"
-              title={`It's the "We spent how much on WHAT?!" column.`}
-            >
-              <strong>ACTIVITY</strong>
-            </div>
-            <div
-              className="num cell-available"
-              role="columnheader"
-              title="Do I have enough to buy that handmade didgeridoo? With this column, now you know."
-            >
-              <strong>AVAILABLE</strong>
-            </div>
-            <div className="cell-margin" />
-          </div>
+          )}
         </div>
         {q.isError && !data ? (
           <div className="grid-error" role="alert">
@@ -339,7 +365,7 @@ export function PlanGrid({
                 {notice}
               </div>
             )}
-            {data?.uncategorized && <UncategorizedRow u={data.uncategorized} />}
+            {!inView && data?.uncategorized && <UncategorizedRow u={data.uncategorized} />}
             {groups.map((g) => {
               const collapsed = isCollapsed(g.id);
               return (
@@ -416,7 +442,23 @@ export function PlanGrid({
                 </div>
               );
             })}
-            {data && (
+            {inView && data && groups.length === 0 && (
+              <div className="view-empty">
+                <p>{VIEW_EMPTY_TEXT[view]}</p>
+                <button type="button" className="view-all" onClick={onViewAll}>
+                  View All
+                </button>
+              </div>
+            )}
+            {inView && groups.length > 0 && (
+              <div className="view-footer">
+                <span>{VIEW_HIDDEN_FOOTER}</span>
+                <button type="button" className="view-all" onClick={onViewAll}>
+                  View All
+                </button>
+              </div>
+            )}
+            {!inView && data && (
               <HiddenCategoriesRow
                 groups={data.groups}
                 budgetId={budgetId}

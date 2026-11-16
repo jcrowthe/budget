@@ -256,6 +256,30 @@ const CALLS: [string, (c: Ctx) => Json][] = [
       amount: 100000,
     }),
   ],
+  [
+    "snooze_target",
+    (c) => ({
+      budget_id: c.bid,
+      month: MONTH,
+      category_id: c.category,
+      snoozed: true,
+      today: "2026-11-15",
+    }),
+  ],
+  [
+    "preview_auto_assign",
+    (c) => ({ budget_id: c.bid, month: MONTH, category_ids: [c.category], today: "2026-11-15" }),
+  ],
+  [
+    "auto_assign",
+    (c) => ({
+      budget_id: c.bid,
+      month: MONTH,
+      strategy: "underfunded",
+      category_ids: [c.category],
+      today: "2026-11-15",
+    }),
+  ],
   ["delete_category_target", (c) => ({ budget_id: c.bid, category_id: c.category })],
   [
     "delete_category",

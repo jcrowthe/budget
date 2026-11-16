@@ -1,5 +1,6 @@
 import { Month } from "@budget/schema/common/dates";
 import { InputMonth, MonthNoteUpdate } from "@budget/schema/months";
+import { PlanView } from "@budget/schema/plan-views";
 import { Today } from "@budget/schema/targets";
 import { z } from "zod";
 import { NotFound } from "../../middleware/errors";
@@ -20,31 +21,48 @@ const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5,
 export const tools: McpToolDef[] = [
   {
     name: "get_plan_month",
-    description: `Read one month of a plan. ${MONTH} ${MONEY} Returns { month, note, ready_to_assign, rta_breakdown, groups, uncategorized }: each group and each of its categories has id, name, hidden, assigned, activity and available; categories also carried, target and note. A category's target holds its figures for the month. ${TODAY}`,
-    inputSchema: z.object({ budget_id: Id, month: Month, today: Today.optional() }),
-    run: async (input: { budget_id: string; month: string; today?: string }, { env }) =>
-      getPlanMonth(env, input.budget_id, input.month, input.today),
+    description: `Read one month of a plan. ${MONTH} ${MONEY} Returns { month, note, ready_to_assign, rta_breakdown, groups, uncategorized }: each group and each of its categories has id, name, hidden, assigned, activity and available; categories also carried, target, note and target_snoozed (true while its target is snoozed this month). view (all, overspent, underfunded, overfunded, money_available, snoozed) narrows to the categories the Plan page's view shows; default all. A category's target holds its figures for the month. ${TODAY}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      month: Month,
+      view: PlanView.optional(),
+      today: Today.optional(),
+    }),
+    run: async (
+      input: { budget_id: string; month: string; view?: PlanView; today?: string },
+      { env },
+    ) => getPlanMonth(env, input.budget_id, input.month, input.today, input.view),
   },
   {
     name: "get_month_summary",
-    description: `Totals of one month of a plan: with category_ids, exactly those categories (hidden ones included); without, every category that is not hidden and not in a hidden group. ${MONTH} ${MONEY} Returns { leftover, assigned, activity, available }: leftover is the positive Available carried from the previous month; available = leftover + assigned + activity. An unknown category id is an error. ${TODAY}`,
+    description: `Totals of one month of a plan: with category_ids, exactly those categories (hidden ones included); without, every category that is not hidden and not in a hidden group. ${MONTH} ${MONEY} Returns { leftover, assigned, activity, available }: leftover is the positive Available carried from the previous month; available = leftover + assigned + activity. An unknown category id is an error. view (all, overspent, underfunded, overfunded, money_available, snoozed) narrows to the categories the Plan page's view shows; default all. With view, totals cover only the categories that view shows; category_ids and view together are an error. ${TODAY}`,
     inputSchema: z.object({
       budget_id: Id,
       month: InputMonth,
       category_ids: z.array(Id).min(1).max(500).optional(),
+      view: PlanView.optional(),
       today: Today.optional(),
     }),
     run: async (
-      input: { budget_id: string; month: string; category_ids?: string[]; today?: string },
+      input: {
+        budget_id: string;
+        month: string;
+        category_ids?: string[];
+        view?: PlanView;
+        today?: string;
+      },
       { env },
-    ) =>
-      getMonthSummary(
+    ) => {
+      if (input.category_ids && input.view) throw new Error("Give category_ids or view, not both");
+      return getMonthSummary(
         env,
         input.budget_id,
         input.month,
         input.category_ids && [...new Set(input.category_ids)],
         input.today,
-      ),
+        input.view,
+      );
+    },
   },
   {
     name: "list_plan_months",

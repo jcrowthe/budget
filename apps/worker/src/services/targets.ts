@@ -1,12 +1,14 @@
 import { toMonth } from "@budget/core/month";
 import { IsoDate } from "@budget/schema/common/dates";
-import { type Target, TargetDelete, TargetSet } from "@budget/schema/targets";
+import { type Target, TargetDelete, TargetSet, type TargetSnooze } from "@budget/schema/targets";
+import { sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
+import * as snoozesRepo from "../repositories/target-snoozes";
 import * as repo from "../repositories/targets";
 
 const MAX_ATTEMPTS = 5;
@@ -117,8 +119,87 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
         repo.holds(db, v.budget_id, v.category_id, before.updatedAt),
       ),
       repo.deleteIfHoldsStmt(db, v.budget_id, v.category_id, before.updatedAt),
+      // The target's snoozes go with it (only when the delete above changed a row).
+      snoozesRepo.deleteForCategoryStmt(db, v.budget_id, v.category_id, sql`changes() > 0`),
     ]);
     if (del.meta.changes > 0) return targetToApi(before);
   }
   throw new Conflict("Target");
+}
+
+/** The snooze is refused: no target, or not the owner's current month. The routes answer 422. */
+export class SnoozeRefused extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SnoozeRefused";
+  }
+}
+
+/**
+ * Snoozes or unsnoozes a category's target for a month. Only the owner's current month (`today`, default the
+ * server's UTC date) and only a category with a target; asking for the state it already has writes nothing.
+ */
+export async function setTargetSnooze(
+  env: Env,
+  actor: string,
+  input: { budget_id: string; month: string; category_id: string; snoozed: boolean },
+  opts: { today?: string } = {},
+): Promise<TargetSnooze> {
+  const db = getDb(env);
+  const today = opts.today === undefined ? todayUtc() : IsoDate.parse(opts.today);
+  await requirePlan(db, input.budget_id);
+  if (!(await categoriesRepo.findActive(db, input.budget_id, input.category_id))) {
+    throw new NotFound("Category");
+  }
+  if (!(await repo.find(db, input.budget_id, input.category_id))) {
+    throw new SnoozeRefused("This category has no target to snooze.");
+  }
+  if (input.month !== toMonth(today)) {
+    throw new SnoozeRefused("You can only snooze targets in the current month.");
+  }
+  const result: TargetSnooze = {
+    month: input.month,
+    category_id: input.category_id,
+    snoozed: input.snoozed,
+  };
+  const now = new Date().toISOString();
+  // One batch: the log row only while the state is still what was read AND the target still exists; the
+  // write only if that row was written. A concurrent identical request or a target delete logs nothing.
+  const [log] = await db.batch([
+    changeLogInsertIf(
+      db,
+      {
+        budgetId: input.budget_id,
+        actor,
+        action: "update",
+        entityType: "target_snooze",
+        entityId: `${input.category_id}:${input.month}`,
+        before: { ...result, snoozed: !input.snoozed },
+        after: result,
+      },
+      snoozesRepo.stateHolds(db, input.budget_id, input.category_id, input.month, input.snoozed),
+    ),
+    input.snoozed
+      ? snoozesRepo.insertIfStmt(
+          db,
+          {
+            budgetId: input.budget_id,
+            categoryId: input.category_id,
+            month: input.month,
+            createdAt: now,
+          },
+          sql`changes() > 0`,
+        )
+      : snoozesRepo.deleteStmt(
+          db,
+          input.budget_id,
+          input.category_id,
+          input.month,
+          sql`changes() > 0`,
+        ),
+  ]);
+  if (log.meta.changes === 0 && !(await repo.find(db, input.budget_id, input.category_id))) {
+    throw new SnoozeRefused("This category has no target to snooze.");
+  }
+  return result;
 }

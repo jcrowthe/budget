@@ -1,6 +1,7 @@
 import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 import { targetPill } from "@budget/schema/target-wording";
+import type { ReactNode } from "react";
 import { AvailablePill } from "../AvailablePill";
 import { money, signed } from "../format";
 import { PencilIcon } from "../icons";
@@ -19,6 +20,7 @@ export function CategoryInspector({
   targetCollapsed,
   onToggleTarget,
   onEdit,
+  autoAssign,
 }: {
   budgetId: string;
   month: Month;
@@ -28,6 +30,8 @@ export function CategoryInspector({
   collapsed: boolean;
   onToggle: () => void;
   onEdit: (anchor: HTMLElement) => void;
+  /** The Auto-Assign card, drawn between the Target and Notes cards. */
+  autoAssign: ReactNode;
 }) {
   // Credit card spending is not built (EXF-532): all of a category's activity is cash spending.
   const rows: [string, string][] = [
@@ -81,7 +85,7 @@ export function CategoryInspector({
         collapsed={targetCollapsed}
         onToggle={onToggleTarget}
       />
-      {/* Auto-Assign (EXF-519) goes here. */}
+      {autoAssign}
       <NotesCard budgetId={budgetId} categoryId={c.id} note={c.note} />
     </>
   );

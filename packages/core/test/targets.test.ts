@@ -360,3 +360,43 @@ describe("targetBar", () => {
     expect(bar(w, NOV).sections).toEqual([]);
   });
 });
+
+describe("snooze", () => {
+  const yearly = def({
+    cadence: "yearly",
+    amount: 100000,
+    due_date: "2026-11-30",
+    behavior: "set_aside",
+  });
+  it("a snoozed month has status snoozed and the same figures", () => {
+    const plain = t(yearly, NOV, { A: 40000 });
+    const s = t({ ...yearly, snoozed_months: [NOV] }, NOV, { A: 40000 });
+    expect(s.status).toBe("snoozed");
+    expect(plain.status).toBe("underfunded");
+    expect(s.to_go_this_month).toBe(60000);
+    expect(s.needed_this_month).toBe(100000);
+    expect({ ...s, status: plain.status }).toEqual(plain);
+    expect("snoozed_months" in s.definition).toBe(false);
+  });
+  it("another month is unaffected", () => {
+    const d = def({ snoozed_months: [NOV] });
+    expect(t(d, DEC).status).toBe("underfunded");
+    expect(t(d, NOV).status).toBe("snoozed");
+  });
+  it("a funded target snoozed is snoozed", () => {
+    expect(t(def({ snoozed_months: [NOV] }), NOV, { A: 100000 }).status).toBe("snoozed");
+  });
+  it("computeMonth carries it through the engine", () => {
+    const input: EngineInput = {
+      groups: [{ id: "g", name: "G", sortOrder: 0, hidden: false, collapsed: false }],
+      categories: [{ id: "c1", groupId: "g", name: "Rent", sortOrder: 0, hidden: false }],
+      assignments: [],
+      activity: [],
+      notes: [],
+      targets: [{ categoryId: "c1", ...def({ snoozed_months: [NOV] }) }],
+      today: TODAY,
+    };
+    expect(computeMonth(input, NOV).groups[0]?.categories[0]?.target?.status).toBe("snoozed");
+    expect(computeMonth(input, DEC).groups[0]?.categories[0]?.target?.status).toBe("underfunded");
+  });
+});

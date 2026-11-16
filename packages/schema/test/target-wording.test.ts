@@ -566,3 +566,29 @@ describe("helpers and form copy", () => {
     expect(targetPill(c)).toEqual({ tone: "zero", icon: null, title: "" });
   });
 });
+
+describe("snoozed target", () => {
+  const snoozed = (): TargetCategory => {
+    const c = cat({
+      name: "s",
+      def: {},
+      assigned: 40000,
+      fig: { ...MONTHLY30, to_go_this_month: 60000 },
+    });
+    return c.target ? { ...c, target: { ...c.target, status: "snoozed" } } : c;
+  };
+  it("pill is green with the snooze icon and the plain title", () => {
+    expect(targetPill(snoozed())).toEqual({
+      tone: "positive",
+      icon: "snooze",
+      title: "$40.00 Available to plan your spending—or click to move it to another category!",
+    });
+  });
+  it("no status text, donut or message; the breakdown stays", () => {
+    const c = snoozed();
+    expect(targetStatusText(c)).toBeNull();
+    expect(targetDonut(c)).toBeNull();
+    expect(targetMessage(c)).toBeNull();
+    expect(c.target && targetBreakdown(c).length).toBeGreaterThan(0);
+  });
+});

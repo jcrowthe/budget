@@ -12,6 +12,7 @@ export function PanelCard({
   onToggle,
   right,
   icon,
+  iconFirst = false,
   ruled = false,
   children,
 }: {
@@ -22,6 +23,8 @@ export function PanelCard({
   right?: ReactNode;
   /** Beside the title (the Target card's donut). */
   icon?: ReactNode;
+  /** Draw `icon` before the title (Auto-Assign's lightning) instead of after it. */
+  iconFirst?: boolean;
   /** A static header over a rule and a body padded 16 all round (the Target form). */
   ruled?: boolean;
   children: ReactNode;
@@ -55,8 +58,9 @@ export function PanelCard({
         aria-controls={id}
         onClick={onToggle}
       >
+        {iconFirst && icon}
         <h2 className="panel-card-title">{title}</h2>
-        {icon}
+        {!iconFirst && icon}
         {collapsed ? <CardChevronRightIcon /> : <CardChevronDownIcon />}
         {right && <span className="card-roll-up-right">{right}</span>}
       </button>

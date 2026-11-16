@@ -31,6 +31,8 @@ export interface TargetDefinition {
   due_month: Month | null;
   repeat: { every: number; unit: RepeatUnit } | null;
   created_on: string;
+  /** Months in which the owner snoozed this target: its status there is "snoozed". Never echoed back. */
+  snoozed_months?: readonly Month[];
 }
 
 export interface TargetMonth {
@@ -265,8 +267,12 @@ export function computeTargetMonth(
   else if (overallFinal === 0) status = "funded";
   else status = toGoFinal === 0 ? "on_track" : "underfunded";
 
+  // The snooze changes the status only: every figure stays what it was.
+  const { snoozed_months: snoozed, ...definition } = def;
+  if (snoozed?.includes(month)) status = "snoozed";
+
   return {
-    definition: def,
+    definition,
     status,
     needed_this_month: needed,
     amount_this_month: amountThisMonth ?? needed,

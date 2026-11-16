@@ -8,6 +8,8 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/months/{month}/categories/{category_id}": {
     tool: "get_month_category",
   },
+  "GET /budgets/{budget_id}/months/{month}/auto-assign": { tool: "preview_auto_assign" },
+  "POST /budgets/{budget_id}/months/{month}/auto-assign": { tool: "auto_assign" },
   "GET /budgets/{budget_id}/month-range": { tool: "get_month_range" },
   "PATCH /budgets/{budget_id}/months/{month}/categories/{category_id}": { tool: "set_assigned" },
 };
