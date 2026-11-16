@@ -397,6 +397,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | completed (21 minutes): flow 8 `new_gaps` (EXF-591), flow 5 `parity_known_gaps` |
 | 2026-11-16 | 56 | Build feature, EXF-508, EXF-514, EXF-592 targets form and display (`p_74b956498a4b4ce1bed94c516291a48f`) | EXF-508, 514, 592 | pending | running |
 | 2026-11-16 | 57 | Deploy of main `113ced4` (`p_e549c296232b4f06be26ddeb660f709a`) | EXF-498, 523, 521, 586 | n/a | live `113ced4` (8 minutes) |
+| 2026-11-16 | 59 | Deploy of main `4e3eb7a` (`p_749540e03f854b349882000bee3249b2`) | EXF-486, 488 | n/a | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4808,3 +4809,28 @@ filed now; EXF-587, EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-58
 progress EXF-592. Template: twenty-six. Flow verdicts unchanged. Finished since each template's last
 review: Build 9, Deploy 4, Discover 2, Test user flow 5. **One more Build and the Build template review
 is due.**
+
+### 2026-11-16 · Plan round 59
+
+Children used 71 of 200. Three are running: two Builds from earlier rounds (EXF-526 with EXF-524, in its
+rework; EXF-508 with EXF-514 and EXF-592, designed) and the Deploy started now.
+
+- The ticket filed at the last review exists: **EXF-593** (split-aware account guards; closed accounts
+  take no new transactions), set to High and blocked by EXF-524.
+- **Started the Deploy of main `4e3eb7a`** (`p_749540e03f854b349882000bee3249b2`), `gated_commit` `22de333`
+  (trees equal), run prefix `ZZ-TEST D16`, no migration. It ships account editing alone.
+  - **It is told to stop after the gate if main has moved**: transfers and splits must not go live with
+    account editing before EXF-593. Main can only move if I approve a card, so I will not approve the
+    transfers card until this Deploy's gate has fixed its commit.
+  - Checks: rename and note with both name errors; `adjust-balance` on a cash account (Ready to Assign
+    follows) and on an asset (it does not); close with its adjustment, reopen, delete with Ready to
+    Assign following; `can_delete`; 50 tools expected; both dialogs from both pencils with a real mouse.
+- **No new Build, on purpose.** The accounts files and the shell are free, and loan types (EXF-482) could
+  start, but **EXF-593 needs the accounts files the moment transfers and splits merges**, and it gates
+  the next release. I keep them free for it.
+- **Order after the transfers merge:** (1) EXF-593 with EXF-590 and EXF-587, one Build (accounts guards,
+  closed accounts, the payee's remembered Ready to Assign, timestamp formats: Worker files plus two small
+  register changes); (2) in parallel the Reflect Build (EXF-549, EXF-588, EXF-591), whose files are
+  disjoint; (3) then the import (EXF-462), which needs the transactions files after (1).
+- Ticket writes: 1 (EXF-593 priority and link).
+- Review cadence: Build 9, Deploy 4, Discover 2, Test user flow 5.
