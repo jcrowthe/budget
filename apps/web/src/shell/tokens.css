@@ -29,6 +29,12 @@
   --buttonSecondaryLabel: #f1f1ff;
   --buttonGhostLabel: #a3acff;
   --buttonSecondaryBackgroundHover: rgba(117, 131, 255, 0.27);
+  --keyCapBackground: rgba(114, 116, 132, 0.24);
+  --keyCapTooltipBackground: rgba(255, 255, 255, 0.15);
+  --tooltipBackground: #3c3e53;
+  --tooltipLabel: #ededf5;
+  --tooltipShadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  --separatorStandard: rgba(255, 255, 255, 0.1);
 
   --sidebar-width: 260px;
   --nav-row: 40px;
@@ -44,10 +50,13 @@
   --space-card: 0.65rem;
   --space-half: 0.2rem;
   --sidebar-resizer: 3px;
+  --sidebar-collapsed: 56px;
+  --sidebar-transition: width 0.25s ease;
   --menu-min-width: 240px;
   --menu-max-width: 480px;
   --menu-edge: 16px;
   --z-menu: 25;
+  --z-tooltip: 40;
   --line-height: 1.2;
 
   --font: "Figtree Variable", "Helvetica Neue", Helvetica, Arial, sans-serif;

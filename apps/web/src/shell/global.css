@@ -35,10 +35,24 @@ a {
 .sidebar {
   width: var(--sidebar-width);
   flex: none;
+  display: flex;
+  flex-direction: column;
   background: var(--sidebarBackground);
   border-right: 1px solid var(--borderSubtle);
-  overflow-y: auto;
+  overflow: visible;
   position: relative;
+}
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sidebar.is-transitioning {
+  transition: var(--sidebar-transition);
+  overflow: hidden;
+}
+.sidebar.is-resizing {
+  overflow: hidden;
 }
 .main {
   flex: 1;
@@ -151,7 +165,7 @@ a {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  width: 224px;
+  width: calc(var(--sidebar-width) - 36px);
   height: 28px;
   margin: var(--space-2) var(--space-3);
   border: 0;
@@ -1028,4 +1042,107 @@ a {
   justify-content: center;
   text-decoration: none;
   color: inherit;
+}
+
+/* Collapse, expand and resize (EXF-474). */
+.sidebar-bottom {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 28px;
+  padding: 12px 0;
+  box-sizing: content-box;
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.sidebar-collapse,
+.sidebar-expand {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 32px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  opacity: 0.8;
+  cursor: pointer;
+}
+.sidebar-collapse:hover,
+.sidebar-expand:hover,
+.sidebar-collapse:focus-visible,
+.sidebar-expand:focus-visible {
+  opacity: 1;
+}
+.sidebar-collapse {
+  margin-right: calc(var(--space-2) + var(--sidebar-resizer));
+}
+.sidebar-collapse svg,
+.sidebar-expand svg {
+  width: 24px;
+  height: 24px;
+}
+.sidebar.is-collapsed .sidebar-bottom {
+  flex-direction: column;
+  justify-content: center;
+  height: auto;
+}
+.sidebar.is-collapsed .sidebar-expand {
+  justify-content: center;
+}
+.rail-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 47px;
+  margin: var(--space-2) 5px var(--space-2) var(--space-2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+}
+.rail-logo:hover {
+  background: var(--sidebarHover);
+}
+.sidebar.is-collapsed .nav {
+  margin: 0 5px var(--nav-gap) var(--space-2);
+}
+.sidebar.is-collapsed .nav a {
+  justify-content: center;
+  width: 39px;
+  padding: 0;
+}
+.sidebar.is-narrow .nav-accounts .value {
+  display: none;
+}
+.sidebar-resizer {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--sidebar-resizer);
+  cursor: ew-resize;
+  z-index: 1;
+}
+.sidebar-resizer-indicator {
+  position: fixed;
+  top: calc(50% + 1.25rem);
+  margin-left: var(--space-2);
+  width: 8px;
+  height: 40px;
+  border-radius: 100px;
+  background: var(--actionPrimary);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.sidebar-resizer:hover .sidebar-resizer-indicator,
+.sidebar.is-resizing .sidebar-resizer-indicator {
+  opacity: 1;
+}
+html.sidebar-resizing,
+html.sidebar-resizing * {
+  user-select: none;
+  cursor: ew-resize;
 }

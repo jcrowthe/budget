@@ -25,7 +25,7 @@ import {
   PlusCircleIcon,
   WrenchIcon,
 } from "./icons";
-import { placeMenu, placeSubmenu } from "./menuPlacement";
+import { placeMenu, placeMenuBeside, placeSubmenu } from "./menuPlacement";
 import { planMenuActions } from "./planMenuActions";
 import {
   type EntryDef,
@@ -83,12 +83,14 @@ export function PlanMenu({
   initialFocus = "first",
   onClose,
   onDialog,
+  placement = "below",
 }: {
   anchorRef: RefObject<HTMLButtonElement | null>;
   openedByKeyboard: boolean;
   initialFocus?: "first" | "last";
   onClose: (opts: { focusButton: boolean }) => void;
   onDialog: (action: Extract<PlanMenuAction, { Dialog: unknown }>) => void;
+  placement?: "below" | "beside";
 }) {
   const { plan, plans } = useCurrentPlan();
   const navigate = useNavigate();
@@ -109,8 +111,18 @@ export function PlanMenu({
   useLayoutEffect(() => {
     void tick; // re-run on resize and scroll
     const a = anchorRef.current;
-    if (a) setMenuPos(placeMenu(a.getBoundingClientRect(), window.innerHeight));
-  }, [anchorRef, tick]);
+    if (!a) return;
+    const rect = a.getBoundingClientRect();
+    setMenuPos(
+      placement === "beside"
+        ? placeMenuBeside(
+            rect,
+            a.closest("nav")?.getBoundingClientRect().right ?? rect.right,
+            window.innerHeight,
+          )
+        : placeMenu(rect, window.innerHeight),
+    );
+  }, [anchorRef, tick, placement]);
   // Place the submenu beside the Open Plan row, measured once it is rendered.
   useLayoutEffect(() => {
     void tick;
