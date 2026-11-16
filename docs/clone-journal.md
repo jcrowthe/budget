@@ -389,7 +389,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | live `b09078b` (6 minutes) |
 | 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
 | 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | live `3a3a977` (6 minutes) |
-| 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | pending | running |
+| 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | PR #30 | merged `74f1041` (round 53), 45 minutes, one card |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
 | 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
 
@@ -4399,3 +4399,41 @@ Children used 65 of 200. Three Builds are running, all from earlier rounds: the 
 - Nothing new can start: the Plan page, the accounts files and the transactions files are held; the
   spending reports need splits and transfers.
 - Review cadence: Build 6, Deploy 2, Discover 2, Test user flow 4.
+
+### 2026-11-16 · Review round 53
+
+Children used 65 of 200. Two Builds are running: the Plan-page Build (EXF-498, 523, 521, 586; at its gate,
+which ran on the old base) and EXF-526 with EXF-524 (e2e specs written, head `02198c3`).
+
+**Ended: the Worker half of EXF-461, merged as `74f1041` (PR #30)**, 45 minutes and one card. EXF-461 goes
+back to Backlog with a comment: its Worker half is on main, its screens are not built.
+
+- I approved at its card after reading the branch: gate on the current base, e2e 189 of 189 three times;
+  no file under `apps/web/`; no source comparison. **Nine of nine Builds without a screen: none.**
+- On main: `routes/account-links.ts`, `services/account-links.ts`; `accounts.bank_account_id`,
+  `import_start_date` and a unique index (one link per bank account per plan); every account read carries
+  `bank_account_id`, `linked`, `import_start_date`; connection reads fill `linked_account_id`; removal
+  unlinks in its batch with per-account guards (`unlinkIfStmt`, `noLinksToConnection`).
+- `docs/account-links-spec.md` is stale in three passages (bulk unlink); the design doc and code are right.
+- The account shape gained three required fields, so two test fixtures outside the manifest changed. The
+  transfers and splits Build has fixtures of accounts too: expect a small fix at its rebase.
+- **What is now possible without a screen:** connect a bank in the app (Plaid Link), then add its accounts
+  to the plan with the from-bank tool. Nothing imports transactions yet (EXF-462 next).
+
+**The accounts and bank-connection Worker files are free.** Ready there: EXF-462 (import from Plaid) also
+needs the transactions files, held by the transfers and splits Build; EXF-587 (timestamp formats) needs
+the transactions tool file. Both wait for that Build. EXF-486 with EXF-482 (account edit, close, reopen,
+delete; loan types) need the shell: their dialogs' counterparts are in the test plan (its accounts are
+closed, the edit dialog opens from the sidebar): possible next, with source limits that forbid Bank
+Connections and saving.
+
+**Main is `74f1041`; live is `3a3a977`**, two merges behind (Reflect; linked accounts Worker), with two
+migrations pending (`100200`, `100600`). **Deploy next plan** rather than wait longer for the Plan-page
+Build: the from-bank tool is the first step to live bank data.
+
+**Ticket writes:** 2 (EXF-461 to Backlog with a comment).
+
+**Backlog:** 76 open feature tickets (21 done; 5 in progress: EXF-498, 523, 521, 526, 524). Gap: EXF-587,
+EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress EXF-586 (High). Template:
+twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished
+since each template's last review: Build 7, Deploy 2, Discover 2, Test user flow 4.
