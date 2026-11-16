@@ -27,6 +27,7 @@ import {
   LockIcon,
   TransferIcon,
 } from "./icons";
+import { useOpenAccounts } from "./openAccounts";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
 
@@ -100,13 +101,7 @@ export function RegisterTable({
     column: "date",
     dir: "desc",
   });
-  const openAccounts = useMemo(
-    () =>
-      sidebarSections(accountsQ.data ?? [])
-        .filter((s) => s.name !== "starred" && s.name !== "closed")
-        .flatMap((s) => s.rows),
-    [accountsQ.data],
-  );
+  const { openAccounts } = useOpenAccounts(budgetId);
   const navigate = useNavigate();
   const location = useLocation();
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());

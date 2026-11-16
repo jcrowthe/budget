@@ -247,3 +247,77 @@ describe("update", () => {
     for (const p of created) expect(logged.map((l) => l.entity_id)).toContain(p.id);
   });
 });
+
+describe("last_inflow_to_ready_to_assign", () => {
+  it("tells Ready to Assign apart from no remembered category, over REST and MCP", async () => {
+    const bid = await plan();
+    const aid = await account(bid);
+    const other = await account(bid);
+    const cat = await category(bid);
+    await post(bid, {
+      account_id: aid,
+      date: DAY,
+      amount: 250000,
+      payee_name: "ZZ Employer",
+      inflow_to_ready_to_assign: true,
+    });
+    await post(bid, {
+      account_id: aid,
+      date: DAY,
+      amount: -500,
+      payee_name: "ZZ Shop",
+      category_id: cat,
+    });
+    await post(bid, {
+      account_id: aid,
+      date: DAY,
+      amount: -300,
+      payee_name: "ZZ Splitter",
+      subtransactions: [
+        { amount: -100, category_id: cat },
+        { amount: -200, category_id: cat },
+      ],
+    });
+    await post(bid, { account_id: aid, date: DAY, amount: -100, transfer_account_id: other });
+    await send(`/api/v1/budgets/${bid}/accounts/${aid}/adjust-balance`, "POST", { balance: 5 });
+
+    const check = (list: Json[]) => {
+      const by = (n: string) => list.find((p) => p.name === n) as Json;
+      expect(by("ZZ Employer")).toMatchObject({
+        last_category_id: null,
+        last_inflow_to_ready_to_assign: true,
+      });
+      expect(by("ZZ Shop")).toMatchObject({
+        last_category_id: cat,
+        last_inflow_to_ready_to_assign: false,
+      });
+      expect(by("ZZ Splitter")).toMatchObject({
+        last_category_id: null,
+        last_inflow_to_ready_to_assign: false,
+      });
+      const system = list.filter((p) => p.system !== null);
+      expect(system.map((p) => p.system)).toEqual(
+        expect.arrayContaining(["starting_balance", "manual_adjustment"]),
+      );
+      for (const p of system) expect(p.last_inflow_to_ready_to_assign).toBe(false);
+      const transfers = list.filter((p) => p.transfer_account_id !== null);
+      expect(transfers.length).toBeGreaterThan(0);
+      for (const p of transfers) expect(p.last_inflow_to_ready_to_assign).toBe(false);
+    };
+    check(await payees(bid));
+    const viaTool = await mcp("list_payees", { budget_id: bid });
+    check(JSON.parse(viaTool.result.content[0].text).payees);
+
+    await post(bid, {
+      account_id: aid,
+      date: "2026-11-11",
+      amount: -700,
+      payee_name: "ZZ Employer",
+      category_id: cat,
+    });
+    expect((await payees(bid)).find((p) => p.name === "ZZ Employer")).toMatchObject({
+      last_category_id: cat,
+      last_inflow_to_ready_to_assign: false,
+    });
+  });
+});

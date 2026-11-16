@@ -142,3 +142,5 @@ running the gate or calling Cloudflare.
 Live flow tests reach the clone with `scripts/access-browser.mjs`.
 
 **Plan menu entries.** The plan menu's entries are fixed in `apps/web/src/shell/planMenuEntries.ts`. An entry is enabled by adding one file `apps/web/src/menu-actions/<entry-id>.ts(x)` that exports `action: PlanMenuAction` (`{ entry, run(ctx) }` or `{ entry, Dialog }`). The shell collects it with `import.meta.glob`; never edit the shell to enable an entry. Unregistered entries are shown disabled.
+
+**Timestamps in tool results.** A tool whose result holds a timestamp names it with timestamps([...], [nullable]) from mcp/tool-text.ts, and dates with dates(...). A new tool adds its call to CALLS (or a reason to NOT_CALLED) in apps/worker/test/mcp-timestamps.test.ts.

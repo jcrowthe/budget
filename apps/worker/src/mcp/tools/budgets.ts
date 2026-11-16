@@ -7,21 +7,19 @@ import {
   listBudgets,
   updateBudget,
 } from "../../services/budgets";
-import { Id } from "../tool-text";
+import { Id, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 export const tools: McpToolDef[] = [
   {
     name: "list_budgets",
-    description:
-      "List every plan (a plan is a budget). Returns { budgets }: each with id, name, bank_environment, created_at, last_modified_on and last_opened_at (null if never opened in the app).",
+    description: `List every plan (a plan is a budget). Returns { budgets }: each with id, name, bank_environment, created_at, last_modified_on and last_opened_at (null if never opened in the app). ${timestamps(["created_at", "last_modified_on", "last_opened_at"], ["last_opened_at"])}`,
     inputSchema: z.object({}),
     run: async (_input, { env }) => ({ budgets: await listBudgets(env) }),
   },
   {
     name: "get_budget",
-    description:
-      "Read one plan. Returns { budget } with id, name, bank_environment, created_at, last_modified_on and last_opened_at. An unknown or deleted plan is a tool error (Plan not found).",
+    description: `Read one plan. Returns { budget } with id, name, bank_environment, created_at, last_modified_on and last_opened_at. An unknown or deleted plan is a tool error (Plan not found). ${timestamps(["created_at", "last_modified_on", "last_opened_at"], ["last_opened_at"])}`,
     inputSchema: z.object({ budget_id: Id }),
     run: async (input: { budget_id: string }, { env }) => ({
       budget: await getBudget(env, input.budget_id),
@@ -29,8 +27,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "create_budget",
-    description:
-      "Create a plan (budget). name is 1 to 100 characters. bank_environment is the Plaid environment of the plan's bank connections: production (default, real banks) or sandbox (Plaid test banks). A new plan starts with the default category groups Bills, Needs and Wants and their categories. Returns { budget } with id, name, bank_environment, created_at, last_modified_on and last_opened_at (null).",
+    description: `Create a plan (budget). name is 1 to 100 characters. bank_environment is the Plaid environment of the plan's bank connections: production (default, real banks) or sandbox (Plaid test banks). A new plan starts with the default category groups Bills, Needs and Wants and their categories. Returns { budget } with id, name, bank_environment, created_at, last_modified_on and last_opened_at (null). ${timestamps(["created_at", "last_modified_on", "last_opened_at"], ["last_opened_at"])}`,
     inputSchema: z.object({
       name: BudgetCreate.shape.name,
       bank_environment: BudgetCreate.shape.bank_environment,
@@ -41,8 +38,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "update_budget",
-    description:
-      "Rename a plan or change its bank_environment (production or sandbox: the Plaid environment its bank connections use). Send only what changes. Returns { budget } with id, name, bank_environment, created_at, last_modified_on and last_opened_at.",
+    description: `Rename a plan or change its bank_environment (production or sandbox: the Plaid environment its bank connections use). Send only what changes. Returns { budget } with id, name, bank_environment, created_at, last_modified_on and last_opened_at. ${timestamps(["created_at", "last_modified_on", "last_opened_at"], ["last_opened_at"])}`,
     inputSchema: z.object({
       budget_id: Id,
       name: BudgetCreate.shape.name.optional(),
