@@ -42,9 +42,15 @@ function dosDate(date: string): number {
   return ((y - 1980) << 9) | (Number(date.slice(5, 7)) << 5) | Number(date.slice(8, 10));
 }
 
-export function storeZip(files: ZipFile[], date: string): Uint8Array {
+/** MS-DOS time of an HH:mm (seconds are always 0). */
+function dosTime(time: string): number {
+  return (Number(time.slice(0, 2)) << 11) | (Number(time.slice(3, 5)) << 5);
+}
+
+export function storeZip(files: ZipFile[], date: string, time = "00:00"): Uint8Array {
   if (files.length > 0xffff) throw new Error("Too many files for a ZIP without ZIP64");
   const day = dosDate(date);
+  const clock = dosTime(time);
   const entries = files.map((f) => ({
     name: utf8(f.name),
     data: f.data,
@@ -71,7 +77,7 @@ export function storeZip(files: ZipFile[], date: string): Uint8Array {
     u16(20); // version needed
     u16(0x0800); // UTF-8 names
     u16(0); // stored
-    u16(0); // time
+    u16(clock); // time
     u16(day);
     u32(e.crc);
     u32(e.data.length);
@@ -90,7 +96,7 @@ export function storeZip(files: ZipFile[], date: string): Uint8Array {
     u16(20);
     u16(0x0800);
     u16(0);
-    u16(0);
+    u16(clock);
     u16(day);
     u32(e.crc);
     u32(e.data.length);
