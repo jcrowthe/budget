@@ -4743,3 +4743,21 @@ EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 (Low); in progress EXF-592. Template
 verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 5 `parity_known_gaps`, 8 `new_gaps`, 9 `new_gaps` (its gap
 is fixed on live: run it again with the next batch), 10 `new_gaps`, 11 `parity`. Finished since each
 template's last review: Build 8, Deploy 4, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Plan round 58
+
+Children used 70 of 200. Three Builds are running, all from earlier rounds: EXF-526 with EXF-524 (reworking
+the Net Worth query after my Request changes), EXF-486 with EXF-488 (review fixes), EXF-508 with EXF-514
+and EXF-592 (designing). **Nothing started this round.**
+
+- No ticket was filed at the last review. The person's note at the check-in: not provided.
+- Main and live are both `113ced4`: nothing to deploy.
+- **No flow test now:** flow 9 could run again (its gap is fixed on live), but a child for one flow is
+  poor value; it runs with flow 2 in full once transfers and splits are live.
+- **No new Build:** the transactions files, the accounts files and shell, and the Plan page are held; the
+  spending reports and the transaction import wait for transfers and splits on main.
+- **Card order:** the account-editing Build and the transfers and splits Build will reach their gates
+  close together. Approve whichever comes first on an unmoved base; the other goes straight to Regate.
+  The transfers Build has waited longest and unblocks the most (import, spending reports, credit engine):
+  if both cards are in hand at once, approve it first.
+- Review cadence: Build 8, Deploy 4, Discover 2, Test user flow 5.
