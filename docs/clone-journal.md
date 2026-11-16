@@ -385,7 +385,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | PR #26 | merged `3007076` (round 45), 35 minutes |
 | 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | completed (17 minutes): flow 9 `new_gaps` (EXF-586), flow 10 `new_gaps` (EXF-587), flow 1 `parity_known_gaps` |
 | 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
-| 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
+| 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | PR #28 | merged `0b53a5f` (round 48), 62 minutes |
 | 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | live `b09078b` (6 minutes) |
 | 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
 
@@ -4033,3 +4033,57 @@ Plan-page Build for EXF-498, 523, 521 and 586. **Nothing started this round.**
 - Nothing new can start: the files of every ready ticket are held (the transactions files, the Plan page),
   and flow 1 waits to run with flow 2 after the next Deploy.
 - Review cadence: Build 3, Deploy 1, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 48
+
+Children used 61 of 200. Three Builds are running: EXF-517 with EXF-507 (fixing a failure of its regate);
+EXF-548 with EXF-551 (review fixes after its second polish pass); the Plan-page Build for EXF-498, 523,
+521 and 586 (designed, manifest written).
+
+**Ended: the test-infrastructure Build, merged as `0b53a5f` (PR #28)**, 62 minutes. EXF-579 and EXF-569
+are Done.
+
+- I approved at its one card after reading the script change line by line: a plan is listed or purged only
+  when its name starts with the test prefix and with the given prefix; the re-read before each deletion
+  applies both; a prefix outside `ZZ-TEST`, an empty one included, exits 2 before any request.
+- Its gate ran on the current base, so one card was enough. Gate: e2e 148 of 148 three times, changed
+  specs 280 of 280.
+- **From now on every brief that uses the live app gives its child a run prefix** (for example
+  `ZZ-TEST D12 ` for a Deploy check, `ZZ-TEST F2 ` for a flow) **and says: create plans with that prefix,
+  and end with `purge '<that prefix>'`, never the plain `purge`.** A Deploy check and a flow test can then
+  share live. The profile's recipe text still shows the plain `purge` (EXF-581 moves these rules into the
+  profile).
+- On main: `e2e/support/plans.ts` (`showOnlyPlans`), the direct test of `pickLastOpened`, step 10 of
+  `docs/conventions.md` (no spec may assume it is the only one opening or creating plans).
+- No app file changed: nothing to deploy from this merge.
+
+**The transactions Build: its regate on `b09078b` failed, and the cause was its own test helper.**
+`e2e/support/d1.ts` wrote to the local test database from a second process (to mark a payee hidden);
+under the full suite that made the server answer 500 to other specs. The Build first added retries, then
+removed the second-process write (head `a68f948`). 57 visits and almost two hours so far.
+
+- **Rule for briefs: an e2e spec never writes to the test database from outside the server.** State that
+  cannot be reached through the API is set up in a Worker test, or through a test-only route if one
+  exists.
+- Main has moved again under it (`0b53a5f`, which touches `docs/README.md` and `docs/conventions.md`), so
+  its next card will again say Refresh, then Regate. I merged the test-infrastructure Build first
+  because it was ready and small; the cost falls on the larger Build. **When two Builds are both near
+  their gates, approve the larger one first.**
+
+**The Plan-page Build's manifest arrived**, as briefed: migration `20261116100400_category_note.sql`; a new
+`packages/schema/src/month-totals.ts`; `apps/web/src/api/placeholder.ts` (the helper for EXF-586); new
+specs `plan-selection`, `plan-panel`, `plan-switch`; the categories and plan-grid specs. It names
+`services/default-categories.ts`, which no other Build holds. **Scheduling rule: disjoint** from the
+transactions Build (register, transactions, payees, `services/accounts.ts`) and from Reflect.
+
+**Reflect** (head `f14ac51`): "a late save response no longer undoes a newer change; filter popovers
+restart their draft": review fixes. Still to check at its card: `keepPreviousData` in `api/reports.ts`.
+
+**Main is `0b53a5f`; live is `b09078b`** (the difference is tests and one script: nothing to ship).
+
+**Ticket writes:** 4 (two Done, two comments).
+
+**Backlog:** 77 open feature tickets (18 done; 7 in progress). Gap: EXF-558 (High), EXF-587 (Medium),
+EXF-560, EXF-562 (Low); in progress EXF-586 (High); done now also EXF-569, EXF-579. Template: twenty-six.
+Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished since each template's
+last review: Build 4, Deploy 1, Discover 2, Test user flow 3.
