@@ -7375,3 +7375,57 @@ last review.
 
 Ticket writes: 0. Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 8 (the ninth is
 running).
+
+### 2026-11-16 · Review round 85
+
+Children used 102 of 200. One ended: the flow test for flow 2. Four Builds are running: the shell
+(polish, head `ddaf0ff`), the credit engine carry-over (head `fb643e7`, narrow-window fixes), scheduled
+transactions (head `021ffff`, review nits) and the Reflect fixes (head `a0ffff3`). All four are on
+base `8ec621e`. Main and live `8ec621e`.
+
+**Flow 2, third run, on live `8ec621e`** (`p_e031b218fd5b42bf981f4d1bfa178a3b`, prefix `ZZ-TEST F84`,
+about 25 minutes): **`new_gaps`**. Cleanup: `deleted 2 remaining 0`; plans not named `ZZ-TEST`: 1. No
+source app, no bank connection, no response headers, no platform file missing.
+
+- **Every balance and figure I derived matched** (802.66 → 797.66 → 827.66 → 787.66 → 827.66 →
+  1,027.66 → 1,127.66 → 1,120.66 → 1,127.66; Cleared 900.00 and Uncleared −102.34; Hobbies −170.00 then
+  −130.00; Dining −82.34 then −22.34; 11 rows, then 8 in the export).
+- **Passed through the interface with a real mouse and keyboard, at both sizes where asked:** entry
+  with a remembered payee; ticking rows, the header checkbox, ctrl+A, Escape, the Selected Total;
+  Categorize through the menu and its submenu; flags by the bar, by a row's flag cell and by `shift+F`
+  then a digit; `C` toggling cleared; the Memo dialog; Move to Account; Duplicate; Delete of a plain
+  row, a transfer (both sides) and a split; the export of a selection (byte for byte the REST export);
+  Approve for an unapproved row; typing in a field is not a command; no trace of one plan's selection
+  or rows in another (watched from before the first script ran); nothing cut at 1024×700; MCP's bulk
+  tools equal to the screen; one history row per changed transaction.
+- **Three gaps filed, triaged now, all Medium:**
+  - **EXF-635:** shift+click does not select a range. EXF-520 does not describe it, but the source's
+    own shortcut list (EXF-473) names "shift click" and "shift ↑/↓"; I noted that on the ticket so the
+    fix covers both. **My brief expected the range and also got its total wrong** (I assumed the rows
+    sit in the order I created them; the register sorts them otherwise). The tester said so with the
+    arithmetic.
+  - **EXF-636:** on All Accounts the More menu has no Move to Account.
+  - **EXF-637:** a refused bulk action shows the transaction's internal id at the start of its message.
+- Observations without a ticket: the Memo dialog's Update button is disabled while the field is empty,
+  so the bar cannot clear memos (what the source does is unknown); deleting a transfer asks nothing.
+- **The three gaps are in the register's files**, held by the scheduled-transactions Build. They go,
+  with EXF-630 and the scheduled rows' bulk actions, into one register follow-up Build after it merges.
+
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps` (third run: three interface gaps, no wrong
+figure); 3 `new_gaps`; 5 `parity_known_gaps`; 8 `new_gaps`; 9 `new_gaps` (EXF-614, in progress); 10
+`parity`; 11 `parity`; 4, 6, 7 not run.
+
+**Running (no card yet):** all four Builds have moved since the plan: the shell Build is in its
+polish rounds, the credit carry-over is fixing its narrow-window findings (its own measured check
+found a pill and an inspector header that did not fit: the new brief line works), scheduled
+transactions is past its first review, the Reflect fixes have their specs.
+
+**Ticket writes:** 4 (three priorities; comment on EXF-635).
+
+**Backlog:** 56 open feature tickets (41 done; 6 in progress). Gap: open EXF-558, EXF-560, EXF-562,
+EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630, EXF-631, EXF-635, EXF-636, EXF-637; in progress
+EXF-614, EXF-621, EXF-625, EXF-626. Template: thirty-four. Finished since each template's last review:
+Build 2, Deploy 2, Discover 2, Test user flow 9. **The next finished flow test is the tenth: the Test
+user flow template review follows it** (it has never been reviewed).
+
+**Next plan:** nothing free to start; the four Builds' cards come next, then a Deploy for what merges.
