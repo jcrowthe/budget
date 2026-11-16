@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getDb } from "../db/client";
+import { type Db, getDb } from "../db/client";
 import { secrets } from "../db/schema/secrets";
 import type { Env } from "../env";
 import { deriveKey, KeyTooShort, open, seal } from "./crypto";
@@ -63,4 +63,9 @@ export async function getSecret(env: Env, name: string): Promise<string | null> 
 
 export async function deleteSecret(env: Env, name: string): Promise<void> {
   await getDb(env).delete(secrets).where(eq(secrets.name, name));
+}
+
+/** An unexecuted delete, for a `db.batch`; `deleteSecret` executes alone. */
+export function deleteSecretStmt(db: Db, name: string) {
+  return db.delete(secrets).where(eq(secrets.name, name));
 }

@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { bankAccounts } from "../db/schema/bank-accounts";
 import { bankConnections } from "../db/schema/bank-connections";
@@ -39,4 +39,44 @@ export function insertConnectionStmt(db: Db, row: BankConnectionRow) {
 
 export function insertAccountStmt(db: Db, row: BankAccountRow) {
   return db.insert(bankAccounts).values(row);
+}
+
+export async function getInEnvironment(
+  db: Db,
+  environment: "production" | "sandbox",
+  id: string,
+): Promise<{ row: BankConnectionRow; accounts: BankAccountRow[] } | null> {
+  const [row] = await db
+    .select()
+    .from(bankConnections)
+    .where(and(eq(bankConnections.id, id), eq(bankConnections.environment, environment)))
+    .limit(1);
+  if (!row) return null;
+  const accounts = await db
+    .select()
+    .from(bankAccounts)
+    .where(eq(bankAccounts.bankConnectionId, id))
+    .orderBy(bankAccounts.createdAt, bankAccounts.name);
+  return { row, accounts };
+}
+
+/** The guard for `changeLogInsertIf`. */
+export function connectionExists(db: Db, id: string) {
+  return db.select({ one: sql`1` }).from(bankConnections).where(eq(bankConnections.id, id));
+}
+
+export function updateConnectionStmt(
+  db: Db,
+  id: string,
+  set: Partial<Pick<BankConnectionRow, "nickname" | "status" | "lastResetAt" | "updatedAt">>,
+) {
+  return db.update(bankConnections).set(set).where(eq(bankConnections.id, id));
+}
+
+export function deleteAccountsStmt(db: Db, connectionId: string) {
+  return db.delete(bankAccounts).where(eq(bankAccounts.bankConnectionId, connectionId));
+}
+
+export function deleteConnectionStmt(db: Db, id: string) {
+  return db.delete(bankConnections).where(eq(bankConnections.id, id));
 }
