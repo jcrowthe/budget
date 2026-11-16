@@ -105,6 +105,7 @@ Check: covered by T11.
   - append `paymentCreateStmts(…, accountExists: g2)` after the Starting Balance's log row;
   - the success test stays `result.meta.changes` of the account insert.
 - **`createAccount`** (test seam): also appends `paymentCreateStmts`, guarded on the account existing.
+  (T14.1 removes the `findPaymentGroup` read from both create paths.)
 - **`updateAccount`:** when `set.name` is defined and the account is a credit type, put
   `paymentRenameStmts(…, guard: exists accountHolds(before, extra))` **before** the account's log and update.
   The success index moves to the last statement.
@@ -402,10 +403,78 @@ Check: `pnpm e2e e2e/credit-overspending.spec.ts e2e/plan-grid.spec.ts e2e/plan-
   committed).
 - No README docs text changes.
 
+## T14 Carry-over (design "Carry-over", cases 21–24)
+
+T1–T13 are built and merged. Only T14 is new. Otherwise change code only for a failure caused by the merge, or for
+a finding.
+
+**T14.1 Create without the group read.** In `paymentCreateStmts`, drop `existingGroup` and always emit the
+guarded group insert and its guarded log row (today's `!p.existingGroup` branch). Remove `findPaymentGroup` from
+`insertAccountWithStartingBalance` and `createAccount`, and delete it from `repositories/category-groups.ts` if
+nothing else uses it. Do not edit `services/account-links.ts`. Check: cases 1–2 pass. Add a test to
+`credit-payments.test.ts`: two cards created one after the other leave one `kind` group, one group `create` log
+row, and one payment category per card.
+
+**T14.2 `apps/worker/test/credit-call-count.test.ts` (new).** Copy `counting()` from `bulk-call-count.test.ts`
+(it is not exported; name the source in a comment; do not edit that file). Call the services with the counting
+`env`, and seed with the plain one. Each test runs for n = 10 and n = 100: n categories in two groups, n/10 cards,
+n/10 checking accounts, and one row per category over three months.
+1. "the month read makes 8 D1 calls whatever the plan's size": `getPlanMonth` 8; `getPlanMonths` (3 months) 8;
+   `listPlanMonths` (12 months) 6.
+2. "creating a credit account makes as many D1 calls as creating a checking account": count the service behind
+   `POST accounts` for each type. Run it before T14.1: it fails (credit = checking + 1). Quote the line.
+3. "renaming and deleting a credit account make the same D1 calls at 10 and at 100 categories": `updateAccount`
+   (name), and `deleteAccount` on a fresh card that has only its Starting Balance.
+4. "a payment lock refusal makes the same D1 calls at 10 and at 100 categories": `updateCategory` renames a
+   payment category.
+
+**T14.3 Cash part first.** Core: rename "covering only the cash part leaves the payment category alone" to "a
+partly covered category overspent with cash and credit loses its cash part first (step 8, Empty assigned
+35.00)". Worker: rename "covering only the cash part (assigning less than the credit part's worth) leaves the
+card alone" to "covering part of a cash-only overspending leaves the card alone". Then add "a partly covered
+category overspent with cash and credit loses its cash part first": a fresh world with Visa, Checking and "Mixed"
+(assigned 0), and the Nov rows Checking −25000 and Visa −40000 in Mixed. Then set Mixed's Assigned in turn
+(P = Visa payment activity; Dec = Dec `cash_overspending_previous`):
+
+| Assigned | available | overspent | state | P | Dec |
+| -- | -- | -- | -- | -- | -- |
+| 0 | −65000 | {25000, 40000} | cash_overspent | 0 | 25000 |
+| 10000 | −55000 | {15000, 40000} | cash_overspent | 0 | 15000 |
+| 25000 | −40000 | {0, 40000} | credit_overspent | 0 | 0 |
+| 35000 | −30000 | {0, 30000} | credit_overspent | 10000 | 0 |
+
+**T14.4 Narrow window**, a new test in `e2e/credit-overspending.spec.ts`: "EXF-535: at 1024×700 the pills,
+messages and spending lines fit". It uses its own plan, the clock as in T12, and the viewport set before `goto`.
+- **Data.** "ZZ-TEST Checking" (5000000) and "ZZ-TEST Visa" (creditCard, 0). Rows dated 2026-11-10, all categories
+  assigned 0:
+  - "ZZ Wide Credit": Visa −1200000 → yellow "−$1,200.00";
+  - "ZZ Wide Cash": Checking −1200000 → red "−$1,200.00";
+  - "ZZ Wide Mixed": Checking −777770 and Visa −1200000 → red "−$1,977.77", message "…by $1,977.77 with cash and
+    credit. Add at least $777.77…", lines "−$777.77" and "−$1,200.00".
+- **Measure.** After the exact texts, measure (0.5px tolerance; put the widths in the message):
+  - **Pills:** `scrollWidth <= clientWidth`; the box lies inside its cell and does not overlap the Activity cell;
+    the icon lies inside the pill.
+  - **Messages**, after `realClick` on the row's checkbox: `scrollWidth <= clientWidth`, inside the card body.
+  - **Spending lines:** label and value both have `scrollWidth <= clientWidth`; the label's right ≤ the value's
+    left; both lie inside the card.
+- **On a failure**, fix the CSS in `apps/web/src/plan/**`. Run the test once before the fix and quote the failing
+  line.
+
+**T14.5 Backfill with names taken**, a new `it` in `credit-migration.test.ts`: "two cards named like an ordinary
+group and an ordinary category get one system group and one payment category each".
+1. Make the ordinary group "ZZ Bills" holding "ZZ Rent", and the cards "ZZ Bills" (creditCard) and "ZZ Rent"
+   (lineOfCredit).
+2. Arrange "before" as in the first test, then run the `INSERT`s twice.
+3. Expect one `kind` group, and two `kind` categories in it with the cards' names and ids. The ordinary rows
+   equal their "before" rows, and the second run changes nothing.
+
+Check: `pnpm check`; `pnpm e2e e2e/credit-overspending.spec.ts` and the brief's Plan specs (`plan-grid`,
+`plan-panel`, `plan-views`, `auto-assign`, `categories`, `accounts`).
+
 ## Done when
 
-- `pnpm check` is green, and the specs of T12 pass.
-- The design's cases 1 to 19 are each covered by a named test.
-- None of the brief's note-9 files changed. Verify with:
-  `git diff --name-only origin/main -- apps/web/src/register apps/web/src/api/transactions.ts apps/web/src/api/accounts.ts apps/worker/src/repositories/transactions.ts apps/worker/src/services/transactions.ts apps/web/src/reflect apps/web/src/shell`
-  It must print nothing.
+- `pnpm check` is green, and the specs of T12 and T14.4 pass.
+- The design's cases 1 to 24 are each covered by a named test.
+- None of the out-of-bounds files changed (the Lead's point 7). Verify with the command below, which must print
+  nothing:
+  `git diff --name-only origin/main -- apps/web/src/shell apps/web/src/shortcuts apps/web/src/menu-actions apps/web/src/reflect apps/web/src/register apps/web/src/account apps/web/src/api/transactions.ts apps/web/src/api/accounts.ts apps/worker/src/repositories/transactions.ts apps/worker/src/services/transactions.ts apps/worker/src/routes/transactions.ts apps/worker/src/mcp/tools/transactions.ts apps/worker/src/services/account-links.ts packages/schema/src/transactions.ts packages/schema/src/ui-state.ts e2e/support/real-click.ts package.json pnpm-lock.yaml clone.profile.json playwright.config.ts biome.json vitest.config.ts apps/worker/vitest.config.ts apps/web/vite.config.ts apps/worker/wrangler.jsonc apps/worker/src/env.ts`
