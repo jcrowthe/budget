@@ -1,53 +1,37 @@
 # Card payments and the Plan page at 1024 px (EXF-537, EXF-622, EXF-623, EXF-624, EXF-616, EXF-646)
 
 Two parts:
-- **EXF-537:** the PAYMENT button and dialog, payment pill colours, the payment category inspector (five Payment
-  states, Total Underfunded, Overspent Categories, Current Balance, Available for Payment), `payment` on the REST
-  month reads, and the tool `get_card_payment_status`.
-- **One narrow layout:** panel wide enough for its cards (EXF-646, EXF-623), the grid giving up the width with names
-  readable and the pill whole (EXF-622), and an Auto-Assign card that hides $0.00 rows (EXF-624) and keeps the
-  source's height (EXF-616).
+- **EXF-537:** the PAYMENT button and dialog, payment pill colours, the payment inspector (five Payment states,
+  Total Underfunded, Overspent Categories, Current Balance, Available for Payment), `payment` on the month reads,
+  and the tool `get_card_payment_status`.
+- **One narrow layout:** a panel wide enough for its cards (EXF-646, EXF-623), the grid giving up the width with
+  names readable and the pill whole (EXF-622), and an Auto-Assign card with the source's rows (EXF-624, reversed
+  by the Lead) and height (EXF-616).
 
-Interfaces and tasks are in [card-payments-spec.md](card-payments-spec.md). It builds on
-[credit-engine-design.md](credit-engine-design.md) (payment categories, `overspent`, `state`).
+Interfaces and tasks: [card-payments-spec.md](card-payments-spec.md). Builds on
+[credit-engine-design.md](credit-engine-design.md).
 
 ## Source
 
-The study ran in a sub-agent. Notes and three cropped captures are in
-`/workspace/scratch/source/plan-cc-payments-1024/` (`notes.md`, `01-nothing-ticked.png`, `02-one-ticked.png`,
-`03-three-ticked.png`). The test plan has no credit account and nothing overspent, and the tab is 1600×813, dark.
-What could be seen (rules quoted in the notes):
-- **Inspector:**
-  - `.budget-inspector{width:33%;min-width:300px}`, and no screen media query for the inspector or grid. At 1024
-    the rules give **300 px**.
-  - `.content-min-break{min-width:50rem}` makes the page scroll sideways (36 px at 1024).
-  - The table keeps `min-width:562px` in a 500 px `overflow:auto` box, so its Available column is partly
-    off-screen at 1024.
-- **Row:** the name truncates with an ellipsis, then comes a flex-grow gap, then the status text (nowrap,
-  ellipsis). The pill is 22 px tall, padding 2px 7px.
-- **Auto-Assign card (live):** rows 32 px, 2 px apart, groups 16 px apart.
-  - **352 px** with nothing ticked (7 rows: 1 | 4 | 2).
-  - **304 px** with one ticked (6 rows: no Underfunded, singular "Amount").
-  - **352 px** with three ticked.
-- **One category ticked:** the Available Balance header holds title, chevron and pill on one row (54.8 px).
-- **Not on the plan:** rules for the payment cell (12px/600, letter-spacing .05rem), the
-  `.budget-inspector-credit-card-*` cards, the next-payment card (bar .25rem), and Available for Payment's
-  roll-up padding `1rem .5rem 1rem 1rem`.
+Read by the earlier Thread (notes and three crops were in its box under
+`/workspace/scratch/source/plan-cc-payments-1024/`; the values are kept here and in the polish list). Test plan:
+no credit account, nothing overspent, tab 1600×813 dark.
+- **Inspector:** `.budget-inspector{width:33%;min-width:300px}`, no media query: **300 px** at 1024. The page
+  minimum `50rem` scrolls the page sideways at 1024; the table keeps `min-width:562px`.
+- **Row:** name ellipsizes, a flex gap, then the status text (nowrap, ellipsis). Pill 22 px tall, padding
+  2px 7px; the clone's `4px 7px 2px` (`plan-grid.css`) gives the same 22 px and stays.
+- **Auto-Assign card:** rows 32 px, 2 px apart, groups 16 px apart; **352 px** with nothing ticked (7 rows,
+  Underfunded listed even at $0.00), **304 px** with one ticked (6 rows, singular), **352 px** with three.
+- **One ticked:** the Available Balance header holds title, chevron and pill on one row (54.8 px).
+- Not rendered on the plan (stylesheet only): the payment cell's 12px/600 text, the credit card inspector cards.
 
-**The Architect's step in the source** (the Clerk's tab `4457F37F…`, through the sub-agent):
-- It read stylesheets and measured boxes.
-- It ticked one category (Escape when its Assigned cell opened) and unticked it.
-- It ticked three and unticked them; one Escape with no cell open cleared the selection.
-- Captures: three plain `page.screenshot({path})` calls after `bringToFront()`, 1600×813 before and after each,
-  cropped, originals deleted.
-- Nothing typed, saved or hovered; no Auto-Assign press; zero rows left ticked; no theme or size change; nothing
-  written into the page; no plan menu, Bank Connections, Add Account, All Accounts, account or other plan.
+**This carry-over opens nothing in the source** (see Carry-over).
 
 ## Decisions
 
 **Taken out by the Lead** (also in the pull request):
-- **Record Payment** (state Enough) is shown and opens the card's account page `/<plan>/accounts/<account id>`.
-  The payment row it should open is EXF-539, whose files (account page, register) another Build holds.
+- **Record Payment** (state Enough) opens `/<plan>/accounts/<account id>?record-payment` (EXF-674 item 1): the
+  account page, merged with EXF-539 as `49012cd`, opens the payment row for that parameter and then drops it.
 - **"Create a Debt Payoff Target"** and its sentences ("Can't cover the overspent categories?", "Don't have more
   money to assign?") wait for EXF-538 (targets on payment categories). No dead button.
 - **Help links** ("Why am I seeing this warning?", "Why does overspending affect my payment?", "Why is my payment
@@ -55,101 +39,92 @@ What could be seen (rules quoted in the notes):
 - "A target replaces the Payment card" cannot happen yet (targets stay refused, `payment_category_target`).
 
 **Decided by the Architect, not observed in the source:**
-- **Balance figures** use the account balance rule (`countsInBalance`) on the card's rows up to the month's last
-  day:
-  - Prior Balance = rows before the month, plus the Starting Balance even when it is dated in the month;
-  - Spending and Outflows = the month's other negative rows;
-  - Payments and Inflows = its other positive rows;
-  - Interest Charges = 0;
-  - Current Balance = their sum.
-- **State**, checked in this order:
-  1. `overpaid` if Available < 0;
-  2. else `paid_off` if Current ≥ 0;
-  3. else `enough` if Underfunded = 0;
-  4. else `overspent_categories` if this card's credit overspending in the month > 0;
-  5. else `underfunded`.
-
-  `Underfunded = max(0, −Current − Available)`. **overspent_categories** is the card's share of the month's
-  credit parts (Σ X_K of the credit engine).
+- **Balance figures** (the account balance rule `countsInBalance`, the card's rows to the month's end): Prior =
+  rows before the month plus the Starting Balance even when dated in it; Spending and Outflows = the month's other
+  negative rows; Payments and Inflows = its other positive rows; Interest Charges = 0; Current = their sum.
+- **State**, first match: `overpaid` (Available < 0), `paid_off` (Current ≥ 0), `enough` (Underfunded = 0),
+  `overspent_categories` (the card's credit overspending this month > 0, its share Σ X_K of the credit engine),
+  else `underfunded`. `Underfunded = max(0, −Current − Available)`.
 - **Pill colours of payment rows:** red if Available < 0; yellow (`cautious`, no icon) if Underfunded > 0, even
   at $0.00; green if Available > 0; grey otherwise.
 - **"Cover $X in overspent categories"** uses X = `overspent_categories`. "Cover Overspent Categories" switches
   the grid to the Overspent view (EXF-500).
 - **Available for Payment's ">"** rolls its card open to show the payment category's Cash Left Over From Last Month,
   Assigned This Month and Activity.
-- **Auto-Assign for payment categories** (REST, the tools and the screen use one function):
-  - **Underfunded** adds the Payment card's Total Underfunded, but **only when the payment category is the only
-    category in scope**. The plan-wide and multi-category Underfunded keep leaving payment categories out, as the
-    Lead decided for EXF-532.
-  - **Paid Last Month** sets Assigned to last month's `paid`. `paid` is the part of Payments and Inflows made of
-    transfers into the card from another account (positive rows with a transfer account).
-  - **Average Paid** is the mean of `paid` over the months that Average Assigned uses, rounded to a cent.
-  - These are the new strategies `paid_last_month` and `average_paid`; ordinary categories are unchanged by them.
-  - With one payment category the list is: Underfunded (hidden at $0.00), Assigned Last Month, Paid Last Month,
-    Average Assigned, Average Paid, Reset Available Amount, Reset Assigned Amount.
+- **Auto-Assign for payment categories** (one function for REST, tools and screen): **Underfunded** adds the Total
+  Underfunded only when the payment category is the only one in scope (plan-wide and multi-category leave payment
+  categories out, the Lead's EXF-532 rule). New strategies **`paid_last_month`** (last month's `paid`: positive
+  rows with a transfer account) and **`average_paid`** (mean `paid` over the Average Assigned months, to a cent);
+  ordinary categories are unchanged by them. One payment category lists: Underfunded (hidden at $0.00), Assigned
+  Last Month, Paid Last Month, Average Assigned, Average Paid, Reset Available Amount, Reset Assigned Amount.
 - **Narrow layout** (not compared):
   - **Panel minimum 320 px**, wider than the source's 300. At 300, the card-icon pill header needs 247 of 236 px,
     and "Assigned Last Month" + "$1,200.00" + a 4 px gap needs 203.7 of 204 px. At 320 they get 256 and 224.
-  - **Grid content minimum 440 px.** Under a 562 px grid box the number columns use fixed minimums, and the name
-    column gets the rest: 63 px at 1024×700 with the default 260 px sidebar.
-  - The target text gives way first: the name keeps its width (capped by the cell), and the status ellipsizes,
-    with the full text in `title`.
-- **Sidebar dragged wide:**
-  - A Plan body under 620 px folds the panel away (`hidden`). At sidebar 600 in a 1024 window (body 424 px), the
-    grid scrolls 16 px sideways inside its own box and the page does not.
-  - Between 620 and 760 px the panel stays at 320 px and the grid's box scrolls.
-  - `shell/**` is unchanged.
-- **Auto-Assign height (EXF-616):**
-  - The rows come from the cached month, through the same pure function as the preview; amounts come from the
-    preview.
-  - Height = 88 + 32·rows + 2·(rows − groups) + 16·(groups − 1), which is 352, 304 or 386 px, the source's
-    arithmetic.
-  - An empty view shows its message at once.
+  - **Grid content minimum 428 px** (polish P2). Under a 562 px grid box the number columns are sized from the
+    month's figures (`columnWidths.ts`, polish P5), and the name column gets the rest: **140 px** at 1024×700 with
+    the default sidebar on case 21's plan (headless, no scrollbar width).
+  - The target text gives way first: the name keeps its width (capped by the cell); the status ellipsizes or
+    wraps to a clipped second line (polish P3), with the full text in `title`.
+  - **With a 15 px scrollbar** (a headed browser with classic scrollbars) the grid's client box is 429 px and the
+    name column **125 px**; the number columns keep their widths. Names longer than that ellipsize, the first
+    word included ("🏠 Rent/Mortga…"); nothing overlaps and nothing scrolls sideways (case 21c).
+- **Sidebar dragged wide:** a Plan body under 620 px folds the panel away (`hidden`); at sidebar 600 in a 1024
+  window (body 424 px) the grid scrolls sideways inside its own box, never the page. Between 620 and 760 px the
+  panel stays 320 px and the grid's box scrolls. `shell/**` is unchanged.
+- **Auto-Assign height (EXF-616):** rows from the cached month through the preview's pure function, amounts from
+  the preview; height = 88 + 32·rows + 2·(rows − groups) + 16·(groups − 1) (352, 304, 386 px, the source's
+  arithmetic); an empty view shows its message at once.
 
 ## Approach
 
-Interfaces, symbols and task order are in the spec; this is the shape.
-- **Core (shared, note 8):**
-  - new pure `card-payment.ts` (`cardPayment`);
-  - `budget-engine.ts`: `EngineInput.cardFlows`, per-card credit parts, and `payment` on each category (null for
-    ordinary ones).
-- **Worker:**
-  - new `repositories/card-flows.ts`, one grouped query, added to `loadInput` for `getPlanMonth` and
-    `getPlanMonths`;
-  - `payment` (the ticket's nine fields plus `paid`) on `MonthCategoryDetail` and `CategoryMonth`;
-  - the tool `get_card_payment_status` (in `toolsWithoutOperation`; no timestamp, one line in
-    `mcp-timestamps.test.ts`'s `NOT_CALLED`, which must list every tool);
-  - Auto-Assign: `paid_last_month`, `average_paid`, and `hiddenAmounts()` shared with the web.
-- **Web:**
-  - the PAYMENT button and dialog, the payment pill colours, and `PaymentInspector`;
-  - `PlanPanel.onView`;
-  - `planLayout.ts`, a ResizeObserver hook setting `data-fold` and `data-narrow` on `.plan-body` (Plan popovers are
-    `position: fixed` without a portal, so CSS container queries would trap them);
-  - `AutoAssignOptions` takes its rows from the cached month;
-  - `real-click.ts` compares height.
+Spec for symbols. Core (shared): pure `card-payment.ts`; `budget-engine.ts` takes `cardFlows` and sets `payment`.
+Worker: `repositories/card-flows.ts` (one grouped query in `loadInput` of `getPlanMonth`/`getPlanMonths`), the
+tool, the two strategies and `hiddenAmounts()` shared with the web. Web: PAYMENT button and dialog, pill colours,
+`PaymentInspector`, `PlanPanel.onView`, `planLayout.ts` (ResizeObserver sets `data-fold`/`data-narrow` on
+`.plan-body`; container queries would trap the fixed popovers), `columnWidths.ts`, `AutoAssignOptions` rows from
+`useCachedMonth` (one month read per page), `real-click.ts` compares height.
 
-**D1 calls** (conventions; read from the code as planned; a batch is one call):
-- Month read `getPlanMonth`: **9** (was 8): the plan plus 8 parallel reads, card flows added. This also serves
-  the REST month, `get_plan_month`, the summary, moves and the **month-category read** (REST and
-  `get_month_category`: **9**).
-- `getPlanMonths`: **9**. `listPlanMonths`: **6** (unchanged).
-- `get_card_payment_status`: **9**.
-- Auto-Assign preview: **10** (getPlanMonths plus the category list).
-- None grows with cards, categories or months. `credit-call-count.test.ts` asserts these at 10 and 100 categories
-  (1 and 10 cards).
+**D1 calls** (a batch is one call; none grows with cards, categories or months; `credit-call-count.test.ts` at
+10 and 100 categories): `getPlanMonth` **9** (was 8; also the REST month, `get_plan_month`, the summary, moves and
+the month-category read), `getPlanMonths` **9**, `listPlanMonths` **6**, `get_card_payment_status` **9**, the
+Auto-Assign preview **10**, the plan export **16** (was 15: it reads `getPlanMonths`).
 
 ## Downstream effects
-- `MonthCategoryDetail.payment` is required: fixtures and deep-equal tests gain `payment: null`. Four tool
-  descriptions gain the new fields and strategies.
-- **At 1440×900 nothing changes:** the panel stays at 33% (389 > 320), the grid is wider than 562 (not narrow) and
-  the panel does not fold. `e2e/auto-assign.spec.ts` case 11 keeps expecting "Underfunded $0.00" with nothing
-  ticked: EXF-624 was reversed by the Lead after the source was seen (case 19 only gains the two new preview fields).
-- At 1024 the panel is 320 px. A spec whose 1024 numbers change lists the change as a departure.
-- `docs/credit-engine-polish.md` P7 is rewritten to say what the code does now.
+- `payment` is required on the month reads: fixtures and deep-equal tests gain `payment: null`; four tool
+  descriptions gain the new fields and strategies; `docs/credit-engine-polish.md` P7 says what the code does now.
+- **1440×900 unchanged:** panel 33% (389 > 320), not narrow, not folded. At 1024 the panel is 320 px; a spec
+  whose 1024 numbers change lists it as a departure.
 
 ## Out of scope
-Record Payment's register row (EXF-539), payment targets and Debt Payoff (EXF-538), help pages, interest
-detection, loans, the sidebar's width rules, and the source's page-wide sideways scroll.
+EXF-674 items 2–7 (its own Build; the stale EXF-539 index line included), payment targets and Debt Payoff
+(EXF-538), help pages, interest detection, loans, the sidebar's width rules, and the source's page-wide sideways scroll.
+
+## Carry-over (Build `p_27170c2d…`, 2026-11-16)
+
+The earlier Thread's work, merged unchanged (head `c0cf241`, on main `49012cd`; 55 files, +3,084/−120); no
+redesign. **This step opened and pressed nothing in the source app**, and no later step does: case 25 uses the
+recorded readings, everything else is "not compared: built from the ticket".
+
+**Fits main** (read): main's EXF-539 opens the payment row for `?record-payment` (`register/Register.tsx`,
+`wantsPayment`, then drops it). `git diff --name-only origin/main...HEAD` holds none of the Lead's point-7 files
+and no `paths.always_overlap` file; no dependency.
+
+What the Lead's points need:
+1. **Implementer:** `pnpm check`, then `pnpm e2e` three times in the foreground; three totals. A failure in any run
+   is read in the code it exercises and explained, never called load unread.
+2. **Reviewer:** re-review `49ad5f6..c0cf241` (`useCachedMonth`'s placeholder; `columnWidths.ts`/`plan-grid.css`
+   name room). Old-code run: `git checkout 49ad5f6 -- apps/web/src/api/months.ts apps/web/src/plan/columnWidths.ts
+   apps/web/src/plan/plan-grid.css`, `pnpm e2e e2e/auto-assign-layout.spec.ts e2e/plan-narrow.spec.ts`, quote the
+   failing lines (case 28, case 21), then `git checkout HEAD -- <same files>`. HEAD stays on the branch.
+3. **Tester:** every case at 1440×900 and 1024×700, a screenshot per state. Judge again: the paid-off card's title
+   "Payment", names at 1024 (21, 21c), the pill (25c).
+4. **Leftovers:** done by the Architect in this commit: `docs/plan-export-design.md` says 16 and why; the index
+   line says 428. The scrollbar caveat is case 21c (Implementer adds it); no layout change unless it fails.
+5. **Rebase:** if the other Build's `plan-export-calls.test.ts`/`mcp-timestamps.test.ts` change lands first, keep
+   both sides in the timestamp test; in the export test keep theirs and set `CALLS` to what the code makes,
+   saying the number.
+6. **EXF-674 item 1:** Record Payment goes to `` `${accountPath(budgetId, id)}?record-payment` ``; case 26
+   replaces `card-payments.spec.ts` 15b.
 
 ## Acceptance
 
@@ -203,8 +178,7 @@ unless stated:
     name:
     - "Your ZZ Clear is paid off!" + "Being debt free is a wonderful thing.";
     - "You sent more to ZZ Over than you had set aside for the payment.";
-    - Enough with "You can make this payment anytime." and **Record Payment**, which opens
-      `/<plan>/accounts/<id>`;
+    - Enough with "You can make this payment anytime." and **Record Payment** (case 26);
     - "Cover $30.00 in overspent categories in order to pay off your current balance." with Total Underfunded
       $30.00 and Overspent Categories $30.00; **Cover Overspent Categories** makes the Overspent chip pressed;
     - "You need to assign $1,200.00 more to pay off your current balance." with Total Underfunded $1,200.00.
@@ -214,63 +188,70 @@ unless stated:
     Spending and Outflows $0.00, Interest Charges $0.00, Payments and Inflows $0.00. Available for Payment shows the
     pill; its ">" opens the three lines. The card's Auto-Assign lists Underfunded $1,200.00, Assigned Last Month,
     Paid Last Month, Average Assigned, Average Paid, Reset Available Amount, Reset Assigned Amount.
-17. **[EXF-616]** At 1440×900, the Auto-Assign card is:
-    - 352±1 px with nothing ticked on a plan with an underfunded target (7 rows);
-    - 304±1 px with one fully funded category (6 rows);
-    - 386±1 px when Reduce Overfunding also shows.
-
-    With the preview held by `page.route`, the height while held equals the height after, and the Notes card's top
-    does not move. With the Snoozed view empty, the message and View All Categories show while the preview is held,
-    and a MutationObserver counts 0 `.auto-assign-option` drawn. The same holds in the Assign popover's Auto tab.
+17. **[EXF-616]** At 1440×900 the Auto-Assign card is 352±1 px with nothing ticked on a plan with an underfunded
+    target (7 rows), 304±1 px with one funded category (6 rows), 386±1 px when Reduce Overfunding also shows. With
+    the preview held by `page.route`, the height while held equals the height after and the Notes card's top does
+    not move. With the Snoozed view empty, the message and View All Categories show while the preview is held and
+    a MutationObserver counts 0 `.auto-assign-option`; the same in the Assign popover's Auto tab.
 18. **[EXF-624, reversed by the Lead after the source was seen]** On a plan whose targets are all funded, nothing
     ticked: Underfunded $0.00 is listed (352 px) and Reduce Overfunding is not, in the card and in Ready to Assign >
     Assign > Auto; with one category ticked Underfunded is hidden (304 px). Several ticked: as main did ("not
     compared" beyond the source's 352 px with three ticked).
-19. **[EXF-623, 1024×700]** With Underfunded $1,360.00 and Assigned Last Month $1,200.00, in the plan-wide card,
-    an ordinary inspector and a payment inspector, every option button:
-    - is 32 px tall with `scrollHeight ≤ clientHeight`;
-    - has a label with `scrollWidth ≤ clientWidth + 1`;
-    - has an amount whose right edge is inside the button minus its padding;
-    - does not overlap the next button.
-20. **[EXF-646, 1024×700]** One category at −$1,200.00 credit-overspent (card icon) is ticked:
-    - the panel is 320±1 px;
-    - the Available Balance header is ≤ 56 px tall, with the pill's top inside the title's line;
-    - every text node in the panel's cards has its box inside its card (`scrollWidth ≤ clientWidth + 1`).
-
-    The same holds for a payment inspector in the overspent_categories state (the longest copy).
-21. **[EXF-622, 1024×700]** Group "ZZ Bills": "ZZ Rent" (monthly 1,200.00, nothing assigned) and "ZZ Phone"
-    (refill up to 60.00), with bars on. Each name's `clientWidth` is ≥ the width of its first word (a Range over
-    it). The status label's left edge is ≥ the name's right edge, and the label ellipsizes with the full text in
-    `title`. The grid's `scrollWidth ≤ clientWidth`. The Available pills keep `scrollWidth ≤ clientWidth`. At
-    1440×900 both names show in full (`scrollWidth ≤ clientWidth`) with their status text whole.
-22. **[sidebar 600, 1024×700]** `localStorage['sidebar-preferred-width']='600'` is set before load:
-    - `.plan-body` is 424±1 px, the Inspector panel is hidden, and the document does not scroll sideways;
-    - `.plan-grid` has `scrollWidth > clientWidth`;
-    - after scrolling the grid to its right end, the Available pill of "ZZ Rent" lies wholly inside the grid's box;
-    - `realClick` on its checkbox ticks it.
-
-    Collapsing the sidebar brings the panel back.
-23. **[1440 unchanged]** Every existing spec at 1440×900 passes untouched, except `auto-assign.spec.ts` case 11's
-    first expectation (case 18 reverses it; listed as a departure). The panel is 33% of the body at 1440.
+19. **[EXF-623, 1024×700]** With Underfunded $1,360.00 and Assigned Last Month $2,400.00 (plan-wide), in the
+    plan-wide card, an ordinary inspector and a payment inspector, every option button is 32 px tall with
+    `scrollHeight ≤ clientHeight`, its label has `scrollWidth ≤ clientWidth + 1`, its amount ends inside the button
+    minus its padding, and it does not overlap the next button.
+20. **[EXF-646, 1024×700]** One category at −$1,200.00 credit-overspent (card icon) ticked: the panel is 320±1
+    px; the Available Balance header is ≤ 56 px tall with the pill's top inside the title's line; every text node
+    in the panel's cards is inside its card (`scrollWidth ≤ clientWidth + 1`). The same for a payment inspector in
+    the overspent_categories state (the longest copy).
+21. **[EXF-622, 1024×700]** A plan with the default categories (emoji names such as "🏠 Rent/Mortgage"), a group
+    "Monthly Bills" with "Rent/Mortgage" (monthly 1,200.00) and "Groceries" (refill), and two cards, bars on. On
+    every category row and group row the first word after a leading emoji ends inside the name's content box. A
+    status label is beside the name or wrapped to the clipped line under it (polish P3), never over it, with the
+    full text in `title`. Pills, Assigned and Activity keep `scrollWidth ≤ clientWidth`; the PAYMENT cell is whole;
+    the grid's `scrollWidth ≤ clientWidth`. 21b: at 1440×900 the names and status texts show in full.
+    - 21c **[15 px scrollbar]**: the same, with `.plan-grid { box-sizing: border-box; border-right: 15px solid }`
+      injected (headless Chromium hides scrollbars; the grid's client box goes 444 → 429 px as in a headed
+      browser). Name column 125 px. Each name that does not fit ellipsizes inside its cell, no label overlaps a
+      name, pills stay whole, the grid does not scroll sideways; the first word is not asserted (measured here:
+      "🏠 Rent/Mortgage", "🚘 Transportation", "🍿 Entertainment" lose 15, 10 and 9 px of it).
+22. **[sidebar 600, 1024×700]** With `localStorage['sidebar-preferred-width']='600'` set before load,
+    `.plan-body` is 424±1 px, the panel is hidden, the document does not scroll sideways and `.plan-grid` has
+    `scrollWidth > clientWidth`; scrolled to its right end, the pill of "Rent/Mortgage" is wholly inside the grid's
+    box and `realClick` on its checkbox ticks it. Collapsing the sidebar brings the panel back.
+23. **[1440 unchanged]** Every existing spec at 1440×900 passes; `auto-assign.spec.ts` gains only the two new
+    preview fields in case 19 (EXF-624 reversed by the Lead after the source was seen). The panel is 33% at 1440.
 24. **[real-click]** `realClick` waits until x, y, width **and height** are still.
-25. **Compare, live:** the source's test plan Plan page in dark, at the tab's own 1600×813, against the clone at
-    1600×813 dark on a plan with one underfunded target.
+25. **Compare (recorded readings; the source is not opened in this carry-over):** the clone at 1600×813 dark, on a
+    plan with one underfunded target, against the earlier Thread's readings of the source (Source above, polish):
     - (a) The Auto-Assign card: 352 px with nothing ticked, 304 px with one ordinary category ticked (press Escape
       when its Assigned cell opens), 352 px with three ticked. Rows are 32 px tall, 2 px apart, with 16 px between
       groups.
     - (b) With one ticked: the Available Balance header has title, chevron and pill on one row.
-    - (c) A category row's name and pill sizes (22 px tall pill, 2px 7px padding).
+    - (c) A category row's name and pill sizes (22 px tall pill; the source's padding is 2px 7px, the clone's
+      `4px 7px 2px` gives the same height).
 
-**Not compared** (the source has no card, nothing overspent, and its tab is never resized): the PAYMENT button and
+26. **[EXF-674 item 1]** In the Enough state ("ZZ Enough", Available $120.00), `realClick` on **Record Payment**:
+    the path becomes `/<plan>/accounts/<ZZ Enough id>`, the search becomes empty, and the payment row is open with
+    Date focused, Date "11/16/2026" and Inflow "120.00".
+27. **[one month read]** Loading the Plan page makes exactly one month read
+    (`/api/v1/budgets/<id>/months/YYYY-MM-01`); ticking a category and opening Assign > Auto add none
+    (`e2e/plan-requests.spec.ts`).
+28. **[month switch]** With one category ticked, switching month keeps the one-category list (304 px, singular
+    labels) while the new month loads; the plan-wide list never shows (`auto-assign-layout.spec.ts`).
+
+**Not compared: built from the ticket** (the source has no card, nothing overspent, its tab is never resized,
+and this carry-over opens nothing in it): the PAYMENT button and
 dialog, the payment pills, the five states, Total Underfunded, Overspent Categories, Current Balance, Available for
 Payment, the payment Auto-Assign rows, every layout at 1024 px or with a wide sidebar (only its stylesheet's 300 px
 minimum and 800 px page minimum were read), and every decision above.
 
 ## Manifest
 
-touches: [packages/core/src/budget-engine.ts, packages/core/src/card-payment.ts, packages/core/test/**, packages/schema/src/months.ts, packages/schema/src/month-categories.ts, packages/schema/src/month-totals.ts, packages/schema/src/auto-assign.ts, packages/schema/test/**, apps/worker/src/repositories/card-flows.ts, apps/worker/src/services/months.ts, apps/worker/src/services/month-categories.ts, apps/worker/src/services/auto-assign.ts, apps/worker/src/routes/month-categories.ts, apps/worker/src/mcp/tools/month-categories.ts, apps/worker/src/mcp/tools/months.ts, apps/worker/src/mcp/tools/auto-assign.ts, apps/worker/test/card-payments.test.ts, apps/worker/test/credit-call-count.test.ts, apps/worker/test/credit-engine.test.ts, apps/worker/test/auto-assign.test.ts, apps/worker/test/mcp-coverage/months.ts, apps/worker/test/mcp-timestamps.test.ts, apps/web/src/plan/**, apps/web/src/pages/plan.tsx, e2e/card-payments.spec.ts, e2e/plan-narrow.spec.ts, e2e/auto-assign-layout.spec.ts, e2e/auto-assign.spec.ts, e2e/plan-grid.fixtures.ts, e2e/support/real-click.ts, e2e/credit-overspending.spec.ts, e2e/plan-panel.spec.ts, e2e/plan-grid.spec.ts, e2e/plan-selection.spec.ts, docs/card-payments-design.md, docs/card-payments-spec.md, docs/card-payments-polish.md, docs/README.md, docs/credit-engine-polish.md]
+touches: [packages/core/src/budget-engine.ts, packages/core/src/card-payment.ts, packages/core/test/**, packages/schema/src/months.ts, packages/schema/src/month-categories.ts, packages/schema/src/month-totals.ts, packages/schema/src/auto-assign.ts, packages/schema/test/**, apps/worker/src/repositories/card-flows.ts, apps/worker/src/services/months.ts, apps/worker/src/services/month-categories.ts, apps/worker/src/services/auto-assign.ts, apps/worker/src/routes/month-categories.ts, apps/worker/src/mcp/tools/month-categories.ts, apps/worker/src/mcp/tools/months.ts, apps/worker/src/mcp/tools/auto-assign.ts, apps/worker/test/card-payments.test.ts, apps/worker/test/credit-call-count.test.ts, apps/worker/test/credit-engine.test.ts, apps/worker/test/auto-assign.test.ts, apps/worker/test/mcp-coverage/months.ts, apps/worker/test/mcp-timestamps.test.ts, apps/worker/test/month-summary.test.ts, apps/worker/test/plan-export-calls.test.ts, apps/web/src/plan/**, apps/web/src/pages/plan.tsx, apps/web/src/api/months.ts, e2e/card-payments.spec.ts, e2e/plan-narrow.spec.ts, e2e/plan-requests.spec.ts, e2e/auto-assign-layout.spec.ts, e2e/auto-assign.spec.ts, e2e/plan-grid.fixtures.ts, e2e/support/real-click.ts, e2e/credit-overspending.spec.ts, e2e/plan-panel.spec.ts, e2e/plan-grid.spec.ts, e2e/plan-selection.spec.ts, docs/card-payments-design.md, docs/card-payments-spec.md, docs/card-payments-polish.md, docs/README.md, docs/credit-engine-polish.md, docs/plan-export-design.md]
 shared: [packages/core/src/budget-engine.ts — cardFlows input, per-card credit parts and the payment field of the read model; packages/core/src/card-payment.ts — the pure payment state beside the engine (Lead's note 8)]
 migrations: 0
 
-Of note 9's files only `mcp-timestamps.test.ts` changes, by one line (the new tool in `NOT_CALLED`). No dependency
-is added.
+`apps/web/src/plan/**` includes `columnWidths.ts`. `mcp-timestamps.test.ts` gains one `NOT_CALLED` entry and
+`plan-export-calls.test.ts` its count (15 → 16); `month-summary.test.ts` one `payment: null`. No dependency.

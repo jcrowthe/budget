@@ -84,8 +84,8 @@ export function cardPayment(flows: readonly CardFlow[], month: Month, available:
   - `autoAssignPreview` uses `hiddenAmounts` for those two fields. `paid_last_month` and `average_paid` are sums
     over payment categories only.
   - `autoAssignOptions(p, scope: "one" | "many" | "payment", hidden?: {underfunded; reduce_overfunding})`:
-    - The row set is decided by `hidden ?? p`: Underfunded and Reduce Overfunding are left out when 0, in every
-      scope (EXF-624).
+    - The row set is decided by `hidden ?? p`. Reduce Overfunding is left out at 0 in every scope; Underfunded at 0
+      only for `"one"` and `"payment"`, never for `"many"` (EXF-624 reversed by the Lead after the source was seen).
     - `"payment"`: group 2 is Assigned Last Month, **Paid Last Month**, Average Assigned, **Average Paid** (no
       Spent rows). Group 3 has no Reduce Overfunding. Labels are singular.
     - Titles for the new rows: Paid Last Month `null`; Average Paid "Assign your historical average paid to this
@@ -152,7 +152,8 @@ export function cardPayment(flows: readonly CardFlow[], month: Month, available:
     - `overpaid`: `WarningTriangleIcon` (negative colour), p "You sent more to {name} than you had set aside for
       the payment."
     - `enough`: h3 "You have enough money to pay off your current balance!", p "You can make this payment
-      anytime.", button **Record Payment** → `navigate(accountPath(budgetId, c.account_id))`.
+      anytime.", button **Record Payment** → ``navigate(`${accountPath(budgetId, c.account_id)}?record-payment`)``
+      (EXF-674 item 1; T14).
     - `overspent_categories`: icon + h3 "Overspent Categories", bar, p "Cover {overspent_categories} in overspent
       categories in order to pay off your current balance.", button **Cover Overspent Categories** →
       `onView("overspent")`.
@@ -220,7 +221,8 @@ export function cardPayment(flows: readonly CardFlow[], month: Month, available:
 **T2. Schema.** Months, month-categories, month-totals, auto-assign.
 - Unit tests in `packages/schema/test/auto-assign.test.ts`:
   - `hiddenAmounts`;
-  - `autoAssignOptions` hides 0 rows in all three scopes;
+  - `autoAssignOptions` lists Underfunded at 0 for "many", hides it for "one" and "payment", and hides Reduce
+    Overfunding at 0 everywhere;
   - the "payment" list order;
   - `autoAssignHeight` gives 352 for 7/3, 304 for 6/2 and 386 for 8/3;
   - `paid` history figures.
@@ -276,10 +278,8 @@ that file.
   - the empty Snoozed view with the preview held (MutationObserver count 0);
   - a selection whose month data hides Underfunded;
   - the Assign popover's Auto tab on an empty view.
-- `e2e/auto-assign.spec.ts` case 11, a **departure (EXF-624)**: `plan` drops "Underfunded".
-  - Replace the `$0.00` check with `toHaveCount(0)`.
-  - The gap checks become: 2 px between boxes 0–1, 1–2 and 2–3; 16 px between boxes 3 and 4.
-  - Nothing else in that file changes.
+- `e2e/auto-assign.spec.ts`: case 19 gains only `paid_last_month: 0` and `average_paid: 0` (case 11 is unchanged:
+  EXF-624 reversed).
 - `credit-overspending.spec.ts`, `plan-panel.spec.ts`, `plan-grid.spec.ts`, `plan-selection.spec.ts`: change only
   numbers that measure the 1024 layout, and list each one as a departure in the pull request.
 - Run every new or changed spec with `pnpm e2e <specs>` and `--repeat-each=3`.
@@ -295,6 +295,23 @@ that file.
 - The Designer writes `docs/card-payments-polish.md`.
 - `docs/README.md` already has this Build's design line; add one line each for the spec and polish only if they
   are missing.
+
+**T14. Carry-over** (design § Carry-over; the source app is never opened).
+- `PaymentInspector.tsx`: Record Payment appends `?record-payment` (one line).
+- `e2e/card-payments.spec.ts`: replace 15b with design case 26: after `realClick` on Record Payment in "ZZ Enough",
+  `expect.poll` the pathname to `/<plan>/accounts/<id>` and the search to `""`; then Date (`getByRole("textbox",
+  { name: "Date", exact: true })`) is focused with "11/16/2026", and Inflow has "120.00". Run it once on the code
+  before the one-line fix and quote the failing line.
+- `e2e/plan-narrow.spec.ts`: add case 21c (design): `page.addStyleTag` with `.plan-grid { box-sizing: border-box;
+  border-right: 15px solid transparent }`; check the grid's `clientWidth` dropped by 15; for every category and
+  group row: the name's box is inside `.cell-name`, a name with `scrollWidth > clientWidth` has computed
+  `text-overflow: ellipsis`, a status label is beside or below the name; pills, Assigned and Activity keep
+  `scrollWidth ≤ clientWidth`; the grid's `scrollWidth ≤ clientWidth`. No layout change unless this fails.
+- `pnpm check`; then `pnpm e2e` three times (whole suite), reporting three totals.
+- Never edit `apps/web/src/account/**`, `register/**`, `pages/account.tsx`, `reflect/**`, `shortcuts/**`,
+  `api/accounts.ts`, `api/transactions.ts`, the worker's transactions/accounts/reconcile/plan-export/plan-import
+  services, repositories, routes and tools, the matching `packages/schema/src` files, `zip.ts`, the migrations
+  `20261116101300`/`20261116101400`, or any `paths.always_overlap` file.
 
 ## Verify
 - `pnpm check` is green.
