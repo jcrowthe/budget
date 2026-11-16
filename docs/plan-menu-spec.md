@@ -1,7 +1,8 @@
 # Plan menu: implementation spec (EXF-571, EXF-470, EXF-454)
 
 Design: [plan-menu-design.md](plan-menu-design.md). This spec covers the tasks in order, each with its files,
-symbols and how to verify it.
+symbols and how to verify it. **Carry-over Build:** tasks 1–11 are done on the merged branch (`378b72b`); do not
+redo them. The work left is task 12.
 
 ## Rules for every task
 
@@ -9,7 +10,8 @@ symbols and how to verify it.
   scope, and every `paths.always_overlap` file (configs, package.json, lockfile, `apps/worker/src/env.ts`).
 - No `pnpm add`: React 19 already has `createPortal` in `react-dom`.
 - Colours and sizes come only from `tokens.css` variables.
-- Own icons only. Never the source's name, logo or art.
+- Own icons only. Never the source's name, logo or art. Nobody opens the source app in this Build.
+- Also off limits: `apps/worker/src/mcp/tools/**` and any REST-vs-tools test (EXF-572). No MCP tool for `/me`.
 - Browser specs for menu rows use the real-mouse helper (task 9), never a locator `.click()` on a menu row.
 - Use `{ exact: true }` names in new locators.
 
@@ -101,7 +103,7 @@ The table rows and the `needsPlan` values come from design §3: true for the six
 
 ```ts
 export type Rect = { left: number; top: number; right: number; bottom: number };
-export const MENU_GAP = 8, MENU_EDGE = 16, VIEW_MARGIN = 8, SUB_OFFSET = 4;
+export const MENU_GAP = 8, MENU_EDGE = 16, VIEW_MARGIN = 8;
 export function placeMenu(button: Rect, vh: number): { left: number; top: number; maxHeight: number };
 export function placeSubmenu(menu: Rect, row: Rect, size: { width: number; height: number }, vw: number, vh: number): { left: number; top: number; maxHeight: number };
 ```
@@ -111,11 +113,11 @@ export function placeSubmenu(menu: Rect, row: Rect, size: { width: number; heigh
 **`placeSubmenu`**
 
 - Horizontal:
-  - Start with `left = menu.right`.
+  - Start with `left = row.right` (the Open Plan row's right edge; overlaps the menu's 4 px padding).
   - If `left + w > vw − 8`, use `left = menu.left − w`.
   - If that is `< 8`, use `left = max(8, vw − 8 − w)`.
 - Vertical:
-  - `top = row.top − 4`, then `top = min(top, vh − 8 − h)` and `top = max(8, top)`.
+  - `top = row.top`, then `top = min(top, vh − 8 − h)` and `top = max(8, top)`.
   - `maxHeight = vh − 16`.
 
 ## Task 4: Registry glob and the first action
@@ -296,20 +298,8 @@ Verify:
 
 ## Task 9: E2E specs
 
-**Helper**, at the top of `e2e/plan-menu.spec.ts` (export it only if another spec needs it):
-
-```ts
-async function mouseClick(page: Page, target: Locator, { click = true } = {}) {
-  const b = await target.boundingBox(); expect(b).not.toBeNull();
-  const vp = page.viewportSize()!;
-  expect(b!.x).toBeGreaterThanOrEqual(0); expect(b!.y).toBeGreaterThanOrEqual(0);
-  expect(b!.x + b!.width).toBeLessThanOrEqual(vp.width); expect(b!.y + b!.height).toBeLessThanOrEqual(vp.height);
-  const x = b!.x + b!.width / 2, y = b!.y + b!.height / 2;
-  await page.mouse.move(x, y);
-  expect(await target.evaluate((el, [px, py]) => el.contains(document.elementFromPoint(px, py)), [x, y])).toBe(true);
-  if (click) await page.mouse.click(x, y);
-}
-```
+**Helper** `mouseClick(page, target, { click = true })` in `e2e/support/menu.ts`: asserts the box is inside the
+window, moves the mouse to its centre, asserts `target.contains(document.elementFromPoint(x, y))`, then clicks.
 
 To reach a submenu row, move horizontally from Open Plan's centre into the submenu: to
 `(submenu.x + 20, openPlanCentreY)`, then call `mouseClick` on the row.
@@ -376,6 +366,25 @@ Verify with design case 14.
   > `import.meta.glob`; never edit the shell to enable an entry. Unregistered entries are shown disabled.
 
 - `docs/README.md`: the design's line is already added by the Architect. Keep every line on rebase.
+
+## Task 12: Carry-over (the only open work)
+
+1. **Check change 1 is in place** (it is, in `378b72b`): `apps/web/src/shell/menuPlacement.ts` `placeSubmenu`
+   has `left = row.right`, `top = row.top`, no `SUB_OFFSET`, and the flip, shift and clamp unchanged.
+2. **`e2e/plan-menu-registry.spec.ts`, test "placement".** Replace the literal expectation with one derived from
+   the inputs: `toEqual({ left: row.right, top: row.top, maxHeight: 900 - 2 * VIEW_MARGIN })` (import
+   `VIEW_MARGIN`); this is `{ left: 244, top: 100, maxHeight: 884 }`. Keep the flip, shift and clamp asserts.
+3. **`e2e/plan-menu.spec.ts`, `expectSubmenuReachable`.** Keep: no "submenu x ≥ menu right" assert; inside the
+   window; when `aName === undefined`, `s.x` ≈ Open Plan's right and `s.y` ≈ Open Plan's top (`toBeCloseTo(…,
+   0)`); the sidebar `scrollWidth === clientWidth`, `scrollLeft === 0`. Add, before clicking plan A: for every
+   `sub(page).getByRole("menuitem")` (plans and "View All Plans"), `await mouseClick(page, row, { click: false
+   })`, which proves each row is topmost at its centre with the real mouse. Then `mouseClick` on A as now.
+   The comments that say "Source (Designer, …)" become "design §1".
+4. **Merge fallout.** If `pnpm check` or a full `pnpm e2e` fails because of main's changes, fix only that and
+   add one line to the design's "Carry-over changes" item 3 saying what it was.
+
+Verify: `pnpm check`; `pnpm e2e e2e/plan-menu.spec.ts e2e/plan-menu-registry.spec.ts --repeat-each=3`;
+then the full `pnpm e2e` (three runs pass for acceptance, at most `e2e/plans.spec.ts:4` flaky).
 
 ## Final check
 

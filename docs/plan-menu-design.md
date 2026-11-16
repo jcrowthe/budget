@@ -2,27 +2,22 @@
 
 ## Feature
 
-The plan menu opens from the plan button at the top of the sidebar. This Build does three things:
+The plan menu opens from the plan button at the top of the sidebar.
 
-- **EXF-571 (the reason for this Build).** Today the Open Plan submenu is positioned absolutely inside
-  `nav.sidebar`, which is 260 px wide with `overflow-y: auto`. The sidebar clips the submenu
-  (`apps/web/src/shell/global.css` `.sidebar`, `.submenu { position: absolute; left: 100% }`), so no mouse
-  can reach another plan. After this Build the menu and its submenu are rendered outside the sidebar, fully
-  visible, and every row can be clicked with a real mouse.
-- **EXF-470.** The menu gets its full cloned structure, a plan button with the signed-in identity, and a way for
-  later Builds to switch entries on without editing the shell.
-- **EXF-454.** The menu's width and the hover and active colours are re-measured and matched.
+- **EXF-571.** The Open Plan submenu was `position: absolute` inside `nav.sidebar` (`overflow-y: auto`), which
+  clipped it, so no mouse could reach another plan. Now the menu and submenu render outside the sidebar, fully
+  visible, every row clickable with a real mouse.
+- **EXF-470.** The full menu structure, the signed-in identity on the plan button, and an action registry.
+- **EXF-454.** The menu's width and the hover and active colours match the measured source values.
 
 ## Source
 
-The study notes are `/workspace/scratch/source/plan-menu/notes.md`, with masked screenshots
-`plan-menu-{closed,button-hover,open,row-hover,sidebar-hover-reflect}.png`. The study used the plan
-"Test Budget" at 1600×813 in the dark app theme. The clone follows the dark theme, as in `scaffold-design.md`.
+**Carry-over Build: nobody opens the source app** (forbidden by the Lead). Everything below was measured by the
+first Build (`p_5ee85fce…`); its study notes stayed in that box and are not copied. That study used the plan
+"Test Budget" at 1600×813 in the dark app theme; the clone follows the dark theme, as in `scaffold-design.md`.
 
-**The study never opened the Open Plan submenu on screen.** In the source it is always present in the DOM,
-hidden with `opacity 0`. The first DOM scan read its text into the study agent's own tool output. Nothing was
-written, captured or kept. The submenu's look comes from the EXF-470 ticket: a "Recent Plans" heading, up to 5
-plans with a document icon, a separator, then a folder icon and "View All Plans".
+The submenu's look comes from the EXF-470 ticket: a "Recent Plans" heading, up to 5 plans with a document icon,
+a separator, then a folder icon and "View All Plans".
 
 Summary of the source:
 
@@ -59,11 +54,15 @@ limits, so the shell gets its own pure helper, `apps/web/src/shell/menuPlacement
   − 16`, `overflow-y: auto`; `min-width: 240px; max-width: 480px`. (The source sets an explicit height; the
   clone's shorter menu would then show an empty panel, so it uses `max-height`.)
 - **Submenu.** A second fixed element, a sibling of the menu in the same portal (never its child: the menu's
-  `overflow` would clip it). `placeSubmenu` places it from the menu's and the Open Plan row's rects: `left =
-  row.right`, `top = row.top` (as in the source: it overlaps the menu's 4px padding and starts level with the row). **Flip** to `left = menu.left − width` when
-  `row.right + width > innerWidth − 8`; if that is `< 8` too, **shift** to `max(8, innerWidth − 8 − width)`
-  (overlapping the menu). Vertically `top` is clamped into `[8, innerHeight − 8 − height]`, `max-height:
-  innerHeight − 16`, scrolling.
+  `overflow` would clip it). `placeSubmenu(menu, row, size, vw, vh)` places it from the menu's and the **Open
+  Plan row's** rects: **`left = row.right`, `top = row.top`**. It starts at the row's right edge, so it overlaps
+  the menu's 4 px right padding, and level with the row's top. At 1440×900 (menu left 8, 240 wide, no
+  scrollbar): left **244** (8 + 240 − 4), top = the Open Plan row's top. That is 4 px left of and 4 px below
+  the first Build's `left = menu.right`, `top = row.top − 4`. Both elements are `.menu` (`--z-menu`) and the
+  submenu comes later in the portal, so it paints over the padding it overlaps. **Flip** to `left = menu.left −
+  width` when `row.right + width > innerWidth − 8`; if that is `< 8` too, **shift** to `max(8, innerWidth − 8 −
+  width)` (overlapping the menu). Vertically `top` is clamped into `[8, innerHeight − 8 − height]`,
+  `max-height: innerHeight − 16`, scrolling.
 - **Recompute** in `useLayoutEffect` on open, on window `resize` and on the menu's `scroll`.
 - **Stacking.** `--z-menu: 25`: above page content (plan header 10), below dialogs (30). A 0.2 s opacity
   fade-in animation (no effect on hit testing).
@@ -146,7 +145,8 @@ a separator; "View All Plans" (disabled).
 - `packages/schema/src/me.ts`: `Me` = `{ kind: "user", email }` | `{ kind: "service", name }`;
   `MeResponse = dataEnvelope(Me)`. Route `apps/worker/src/routes/me.ts` reads `c.get("identity")` from the
   unchanged middleware: a user gets its email, a service its actor without `service:`. Never `actor` or token
-  fields; no identity is already a 403. No MCP tool. Web: `useMe()` in `apps/web/src/api/me.ts` (`["me"]`,
+  fields; no identity is already a 403. **No MCP tool**: `/me` describes the caller, not plan data, and
+  EXF-572's REST-vs-tools test excludes it by design (see Carry-over changes). Web: `useMe()` in `apps/web/src/api/me.ts` (`["me"]`,
   `staleTime: Infinity`).
 - **Plan button:** logo, a column with `.name` (18px/600) over `.identity` (12px/500, `--labelMuted`, ellipsis:
   the email or service name), caret. Height stays 46; while `/me` loads the line is absent and the name centred.
@@ -174,8 +174,7 @@ hover `#1b1d48`; menu background `#1f2038` (`--backgroundTertiary`); row hover `
 - `--menu-min-width: 240px`, `--menu-max-width: 480px`, `--menu-edge: 16px`, `--z-menu: 25`;
 - `--menuDisabledLabel: var(--labelTertiary)`, the source's `--labelTertiary`, `#9b9caa`.
 
-**Pressed state.** The source has no `:active` rule for nav links. Add Account stays at `.2` while pressed,
-which the clone's hover rule already gives. Nothing to add.
+**Pressed state.** No `:active` rule in the source; the clone's hover rules already match. Nothing to add.
 
 ### 6. Favicon (note 9)
 
@@ -185,30 +184,35 @@ Today `/favicon.ico` falls through to the SPA's HTML.
 - Add `<link rel="icon" href="/favicon.ico" sizes="32x32">` in `apps/web/index.html`, before the SVG link.
 - The Worker already serves `public/` through `ASSETS`.
 
+## Carry-over changes
+
+This Build merges the cancelled first Build's branch (fast-forward to `378b72b` on main `2d1982e`) and changes:
+
+1. **Submenu placement** (§1; the first Build's one polish item, already in `378b72b`, kept). Tests:
+   `e2e/plan-menu-registry.spec.ts` "placement" derives its expected `{ left, top }` from the `row` input;
+   `expectSubmenuReachable` (`e2e/plan-menu.spec.ts`) drops the "starts right of the menu" check, asserts
+   left = row right and top = row top (±0.5), and real-mouse-checks every submenu row before clicking plan A.
+2. **REST and MCP.** No MCP tool for `GET /api/v1/me`. The owner's rule (a tool for every REST operation) is
+   enforced by EXF-572's test, which lists `/me` as excluded by design: it describes the caller. This Build
+   touches neither `apps/worker/src/mcp/tools/**` nor that test.
+3. **Merge with main.** Nothing else, unless `pnpm check` or a full e2e run fails because of main's changes
+   since `82aac3a` (account header, All Accounts register, `transactions.updated_at`); then only that fix,
+   recorded here.
+
 ## Downstream effects
 
-- Every e2e step that clicks "Open Plan" and then a plan now needs that plan among the **5 most recently opened
-  other plans**. The e2e database is shared by parallel workers. The affected specs, and only them, mark the
-  target opened (`PATCH /api/v1/budgets/{id}` `{ opened: true }`) just before they open the menu, or reload it.
-  The affected places are `e2e/plans.spec.ts` (the known-flaky EXF-569 spec: only this change) and
-  `e2e/plan-urls.spec.ts` (around line 265).
-- `e2e/shell-compare.spec.ts` "plan menu matches the source" asserted 2 items, width = the button's width, and
-  33 px rows. It is updated to the new entries, 240 px and 32.8 px.
-- The plan button's accessible name stays the plan name, so existing locators keep working.
-- Later Builds (EXF-468, 510, 480, 472, 476, 478, 460, 473, 471) each add one file in `apps/web/src/menu-actions/`
-  and touch nothing in the shell.
-- **EXF-460.** The Sidebar's `?add-accounts=connections` stopgap stays for now; EXF-460 replaces it with a
-  `bank-connections` action.
+- An e2e step that picks a plan from Open Plan needs it among the **5 most recently opened other plans** (the
+  e2e database is shared by workers): `e2e/plans.spec.ts` (EXF-569) and `e2e/plan-urls.spec.ts` (~line 265)
+  mark the target opened (`PATCH /api/v1/budgets/{id}` `{ opened: true }`) just before opening the menu.
+- `e2e/shell-compare.spec.ts` "plan menu matches the source" moves to the new entries, 240 px and 32.8 px rows.
+- The plan button's accessible name stays the plan name; existing locators keep working.
+- Later Builds (EXF-468, 510, 480, 472, 476, 478, 460, 473, 471) each add one file in `menu-actions/`.
+- EXF-460 replaces the Sidebar's `?add-accounts=connections` stopgap with a `bank-connections` action.
 
 ## Out of scope
 
-- Every target behind the disabled entries.
-- The collapsed sidebar's logo button (EXF-474).
-- Sidebar resize.
-- The light theme.
-- The Share, Legal, Account Settings and workshop entries.
-- Archived plans.
-- Opening the source's Open Plan submenu.
+The targets behind the disabled entries; the collapsed sidebar's logo button (EXF-474); sidebar resize; the light
+theme; the Share, Legal, Account Settings and workshop entries; archived plans; any use of the source app.
 
 ## Acceptance
 
@@ -218,7 +222,8 @@ menu row. Set-ups use the API with `ZZ-TEST` names. Local identity: `e2e@localho
 
 1. **(EXF-571) Submenu by mouse, 1440×900.** Set-up: plans A and B; mark A opened; open `/<B>/budget`.
    Mouse-click the plan button; move to Open Plan's centre. Expected: the submenu is visible, fully inside the
-   viewport, its left ≥ the menu's right − 1; `nav.sidebar` has `scrollWidth === clientWidth`, `scrollLeft 0`.
+   viewport, its left = Open Plan's right (244) and its top = Open Plan's top, each ±0.5; every submenu row
+   passes the elementFromPoint check; `nav.sidebar` has `scrollWidth === clientWidth`, `scrollLeft 0`.
    Move horizontally into the submenu, then mouse-click A's row: URL `/<A>/budget`, sidebar button name A.
 2. **(EXF-571) Case 1 at 1024×700.** Same results.
 3. **(EXF-571) 640×700, A with a 60-character name.** The submenu is fully inside the window (`left ≥ 8`); A's
@@ -256,20 +261,13 @@ menu row. Set-ups use the API with `ZZ-TEST` names. Local identity: `e2e@localho
     `rgb(27, 29, 72)`; Add Account `rgba(255, 255, 255, 0.15)`, hover `0.2`. The Tester saves clone screenshots
     of each state.
 14. **Favicon.** `GET /favicon.ico`: 200, `image/` content type, body starts `00 00 01 00`; `index.html` links it.
-15. **Compare: first level** (Tester). Source state: plan "Test Budget", Plan page, dark display theme (as set),
-    1440×900; click only the plan button; never hover Open Plan (`mouse.move` jumps, steps 1). Clone: same
-    viewport, ≥2 plans. Match placement, background, padding, row height, icon/label colours, headings,
-    separators, and the cloned entries in source order. Expected difference: the source renders 243 px because
-    its longer menu scrolls (15 px scrollbar); the clone's does not and is 240 px; both are `min-width: 240px`.
-16. **Compare: hovers** (Tester). Hover New Plan (menu open), then Reflect and Add Account (menu closed) on both:
-    equal colours, per case 13.
-17. **Compare: plan button** (Tester). The two-line layout (bold name, small dim identity, caret) matches. Mask
-    the source's email in every capture.
+15–17. **Compare with the source: not compared, forbidden by the Lead in this Build.** The measurements in
+    §Source and §5 stand in for the source; cases 1 and 13 assert them in the clone.
 18. **Submenu vs ticket** (Tester, clone only). Matches EXF-470: heading, up to 5 plans with document icons,
     separator, "View All Plans", in the first-level menu's look.
 
 ## Manifest
 
-touches: [apps/web/src/shell/PlanMenu.tsx, apps/web/src/shell/Sidebar.tsx, apps/web/src/shell/useCurrentPlan.ts, apps/web/src/shell/tokens.css, apps/web/src/shell/global.css, apps/web/src/shell/icons.tsx, apps/web/src/shell/planMenuEntries.ts, apps/web/src/shell/planMenuActions.ts, apps/web/src/shell/menuPlacement.ts, apps/web/src/menu-actions/**, apps/web/src/api/me.ts, packages/schema/src/me.ts, apps/worker/src/routes/me.ts, apps/worker/test/me.test.ts, apps/web/public/favicon.ico, apps/web/index.html, e2e/plan-menu.spec.ts, e2e/plan-menu-registry.spec.ts, e2e/plans.spec.ts, e2e/plan-urls.spec.ts, e2e/shell-compare.spec.ts, e2e/shell.spec.ts, docs/conventions.md, docs/plan-menu-design.md, docs/plan-menu-spec.md, docs/README.md]
+touches: [apps/web/src/shell/PlanMenu.tsx, apps/web/src/shell/Sidebar.tsx, apps/web/src/shell/useCurrentPlan.ts, apps/web/src/shell/tokens.css, apps/web/src/shell/global.css, apps/web/src/shell/icons.tsx, apps/web/src/shell/planMenuEntries.ts, apps/web/src/shell/planMenuActions.ts, apps/web/src/shell/menuPlacement.ts, apps/web/src/menu-actions/**, apps/web/src/api/me.ts, packages/schema/src/me.ts, apps/worker/src/routes/me.ts, apps/worker/test/me.test.ts, apps/web/public/favicon.ico, apps/web/index.html, e2e/plan-menu.spec.ts, e2e/plan-menu-registry.spec.ts, e2e/support/menu.ts, e2e/plans.spec.ts, e2e/plan-urls.spec.ts, e2e/shell-compare.spec.ts, e2e/shell.spec.ts, docs/conventions.md, docs/plan-menu-design.md, docs/plan-menu-spec.md, docs/plan-menu-polish.md, docs/README.md]
 shared: [apps/web/src/shell/** (PlanMenu, Sidebar, useCurrentPlan, tokens.css, global.css, icons.tsx and three new pure shell modules: the menu, its submenu and the plan button live in the shell; this Build is the only one holding the shell)]
 migrations: 0
