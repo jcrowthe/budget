@@ -31,7 +31,14 @@ type LinkCols =
   | "transferAccountId"
   | "transferTransactionId"
   | "parentTransactionId"
-  | "splitIndex";
+  | "splitIndex"
+  | "importId"
+  | "source"
+  | "importedPayee"
+  | "bankDescription"
+  | "importDate"
+  | "importAmount"
+  | "importPayeeName";
 /** The link columns are optional so a plain row can be built without them (they insert as null). */
 export type TransactionRow = Omit<Sel, LinkCols> & Partial<Pick<Sel, LinkCols>>;
 
@@ -46,13 +53,53 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
   return db
     .insert(transactions)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId}, ${r.transferAccountId ?? null}, ${r.transferTransactionId ?? null}, ${r.parentTransactionId ?? null}, ${r.splitIndex ?? null} where exists ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId}, ${r.transferAccountId ?? null}, ${r.transferTransactionId ?? null}, ${r.parentTransactionId ?? null}, ${r.splitIndex ?? null}, ${r.importId ?? null}, ${r.source ?? null}, ${r.importedPayee ?? null}, ${r.bankDescription ?? null}, ${r.importDate ?? null}, ${r.importAmount ?? null}, ${r.importPayeeName ?? null} where exists ${guard}`,
     );
 }
 
 /** A row that counts in an account's balance: not deleted and not a split line. Usable in `where()` and in raw `sql`. */
 export function countsInBalance(): SQL {
   return and(isNull(transactions.deletedAt), isNull(transactions.parentTransactionId)) as SQL;
+}
+
+/**
+ * A transaction that needs the user: it is unapproved, or it needs a category (an on-plan account, no
+ * category, not Ready to Assign, not a split parent, not a transfer to an on-plan account, not a Starting
+ * Balance). Raw SQL over `transactions`, usable in `where()`.
+ */
+export function needsAttention(): SQL {
+  const t = transactions;
+  return sql`(${t.approved} = 0 or (
+    ${t.categoryId} is null and ${t.inflowToReadyToAssign} = 0
+    and exists (select 1 from accounts na where na.id = ${t.accountId} and na.on_budget = 1)
+    and not exists (select 1 from transactions nl where nl.parent_transaction_id = ${t.id} and nl.deleted_at is null)
+    and not (${t.transferAccountId} is not null
+      and exists (select 1 from accounts nt where nt.id = ${t.transferAccountId} and nt.on_budget = 1))
+    and coalesce((select np.system from payees np where np.id = ${t.payeeId}), '') <> 'starting_balance'))`;
+}
+
+export type AttentionCounts = { unapproved: number; attention: number };
+
+/** Per account: how many live rows are unapproved, and how many need approval or a category. A new query: no sum of amounts changes. */
+export async function attentionCountsByAccount(
+  db: Db,
+  budgetId: string,
+  accountId?: string,
+): Promise<Map<string, AttentionCounts>> {
+  const conds = [eq(transactions.budgetId, budgetId), countsInBalance()];
+  if (accountId) conds.push(eq(transactions.accountId, accountId));
+  const rows = await db
+    .select({
+      accountId: transactions.accountId,
+      unapproved: sql<number>`coalesce(sum(case when ${transactions.approved} = 0 then 1 else 0 end), 0)`,
+      attention: sql<number>`coalesce(sum(case when ${needsAttention()} then 1 else 0 end), 0)`,
+    })
+    .from(transactions)
+    .where(and(...conds))
+    .groupBy(transactions.accountId);
+  return new Map(
+    rows.map((r) => [r.accountId, { unapproved: r.unapproved, attention: r.attention }]),
+  );
 }
 
 /** Per account: the sum of cleared (and reconciled) and of uncleared active transactions. */
@@ -233,6 +280,7 @@ export async function listDetailForAccount(
   budgetId: string,
   accountId: string,
   sinceDate?: string,
+  needs?: "approval_or_category",
 ): Promise<TransactionDetailRow[]> {
   const conds = [
     eq(transactions.budgetId, budgetId),
@@ -241,6 +289,7 @@ export async function listDetailForAccount(
     isNull(transactions.parentTransactionId),
   ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
+  if (needs) conds.push(needsAttention());
   return (await detailSelect(db).where(and(...conds))).map(toDetail);
 }
 
@@ -251,6 +300,7 @@ export async function listDetailForPlan(
   db: Db,
   budgetId: string,
   sinceDate?: string,
+  needs?: "approval_or_category",
 ): Promise<PlanDetailRow[]> {
   const conds = [
     eq(transactions.budgetId, budgetId),
@@ -258,6 +308,7 @@ export async function listDetailForPlan(
     isNull(transactions.parentTransactionId),
   ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
+  if (needs) conds.push(needsAttention());
   const rows = await db
     .select({
       t: transactions,
@@ -336,7 +387,6 @@ export type TxSet = Partial<
     | "accountId"
     | "date"
     | "payeeName"
-    | "payeeId"
     | "categoryId"
     | "inflowToReadyToAssign"
     | "memo"
@@ -347,8 +397,15 @@ export type TxSet = Partial<
     | "transferTransactionId"
     | "updatedAt"
     | "deletedAt"
+    | "importId"
+    | "source"
+    | "importedPayee"
+    | "bankDescription"
+    | "importDate"
+    | "importAmount"
+    | "importPayeeName"
   >
->;
+> & { payeeId?: string | null | SQL };
 
 /** Sets the row's columns only while `guard` holds. */
 export function updateIfStmt(db: Db, id: string, set: TxSet, guard: SQLWrapper) {

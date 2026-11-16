@@ -62,7 +62,13 @@ export class UnsupportedAccountType extends Error {
   }
 }
 
-export type AccountFacts = { cleared: number; uncleared: number; canDelete: boolean };
+export type AccountFacts = {
+  cleared: number;
+  uncleared: number;
+  canDelete: boolean;
+  unapproved: number;
+  attention: number;
+};
 
 /** Open: no transaction or only its Starting Balance. Closed: no transaction at all. */
 function canDeleteFrom(
@@ -79,20 +85,29 @@ export async function accountFacts(
   budgetId: string,
   accountId?: string,
 ): Promise<(row: accountsRepo.AccountRow) => AccountFacts> {
-  const [balances, tx] = await Promise.all([
+  const [balances, tx, attention] = await Promise.all([
     txRepo.balancesByAccount(db, budgetId, accountId),
     accountsRepo.transactionFacts(db, budgetId, accountId),
+    txRepo.attentionCountsByAccount(db, budgetId, accountId),
   ]);
   return (row) => ({
     cleared: balances.get(row.id)?.cleared ?? 0,
     uncleared: balances.get(row.id)?.uncleared ?? 0,
     canDelete: canDeleteFrom(row, tx.get(row.id)),
+    unapproved: attention.get(row.id)?.unapproved ?? 0,
+    attention: attention.get(row.id)?.attention ?? 0,
   });
 }
 
 export function accountToApi(
   row: accountsRepo.AccountRow,
-  b: { cleared: number; uncleared: number; canDelete?: boolean } = { cleared: 0, uncleared: 0 },
+  b: {
+    cleared: number;
+    uncleared: number;
+    canDelete?: boolean;
+    unapproved?: number;
+    attention?: number;
+  } = { cleared: 0, uncleared: 0 },
 ): Account {
   return {
     id: row.id,
@@ -113,6 +128,8 @@ export function accountToApi(
     linked: row.bankAccountId !== null,
     import_start_date: row.importStartDate,
     can_delete: b.canDelete ?? true,
+    unapproved_count: b.unapproved ?? 0,
+    needs_attention_count: b.attention ?? 0,
   };
 }
 

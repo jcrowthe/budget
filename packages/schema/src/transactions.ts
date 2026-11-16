@@ -30,6 +30,22 @@ export const Transaction = z
     cleared: ClearedStatus,
     approved: z.boolean(),
     created_at: z.string(),
+    import_id: z.string().nullable().openapi({
+      description:
+        "The bank's id of the transaction when it came from (or was matched to) an import",
+    }),
+    source: z.enum(["plaid"]).nullable().openapi({
+      description: "plaid for a transaction the bank import created; null when entered by hand",
+    }),
+    imported_payee: z.string().nullable().openapi({
+      description: "The payee name the bank sent, as sent",
+    }),
+    bank_description: z.string().nullable().openapi({
+      description: "The bank's own description of the transaction",
+    }),
+    matched: z.boolean().openapi({
+      description: "True when an imported transaction was matched to one entered by hand",
+    }),
   })
   .openapi("Transaction");
 
@@ -184,15 +200,34 @@ export const TransactionUpdateRequest = updateFields
   .refine((o) => Object.keys(o).length > 0, "Nothing to update")
   .openapi("TransactionUpdateRequest");
 
+/** `needs` filter of the transaction lists. */
+export const TRANSACTION_NEEDS = ["approval_or_category"] as const;
+
+export const TransactionIdsRequest = z
+  .object({
+    ids: z
+      .array(z.string().min(1))
+      .min(1)
+      .max(100)
+      .describe("Transaction ids (1 to 100); a repeated id counts once"),
+  })
+  .strict()
+  .openapi("TransactionIdsRequest");
+
 export const TransactionResponse = dataEnvelope(z.object({ transaction: TransactionDetail }));
 export const TransactionListResponse = dataEnvelope(
   z.object({ transactions: z.array(TransactionDetail), balances: AccountBalances }),
+);
+
+export const TransactionsResponse = dataEnvelope(
+  z.object({ transactions: z.array(TransactionDetail) }),
 );
 
 export const PlanTransactionListResponse = dataEnvelope(
   z.object({ transactions: z.array(PlanTransaction), balances: AccountBalances }),
 );
 
+export type TransactionIdsRequest = z.input<typeof TransactionIdsRequest>;
 export type PlanTransaction = z.infer<typeof PlanTransaction>;
 export type TransactionDetail = z.infer<typeof TransactionDetail>;
 export type AccountBalances = z.infer<typeof AccountBalances>;

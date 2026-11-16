@@ -154,6 +154,9 @@ export async function createBankConnection(
         lastSyncedAt: null,
         syncCursor: null,
         lastResetAt: null,
+        syncErrorSince: null,
+        syncAccounts: null,
+        syncLoopCursor: null,
         createdAt: now,
         updatedAt: now,
       };

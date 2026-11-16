@@ -9,6 +9,7 @@ export function mirror(self: TransactionRow, other: TransactionRow): Transaction
     memo: self.memo,
     // `0 - x` keeps zero positive.
     amount: 0 - self.amount,
+    approved: self.approved || other.approved,
     transferAccountId: self.accountId,
     transferTransactionId: self.id,
   };
@@ -46,6 +47,7 @@ export function sameSide(a: TransactionRow, b: TransactionRow): boolean {
     a.accountId === b.accountId &&
     a.date === b.date &&
     a.memo === b.memo &&
+    a.approved === b.approved &&
     a.amount === b.amount &&
     a.categoryId === b.categoryId &&
     a.inflowToReadyToAssign === b.inflowToReadyToAssign &&

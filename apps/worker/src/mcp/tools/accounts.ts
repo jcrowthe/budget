@@ -29,7 +29,7 @@ import type { McpToolDef } from "../types";
 export const tools: McpToolDef[] = [
   {
     name: "list_accounts",
-    description: `List a plan's accounts in display order; closed accounts only when include_closed is true. ${MONEY} Debts are negative. Returns { accounts }: each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked). ${timestamps(["created_at"])}`,
+    description: `List a plan's accounts in display order; closed accounts only when include_closed is true. ${MONEY} Debts are negative. Returns { accounts }: each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). ${timestamps(["created_at"])}`,
     inputSchema: z.object({ budget_id: Id, include_closed: z.boolean().optional() }),
     run: async (input: { budget_id: string; include_closed?: boolean }, { env }) => ({
       accounts: await listAccounts(env, input.budget_id, { includeClosed: input.include_closed }),
@@ -37,7 +37,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_account",
-    description: `Read one account of a plan. ${MONEY} Debts are negative. Returns { account } with id, name, type, on_budget, starred, closed, group, cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked). ${timestamps(["created_at"])}`,
+    description: `Read one account of a plan. ${MONEY} Debts are negative. Returns { account } with id, name, type, on_budget, starred, closed, group, cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). ${timestamps(["created_at"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id }),
     run: async (input: { budget_id: string; account_id: string }, { env }) => ({
       account: await getAccount(env, input.budget_id, input.account_id),
