@@ -52,9 +52,12 @@ test("placement", () => {
   const menu = { left: 8, top: 62, right: 248, bottom: 500 };
   const row = { left: 12, top: 100, right: 244, bottom: 133 };
   const size = { width: 200, height: 150 };
-  expect(placeSubmenu(menu, row, size, 1440, 900)).toEqual({ left: 248, top: 96, maxHeight: 884 });
+  // Source (Designer, 1440\u00d7900): left = Open Plan row.right, top = row.top.
+  expect(placeSubmenu(menu, row, size, 1440, 900)).toEqual({ left: 244, top: 100, maxHeight: 884 });
   // Flip to the left of the menu when there is no room on the right.
-  expect(placeSubmenu({ ...menu, left: 300, right: 540 }, row, size, 700, 900).left).toBe(100);
+  expect(
+    placeSubmenu({ ...menu, left: 300, right: 540 }, { ...row, right: 540 }, size, 700, 900).left,
+  ).toBe(100);
   // Shift when neither side fits.
   expect(placeSubmenu(menu, row, { width: 400, height: 150 }, 640, 900).left).toBe(232);
   // Vertical clamp.

@@ -60,8 +60,8 @@ limits, so the shell gets its own pure helper, `apps/web/src/shell/menuPlacement
   clone's shorter menu would then show an empty panel, so it uses `max-height`.)
 - **Submenu.** A second fixed element, a sibling of the menu in the same portal (never its child: the menu's
   `overflow` would clip it). `placeSubmenu` places it from the menu's and the Open Plan row's rects: `left =
-  menu.right`, `top = row.top − 4` (heading level with the row). **Flip** to `left = menu.left − width` when
-  `menu.right + width > innerWidth − 8`; if that is `< 8` too, **shift** to `max(8, innerWidth − 8 − width)`
+  row.right`, `top = row.top` (as in the source: it overlaps the menu's 4px padding and starts level with the row). **Flip** to `left = menu.left − width` when
+  `row.right + width > innerWidth − 8`; if that is `< 8` too, **shift** to `max(8, innerWidth − 8 − width)`
   (overlapping the menu). Vertically `top` is clamped into `[8, innerHeight − 8 − height]`, `max-height:
   innerHeight − 16`, scrolling.
 - **Recompute** in `useLayoutEffect` on open, on window `resize` and on the menu's `scroll`.

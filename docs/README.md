@@ -25,3 +25,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Account header design](account-header-design.md): EXF-484, EXF-534, EXF-570 account page header (star, badge, balances with tooltips), PATCH starred, /account-summary, All Accounts register with ACCOUNT column and plan-wide transactions list, stored transactions.updated_at (spec: [account-header-spec.md](account-header-spec.md))
 - [Account header polish](account-header-polish.md): Designer polish list for the account header, with applied status
 - [Plan menu design](plan-menu-design.md): EXF-571/470/454 plan menu and submenu portalled out of the sidebar (real-mouse reachable), full entry list with disabled unbuilt entries, `menu-actions/` registry, `GET /api/v1/me`, menu width 240 and colours, favicon (spec: [plan-menu-spec.md](plan-menu-spec.md))
+- [Plan menu polish](plan-menu-polish.md): submenu placed at the Open Plan row's right edge and top
