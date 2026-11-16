@@ -8356,3 +8356,61 @@ migrations pending (read by me at 17:39Z). The person has not answered the check
 
 Ticket writes: 13 (three priorities; five tickets to In Progress; five comments). Review cadence:
 Build 7, Deploy 5 (the sixth running), Discover 2, Test user flow 0.
+
+### 2026-11-16 · Review round 97
+
+Children used 112 of 200. One ended: **Deploy `D27` shipped `11273cf`**. Two Builds are running.
+Main and live `11273cf` (health read by me at 17:52Z); no migration pending.
+
+**Deploy `D27`: live** (`p_da285c51c54146728f2d86505c4b842e`, 11 minutes; prefix `ZZ-TEST D27`).
+https://budget.doxen.dev, DEPLOY_SHA `11273cfb7503692273f65b37f794ec6423379387`. Both migrations
+applied (`20261116101100`, `20261116101200`); the Time Travel bookmark phase ran; smoke ok; 75 tools.
+Its box kept its files through all steps.
+
+- **Every figure of mine matched** (no "DIFFERS FROM THE BRIEF"):
+  - Counts after the release and before anything was created: 2 payment groups, 2 payment
+    categories, no card without one, none in a live plan, 0 schedules. **The owner's plan gained
+    nothing.**
+  - Credit engine: the group listed first; funded spending, credit overspending 30.00, cash
+    overspending 25.00, next month's Ready to Assign 875.00, the payment; the three locks; rename
+    follows; delete refused with money on the payment category and allowed at 0.
+  - Scheduled transactions: nothing real for a future date; Enter Now approved and dated today, the
+    series a month from its scheduled date; a weekly one dated today gives an unapproved row; a
+    one-off dated today refused; `enter-due` with nothing due; the tool equal to REST.
+  - Web at both sizes: the yellow and red pills, the inspector's four lines and messages, the
+    Scheduled section and its bar, Income v Expense at 1024×700 with no amount cut. No console
+    error, no request at 400 or above.
+- **Reports, not faults:**
+  - A refusal's code is in the error's `name` field, not in a `code` field (my brief's word). For
+    later briefs.
+  - The inspector shows "Assigned This Month" as `+$100.00`.
+  - At 1024×700 the right panel is 202 px, four category names are cut and the inspector's header
+    pill sits under its title: EXF-622 and EXF-646, in the Plan-page Build now.
+  - The verifier could not quote the rollback lines (not in its inputs); the release summary shows
+    the bookmark phase.
+  - Its first scripts failed on their own response handling and created a few things twice inside
+    its test plan; all purged.
+- Cleanup: both schedules deleted, `remaining 0`; plans not named `ZZ-TEST`: 1. The plan menu was
+  not opened; the identity label masked in the captures.
+- **Not proven on live:** the 03:00 UTC job entering a due schedule by itself.
+
+**What is live now that was not at the check-in:** the credit engine (payment categories, credit and
+cash overspending), scheduled transactions with Enter Now and the daily job, the three Reflect
+narrow-window fixes.
+
+**Running:**
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`, PR 50 open): implemented; in design
+  check and polish.
+- **Record Payment Build** (`p_ae982fa0a2334ebaae16875e1551c0d6`): the Clerk's steps done; the
+  Architect wrote the source limits out in its own words and is reading.
+
+**Ticket writes:** 2 (live notes on EXF-532 and EXF-497).
+
+**Backlog:** 50 open feature tickets (47 done; 2 in progress: EXF-537, 539). Gap: eight open
+(EXF-558, 560, 562, 589, 631, 657, 658, 659), nine in progress. Template: thirty-six open. Flow
+verdicts unchanged; flows 4, 7 and 8 are due on the new version. Finished since each template's last
+review: Build 7, Deploy 6 (D22, D25, D26 lost; D23, D24, D27 shipped), Discover 2, Test user flow 0.
+
+**Next plan:** flow tests on live `11273cf`: flow 4 (credit card, first run), flow 7 (recurring,
+first run; its payee-rule half is not built) and flow 8 (Reflect, third run, for EXF-625 and
+EXF-626); Export Plan (EXF-476) now that boxes hold.
