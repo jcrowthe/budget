@@ -1,9 +1,4 @@
-import {
-  type Frequency,
-  dueStep,
-  nextDate,
-  placeSchedule,
-} from "@budget/schema/recurrence";
+import { dueStep, type Frequency, nextDate, placeSchedule } from "@budget/schema/recurrence";
 import {
   CREATE_NOT_SCHEDULED,
   EDIT_NOT_SCHEDULED,
@@ -50,7 +45,10 @@ const clean = (v: string | null | undefined) => {
   return t === "" ? null : t;
 };
 
-export function scheduledToApi(row: repo.ScheduledRow, deleted = row.deletedAt !== null): ScheduledTransaction {
+export function scheduledToApi(
+  row: repo.ScheduledRow,
+  deleted = row.deletedAt !== null,
+): ScheduledTransaction {
   return {
     id: row.id,
     account_id: row.accountId,
@@ -147,9 +145,14 @@ async function checkRules(
   db: Db,
   budgetId: string,
   m: { accountId: string; categoryId: string | null; inflow: boolean },
-  account?: accountsRepo.AccountRow | { closed: boolean; onBudget: boolean; id: string; name: string },
+  account?:
+    | accountsRepo.AccountRow
+    | { closed: boolean; onBudget: boolean; id: string; name: string },
   changedCategory = true,
-): Promise<{ account: { id: string; name: string; closed: boolean; onBudget: boolean }; category: { name: string; groupName: string | null } | null }> {
+): Promise<{
+  account: { id: string; name: string; closed: boolean; onBudget: boolean };
+  category: { name: string; groupName: string | null } | null;
+}> {
   const acc = account ?? (await accountsRepo.findActive(db, budgetId, m.accountId));
   if (!acc) throw unprocessable("Account not found in this plan");
   if (acc.closed) throw new TransactionRefused(422, "account_closed", CLOSED_NO_NEW);
@@ -305,7 +308,8 @@ export async function updateScheduled(
   let anchor = before.dateFirst;
   let dateNext = before.dateNext;
   let enterDate: string | null = null;
-  const replaced = v.date_first !== undefined || (v.frequency !== undefined && v.frequency !== before.frequency);
+  const replaced =
+    v.date_first !== undefined || (v.frequency !== undefined && v.frequency !== before.frequency);
   if (replaced) {
     anchor = v.date_first ?? before.dateNext;
     const place = placeSchedule(anchor, frequency, today);
@@ -319,7 +323,12 @@ export async function updateScheduled(
     budgetId,
     { accountId, categoryId, inflow },
     accountId === before.accountId
-      ? { id: before.accountId, name: before.accountName, closed: before.accountClosed, onBudget: before.accountOnBudget }
+      ? {
+          id: before.accountId,
+          name: before.accountName,
+          closed: before.accountClosed,
+          onBudget: before.accountOnBudget,
+        }
       : undefined,
     v.category_id !== undefined && v.category_id !== null,
   );
@@ -327,7 +336,12 @@ export async function updateScheduled(
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const payee = hasPayee
-      ? await resolvePayee(db, budgetId, { payee_id: v.payee_id, payee_name: v.payee_name }, before.payeeId)
+      ? await resolvePayee(
+          db,
+          budgetId,
+          { payee_id: v.payee_id, payee_name: v.payee_name },
+          before.payeeId,
+        )
       : undefined;
     const now = new Date().toISOString();
     const token = crypto.randomUUID();
@@ -448,7 +462,12 @@ export async function bulkScheduled(
     }
     const step = nextDate(s.dateFirst, s.frequency, s.dateNext);
     const tx = enteredRow(s, today, true, now);
-    const after = { ...s, dateNext: step ?? s.dateNext, updatedAt: now, deletedAt: step ? null : now };
+    const after = {
+      ...s,
+      dateNext: step ?? s.dateNext,
+      updatedAt: now,
+      deletedAt: step ? null : now,
+    };
     writes.push(
       repo.updateIfStmt(
         db,
@@ -478,7 +497,13 @@ export async function bulkScheduled(
       op: req.op,
       results: planned.flatMap((p, i) =>
         wrote[i]
-          ? [{ id: p.row.id, transaction: null, scheduled_transaction: scheduledToApi({ ...p.row, deletedAt: now }, true) }]
+          ? [
+              {
+                id: p.row.id,
+                transaction: null,
+                scheduled_transaction: scheduledToApi({ ...p.row, deletedAt: now }, true),
+              },
+            ]
           : [],
       ),
       skipped,
@@ -494,7 +519,13 @@ export async function bulkScheduled(
       const s = fresh.get(p.row.id);
       const d = p.txId ? details.get(p.txId) : undefined;
       if (!wrote[i] || !s || !d) return [];
-      return [{ id: p.row.id, transaction: transactionDetailToApi(d, []), scheduled_transaction: scheduledToApi(s) }];
+      return [
+        {
+          id: p.row.id,
+          transaction: transactionDetailToApi(d, []),
+          scheduled_transaction: scheduledToApi(s),
+        },
+      ];
     }),
     skipped,
   };

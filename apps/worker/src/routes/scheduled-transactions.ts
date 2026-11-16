@@ -1,11 +1,11 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
 import {
   EnterDueResponse,
+  SCHEDULER_ACTOR,
   ScheduledBulkRequest,
   ScheduledBulkResponse,
   ScheduledCreateResponse,
   ScheduledEnterResponse,
-  SCHEDULER_ACTOR,
   ScheduledTransactionCreate,
   ScheduledTransactionListResponse,
   ScheduledTransactionResponse,
@@ -143,7 +143,10 @@ export default app
       request: { params: budgetParam, query: TodayQuery, body: body(ScheduledBulkRequest) },
       responses: {
         200: json(ScheduledBulkResponse, "Deleted: the schedules removed"),
-        201: json(ScheduledBulkResponse, "Entered now: the real transactions and the schedules after"),
+        201: json(
+          ScheduledBulkResponse,
+          "Entered now: the real transactions and the schedules after",
+        ),
         ...errors,
       },
     }),
@@ -190,7 +193,10 @@ export default app
       path: `${base}/{scheduled_transaction_id}`,
       tags,
       request: { params: idParams },
-      responses: { 200: json(ScheduledTransactionResponse, "The scheduled transaction"), ...errors },
+      responses: {
+        200: json(ScheduledTransactionResponse, "The scheduled transaction"),
+        ...errors,
+      },
     }),
     async (c) => {
       const { budget_id, scheduled_transaction_id } = c.req.valid("param");
@@ -246,7 +252,10 @@ export default app
       const { budget_id, scheduled_transaction_id } = c.req.valid("param");
       const actor = c.get("identity").actor;
       return refusals(c, async () =>
-        c.json({ data: await deleteScheduled(c.env, actor, budget_id, scheduled_transaction_id) }, 200),
+        c.json(
+          { data: await deleteScheduled(c.env, actor, budget_id, scheduled_transaction_id) },
+          200,
+        ),
       );
     },
   )

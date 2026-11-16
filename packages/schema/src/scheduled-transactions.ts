@@ -3,7 +3,7 @@ import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import { FREQUENCIES } from "./recurrence";
-import { FlagColor, TransactionDetail, isCalendarDate } from "./transactions";
+import { FlagColor, isCalendarDate, TransactionDetail } from "./transactions";
 
 export const SCHEDULED_BULK_MAX = 100;
 /** The most schedules one call of "enter what is due" enters; the rest wait for the next call. */
@@ -103,7 +103,9 @@ export const ScheduledBulkRequest = z
 export type ScheduledBulkRequest = z.input<typeof ScheduledBulkRequest>;
 
 export const TodayQuery = z.object({
-  today: Today.optional().describe("The caller's date, YYYY-MM-DD; defaults to the server's UTC date"),
+  today: Today.optional().describe(
+    "The caller's date, YYYY-MM-DD; defaults to the server's UTC date",
+  ),
 });
 
 export const ScheduledTransactionResponse = dataEnvelope(

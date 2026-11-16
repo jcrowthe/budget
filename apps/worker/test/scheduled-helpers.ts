@@ -3,8 +3,8 @@ import { expect } from "vitest";
 import { account, category, type Json, plan, q, send } from "./bulk-helpers";
 
 export const TODAY = "2026-11-15";
-export { account, category, plan, q, send };
 export type { Json };
+export { account, category, plan, q, send };
 
 export const S = (bid: string) => `/api/v1/budgets/${bid}/scheduled-transactions`;
 
@@ -40,7 +40,9 @@ export async function schedLogs(id: string): Promise<Json[]> {
 }
 
 export async function setNext(id: string, dateNext: string, dateFirst = dateNext) {
-  await env.DB.prepare("update scheduled_transactions set date_next = ?, date_first = ? where id = ?")
+  await env.DB.prepare(
+    "update scheduled_transactions set date_next = ?, date_first = ? where id = ?",
+  )
     .bind(dateNext, dateFirst, id)
     .run();
 }
