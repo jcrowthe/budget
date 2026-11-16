@@ -1,5 +1,7 @@
+import type { Account } from "@budget/schema/accounts";
 import { type ComponentType, useRef, useState } from "react";
 import { NavLink, useMatch, useSearchParams } from "react-router";
+import { EditAccountDialog } from "../account/EditAccountDialog";
 import { useAccounts } from "../api/accounts";
 import { identityLabel, useMe } from "../api/me";
 import { AddAccountDialog } from "./AddAccountDialog";
@@ -27,6 +29,7 @@ export function Sidebar() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const label = identityLabel(useMe().data);
   const [addAccount, setAddAccount] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   // Until Manage Bank Connections exists (EXF-460), ?add-accounts=connections opens the connections variant.
   const [params, setParams] = useSearchParams();
   const connectionsVariant = params.get("add-accounts") === "connections";
@@ -102,7 +105,7 @@ export function Sidebar() {
         </NavLink>
       </div>
       {plan && accountList.length > 0 ? (
-        <SidebarAccounts budgetId={plan.id} accounts={accountList} />
+        <SidebarAccounts budgetId={plan.id} accounts={accountList} onEdit={setEditingId} />
       ) : null}
       {!plan || (accounts.isSuccess && accountList.length === 0) ? (
         <div className="accounts-card">
@@ -116,6 +119,13 @@ export function Sidebar() {
       </button>
       {dialog ? (
         <dialog.Dialog budgetId={plan?.id ?? null} onClose={() => setDialog(null)} />
+      ) : null}
+      {plan && editingId && accountList.find((a) => a.id === editingId) ? (
+        <EditAccountDialog
+          budgetId={plan.id}
+          account={accountList.find((a) => a.id === editingId) as Account}
+          onClose={() => setEditingId(null)}
+        />
       ) : null}
       {addAccount ? <AddAccountDialog onClose={() => setAddAccount(false)} /> : null}
       {connectionsVariant ? (
