@@ -1,8 +1,8 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { authHeaders } from "./support/auth";
-import { addAccount, newPlan, openReport } from "./support/reflect";
-import { setRange } from "./support/spending-breakdown-seed";
+import { addAccount, newPlan, openReport, seedExample } from "./support/reflect";
+import { seedSpendingExample, setRange } from "./support/spending-breakdown-seed";
 
 // Today is 2026-11-15 12:00 in the browser (openReport). EXF-625, EXF-626.
 
@@ -191,3 +191,97 @@ test("626 first-column labels are whole or end in an ellipsis with a tooltip, at
   expect(wide.total.every((o) => !o)).toBe(true);
   expect(wide.box.scrollWidth).toBeLessThanOrEqual(wide.box.clientWidth);
 });
+
+test("625 at 1440×900 the column widths are the pre-change flex widths", async ({
+  page,
+  request,
+}) => {
+  const id = await seedNarrow(request);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openReport(page, id, "income-expense");
+  await ready(page);
+  const r = await page.evaluate(() => {
+    const box = document.querySelector(".ie-scroll") as HTMLElement;
+    const heads = [...document.querySelectorAll("thead th")];
+    return {
+      width: box.clientWidth,
+      first: heads[0]?.getBoundingClientRect().width as number,
+      amounts: heads.slice(1).map((h) => h.getBoundingClientRect().width),
+    };
+  });
+  // The pre-change arithmetic (IncomeExpenseReport.tsx before 18409b0): base = 96 + 64 * (c + 2),
+  // units = c + 5, first = 96 + 3/units * spare, other = 64 + spare/units. Equal within 0.5 px
+  // (design doc acceptance 3, docs/reflect-narrow-design.md).
+  const n = r.amounts.length;
+  const units = n + 3;
+  const spare = Math.max(0, r.width - (96 + 64 * n));
+  expect(n).toBe(7); // five months, Average and TOTAL
+  expect(Math.abs(r.first - (96 + (3 / units) * spare))).toBeLessThanOrEqual(0.5);
+  for (const w of r.amounts) expect(Math.abs(w - (64 + spare / units))).toBeLessThanOrEqual(0.5);
+});
+
+// Design doc acceptance 7 / "Narrow-window survey": at 1024×700 nothing found on the three other reports.
+const SURVEY: [string, string][] = [
+  ["net-worth", "net"],
+  ["spending-breakdown", "spend"],
+  ["spending-trends", "spend"],
+];
+for (const [slug, seed] of SURVEY) {
+  test(`7 narrow survey: ${slug} at 1024×700 has no cut or overlapping text`, async ({
+    page,
+    request,
+  }) => {
+    let id: string;
+    if (seed === "net") {
+      id = (await newPlan(request, "narrow-survey")).id;
+      await seedExample(request, id);
+    } else {
+      id = (await seedSpendingExample(request)).plan.id;
+    }
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await openReport(page, id, slug);
+    await page.waitForTimeout(2500);
+    const found = await page.evaluate(() => {
+      const body = document.querySelector(".reflect-body") ?? document.body;
+      const out: string[] = [];
+      const boxes: { text: string; r: DOMRect }[] = [];
+      const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const text = (n.textContent ?? "").trim();
+        const el = n.parentElement;
+        if (!text || !el || !el.checkVisibility()) continue;
+        if (el.closest("script,style,svg,.ie-sr,.sr-only,[role=tooltip]")) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        const r = range.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        // Text in a sideways-scrolling box is reached by scrolling, not cut.
+        const scroller = el.closest<HTMLElement>("[class*='scroll']");
+        if (r.right > window.innerWidth + 1 && !scroller) out.push(`past edge: ${text}`);
+        const cs = getComputedStyle(el);
+        if (
+          el.scrollWidth > el.clientWidth + 1 &&
+          /hidden|clip/.test(cs.overflowX) &&
+          cs.textOverflow !== "ellipsis"
+        )
+          out.push(`cut: ${text}`);
+        boxes.push({ text, r });
+      }
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = (boxes[i] as (typeof boxes)[0]).r;
+          const b = (boxes[j] as (typeof boxes)[0]).r;
+          const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (w > 1 && h > 1)
+            out.push(
+              `overlap: ${(boxes[i] as (typeof boxes)[0]).text} / ${(boxes[j] as (typeof boxes)[0]).text}`,
+            );
+        }
+      if (document.documentElement.scrollWidth > document.documentElement.clientWidth)
+        out.push("page scrolls sideways");
+      return out;
+    });
+    expect(found).toEqual([]);
+  });
+}
