@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { type ComponentType, useRef, useState } from "react";
 import { NavLink, useMatch, useSearchParams } from "react-router";
 import { useAccounts } from "../api/accounts";
+import { identityLabel, useMe } from "../api/me";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { AccountsIcon, CaretIcon, Logo, PlanIcon, PlusCircleIcon, ReflectIcon } from "./icons";
-import { NewPlanDialog } from "./NewPlanDialog";
 import { PlanMenu } from "./PlanMenu";
 import {
   accountsPath,
@@ -20,8 +20,12 @@ export function Sidebar() {
   const { budgetId, plan, plans, isLoading } = useCurrentPlan();
   const monthMatch = useMatch("/:budgetId/budget/:month");
   const onPlan = !!useMatch("/:budgetId/budget/*");
-  const [menu, setMenu] = useState(false);
-  const [newPlan, setNewPlan] = useState(false);
+  const [menu, setMenu] = useState<null | { keyboard: boolean; focus: "first" | "last" }>(null);
+  const [dialog, setDialog] = useState<null | {
+    Dialog: ComponentType<{ budgetId: string | null; onClose: () => void }>;
+  }>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const label = identityLabel(useMe().data);
   const [addAccount, setAddAccount] = useState(false);
   // Until Manage Bank Connections exists (EXF-460), ?add-accounts=connections opens the connections variant.
   const [params, setParams] = useSearchParams();
@@ -41,22 +45,43 @@ export function Sidebar() {
   return (
     <nav className="sidebar" aria-label="Sidebar">
       <button
+        ref={buttonRef}
         type="button"
         className="plan-button"
-        aria-expanded={menu}
-        onClick={() => setMenu((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={!!menu}
+        aria-controls={menu ? "plan-menu" : undefined}
+        aria-label={plan?.name ?? "Budget"}
+        aria-describedby={label ? "plan-identity" : undefined}
+        onClick={(e) => setMenu((m) => (m ? null : { keyboard: e.detail === 0, focus: "first" }))}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setMenu({ keyboard: true, focus: e.key === "ArrowDown" ? "first" : "last" });
+          }
+        }}
       >
         <Logo className="logo" />
-        <span className="name">{plan?.name ?? "Budget"}</span>
+        <span className="plan-text">
+          <span className="name">{plan?.name ?? "Budget"}</span>
+          {label ? (
+            <span id="plan-identity" className="identity">
+              {label}
+            </span>
+          ) : null}
+        </span>
         <CaretIcon />
       </button>
       {menu ? (
         <PlanMenu
-          onClose={() => setMenu(false)}
-          onNewPlan={() => {
-            setMenu(false);
-            setNewPlan(true);
+          anchorRef={buttonRef}
+          openedByKeyboard={menu.keyboard}
+          initialFocus={menu.focus}
+          onClose={({ focusButton }) => {
+            setMenu(null);
+            if (focusButton) buttonRef.current?.focus();
           }}
+          onDialog={(a) => setDialog({ Dialog: a.Dialog })}
         />
       ) : null}
       <div className="nav">
@@ -89,7 +114,9 @@ export function Sidebar() {
         <PlusCircleIcon />
         Add Account
       </button>
-      {newPlan ? <NewPlanDialog onClose={() => setNewPlan(false)} /> : null}
+      {dialog ? (
+        <dialog.Dialog budgetId={plan?.id ?? null} onClose={() => setDialog(null)} />
+      ) : null}
       {addAccount ? <AddAccountDialog onClose={() => setAddAccount(false)} /> : null}
       {connectionsVariant ? (
         <AddAccountDialog

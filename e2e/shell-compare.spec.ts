@@ -77,29 +77,44 @@ test("shell geometry and colours match the source", async ({ page, request }) =>
 
 test("plan menu matches the source", async ({ page, request }) => {
   const { name, id } = await openPlan(request);
+  // A second plan, so that Open Plan is shown.
+  await openPlan(request);
   await page.goto(`/${id}/budget`);
   const sidebar = page.getByRole("navigation", { name: "Sidebar" });
   const button = sidebar.getByRole("button", { name });
   await button.click();
-  const menu = page.getByRole("menu").first();
+  const menu = page.getByRole("menu", { name: "Plan", exact: true });
   await expect(menu).toBeVisible();
 
-  // Dropdown sits under the button with the same width (case 15).
+  // Dropdown under the button, 8px below it and level with it on the left (docs/plan-menu-design.md §5).
   const [m, b] = await Promise.all([menu.boundingBox(), button.boundingBox()]);
-  expect(m?.width).toBe(b?.width);
-  expect(m?.y ?? 0).toBeGreaterThanOrEqual((b?.y ?? 0) + (b?.height ?? 0));
-  // Background #1F2038 (case 15).
+  expect(m?.x).toBe(b?.x);
+  expect(m?.y ?? 0).toBeCloseTo((b?.y ?? 0) + (b?.height ?? 0) + 8, 0);
+  // Width 240px: the source's min-width 15rem (243px measured there includes a 15px scrollbar).
+  expect(m?.width).toBe(240);
+  // Background #1F2038 (scaffold-design case 15).
   expect(await css(menu, "background-color")).toBe("rgb(31, 32, 56)");
 
-  // First items "New Plan" and "Open Plan ›"; nothing else (case 15).
+  // The cloned entries in the source's order (plan-menu-design §3).
   const items = menu.getByRole("menuitem");
-  await expect(items).toHaveCount(2);
-  await expect(items.nth(0)).toHaveText("New Plan");
-  await expect(items.nth(1)).toHaveText(/^Open Plan/);
+  await expect(items).toHaveText([
+    "New Plan",
+    "Open Plan",
+    "Plan Settings",
+    "Manage Payees",
+    "Edit Flags",
+    "Display Options",
+    "Export Plan",
+    "Make a Fresh Start",
+    "Manage Bank Connections",
+    "Keyboard Shortcuts",
+    "Log Out",
+  ]);
 
-  // Items 33px high (case 15).
-  expect((await items.nth(0).boundingBox())?.height).toBe(33);
-  // Hover #292B3D (case 15).
-  await items.nth(0).hover();
+  // Rows 32.8px high: padding 8 + line height 16.8 (source row measured in plan-menu-design §Source).
+  expect((await items.nth(0).boundingBox())?.height).toBeCloseTo(32.8, 1);
+  // Hover #292B3D (source row hover, plan-menu-design §Source), with a real pointer.
+  const r = await items.nth(0).boundingBox();
+  await page.mouse.move((r?.x ?? 0) + (r?.width ?? 0) / 2, (r?.y ?? 0) + (r?.height ?? 0) / 2);
   await expect.poll(() => css(items.nth(0), "background-color")).toBe("rgb(41, 43, 61)");
 });
