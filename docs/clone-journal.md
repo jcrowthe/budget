@@ -5492,3 +5492,67 @@ Worker files are held by the import Build.
 
 Ticket writes: 5 (two to In Progress, three comments). Review cadence: Build 3, Deploy 5, Discover 2,
 Test user flow 5.
+
+### 2026-11-16 · Review round 66
+
+Children used 79 of 200. Two children ended without result; two Builds are running. Main `3a98673`,
+**live still `4e3eb7a`** (I read the health endpoint: unchanged).
+
+**Ended 1: the Plaid import Build (`p_e051b02d89624ff7a3e8144e9f9710c2`), failed after 14 minutes. My
+fault.**
+- Its Architect wrote and committed the design and spec (`docs/plaid-import-design.md`,
+  `docs/plaid-import-spec.md`; head `16c5a85`, on top of main).
+- Its Implementer found `/workspace/.exfab/request.json` gone and answered blocked, **as the new line in
+  my brief told it to** ("if the box loses its files, say so at once"). The platform has no route for
+  "blocked" at the build step: the Thread ended as failed.
+- The box was healthy: `bin`, `preflight.md`, `profile.json` and the Playwright browser were there. A
+  missing `request.json` after intake is evidently normal (the Reflect Build's Implementer had noted the
+  same and gone on). In the box that really was lost, `bin/lib.sh` was missing.
+- **The lesson: I wrote a guard into three briefs from one observation, without knowing what a healthy
+  box holds.** The guard goes. What stays is only: "if a platform script fails because one of its own
+  files is missing, say exactly that". The same line is in the two Builds still running; both passed
+  the point where it bit (the Reflect carry-over is past its build and polish steps, the Plan-page
+  Build's Implementer is building), but a later step of either could still trip on it. If one ends as
+  failed with "request.json is gone": carry it over, do not look for another cause.
+- Cost: about 3.60 dollars and one child. The design is kept: next plan carries the branch over.
+- **The design, read and accepted** (comment on EXF-462): writes first in repeat-safe batches, the
+  cursor and status last; the duplicate check on live rows plus tombstones; **a full re-read of the
+  feed when an account is linked after the connection already has a cursor** (a case I had missed: a
+  later-linked account would never import); `sync_error_since` marks "came back"; the schedule skips
+  `login_required` and `broken`.
+
+**Ended 2: the Deploy of `3a98673` (`p_ad9c4b07f40441a9b48e8c57f69fdfb0`), cancelled by me.** The
+platform parked it at its first step (`intake`, `infra_failed`): zero tokens, no transcript, no gate, no
+release, a card that did not reach me. Nothing changed on live. Evidence on EXF-611 (a park is not
+specific to the Build template's checks step).
+
+**Three children lost to the platform's boxes in two hours** (the first targets Build, the first Reflect
+Build, this Deploy) and one to my own guard. The carry-overs and restarts cost four children so far.
+
+**Running:**
+- **Reflect carry-over** (`p_bce37969c15544d3aef56a825ebcb1d8`): head `bfd9487`: the polish list
+  applied, the tool descriptions use `dates()`, its two tools added to the timestamp test (the seam,
+  handled before its gate).
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): designed (`e36d5c5`), Worker side built
+  and green (996 tests), web side in progress. **Its manifest has arrived; checked against the Reflect
+  carry-over and the import design: disjoint** (it holds the months, targets and auto-assign files,
+  `packages/core/src/targets.ts`, `apps/web/src/plan/**`, `e2e/rta.spec.ts`; migration
+  `20261116100700_target_snoozes.sql`). One file beyond my list, `packages/schema/src/ui-state.ts` (a
+  key for the one-time keyboard tip): fine.
+  - **Its Architect asks me to confirm one departure, and I do:** the source shows "Underfunded" at
+    $0.00 plan-wide and for a multi-selection, and hides it only for a single category with nothing
+    underfunded; the ticket said hidden whenever $0.00. The source wins. Reduce Overfunding is hidden
+    at $0.00 everywhere.
+  - Its Architect wrote the source limits out before touching the source (the new line worked), and
+    its sub-agent stayed inside them: chips clicked, buttons hovered only, nothing typed, no theme or
+    viewport change, 31 captures taken and reported with the deleted ones.
+
+**Ticket writes:** 2 (comments on EXF-462 and EXF-611).
+
+**Backlog:** 64 open feature tickets (30 done; 7 in progress: EXF-549, 548, 500, 516, 519, 462, 463).
+Gap: in progress EXF-588, EXF-591; open EXF-558, EXF-560, EXF-562, EXF-589 (Low). Template:
+twenty-eight. Flow verdicts unchanged. Finished since each template's last review: Build 4, Deploy 6
+(the cancelled one counts), Discover 2, Test user flow 5.
+
+**Next plan:** (1) the Deploy of `3a98673` again; (2) the import carried over from
+`origin/exfab/p_e051b02d89624ff7a3e8144e9f9710c2` (head `16c5a85`), without the guard.
