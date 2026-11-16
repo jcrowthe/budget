@@ -391,6 +391,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | live `3a3a977` (6 minutes) |
 | 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | pending | running |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
+| 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4262,3 +4263,30 @@ Template: twenty-six (EXF-573 Urgent). Flow verdicts: 1 `parity_known_gaps`, 9 a
 
 **Next plan:** flow tests on live with a run prefix: flow 1 again and flow 2 as far as built (outflow,
 inflow, overspend, cover); flow 9 again waits for EXF-586 on live.
+
+### 2026-11-16 · Plan round 51
+
+Children used 65 of 200. Four are running: three Builds from earlier rounds (the Plan-page Build, in review
+fixes; the Worker half of EXF-461, in review fixes; EXF-526 with EXF-524, designed) and the flow test
+started now.
+
+- No ticket was filed at the last review. The person's note at the check-in: not provided.
+- **Reflect merged as `df5afbe` (PR #27)** after the check-in: I approved its fourth card in a side turn
+  (gate on base `3a3a977`: e2e 189 of 189 three times). Its tickets are handled at this round's review.
+- **Started the flow tests on live `3a3a977`** (`p_01e3392182944b22b75a9e0234f7aa17`), one child, run
+  prefix `ZZ-TEST F51`:
+  - Flow 1 again (previous run `p_b3b54...`, `parity_known_gaps`): the Ready to Assign box in its three
+    states, the breakdown, Assign, Fix This.
+  - Flow 2, first run, as far as built: an outflow with arithmetic, an inflow to Ready to Assign, the date
+    keys, the payee's remembered category, overspending and Cover, Move, editing and clearing, an
+    uncategorized row, All Accounts, and the API and MCP agreeing. Splits and transfers are named as not
+    built.
+  - No source app; no Open Plan submenu; the prefixed purge at the end.
+- **No Deploy yet:** main `df5afbe` is one merge ahead of live (Reflect with Net Worth, one migration). The
+  Plan-page Build is in review fixes; one Deploy ships both, then flows 8 and 9.
+- **No new Build:** the Reflect files are free, but EXF-549 (Spending Breakdown) needs splits and
+  transfers; the Plan page, the accounts files and the transactions files are held.
+- Running Builds, heads read: Plan-page `8539806` ("queue note saves in order, cover note-field keys, give
+  the splitter a full range": review fixes); EXF-461 Worker `d86b3a8` ("guard connection removal against
+  links made since the read": a review fix of the kind I want); transfers and splits `3c8f12e` (design).
+- Review cadence: Build 6 (with Reflect), Deploy 2, Discover 2, Test user flow 3.
