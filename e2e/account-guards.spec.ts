@@ -132,3 +132,20 @@ test("an account with a split is adjusted in Edit Account and closed with Adjust
   const closing = (await accountTxs(request, plan, id)).find((t) => t.memo === "Closed Account");
   expect(closing?.amount).toBe(-95000);
 });
+
+test("All Accounts with only closed accounts: Add Transaction is disabled and Shift+N opens no row", async ({
+  page,
+  request,
+}) => {
+  const plan = await newPlan(request);
+  const only = await newAccount(request, plan, "ZZ-TEST Only", "checking", 0);
+  await call(request, "POST", `${BASE(plan)}/accounts/${only}/close`, {});
+  await expect.poll(async () => (await getAccount(request, plan, only)).closed).toBe(true);
+  await page.goto(`/${plan}/accounts`);
+  // Source: Add Transaction and File Import are disabled when no account is open (measured on a plan of closed accounts).
+  await expect(button(page, "Add Transaction")).toBeDisabled();
+  await expect(button(page, "File Import")).toBeDisabled();
+  await realClick(page, page.getByRole("main").getByRole("heading").first());
+  await page.keyboard.press("Shift+N");
+  await expect(rows(page)).toHaveCount(0);
+});

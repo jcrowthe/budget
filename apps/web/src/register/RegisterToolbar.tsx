@@ -35,11 +35,11 @@ export function RegisterToolbar({
           File Import
         </button>
         <hr className="toolbar-divider" />
-        <button type="button" className="toolbar-button" data-ticket="EXF-530">
+        <button type="button" className="toolbar-button" data-ticket="EXF-530" disabled>
           <UndoIcon />
           Undo
         </button>
-        <button type="button" className="toolbar-button" data-ticket="EXF-530">
+        <button type="button" className="toolbar-button" data-ticket="EXF-530" disabled>
           <RedoIcon />
           Redo
         </button>
