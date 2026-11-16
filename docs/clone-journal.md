@@ -4012,3 +4012,24 @@ live; run flow 1 again together with flow 2 after the transactions Build is depl
 EXF-558 (High), EXF-587 (Medium), EXF-560, EXF-562 (Low); in progress EXF-586 (High), EXF-569, EXF-579.
 Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished since
 each template's last review: Build 3, Deploy 1, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Plan round 48
+
+Children used 61 of 200. Four Builds are running, all from earlier rounds: EXF-517 with EXF-507 (regating
+on the new main, my choice at its second card); EXF-548 with EXF-551; EXF-579 with EXF-569; and the
+Plan-page Build for EXF-498, 523, 521 and 586. **Nothing started this round.**
+
+- No ticket was filed at the last review.
+- Main and live are both `b09078b`: nothing to deploy.
+- **The transactions Build's second card (side turn): Regate.** The rebase changed its docs commit, as it
+  did for the Ready to Assign Build. This regate is also the first full run of the entry row's specs with
+  the Ready to Assign box on the Plan page.
+- **Every Build that meets a moved base now pays Refresh, then Regate, for one line in `docs/README.md`:**
+  about ten minutes and two cards each time. With four Builds running, most will.
+  - I cannot fix it from a brief: wherever the Build adds its index line, a rebase onto a main that also
+    added one rewrites a commit, and a rewritten commit means Regate.
+  - The fix is the template's (point 3 of the first Build review: write the docs index line at merge, or
+    resolve that conflict by rule). Add this round's two cases as evidence at the next Build review.
+- Nothing new can start: the files of every ready ticket are held (the transactions files, the Plan page),
+  and flow 1 waits to run with flow 2 after the next Deploy.
+- Review cadence: Build 3, Deploy 1, Discover 2, Test user flow 3.
