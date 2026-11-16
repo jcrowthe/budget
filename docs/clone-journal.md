@@ -7942,3 +7942,48 @@ review: Build 6, Deploy 3, Discover 2, **Test user flow 10: its first review is 
 `20261116101100`; the owner's plan is never opened, counts only); the first Test user flow template
 review with the ten flow Threads; no new Build (the two running hold the Plan page, the register and
 the account pages).
+
+### 2026-11-16 · Plan round 92
+
+Children used 109 of 200. Three started now, one of them cancelled by me at once and restarted (my
+error, below); four are running. Main `b84f513`, live `85f3cc9`. No tickets were filed at the last
+review. The person has not answered the check-in.
+
+- **Started: Deploy `D25` of `b84f513`** (`p_2062440839cc42e99c02a34f2bcf78b2`; prefix `ZZ-TEST D25`;
+  gated head `6acd179`, whose tree I compared with main's: identical). Nothing runs on live now.
+  - **What I counted in the live database first (numbers only):** 2 live credit accounts, in 2
+    deleted test plans; **none in a plan that is not deleted. The owner's plan has no credit account,
+    so the backfill adds nothing to it** (my check-in said "if it has a credit card": it has none).
+    The migration should insert 2 groups and 2 categories; the verifier counts them (expected 2, 2,
+    no card without a category, none in a live plan) before it creates anything.
+  - Checks, with figures I worked out by hand (marked as such; "DIFFERS FROM THE BRIEF" if wrong): a
+    card bought on with 100.00 assigned (60.00 funded, then 70.00 more: credit overspent by 30.00,
+    payment category 100.00), a cash overspending of 25.00, next month's Ready to Assign 875.00, a
+    payment of 100.00 (payment category 0.00, card −30.00, checking 875.00), the tool equal to REST;
+    the three locks; rename follows; deleting a card with money on its payment category refused
+    (409), then allowed at 0; the yellow and red pills, the four inspector lines and the messages at
+    both sizes; at 1024×700 no pill text cut, and a report of the panel's width (EXF-622, 646).
+  - The plan menu is not opened; the owner's plan is never opened; counts only.
+- **Started: the first Test user flow template review** (`p_2dc6fe6219b1421ea8e00a5d096651bb`), the
+  ten flow Threads, with the standing notes line. Asked, in order: what a verdict means when the
+  source is never opened; which of my 15,000 characters of rules belong in the template or the
+  profile, and the missing `previous_run` input; "DIFFERS FROM THE BRIEF"; when a fault is filed and
+  when reported; the narrow window as a standing step; a repository helper for the leak harness; time
+  lost to tooling; a run that changed accounts half way; what held on the live app, run by run; the
+  testers' tickets.
+  - **My error:** the first start (`p_b2f7f5ca5b6746998e22e1c0d9b039ca`) had notes that named the
+    wrong flows for six of the ten runs and the wrong run for the Sandbox bank; I had written them
+    from memory. I checked them against this journal a minute later, cancelled it and started again
+    with the journal's list. One child spent for nothing. I take run lists from the journal's table,
+    not from memory.
+- **Not started:** no Build (the carry-over and the Plan-page Build hold the register, the account
+  pages and the Plan page; Export Plan waits for the scheduled-transactions merge); no flow test
+  (flow 4 waits for `D25`).
+- **Running besides:** the carry-over of scheduled transactions and the Reflect fixes
+  (`p_65ee74c0816d452899f054187504cc58`, in polish); the Plan-page Build
+  (`p_8baaff851d044a5ea2fcccb712be3809`, at its design).
+- **Cards while `D25` is in flight: no Build is approved.** A card that comes now is on base
+  `85f3cc9` or `b84f513`; the carry-over's, if on `85f3cc9`, gets Regate anyway.
+
+Ticket writes: 0. Review cadence: Build 6, Deploy 3 (the fourth running), Discover 2, Test user flow
+0 since the review now running.
