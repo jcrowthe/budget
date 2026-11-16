@@ -95,7 +95,7 @@ export async function setTarget(
   throw new Conflict("Target");
 }
 
-export async function deleteTarget(env: Env, actor: string, input: TargetDelete): Promise<void> {
+export async function deleteTarget(env: Env, actor: string, input: TargetDelete): Promise<Target> {
   const v = TargetDelete.parse(input);
   const db = getDb(env);
   await requirePlan(db, v.budget_id);
@@ -118,7 +118,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
       ),
       repo.deleteIfHoldsStmt(db, v.budget_id, v.category_id, before.updatedAt),
     ]);
-    if (del.meta.changes > 0) return;
+    if (del.meta.changes > 0) return targetToApi(before);
   }
   throw new Conflict("Target");
 }
