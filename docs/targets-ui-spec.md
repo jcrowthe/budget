@@ -237,6 +237,45 @@ it.
   typed in a field leave the selection alone" (lines 112 and 121 today) or replace them with the expected
   popover; run every Plan spec and fix any other such click the same way.
 
+## 10. Carry-over tasks (design "Carry-over", cases 18–23)
+
+The code is merged and `pnpm check` passes. Run the specs first (Done when). Then add only these:
+
+1. **`today` refusals** (case 18): `apps/worker/test/target-routes.test.ts`, one `it.each` over `["nope",
+   "2026-11-1", "2026-02-30", "2300-01-01"]` × {GET month, GET summary, PUT target}: status 422 and `error.detail`
+   containing "today must be a real date". MCP `get_plan_month` / `set_category_target` with `today: "nope"`:
+   `isError` true. After the bad PUT, the month read has `target: null`. Accepted extremes: PUT with
+   `?today=1990-01-15` → `created_month` `1990-01-01`; a new category with `2150-06-30` → `2150-06-01`.
+2. **Split** (case 22): same file. Seed like `splits.test.ts` (account via `POST …/accounts`, categories
+   found by name in the month read). PUT a monthly set_aside 100000 target on Groceries, PATCH Assigned
+   100000, `POST /api/v1/budgets/{bid}/transactions` with `amount: -100000, subtransactions: [{amount:
+   -60000, category_id: groceries}, {amount: -40000, category_id: dining}]` (expect 201). Read the month with
+   `today`: Groceries `activity` −60000, `target.funded` 100000, `target.status` "funded", and
+   `targetStatusText(groceries)` from `@budget/schema/target-wording` gives `{ amount: null, text: "Funded.
+   Spent $60.00 of $100.00" }`. A second plan with a plain −60000 Groceries transaction: `toEqual` the same
+   `target` object (ids aside). Do not touch transactions files.
+3. **Tool text** (case 21): `apps/worker/src/mcp/tools/targets.ts`, split the "Kinds: …" sentence into one
+   sentence per kind (weekly; monthly; yearly; custom set aside / fill up; custom balance). Keep the
+   `MONEY`, `DATE` and `MONTH` text and "Returns { target }". `mcp-descriptions.test.ts` must still pass; never
+   edit it.
+4. **Assign follows everywhere** (case 19): `e2e/targets-display.spec.ts`, "Assign meets the target…": read the
+   Ready to Assign amount before the click, then without reload expect it lower by exactly $60.00. Also expect
+   the inspector's Assigned row and Available row, and the grid pill, to read `$100.00`. No code change is
+   expected: `TargetCard` already calls `useCommitAssigned`.
+5. **Plan switch** (case 20): new test in `e2e/targets-display.spec.ts`. Copy `onlyOurPlans` and `switchTo`
+   from `e2e/plan-switch.spec.ts` (do not edit it or import from it); two `seedPlan`s, `removePlan` both in
+   `afterEach`, `page.unrouteAll` first. If it fails, the fix goes in `apps/web/src/plan/panel/**` only:
+   the card's data must come from `useMonth`, whose `keepPreviousInPlan` already drops another plan's month.
+6. **Narrow** (case 23): extend "at 1024 by 700…" in `e2e/targets-form.spec.ts` with the listed controls; pick
+   the calendar day and the options with `realClick`, then check the stored body with `expect.poll`
+   (`{cadence: "custom", behavior: "balance", due_month}` for the last one).
+7. **Stable clicks**: in `e2e/targets.fixtures.ts`, re-export `realClick` from `./support/register-seed`
+   instead of `./support/real-click` (it waits until the box is still). Neither support file is edited.
+
+Verify: `pnpm check`; `pnpm e2e e2e/targets-form.spec.ts e2e/targets-display.spec.ts e2e/targets-today.spec.ts
+e2e/plan-selection.spec.ts e2e/plan-grid.spec.ts e2e/month-nav.spec.ts e2e/plan-panel.spec.ts
+e2e/assigned.spec.ts --repeat-each=3`.
+
 ## Done when
 
 `pnpm check` passes; the specs above pass with `--repeat-each=3`; the out-of-bounds files are unchanged

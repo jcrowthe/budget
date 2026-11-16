@@ -240,13 +240,49 @@ also at 1024×700.
     `today`: the row's status text and the inspector's breakdown equal the strings built from that read.
 15. **(EXF-592) Name click.** One selected: a real-mouse click on its name opens "Edit Category"; a click on
     another name selects it and opens nothing; with two selected, a name click selects only it, no popover.
-    *Compare*: source, click a selected name, then Cancel.
+    *Not compared in the carry-over Build* (a second click on a selected name is outside the Lead's source
+    limits); judged against the Source section above.
 16. **(all) Narrow.** At 1024×700 every form control passes the topmost-element check and the footer buttons
     are visible; Save works.
 17. **(all) Unchanged.** The existing selection, panel, Assigned, month and MCP specs and tests pass.
 
+## Carry-over
+
+Carried to Build `p_6abff514…` on main `6c73a00` (account editing; transfers and splits). Design unchanged;
+the merge is clean and `pnpm check` passes. The month read still takes activity from `activityByMonth` (split
+lines in their categories, on-plan transfers left out), so target figures need no change. The study notes stay
+in the earlier box; this Build does not reopen the source app.
+
+**Source limits** for every compare case: select one category, Create Target, the form's tabs, dropdowns, date
+pickers, switches and amount typing, then **Cancel**. Never Save, Delete or Assign. Case 15 is not compared.
+
+**`today` (Lead point 1), as built:** a real `YYYY-MM-DD` date from 1900-01-01 to 2199-12-31 is **accepted as
+given**, however far from the server's date (single-user app: the owner's clock is trusted). Anything else
+(`nope`, `2026-11-1`, `2026-02-30`, `2300-01-01`) is a **422** "today must be a real date, YYYY-MM-DD" on all
+four operations and both tools: never a 500, never a silent fall back.
+
+Missing tests and small fixes (spec §10); no new feature, route or shape:
+
+18. **(point 1)** Worker test: each bad `today` on GET month, GET summary, PUT target, `get_plan_month` and
+    `set_category_target` gives 422 (tool error) with that message, and nothing is stored. `1990-01-15` and
+    `2150-06-30` are accepted; PUT stores `created_month` `1990-01-01` / `2150-06-01`.
+19. **(point 2)** Case 9 also checks, with no reload, that Ready to Assign drops by exactly 60.00 and the
+    inspector's Assigned and Available rows and the grid's pill show 100.00.
+20. **(point 3)** Plan X: Rent with monthly 100; plan Y: no target. Open X, select Rent, wait for "Set Aside
+    Another $100.00 Each Month". Hold Y's month GET, switch to Y through the in-app plan menu. While held: no
+    Target card, no "$100.00", no status text, no target pill; after release, no target text in Y.
+21. **(point 4)** `set_category_target`'s description gives one sentence per kind; the rest unchanged.
+22. **(point 5)** Worker test: Groceries with a monthly 100 set_aside target, assigned 100.00; a −100.00 split
+    through `POST …/transactions`, lines −60.00 Groceries and −40.00 Dining out. Groceries reads `activity
+    −60000`, target `funded 100000`, `status "funded"`, status text "Funded. Spent $60.00 of $100.00". A
+    second plan with a plain −60.00 Groceries transaction gives the same target object.
+23. **(point 6)** Case 16 at 1024×700 also uses the real mouse for: the Yearly calendar (pick a day), the
+    Monthly dropdown (pick Refill), Custom → Have a balance → Due by date on → the month and year selects; each
+    passes the topmost check; then Save, and poll the stored target. Every real-mouse click in the target
+    specs waits for the control to stop moving (`realClick` of `e2e/support/register-seed.ts`).
+
 ## Manifest
 
-touches: [packages/core/src/targets.ts, packages/core/test/targets.test.ts, packages/schema/src/targets.ts, packages/schema/src/target-wording.ts, packages/schema/src/target-form.ts, packages/schema/test/target-wording.test.ts, packages/schema/test/target-form.test.ts, packages/schema/test/targets.test.ts, apps/worker/src/services/targets.ts, apps/worker/src/services/months.ts, apps/worker/src/routes/targets.ts, apps/worker/src/routes/months.ts, apps/worker/src/mcp/tools/targets.ts, apps/worker/src/mcp/tools/months.ts, apps/worker/test/mcp-coverage/targets.ts, apps/worker/test/target-routes.test.ts, apps/web/src/plan/**, apps/web/src/api/months.ts, apps/web/src/api/targets.ts, e2e/targets-form.spec.ts, e2e/targets-display.spec.ts, e2e/targets-today.spec.ts, e2e/targets.fixtures.ts, e2e/plan-selection.spec.ts, docs/plan-panel-design.md, docs/targets-ui-design.md, docs/targets-ui-spec.md, docs/README.md]
+touches: [packages/core/src/targets.ts, packages/core/test/targets.test.ts, packages/schema/src/targets.ts, packages/schema/src/target-wording.ts, packages/schema/src/target-form.ts, packages/schema/test/target-wording.test.ts, packages/schema/test/target-form.test.ts, packages/schema/test/targets.test.ts, apps/worker/src/services/targets.ts, apps/worker/src/services/months.ts, apps/worker/src/routes/targets.ts, apps/worker/src/routes/months.ts, apps/worker/src/mcp/tools/targets.ts, apps/worker/src/mcp/tools/months.ts, apps/worker/test/mcp-coverage/targets.ts, apps/worker/test/target-routes.test.ts, apps/web/src/plan/**, apps/web/src/api/months.ts, apps/web/src/api/targets.ts, e2e/targets-form.spec.ts, e2e/targets-display.spec.ts, e2e/targets-today.spec.ts, e2e/targets.fixtures.ts, e2e/plan-selection.spec.ts, e2e/plan-grid.spec.ts, e2e/month-nav.spec.ts, docs/plan-panel-design.md, docs/targets-ui-design.md, docs/targets-ui-spec.md, docs/README.md]
 shared: [packages/core/src/targets.ts: adds the pure `targetBar` (bar sections and fill) for the display, with its tests in packages/core/test/targets.test.ts; no existing figure changes]
 migrations: 0
