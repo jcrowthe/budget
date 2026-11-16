@@ -399,6 +399,28 @@ test("a weekly transaction dated 14 days ago makes one real row; missed ones are
   await expect(realRow(page, "ZZ-TEST Missed")).toHaveCount(1);
 });
 
+// Design doc, Acceptance cases 14 and 15: the literal dates of the case text, not dates relative to the clock.
+for (const [ac, first] of [
+  ["AC14", "2026-11-15"],
+  ["AC15", "2026-11-01"],
+] as const) {
+  test(`Weekly, today 11/15/2026, dated ${mmddyyyy(first)}: ${first === "2026-11-15" ? "one real row on 11/15, approved false" : "one real row on 11/01, none on 11/08 or 11/15"}, date_next 2026-11-22 (499 ${ac})`, async ({
+    page,
+    request,
+  }) => {
+    const s = await seed(request);
+    await openRegister(page, s, "2026-11-15");
+    const name = `ZZ-TEST Fixed ${ac}`;
+    await addRow(page, { payee: name, outflow: "10.00", date: first, repeat: "weekly" });
+    await expect
+      .poll(async () => (await listSched(request, s.plan)).map((r) => r.date_next))
+      .toEqual(["2026-11-22"]);
+    const real = (await txs(request, s.plan, s.checking)).filter((t) => t.payee_name === name);
+    expect(real.map((t) => [t.date, t.approved])).toEqual([[first, false]]);
+    await expect(realRow(page, name)).toHaveCount(1);
+  });
+}
+
 test("opening the register on the due day enters what is due once (499 AC5)", async ({
   page,
   request,
