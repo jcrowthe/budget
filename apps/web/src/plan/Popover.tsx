@@ -21,6 +21,7 @@ export function Popover({
   scrim,
   alignTo,
   gap = ARROW_H,
+  placement = "below",
   children,
 }: {
   anchor: HTMLElement;
@@ -34,6 +35,8 @@ export function Popover({
   /** Centre horizontally on this element instead of the anchor (the vertical placement still follows the anchor). */
   alignTo?: HTMLElement;
   gap?: number;
+  /** "above": the box sits over the anchor with a down-arrow (a dropdown or calendar); flips below when there is no room. */
+  placement?: "below" | "above";
   children: ReactNode;
 }) {
   const closeRef = useRef(onClose);
@@ -44,7 +47,10 @@ export function Popover({
     const r = anchor.getBoundingClientRect();
     const h = box.current?.offsetHeight ?? 0;
     // Below the anchor; above it when the box would run off the bottom of the window.
-    const above = r.bottom + gap + h > window.innerHeight - MARGIN && r.top - gap - h >= MARGIN;
+    const above =
+      placement === "above"
+        ? !(r.top - gap - h < MARGIN && r.bottom + gap + h <= window.innerHeight - MARGIN)
+        : r.bottom + gap + h > window.innerHeight - MARGIN && r.top - gap - h >= MARGIN;
     const a = alignTo?.getBoundingClientRect() ?? r;
     const centre = a.left + a.width / 2;
     const w = Math.min(width, window.innerWidth - 2 * MARGIN);
@@ -64,7 +70,7 @@ export function Popover({
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [anchor, width, gap, alignTo]);
+  }, [anchor, width, gap, alignTo, placement]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
