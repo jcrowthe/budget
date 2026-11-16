@@ -33,12 +33,19 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  /* EXF-646, EXF-622: the panel never gets narrower than 320px (the source's own minimum is 300px; its cards need
+     more), the grid's content never narrower than 440px. A narrower grid box scrolls inside itself. */
+  --panel-min: 320px;
+  --grid-min: 440px;
 }
 .plan-grid {
   flex: 1;
-  min-width: 562px;
-  overflow-y: auto;
+  min-width: 0;
+  overflow: auto;
   --num-col: 18%;
+}
+.plan-grid [role="treegrid"] {
+  min-width: var(--grid-min);
 }
 .plan-grid.bars-on {
   --num-col: 15%;
@@ -176,6 +183,16 @@
 }
 .num {
   font-variant-numeric: tabular-nums;
+}
+/* EXF-622: under a 562px grid box (planLayout.ts) the number columns take fixed minimums and the name column the
+   rest; the Available column keeps the width of its widest pill. */
+.plan-body[data-narrow] .cell-assigned {
+  padding-left: 4px;
+  min-width: 6.5rem;
+}
+.plan-body[data-narrow] .cell-activity {
+  padding-left: 4px;
+  min-width: 5.25rem;
 }
 
 .header-row {
@@ -334,6 +351,8 @@
   height: 44px;
 }
 .category-name {
+  flex: 0 0 auto;
+  max-width: 100%;
   min-width: 0;
   padding: 2px 4px;
   font-size: var(--font-size-sm);
@@ -352,8 +371,13 @@
   gap: var(--space-2);
   height: 20px;
 }
+/* EXF-622: the target text gives way before the name; it ellipsizes (the full text is its title). */
 .status-label {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding-right: 4px;
   color: var(--labelSecondary);
   font-size: var(--font-size-sm);
@@ -820,6 +844,53 @@ button.category-name {
   color: var(--labelSecondary);
 }
 
+/* EXF-537: the Credit Card Payments header's PAYMENT button above the group's Available total. */
+.cell-available.has-payment-help {
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+}
+.payment-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelSecondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.payment-help:hover {
+  color: var(--labelAction);
+}
+.payment-help svg {
+  fill: currentColor;
+}
+.payment-help-dialog {
+  width: 420px;
+}
+.payment-help-body {
+  padding: 0 24px 8px;
+}
+.payment-help-body p {
+  margin: 0 0 12px;
+}
+.payment-help-more {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelAction);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* The delete dialog body (on the shell's .dialog.modal) */
 .delete-dialog {
   width: 420px;
@@ -929,4 +1000,10 @@ button.category-name {
 }
 .month-dropdown-list .picker-option {
   padding-left: 12px;
+}
+
+/* EXF-646: a Plan body under 620px has no room for the panel; the grid keeps the whole width and scrolls inside
+   its own box (the page never scrolls sideways). */
+.plan-body[data-fold] .plan-inspector {
+  display: none;
 }

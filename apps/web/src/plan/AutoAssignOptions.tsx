@@ -1,11 +1,15 @@
 import type { Month } from "@budget/core/month";
 import {
   type AutoAssignPreview,
+  type AutoAssignScope as AutoAssignScope_,
   type AutoAssignStrategy,
   autoAssignOptions,
+  hiddenAmounts,
+  monthHiddenInputs,
 } from "@budget/schema/auto-assign";
-import { VIEW_NO_CATEGORIES } from "@budget/schema/plan-views";
+import { VIEW_NO_CATEGORIES, viewCategories } from "@budget/schema/plan-views";
 import { type AutoAssignScope, useAutoAssign, useAutoAssignPreview } from "../api/autoAssign";
+import { useMonth } from "../api/months";
 import { money } from "./format";
 
 /**
@@ -25,32 +29,48 @@ export function AutoAssignOptions({
   onViewAll: () => void;
   onApplied?: () => void;
 }) {
+  const detail = useMonth(budgetId, month).data;
   const preview = useAutoAssignPreview(budgetId, month, scope).data;
   const { apply, busy, failed } = useAutoAssign(budgetId, month);
-  const one = "categoryIds" in scope && scope.categoryIds.length === 1;
+  // The rows come from the cached month through the same pure function as the preview (EXF-616, EXF-624): the
+  // card has its final height before the preview arrives, and the cards under it never move.
+  const ids = detail
+    ? "categoryIds" in scope
+      ? scope.categoryIds
+      : viewCategories(detail, scope.view).map((c) => c.id)
+    : null;
+  const empty = (
+    <div className="auto-assign-body">
+      <p className="auto-assign-empty">
+        {VIEW_NO_CATEGORIES}
+        <button type="button" className="view-all is-ghost" onClick={onViewAll}>
+          View All Categories
+        </button>
+      </p>
+    </div>
+  );
+  if (ids !== null && ids.length === 0) return empty;
+  const only = ids?.length === 1 ? ids[0] : undefined;
+  const isPayment =
+    detail !== undefined &&
+    only !== undefined &&
+    detail.groups.some((g) =>
+      g.categories.some((c) => c.id === only && c.kind === "credit_card_payment"),
+    );
+  const mode: AutoAssignScope_ = isPayment ? "payment" : ids?.length === 1 ? "one" : "many";
+  const hidden = detail && ids ? hiddenAmounts(monthHiddenInputs(detail, ids)) : undefined;
   if (!preview) {
-    // Every row the list can have, in its final layout, disabled and without figures: the card keeps the
-    // height it will have, and no amount of another selection is shown.
-    const all: AutoAssignPreview = { ...BLANK, underfunded: 1, reduce_overfunding: 1 };
+    // Every row the list will have, in its final layout, disabled and without figures: no amount of another
+    // selection is shown.
+    const rows = hidden ?? { underfunded: 1, reduce_overfunding: 1 };
     return (
       <div className="auto-assign-body" aria-busy="true">
-        <OptionList options={autoAssignOptions(all, one ? "one" : "many")} loading />
+        <OptionList options={autoAssignOptions(BLANK, mode, rows)} loading />
       </div>
     );
   }
-  if (preview.category_count === 0) {
-    return (
-      <div className="auto-assign-body">
-        <p className="auto-assign-empty">
-          {VIEW_NO_CATEGORIES}
-          <button type="button" className="view-all is-ghost" onClick={onViewAll}>
-            View All Categories
-          </button>
-        </p>
-      </div>
-    );
-  }
-  const options = autoAssignOptions(preview, one ? "one" : "many");
+  if (preview.category_count === 0) return empty;
+  const options = autoAssignOptions(preview, mode, hidden);
   return (
     <div className="auto-assign-body">
       <OptionList
@@ -80,15 +100,14 @@ const BLANK: AutoAssignPreview = {
   spent_last_month: 0,
   average_assigned: 0,
   average_spent: 0,
+  paid_last_month: 0,
+  average_paid: 0,
   reduce_overfunding: 0,
   reset_available: 0,
   reset_assigned: 0,
 };
 
-/**
- * The groups of buttons. The list keeps the height of all eight rows (`.auto-assign-list`), so the cards below
- * do not move when the preview arrives, hides Underfunded or Reduce Overfunding, or the selection changes.
- */
+/** The groups of buttons: only the rows the month data shows, so the card has the source's height (352/304/386). */
 function OptionList({
   options,
   loading = false,

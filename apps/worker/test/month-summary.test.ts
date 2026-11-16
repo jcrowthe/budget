@@ -113,6 +113,7 @@ describe("category month", () => {
       credit_activity: 0,
       available: 70000,
       note: null,
+      payment: null,
     });
     await s.assign(s.groceries, DEC, 30000);
     const dec = await read(DEC);

@@ -13,13 +13,18 @@
   --calloutWarningSubtleBackgroundEmphasis: #a38100;
 }
 
-/* The grid keeps its 562px minimum: the panel is at most 60% of the body and at most what is left of it. */
+/* EXF-646: the panel is at least --panel-min (320px), as wide as the person dragged it or a third of the body, at
+   most 60% of the body and what is left after the grid's --grid-min; both are declared on .plan-body. */
 .plan-inspector {
   position: relative;
   display: flex;
   flex: none;
   box-sizing: border-box;
-  width: min(max(var(--panel-width, 33%), 280px), 60%, calc(100% - 562px));
+  width: clamp(
+    var(--panel-min),
+    var(--panel-width, 33%),
+    max(var(--panel-min), min(60%, calc(100% - var(--grid-min))))
+  );
   border-left: 1px solid var(--separatorStandard);
   background: var(--backgroundPrimary);
 }
@@ -314,4 +319,75 @@
 /* Source (live): with the message the card body ends with 16px under the box, not the usual 24px. */
 .panel-card-body:has(> .inspector-message) {
   padding-bottom: 16px;
+}
+
+/* EXF-537: the card payment inspector. Colours are the source's dark values (not observed on the test plan). */
+:root {
+  --budgetBarUnderfunded: #f6c91d;
+  --budgetBarBackground: #3c3e53;
+  --calloutWarningAccent: #f6c91d;
+  --calloutNegativeAccent: #bf2e3b;
+}
+.payment-card-body h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--labelHeading);
+}
+.payment-card-body p {
+  margin: 0;
+  line-height: 1.3;
+}
+.payment-icon {
+  flex: none;
+  fill: currentColor;
+}
+.payment-icon.positive {
+  color: var(--categoryBalancePositiveHover);
+  margin-bottom: 8px;
+}
+.payment-icon.negative {
+  color: var(--calloutNegativeAccent);
+  margin-bottom: 8px;
+}
+.payment-icon.cautious {
+  color: var(--calloutWarningAccent);
+}
+.payment-bar {
+  height: 0.25rem;
+  margin: 1rem 0;
+  border-radius: 2px;
+  background: var(--budgetBarBackground);
+  overflow: hidden;
+}
+.payment-bar-fill {
+  height: 100%;
+  background: var(--budgetBarUnderfunded);
+}
+.payment-button {
+  display: block;
+  width: 100%;
+  max-width: 25rem;
+  margin-top: 1rem;
+}
+.payment-total .panel-row {
+  margin-bottom: 0;
+  align-items: center;
+}
+.payment-balance-total {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--labelHeading);
+}
+.panel-card-body h3.this-month {
+  margin: 16px 0 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--labelHeading);
+}
+.panel-card:has(> .card-roll-up[aria-controls="panel-for-payment"]) .card-roll-up {
+  padding: 16px 8px 16px 16px;
 }
