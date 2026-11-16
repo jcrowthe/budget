@@ -8548,3 +8548,31 @@ review: Build 8 (the Export Build lost), Deploy 6, Discover 2, Test user flow 1.
 
 **Next plan:** restart the Export Plan Build in a fresh box (carry the design over if the branch has
 it); nothing else is free.
+
+### 2026-11-16 · Plan round 99
+
+Children used 115 of 200. One started now; three are running. Main and live `11273cf`. The person
+has not answered the check-in.
+
+- **The ticket filed at the last review exists: EXF-664** (two minus signs for negative amounts);
+  set to Low; it rides with the next Build that changes the register or the account header.
+- **Started again: the Export Plan Build, API half** (`p_ea174a98047041e79c4230242206bd6c`, EXF-476).
+  The first one's design never reached its branch (the branch is still at main), so this is a fresh
+  start, not a carry-over.
+  - **Changed in the brief:** the Clerk opens the source tab as in every other Build, only so that
+    the preflight passes (nobody looks at it), and says in its first line if `/workspace/.exfab/bin`
+    is missing; the zip is written with the existing `storeZip`; the stamp's parameter is `now`; the
+    Plan file runs to the last month with money assigned if that is later than the current month;
+    what is not written (deleted categories, deleted transactions, a deleted account's rows).
+  - Same scope and the same out-of-bounds list as before; no file under `apps/web/`.
+- **Not started:** Reconcile (EXF-533) waits for the account page and the register; no Deploy (main
+  and live are equal); no flow test (nothing new on live since the last one).
+- **Running besides:** the Plan-page Build (`p_8baaff851d044a5ea2fcccb712be3809`, in review; EXF-624
+  reversed by my comment) and the Record Payment Build (`p_ae982fa0a2334ebaae16875e1551c0d6`,
+  implementing).
+- **Cards:** nothing is releasing and no flow test is on live, so the first Build whose gate ran on
+  main can be approved; after a merge the others get Regate when their own card comes.
+- The check-in is due at the review of round 100.
+
+Ticket writes: 2 (EXF-664's priority; a comment on EXF-476). Review cadence: Build 8, Deploy 6,
+Discover 2, Test user flow 1.
