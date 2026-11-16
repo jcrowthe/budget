@@ -3044,3 +3044,37 @@ plan (below).
 - Review cadence: Build 8 since the last Build review (two of them cancelled by me), Deploy 8, Discover 2,
   Test user flow 2. The Build template review comes due again at 10; give it the two cancelled Threads.
 - Ticket writes this round: 5.
+
+### 2026-11-16 · Review round 37
+
+Children used 49 of 200. Three Builds are running, all started in the round 37 plan: the categories
+carry-over, the plan-menu carry-over and EXF-572 (MCP coverage). No card is waiting.
+
+**Ended since the last review:** the two Builds I cancelled, both now abandoned and both carried over:
+`p_5ee85fcef22241cf8600622a07cc8158` (plan menu; cancelled in the round 36 review for breaking the source
+rules) and `p_4f6bdb700cf54bec9c138cdfb3649b02` (categories; cancelled in the round 37 plan after it
+stalled). Their tickets stay In Progress under the carry-over Builds. Nothing merged, nothing deployed.
+
+**The carry-overs started cleanly:**
+
+- Categories (`p_4fe1cb348be24f9f9bee5b5622d29168`): the Clerk's merge met the expected conflict in
+  `docs/README.md`, kept both sides, and printed the expected size (39 files, +4896/-94, eight commits ahead
+  of main). The Architect is checking the branch's tests for raw transaction inserts that the new not-null
+  `updated_at` column would break: the right thing to look for.
+- Plan menu (`p_9a58f4af528e469b93711c3de218e26d`): the merge was a fast-forward to `378b72b`, 27 files,
+  +1894/-109, a little more than the 26 files I quoted: the cancelled Thread's Implementer had already
+  committed the submenu placement change and rebased onto main before the cancel took effect. So change 1 is
+  already on the branch; the Architect noticed and is checking the tests instead of redoing it.
+- Lesson for carry-over briefs: quote the expected size as "at least", or read the branch head at the
+  moment of writing; a cancelled Thread can still push a last commit.
+
+**EXF-572** (`p_14fe85267f7449f192572c1b7cfc9cbf`): with its Architect; no manifest yet.
+
+Nothing is off course.
+
+**Ticket writes:** none this review.
+
+**Backlog:** 82 open feature tickets (12 done; 3 in progress: EXF-494, 495, 470), all triaged. Gap: EXF-571
+and EXF-572 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium), EXF-560,
+EXF-562 (Low). Template: sixteen. Flow verdicts: 9 `new_gaps`, 10 `new_gaps`, 11 `parity`. Finished since
+each template's last review: Build 8, Deploy 8, Discover 2, Test user flow 2.
