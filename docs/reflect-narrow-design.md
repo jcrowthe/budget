@@ -53,14 +53,13 @@ The widths keep today's formula whenever it already fits the content, so **1440�
 to the pixel**. Two content needs are measured from the rendered table (so fonts, the 16 px Net Income row and
 long names are all accounted for):
 
-- `firstNeed`: the widest first-column label as it would be drawn whole (text width + the cell's own horizontal
-  padding and right border + 16 px when the cell holds a caret), clamped to **[96, 320] px**. Labels wider than
-  320 px are shortened with an ellipsis. The four section labels ("All Income Sources", "Total All Income Sources",
-  "Total Expenses", "Net Income") are always far below 320 px, so they are always whole.
+- ~~`firstNeed`~~ (polish P1): dropped. The first column never grows to fit its labels; `F = 96` (the source's
+  `flex 3 0 96px` minimum). Labels that do not fit are shortened with an ellipsis and a tooltip, as in the source
+  (at 760 px: first 170 px, 'Total All Income Sources' scrollWidth 197 / clientWidth 169).
 - `amountNeed`: the widest amount or column header text + 24 px (8 left, 16 right padding) + 1 px border, at least
   64 px. Every amount column uses this one width, so columns stay equal as in the source.
 
-Widths for `W` (box `clientWidth`) and `n` amount columns (`F = firstNeed`, `A = amountNeed`, `f0`/`o0` = today's
+Widths for `W` (box `clientWidth`) and `n` amount columns (`F = 96`, `A = amountNeed`, `f0`/`o0` = today's
 formula):
 
 | Case | Condition | first | other | Result |
@@ -154,8 +153,7 @@ its `button.ie-btn`, else its `span.amt`. "Shortened" = label element `scrollWid
    - At 1024×700, for every first-column cell with a label (all `tbody th.ie-first` except those holding only
      `.ie-sr` text): not shortened, or its label element's computed `text-overflow` is `ellipsis` and
      `overflow-x` is `hidden`; and the cell's `title` equals its label text when the label is shortened, and is absent when it is not.
-   - At 1024×700 `All Income Sources`, `Total All Income Sources`, `Total Income`, `Total Expenses`, `Net Income`,
-     `N Employer`, `N Side Work`, `N Home`, `N Daily` are not shortened.
+   - (Polish P1: dropped.) The source shortens long labels at narrow widths, so no label is required to be whole at 1024×700.
    - Resize to 1440×900 and wait for the widths to settle (two equal reads of the TOTAL header's x): no label is
      shortened, no amount box overflows, and `.ie-scroll` `scrollWidth ≤ clientWidth`.
 3. **(625) 1440×900 is unchanged.** Before and after the change, at 1440×900 with data N, the `<col>` widths

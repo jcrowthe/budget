@@ -21,7 +21,6 @@ interface PopoverState {
 type Open = (p: PopoverState) => void;
 
 const FIRST_MIN = 96; // source: first column flex 3 0 96px
-const FIRST_MAX = 320; // wider labels are shortened with an ellipsis
 const AMOUNT_MIN = 64; // source: other columns flex 1 0 64px
 const AMOUNT_PAD = 25; // an amount cell's 8px left + 16px right padding + 1px border
 const CARET = 16; // a toggle's 8px icon + 8px gap
@@ -34,14 +33,15 @@ interface IeWidths {
 
 /**
  * Column widths: the source's flex arithmetic, with minimums measured from the content (EXF-625, EXF-626).
- * `width` is the box's clientWidth, `n` the amount columns, `firstNeed`/`amountNeed` the measured widths in px.
+ * `width` is the box's clientWidth, `n` the amount columns, `amountNeed` the widest amount in px. The first column never grows past the source's flex share for its labels:
+ * long labels are shortened with an ellipsis (source at 760px: first 170px, label scrollWidth 217 / clientWidth 169).
  */
-function ieWidths(width: number, n: number, firstNeed: number, amountNeed: number): IeWidths {
+function ieWidths(width: number, n: number, amountNeed: number): IeWidths {
   const units = n + 3;
   const spare = Math.max(0, width - (FIRST_MIN + AMOUNT_MIN * n));
   const f0 = FIRST_MIN + (3 / units) * spare;
   const o0 = AMOUNT_MIN + spare / units;
-  const F = Math.min(FIRST_MAX, Math.max(FIRST_MIN, Math.ceil(firstNeed)));
+  const F = FIRST_MIN;
   const A = Math.max(AMOUNT_MIN, Math.ceil(amountNeed));
   let first = f0;
   let other = o0;
@@ -186,38 +186,25 @@ function Table({
     setWidth(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  // The widest label and amount as drawn whole, measured after render (text widths do not depend on the columns).
+  // The widest amount as drawn whole, measured after render (text widths do not depend on the columns).
   const tableRef = useRef<HTMLTableElement>(null);
-  const [needs, setNeeds] = useState({ first: 0, amount: 0 });
+  const [needs, setNeeds] = useState({ amount: 0 });
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the rows change
   useLayoutEffect(() => {
     const t = tableRef.current;
     if (!t) return;
     const measure = () => {
-      let first = 0;
-      for (const th of t.querySelectorAll<HTMLElement>("tbody th.ie-first")) {
-        if (th.querySelector(".ie-sr")) continue;
-        const cs = getComputedStyle(th);
-        const w =
-          textWidth(th.querySelector(".ie-label") ?? th) +
-          Number.parseFloat(cs.paddingLeft) +
-          Number.parseFloat(cs.paddingRight) +
-          Number.parseFloat(cs.borderRightWidth) +
-          (th.querySelector("svg") ? CARET : 0);
-        first = Math.max(first, w);
-      }
       let amount = 0;
       for (const el of t.querySelectorAll("td.ie-amt .amt, thead th:not(.ie-first)")) {
         amount = Math.max(amount, textWidth(el) + AMOUNT_PAD);
       }
-      first = Math.ceil(first);
       amount = Math.ceil(amount);
-      setNeeds((n) => (n.first === first && n.amount === amount ? n : { first, amount }));
+      setNeeds((n) => (n.amount === amount ? n : { amount }));
     };
     measure();
     document.fonts?.ready.then(measure);
   }, [data, collapsed]);
-  const w = ieWidths(width, c + 2, needs.first, needs.amount);
+  const w = ieWidths(width, c + 2, needs.amount);
   // A shortened label shows its full text on hover; a whole one shows no tooltip, as in the source (EXF-626).
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-check when widths or rows change
   useLayoutEffect(() => {

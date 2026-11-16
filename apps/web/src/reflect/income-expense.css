@@ -60,7 +60,6 @@
 
 .ie-heading th,
 .ie-heading td {
-  height: 39px;
   border-bottom: 1px solid var(--ie-row-line);
   background: var(--backgroundPrimary);
   font-size: 18px;
@@ -74,7 +73,8 @@
   vertical-align: top;
 }
 .ie-heading .ie-toggle svg {
-  margin-left: 2px;
+  /* Source (.income-expense-h1 button): caret top = row top + 14.0px, centred on the text; row 38.6px. */
+  margin: -2px 0 0 2px;
 }
 .ie-heading.income th {
   color: var(--statusPositive);
