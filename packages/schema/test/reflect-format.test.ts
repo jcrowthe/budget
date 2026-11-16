@@ -21,14 +21,14 @@ describe("zero is never negative (EXF-591)", () => {
     expect(tickMoney(m)).toBe("$0");
   });
   it("keeps the sign of a real figure", () => {
-    expect(debtsMoney(-4750000)).toBe("-$4,750.00");
-    expect(debtsMoney(4750000)).toBe("-$4,750.00");
+    expect(debtsMoney(-4750000)).toBe("−$4,750.00");
+    expect(debtsMoney(4750000)).toBe("−$4,750.00");
     expect(signedChange(-55000)).toBe("−$55.00");
     expect(signedChange(3300000)).toBe("+$3,300.00");
-    expect(reportMoney(-12849260)).toBe("-$12,849.26");
-    expect(drillAmount(-150000)).toBe("-$150.00");
+    expect(reportMoney(-12849260)).toBe("−$12,849.26");
+    expect(drillAmount(-150000)).toBe("−$150.00");
     expect(drillAmount(20000)).toBe("+$20.00");
-    expect(tickMoney(-5000000)).toBe("-$5,000");
+    expect(tickMoney(-5000000)).toBe("−$5,000");
   });
   it("rounds cents half away from zero", () => {
     expect(cents(5)).toBe(1);

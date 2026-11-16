@@ -302,6 +302,15 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["sync_bank_connections", (c) => ({ budget_id: c.bid, bank_connection_id: c.conn })],
   ["close_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
   ["reopen_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
+  [
+    "reconcile_account",
+    (c) => ({
+      budget_id: c.bid,
+      account_id: c.other,
+      statement_balance: 5000,
+      create_adjustment: true,
+    }),
+  ],
   ["list_scheduled_transactions", (c) => ({ budget_id: c.bid })],
   ["get_scheduled_transaction", (c) => ({ budget_id: c.bid, id: c.sched })],
   [
