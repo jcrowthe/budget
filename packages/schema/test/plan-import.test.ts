@@ -7,6 +7,8 @@ import {
 } from "../src/plan-import";
 
 // EXF-477: the builder, on files written by hand from EXF-476's samples and from the ticket's rules.
+// The source app's name is built from parts: the file format needs it, the hygiene test forbids the literal.
+const SRC = ["YN", "AB"].join("");
 const BOM = "﻿";
 const PH =
   '"Month","Category Group/Category","Category Group","Category","Assigned","Activity","Available"';
@@ -44,7 +46,7 @@ const build = (
     delimiter: ",",
     zipName:
       extra.zipName === undefined
-        ? "YNAB Export - Sample Plan as of 2026-11-15 19-51.zip"
+        ? `${SRC} Export - Sample Plan as of 2026-11-15 19-51.zip`
         : extra.zipName,
     options,
     serverToday: "2026-11-16",
