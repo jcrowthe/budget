@@ -45,6 +45,7 @@ describe("against the local dev server", () => {
 
   let keepId = "";
   let zzId = "";
+  let bId = "";
 
   beforeAll(async () => {
     server = await startDevServer();
@@ -104,6 +105,55 @@ describe("against the local dev server", () => {
     expect(await status(keepId)).toBe(200);
   });
 
+  it("h. EXF-579 AC1: purge '<prefix>' deletes only that run's plans", async () => {
+    const aIds = [await create("ZZ-TEST A one"), await create("ZZ-TEST A two")];
+    bId = await create("ZZ-TEST B one");
+    const r = run(["purge", "ZZ-TEST A"], env());
+    expect(r.status, r.out).toBe(0);
+    expect(r.stdout.trim()).toBe("deleted 2 remaining 0");
+    for (const id of aIds) expect(await status(id)).toBe(404);
+    expect(await status(bId)).toBe(200);
+    expect(await status(keepId)).toBe(200);
+    expect(run(["list", "ZZ-TEST B"], env()).stdout).toBe(`${bId}\tZZ-TEST B one\n`);
+    expect(run(["list", "ZZ-TEST A"], env()).stdout).toBe("");
+  });
+
+  it("i. EXF-579 AC2: a prefix without ZZ-TEST is refused and deletes nothing", async () => {
+    const before = await count();
+    const cases = [
+      ["purge", "Other"],
+      ["list", "Other"],
+      ["purge", ""],
+      ["purge", "ZZ-TEST A", "extra"],
+    ];
+    for (const [i, args] of cases.entries()) {
+      const r = run(args, env());
+      expect(r.status, args.join(" ")).toBe(2);
+      if (i < 3) expect(r.stderr).toContain("ZZ-TEST");
+    }
+    expect(await count()).toBe(before);
+    expect(await status(bId)).toBe(200);
+  });
+
+  it("j. EXF-579 AC3: purge with no argument deletes every test plan", async () => {
+    const cId = await create("ZZ-TEST C one");
+    const r = run(["purge"], env());
+    expect(r.status, r.out).toBe(0);
+    expect(r.stdout.trim()).toBe("deleted 2 remaining 0");
+    expect(await status(bId)).toBe(404);
+    expect(await status(cId)).toBe(404);
+    expect(await status(keepId)).toBe(200);
+  });
+
+  it("k. EXF-579 AC4: an unprefixed plan survives any prefix", async () => {
+    await create("ZZ-TEST k");
+    const r = run(["purge", "ZZ-TEST"], env());
+    expect(r.status, r.out).toBe(0);
+    expect(r.stdout.trim()).toBe("deleted 1 remaining 0");
+    expect(await status(keepId)).toBe(200);
+    expect(r.out).not.toContain("Keep me");
+  });
+
   it("g. purge refuses when more than 50 match", async () => {
     for (let i = 0; i < 51; i++) await create(`ZZ-TEST bulk${i}`);
     const r = run(["purge"], env());
@@ -111,6 +161,18 @@ describe("against the local dev server", () => {
     expect(r.stderr).toContain("limit 50");
     const list = run(["list"], env());
     expect(list.stdout.split("\n").filter(Boolean)).toHaveLength(51);
+  }, 120_000);
+
+  it("l. EXF-579: the 50 limit counts the given prefix", () => {
+    const r = run(["purge", "ZZ-TEST bulk"], env());
+    expect(r.status).toBe(3);
+    expect(r.stderr).toContain("limit 50");
+    const p = run(["purge", "ZZ-TEST bulk1"], env());
+    expect(p.status, p.out).toBe(0);
+    expect(p.stdout.trim()).toBe("deleted 11 remaining 0");
+    expect(run(["list", "ZZ-TEST bulk"], env()).stdout.split("\n").filter(Boolean)).toHaveLength(
+      40,
+    );
   }, 120_000);
 });
 
@@ -281,6 +343,10 @@ describe("live mode", () => {
     [["create"]],
     [["create", "NoPrefix"]],
     [["delete", "not-a-uuid"]],
+    [["purge", "Other"]],
+    [["list", "Other"]],
+    [["purge", ""]],
+    [["purge", "ZZ-TEST A", "extra"]],
   ])("refuses %j with exit 2 and no request", (args) => {
     const before = log();
     const r = live(args, {
@@ -289,5 +355,40 @@ describe("live mode", () => {
     });
     expect(r.status).toBe(2);
     expect(log()).toBe(before);
+  });
+
+  it("EXF-579 AC4: a plan renamed out of the prefix before deletion is kept", () => {
+    const id1 = "11111111-1111-1111-1111-111111111111";
+    const id2 = "22222222-2222-2222-2222-222222222222";
+    const before = log();
+    const r = live(["purge", "ZZ-TEST A"], {
+      CF_ACCESS_CLIENT_ID: CLIENT_ID,
+      CF_ACCESS_CLIENT_SECRET: CLIENT_SECRET,
+      FAKE_CURL_ROUTES: JSON.stringify({
+        "GET https://budget.doxen.dev/api/v1/budgets/": {
+          status: 200,
+          body: { data: { budget: { id: id1, name: "Mine too" } } },
+        },
+        "DELETE https://budget.doxen.dev/api/v1/budgets/": {
+          status: 200,
+          body: { data: { deleted: true } },
+        },
+        "GET https://budget.doxen.dev/api/v1/budgets": {
+          status: 200,
+          body: {
+            data: {
+              budgets: [
+                { id: id1, name: "ZZ-TEST A x" },
+                { id: id2, name: "Mine" },
+              ],
+            },
+          },
+        },
+      }),
+    });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain("deleted 0 remaining 1");
+    expect(r.out).not.toContain("Mine");
+    expect(log().slice(before.length)).not.toContain("-X DELETE");
   });
 });

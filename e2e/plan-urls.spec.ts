@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { authHeaders, testName } from "./support/auth";
 import { mouseClick } from "./support/menu";
+import { showOnlyPlans } from "./support/plans";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const now = new Date();
@@ -237,6 +238,8 @@ test.afterEach(async ({ page }) => {
 test("C13 root opens the last-opened plan", async ({ page, request }) => {
   const a = await newPlan(request, "A");
   const b = await newPlan(request, "B");
+  // Parallel specs open plans too: show this test only its own two plans.
+  const shown = await showOnlyPlans(page, (p) => p.id === a.id || p.id === b.id);
   const side = page.getByRole("navigation", { name: "Sidebar" });
   await page.goto(`/${a.id}/budget`);
   await expect(side.getByRole("button", { name: a.name })).toBeVisible();
@@ -255,17 +258,12 @@ test("C13 root opens the last-opened plan", async ({ page, request }) => {
     })
     .toBe(true);
 
-  const resp = page.waitForResponse(
-    (r) => r.url().endsWith("/api/v1/budgets") && r.request().method() === "GET",
-  );
+  const k = shown.served.length;
   await page.goto("/");
-  const budgets = (await (await resp).json()).data.budgets as {
-    id: string;
-    last_opened_at: string | null;
-  }[];
-  const x = budgets.reduce((p, c) => ((c.last_opened_at ?? "") > (p.last_opened_at ?? "") ? c : p));
-  await expect(page).toHaveURL(`/${x.id}/budget`);
-  expect(budgets.find((p) => p.id === a.id)?.last_opened_at).not.toBeNull();
+  await expect(page).toHaveURL(`/${a.id}/budget`);
+  const first = shown.served[k];
+  const stampOf = (id: string) => first.find((p) => p.id === id)?.last_opened_at ?? "";
+  expect(stampOf(a.id) > stampOf(b.id)).toBe(true);
 
   // The submenu lists the 5 most recently opened other plans: mark b opened (other workers open plans too).
   const stamp = (
@@ -276,16 +274,6 @@ test("C13 root opens the last-opened plan", async ({ page, request }) => {
       })
     ).json()
   ).data.budget.last_opened_at as string;
-  // Parallel specs open plans too: show this test only its own two plans, and start from A.
-  await page.route("**/api/v1/budgets", async (route) => {
-    if (route.request().method() !== "GET") return route.fallback();
-    const res = await route.fetch();
-    const body = await res.json();
-    body.data.budgets = body.data.budgets.filter(
-      (y: { id: string }) => y.id === a.id || y.id === b.id,
-    );
-    return route.fulfill({ response: res, json: body });
-  });
   await page.goto(`/${a.id}/budget`);
   await expect(side.getByRole("button", { name: a.name })).toBeVisible();
   await side.getByRole("button", { name: a.name }).click();
