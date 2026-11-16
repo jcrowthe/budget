@@ -6624,3 +6624,95 @@ filed at the last review, so none to check.
 Declared for the tree as well: scheduled transactions (EXF-497, EXF-499) and Deploy `D22`.
 
 Ticket writes: 0. Review cadence: Build 9, Deploy 0 (review running), Discover 2, Test user flow 7.
+
+### 2026-11-16 · Review round 78
+
+Children used 93 of 200. One ended (the Deploy template review); four are running: the register Build
+(reworking after my Request changes), the Age of Money Build (rebased, heading to its gate), the credit
+engine Build (design committed, building) and the flow test for flows 3 and 8. Main `357bc4f`, live
+`357bc4f`.
+
+**Deploy template review** (`p_6421e2b6101a4c0db86039e8aa12df1c`). I approved all thirteen proposals in
+a side turn; all were carried out and nothing is left for me to file.
+
+- **Three new template tickets, priorities set now:**
+  - **EXF-617** (High): calls to the live app never print response headers; a profile helper returns
+    status and body only; header dumps are cleaned up after the verifier.
+  - **EXF-618** (High): code does the fixed parts of every Deploy brief (the main check, expected
+    migrations, the out-of-order note, the run prefix, the live probe), and the template states the
+    verifier's reporting rules, including "DIFFERS FROM THE BRIEF: expected …, read …".
+  - **EXF-619** (Medium): the repository carries a live-check browser helper and code installs the
+    browser before the verifier. This one needs a Build in this repository when the template side
+    exists.
+- **Evidence posted** on EXF-612, EXF-611, EXF-582, EXF-583, EXF-584, EXF-585, EXF-580, EXF-581 and
+  EXF-559. I raised EXF-584 and EXF-585 from Low to Medium on that evidence (the gate's repeated check
+  is a fifth of every Deploy and growing; seven of eight verifiers' first answer failed).
+- **What I learned from it:**
+  - The two Deploys that did not run used the very same intake command as the one that worked. Only a
+    file handed from an agent step to a code step went missing; every Deploy has two such hand-offs.
+    The cause is unexplained and can return.
+  - **Nothing visible refuses a release when main has moved past the expected commit.** So the line
+    "if main has moved past it, do not release" stays in every Deploy brief, and I keep approving no
+    Build while a Deploy is in flight.
+  - A migration numbered below ones already applied is by the tool's design (five cases, all fine);
+    production then applies them in another order than a fresh test database.
+  - More than half of a Deploy's time is the verifier writing browser scripts from nothing.
+  - My own figure was wrong: `D21` took 11.4 minutes, not 25.
+
+**Two cards answered in side turns:**
+- **Register Build, second card: Request changes** (the gate was clean, on the current base, head the
+  gated head). I read the branch and found that a bulk request reads the database at least once per
+  selected row: `prepare()` reads the split lines of every row, the other side of every transfer and
+  the target account of every moved row, although the bulk service has already read all lines in one
+  query. Over 100 rows that is more than 100 D1 calls; the Free plan allows 50 per invocation
+  (`docs/sync-budget-design.md`). The local test database does not enforce the limit, so the tests
+  pass. On live, "select all, mark cleared" would fail above about 45 rows.
+  - **The same loop is already on main and live** in `approveTransactions` and `rejectTransactions`
+    (a `listLines` and a `findDetail` per row). I asked for it to be fixed in the same rework (same
+    file) and file a gap ticket for it now so the fix has a ticket. Not reproduced on live: it needs
+    more than 45 unapproved imports, which only a Sandbox flow test can make.
+  - Asked for: set reads before the loop, no database call inside it; a test that counts calls for 10
+    and for 100 rows per op and failed before the fix; the wrong sentence about the 400-statement cap
+    corrected; **a rule in `docs/conventions.md`** ("a request that handles many rows makes a number of
+    D1 calls that does not grow with the rows … with a test that counts its calls").
+  - **This is the third time** (the bank sync, approve and reject, bulk). From now on every brief for a
+    Build with a handler over many rows names the rule and the counting test.
+  - Everything else on the branch was as asked: bulk actions go through the single-edit rules, a bulk
+    delete of an import leaves its tombstone, a duplicate carries no import fields, one nullable column.
+- **Credit engine Build, preflight: Proceed** (recorded at the last review). **The cause is now known,
+  from the design's "Preflight" section: the box had lost platform files again** (`bin/lib.sh` and
+  `bin/source_check.sh` missing; `request.json` was there). That is EXF-612's fault three and a half
+  hours after its last case, so it is not confined to this morning. Evidence posted on EXF-612.
+  **Risk:** this Build's `checks` and gate steps use the same directory. If they fail on `lib.sh`, I
+  carry the branch over at once and do not look for another cause.
+
+**Credit engine design, read and accepted** (`docs/credit-engine-design.md` at `2862fb4`; comment on
+EXF-532).
+- Manifest against the register and Age of Money Builds: disjoint. The activity read is a new file;
+  the transactions repository is untouched; one month read still makes 8 queries.
+- **The Architect corrected me twice, rightly.** (1) A mixed overspent category that is partly covered
+  loses its cash part first: the observed formula depends only on totals, and the ticket's "credit
+  first" is loose wording. (2) My identity for the property test lacked card rows that move plan money
+  without moving cash (cashback, a card row put straight into a payment category, uncategorized card
+  rows).
+- Its own decisions, accepted: a card whose payment category has history cannot be deleted (409); a
+  payment category cannot receive a deleted category's money; the system group reads first.
+- Source: styles read, one checkbox ticked and unticked, one capture kept (cropped), size unchanged.
+  Ticking the row opened its Assigned cell by itself; nothing was typed.
+
+**Running:**
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): reworking the reads.
+- **Age of Money Build** (`p_38ee9709f6664cb8bbdf1208634375e3`): head `ceeddf4`, now on base `357bc4f`.
+- **Credit engine Build** (`p_34bc1879fb924226b6a197db43cfeb20`): building.
+- **Flows 3 and 8** (`p_3f1312fc03934e6c89f48296cbe4425f`): running on live.
+
+**Ticket writes:** 7 (five priorities; comments on EXF-612 and EXF-532). One gap ticket filed through
+this review.
+
+**Backlog:** 59 open feature tickets (38 done; 5 in progress: EXF-520, 522, 553, 532, 535). Gap: open
+EXF-558, EXF-560, EXF-562, EXF-589, EXF-614, EXF-616, EXF-615 (in progress) and the one filed now.
+Template: thirty-two (EXF-573 and EXF-612 Urgent). Flow verdicts unchanged. Finished since each
+template's last review: Build 9, Deploy 0, Discover 2, Test user flow 7.
+
+**Next plan:** set the new gap ticket to High and link it to the register Build. Nothing else is free
+to start; wait for the cards (Age of Money first) and the flow test.
