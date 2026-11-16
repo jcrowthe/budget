@@ -1,0 +1,159 @@
+.aom-report {
+  --aom-line: #f1f1ff;
+  --aom-ring: rgba(255, 255, 255, 0.149);
+  --aom-selected: #93d53e;
+  --aom-grid: rgba(255, 255, 255, 0.102);
+  --aom-area: rgba(147, 213, 62, 0.3);
+  --aom-callout-bg: rgba(60, 62, 83, 0.6);
+  --aom-heading: #f1f1ff;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.aom-card {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.aom-current-title {
+  padding-bottom: 4px;
+  color: var(--labelSecondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.aom-current-value {
+  min-height: 36px;
+  color: var(--labelPrimary);
+  font-size: 30px;
+  font-weight: 700;
+}
+.aom-chart {
+  position: relative;
+  margin-top: 16px;
+}
+.aom-chart svg {
+  display: block;
+  overflow: visible;
+}
+.aom-grid,
+.aom-guide {
+  stroke-dasharray: 2 2;
+}
+.aom-grid {
+  stroke: var(--aom-grid);
+}
+.aom-guide {
+  stroke: var(--aom-selected);
+  stroke-width: 1;
+  pointer-events: none;
+}
+.aom-ytick,
+.aom-xlabel {
+  fill: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+}
+.aom-area {
+  fill: var(--aom-area);
+  pointer-events: none;
+}
+.aom-line {
+  fill: none;
+  stroke: var(--aom-line);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.aom-marker {
+  fill: var(--aom-line);
+  stroke: var(--aom-ring);
+  stroke-width: 8;
+  pointer-events: none;
+}
+.aom-marker.selected {
+  fill: var(--aom-selected);
+}
+.aom-tooltip {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  max-width: 160px;
+  min-height: 64px;
+  padding: 16px;
+  border-radius: var(--radius-xs);
+  background: var(--backgroundTertiary);
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.15),
+    0 3px 6px rgba(0, 0, 0, 0.1); /* source tooltip */
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.aom-tip-arrow {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-right: 15px solid transparent;
+  border-bottom: 15px solid var(--backgroundTertiary);
+  border-left: 15px solid transparent;
+}
+.aom-tip-month {
+  margin-bottom: 4px;
+  color: var(--labelSecondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.aom-tip-days {
+  color: var(--labelPrimary);
+  font-size: 18px;
+  font-weight: 600;
+}
+.aom-empty-area {
+  padding: 46px 24px;
+}
+.aom-empty {
+  box-sizing: border-box;
+  max-width: 374px;
+  margin: 0 auto;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--aom-callout-bg);
+  color: #fff;
+  text-align: center;
+}
+.aom-empty-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.aom-empty p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.aom-info {
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.aom-info h2 {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  line-height: 1.5;
+  padding: 16px;
+  border-bottom: 1px solid var(--borderSubtle);
+  color: var(--aom-heading);
+  font-size: 14px;
+  font-weight: 600;
+}
+.aom-info-content {
+  padding: var(--space-3);
+  color: var(--labelSecondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.aom-info-content p {
+  margin: 14px 0;
+}

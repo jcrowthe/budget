@@ -1,8 +1,9 @@
 import { Month } from "@budget/schema/common/dates";
 import { monthIndex } from "@budget/schema/report-range";
-import { MAX_REPORT_MONTHS } from "@budget/schema/reports";
+import { MAX_REPORT_MONTHS, Today } from "@budget/schema/reports";
 import { z } from "zod";
 import {
+  getAgeOfMoney,
   getIncomeExpense,
   getNetWorth,
   getSpendingBreakdown,
@@ -23,6 +24,13 @@ const SPEND = `Spending counts rows of on-plan accounts in the range: split line
 const INCOME = `Income counts rows of on-plan accounts sent to Ready to Assign, whatever their sign, grouped by payee (a split line by its own payee, else the split's); a balance adjustment is listed as "Manual Balance Adjustment". Starting Balances and transfers are never income, and a row with no payee is listed as "(no payee)" with payee_id null.`;
 
 export const tools: McpToolDef[] = [
+  {
+    name: "get_age_of_money",
+    description: `Age of Money: how many days, on average, money sits in the plan's cash accounts between coming in and going out, for "how long does my money last?". Only on-plan cash accounts count (checking, savings, cash; closed ones included); credit, loan and tracking accounts are outside, so a payment or transfer to one of them is an outflow, while a transfer between two cash accounts is ignored. Each outflow spends the oldest money first (first in, first out); its age is the amount-weighted number of days since that money came in, and the value on a date is the mean age of the last 10 outflows up to that date, rounded to whole days. Returns { current_days, months: [{ month, days }] }: current_days is the current month's value, and it is null with months empty until the plan has 10 outflows; months run oldest first from the month of the 10th outflow to the current month, each the value at the month's end (the current month: as of today); days are whole days and no amount is returned. For the plan's amounts elsewhere: ${MONEY} ${MONTH} ${dates("today")} today decides the current month; default: the server's UTC date.`,
+    inputSchema: z.object({ budget_id: Id, today: Today.optional() }),
+    run: async (input: { budget_id: string; today?: string }, { env }) =>
+      getAgeOfMoney(env, input.budget_id, { today: input.today }),
+  },
   {
     name: "get_net_worth",
     description: `Net worth at the end of each month, for "what was my net worth each month this year?". Every account counts, tracking accounts and loans included, except those in excluded_account_ids. Each month, accounts with a positive balance add to assets and accounts with a negative balance to debts. ${MONEY} Debts are negative. ${MONTH} Omit both start_month and end_month for the plan's first month through the current month; give both or neither. Returns { first_month, start_month, end_month, has_data, assets, debts, net_worth, change, change_pct, months }: the top-level assets, debts and net_worth are the last month's; change and change_pct (percent, one decimal, or null) are over the range; each of months (oldest first) has month, assets, debts, net_worth, change, change_pct and accounts [{ id, name, balance }].`,
