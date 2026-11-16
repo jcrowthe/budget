@@ -1,0 +1,327 @@
+# Scheduled transactions design (EXF-497, EXF-499)
+
+Future and repeating transactions (EXF-497) and how a schedule becomes a real transaction: Enter Now, and
+entering what is due (EXF-499). One feature, one pull request. Spec:
+[scheduled-transactions-spec.md](scheduled-transactions-spec.md). "Note *n*" means the Lead's scope notes in
+this Build's brief; they override the tickets where they differ.
+
+## Source
+
+Notes: `/workspace/scratch/source/scheduled-transactions/notes.md` (one capture, `00-register-top.png`).
+**Nothing of this feature could be compared.** The test plan has no scheduled transactions, and its Add
+Transaction button is disabled (only closed accounts), so the calendar and Repeat select are out of reach.
+Read from ordinary rows: 36px high, 14px/500 text, 1px bottom border; columns checkbox, flag, image, Account,
+Date, Payee, Category, Memo, Outflow, Inflow, cleared. All else comes from the tickets and is **not compared**.
+
+This step, through a sub-agent, in this Thread's tab only:
+- It moved the tab once, from `/budget` to the test plan's `/accounts`.
+- It made one click on the disabled Add Transaction button, which never fired.
+- It pressed no key.
+- It took one capture with `page.screenshot()` and no options, after `bringToFront()`. The tab was 1600×813
+  before and after. The capture was cropped to drop the sidebar, and the raw file was deleted.
+
+It saved and entered nothing, and left nothing selected and no add row open. It wrote nothing into the page and
+changed neither the theme nor the tab's size. It opened no plan menu, Bank Connections, Add Account or other plan.
+
+## Tables
+
+**One table is added: `scheduled_transactions`** (migration `20261116101200_scheduled_transactions.sql`,
+additive). Schedules never live in `transactions`. So no query that sums or counts `transactions` changes, and
+these all ignore schedules: balances, sidebar totals, the Plan (activity, Ready to Assign), reports and Age of
+Money (note 8).
+
+Columns:
+- `id` PK; `budget_id`, `account_id`;
+- `date_first`, the anchor every occurrence is computed from; `date_next`, the next occurrence not yet entered;
+- `frequency`; `amount` in milliunits;
+- `payee_id`, `category_id` (both nullable); `inflow_to_ready_to_assign` 0/1;
+- `memo`, `flag_color`;
+- `write_token`, a new uuid on every write: the race guard, never in the API;
+- `created_at`, `updated_at`, `deleted_at`.
+
+Indexes: `(budget_id, date_next)`, `(date_next) WHERE deleted_at IS NULL`, `(account_id)`. There are no transfer
+or split columns (note 1, EXF-501).
+
+## Recurrence (pure, `packages/schema/src/recurrence.ts`, unit-tested)
+
+The values are the ticket's 13, spelled as the ticket spells them (`never` … `everyOtherYear`), with the labels
+of acceptance case 1. The tooltip is `Repeats ` plus the label in lower case.
+
+The occurrences of a series anchored at `date_first`:
+- **Day steps** are `date_first + k·n` days: daily n=1, weekly 7, every other week 14, every 4 weeks 28.
+- **Month steps** are `date_first + k·m` months: monthly m=1, every other month 2, every 3 months 3, every 4
+  months 4, twice a year 6, yearly 12, every other year 24. Each occurrence is clamped to the month's end, and
+  the **anchor's day is kept**: from 12/31 the dates are 01/31, 02/28, 03/31, 04/30. A Yearly series from
+  2028-02-29 gives 2029-02-28 and then 2032-02-29.
+- **Twice a month:** let d be the anchor's day.
+  - d > 15: the days are d−15 and d. From the 20th: 12/05, 12/20, 01/05, 01/20 (the ticket's example).
+  - d ≤ 15: the days are d and d+15. From the 10th: the 10th and the 25th (**decided by the Lead; not compared**).
+  - From the 31st: the 16th and the month's end (02/16, 02/28, 03/16, 03/31). This is the d > 15 rule with the
+    clamp. **Decided here; not compared.**
+  - Every day is clamped to the month's end, and only days on or after `date_first` count.
+- **Never** has one occurrence, `date_first`.
+
+Functions:
+- `occurrenceAfter(anchor, f, after)` gives the first occurrence strictly after `after`, or null. It is computed
+  directly, with no loop over the days or months in between.
+- `nextDate(anchor, f, current)` is one step: `occurrenceAfter(anchor, f, current)`.
+- `placeSchedule(date, f, today)` gives the create and edit rule below.
+- `savesAsScheduled(date, f, today)` is `date > today || f !== "never"`.
+
+## The rules (Worker: `services/scheduled-transactions.ts`)
+
+**Create, and an edit that changes the date or the frequency** (note 4). The add row and a scheduled row's
+edit row use the same rule:
+1. Date after `today`, any frequency: a schedule with `date_next = date`. Nothing is real.
+2. Date on or before `today`, frequency not Never:
+   - one real transaction on that date, **approved false**, uncleared, made by the transactions service;
+   - `date_next = occurrenceAfter(date, f, today)`.
+
+   For example, Weekly dated 14 days ago gives one row on that date and a series due on the first weekly date
+   after today. The missed occurrences are not entered.
+3. Date on or before `today` with Never is **not a schedule**: 422 `unprocessable_entity`.
+   - Create answers "A transaction dated today or earlier that does not repeat is not scheduled: create a
+     transaction instead".
+   - Edit answers "A scheduled transaction needs a date after today or a repeat: use Enter Now to record it today".
+
+**Other rules:**
+- An account that is closed is refused with 422 `account_closed`, using the transactions service's
+  `CLOSED_NO_NEW` text. A deleted or unknown account is 422 "Account not found in this plan".
+- A tracking account takes no category and no Ready to Assign mark (422, the transaction rule's text). Category
+  and the mark exclude each other.
+- Category is optional.
+- `payee_name` creates the payee as `resolvePayee` does, with the race retry. System payees are refused.
+
+**Edit** changes the whole series.
+- When `date_first` is sent, it becomes the new anchor.
+- When only `frequency` is sent, the series is re-anchored at its current `date_next`. So `date_next` stays the
+  same, and a 31st anchor that had been clamped to the 28th keeps the 28th (**decided; not compared**).
+- Every other field changes in place.
+
+**Enter Now** (one or several schedules):
+- Each schedule gives a real transaction dated **`today`**, **approved true**, uncleared, with the schedule's
+  account, payee, category (or the Ready to Assign mark), memo, amount and flag.
+- A repeating schedule moves one step from its scheduled date: `date_next = nextDate(date_first, f, date_next)`.
+  So 11/25 Monthly becomes 12/25.
+- A one-off (Never) is soft-deleted, and its answer has `deleted: true`.
+- If the category was deleted since, the entered row has no category ("needs a category"). The same applies to
+  entering what is due.
+
+**Entering what is due** (note 6; **decided by the Lead; not compared**):
+- One function, `enterDue(env, { budgetIds | "all", day, actor, limit })`.
+- Every schedule with `date_next ≤ day` whose plan, account and schedule are live and whose account is open gets
+  one real transaction dated `date_next`, **approved false**, uncleared.
+- Then `date_next = occurrenceAfter(date_first, f, day)`: missed occurrences in between are not entered, and a
+  one-off is removed.
+- The oldest `date_next` goes first, and at most `SCHEDULER_MAX_PER_RUN = 100` schedules are entered in one call.
+  The rest are left for the next call, and `has_more` says so.
+- History rows carry the actor **`service:scheduler`** for both callers (the web app's call and the cron).
+
+**Closed and deleted accounts.** Schedules on them are not listed, not entered and not found by GET (404).
+Nothing is deleted, and reopening the account shows them again. Nothing in the accounts service or repository
+changes (note 6): the reads join `accounts` themselves.
+
+### Atomicity and the race guard
+
+Every change is one `db.batch` with its `change_log` rows (`entity_type` `scheduled_transaction`; an entered
+transaction logs its own `create`).
+
+To enter one schedule, the batch holds:
+- a **gate**: `UPDATE … SET date_next, deleted_at, updated_at, write_token = <new uuid> WHERE id = ? AND
+  deleted_at IS NULL AND date_next = <read> AND write_token = <read>`;
+- then three statements, each guarded by `EXISTS (… WHERE id = ? AND write_token = <new uuid>)`: the
+  transaction's insert, its log row, and the schedule's log row.
+
+When two callers read the same token, the second gate matches nothing, so its other statements write nothing. That
+schedule is reported as `skipped: changed` (Enter Now) or as not entered (due). The token is a uuid, so two
+writes in the same millisecond cannot both pass. An edit or a delete also replaces the token.
+
+## API (REST under `/api/v1`, MCP) — note 2
+
+| Operation | Tool | D1 calls (worst case, per attempt) |
+|---|---|---|
+| `GET /budgets/{budget_id}/scheduled-transactions` (`?account_id`) | `list_scheduled_transactions` | 2 |
+| `POST /budgets/{budget_id}/scheduled-transactions` (`?today`) | `create_scheduled_transaction` | 7 |
+| `GET /budgets/{budget_id}/scheduled-transactions/{scheduled_transaction_id}` | `get_scheduled_transaction` | 2 |
+| `PATCH …/{scheduled_transaction_id}` (`?today`) | `update_scheduled_transaction` | 8 |
+| `DELETE …/{scheduled_transaction_id}` | `delete_scheduled_transaction` | 3 |
+| `POST …/{scheduled_transaction_id}/enter` (`?today`) → 201 | `enter_scheduled_transaction_now` | 5 |
+| `POST /budgets/{budget_id}/scheduled-transactions/bulk` (`?today`) | `enter_scheduled_transaction_now`, `delete_scheduled_transaction` (one id per call) | 5, whatever the number of ids |
+| `POST /budgets/{budget_id}/scheduled-transactions/enter-due` (`?today`) | `enter_due_scheduled_transactions` | 3 |
+
+- **`/bulk` is an addition to note 2's list.** The action bar must act on several rows "in one request that
+  makes a fixed number of D1 calls" (note 7). Its body is `{ op: "enter_now" | "delete", ids: 1..100 }`.
+  - The rules are all or nothing (an unknown id is 404, a closed account 422). The writes are guarded per
+    schedule.
+- **`today`** is `YYYY-MM-DD`, optional. It falls back to the server's UTC date.
+- Field lists, bodies and response shapes: spec, task 2.
+- **Tool descriptions** say that scheduled splits and transfers are not supported (EXF-501), and use `MONEY`,
+  `DATE`, `dates(…)` and `timestamps(["created_at", "updated_at"])`.
+- **Coverage file:** `apps/worker/test/mcp-coverage/scheduled-transactions.ts`. All seven tools are called in
+  `mcp-timestamps.test.ts`.
+- **`app.ts` does not change:** the routes are collected with `import.meta.glob`.
+
+## The two callers of entering what is due (note 6)
+
+- **The web app.** `useEnterDueOnOpen(budgetId)` (in `api/scheduledTransactions.ts`) runs on the **account page
+  and the All Accounts page**. It posts `enter-due` with `today = localToday()`.
+  - It posts once per plan per load of the app (a module-level map from plan to day). It checks again on window
+    `focus`, on `visibilitychange` and every 60 s, so it posts again when the browser's date changes.
+  - It repeats while `has_more` is true, up to 5 times, and invalidates the plan's queries when something was
+    entered.
+  - It forgets the day on failure, so the next trigger tries again.
+  - **The Plan page and Reflect do not trigger it yet:** the shell and `plan/**` are another Build's (note 10).
+    Opening the app on the Plan page alone leaves the entry to the cron or to the next register visit.
+- **The cron** (`scheduled.ts`). It first runs `enterDue(env, { budgetIds: "all", day: <the day before the
+  server's UTC date>, actor: "service:scheduler" })` in a `try/catch`, so a failure never stops the bank sync.
+  Then it runs `syncDueConnections` with `maxRuns = SCHEDULED_MAX_RUNS − SCHEDULER_CRON_CALLS`.
+  - The scheduler's part makes **at most 3 D1 calls**: one set read of the due schedules (with account, payee
+    and category state, limit 101) and one batch (at most 100 schedules × 4 statements = 400, the same cap as
+    bulk). One call is a spare.
+  - **The invocation's worst case is 3 (scheduler) + 1 (`listDue`) + 37 (Durable Object runs) = 41 calls**,
+    the same 41 as before this Build and under the Free plan's 50. Each Durable Object run keeps its own
+    45-call budget (sync-budget design).
+  - A counting test proves it (case 17). An entry made by the cron alone can be up to a day late, and it is
+    dated its scheduled date.
+- `wrangler.jsonc` and `env.ts` do not change (note 9).
+
+## Web app (EXF-497 register, EXF-499 Enter Now)
+
+- **Calendar.** It gets an optional `Repeat:` row: a native `<select aria-label="Repeat">` listing the 13 options,
+  Never by default.
+  - It shows in the add row and in a scheduled row's edit row. A real row's edit row has none (EXF-503).
+  - The calendar stays open while the select has focus.
+- **Saving the add row.** When `savesAsScheduled` holds, the row goes to the scheduled API. Otherwise it goes to
+  the transactions API as before.
+  - A split or a transfer that would be scheduled shows "Scheduled splits and transfers are not available yet."
+  - A real row moved to a future date stays real (**not compared**).
+- **The Scheduled Transactions section** (`ScheduledSection.tsx`) sits after the add row and before the real
+  rows. It is absent when there are no rows.
+  - The header is a button with `aria-expanded`: a calendar icon, `Scheduled Transactions`, and a chevron (down
+    when expanded, right when collapsed). Its state lives in `sessionStorage` `register.scheduled-collapsed`.
+  - A spacer row follows the section.
+  - One muted row per series, at `date_next`, in the register's sort. Cells: ACCOUNT (All Accounts), date with
+    `RepeatIcon` and the tooltip `Repeats <label lower case>`, payee, `Group: Category`, memo, outflow and inflow.
+  - The cleared cell is empty, and the flag is display-only.
+  - **The register has no image button today**, so none is added (note 7).
+  - `col-date` grows from 96 to 112px.
+- **Selection.** A second set, `scheduled`, sits in `selection.tsx`, and selecting one kind clears the other.
+  - A click selects the row.
+  - A click on the only selected row, or a double-click, opens the edit row (Cancel and Save) and sends a PATCH.
+- **The action bar for scheduled rows.**
+  - It shows `N Transaction(s)`, **Enter Now** (`E`), Categorize and Flag drawn disabled, and More.
+  - More: Match and Unmatch disabled; Duplicate, Memo..., Move to Account and Export drawn disabled with the
+    title "Not available for scheduled transactions yet"; **Delete** enabled with no confirmation.
+  - Enter Now and Delete each send one `/bulk` request.
+  - `E` and `Delete`/`Backspace` act when focus is not in a field. The keys for real rows do nothing.
+- **Placeholders.** `keepPreviousInPlan(budgetId)` (EXF-499 AC 9).
+
+Custom properties (`register.css`): `--register-scheduled-label: var(--labelSecondary)`,
+`--register-scheduled-header-bg: var(--backgroundSecondary)`. Icons (`register/icons.tsx`, Budget's own SVGs):
+`RepeatIcon` (14px), `CalendarIcon` (16px).
+
+## Downstream effects
+
+- Auto-entered rows are unapproved, so they raise the account's `unapproved_count` (which exists). The approval
+  icon, banner and sidebar dot are EXF-463's screens.
+- A payee created through a schedule appears in the payee list at once.
+- A deleted category leaves its schedules uncategorized. The category-delete reassignment does not move
+  schedules: that service is another Build's. This is a known limitation, named for EXF-505.
+- `syncDueConnections` takes an optional `maxRuns`, and its default behaviour is unchanged.
+- The transactions service gains one exported helper that builds a plain row's insert and its log rows under a
+  guard, used by the scheduled service. Its own behaviour does not change.
+
+## Out of scope
+
+The right-click menu (the app has none), Undo after Delete (EXF-530), the approval icon, banner and sidebar dot
+(EXF-463), Make Repeating (EXF-503), scheduled splits and transfers (EXF-501), the Plan page (EXF-505), the
+disabled bulk actions for scheduled rows (a later ticket), due entry from the Plan page or the shell, and time
+zones.
+
+## Acceptance
+
+All on the clone, 1440×900 unless stated. **None is compared** (the source plan has no scheduled transaction and
+no open account). "Today" is fixed with `page.clock.setFixedTime` and sent as `today`.
+
+1. **(497)** Today 2026-11-15, account register: Add Transaction, then click the date field.
+   - The calendar shows `Repeat:` and a select listing, in order: Never, Daily, Weekly, Every other week, Twice a
+     month, Every 4 weeks, Monthly, Every other month, Every 3 months, Every 4 months, Twice a year, Yearly,
+     Every other year. Never is selected.
+   - A real row's edit-row calendar has no Repeat select.
+2. **(497)** Checking account with a $2,500.00 Starting Balance. Add payee "ZZ-TEST Landlord", outflow 800.00,
+   date 11/20/2026, Repeat Never, and Save.
+   - A `Scheduled Transactions` header shows above the real rows, with one muted row dated 11/20/2026 and no
+     repeat icon.
+   - Cleared, Uncleared and Working stay $2,500.00.
+   - The API lists it with `amount −800000` and `date_next 2026-11-20`.
+3. **(497)** Case 2 with Repeat Monthly: the row has a repeat icon whose tooltip is `Repeats monthly`.
+4. **(497)** API, today 2026-11-15. Monthly from `2026-12-31`, then `/enter` four times.
+   - `date_next` goes 12/31, 01/31, 02/28, 03/31, 04/30.
+   - From 2028-01-31 the next date is 2028-02-29.
+5. **(497)** API, Twice a month, then `/enter`:
+   - from 2026-11-20: 11/20, 12/05, 12/20, 01/05, 01/20;
+   - from 2026-12-10: 12/25, then 01/10;
+   - from 2027-01-31: 02/16, then 02/28.
+6. **(497)** Click the section header.
+   - The rows hide and the chevron points right.
+   - Click again: the rows show and the chevron points down.
+   - After a reload in the same tab, the section keeps the state you left it in.
+7. **(497)** A scheduled row's cleared cell is empty (no button), and its flag cannot be opened. There is no image
+   button (the register has none).
+8. **(497)** Edit, then delete.
+   - Click a scheduled row: it is selected. Click it again: the edit row opens with Cancel and Save, and the date
+     picker shows its Repeat.
+   - Set the memo to "ZZ-TEST rent" and Save. The row and the API show it, and `date_next` is unchanged.
+   - More → Delete removes the row with no dialog, and the API lists nothing.
+9. **(497)** Type `12/31/2032`, leave the category empty and Save: a scheduled row dated 12/31/2032 with an empty
+   category.
+10. **(497)** Create, list, update and delete through REST and through the four MCP tools. Each write makes one
+    `change_log` row (`entity_type scheduled_transaction`) with the actor `user:…` or `mcp:…`.
+11. **(497)** 422 for each of:
+    - a closed account (`account_closed`);
+    - a category on a tracking account;
+    - `frequency: "fortnightly"`;
+    - `date_first 2026-02-30`;
+    - a date on or before today with Never (the "create a transaction instead" sentence).
+12. **(499)** Today 2026-11-15. Monthly series dated 11/25: select its row and press **Enter Now**.
+    - A real row dated 11/15/2026 appears: approved and uncleared.
+    - The series shows 12/25/2026.
+13. **(499)** Enter Now on a one-off.
+    - The row leaves the section, and a real row dated today appears.
+    - `GET …/{id}` answers 404, and the change_log has its `delete` row.
+14. **(499)** Add row, today 11/15/2026, Weekly, dated 11/15/2026: one real row on 11/15 with `approved false`, and
+    `date_next` 2026-11-22.
+15. **(499)** Case 14 dated 11/01/2026: one real row on 11/01 and none on 11/08 or 11/15; `date_next` 2026-11-22.
+16. **(499)** API: a series dated 2026-11-16, created with today 2026-11-15. Open the register with the browser
+    clock at 2026-11-16.
+    - One unapproved, uncleared row dated 11/16 appears, and the series moves on.
+    - A reload or a second `enter-due` adds nothing.
+17. **(499, Lead)** Cron at 2026-11-17T03:00Z with series due 11/16 and 11/17.
+    - Only the 11/16 one is entered, with actor `service:scheduler`.
+    - The invocation's D1 calls plus the stubbed runs are at most 41, and the runs at most 37.
+    - `enter-due` makes 3 calls for both 10 and 100 due schedules.
+    - Bulk Enter Now makes 5 calls for both 10 and 100 ids.
+18. **(499)** REST `/enter`, MCP `enter_scheduled_transaction_now` and `enter_due_scheduled_transactions` behave as
+    cases 12, 13 and 16, with their change_log rows.
+19. **(499, Lead)** Two `/enter` calls started together on one Monthly series give one real row and one step.
+    Two `enter-due` calls together give one row per due series.
+20. **(499, Lead)** From plan A's register, which has a scheduled row, switch to plan B: B never shows A's row
+    (checked every animation frame for 2 s).
+21. **(497)** At 1024×700, none overflows (`scrollWidth ≤ clientWidth`) or overlaps a neighbour:
+    - the select with "Every other month";
+    - the tooltip `Repeats every other month`;
+    - a repeating row's date cell;
+    - the section header.
+22. **(497)** Selection and keys.
+    - Select a real row, then click a scheduled one: only the scheduled one is selected.
+    - The bar shows Enter Now, with Categorize and Flag disabled. In More, Duplicate, Memo..., Move to Account and
+      Export are disabled, and Delete is enabled.
+    - With two scheduled rows selected, `E` enters both.
+    - `Delete` removes the selection.
+    - `E` while typing in the memo field does nothing.
+
+## Manifest
+
+touches: [apps/worker/migrations/20261116101200_scheduled_transactions.sql, apps/worker/src/db/schema/scheduled-transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/src/services/scheduled-transactions.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/plaid-sync.ts, apps/worker/src/routes/scheduled-transactions.ts, apps/worker/src/mcp/tools/scheduled-transactions.ts, apps/worker/src/scheduled.ts, apps/worker/test/scheduled-transactions*.test.ts, apps/worker/test/scheduled-helpers.ts, apps/worker/test/mcp-coverage/scheduled-transactions.ts, apps/worker/test/mcp-timestamps.test.ts, packages/schema/src/recurrence.ts, packages/schema/src/scheduled-transactions.ts, packages/schema/test/recurrence.test.ts, packages/schema/test/scheduled-transactions.test.ts, apps/web/src/api/scheduledTransactions.ts, apps/web/src/register/**, apps/web/src/pages/account.tsx, apps/web/src/pages/accounts.tsx, e2e/scheduled-transactions*.spec.ts, e2e/support/scheduled-seed.ts, e2e/register*.spec.ts, docs/scheduled-transactions-design.md, docs/scheduled-transactions-spec.md, docs/README.md]
+shared: []
+migrations: 1
