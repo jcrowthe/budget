@@ -7,7 +7,7 @@ import {
   yearOptions,
 } from "@budget/schema/target-form";
 import { behaviorOptions, type FormTab } from "@budget/schema/target-wording";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Calculator } from "../AssignedCell";
 import { money } from "../format";
 import { TrashIcon } from "../icons";
@@ -50,6 +50,15 @@ function TargetAmountField({
 }) {
   const [text, setText] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const selectNext = useRef(false);
+  // The raw text replaces the formatted amount on focus: select it, so typing starts over.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the text appears
+  useEffect(() => {
+    if (selectNext.current && text !== null) {
+      selectNext.current = false;
+      input.current?.select();
+    }
+  }, [text]);
   const commit = () => {
     if (text !== null) onChange(text.trim() === "" ? 0 : evaluateAssigned(text, value));
   };
@@ -67,7 +76,10 @@ function TargetAmountField({
         // biome-ignore lint/a11y/noAutofocus: opening the form puts the cursor in the amount, as the source does
         autoFocus
         value={text ?? money(value)}
-        onFocus={() => setText(value === 0 ? "" : formatAssignedInput(value))}
+        onFocus={() => {
+          selectNext.current = true;
+          setText(value === 0 ? "" : formatAssignedInput(value));
+        }}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => {
           commit();
@@ -164,7 +176,6 @@ export function TargetForm({
       {field(
         custom ? "Amount" : "I need",
         <TargetAmountField
-          key={tab}
           value={draft.amount}
           onChange={(amount) => set({ amount })}
           disabled={busy}
