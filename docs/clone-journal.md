@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 8 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
+Review counters (finished children since that template's last review): Build 9 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -373,7 +373,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | live `82aac3a` |
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | PR #20 | **cancelled by me in round 36** (source rules broken); branch head `b7e25de` to carry over |
 | 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | completed (8 minutes): `new_gaps` (EXF-572) |
-| 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | pending | running |
+| 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | PR #22 | merged `325ee94` (round 38) |
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | pending | running |
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | pending | running |
 
@@ -3095,3 +3095,58 @@ Nothing started this round.
 - At the cards of the categories carry-over and EXF-572: whichever merges second must add the category
   operations to the coverage mapping (see the round 37 plan).
 - Review cadence: Build 8, Deploy 8, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Review round 38
+
+Children used 49 of 200. Two Builds are running: the plan-menu carry-over (at its acceptance step) and
+EXF-572, MCP coverage (reworking what I asked for). No card is waiting.
+
+**Ended: the categories carry-over, merged as `325ee94` (PR #22)** in 32 minutes. EXF-494 and EXF-495 are
+Done. Gate: e2e 111 of 111 three times, no flake (the cancelled Build's version had failed two runs in
+three). I checked the carry-over's changes in the diff (39 files, +5141/-94): `moveTransactionsStmt` now
+sets `updated_at` to the delete's time; three more tools; nothing else.
+
+- The two-ticket Build worked: one design, one pull request, both tickets accepted. Grouping is safe to
+  keep using.
+- A carry-over with "nobody opens the source app" also worked: the Tester noted "source_check.sh not run
+  (source forbidden)" and kept clone screenshots only.
+- What later Builds build on: `apps/web/src/plan/CategoryPicker.tsx` (shared picker), `Popover.tsx`,
+  `apps/web/src/api/monthCache.ts` (the one rule for writers of the cached month), `api/categories.ts`;
+  Worker `services/categories.ts`, `services/category-delete.ts`, `repositories/guards.ts`.
+
+**EXF-572's card, answered in the same side turn: Request changes** (the gate was clean, 97 of 97 three
+times). Two reasons, neither a defect:
+
+1. The categories merge adds nine operations and eleven tools; EXF-572's coverage test would fail on main
+   once both were merged. It must rebase onto `325ee94` and add them (two tools can serve one operation:
+   rename and hide share a PATCH, so a coverage line may name several tools).
+2. **My mistake in its brief:** I asked for the mapping in one file. Every route-adding Build would edit it,
+   and by the scheduling rule Builds that share a file cannot run side by side: the same hot spot EXF-561
+   removed. Asked for one coverage file per resource in a folder, collected with `import.meta.glob`, with
+   the rule in `docs/conventions.md`.
+   It is at its rework step now.
+- What it built, for later briefs: tools `update_budget`, `delete_budget`, `get_budget`, `get_transaction`,
+  `list_plan_months`, `get_month_range`, `get_account_summary`; `apps/worker/test/mcp-coverage.test.ts` and
+  `mcp-descriptions.test.ts`; `apps/worker/src/mcp/tool-text.ts` (shared description text).
+- **Rule for every brief once EXF-572 has merged:** a Build that adds a REST operation adds its tool and its
+  own coverage file (or a line in its resource's file), or an exclusion with a reason; the description test
+  checks units and formats.
+
+**Main is `325ee94`; live is `82aac3a`.** Not live: the account pages with `updated_at` (one migration) and
+categories. Two more Builds are close. **Deploy when both have merged**, or next round with what is there
+if they take long.
+
+**Unblocked now** (the grid, the categories files and the picker are on main; the account pages and the
+transactions files are free; the tool files are held by EXF-572 until it merges):
+
+- EXF-491 with EXF-492 (Ready to Assign pill, move money): Plan header, grid pill, a moves route and tool.
+- EXF-517 with EXF-507 (inline transactions, payee picker): register, transactions files, a payees table.
+  Both need new tools: in new tool files they do not collide with EXF-572, but they should start after it
+  merges so they can follow its coverage rule from the start. Decide in the plan.
+
+**Ticket writes:** 3 (two Done, one comment).
+
+**Backlog:** 80 open feature tickets (14 done; 1 in progress: EXF-470), all triaged. Gap: EXF-571 and
+EXF-572 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium), EXF-560, EXF-562
+(Low). Template: sixteen. Flow verdicts: 9 `new_gaps`, 10 `new_gaps`, 11 `parity`. Finished since each
+template's last review: Build 9, Deploy 8, Discover 2, Test user flow 2.
