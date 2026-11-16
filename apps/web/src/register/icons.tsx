@@ -216,3 +216,10 @@ export const MenuChevronRightIcon = (p: P) => (
     <path d="m9 6 6 6-6 6" />
   </svg>
 );
+
+/** The Scheduled Transactions header's calendar (16px stroke). */
+export const CalendarIcon = (p: P) => (
+  <svg {...line} aria-hidden="true" {...p}>
+    <path d="M4 5h16v16H4zM4 10h16M8 3v4M16 3v4" />
+  </svg>
+);

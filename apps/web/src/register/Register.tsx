@@ -17,7 +17,7 @@ const isTyping = (t: EventTarget | null) => {
 /** One account's register, or (without `account`) every account's: All Accounts. */
 export function Register({ budgetId, account }: { budgetId: string; account?: Account }) {
   const [open, setOpen] = useState<Open>(null);
-  const { selected } = useSelection();
+  const { selected, scheduled } = useSelection();
   const { openAccounts, loaded } = useOpenAccounts(budgetId);
   // A closed account, or All Accounts with no open account, takes no new transaction.
   const closed = account ? account.closed : loaded && openAccounts.length === 0;
@@ -41,7 +41,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
 
   return (
     <section
-      className={`register${selected.size > 0 ? " has-actionbar" : ""}`}
+      className={`register${selected.size > 0 || scheduled.size > 0 ? " has-actionbar" : ""}`}
       aria-label="Register"
     >
       <RegisterToolbar

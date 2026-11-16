@@ -1,5 +1,7 @@
 :root {
   --register-row-selected: #1b1d48;
+  --register-scheduled-label: var(--labelSecondary);
+  --register-scheduled-header-bg: var(--backgroundSecondary);
   /* Source placeholder colour of the register inputs (getComputedStyle ::placeholder). */
   --register-input-placeholder: #757575;
   --register-needs-category: #daac00;
@@ -124,7 +126,7 @@
   width: 10%;
 }
 .register-table .col-date {
-  width: 96px;
+  width: 112px;
 }
 .register-table .col-payee,
 .register-table .col-memo {
@@ -734,4 +736,67 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
   line-height: 21px;
+}
+
+/* Scheduled Transactions (EXF-497): a header that collapses the section, muted rows, a spacer. */
+.register-table .scheduled-header-cell {
+  height: 32px;
+  padding: 0;
+  background: var(--register-scheduled-header-bg);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.scheduled-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.scheduled-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scheduled-chevron {
+  display: inline-flex;
+  align-items: center;
+}
+.scheduled-chevron svg {
+  width: 10px;
+  height: 10px;
+}
+.register-table tbody tr.scheduled-row td {
+  color: var(--register-scheduled-label);
+}
+.scheduled-date {
+  white-space: nowrap;
+}
+.scheduled-date-text {
+  display: inline-block;
+  vertical-align: middle;
+}
+.scheduled-repeat {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.register-table tr.scheduled-spacer td {
+  height: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
 }

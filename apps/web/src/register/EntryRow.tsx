@@ -1,5 +1,11 @@
 import type { Account } from "@budget/schema/accounts";
+import { parseEntryDate } from "@budget/schema/date-entry";
 import type { Payee } from "@budget/schema/payees";
+import { savesAsScheduled } from "@budget/schema/recurrence";
+import {
+  EDIT_NOT_SCHEDULED,
+  type ScheduledTransaction,
+} from "@budget/schema/scheduled-transactions";
 import { autoDistribute, splitSum } from "@budget/schema/split";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { transferCategoryRule } from "@budget/schema/transfers";
@@ -7,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAccounts } from "../api/accounts";
 import { useMonth } from "../api/months";
 import { usePayees } from "../api/payees";
+import { useCreateScheduled, useUpdateScheduled } from "../api/scheduledTransactions";
 import { useSaveTransaction } from "../api/transactions";
 import { AccountField } from "./AccountField";
 import { AmountField } from "./AmountField";
@@ -18,9 +25,12 @@ import {
   type Draft,
   draftAmount,
   draftError,
+  draftFromScheduled,
   draftFromTx,
   draftToCreate,
   draftToPatch,
+  draftToScheduledCreate,
+  draftToScheduledPatch,
   emptyDraft,
   emptyLine,
   type Field,
@@ -41,6 +51,7 @@ export function EntryRow({
   budgetId,
   mode,
   tx,
+  scheduled,
   account,
   accounts,
   plan,
@@ -54,8 +65,10 @@ export function EntryRow({
   onSaved,
 }: {
   budgetId: string;
-  mode: "add" | "edit";
+  mode: "add" | "edit" | "editScheduled";
   tx?: TransactionDetail;
+  /** The series being edited (mode "editScheduled"). */
+  scheduled?: ScheduledTransaction;
   /** The register's own account; absent on All Accounts. */
   account?: Account;
   /** Open accounts in sidebar order (All Accounts' account field). */
@@ -74,7 +87,11 @@ export function EntryRow({
 }) {
   const today = localToday();
   const [draft, setDraft] = useState<Draft>(() => {
-    const d = tx ? draftFromTx(tx) : emptyDraft(date ?? today, account?.id ?? null);
+    const d = scheduled
+      ? draftFromScheduled(scheduled)
+      : tx
+        ? draftFromTx(tx)
+        : emptyDraft(date ?? today, account?.id ?? null);
     // S on a row: the old category is not carried over.
     return startSplit && !d.lines
       ? { ...d, category: { kind: "none" }, lines: [emptyLine(), emptyLine()] }
@@ -93,6 +110,9 @@ export function EntryRow({
   const saving = useRef(false);
   const payeesQ = usePayees(budgetId);
   const save = useSaveTransaction(budgetId);
+  const createScheduled = useCreateScheduled(budgetId);
+  const updateScheduled = useUpdateScheduled(budgetId);
+  const isScheduledEdit = mode === "editScheduled";
   const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
 
   const monthOf = `${(draft.lastDate || today).slice(0, 7)}-01`;
@@ -178,6 +198,46 @@ export function EntryRow({
     }
     setMessage(null);
     const accountId = account?.id ?? (d.accountId as string);
+    const typedDate = parseEntryDate(d.dateText, today) as string;
+    if (mode === "add" && savesAsScheduled(typedDate, d.frequency, today)) {
+      // The same rule as the API: a future date or a repeat is a schedule.
+      if (d.lines || d.transferAccountId) {
+        setMessage("Scheduled splits and transfers are not available yet.");
+        return;
+      }
+      saving.current = true;
+      createScheduled.mutate(draftToScheduledCreate(d, accountId, today), {
+        onSuccess: () => onSaved(next, typedDate),
+        onError: (e) => setMessage(`Couldn't save the transaction. ${e.message}`),
+        onSettled: () => {
+          saving.current = false;
+        },
+      });
+      return;
+    }
+    if (isScheduledEdit && scheduled) {
+      const body = draftToScheduledPatch(scheduled, d, today);
+      if (body.date_first && typedDate <= today && d.frequency === "never") {
+        setMessage(EDIT_NOT_SCHEDULED);
+        return;
+      }
+      if (Object.keys(body).length === 0) {
+        onClose();
+        return;
+      }
+      saving.current = true;
+      updateScheduled.mutate(
+        { id: scheduled.id, body },
+        {
+          onSuccess: () => onSaved(next, typedDate),
+          onError: (e) => setMessage(`Couldn't save the transaction. ${e.message}`),
+          onSettled: () => {
+            saving.current = false;
+          },
+        },
+      );
+      return;
+    }
     const body =
       mode === "edit" && tx ? draftToPatch(tx, d, today) : draftToCreate(d, accountId, today);
     if (mode === "edit" && Object.keys(body).length === 0) {
@@ -233,7 +293,7 @@ export function EntryRow({
     setUnbalanced(null);
     submit(next, updated);
   };
-  const busy = save.isPending;
+  const busy = save.isPending || createScheduled.isPending || updateScheduled.isPending;
 
   return (
     <tbody ref={rows} className="entry-body" onKeyDown={onKeyDown}>
@@ -272,6 +332,8 @@ export function EntryRow({
             lastDate={draft.lastDate}
             today={today}
             onChange={(dateText, lastDate) => patch({ dateText, lastDate })}
+            frequency={mode === "edit" ? undefined : draft.frequency}
+            onFrequency={mode === "edit" ? undefined : (frequency) => patch({ frequency })}
           />
         </td>
         <td data-field="payee">
@@ -281,7 +343,7 @@ export function EntryRow({
             disabled={lockStart}
             title={lockStart ? LOCK_TITLE : undefined}
             currentAccountId={account?.id ?? draft.accountId}
-            transfers={!isSplit}
+            transfers={!isSplit && !isScheduledEdit}
             // Typing over a transfer's payee makes it a plain row again.
             onChange={(payee) => patch({ payee, transferAccountId: null })}
             onPicked={fillCategory}
@@ -300,7 +362,13 @@ export function EntryRow({
               startOpen={openCategory}
               placeholder={rule === "not_needed" ? "Category not needed" : "category"}
               split={isSplit}
-              splitDisabled={draft.transferAccountId ? "A transfer cannot be split" : false}
+              splitDisabled={
+                isScheduledEdit
+                  ? "Scheduled splits are not available yet"
+                  : draft.transferAccountId
+                    ? "A transfer cannot be split"
+                    : false
+              }
               onSplit={startSplitting}
               // Picking a category drops the lines.
               onChange={(category) => patch({ category, lines: null })}
@@ -338,17 +406,19 @@ export function EntryRow({
           />
         </td>
         <td className="cell-cleared">
-          <button
-            type="button"
-            className={`cleared-button is-${draft.cleared}`}
-            aria-label={`This transaction is ${draft.cleared}`}
-            tabIndex={-1}
-            onClick={() =>
-              patch({ cleared: draft.cleared === "cleared" ? "uncleared" : "cleared" })
-            }
-          >
-            {draft.cleared === "cleared" ? <ClearedFilledIcon /> : <ClearedOutlineIcon />}
-          </button>
+          {isScheduledEdit ? null : (
+            <button
+              type="button"
+              className={`cleared-button is-${draft.cleared}`}
+              aria-label={`This transaction is ${draft.cleared}`}
+              tabIndex={-1}
+              onClick={() =>
+                patch({ cleared: draft.cleared === "cleared" ? "uncleared" : "cleared" })
+              }
+            >
+              {draft.cleared === "cleared" ? <ClearedFilledIcon /> : <ClearedOutlineIcon />}
+            </button>
+          )}
         </td>
       </tr>
       {draft.lines && (
