@@ -8465,3 +8465,86 @@ filed at the last review. The person has not answered the check-in.
 
 Ticket writes: 2 (EXF-476 to In Progress with a comment). Review cadence: Build 7, Deploy 6,
 Discover 2, Test user flow 0 (one running).
+
+### 2026-11-16 · Review round 98
+
+Children used 114 of 200. Two ended: the flow tests (completed) and the Export Plan Build (its box
+had lost the platform's files; cancelled by me before any code). Two Builds are running. Main and
+live `11273cf` (read by me at 18:19Z).
+
+**Flows 4, 7 and 8 on live `11273cf`** (`p_988d22eb85a649248b1d7c66673dd767`, prefix `ZZ-TEST F98`,
+21 minutes). **No new gap; no figure of mine differed** (the tester checked my arithmetic first).
+No console error and no request at 400 or above in any flow.
+
+- **Flow 4 (credit card), first run: `parity_known_gaps`.** Walked in the browser: funded card
+  spending; credit overspending (yellow pill, the message "You've overspent this category by $30.00
+  with credit. Cover this overspending to avoid creating debt!"); cash added to a category that is
+  overspent with credit (all 50.00 credit, the payment category 150.00, next month untouched); cover
+  from another category (the payment category then equals the debt, 200.00); next month; payment
+  (0.00); overpayment (−30.00 in red, next month 1,620.00); a refund (−50.00, card +50.00, next month
+  1,600.00); the locks (the payment row and its group offer no rename, hide, delete or Add Category;
+  REST refuses with 422); the tool equal to the screen.
+  - Known gaps seen: EXF-537 (the payment row shows a progress bar and "Overspent ... of $0.00", and
+    its pill is green while the card is underfunded), EXF-622, 623, 646 (the Plan page at 1024 px).
+  - Not filed, and my reading: payment rows read "Transfer: ..." and "Category not needed" on both
+    sides (EXF-539, in its Build now, names them "Payment: ..." with the payment category); the
+    Cover popover offers the payment category as a source (no rule against it).
+- **Flow 7 (recurring), first run: `parity_known_gaps`.** A monthly series, a memo-only edit, Enter
+  Now by button and by `E`, a weekly series dated today, an ordinary row, a one-off, delete from
+  More, twice a month through REST (12/05, 12/20, 01/05, 01/20), nothing entered that is not due,
+  the tool's list equal to REST; balances and the category's −444.00 as figured. The Repeat select
+  holds 13 options in the ticket's order.
+  - Known gaps seen: EXF-463 (an auto-entered row is unapproved but carries no mark), EXF-657 (the
+    bar's other actions disabled). The payee-rule half is not built and was not walked.
+  - Not filed by the tester, **filed by me with this review (Low):** an amount in the register is
+    written with an ASCII hyphen ("-$444.00") while the sidebar and the Plan page use the minus
+    sign.
+- **Flow 8 (Reflect), third run, short: `parity`.** At 1024×700 no amount is cut and the Total column
+  is inside the table; the other reports show no cut text. Two things were not exercised with this
+  plan: no label was long enough to be shortened, and Age of Money showed its empty state (fewer
+  than ten transactions), so its hover fix (EXF-621) is proven only by its spec.
+- Its box had no `node_modules` and no Playwright browser; the tester used the box's Chrome.
+- Cleanup: `remaining 0`; plans not named `ZZ-TEST`: 1; the plan menu not opened; the identity label
+  masked; no source app.
+
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps`; 3 `new_gaps`; **4 `parity_known_gaps`**; 5
+`parity_known_gaps`; **7 `parity_known_gaps`**; **8 `parity`**; 9 `parity`; 10 `parity`; 11 `parity`;
+6 not run (reconcile and file import are not built).
+
+**Export Plan Build: lost its box, cancelled** (`p_3e4f9289ea4140718e15e4d430ed18f5`, EXF-612; the
+twelfth child today: seven Builds, five Deploys).
+- Its preflight failed; I answered Proceed, believing the cause was my brief (it opened no source
+  tab). The Architect's listing then showed the real cause: no `/workspace/.exfab/bin`, no
+  `request.json`. Every Build in that state has failed at its checks step, so I ended it before the
+  Implementer began.
+- **What it left that is worth keeping:** a design (`docs/plan-export-design.md`, commit `685d1c2`,
+  if it reached the branch). The repository already has a hand-written zip writer (`storeZip` in
+  `packages/schema/src/zip.ts`, used by the Reflect exports): I did not know that when I wrote the
+  brief. Its decisions were sound: an optional `now` parameter for the stamp; deleted categories not
+  written; 15 D1 calls whatever the size; and one departure I accept, **the Plan file runs to the
+  last month with money assigned if that is later than the current month**.
+- EXF-476 stays In Progress; restarted at the next plan, with the source tab opened by the Clerk as
+  in every other Build (so that a failed preflight cannot be mistaken for that again).
+
+**Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`, PR 50; in review): implemented, two
+polish items applied (the toolbar on one line and a 428 px grid minimum at 1024 px).
+- **Its Designer kept the source limits** (live measurements at the tab's own size, nothing written
+  into the source; it tried CSS fixes in the clone's own dev page).
+- **A finding that reverses a ticket:** with nothing ticked the source's Auto-Assign card shows
+  "Underfunded $0.00" (352 px); with one category ticked it hides it (304 px). EXF-624, written by a
+  flow test from EXF-519's text without the source, asked for the opposite, and the Build had done
+  it. **I decided on EXF-624: follow the source**; the changed spec cases go back; I close the
+  ticket as "not a gap" at the merge. Second time today a narrow reading of a ticket lost to the
+  source (EXF-626 was the first): tickets written without the source need "not observed" on every
+  expectation, which EXF-650 asks of the template.
+
+**Record Payment Build** (`p_ae982fa0a2334ebaae16875e1551c0d6`): design committed (`39fe72e`).
+
+**Ticket writes:** 2 (EXF-624, EXF-612). One ticket filed through this review.
+
+**Backlog:** 50 open feature tickets (47 done; 3 in progress: EXF-537, 539, 476). Gap: nine open with
+the new one, nine in progress. Template: thirty-six open. Finished since each template's last
+review: Build 8 (the Export Build lost), Deploy 6, Discover 2, Test user flow 1.
+
+**Next plan:** restart the Export Plan Build in a fresh box (carry the design over if the branch has
+it); nothing else is free.
