@@ -396,6 +396,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
 | 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | completed (21 minutes): flow 8 `new_gaps` (EXF-591), flow 5 `parity_known_gaps` |
 | 2026-11-16 | 56 | Build feature, EXF-508, EXF-514, EXF-592 targets form and display (`p_74b956498a4b4ce1bed94c516291a48f`) | EXF-508, 514, 592 | pending | running |
+| 2026-11-16 | 57 | Deploy of main `113ced4` (`p_e549c296232b4f06be26ddeb660f709a`) | EXF-498, 523, 521, 586 | n/a | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4678,3 +4679,26 @@ EXF-587, EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 
 Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 5 `parity_known_gaps`,
 8 `new_gaps` (EXF-591), 9 and 10 `new_gaps`, 11 `parity`. Finished since each template's last review:
 Build 8, Deploy 3, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Plan round 57
+
+Children used 70 of 200. Four are running: three Builds from earlier rounds (EXF-526 with EXF-524,
+regating; EXF-486 with EXF-488, polish applied; EXF-508 with EXF-514 and EXF-592, with its Architect) and
+the Deploy started now.
+
+- No ticket was filed by me at the last review; the tester's EXF-591 is triaged (Low).
+- **Started the Deploy of main `113ced4`** (`p_e549c296232b4f06be26ddeb660f709a`), `gated_commit` `0fef6ab`
+  (trees equal), run prefix `ZZ-TEST D15`. It ships the Plan-page Build; one migration (`100400`).
+  - Checks: the month summary and category-month reads with hand-computed figures; the category note; 46
+    tools expected; selection with mouse and keys, the three states of the right panel, the resize
+    handle, the narrow window.
+  - **The plan switch (EXF-586) with the next plan's month request delayed by 3 seconds**, in both
+    directions: nothing of the previous plan may show. This is flow 9's open gap checked on live; the
+    flow's own run follows with the next batch.
+  - In the Open Plan submenu it may click only its own plan's row and keep no capture with it open.
+- **No new Build:** the Plan page (targets Build), the transactions files (transfers and splits) and the
+  accounts files and shell (account editing) are held. The Reflect files are free but the spending
+  reports wait for splits and transfers on main.
+- **At the transfers and splits card: Request changes** for the Net Worth query that would count a split
+  twice (`repositories/reports.ts`), with a Worker test; if main has moved again, Regate first.
+- Review cadence: Build 8, Deploy 3, Discover 2, Test user flow 5.
