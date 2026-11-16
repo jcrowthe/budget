@@ -2639,3 +2639,21 @@ does sign in.
 progress), EXF-571 (High), EXF-558 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562 (Low). Template:
 fifteen. **Flow verdicts: flow 9 `new_gaps`, flow 11 `parity`; the other nine not run yet.** Finished since
 each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 1.
+
+### 2026-11-16 · Plan round 33
+
+Children used 43 of 200. Three Builds are running, started in rounds 28 to 31: the categories Build
+(EXF-494, EXF-495; pull request #17), the Plaid Link Build (EXF-459; pull request #18) and the account-pages
+Build (EXF-484, EXF-534, EXF-570). Nothing started this round.
+
+- No ticket was filed by me at the last review. EXF-571 (the clipped Open Plan submenu, from the flow test)
+  is High and now linked behind EXF-459, which holds the shell; it goes into one Build with EXF-470 and
+  EXF-454 as soon as EXF-459 merges.
+- **Why nothing new:** unchanged from round 32. The three Builds hold the grid and categories files, the
+  shell with the budgets files and scripts, and the account pages with the transactions and accounts files.
+- No Deploy: main `2fcde22` is one merge ahead of live `0de1856`; deploy when the categories Build merges.
+- No flow test: flows 9 and 11 have run; flows 1, 2 and 10 need the categories and register live.
+- To add to every brief with a popover or a menu from now on: "The Tester clicks with a real mouse move to
+  the element's centre, not a DOM click, and checks that the element is the topmost one there."
+- Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 1.
+- Ticket writes this round: 1.
