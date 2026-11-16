@@ -313,3 +313,7 @@
 .inspector-message.cautious strong {
   background: var(--calloutWarningSubtleBackgroundEmphasis);
 }
+/* Source (live): with the message the card body ends with 16px under the box, not the usual 24px. */
+.panel-card-body:has(> .inspector-message) {
+  padding-bottom: 16px;
+}

@@ -517,8 +517,9 @@ button.category-name {
 /* EXF-535: the credit-overspent pill keeps the label colour for its card icon, with the source's .35rem gap. */
 .available-pill.credit .pill-icon {
   fill: currentColor;
-  /* source: the icon is 13x13, margin auto .35rem auto auto */
-  margin: auto 0.35rem auto 0;
+  /* source: the icon is 13x13 and sits 4.5px under the pill's top (padding 2px); ours is 4px/2px, so the 2px
+     bottom margin puts the 15px margin box in the 16px content box */
+  margin: 0 0.35rem 2px 0;
 }
 .status-label strong {
   font-weight: 700;
