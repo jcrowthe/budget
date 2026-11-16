@@ -1,3 +1,4 @@
+import type { MonthGroupDetail } from "./months";
 import type { TransactionDetail } from "./transactions";
 
 // Repeat core's CREDIT_ACCOUNT_TYPES and STARTING_BALANCE_PAYEE (this package does not depend on core);
@@ -19,7 +20,7 @@ export const PLAN_SORT_COLUMNS = ["account", ...REGISTER_SORT_COLUMNS] as const;
 export type PlanSortColumn = (typeof PLAN_SORT_COLUMNS)[number];
 export type SortDir = "asc" | "desc";
 
-type SortableTx = { account_name?: string } & Pick<
+type SortableTx = { account_name?: string; payee_system?: string | null } & Pick<
   TransactionDetail,
   | "id"
   | "date"
@@ -55,7 +56,7 @@ export function categoryCell(
   const text = categoryText(tx);
   if (text) return { kind: "text", text };
   if (!account.on_budget) return { kind: "notNeeded" };
-  if (REGISTER_CREDIT_TYPES.includes(account.type) && tx.payee_name === REGISTER_STARTING_PAYEE) {
+  if (REGISTER_CREDIT_TYPES.includes(account.type) && tx.payee_system === "starting_balance") {
     return { kind: "notNeeded" };
   }
   return { kind: "needsCategory" };
@@ -105,4 +106,68 @@ export function sortTransactions<T extends SortableTx>(
     if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : 1;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
+}
+
+export type CategoryMenuRow = {
+  kind: "rta" | "category";
+  id: string | null;
+  name: string;
+  amount: number;
+  hidden: boolean;
+};
+export type CategoryMenu = {
+  groups: { name: string; rows: CategoryMenuRow[] }[];
+  flat: CategoryMenuRow[];
+  empty: boolean;
+};
+
+/** What the register's category dropdown lists for the typed text. Pure. */
+export function categoryMenu(
+  groups: readonly MonthGroupDetail[],
+  readyToAssign: number,
+  text: string,
+): CategoryMenu {
+  const needle = text.trim().toLowerCase();
+  const all: { name: string; rows: CategoryMenuRow[] }[] = [
+    {
+      name: "Inflow",
+      rows: [
+        { kind: "rta", id: null, name: "Ready to Assign", amount: readyToAssign, hidden: false },
+      ],
+    },
+    ...groups.map((g) => ({
+      name: g.name,
+      rows: g.categories.map(
+        (c): CategoryMenuRow => ({
+          kind: "category",
+          id: c.id,
+          name: c.name,
+          amount: c.available,
+          hidden: c.hidden,
+        }),
+      ),
+    })),
+  ];
+  const kept = all
+    .map((g) =>
+      needle === "" || g.name.toLowerCase().includes(needle)
+        ? g
+        : { name: g.name, rows: g.rows.filter((r) => r.name.toLowerCase().includes(needle)) },
+    )
+    .filter((g) => g.rows.length > 0);
+  const flat = kept.flatMap((g) => g.rows);
+  return { groups: kept, flat, empty: flat.length === 0 };
+}
+
+export type CategoryChoice = { kind: "none" } | { kind: "rta" } | { kind: "category"; id: string };
+
+/** "Group: Category", "Inflow: Ready to Assign", or "". */
+export function categoryLabel(value: CategoryChoice, groups: readonly MonthGroupDetail[]): string {
+  if (value.kind === "rta") return "Inflow: Ready to Assign";
+  if (value.kind === "none") return "";
+  for (const g of groups) {
+    const c = g.categories.find((x) => x.id === value.id);
+    if (c) return `${g.name}: ${c.name}`;
+  }
+  return "";
 }

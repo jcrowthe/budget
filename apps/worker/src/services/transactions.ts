@@ -1,4 +1,4 @@
-import { CREDIT_ACCOUNT_TYPES, STARTING_BALANCE_PAYEE } from "@budget/core/account-types";
+import { CREDIT_ACCOUNT_TYPES } from "@budget/core/account-types";
 import {
   type PlanSortColumn,
   type RegisterSortColumn,
@@ -22,7 +22,9 @@ import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
+import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
+import { resolvePayee } from "./payees";
 
 export function transactionToApi(row: txRepo.TransactionRow): Transaction {
   return {
@@ -30,6 +32,7 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
     budget_id: row.budgetId,
     account_id: row.accountId,
     date: row.date,
+    payee_id: row.payeeId,
     payee_name: row.payeeName,
     category_id: row.categoryId,
     inflow_to_ready_to_assign: row.inflowToReadyToAssign,
@@ -41,7 +44,34 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
   };
 }
 
-/** Minimal create; the register tickets extend it. */
+type Stmts = Parameters<ReturnType<typeof getDb>["batch"]>[0];
+/** A batch list that may start with optional payee statements; it always holds the row's own. */
+const stmts = (list: unknown[]) => list as unknown as Stmts;
+
+/** The payee's insert and its change_log row, for a batch that creates it with a transaction. */
+function payeeInsert(db: Db, actor: string, p: payeesRepo.PayeeRow) {
+  return [
+    payeesRepo.insertStmt(db, p),
+    changeLogInsert(db, {
+      budgetId: p.budgetId,
+      actor,
+      action: "create",
+      entityType: "payee",
+      entityId: p.id,
+      before: null,
+      after: payeeLog(p),
+    }),
+  ] as const;
+}
+
+const payeeLog = (p: payeesRepo.PayeeRow) => ({
+  id: p.id,
+  name: p.name,
+  hidden: p.hidden,
+  system: p.system,
+});
+
+/** Minimal create (an internal helper for tests): no register rules, but payees keep the race retry. */
 export async function createTransaction(
   env: Env,
   actor: string,
@@ -55,36 +85,49 @@ export async function createTransaction(
   if (v.category_id && !(await categoriesRepo.findActive(db, v.budget_id, v.category_id))) {
     throw new NotFound("Category");
   }
-  const now = new Date().toISOString();
-  const row: txRepo.TransactionRow = {
-    id: crypto.randomUUID(),
-    budgetId: v.budget_id,
-    accountId: v.account_id,
-    date: v.date,
-    payeeName: v.payee_name ?? null,
-    categoryId: v.category_id ?? null,
-    inflowToReadyToAssign: v.inflow_to_ready_to_assign,
-    memo: v.memo ?? null,
-    amount: v.amount,
-    cleared: v.cleared,
-    approved: v.approved,
-    createdAt: now,
-    deletedAt: null,
-    updatedAt: now,
-  };
-  await db.batch([
-    txRepo.insertStmt(db, row),
-    changeLogInsert(db, {
-      budgetId: row.budgetId,
-      actor,
-      action: "create",
-      entityType: "transaction",
-      entityId: row.id,
-      before: null,
-      after: transactionToApi(row),
-    }),
-  ]);
-  return transactionToApi(row);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const payee = await resolvePayee(db, v.budget_id, { payee_name: v.payee_name ?? null });
+    const now = new Date().toISOString();
+    const row: txRepo.TransactionRow = {
+      id: crypto.randomUUID(),
+      budgetId: v.budget_id,
+      accountId: v.account_id,
+      date: v.date,
+      payeeId: payee?.payeeId ?? null,
+      payeeName: payee?.name ?? null,
+      categoryId: v.category_id ?? null,
+      inflowToReadyToAssign: v.inflow_to_ready_to_assign,
+      memo: v.memo ?? null,
+      amount: v.amount,
+      cleared: v.cleared,
+      approved: v.approved,
+      createdAt: now,
+      deletedAt: null,
+      updatedAt: now,
+    };
+    try {
+      await db.batch(
+        stmts([
+          ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
+          txRepo.insertStmt(db, row),
+          changeLogInsert(db, {
+            budgetId: row.budgetId,
+            actor,
+            action: "create",
+            entityType: "transaction",
+            entityId: row.id,
+            before: null,
+            after: transactionToApi(row),
+          }),
+        ]),
+      );
+    } catch (e) {
+      if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      throw e;
+    }
+    return transactionToApi(row);
+  }
+  throw new Conflict("Payee");
 }
 
 const MAX_ATTEMPTS = 5;
@@ -109,6 +152,7 @@ export function transactionDetailToApi(row: txRepo.TransactionDetailRow): Transa
     ...transactionToApi(row),
     category_name: row.categoryName,
     category_group_name: row.groupName,
+    payee_system: row.payeeSystem,
     updated_at: row.updatedAt,
   };
 }
@@ -209,10 +253,10 @@ export async function getTransaction(
 
 const isCreditStartingBalance = (
   account: { type: string },
-  row: Pick<txRepo.TransactionRow, "payeeName" | "categoryId" | "inflowToReadyToAssign">,
+  row: Pick<txRepo.TransactionDetailRow, "payeeSystem" | "categoryId" | "inflowToReadyToAssign">,
 ) =>
   (CREDIT_ACCOUNT_TYPES as readonly string[]).includes(account.type) &&
-  row.payeeName === STARTING_BALANCE_PAYEE &&
+  row.payeeSystem === "starting_balance" &&
   row.categoryId === null &&
   !row.inflowToReadyToAssign;
 
@@ -236,8 +280,6 @@ async function validate(
   budgetId: string,
   merged: txRepo.TransactionRow,
   account: accountsRepo.AccountRow,
-  before?: txRepo.TransactionRow,
-  beforeAccount?: accountsRepo.AccountRow,
 ) {
   if (merged.categoryId && merged.inflowToReadyToAssign) {
     throw unprocessable(
@@ -249,18 +291,6 @@ async function validate(
   }
   if (merged.categoryId && !(await categoriesRepo.findActive(db, budgetId, merged.categoryId))) {
     throw unprocessable("Category not found in this plan");
-  }
-  const ownStarting =
-    before &&
-    beforeAccount &&
-    isCreditStartingBalance(beforeAccount, before) &&
-    before.accountId === account.id;
-  if (
-    (CREDIT_ACCOUNT_TYPES as readonly string[]).includes(account.type) &&
-    merged.payeeName === STARTING_BALANCE_PAYEE &&
-    !ownStarting
-  ) {
-    throw unprocessable("This payee name is reserved");
   }
 }
 
@@ -275,42 +305,70 @@ export async function addTransaction(
   await activePlan(db, budgetId);
   const account = await activeAccount(db, budgetId, v.account_id);
   const cleared = parseCleared(v.cleared) ?? "uncleared";
-  const now = new Date().toISOString();
-  const row: txRepo.TransactionRow = {
-    id: crypto.randomUUID(),
-    budgetId,
-    accountId: account.id,
-    date: v.date,
-    payeeName: clean(v.payee_name) ?? null,
-    categoryId: v.category_id ?? null,
-    inflowToReadyToAssign: v.inflow_to_ready_to_assign ?? false,
-    memo: clean(v.memo) ?? null,
-    amount: v.amount,
-    cleared,
-    approved: v.approved ?? true,
-    createdAt: now,
-    deletedAt: null,
-    updatedAt: now,
-  };
-  await validate(db, budgetId, row, account);
-  const cat = row.categoryId ? await categoriesRepo.findActive(db, budgetId, row.categoryId) : null;
-  const group = cat ? await txRepo.groupNameOfCategory(db, cat.id) : null;
-  await db.batch([
-    txRepo.insertStmt(db, row),
-    changeLogInsert(db, {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const payee = await resolvePayee(db, budgetId, {
+      payee_id: v.payee_id,
+      payee_name: v.payee_name,
+    });
+    const now = new Date().toISOString();
+    const row: txRepo.TransactionRow = {
+      id: crypto.randomUUID(),
       budgetId,
-      actor,
-      action: "create",
-      entityType: "transaction",
-      entityId: row.id,
-      before: null,
-      after: logShape({ ...row, categoryName: cat?.name ?? null, groupName: group }),
-    }),
-  ]);
-  return detailOf(db, budgetId, row.id);
+      accountId: account.id,
+      date: v.date,
+      payeeId: payee?.payeeId ?? null,
+      payeeName: payee?.name ?? null,
+      categoryId: v.category_id ?? null,
+      inflowToReadyToAssign: v.inflow_to_ready_to_assign ?? false,
+      memo: clean(v.memo) ?? null,
+      amount: v.amount,
+      cleared,
+      approved: v.approved ?? true,
+      createdAt: now,
+      deletedAt: null,
+      updatedAt: now,
+    };
+    await validate(db, budgetId, row, account);
+    const cat = row.categoryId
+      ? await categoriesRepo.findActive(db, budgetId, row.categoryId)
+      : null;
+    const group = cat ? await txRepo.groupNameOfCategory(db, cat.id) : null;
+    try {
+      await db.batch(
+        stmts([
+          ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
+          txRepo.insertStmt(db, row),
+          changeLogInsert(db, {
+            budgetId,
+            actor,
+            action: "create",
+            entityType: "transaction",
+            entityId: row.id,
+            before: null,
+            after: logShape({
+              ...row,
+              categoryName: cat?.name ?? null,
+              groupName: group,
+              payeeSystem: null,
+            }),
+          }),
+        ]),
+      );
+    } catch (e) {
+      // Another request created the same payee first: the next pass finds it.
+      if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      throw e;
+    }
+    return detailOf(db, budgetId, row.id);
+  }
+  throw new Conflict("Payee");
 }
 
-type Prepared = { before: txRepo.TransactionDetailRow; after: txRepo.TransactionRow };
+type Prepared = {
+  before: txRepo.TransactionDetailRow;
+  after: txRepo.TransactionRow;
+  payeeCreate?: payeesRepo.PayeeRow;
+};
 
 async function mutate(
   env: Env,
@@ -344,7 +402,38 @@ async function mutate(
       kind === "delete"
         ? txRepo.softDeleteIfHoldsStmt(db, before, now)
         : txRepo.updateIfHoldsStmt(db, before, prepared.after, now);
-    const [, w] = await db.batch([changeLogInsertIf(db, log, txRepo.holds(db, before)), stmt]);
+    const pc = prepared.payeeCreate;
+    let results: Awaited<ReturnType<typeof db.batch>>;
+    try {
+      results = await db.batch(
+        stmts([
+          ...(pc
+            ? [
+                payeesRepo.insertIfStmt(db, pc, txRepo.holds(db, before)),
+                changeLogInsertIf(
+                  db,
+                  {
+                    budgetId,
+                    actor,
+                    action: "create",
+                    entityType: "payee",
+                    entityId: pc.id,
+                    before: null,
+                    after: payeeLog(pc),
+                  },
+                  txRepo.holds(db, before),
+                ),
+              ]
+            : []),
+          changeLogInsertIf(db, log, txRepo.holds(db, before)),
+          stmt,
+        ]),
+      );
+    } catch (e) {
+      if (pc && payeesRepo.isUniqueViolation(e)) continue;
+      throw e;
+    }
+    const w = results[results.length - 1] as { meta: { changes?: number } };
     if ((w.meta.changes ?? 0) > 0) {
       if (kind === "delete") {
         return transactionDetailToApi({ ...before, updatedAt: now });
@@ -367,11 +456,18 @@ async function prepare(
   const p = patch;
   const cleared = parseCleared(p.cleared);
   const account = p.account_id ? await activeAccount(db, budgetId, p.account_id) : beforeAccount;
+  const payee = await resolvePayee(
+    db,
+    budgetId,
+    { payee_id: p.payee_id, payee_name: p.payee_name },
+    before.payeeId,
+  );
   const after: txRepo.TransactionRow = {
     ...before,
     accountId: account.id,
     date: p.date ?? before.date,
-    payeeName: p.payee_name === undefined ? before.payeeName : (clean(p.payee_name) ?? null),
+    payeeId: payee ? payee.payeeId : before.payeeId,
+    payeeName: payee ? payee.name : before.payeeName,
     categoryId: p.category_id === undefined ? before.categoryId : p.category_id,
     inflowToReadyToAssign: p.inflow_to_ready_to_assign ?? before.inflowToReadyToAssign,
     memo: p.memo === undefined ? before.memo : (clean(p.memo) ?? null),
@@ -381,7 +477,7 @@ async function prepare(
   };
   if (
     isCreditStartingBalance(beforeAccount, before) &&
-    (after.payeeName !== before.payeeName ||
+    (after.payeeId !== before.payeeId ||
       after.categoryId !== before.categoryId ||
       after.inflowToReadyToAssign !== before.inflowToReadyToAssign ||
       after.accountId !== before.accountId)
@@ -392,7 +488,7 @@ async function prepare(
       "A credit account's Starting Balance keeps its payee, category and account",
     );
   }
-  await validate(db, budgetId, after, account, before, beforeAccount);
+  await validate(db, budgetId, after, account);
   let names = { categoryName: before.categoryName, groupName: before.groupName };
   if (after.categoryId !== before.categoryId) {
     const cat = after.categoryId
@@ -403,7 +499,16 @@ async function prepare(
       groupName: cat ? await txRepo.groupNameOfCategory(db, cat.id) : null,
     };
   }
-  return { before, after, afterLog: logShape({ ...after, ...names }) };
+  return {
+    before,
+    after,
+    payeeCreate: payee?.create,
+    afterLog: logShape({
+      ...after,
+      ...names,
+      payeeSystem: payee ? payee.system : before.payeeSystem,
+    }),
+  };
 }
 
 export async function updateTransaction(

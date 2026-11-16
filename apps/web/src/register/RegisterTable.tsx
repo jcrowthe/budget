@@ -1,7 +1,9 @@
+import { sidebarSections } from "@budget/core/account-types";
 import type { Account } from "@budget/schema/accounts";
 import {
   categoryCell,
   type PlanSortColumn,
+  REGISTER_CREDIT_TYPES,
   type SortDir,
   sortTransactions,
 } from "@budget/schema/register";
@@ -9,15 +11,16 @@ import type { TransactionDetail } from "@budget/schema/transactions";
 import { useMemo, useState } from "react";
 import { useAccounts } from "../api/accounts";
 import { useAccountTransactions, usePlanTransactions, useSetCleared } from "../api/transactions";
+import { Box } from "./Box";
+import { EntryRow } from "./EntryRow";
+import type { Field, Open } from "./entryDraft";
 import { registerDate, registerMoney } from "./format";
 import {
   CaretDownIcon,
   CaretUpIcon,
-  CheckIcon,
   ClearedFilledIcon,
   ClearedOutlineIcon,
   LockIcon,
-  MinusIcon,
 } from "./icons";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
@@ -36,32 +39,6 @@ const HEADERS: Header[] = [
   { column: "outflow", label: "OUTFLOW", numeric: true },
   { column: "inflow", label: "INFLOW", numeric: true },
 ];
-
-function Box({
-  state,
-  label,
-  onClick,
-}: {
-  state: boolean | "mixed";
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    // biome-ignore lint/a11y/useSemanticElements: a custom box with a "mixed" state, drawn as the source does
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={state}
-      aria-label={label}
-      className={`register-checkbox${state ? " is-on" : ""}`}
-      onClick={onClick}
-    >
-      <span className="box">
-        {state === "mixed" ? <MinusIcon /> : state ? <CheckIcon /> : null}
-      </span>
-    </button>
-  );
-}
 
 function ClearedCell({ tx, onToggle }: { tx: Row; onToggle: () => void }) {
   const reconciled = tx.cleared === "reconciled";
@@ -86,7 +63,21 @@ function ClearedCell({ tx, onToggle }: { tx: Row; onToggle: () => void }) {
 }
 
 /** One account's rows, or (without `account`) every account's rows with an ACCOUNT column. */
-export function RegisterTable({ budgetId, account }: { budgetId: string; account?: Account }) {
+export function RegisterTable({
+  budgetId,
+  account,
+  open,
+  onOpen,
+  onCloseEntry,
+  onSaved,
+}: {
+  budgetId: string;
+  account?: Account;
+  open: Open;
+  onOpen: (next: Open) => void;
+  onCloseEntry: () => void;
+  onSaved: (next: "close" | "again", date: string) => void;
+}) {
   const plan = !account;
   const accountQ = useAccountTransactions(budgetId, account?.id ?? "", !plan);
   const planQ = usePlanTransactions(budgetId, plan);
@@ -104,6 +95,13 @@ export function RegisterTable({ budgetId, account }: { budgetId: string; account
     column: "date",
     dir: "desc",
   });
+  const openAccounts = useMemo(
+    () =>
+      sidebarSections(accountsQ.data ?? [])
+        .filter((s) => s.name !== "starred" && s.name !== "closed")
+        .flatMap((s) => s.rows),
+    [accountsQ.data],
+  );
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const showCategory = plan || account.on_budget;
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
@@ -132,6 +130,104 @@ export function RegisterTable({ budgetId, account }: { budgetId: string; account
       if (!n.delete(id)) n.add(id);
       return n;
     });
+
+  const accountOf = (tx: Row) =>
+    account ?? byId.get(tx.account_id) ?? { type: "checking", on_budget: true };
+  const isLockedStart = (tx: Row) =>
+    tx.payee_system === "starting_balance" && REGISTER_CREDIT_TYPES.includes(accountOf(tx).type);
+  const editAt = open?.mode === "edit" ? rows.findIndex((r) => r.id === open.id) : -1;
+  const editTx = editAt >= 0 ? rows[editAt] : undefined;
+
+  const openEdit = (tx: Row, field: Field, openCategory = false) => {
+    setSelected(new Set([tx.id]));
+    onOpen({ mode: "edit", id: tx.id, focus: field, openCategory });
+  };
+  const fieldOf = (e: React.MouseEvent): Field =>
+    ((e.target as HTMLElement).closest<HTMLElement>("td[data-field]")?.dataset.field as Field) ??
+    "date";
+  const isControl = (e: React.MouseEvent) =>
+    !!(e.target as HTMLElement).closest("button,input,[role=checkbox]");
+  const onRowClick = (e: React.MouseEvent, tx: Row) => {
+    if (isControl(e)) return;
+    if (tx.cleared === "reconciled") {
+      setSelected(new Set([tx.id]));
+      return;
+    }
+    if (selected.has(tx.id)) openEdit(tx, fieldOf(e));
+    else {
+      setSelected(new Set([tx.id]));
+      if (open) onCloseEntry();
+    }
+  };
+
+  const dataRow = (tx: Row) => {
+    const cell = categoryCell(tx, accountOf(tx));
+    const checked = selected.has(tx.id);
+    return (
+      // biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes
+      <tr
+        key={tx.id}
+        className={checked ? "is-checked" : undefined}
+        onClick={(e) => onRowClick(e, tx)}
+        onDoubleClick={(e) => {
+          if (isControl(e) || tx.cleared === "reconciled") return;
+          openEdit(tx, fieldOf(e));
+        }}
+      >
+        <td className="cell-check">
+          <Box state={checked} label="Select transaction" onClick={() => toggleRow(tx.id)} />
+        </td>
+        {plan && (
+          <td data-field="account" title={tx.account_name}>
+            {tx.account_name}
+          </td>
+        )}
+        <td data-field="date">{registerDate(tx.date)}</td>
+        <td data-field="payee" title={tx.payee_name ?? undefined}>
+          {tx.payee_name}
+        </td>
+        {showCategory && (
+          <td data-field="category" title={cell.kind === "text" ? cell.text : undefined}>
+            {cell.kind === "text" ? (
+              cell.text
+            ) : cell.kind === "notNeeded" ? (
+              <span className="category-not-needed">Category not needed</span>
+            ) : tx.cleared === "reconciled" ? (
+              <span className="needs-category">This needs a category</span>
+            ) : (
+              <button
+                type="button"
+                className="needs-category"
+                onClick={() => openEdit(tx, "category", true)}
+              >
+                This needs a category
+              </button>
+            )}
+          </td>
+        )}
+        <td data-field="memo" title={tx.memo ?? undefined}>
+          {tx.memo}
+        </td>
+        <td data-field="outflow" className="num">
+          {tx.amount < 0 ? registerMoney(tx.amount) : null}
+        </td>
+        <td data-field="inflow" className="num">
+          {tx.amount > 0 ? registerMoney(tx.amount) : null}
+        </td>
+        <td className="cell-cleared">
+          <ClearedCell
+            tx={tx}
+            onToggle={() =>
+              setCleared.mutate({
+                id: tx.id,
+                cleared: tx.cleared === "cleared" ? "uncleared" : "cleared",
+              })
+            }
+          />
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="register-scroll">
@@ -185,77 +281,65 @@ export function RegisterTable({ budgetId, account }: { budgetId: string; account
             </th>
           </tr>
         </thead>
-        <tbody>
-          {q.isPending ? (
+        {open?.mode === "add" && (
+          <EntryRow
+            key={`add-${open.key}`}
+            budgetId={budgetId}
+            mode="add"
+            account={account}
+            accounts={openAccounts}
+            plan={plan}
+            showCategory={showCategory}
+            date={open.date}
+            initialFocus={plan ? "account" : "date"}
+            onClose={onCloseEntry}
+            onSaved={onSaved}
+          />
+        )}
+        {q.isPending || (q.isError && !data) || (rows.length === 0 && !open) ? (
+          <tbody>
             <tr>
-              <td colSpan={colCount} className="register-message" role="status">
-                Loading transactions…
-              </td>
+              {q.isPending ? (
+                <td colSpan={colCount} className="register-message" role="status">
+                  Loading transactions…
+                </td>
+              ) : q.isError && !data ? (
+                <td colSpan={colCount} className="register-message" role="alert">
+                  <span>Couldn't load transactions.</span>
+                  <button type="button" className="toolbar-button" onClick={() => q.refetch()}>
+                    Try again
+                  </button>
+                </td>
+              ) : (
+                <td colSpan={colCount} className="register-message">
+                  No transactions
+                </td>
+              )}
             </tr>
-          ) : q.isError && !data ? (
-            <tr>
-              <td colSpan={colCount} className="register-message" role="alert">
-                <span>Couldn't load transactions.</span>
-                <button type="button" className="toolbar-button" onClick={() => q.refetch()}>
-                  Try again
-                </button>
-              </td>
-            </tr>
-          ) : rows.length === 0 ? (
-            <tr>
-              <td colSpan={colCount} className="register-message">
-                No transactions
-              </td>
-            </tr>
-          ) : (
-            rows.map((tx) => {
-              const cell = categoryCell(
-                tx,
-                account ?? byId.get(tx.account_id) ?? { type: "checking", on_budget: true },
-              );
-              const checked = selected.has(tx.id);
-              return (
-                <tr key={tx.id} className={checked ? "is-checked" : undefined}>
-                  <td className="cell-check">
-                    <Box
-                      state={checked}
-                      label="Select transaction"
-                      onClick={() => toggleRow(tx.id)}
-                    />
-                  </td>
-                  {plan && <td title={tx.account_name}>{tx.account_name}</td>}
-                  <td>{registerDate(tx.date)}</td>
-                  <td title={tx.payee_name ?? undefined}>{tx.payee_name}</td>
-                  {showCategory && (
-                    <td title={cell.kind === "text" ? cell.text : undefined}>
-                      {cell.kind === "text" ? (
-                        cell.text
-                      ) : cell.kind === "notNeeded" ? (
-                        <span className="category-not-needed">Category not needed</span>
-                      ) : (
-                        <span className="needs-category">This needs a category</span>
-                      )}
-                    </td>
-                  )}
-                  <td title={tx.memo ?? undefined}>{tx.memo}</td>
-                  <td className="num">{tx.amount < 0 ? registerMoney(tx.amount) : null}</td>
-                  <td className="num">{tx.amount > 0 ? registerMoney(tx.amount) : null}</td>
-                  <td className="cell-cleared">
-                    <ClearedCell
-                      tx={tx}
-                      onToggle={() =>
-                        setCleared.mutate({
-                          id: tx.id,
-                          cleared: tx.cleared === "cleared" ? "uncleared" : "cleared",
-                        })
-                      }
-                    />
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
+          </tbody>
+        ) : (
+          <>
+            <tbody>{(editAt < 0 ? rows : rows.slice(0, editAt)).map(dataRow)}</tbody>
+            {editTx && open?.mode === "edit" && (
+              <EntryRow
+                key={`edit-${editTx.id}`}
+                budgetId={budgetId}
+                mode="edit"
+                tx={editTx}
+                account={account}
+                accounts={openAccounts}
+                plan={plan}
+                showCategory={showCategory}
+                lockStart={isLockedStart(editTx)}
+                initialFocus={open.focus}
+                openCategory={open.openCategory}
+                onClose={onCloseEntry}
+                onSaved={onSaved}
+              />
+            )}
+            {editAt >= 0 && <tbody>{rows.slice(editAt + 1).map(dataRow)}</tbody>}
+          </>
+        )}
       </table>
     </div>
   );

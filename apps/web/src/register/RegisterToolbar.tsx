@@ -1,7 +1,7 @@
 import { CaretDownIcon, FileUpIcon, PlusCircleIcon, RedoIcon, SearchIcon, UndoIcon } from "./icons";
 
 // Drawn, not wired: each button names the ticket that attaches its behaviour.
-export function RegisterToolbar({ name }: { name: string }) {
+export function RegisterToolbar({ name, onAdd }: { name: string; onAdd: () => void }) {
   return (
     <div className="register-toolbar" role="toolbar" aria-label="Register toolbar">
       <div className="toolbar-group left">
@@ -10,6 +10,7 @@ export function RegisterToolbar({ name }: { name: string }) {
           className="toolbar-button"
           title="Add new transaction"
           data-ticket="EXF-517"
+          onClick={onAdd}
         >
           <PlusCircleIcon />
           Add Transaction
