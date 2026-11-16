@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Manage test plans (names starting with live.test_prefix) on the live clone, and nothing else.
-#   list                 <id><TAB><name> for every prefixed plan
+#   list ['<prefix>']    <id><TAB><name> for every prefixed plan (or those whose name starts with <prefix>)
 #   create '<name>'      creates a Sandbox plan (bank_environment sandbox), prints its id (name must start with the prefix)
 #   delete <id>          re-reads the plan, deletes it only if prefixed; prints "deleted <id>"
-#   purge                deletes every prefixed plan (max 50); prints "deleted <n> remaining <m>"
+#   purge ['<prefix>']   deletes every prefixed plan, or only those whose name starts with <prefix> (max 50);
+#                        prints "deleted <n> remaining <m>" (m counts the plans still matching)
+# <prefix> must itself start with the test prefix (else exit 2) and is matched as a plain string prefix.
 # Exit: 0 ok, 1 runtime/HTTP error or plans left, 2 usage refused, 3 target refused.
 # Live mode needs CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET. Local testing:
 #   LIVE_TEST_PLANS_BASE_URL=http://127.0.0.1:<port> (pnpm dev signs requests itself);
@@ -12,7 +14,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage() { echo "usage: live-test-plans.sh list | create '<name>' | delete <id> | purge" >&2; exit 2; }
+usage() { echo "usage: live-test-plans.sh list ['<prefix>'] | create '<name>' | delete <id> | purge ['<prefix>']" >&2; exit 2; }
 fail() { echo "$1" >&2; exit "${2:-1}"; }
 
 PREFIX=$(jq -r '.live.test_prefix // empty' clone.profile.json)
@@ -21,7 +23,12 @@ PREFIX=$(jq -r '.live.test_prefix // empty' clone.profile.json)
 CMD="${1:-}"
 UUID_RE='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 case "$CMD" in
-  list | purge) [ $# -eq 1 ] || usage ;;
+  list | purge)
+    [ $# -le 2 ] || usage
+    if [ $# -eq 2 ]; then
+      [[ "$2" == "$PREFIX"* ]] || fail "REFUSED: the prefix must start with $PREFIX" 2
+    fi
+    ;;
   create)
     [ $# -eq 2 ] || usage
     [[ "$2" == "$PREFIX"* ]] || fail "REFUSED: the name must start with $PREFIX" 2
@@ -32,6 +39,9 @@ case "$CMD" in
     ;;
   *) usage ;;
 esac
+
+MATCH="$PREFIX"
+case "$CMD" in list | purge) [ $# -lt 2 ] || MATCH="$2" ;; esac
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -85,14 +95,14 @@ expect() { # expect METHOD PATH STATUS...
 list_ids() { # prints the ids of prefixed plans
   api GET /api/v1/budgets
   expect GET /api/v1/budgets 200
-  jq -r --arg p "$PREFIX" '.data.budgets[] | select(.name | startswith($p)) | .id' "$tmp/body"
+  jq -r --arg p "$PREFIX" --arg m "$MATCH" '.data.budgets[] | select((.name | startswith($p)) and (.name | startswith($m))) | .id' "$tmp/body"
 }
 
 case "$CMD" in
   list)
     api GET /api/v1/budgets
     expect GET /api/v1/budgets 200
-    jq -r --arg p "$PREFIX" '.data.budgets[] | select(.name | startswith($p)) | [.id, .name] | @tsv' "$tmp/body"
+    jq -r --arg p "$PREFIX" --arg m "$MATCH" '.data.budgets[] | select((.name | startswith($p)) and (.name | startswith($m))) | [.id, .name] | @tsv' "$tmp/body"
     ;;
   create)
     api POST /api/v1/budgets "$(jq -nc --arg n "$2" '{name: $n, bank_environment: "sandbox"}')"
@@ -118,7 +128,7 @@ case "$CMD" in
     for id in $ids; do
       api GET "/api/v1/budgets/$id"
       [ "$STATUS" != 404 ] && expect GET "/api/v1/budgets/$id" 200 || continue
-      jq -e --arg p "$PREFIX" '.data.budget.name | startswith($p)' "$tmp/body" >/dev/null || continue
+      jq -e --arg p "$PREFIX" --arg m "$MATCH" '.data.budget.name | startswith($p) and startswith($m)' "$tmp/body" >/dev/null || continue
       api DELETE "/api/v1/budgets/$id"
       expect DELETE "/api/v1/budgets/$id" 200
       n=$((n + 1))

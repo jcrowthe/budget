@@ -272,7 +272,8 @@ test.describe("1440×900", () => {
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toMatch(/^image\//);
     expect([...(await res.body()).subarray(0, 4)]).toEqual([0, 0, 1, 0]);
-    await page.goto("/");
+    const p = await newPlan(request);
+    await page.goto(`/${p.id}/budget`);
     await expect(page.locator('link[rel="icon"][href="/favicon.ico"]')).toHaveCount(1);
   });
 
