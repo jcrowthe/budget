@@ -6235,3 +6235,31 @@ user flow 6.
 **Next plan:** no Deploy for one small merge; wait for the Plan-page Build or the register Build and
 ship them together (that Deploy is the tenth, and the Deploy template review follows). With Reflect
 free again: Age of Money (EXF-553) is the last report; read its ticket and decide.
+
+### 2026-11-16 · Plan round 75
+
+Children used 89 of 200. One started now; four are running with the Plan-page Build (rework rebased, on
+its way to the gate), the register Build (after polish) and the flow tests for flows 5 and 10. Main
+`033e011`, live `c9e9d1c`.
+
+- The ticket filed at the last review exists: **EXF-615** (the Spending Trends marker's hover), set to
+  Low and put in the Build started now.
+- **Started: Reflect's last report** (`p_38ee9709f6664cb8bbdf1208634375e3`; EXF-553 Age of Money, with
+  EXF-615). Reflect and the reports files were free again. Small: one query, pure arithmetic, one chart
+  in the style of Net Worth, one tool.
+  - My decisions where discovery could not observe the source: cash accounts only; every positive row
+    opens a bucket (refunds too), every negative row is an outflow (a card payment too), transfers
+    inside the set ignored; buckets that run out give age 0; half-up rounding. The tests must
+    reproduce the ticket's eleven ages and the 114.
+  - **Source: a new line about captures.** Two Builds in a row had the source tab resized by a clipped
+    screenshot. The brief now says: the browser's plain full-page screenshot with no clip, tab in
+    front, crop afterwards; and "never change the size of the source tab, on purpose or by accident".
+  - Holds `apps/web/src/reflect/**`, `api/reports.ts`, the reports files. Disjoint from the Plan-page
+    and register Builds.
+- **No Deploy:** one small merge (two reports) is not live; it ships with the Plan-page or register
+  Build. That Deploy is the tenth since the Deploy template's review; the review follows it.
+- **Not started:** the credit engine (after the Plan-page Build), scheduled transactions (after the
+  register Build), flows 3 and 8 (after that Deploy).
+
+Ticket writes: 3 (EXF-615 priority and state, EXF-553 state and comment). Review cadence: Build 8,
+Deploy 9, Discover 2, Test user flow 6.
