@@ -1,7 +1,7 @@
 import { drillTitle, minusMoney } from "@budget/schema/reflect-format";
 import { type MonthSpan, monthLabel } from "@budget/schema/report-range";
 import type { IncomeExpense, ReportFigures } from "@budget/schema/reports";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { type ReportTransactionSelector, useIncomeExpense } from "../api/reports";
 import { changeClass } from "./format";
 import { CaretDownIcon, CaretRightIcon } from "./icons";
@@ -19,6 +19,51 @@ interface PopoverState {
 }
 
 type Open = (p: PopoverState) => void;
+
+const FIRST_MIN = 96; // source: first column flex 3 0 96px
+const FIRST_MAX = 320; // wider labels are shortened with an ellipsis
+const AMOUNT_MIN = 64; // source: other columns flex 1 0 64px
+const AMOUNT_PAD = 25; // an amount cell's 8px left + 16px right padding + 1px border
+const CARET = 16; // a toggle's 8px icon + 8px gap
+
+interface IeWidths {
+  first: number;
+  other: number;
+  table: number;
+}
+
+/**
+ * Column widths: the source's flex arithmetic, with minimums measured from the content (EXF-625, EXF-626).
+ * `width` is the box's clientWidth, `n` the amount columns, `firstNeed`/`amountNeed` the measured widths in px.
+ */
+function ieWidths(width: number, n: number, firstNeed: number, amountNeed: number): IeWidths {
+  const units = n + 3;
+  const spare = Math.max(0, width - (FIRST_MIN + AMOUNT_MIN * n));
+  const f0 = FIRST_MIN + (3 / units) * spare;
+  const o0 = AMOUNT_MIN + spare / units;
+  const F = Math.min(FIRST_MAX, Math.max(FIRST_MIN, Math.ceil(firstNeed)));
+  const A = Math.max(AMOUNT_MIN, Math.ceil(amountNeed));
+  let first = f0;
+  let other = o0;
+  if (f0 < F || o0 < A) {
+    if (F + n * A <= width) {
+      first = Math.max(F, Math.min(f0, width - n * A));
+      other = (width - first) / n;
+    } else {
+      // Whole columns fill the visible part; the rest scrolls, so the box's edge falls between two cells.
+      first = F;
+      const k = Math.floor((width - F) / A);
+      other = k >= 1 ? (width - F) / k : A;
+    }
+  }
+  return { first, other, table: first + n * other };
+}
+
+const textWidth = (el: Element) => {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  return r.getBoundingClientRect().width;
+};
 
 /** One row's amount cells: a button per month, then Average and Total. */
 function Cells({
@@ -130,7 +175,6 @@ function Table({
   open: Open;
 }) {
   const c = data.months.length;
-  const units = c + 5;
   // Chrome drops a px+% calc() on a <col> in a fixed table: measure the box and set px widths (Designer I1).
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -142,10 +186,38 @@ function Table({
     setWidth(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const base = 96 + 64 * (c + 2);
-  const spare = Math.max(0, width - base);
-  const firstW = 96 + (3 / units) * spare;
-  const otherW = 64 + (1 / units) * spare;
+  // The widest label and amount as drawn whole, measured after render (text widths do not depend on the columns).
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [needs, setNeeds] = useState({ first: 0, amount: 0 });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the rows change
+  useLayoutEffect(() => {
+    const t = tableRef.current;
+    if (!t) return;
+    const measure = () => {
+      let first = 0;
+      for (const th of t.querySelectorAll<HTMLElement>("tbody th.ie-first")) {
+        if (th.querySelector(".ie-sr")) continue;
+        const cs = getComputedStyle(th);
+        const w =
+          textWidth(th.querySelector(".ie-label") ?? th) +
+          Number.parseFloat(cs.paddingLeft) +
+          Number.parseFloat(cs.paddingRight) +
+          Number.parseFloat(cs.borderRightWidth) +
+          (th.querySelector("svg") ? CARET : 0);
+        first = Math.max(first, w);
+      }
+      let amount = 0;
+      for (const el of t.querySelectorAll("td.ie-amt .amt, thead th:not(.ie-first)")) {
+        amount = Math.max(amount, textWidth(el) + AMOUNT_PAD);
+      }
+      first = Math.ceil(first);
+      amount = Math.ceil(amount);
+      setNeeds((n) => (n.first === first && n.amount === amount ? n : { first, amount }));
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+  }, [data, collapsed]);
+  const w = ieWidths(width, c + 2, needs.first, needs.amount);
   const empty = <td colSpan={c + 2} />;
   const cells = (
     label: string,
@@ -165,7 +237,7 @@ function Table({
   );
   const heading = (key: string, label: string, cls: string): ReactNode => (
     <tr className={`ie-heading ${cls}`}>
-      <th scope="row" className="ie-first">
+      <th scope="row" className="ie-first" title={label}>
         <button
           type="button"
           className="ie-toggle"
@@ -173,7 +245,7 @@ function Table({
           onClick={() => toggle(key)}
         >
           {collapsed.has(key) ? <CaretRightIcon /> : <CaretDownIcon />}
-          {label}
+          <span className="ie-label">{label}</span>
         </button>
       </th>
       <td colSpan={c + 2} />
@@ -189,14 +261,14 @@ function Table({
     const shut = collapsed.has(key);
     return (
       <tr className="ie-group">
-        <th scope="row" className="ie-first">
+        <th scope="row" className="ie-first" title={label}>
           <button
             type="button"
             className="ie-toggle"
             aria-expanded={!shut}
             onClick={() => toggle(key)}
           >
-            {label}
+            <span className="ie-label">{label}</span>
             {shut ? <CaretRightIcon /> : <CaretDownIcon />}
           </button>
         </th>
@@ -212,7 +284,7 @@ function Table({
     key: string,
   ) => (
     <tr key={key} className={`ie-item ${cls}`}>
-      <th scope="row" className="ie-first">
+      <th scope="row" className="ie-first" title={label}>
         {label}
       </th>
       {cells(label, f, selector)}
@@ -226,7 +298,7 @@ function Table({
     cats: boolean,
   ) => (
     <tr className={`ie-total ${cls}`}>
-      <th scope="row" className="ie-first">
+      <th scope="row" className="ie-first" title={label}>
         {label}
       </th>
       {cells(label, f, selector, cats)}
@@ -241,12 +313,12 @@ function Table({
   const { income, expense } = data;
   return (
     <div className="ie-scroll" ref={box}>
-      <table className="ie-table" style={{ minWidth: base }}>
+      <table className="ie-table" ref={tableRef} style={{ width: w.table }}>
         <colgroup>
-          {/* Source: flex 3 0 96px for the first column, flex 1 0 64px for the others (Designer I1). */}
-          <col style={{ width: firstW }} />
+          {/* The source's flex 3 0 96px / 1 0 64px arithmetic with measured minimums (Designer I1, EXF-625/626). */}
+          <col style={{ width: w.first }} />
           {[...data.months, "average", "total"].map((k) => (
-            <col key={k} style={{ width: otherW }} />
+            <col key={k} style={{ width: w.other }} />
           ))}
         </colgroup>
         <thead>
@@ -327,7 +399,7 @@ function Table({
         <tbody>
           {spacer}
           <tr className="ie-heading net">
-            <th scope="row" className="ie-first">
+            <th scope="row" className="ie-first" title="Net Income">
               Net Income
             </th>
             <td colSpan={c + 2} />

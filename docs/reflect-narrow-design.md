@@ -182,8 +182,12 @@ check, as EXF-621 asks. No other existing case changes.
 
 ## Narrow-window survey
 
-*(Filled in by the Implementer from task T5: per report, what was measured, what was found, each one-or-two-line
-CSS fix made, and known issues left for the Lead.)*
+Measured at 1024×700 with a throwaway spec (deleted, not committed) on Net Worth (`seedExample`), Spending Breakdown
+and Spending Trends (`seedSpendingExample`), each after a 2.5 s settle, over every visible text node in
+`.reflect-body`, header and filter buttons included: text whose box passes the window's right edge, own-text
+elements with `scrollWidth > clientWidth` and a hidden/auto overflow but no ellipsis, and pairs of text boxes that
+intersect by more than 1 px. **Nothing found on any of the three**; the page does not scroll sideways (document
+`scrollWidth` 1024). No CSS fix was made in these reports and there are no known issues from the survey.
 
 ## Manifest
 
