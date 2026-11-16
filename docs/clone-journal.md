@@ -8870,3 +8870,58 @@ by me at 20:00Z); no migration pending. The person has not answered the round-10
 Ticket writes: 5 (EXF-674's priority and link; EXF-533 and EXF-664 to In Progress with a comment
 each). Review cadence: Build 0 since the review now running, Deploy 6 (the seventh running), Discover
 2, Test user flow 1.
+
+### 2026-11-16 · Review round 102
+
+Children used 119 of 200. One ended: **Deploy `D28` shipped `49012cd`**. Four are running. Main and
+live `49012cd` (health read by me at 23:02Z); no migration pending. This review comes three hours
+after the plan: **every child was paused from 20:17Z to 23:01Z by a five-hour rate limit on the
+account the children run on** ("You've hit your 5-hour limit · resets 11pm (UTC)"); nothing was
+lost, they resume now.
+
+**Deploy `D28`: live** (`p_c5f4c4dd34e6468291873f3625c19427`, 13 minutes; prefix `ZZ-TEST D28`).
+https://budget.doxen.dev, DEPLOY_SHA `49012cd32b0e2b30a40a310942c76cf369bf7b44`; no migration; the
+bookmark phase ran; smoke ok; 77 tools. Its box kept its files.
+- **Every figure of mine matched** (no "DIFFERS FROM THE BRIEF"): Record Payment walked in the
+  browser (pill 200.00 green, the row prefilled, both rows "Payment: ..."; then 0.00 grey); the
+  payments through REST and MCP with their refusals; the pill −$60.00 red; `?record-payment`; a
+  shift+click range (3 transactions, total 750.00); Move to Account on All Accounts lists the three
+  accounts; the export (names, BOM, CRLF, the month's rows, the purchase and transfer rows; the tool
+  returns the same 2,761 bytes; 404 for an unknown plan); 1024×700 with Record Payment inside More.
+  No console error, no request at 400 or above.
+- **One unexplained reading:** in the exported Register the cash side of two payments was "Cleared",
+  their card side "Uncleared". The export writes the stored state (I read the code), so those rows
+  were cleared in the data. They are exactly the two rows the verifier ticked on All Accounts before
+  opening the More menu and pressing Escape. Either its click hit something else, or opening and
+  closing that menu clears the ticked rows. Not known; the plan is purged. **The next flow test of
+  the register checks it on purpose.** Noted on EXF-539.
+- Not read by the verifier: the REST answer's `amount` in one step (a wrong path in its script);
+  three of its own screenshots.
+- Cleanup: `remaining 0`; plans not named `ZZ-TEST`: 1; the exported files deleted; the owner's plan
+  neither opened nor exported.
+
+**Live now and not at the round-100 check-in:** Export Plan through REST and MCP; the card page's
+Payment pill and Record Payment with the tool `pay_credit_card`; shift+click ranges; Move to Account
+on All Accounts.
+
+**Running (all resumed at 23:01Z or about to):**
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): reworking after my Request changes; its
+  outputs still show the old card.
+- **Plan import Build** (`p_b71911bc33cb444db359bb72047a1a75`): manifest arrived: new files, the
+  export's files, `zip.ts`, one migration (`20261116101300_plan_imports.sql`), no shared module.
+  **Scheduling rule:** it shares only keep-both-sides lines (the timestamp test's list, the budgets
+  coverage file, `docs/README.md`) with the Reconcile Build and the Plan-page Build. Both go on.
+- **Reconcile Build** (`p_c4fd5a318a554da3b478910b86939c29`): its box holds the platform's files; the
+  Architect had the design at about 23 KB when the limit hit; it shows "parked: runner_required"
+  until the runner picks it up again. **If it is still parked at the next review, I read why before
+  anything else (a parked child sends no card).**
+- **Build template review** (`p_dd5c621340c8478aab2076a69de29eb8`): reading the ten Threads.
+
+**Ticket writes:** 2 (live notes on EXF-539 and EXF-476).
+
+**Backlog:** 51 open feature tickets (48 done; 3 in progress: EXF-537, 477, 533). Gap: nine open
+(EXF-558, 560, 562, 589, 631, 657, 658, 659, 674), eight in progress. Template: thirty-six
+open. Finished since each template's last review: Build 0, Deploy 7, Discover 2, Test user flow 1.
+
+**Next plan:** flows 2 and 4 on live `49012cd` (flow 2's fourth run: its three gaps are fixed; the
+cleared-state check above; flow 4's second run with Record Payment).
