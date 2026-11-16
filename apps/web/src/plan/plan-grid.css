@@ -289,6 +289,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Source: the group name button is 32px tall (line-height 19.2px), so the edit popover's arrow tip lands 4px above the row bottom. */
+.group-row .group-name {
+  height: 32px;
+}
 .add-category {
   display: flex;
   padding: 0 var(--space-1);
