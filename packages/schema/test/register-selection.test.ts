@@ -81,25 +81,25 @@ describe("barActions", () => {
   const imp = (over: Partial<SelRow> = {}) =>
     row({ approved: false, import_id: "i", source: "plaid", ...over });
   it("approve needs an unapproved row; reject needs every row an unapproved non-transfer import", () => {
-    expect(barActions([row()], accountOf, "all")).toMatchObject({ approve: false, reject: false });
-    expect(barActions([imp()], accountOf, "all")).toMatchObject({ approve: true, reject: true });
-    expect(barActions([imp(), row()], accountOf, "all")).toMatchObject({
+    expect(barActions([row()], accountOf)).toMatchObject({ approve: false, reject: false });
+    expect(barActions([imp()], accountOf)).toMatchObject({ approve: true, reject: true });
+    expect(barActions([imp(), row()], accountOf)).toMatchObject({
       approve: true,
       reject: false,
     });
-    expect(barActions([imp({ transfer_account_id: "s" })], accountOf, "all").reject).toBe(false);
-    expect(barActions([row({ approved: false })], accountOf, "all").reject).toBe(false);
+    expect(barActions([imp({ transfer_account_id: "s" })], accountOf).reject).toBe(false);
+    expect(barActions([row({ approved: false })], accountOf).reject).toBe(false);
   });
   it("categorize needs a row that takes a category; Make Repeating is one row; move is one account's register", () => {
     const tr = row({ transfer_account_id: "s" });
-    expect(barActions([tr], accountOf, "all").categorize).toBe(false);
-    expect(barActions([tr, row()], accountOf, "all").categorize).toBe(true);
-    expect(barActions([row()], accountOf, "all").makeRepeating).toBe(true);
-    expect(barActions([row(), row()], accountOf, "all").makeRepeating).toBe(false);
+    expect(barActions([tr], accountOf).categorize).toBe(false);
+    expect(barActions([tr, row()], accountOf).categorize).toBe(true);
+    expect(barActions([row()], accountOf).makeRepeating).toBe(true);
+    expect(barActions([row(), row()], accountOf).makeRepeating).toBe(false);
     // EXF-636: Move to Account is offered on All Accounts too.
-    expect(barActions([row()], accountOf, "all").move).toBe(true);
-    expect(barActions([row()], accountOf, "account").move).toBe(true);
-    expect(barActions([row({ flag_color: "red" })], accountOf, "all").anyFlagged).toBe(true);
+    expect(barActions([row()], accountOf).move).toBe(true);
+    expect(barActions([row()], accountOf).move).toBe(true);
+    expect(barActions([row({ flag_color: "red" })], accountOf).anyFlagged).toBe(true);
   });
 });
 

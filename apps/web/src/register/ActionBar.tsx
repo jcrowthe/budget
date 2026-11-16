@@ -106,7 +106,7 @@ export function ActionBar({
     }
     return m;
   }, [accountsQ.data]);
-  const actions = barActions(sel, (id) => accountById.get(id) ?? null, account ? "account" : "all");
+  const actions = barActions(sel, (id) => accountById.get(id) ?? null);
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   // D9: on All Accounts the one account that holds every selected row is not a target.
   const onlyAccount = (id: string) => sel.length > 0 && sel.every((r) => r.account_id === id);

@@ -43,8 +43,9 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
   const handled = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the account and its month are there
   useEffect(() => {
-    if (!wantsPayment || handled.current || !account) return;
-    if (credit && !account.closed) {
+    if (!wantsPayment || handled.current) return;
+    // All Accounts has no account: only drop the parameter.
+    if (account && credit && !account.closed) {
       if (!pay.settled) return;
       openPayment();
     }

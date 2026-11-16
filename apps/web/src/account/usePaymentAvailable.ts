@@ -12,7 +12,7 @@ export function usePaymentAvailable(
   budgetId: string,
   accountId: string,
   enabled: boolean,
-): { available: number | null | undefined; name: string | null; settled: boolean } {
+): { available: number | null | undefined; settled: boolean } {
   const month = `${localToday().slice(0, 7)}-01` as const;
   const q = useQuery({
     queryKey: ["month", budgetId, month],
@@ -22,7 +22,6 @@ export function usePaymentAvailable(
   const found = q.data ? paymentCategoryOf(q.data, accountId) : null;
   return {
     available: q.data ? (found?.available ?? null) : undefined,
-    name: found?.name ?? null,
     settled: q.isSuccess || q.isError,
   };
 }

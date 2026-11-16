@@ -227,6 +227,13 @@ test("?record-payment opens the payment row on a card and is removed; on a check
   await open(page, s.plan, s.checking, "?record-payment");
   await expect.poll(() => new URL(page.url()).search).toBe("");
   await expect(page.locator(".entry-body")).toHaveCount(0);
+
+  // All Accounts has no card: the parameter is dropped there too.
+  await fixCardClock(page);
+  await page.goto(`/${s.plan}/accounts?record-payment`);
+  await expect(button(page, "Add Transaction")).toBeVisible();
+  await expect.poll(() => new URL(page.url()).search).toBe("");
+  await expect(page.locator(".entry-body")).toHaveCount(0);
 });
 
 const within = (box: Locator, inner: Locator) =>

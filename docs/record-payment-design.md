@@ -61,7 +61,7 @@ The Architect's:
   non-credit account reads `Payment from <account>`. Every other entry keeps `To/From <account>`, including cards
   on a cash register. Typed text matches the label shown.
   - Picking "Payment from X" sets the payee text to that label, and Category shows
-    `Credit Card Payments: <card>`, disabled; nothing is sent for it.
+    `Credit Card Payments: <card>`, read-only (polish P6); nothing is sent for it.
   - Editing a payment row shows the same texts.
 - **D5. Own payment category.** A row or split line on credit account K whose category is K's own payment
   category (`kind = credit_card_payment`, `account_id = K`) gets **422 `own_payment_category`**:
@@ -136,7 +136,7 @@ The Architect's:
   account is closed or the month is loading.
 - **`Register`:** `openPayment()` (D2), the `?record-payment` effect (D7), and `Open` add carries
   `payment: { inflow }`.
-- **`EntryRow`:** takes `prefillInflow`, focuses Payee, passes `transferLabel` to `PayeeField`, and passes
+- **`EntryRow`:** takes `prefillInflow`, focuses Date (polish P5), passes `transferLabel` to `PayeeField`, and passes
   `fixedText` to `CategoryField`.
 - **`RegisterTable` and `ScheduledSection`:** D3 cells and D8 handling. `Box.onClick` receives the event.
 - **`selection.tsx`:** holds the anchor and cursor, `selectRange` and `extend`. `ActionBar` binds `select-multiple`,
@@ -222,11 +222,11 @@ assigned 335000 in Nov. Worker amounts are in milliunits.
    - A Line of Credit shows the block; Checking does not.
 6. **[539 AC2, D2]** The Visa toolbar reads Add Transaction, File Import, Record Payment, Undo, Redo, View, in order.
    Checking has no Record Payment.
-   - Click it: a new row dated 11/16/2026 with Inflow `335.00`, Payee focused and empty, Category empty.
+   - Click it: a new row dated 11/16/2026 with Inflow `335.00`, Date focused, Payee and Category empty.
    - With Available 0: Inflow is empty.
 7. **[539 AC3, D3, D4]** In that row, "Payments and Transfers" lists "Payment from ZZ-TEST Checking", and a tracking
    account reads "To/From …".
-   - Pick it: Category reads "Credit Card Payments: ZZ-TEST Visa", disabled.
+   - Pick it: Category reads "Credit Card Payments: ZZ-TEST Visa", read-only (polish P6).
    - Save (`expect.poll` on the POST): the row shows "Payment: ZZ-TEST Checking" with the ⇆ button and that
      category, and the pill reads `$0.00`.
    - On Checking, the other row reads "Payment: ZZ-TEST Visa" with the same category, and its payee list shows

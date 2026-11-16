@@ -59,11 +59,7 @@ export function clearOp(rows: readonly Pick<SelRow, "cleared">[]): "clear" | "un
   return "unclear";
 }
 
-export function barActions(
-  rows: readonly SelRow[],
-  accountOf: (id: string) => SelAccount | null,
-  _where: "account" | "all",
-) {
+export function barActions(rows: readonly SelRow[], accountOf: (id: string) => SelAccount | null) {
   const otherOf = (r: SelRow) => (r.transfer_account_id ? accountOf(r.transfer_account_id) : null);
   return {
     approve: rows.some((r) => !r.approved),
