@@ -7630,3 +7630,26 @@ last review.
   confirm EXF-614).
 
 Ticket writes: 1 (comment on EXF-625). Review cadence: Build 5, Deploy 2, Discover 2, Test user flow 9.
+
+### 2026-11-16 · Review round 88
+
+Children used 104 of 200. The one child that ended since review 87 is the Reflect fixes' first Build,
+as abandoned after my cancel (recorded there; its branch is being carried over). Three are running.
+Main `85f3cc9`, live `8ec621e` (health read by me: the Deploy has not released yet).
+
+**Running, as read now:**
+- **Deploy `D24`** (`p_4affb69b408a437eb02d78c0cb79af44`): started minutes ago; nothing released yet.
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`): at its start; no commit on its branch yet.
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): head `4a19138` on base
+  `85f3cc9` (it has rebased onto the shell merge); its test-writing step added a spec for the
+  Available Balance card's lines; the gate is next.
+
+**Ticket writes:** 0.
+
+**Backlog:** unchanged: 54 open feature tickets (43 done; 4 in progress). Gap: thirteen open, three in
+progress. Template: thirty-four (three Urgent). Flow verdicts unchanged. Finished since each
+template's last review: Build 5, Deploy 2, Discover 2, Test user flow 9.
+
+**Next plan:** nothing free to start. When `D24` has shipped: flow 9 again on live (EXF-614) as the
+tenth flow test, then the first review of the Test user flow template.
