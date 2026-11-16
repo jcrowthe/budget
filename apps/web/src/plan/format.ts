@@ -2,7 +2,7 @@ import { formatMoney, type Milliunits } from "@budget/core/money";
 import type { Month } from "@budget/core/month";
 import { targetBar } from "@budget/core/targets";
 import type { MonthCategoryDetail } from "@budget/schema/months";
-import { pillTitle } from "@budget/schema/target-wording";
+import { pillTitle, targetPill } from "@budget/schema/target-wording";
 
 export { pillTitle };
 
@@ -92,3 +92,27 @@ export function targetSections(c: MonthCategoryDetail): Section[] {
 }
 
 export const amountClass = (n: number): string => (n === 0 ? "amount zero" : "amount");
+
+/**
+ * The pill of an overspent category (EXF-535): yellow with a card icon while the overspending is all credit,
+ * red (cash or cash and credit) otherwise. Null while the category is not overspent.
+ */
+export function overspentPill(
+  c: Pick<MonthCategoryDetail, "available" | "state">,
+): { tone: "cautious" | "negative"; icon: "card" | null } | null {
+  if (c.available >= 0) return null;
+  return c.state === "credit_overspent"
+    ? { tone: "cautious", icon: "card" }
+    : { tone: "negative", icon: null };
+}
+
+/** The pill look of a category: the overspending state first, else its target's, else the plain pill (null). */
+export function categoryPill(c: MonthCategoryDetail): {
+  tone: "zero" | "positive" | "negative" | "cautious";
+  icon: "clock" | "check" | "clockCheck" | "snooze" | "card" | null;
+  title: string;
+} | null {
+  const over = overspentPill(c);
+  if (over) return { ...over, title: pillTitle(c.available) };
+  return c.target ? targetPill(c) : null;
+}

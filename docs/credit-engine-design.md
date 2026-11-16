@@ -367,3 +367,12 @@ migrations: 1
 
 **Unchanged:** `plan-views.ts`, `packages/schema/src/categories.ts` and `apps/web/src/api/months.ts`. No
 file from note 9 changes.
+
+## Build notes (Implementer)
+
+- **Ticket arithmetic:** example B step 4 prints a balance of +727.77. Its own steps give -70.00 + 15.00 + 777.77 = +722.77, which is what the Worker test asserts (722770); the payment Available stays 70.00 as the ticket says.
+- **Activity read:** `repositories/plan-activity.ts` replaces `activityByMonth` in `loadInput`; `activityByMonth` stays, unused. Queries per month read: 8 before, 8 after (list reads 6 and 6).
+- **Property test:** 250 seeded plans in `packages/core/test/credit-engine.test.ts`, checking the identity above plus "each part >= 0 and cash + credit = -available". Dropping `- X_K` from Funded makes 254 tests fail; it was restored.
+- **Partial cover of a mixed category:** as decided above, the cash part falls first (a partial cover leaves the credit part and the card alone until the cash part is gone).
+- **Tests written with the code:** the engine, lifecycle and backfill tests were written together with their code, not run against the code before the fix. Only the Funded mutation above was run as a failing-first check.
+- **Outside the Lead's list:** `packages/schema/test/register.test.ts` (fixture needs the new required fields).

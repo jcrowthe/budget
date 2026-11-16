@@ -4,6 +4,10 @@
   --panelTooltipLabel: #ededf5;
   --panelTooltipShadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   --panelTooltipDelay: 1.9s;
+  /* EXF-535, from the source's stylesheet (dark theme): the overspending message boxes. */
+  --calloutNegativeSubtleBackground: #4c0814;
+  --calloutWarningSubtleBackground: #362c05;
+  --calloutSubtleLabel: #fff;
 }
 
 /* The grid keeps its 562px minimum: the panel is at most 60% of the body and at most what is left of it. */
@@ -262,4 +266,24 @@
 .panel-error {
   margin-top: 8px;
   color: var(--categoryBalanceNegativeLabel);
+}
+
+/* EXF-535: the message of an overspent category, the first thing in the Available Balance card. */
+.inspector-message {
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 0.5em;
+  line-height: 1.5;
+  color: var(--calloutSubtleLabel);
+  cursor: default;
+}
+.inspector-message.negative {
+  background: var(--calloutNegativeSubtleBackground);
+}
+.inspector-message.cautious {
+  background: var(--calloutWarningSubtleBackground);
+}
+.inspector-message strong {
+  font-weight: 700;
 }

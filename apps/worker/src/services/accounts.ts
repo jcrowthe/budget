@@ -1,4 +1,5 @@
 import {
+  CREDIT_ACCOUNT_TYPES,
   displayGroup,
   isLoanType,
   isOnBudget,
@@ -30,8 +31,16 @@ import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as budgetsRepo from "../repositories/budgets";
+import * as categoriesRepo from "../repositories/categories";
+import * as groupsRepo from "../repositories/category-groups";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
+import {
+  PAYMENT_HISTORY_TEXT,
+  paymentCreateStmts,
+  paymentDeleteStmts,
+  paymentRenameStmts,
+} from "./credit-payments";
 import { transactionToApi } from "./transactions";
 
 const MAX_ATTEMPTS = 5;
@@ -143,6 +152,7 @@ export async function createAccount(
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, v.budget_id))) throw new NotFound("Plan");
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const existingGroup = await groupsRepo.findPaymentGroup(db, v.budget_id);
     const row: accountsRepo.AccountRow = {
       id: crypto.randomUUID(),
       budgetId: v.budget_id,
@@ -174,6 +184,16 @@ export async function createAccount(
         accountsRepo.sortIsNext(db, row.budgetId, row.sortOrder),
       ),
       accountsRepo.insertIfSortStmt(db, row),
+      ...paymentCreateStmts(db, {
+        actor,
+        budgetId: row.budgetId,
+        accountId: row.id,
+        name: row.name,
+        type: row.type,
+        now: new Date().toISOString(),
+        existingGroup,
+        accountExists: sql`exists ${accountsRepo.existsStmt(db, row.id)}`,
+      }),
     ]);
     if (result.meta.changes > 0) return accountToApi(row);
   }
@@ -214,6 +234,8 @@ export class AccountRefused extends Error {
   }
 }
 
+const isCreditAccountType = (t: string) => (CREDIT_ACCOUNT_TYPES as readonly string[]).includes(t);
+
 const utcToday = () => new Date().toISOString().slice(0, 10);
 
 /** Renames, sets the note and stars. One history row per real change; a closed account cannot be starred. */
@@ -253,7 +275,19 @@ export async function updateAccount(
     const after = { ...before, ...set };
     const extra =
       set.name === undefined ? undefined : accountsRepo.nameFree(budgetId, accountId, set.name);
-    const [, result] = await db.batch([
+    const renameStmts =
+      set.name !== undefined && isCreditAccountType(before.type)
+        ? paymentRenameStmts(db, {
+            actor,
+            budgetId,
+            accountId,
+            name: set.name,
+            now: new Date().toISOString(),
+            guard: sql`exists ${accountsRepo.accountHolds(db, before, extra)}`,
+          })
+        : [];
+    const results = await db.batch([
+      ...renameStmts,
       changeLogInsertIf(
         db,
         {
@@ -268,8 +302,8 @@ export async function updateAccount(
         accountsRepo.accountHolds(db, before, extra),
       ),
       accountsRepo.updateFieldsIfStmt(db, before, set, extra),
-    ]);
-    if (result.meta.changes > 0) return accountToApi(after, facts);
+    ] as unknown as [BatchItem, ...BatchItem[]]);
+    if ((results[results.length - 1]?.meta.changes ?? 0) > 0) return accountToApi(after, facts);
   }
   throw new Conflict("Account");
 }
@@ -614,6 +648,15 @@ export async function deleteAccount(
     if (startingId && !startingTx) continue;
     const at = new Date().toISOString();
     const stmts: BatchItem[] = [];
+    const payment = isCreditAccountType(before.type)
+      ? await categoriesRepo.findPaymentCategory(db, accountId)
+      : undefined;
+    if (payment) {
+      const history = await categoriesRepo.historyOf(db, budgetId, [payment.id]);
+      if (history.transactions > 0 || history.assignedMonths > 0) {
+        throw new AccountRefused(PAYMENT_HISTORY_TEXT, 409, "payment_category_has_history");
+      }
+    }
     if (startingId && startingTx) {
       stmts.push(
         changeLogInsertIf(
@@ -640,6 +683,17 @@ export async function deleteAccount(
           at,
           accountsRepo.noOtherTransactions(accountId, startingId),
         ),
+      );
+    }
+    if (payment) {
+      stmts.push(
+        ...paymentDeleteStmts(db, {
+          actor,
+          budgetId,
+          accountId,
+          now: at,
+          guard: sql`exists ${accountsRepo.accountHolds(db, before, accountsRepo.noOtherTransactions(accountId, null))}`,
+        }),
       );
     }
     stmts.push(
@@ -725,6 +779,7 @@ export async function insertAccountWithStartingBalance(
   const db = getDb(env);
   const { amount } = spec;
   const existingSystem = await payeesRepo.findSystem(db, budgetId, "starting_balance");
+  const existingGroup = await groupsRepo.findPaymentGroup(db, budgetId);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const now = new Date().toISOString();
     const row: accountsRepo.AccountRow = {
@@ -807,6 +862,16 @@ export async function insertAccountWithStartingBalance(
         },
         g2,
       ),
+      ...paymentCreateStmts(db, {
+        actor,
+        budgetId,
+        accountId: row.id,
+        name: row.name,
+        type: row.type,
+        now,
+        existingGroup,
+        accountExists: sql`exists ${g2}`,
+      }),
     ]);
     if (result.meta.changes > 0) {
       const linked = await payeesRepo.findSystem(db, budgetId, "starting_balance");

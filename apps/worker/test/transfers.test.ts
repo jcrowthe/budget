@@ -351,15 +351,28 @@ describe("month figures per category rule", () => {
     expect(y.activity).toEqual(x.activity);
   };
 
-  it("on-plan to on-plan (cash and credit) changes nothing", async () => {
+  it("on-plan to on-plan (cash and cash) changes nothing", async () => {
     const bid = await plan();
     const a = await account(bid);
     const b = await account(bid, "savings", 200000);
-    const card = await account(bid, "creditCard", 0);
     const before = await figures(bid);
     await pair(bid, a, b, -50000);
-    await pair(bid, a, card, -20000);
     same(before, await figures(bid));
+  });
+
+  it("EXF-532: cash to a card is a payment: only that card's payment category moves", async () => {
+    const bid = await plan();
+    const a = await account(bid);
+    const card = await account(bid, "creditCard", 0);
+    const cardName = (await data(await json(`/api/v1/budgets/${bid}/accounts/${card}`))).account
+      .name as string;
+    const before = await figures(bid);
+    expect(before.activity[cardName]).toBe(0);
+    await pair(bid, a, card, -20000);
+    const after = await figures(bid);
+    expect(after.rta).toBe(before.rta);
+    expect(after.uncategorized).toBe(before.uncategorized);
+    expect(after.activity).toEqual({ ...before.activity, [cardName]: -20000 });
   });
 
   it("on-plan to tracking: category, Ready to Assign, or uncategorized", async () => {

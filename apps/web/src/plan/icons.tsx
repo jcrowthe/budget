@@ -190,3 +190,13 @@ export const QuestionCircleIcon = (p: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+
+/** EXF-535: a credit card (own drawing): a rounded card with a stripe and a small chip. */
+export const CreditCardIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" {...p}>
+    <path
+      d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12V4A1.5 1.5 0 0 1 3 2.5Zm-.5 3v1.2h11V5.5zm1 3.8v1.4h3V9.3z"
+      fillRule="evenodd"
+    />
+  </svg>
+);
