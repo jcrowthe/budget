@@ -6716,3 +6716,46 @@ template's last review: Build 9, Deploy 0, Discover 2, Test user flow 7.
 
 **Next plan:** set the new gap ticket to High and link it to the register Build. Nothing else is free
 to start; wait for the cards (Age of Money first) and the flow test.
+
+### 2026-11-16 · Plan round 79
+
+Children used 94 of 200. One started now; four are running with the register Build (reworking its
+reads), the credit engine Build (building) and the flow test for flows 3 and 8. Main `5ebac3c`, live
+`357bc4f`. Journal branch merged up to main.
+
+- **Between the review and this plan the Age of Money Build merged as `5ebac3c`** (I approved its first
+  card in a side turn: gate on `357bc4f`, clean; the merge commit's tree equals the gated head
+  `ceeddf4`). Its tickets and its one accepted known issue (the chart's hover columns reach over the
+  "Current" value) are for the next review, which is where an ended child is recorded.
+- The ticket filed at the last review exists: **EXF-620** (approve and reject read the database once
+  per row), set to High and In Progress with a comment: the register Build's rework fixes it.
+- **Started: the shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`; EXF-473 Keyboard Shortcuts
+  dialog with a shortcut registry, EXF-474 sidebar collapse, expand and resize, EXF-614 the sidebar on
+  a plan that was not found). Three Low tickets, but they are the only work whose files are free: the
+  shell is held by nobody, and the Build changes no Worker file.
+  - **Manifest estimate against the three running Builds:** `apps/web/src/shell/**`, a new
+    `apps/web/src/shortcuts/**`, one new file under `menu-actions/`, shell specs. Disjoint from the
+    register (register, account, transactions), the credit engine (core, months, categories, accounts
+    services, `plan/**`) and nothing in the always-overlap list. The sidebar's state goes to the
+    browser's storage as the ticket says, so `ui-state.ts` (which the register Build changes) is not
+    touched.
+  - **Scope cut on purpose:** the registry and dispatcher are built, but the Plan page's and the
+    register's existing shortcuts are not moved into it (other Builds hold those files). The
+    dispatcher must swallow no key it has no handler for; the proof is that the existing Plan and
+    register specs pass untouched.
+  - **Source:** the test plan's Plan page; `?` to open the dialog (focus outside any field), the
+    collapse button and Shift+. with the sidebar left expanded. **Never the drag** (it changes a saved
+    width), never the plan button or the rail's logo (both open the plan menu). The expanded sidebar
+    shows the owner's email: captures are cropped below it.
+  - New in the brief after today's lost platform files: the Clerk creates no other file under
+    `/workspace/.exfab/` (the credit Build's Clerk had made up a profile file), and a platform script
+    failing on one of its own files is quoted word for word at the top of the answer.
+  - This Build changes the width of the main area on every page: I told it that a spec of another
+    page that fails after its change is its to explain.
+- **No Deploy** for Age of Money alone; it ships with the register Build.
+- **Not started:** scheduled transactions and the API half of Export Plan (both after the register
+  merge); the private screens (the person's word).
+
+Ticket writes: 7 (EXF-620 priority, state and comment; EXF-473, EXF-474, EXF-614 to In Progress with
+comments). Review cadence: Build 10 with Age of Money (the Build template review is due at the next
+plan), Deploy 0, Discover 2, Test user flow 7.
