@@ -169,6 +169,27 @@ async function textInsideCards(page: Page) {
   expect(bad).toEqual([]);
 }
 
+/**
+ * Where the name's first word (after a leading emoji, as a default category's name has one) ends, and where the
+ * name's content box ends: the word is whole when its right edge is inside the box.
+ */
+const firstWordFit = (name: Locator) =>
+  name.evaluate((el) => {
+    const text = el.firstChild as Text;
+    const full = text.textContent ?? "";
+    const lead = full.match(/^\p{Extended_Pictographic}\uFE0F?\s*/u)?.[0].length ?? 0;
+    const word = full.slice(lead).split(" ")[0] ?? "";
+    const range = document.createRange();
+    range.setStart(text, lead);
+    range.setEnd(text, lead + word.length);
+    const cs = getComputedStyle(el);
+    return {
+      name: full,
+      right: range.getBoundingClientRect().right,
+      limit: el.getBoundingClientRect().left + el.clientWidth - Number.parseFloat(cs.paddingRight),
+    };
+  });
+
 test("19. the Auto-Assign options fit at 1024 in the card, an ordinary and a payment inspector", async ({
   page,
 }) => {
@@ -230,27 +251,11 @@ test("21. a name keeps its first word, the target text gives way, the pill stays
   for (let i = 0; i < count; i++) {
     const r = rows.nth(i);
     const n = r.locator(".category-name");
-    const m = await n.evaluate((el) => {
-      const text = el.firstChild as Text;
-      // The first word after a leading emoji (a default category's name starts with one); source: the same names.
-      const full = text.textContent ?? "";
-      const lead = full.match(/^\p{Extended_Pictographic}\uFE0F?\s*/u)?.[0].length ?? 0;
-      const word = full.slice(lead).split(" ")[0] ?? "";
-      const range = document.createRange();
-      range.setStart(text, lead);
-      range.setEnd(text, lead + word.length);
-      const cs = getComputedStyle(el);
-      return {
-        name: text.textContent,
-        first: range.getBoundingClientRect().width,
-        content:
-          el.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight),
-      };
-    });
+    const m = await firstWordFit(n);
     expect(
-      m.content,
-      `${m.name}: first word ${m.first}px in ${m.content}px`,
-    ).toBeGreaterThanOrEqual(m.first - 0.5);
+      m.right,
+      `${m.name}: first word ends at ${m.right}px, the name's content box at ${m.limit}px`,
+    ).toBeLessThanOrEqual(m.limit + 0.5);
     const label = r.locator(".status-label");
     if ((await label.count()) > 0) {
       withTarget++;
@@ -272,6 +277,15 @@ test("21. a name keeps its first word, the target text gives way, the pill stays
     }
   }
   expect(withTarget, "rows with target text").toBeGreaterThanOrEqual(2);
+  // Group rows (the "Credit Card Payments" group too): the first word of the name is whole.
+  const groups = page.locator(".group-row .group-name");
+  for (let i = 0; i < (await groups.count()); i++) {
+    const m = await firstWordFit(groups.nth(i));
+    expect(
+      m.right,
+      `group ${m.name}: first word ends at ${m.right}px, box at ${m.limit}px`,
+    ).toBeLessThanOrEqual(m.limit + 0.5);
+  }
   // The group rows: the payment group's PAYMENT button and totals are whole.
   const pay = page.locator(".group-row", { hasText: "PAYMENT" }).locator(".cell-available");
   expect(await pay.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);

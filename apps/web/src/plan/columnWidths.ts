@@ -13,8 +13,8 @@ export interface NumberColumns {
 const FLOOR = { assigned: 68, activity: 62, available: 80 };
 // The Assigned cell: a hover calculator button (18px) before the amount, 4px of padding, 2px of border.
 const ASSIGNED_EXTRA = 18 + 4 + 2;
-// The Activity cell: padding 4px + 2px.
-const ACTIVITY_EXTRA = 6;
+// The Activity cell: padding 2px + 2px.
+const ACTIVITY_EXTRA = 4;
 // The pill: padding 7px twice, its icon (13-14px) and the gap after it.
 const PILL_PADDING = 14;
 const PILL_ICON = 19;
@@ -22,7 +22,7 @@ const PILL_ICON = 19;
 const GROUP_PADDING = 6;
 const PAYMENT_BUTTON = 76;
 // Tabular digits and a font that may not be loaded yet: a little room.
-const SLACK = 4;
+const SLACK = 2;
 
 let canvas: CanvasRenderingContext2D | null = null;
 const textWidth = (text: string, font: string): number => {

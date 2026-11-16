@@ -206,7 +206,7 @@
   min-width: 0;
 }
 .plan-body[data-narrow] .cell-activity {
-  padding-left: 4px;
+  padding-left: 2px;
   width: var(--col-activity, 5.25rem);
   min-width: 0;
 }
@@ -224,7 +224,18 @@
 /* The outer margins and the header paddings give way too: the name column gets every pixel left. */
 .plan-body[data-narrow] .cell-margin:first-child,
 .plan-body[data-narrow] .cell-margin:last-child {
-  width: 8px;
+  width: 4px;
+}
+.plan-body[data-narrow] .cell-checkbox {
+  width: 23px;
+  padding-left: 4px;
+}
+.plan-body[data-narrow] .group-row .cell-name,
+.plan-body[data-narrow] .category-row .cell-name {
+  padding-left: 0;
+}
+.plan-body[data-narrow] .category-name {
+  padding-left: 2px;
 }
 .plan-body[data-narrow] .header-row .cell-assigned,
 .plan-body[data-narrow] .group-row .cell-assigned {

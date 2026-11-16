@@ -177,3 +177,38 @@ test("EXF-624 (as the source): Underfunded shows at $0.00 with nothing ticked, i
   await expect(panel(page).getByRole("heading", { name: PHONE, exact: true })).toBeVisible();
   await expect(underfunded(panel(page))).toHaveCount(0);
 });
+
+test("EXF-616: switching month with one category ticked keeps its list (304 px, singular labels) while the month loads", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.getByRole("checkbox", { name: RENT, exact: true }).click();
+  await expect(panel(page).getByRole("heading", { name: RENT, exact: true })).toBeVisible();
+  await expect.poll(async () => Math.abs((await cardHeight(page)) - 304)).toBeLessThanOrEqual(1);
+  let release: () => void = () => {};
+  const gate = new Promise<void>((r) => {
+    release = r;
+  });
+  let held = false;
+  await page.route(/\/months\/\d{4}-\d{2}-01(\?[^/]*)?$/, async (route) => {
+    if (route.request().method() === "GET") {
+      held = true;
+      await gate;
+    }
+    await route.continue();
+  });
+  await realClick(page, page.getByRole("button", { name: "Next month", exact: true }));
+  await expect.poll(() => held).toBe(true);
+  // The month has not arrived: the list still has the one-category rows.
+  await page.waitForTimeout(300);
+  expect(Math.abs((await cardHeight(page)) - 304)).toBeLessThanOrEqual(1);
+  await expect(
+    panel(page).locator("button.auto-assign-option > span", {
+      hasText: /^Reset Available Amount$/,
+    }),
+  ).toHaveCount(1);
+  await expect(
+    panel(page).locator("button.auto-assign-option > span", { hasText: /^Underfunded$/ }),
+  ).toHaveCount(0);
+  release();
+});
