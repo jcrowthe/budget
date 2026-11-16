@@ -922,7 +922,9 @@ export async function syncDueConnections(
   env: Env,
   now: Date = new Date(),
   run: typeof requestSync = requestSync,
+  opts: { maxRuns?: number } = {},
 ): Promise<SyncResult[]> {
+  const maxRuns = opts.maxRuns ?? SCHEDULED_MAX_RUNS;
   let active = await bankRepo.listDue(
     getDb(env),
     new Date(now.getTime() - DUE_AFTER_MS).toISOString(),
@@ -933,7 +935,7 @@ export async function syncDueConnections(
   for (let round = 0; round < MAX_RUNS_PER_CONNECTION && active.length > 0; round++) {
     const next: typeof active = [];
     for (const conn of active) {
-      if (runs >= SCHEDULED_MAX_RUNS || Date.now() - started >= SCHEDULED_WALL_MS) return out;
+      if (runs >= maxRuns || Date.now() - started >= SCHEDULED_WALL_MS) return out;
       runs++;
       try {
         const r = await run(env, conn);
