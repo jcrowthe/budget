@@ -4087,3 +4087,28 @@ restart their draft": review fixes. Still to check at its card: `keepPreviousDat
 EXF-560, EXF-562 (Low); in progress EXF-586 (High); done now also EXF-569, EXF-579. Template: twenty-six.
 Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished since each template's
 last review: Build 4, Deploy 1, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Plan round 49
+
+Children used 61 of 200. Three Builds are running, all from earlier rounds: EXF-517 with EXF-507 (after a
+failed regate, spec fix committed); EXF-548 with EXF-551 (review fixes); the Plan-page Build for EXF-498,
+523, 521 and 586 (designed). **Nothing started this round.**
+
+- No ticket was filed at the last review.
+- Main `0b53a5f` differs from live `b09078b` by tests and one script: nothing to deploy.
+- Nothing new can start: the transactions files, the Plan page and the Reflect files are held, and every
+  ready ticket needs one of them. Flow 1 waits to run with flow 2 after transaction entry is deployed.
+- **EXF-558 lowered from High to Low**, with a comment. I read it again: it makes e2e run on the box's
+  system Chrome so that no browser has to be downloaded. The Clerk job in every brief has covered that
+  since round 17 (about twenty Builds, no gate lost to a missing browser). What is left is half a minute
+  per Build, against a change of browser under every measuring spec and a Build that must run alone.
+- **Next review is round 49's; the one after, round 50, is a check-in.** For it:
+  - the correction to round 40's report (what the second incident's Thread holds; the two things I got
+    wrong) and what the template review found;
+  - the rule I now follow for screens next to private data, and the choice the person can make;
+  - what went live since: plan menu, bank connection removal through the API, Ready to Assign and moves;
+  - flows 1, 9, 10 results and the two gaps they found;
+  - the child budget (61 used; about 75 more expected);
+  - the open requests: removal of the stored captures and transcript, the two Plaid dashboard settings.
+- Ticket writes: 2 (EXF-558 priority and comment).
+- Review cadence: Build 4, Deploy 1, Discover 2, Test user flow 3.
