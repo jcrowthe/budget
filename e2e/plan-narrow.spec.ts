@@ -306,6 +306,56 @@ test("21b. at 1440 both names and their status text show in full", async ({ page
   }
 });
 
+test("21c. with a 15px scrollbar a name that does not fit ellipsizes, nothing overlaps", async ({
+  page,
+}) => {
+  await open(page);
+  const grid = page.locator(".plan-grid");
+  const before = await grid.evaluate((el) => el.clientWidth);
+  // Headless Chromium hides scrollbars: take 15px as a headed browser's classic scrollbar does.
+  await page.addStyleTag({
+    content: ".plan-grid { box-sizing: border-box; border-right: 15px solid transparent }",
+  });
+  await expect.poll(() => grid.evaluate((el) => el.clientWidth)).toBe(before - 15);
+  await page.screenshot({ path: ".screenshots/narrow-rows-scrollbar.png" });
+  const rows = page.locator(".category-row:not(.uncategorized-row), .group-row");
+  const count = await rows.count();
+  expect(count).toBeGreaterThan(8);
+  for (let i = 0; i < count; i++) {
+    const r = rows.nth(i);
+    const n = r.locator(".category-name, .group-name").first();
+    const info = await n.evaluate((el) => {
+      const cell = el.closest(".cell-name") ?? el.parentElement;
+      const nb = el.getBoundingClientRect();
+      const cb = (cell as HTMLElement).getBoundingClientRect();
+      return {
+        text: el.textContent ?? "",
+        inside: nb.left >= cb.left - 0.5 && nb.right <= cb.right + 0.5,
+        cut: el.scrollWidth > el.clientWidth,
+        ellipsis: getComputedStyle(el).textOverflow === "ellipsis",
+      };
+    });
+    expect(info.inside, `${info.text}: name outside its cell`).toBe(true);
+    if (info.cut) expect(info.ellipsis, `${info.text}: cut without an ellipsis`).toBe(true);
+    const label = r.locator(".status-label");
+    if ((await label.count()) > 0) {
+      const [nb, lb] = await Promise.all([n.boundingBox(), label.boundingBox()]);
+      const beside = (lb?.x ?? 0) + 0.5 >= (nb?.x ?? 0) + (nb?.width ?? 0);
+      const below = (lb?.y ?? 0) + 0.5 >= (nb?.y ?? 0) + (nb?.height ?? 0);
+      expect(beside || below, `${info.text}: label over the name`).toBe(true);
+    }
+    for (const sel of [".available-pill", ".assigned-box", ".cell-activity"]) {
+      const el = r.locator(sel).first();
+      if ((await el.count()) === 0) continue;
+      expect(
+        await el.evaluate((e) => e.scrollWidth - e.clientWidth),
+        `${info.text} ${sel}`,
+      ).toBeLessThanOrEqual(0);
+    }
+  }
+  expect(await grid.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+});
+
 test("22. with the sidebar at 600px the panel folds away and the grid scrolls inside itself", async ({
   page,
 }) => {

@@ -207,13 +207,22 @@ test.describe("card payments, 1440x900", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("15b. Record Payment opens the card's account page", async ({ page }) => {
+  test("26. Record Payment opens the card's account page with the payment row open (EXF-674)", async ({
+    page,
+  }) => {
     await open(page, s);
     await tick(page, ENOUGH);
     await realClick(page, panel(page).getByRole("button", { name: "Record Payment", exact: true }));
     await expect
       .poll(() => new URL(page.url()).pathname)
       .toBe(`/${s.id}/accounts/${s.cards[ENOUGH]}`);
+    await expect.poll(() => new URL(page.url()).search).toBe("");
+    const date = page.getByRole("textbox", { name: "Date", exact: true });
+    await expect(date).toBeFocused();
+    const now = new Date();
+    const today = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
+    await expect(date).toHaveValue(today);
+    await expect(page.getByRole("textbox", { name: "Inflow", exact: true })).toHaveValue("120.00");
   });
 
   test("16. the balance section and the card's Auto-Assign", async ({ page }) => {

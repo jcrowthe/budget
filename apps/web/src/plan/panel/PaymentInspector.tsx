@@ -70,7 +70,9 @@ function PaymentCard({
             <button
               type="button"
               className="popover-button is-primary payment-button"
-              onClick={() => navigate(accountPath(budgetId, c.account_id as string))}
+              onClick={() =>
+                navigate(`${accountPath(budgetId, c.account_id as string)}?record-payment`)
+              }
             >
               Record Payment
             </button>
