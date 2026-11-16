@@ -94,6 +94,9 @@
 .register-table .col-cleared {
   width: 36px;
 }
+.register-table .col-account {
+  width: 10%;
+}
 .register-table .col-date {
   width: 96px;
 }
