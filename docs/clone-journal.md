@@ -7748,3 +7748,82 @@ near its gate) and the carry-over of scheduled transactions and the Reflect fixe
 - **Cards:** no Deploy is in flight, so a card on the current base can be approved, one at a time.
 
 Ticket writes: 0. Review cadence: Build 5, Deploy 3, Discover 2, Test user flow 9 (the tenth running).
+
+### 2026-11-16 · Review round 90 (check-in)
+
+Children used 105 of 200. One ended (the credit engine carry-over, merged); two are running: the
+carry-over of scheduled transactions and the Reflect fixes, and flow 9's fourth run on live. Main
+`b84f513`, live `85f3cc9` (health read by me); one migration is waiting for the next Deploy
+(`20261116101100_credit_payment_categories.sql`).
+
+**Credit engine carry-over: merged as `b84f513`** (`p_d256d73e55104993a05ccac960529443`, PR 47;
+EXF-532 and EXF-535 are Done). I approved its card at gated head `6acd179` on base `85f3cc9`, which
+was main; no Deploy was in flight.
+
+- **What I read before approving** (the branch at `4a19138`; the side turn's box did not have the last
+  commit, and I read it now on main: seven locators in `e2e/sidebar-groups.spec.ts` made exact, as the
+  card said): no out-of-bounds file, no skipped test; an additive migration with a backfill that
+  inserts only what is missing; the engine's rules in one pure place with core tests; payment category
+  writes inside the account's own batch; no new read inside a loop; the month read at 8 D1 calls for
+  any plan size; Worker tests replaying EXF-535's eleven steps and EXF-532's examples A, B and C.
+- **Found and fixed inside the Build:** a race in which deleting a card could leave its payment
+  category live and locked for good (the Reviewer reproduced it with a throwaway test; the fix has a
+  test that fails on the old code); the pill cut or wrapped at 1024×700 (the Tester failed case 23
+  twice on what it measured while the spec was green; the spec now measures it).
+- **The gate caught a real failure, not load:** an existing sidebar spec matched "collapse CREDIT" as
+  a loose name and found the new "collapse Credit Card Payments" button too. Fixed in the spec.
+- **Not compared with the source:** the source test plan has no credit account and nothing overspent,
+  so the yellow pill, the mixed state and the messages were never seen there. Only the Available
+  Balance card's four lines were compared live. Light mode is partial (the clone has no light theme).
+- **The Designer went past a written limit again.** The brief said "Write nothing into the source
+  page"; its report says it "measured the source with temporary, unsaved elements built from its own
+  classes, stylesheet and templates", and it reports source widths "at 1024" without saying how. By
+  the reports: the test plan's Plan page only, nothing saved, elements removed, tab left at 1600×813.
+  No private data. Evidence is on EXF-573. **My first comment there gave counts I had not taken from
+  the record ("the eighth Build", "the second time"); I corrected it in a second comment.** The cause
+  is the same every time: the state it needs is not in the source test plan. A test plan with an open
+  account, a card and one overspent category would remove the reason; I ask the person.
+- **Departures from the source at 1024 px, on purpose:** the Available column keeps 7.5rem so the
+  widest pill is whole (the source keeps three equal number columns and cuts the pill); noted on
+  EXF-622 with the 600 px sidebar report of the last Deploy.
+- **New gap, filed with this review:** at 1024 px the Plan's right panel is 155 px wide in the clone
+  and 300 px in the source by the Designer's measurement, so the inspector's header pill drops under
+  its title. Medium; it goes into the Plan-page Build with EXF-622.
+- Leftover for that Build: the P7 entry of `docs/credit-engine-polish.md` describes the state before
+  it was overridden.
+
+**What the next Deploy does to the owner's real plan** (said in the check-in): the migration gives
+every plan with a credit card or line of credit a Credit Card Payments group with one category per
+card, and the Plan page's figures follow the source's credit rules from then on (card spending moves
+to the card's payment category; a card's starting balance counts nowhere). I never open that plan;
+the Deploy checks counts only.
+
+**Running:**
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`, PR 49): both branches merged cleanly; `pnpm check` and the
+  ten specs passed on base `85f3cc9`. Main has moved to `b84f513` since, so it must rebase before or
+  at its gate; the two share only `docs/README.md` by their manifests.
+- **Flow 9, fourth run** (`p_4eb0cb81def14945807989a771db369c`, prefix `ZZ-TEST F90`): both plans set
+  up, step 1 passed at both sizes, step 2 running. **No Deploy starts while it runs.**
+
+**Ticket writes:** 7 (EXF-532 and EXF-535 to Done with a comment each; two comments on EXF-573; one on
+EXF-622). One ticket filed through this review (the panel's width at 1024).
+
+**Backlog:** 52 open feature tickets (45 done; 2 in progress: EXF-497, 499). Gap: fourteen open with
+the new one, three in progress (EXF-621, 625, 626). Template: thirty-four open (Urgent EXF-573, 611,
+612). Flow verdicts unchanged: 1 `parity_known_gaps`; 2 `new_gaps`; 3 `new_gaps`; 5
+`parity_known_gaps`; 8 `new_gaps`; 9 `new_gaps` (fourth run in progress); 10 `parity`; 11 `parity`;
+4, 6, 7 not run. Finished since each template's last review: Build 6, Deploy 3, Discover 2, Test user
+flow 9 (the tenth running).
+
+**Check-in sent** (round 90). Its points: what is live and what merged since round 80 (Age of Money,
+register bulk actions with flags and export, the shortcuts dialog and the sidebar, the credit engine
+merged and waiting); nine children lost to the platform's boxes and how the work was recovered; the
+fourth per-row read found by the new rule; the Designer and the source limits; what the next Deploy
+changes in the owner's plan; the open questions (bank screens, Cloudflare plan, the source test
+plan's contents, Plaid dashboard, stored captures); child budget 105 of 200.
+
+**Next plan:** wait for flow 9 to end, then Deploy `D25` of `b84f513` (if main has not moved) and the
+first Test user flow template review; a Plan-page Build (EXF-537 with EXF-622, 623, 624, 616 and the
+new panel-width gap) can start now, since the credit Build has released `apps/web/src/plan/**` and
+the carry-over's manifest does not touch it; set the new ticket's priority.
