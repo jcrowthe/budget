@@ -396,7 +396,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
 | 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | completed (21 minutes): flow 8 `new_gaps` (EXF-591), flow 5 `parity_known_gaps` |
 | 2026-11-16 | 56 | Build feature, EXF-508, EXF-514, EXF-592 targets form and display (`p_74b956498a4b4ce1bed94c516291a48f`) | EXF-508, 514, 592 | pending | running |
-| 2026-11-16 | 57 | Deploy of main `113ced4` (`p_e549c296232b4f06be26ddeb660f709a`) | EXF-498, 523, 521, 586 | n/a | running |
+| 2026-11-16 | 57 | Deploy of main `113ced4` (`p_e549c296232b4f06be26ddeb660f709a`) | EXF-498, 523, 521, 586 | n/a | live `113ced4` (8 minutes) |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4702,3 +4702,44 @@ the Deploy started now.
 - **At the transfers and splits card: Request changes** for the Net Worth query that would count a split
   twice (`repositories/reports.ts`), with a Worker test; if main has moved again, Regate first.
 - Review cadence: Build 8, Deploy 3, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 57
+
+Children used 70 of 200. Three Builds are running: EXF-526 with EXF-524 (reworking after my Request
+changes), EXF-486 with EXF-488 (review fixes, head `e90a97f`), EXF-508 with EXF-514 and EXF-592 (with its
+Architect).
+
+**Ended: the Deploy of main `113ced4`** (`p_e549c296232b4f06be26ddeb660f709a`), eight minutes.
+**Live: https://budget.doxen.dev at `113ced4`.**
+
+- Migration `20261116100400_category_note.sql` applied; none pending. Smoke ok.
+- The month summary, the category-month read and the category note gave the hand-computed figures through
+  REST; **46 MCP tools**; `get_month_summary` agrees with REST.
+- Selection, the three states of the right panel, the note, the keys, the right-click popover and the
+  pencil worked with a real mouse at both window sizes. At 1024 by 700 the panel is capped at 202 px so it
+  never covers the grid; dragging the handle there changes nothing visible (by design).
+- **EXF-586 is confirmed fixed on live:** with plan B's month request delayed three seconds, nothing of
+  plan A showed in the grid, the Ready to Assign box, the month note or the panel, and no Assigned cell
+  was editable; then B's own figures. Going back to A shows A's own cached figures at once, which is
+  right.
+- The prefixed purge left nothing; one plan that is not a test plan.
+
+**The transfers and splits Build's second card (side turn): Request changes.** Its gate was clean on the
+current base (e2e 217 of 217 three times). I asked for one Worker-only change: `monthlySums` in
+`repositories/reports.ts` must leave out split line rows, with a test for a split (net worth moves once)
+and for a transfer between on-plan accounts (net worth unchanged), and a list of every reader of the
+`transactions` table in its report. I confirmed the defect in the code before asking; the other readers
+are harmless.
+
+**Running Builds, heads read:** account editing: "guard the Starting Balance soft delete; log order;
+tests" (review fixes). Targets: not yet committed.
+
+**Main and live are both `113ced4`.**
+
+**Ticket writes:** none.
+
+**Backlog:** 72 open feature tickets (24 done; 6 in progress). Gap: EXF-587, EXF-588, EXF-590 (Medium),
+EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 (Low); in progress EXF-592. Template: twenty-six. Flow
+verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 5 `parity_known_gaps`, 8 `new_gaps`, 9 `new_gaps` (its gap
+is fixed on live: run it again with the next batch), 10 `new_gaps`, 11 `parity`. Finished since each
+template's last review: Build 8, Deploy 4, Discover 2, Test user flow 5.
