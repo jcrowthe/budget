@@ -226,3 +226,9 @@
     opacity 0.1s 1.9s,
     visibility 0s 1.9s;
 }
+.st-grid,
+.st-xtick,
+.st-tick,
+.st-xlabel {
+  pointer-events: none;
+}
