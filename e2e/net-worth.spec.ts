@@ -127,7 +127,11 @@ test("551-5 deselecting the tracking accounts", async ({ page, request }) => {
   ).toBeVisible();
   await expect(total(page)).toHaveText("$13,549.26");
   await expect(page.getByTestId("nw-assets")).toHaveText("$13,549.26");
-  await expect(page.getByTestId("nw-debts")).toHaveText("-$0.00");
+  await expect(page.getByTestId("nw-debts")).toHaveText("$0.00");
+  // EXF-591: the header and the chart tooltip agree for the same month, and no zero is written negative.
+  await page.locator('rect[data-month="2026-11-01"]').hover();
+  await expect(page.getByRole("tooltip")).toContainText(/Debts\s*\$0\.00/);
+  await expect(page.locator("body")).not.toContainText("-$0");
   await expect(row(page, "2026-06-01").locator("td").nth(1)).toHaveText("$2,500.00");
 });
 
@@ -214,7 +218,7 @@ test("an empty plan", async ({ page, request }) => {
   await openReport(page, id, "net-worth");
   await expect(total(page)).toHaveText("$0.00");
   await expect(page.getByTestId("nw-assets")).toHaveText("$0.00");
-  await expect(page.getByTestId("nw-debts")).toHaveText("-$0.00");
+  await expect(page.getByTestId("nw-debts")).toHaveText("$0.00");
   await expect(page.getByTestId("nw-change")).toHaveText("$0.00");
   await expect(page.getByTestId("nw-change-pct")).toHaveText("0.0%");
   await expect(page.locator(".nw-chart svg text")).toHaveText(["11/26"]);

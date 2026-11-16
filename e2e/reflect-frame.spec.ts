@@ -320,7 +320,7 @@ for (const vp of VIEWPORTS) {
       await mouseClick(page, exportBtn);
       await third;
       await expect(dialog).toHaveCount(0);
-      await page.getByRole("link", { name: "Spending Breakdown", exact: true }).click();
+      await page.getByRole("link", { name: "Spending Trends", exact: true }).click();
       await expect(exportBtn).toBeDisabled();
     });
   });

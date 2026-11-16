@@ -12,7 +12,20 @@ import type {
   NetWorthQuery,
   ReportRange,
   ReportRangeQuery,
+  ReportTransaction,
+  ReportTransactionsQuery,
+  SpendingBreakdown,
+  SpendingBreakdownQuery,
 } from "@budget/schema/reports";
+import {
+  breakdownCsv,
+  computeBreakdown,
+  filterRows,
+  newestFirst,
+  type SpendingRow,
+  transactionsCsv,
+} from "@budget/schema/spending-breakdown";
+import { storeZip, utf8 } from "@budget/schema/zip";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
@@ -88,4 +101,121 @@ export async function exportNetWorth(
     filename: `budget-reflect-net-worth-${q.today ?? utcToday()}.csv`,
     csv: netWorthCsv(data),
   };
+}
+
+async function spendingSpan(db: Db, budgetId: string, q: SpendingBreakdownQuery) {
+  if (q.start_month && q.end_month) {
+    return { start_month: q.start_month, end_month: q.end_month };
+  }
+  return resolveRange("this_month", null, await rangeFacts(db, budgetId, q.today));
+}
+
+async function loadSpendingRows(
+  db: Db,
+  budgetId: string,
+  span: { start_month: string; end_month: string },
+  excluded: { categories: string[]; accounts: string[] },
+): Promise<SpendingRow[]> {
+  const rows = await repo.spendingRows(db, budgetId, {
+    start: span.start_month,
+    endBefore: addMonthsTo(span.end_month, 1),
+  });
+  return filterRows(rows, {
+    excludedCategoryIds: excluded.categories,
+    excludedAccountIds: excluded.accounts,
+  });
+}
+
+export async function getSpendingBreakdown(
+  env: Env,
+  budgetId: string,
+  q: SpendingBreakdownQuery,
+): Promise<SpendingBreakdown> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const span = await spendingSpan(db, budgetId, q);
+  let group: { id: string; name: string } | null = null;
+  if (q.group_id) {
+    const name = await repo.findCategoryOrGroup(db, budgetId, "group", q.group_id);
+    if (name === null) throw new NotFound("Category group");
+    group = { id: q.group_id, name };
+  }
+  const rows = await loadSpendingRows(db, budgetId, span, {
+    categories: q.excluded_category_ids,
+    accounts: q.excluded_account_ids,
+  });
+  return computeBreakdown({ rows, span, groupBy: q.group_by, group });
+}
+
+export async function listReportTransactions(
+  env: Env,
+  budgetId: string,
+  q: ReportTransactionsQuery,
+): Promise<{ transactions: ReportTransaction[] }> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  if (q.category_id !== undefined) {
+    if ((await repo.findCategoryOrGroup(db, budgetId, "category", q.category_id)) === null) {
+      throw new NotFound("Category");
+    }
+  } else if (q.group_id !== undefined) {
+    if ((await repo.findCategoryOrGroup(db, budgetId, "group", q.group_id)) === null) {
+      throw new NotFound("Category group");
+    }
+  }
+  const rows = await loadSpendingRows(
+    db,
+    budgetId,
+    { start_month: q.start_month, end_month: q.end_month },
+    { categories: [], accounts: q.excluded_account_ids },
+  );
+  const picked = rows.filter((r) =>
+    q.category_id !== undefined
+      ? r.category_id === q.category_id
+      : q.group_id !== undefined
+        ? r.group_id === q.group_id
+        : r.category_id === null,
+  );
+  return {
+    transactions: picked.sort(newestFirst).map((r) => ({
+      transaction_id: r.transaction_id,
+      subtransaction_id: r.subtransaction_id,
+      account_id: r.account_id,
+      account_name: r.account_name,
+      date: r.date,
+      payee_name: r.payee_name,
+      memo: r.memo,
+      amount: r.amount,
+      category_id: r.category_id,
+      category_name: r.category_name,
+      cleared: r.cleared,
+    })),
+  };
+}
+
+export async function exportSpendingBreakdown(
+  env: Env,
+  budgetId: string,
+  q: SpendingBreakdownQuery,
+): Promise<{ filename: string; bytes: Uint8Array }> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const today = q.today ?? utcToday();
+  const span = await spendingSpan(db, budgetId, q);
+  const rows = await loadSpendingRows(db, budgetId, span, {
+    categories: q.excluded_category_ids,
+    accounts: q.excluded_account_ids,
+  });
+  const stem = `budget-reflect-spending-breakdown-${today}`;
+  const bytes = storeZip(
+    [
+      { name: `${stem}.csv`, data: utf8(breakdownCsv(rows, span)) },
+      {
+        name: `${stem}-transactions.csv`,
+        data: utf8(transactionsCsv([...rows].sort(newestFirst))),
+      },
+    ],
+    today,
+  );
+  return { filename: `${stem}.zip`, bytes };
 }
