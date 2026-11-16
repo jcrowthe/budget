@@ -150,7 +150,7 @@ test("552-4 the drill-down popovers", async ({ page, request }) => {
   await expect(dialog("D8 Food–OCT 2026").locator("tbody tr")).toHaveCount(2);
   expect(await popoverRows(dialog("D8 Food–OCT 2026"))).toEqual([
     ["D8 Grocer", "+$20.00"],
-    ["D8 Grocer", "-$150.00"],
+    ["D8 Grocer", "−$150.00"],
   ]);
   await closeDialog(page, dialog("D8 Food–OCT 2026"));
 
@@ -248,7 +248,7 @@ test("552-7 income by payee, an adjustment, no payee (plan I)", async ({ page, r
     exact: true,
   });
   await expect(manual.locator("tbody tr")).toHaveCount(1);
-  expect(await popoverRows(manual)).toEqual([["Manual Balance Adjustment", "-$250.00"]]);
+  expect(await popoverRows(manual)).toEqual([["Manual Balance Adjustment", "−$250.00"]]);
   await closeDialog(page, manual);
   const asked = page.waitForRequest((r) => r.url().includes("income_payee_id=none"));
   await realClick(page, button(page, "(no payee)–NOV 2026"));

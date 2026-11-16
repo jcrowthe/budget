@@ -92,7 +92,7 @@ for (const size of [
       "title",
       "Transfer : ZZ Savings",
     );
-    await expect(balance(page, "uncleared")).toHaveText("-$170.00");
+    await expect(balance(page, "uncleared")).toHaveText("−$170.00");
     await expect(balance(page, "working")).toHaveText("$360.00");
     await expect(
       page.getByRole("navigation", { name: "Sidebar" }).getByRole("link", { name: /ZZ Savings/ }),

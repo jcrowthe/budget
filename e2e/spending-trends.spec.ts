@@ -178,7 +178,7 @@ test("550-4 drill into a group, then a category's popover", async ({ page, reque
     await dialog
       .locator("tbody tr")
       .evaluateAll((trs) => trs.map((r) => r.lastElementChild?.textContent)),
-  ).toEqual(["+$20.00", "-$150.00"]);
+  ).toEqual(["+$20.00", "−$150.00"]);
   await realClick(page, dialog.getByRole("button", { name: "Close", exact: true }));
   await expect(dialog).toHaveCount(0);
   await realClick(page, page.getByRole("button", { name: "All Groups", exact: true }));

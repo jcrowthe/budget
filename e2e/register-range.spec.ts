@@ -83,7 +83,7 @@ for (const size of SIZES) {
       await shiftClick(page, dateCell(page, "ZZ A"));
       await expect(ticked(page)).toHaveCount(6);
       await expect(countButton(page, "6 Transactions")).toBeVisible();
-      await expect(page.locator("[data-balance=selected] .acct-amount")).toHaveText("-$147.34");
+      await expect(page.locator("[data-balance=selected] .acct-amount")).toHaveText("−$147.34");
       await expect(page.locator("[data-balance=selected] .acct-label")).toHaveText(
         "Selected Total (6)",
       );
