@@ -1,10 +1,17 @@
 import { Month } from "@budget/schema/common/dates";
 import { ErrorBody } from "@budget/schema/common/envelope";
-import { MonthDetailResponse, MonthListResponse } from "@budget/schema/months";
+import {
+  InputMonth,
+  MonthDetailResponse,
+  MonthListResponse,
+  MonthNoteResponse,
+  MonthNoteUpdate,
+  MonthRangeResponse,
+} from "@budget/schema/months";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
-import { getPlanMonth, listPlanMonths } from "../services/months";
+import { getMonthRange, getPlanMonth, listPlanMonths, setMonthNote } from "../services/months";
 
 const tags = ["Months"];
 const MAX_MONTHS = 120;
@@ -88,5 +95,49 @@ export default app
         ) as never;
       }
       return c.json({ data: { months: await listPlanMonths(c.env, budget_id, from, to) } }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "patch",
+      path: "/budgets/{budget_id}/months/{month}",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: z.uuid().openapi({ param: { name: "budget_id", in: "path" } }),
+          month: InputMonth.openapi({ param: { name: "month", in: "path" } }),
+        }),
+        body: { required: true, content: { "application/json": { schema: MonthNoteUpdate } } },
+      },
+      responses: { 200: json(MonthNoteResponse, "The stored note"), ...errors },
+    }),
+    async (c) => {
+      const { budget_id, month } = c.req.valid("param");
+      const { note } = c.req.valid("json");
+      const result = await setMonthNote(c.env, c.get("identity").actor, { budget_id, month, note });
+      return c.json({ data: result }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/month-range",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: z
+            .string()
+            .min(1)
+            .openapi({ param: { name: "budget_id", in: "path" } }),
+        }),
+      },
+      responses: {
+        200: json(MonthRangeResponse, "Facts for the month navigation limits"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json({ data: await getMonthRange(c.env, budget_id) }, 200);
     },
   );

@@ -38,7 +38,7 @@ async function fill(page: Page, name: string, type: string, balance: string) {
 async function add(page: Page, name: string, type: string, balance: string) {
   await openForm(page);
   await fill(page, name, type, balance);
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
 }
 
@@ -51,7 +51,7 @@ test("form, Next rule and picker", async ({ page, request }) => {
   await expect(dialog.getByText("What type of account are you adding?")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Select account type..." })).toBeVisible();
   await expect(page.getByLabel("Give it a nickname")).toBeFocused();
-  const next = page.getByRole("button", { name: "Next" });
+  const next = page.getByRole("button", { name: "Next", exact: true });
   await expect(next).toBeDisabled();
 
   await page.getByLabel("Give it a nickname").fill("   ");
@@ -150,7 +150,7 @@ test("duplicate name, Add Another, history", async ({ page, request }) => {
   await page.getByRole("button", { name: "Add an Unlinked Account" }).click();
   await expect(page.getByLabel("Give it a nickname")).toHaveValue("");
   await fill(page, "  zz-test dup x ", "Checking", "1");
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByText("This account name already exists.")).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Add Unlinked Account" })).toBeVisible();
   const res = await request.get(`/api/v1/budgets/${id}/accounts`, { headers: await authHeaders() });

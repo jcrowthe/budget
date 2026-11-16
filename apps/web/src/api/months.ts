@@ -1,6 +1,13 @@
 import type { Month } from "@budget/core/month";
-import { type MonthDetail, MonthDetailResponse } from "@budget/schema/months";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  type MonthDetail,
+  MonthDetailResponse,
+  type MonthNote,
+  MonthNoteResponse,
+  type MonthRange,
+  MonthRangeResponse,
+} from "@budget/schema/months";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 
 export const getMonth = async (budgetId: string, month: Month): Promise<MonthDetail> =>
@@ -14,3 +21,42 @@ export const useMonth = (budgetId: string, month: Month) =>
     queryFn: () => getMonth(budgetId, month),
     placeholderData: keepPreviousData,
   });
+
+export const getMonthRange = async (budgetId: string): Promise<MonthRange> =>
+  (await apiFetch(`/api/v1/budgets/${budgetId}/month-range`, { schema: MonthRangeResponse })).data;
+
+/** Facts only; the browser applies "today" (see plan/monthNav.ts). */
+export const useMonthRange = (budgetId: string) =>
+  useQuery({ queryKey: ["month-range", budgetId], queryFn: () => getMonthRange(budgetId) });
+
+export const setMonthNote = async (
+  budgetId: string,
+  month: Month,
+  note: string | null,
+): Promise<MonthNote> =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}`, {
+      method: "PATCH",
+      body: { note },
+      idempotencyKey: crypto.randomUUID(),
+      schema: MonthNoteResponse,
+    })
+  ).data;
+
+export function useSetMonthNote(budgetId: string) {
+  const qc = useQueryClient();
+  // The month travels in the variables: a re-render (the person moved on) must not retarget the cache keys.
+  const key = (month: Month) => ["month", budgetId, month];
+  return useMutation({
+    mutationFn: (v: { month: Month; note: string | null }) =>
+      setMonthNote(budgetId, v.month, v.note),
+    onMutate: (v) => {
+      qc.setQueryData<MonthDetail>(key(v.month), (d) => d && { ...d, note: v.note });
+    },
+    onError: (_e, v) => qc.invalidateQueries({ queryKey: key(v.month) }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: key(v.month) });
+      qc.invalidateQueries({ queryKey: ["month-range", budgetId] });
+    },
+  });
+}

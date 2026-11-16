@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, useParams } from "react-router";
 import { PlanGrid } from "../plan/PlanGrid";
-import { PageHeader } from "../shell/PageHeader";
+import { PlanHeader } from "../plan/PlanHeader";
 import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
@@ -16,14 +16,10 @@ function PlanPage() {
   }, [budgetId, month]);
   // A present but invalid month is replaced with the current month's canonical URL.
   if (!month) return <Navigate replace to={planPath(budgetId, localCurrentMonth())} />;
-  const title = new Date(`${month}T00:00:00Z`).toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
   return (
     <div className="plan-page">
-      <PageHeader variant="plan" title={title} />
+      <PlanHeader budgetId={budgetId} month={month} />
+      {/* EXF-500: the view chips row goes here, between the header and the grid */}
       <div className="plan-body">
         <PlanGrid budgetId={budgetId} month={month} />
         <aside className="plan-inspector" aria-label="Inspector" />
