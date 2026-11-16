@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 5 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 1,
+Review counters (finished children since that template's last review): Build 5 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -372,7 +372,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | running |
 | 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | live `82aac3a` |
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | pending | running |
-| 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | running |
+| 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | completed (8 minutes): `new_gaps` (EXF-572) |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2850,3 +2850,50 @@ Children used 46 of 200. Four are running: the categories Build (pull request #1
   both in one round.
 - Review cadence: Build 5, Deploy 8, Discover 2, Test user flow 1.
 - Ticket writes this round: none.
+
+### 2026-11-16 · Review round 35
+
+Children used 46 of 200. Three Builds are running: the categories Build (pull request #17; at its review
+step after my requested changes, 108 minutes in all), the account-pages Build (pull request #19) and the
+plan-menu Build. No card is waiting.
+
+**Ended: the flow test of flow 10 `p_e823d6accfd94427bec7eda412fe3037`, completed in 8 minutes. Verdict
+`new_gaps`.**
+
+- **Steps 1 to 15 all pass.** Through REST: an account, a transaction, an assignment, an idempotent retry
+  (two identical calls with one `Idempotency-Key` gave one row and byte-identical answers), and three errors
+  in the envelope shape. Through MCP: a transaction without a category shows as uncategorized, categorizing
+  it moves the activity to the category, assigning brings Available to zero, balances equal REST, and a bad
+  category id answers a tool error. The interface shows the same numbers. The history has a row per change
+  with `service:` or `mcp:service:` as actor.
+- **New gap EXF-572 (set to High, linked behind EXF-484): MCP tools missing for REST operations.** Of 28 REST
+  operations and 13 tools, seven operations that are not excluded by design have no tool: update a plan,
+  delete a plan, read one plan, read one account (being built in EXF-484), read one transaction, list
+  months, and the month navigation limits. Its acceptance asks for **a test that derives the REST
+  operations from the OpenAPI document and fails when a non-excluded one has no tool**: that turns the
+  person's "API first, MCP too" requirement into a gate for every later Build.
+- The same ticket's second part: eight tool descriptions leave out the money unit, the month or date
+  format, or what the tool returns; `cleared` offers `reconciled` although it is always refused; two tools
+  require a uuid for `budget_id` and the others take any string.
+- Cleanup left nothing.
+- My slip in step 13 of the brief did not throw the tester.
+
+**Rule for every brief from now on, until EXF-572's test exists:** "Every REST operation you add has an MCP
+tool that does the same, and every tool description states the money unit (integer milliunits, negative is
+an outflow), the month format (`YYYY-MM-01`), the date format (`YYYY-MM-DD`) and what it returns."
+
+**When to build EXF-572:** it touches the budgets, accounts, transactions and months tool files. The
+account-pages Build holds the accounts and transactions tools (and is adding `get_account`); the budgets and
+months tools are free. Build it right after the account-pages Build merges, as one Build, alone in those
+tool files.
+
+**Running Builds:** nothing off course. The categories Build is long (its second pass through checks,
+review, acceptance and gate).
+
+**Ticket writes:** 1 (EXF-572 High with its link).
+
+**Backlog:** 84 open feature tickets (10 done; 5 in progress), all triaged. Gap: EXF-570, EXF-571 (High, in
+progress), EXF-572 (High), EXF-558 (High), EXF-569 (Medium), EXF-454 (Low, in progress), EXF-560, EXF-562
+(Low). Template: fifteen. **Flow verdicts: 9 `new_gaps` (EXF-571), 10 `new_gaps` (EXF-572), 11 `parity`;
+the other eight not run yet.** Finished since each template's last review: Build 5, Deploy 8, Discover 2,
+Test user flow 2.
