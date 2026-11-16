@@ -108,7 +108,7 @@ running the gate or calling Cloudflare.
   Prints the file name of each migration not yet applied to the remote `budget-db`, one per line, nothing when
   none are pending (all of them when the database does not exist yet). Exit 0 when it can tell; 1 with a message
   on stderr when it cannot; 2 for a missing variable.
-- `bash scripts/plaid-credentials.sh`: pushes `PLAID_CLIENT_ID` with `PLAID_SANDBOX_SECRET` / `PLAID_PRODUCTION_SECRET` from the environment to the live clone (the release runs it last; a failure only warns). Prints `plaid credentials: sandbox set|skipped, production set|skipped`. Local: `PLAID_CREDENTIALS_BASE_URL=http://127.0.0.1:<port>`.
+- `bash scripts/plaid-credentials.sh`: pushes `PLAID_CLIENT_ID` with `PLAID_SANDBOX_SECRET` / `PLAID_PRODUCTION_SECRET` from the environment to the live clone (the release runs it last; a failure only warns). Prints `plaid credentials: sandbox set|skipped|failed, production set|skipped|failed`; exit 1 when an environment failed, 2 for a refused base URL or missing Access variables. Local: `PLAID_CREDENTIALS_BASE_URL=http://127.0.0.1:<port>`.
 - `bash scripts/live-test-plans.sh <command>`: manages test plans (name starts with `live.test_prefix`, `ZZ-TEST`)
   and nothing else; only calls `/api/v1/budgets`. Needs `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`.
   - `list`: `<id><TAB><name>` per test plan

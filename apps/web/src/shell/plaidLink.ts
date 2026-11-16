@@ -32,6 +32,14 @@ declare global {
 
 let loading: Promise<PlaidGlobal> | null = null;
 
+/** The only non-API error whose message is shown to the user. */
+export class PlaidLoadError extends Error {
+  constructor(message = "Plaid Link could not be loaded") {
+    super(message);
+    this.name = "PlaidLoadError";
+  }
+}
+
 export function loadPlaidLink(): Promise<PlaidGlobal> {
   if (window.Plaid) return Promise.resolve(window.Plaid);
   if (!loading) {
@@ -39,12 +47,11 @@ export function loadPlaidLink(): Promise<PlaidGlobal> {
       const s = document.createElement("script");
       s.src = PLAID_LINK_SRC;
       s.async = true;
-      s.onload = () =>
-        window.Plaid ? resolve(window.Plaid) : reject(new Error("Plaid Link missing"));
+      s.onload = () => (window.Plaid ? resolve(window.Plaid) : reject(new PlaidLoadError()));
       s.onerror = () => {
         loading = null;
         s.remove();
-        reject(new Error("Plaid Link could not be loaded"));
+        reject(new PlaidLoadError());
       };
       document.head.appendChild(s);
     });

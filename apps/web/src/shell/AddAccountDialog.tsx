@@ -127,21 +127,19 @@ export function AddAccountDialog({
         </div>
         <div className="account-modal-body">
           {screen === "start" ? (
-            <>
-              <BankSearch
-                budgetId={budgetId}
-                sandbox={plan?.bank_environment === "sandbox"}
-                variant={variant}
-                onUnlinked={() => setScreen("form")}
-                onConnected={(c) => {
-                  setConnection(c);
-                  setScreen("connected");
-                }}
-                onLinkingChange={(v) => {
-                  linkOpen.current = v;
-                }}
-              />
-            </>
+            <BankSearch
+              budgetId={budgetId}
+              sandbox={plan?.bank_environment === "sandbox"}
+              variant={variant}
+              onUnlinked={() => setScreen("form")}
+              onConnected={(c) => {
+                setConnection(c);
+                setScreen("connected");
+              }}
+              onLinkingChange={(v) => {
+                linkOpen.current = v;
+              }}
+            />
           ) : null}
           {screen === "connected" && connection ? <BankConnected connection={connection} /> : null}
           {screen === "form" ? (

@@ -9,7 +9,13 @@ import {
 } from "../api/bank-connections";
 import { ApiError } from "../api/client";
 import { BankIcon, ChevronRightIcon } from "./icons";
-import { loadPlaidLink, plaidExitMessage, saveLinkState, takeLinkState } from "./plaidLink";
+import {
+  loadPlaidLink,
+  PlaidLoadError,
+  plaidExitMessage,
+  saveLinkState,
+  takeLinkState,
+} from "./plaidLink";
 
 const GENERIC = "Something went wrong. Try again.";
 const NOT_SET_UP = "bank_connections_not_set_up";
@@ -26,8 +32,8 @@ export function domainOf(url: string | null): string {
   }
 }
 
-const errorText = (e: unknown, fallback = GENERIC) =>
-  e instanceof ApiError ? e.detail : e instanceof Error && e.message ? e.message : fallback;
+const errorText = (e: unknown) =>
+  e instanceof ApiError || e instanceof PlaidLoadError ? e.message : GENERIC;
 const searchErrorText = (e: unknown) =>
   e instanceof ApiError && e.errorName === NOT_SET_UP ? e.detail : GENERIC;
 
