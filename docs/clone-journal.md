@@ -5929,3 +5929,59 @@ page, months, targets and `packages/core/src/targets.ts`; the Reflect Build Refl
 
 Ticket writes: 2 (EXF-613 priority and state, one comment). Review cadence: Build 6, Deploy 8,
 Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 71
+
+Children used 85 of 200. One child ended: the flow tests. Three Builds are running. Main `9e77748`,
+live `e2bcd35`.
+
+**Ended: flows 2 and 9 on live `e2bcd35` (`p_eabc968ad4f743d1834cb9c99a7e924e`)**, about 25 minutes. It
+opened nothing in the source, clicked only its own rows in the Open Plan submenu, took no capture with
+the menu open, and purged its plans (`deleted 2 remaining 0`; one plan that is not a test plan).
+
+- **Flow 2, second run, in full: `parity_known_gaps`.** All twelve steps passed and **every figure I had
+  worked out matched its own arithmetic** (Working 982.66, 1,232.66, 1,132.66, 932.66, 902.66, 952.66,
+  1,102.66; Dining -77.34 and -27.34; Hobbies 252.66 after the cover).
+  - The payee's remembered Ready to Assign works (EXF-590 confirmed on live).
+  - A split with a remainder opens "Something Doesn't Add Up" with Auto-Distribute, Update Total and
+    Adjust Manually; a saved split is one parent row with indented lines and reopens with both.
+  - A transfer between on-plan accounts needs no category and leaves Ready to Assign alone; its jump
+    button lands on the other side with that row selected. A transfer to a tracking account takes a
+    category.
+  - The API and MCP agree with the screen (six rows summing to the Working balance; the split's lines;
+    `create_transfer`; the payee flag; the month's figures).
+  - Known, not gaps: no delete control in the register (EXF-520), Undo and Redo, File Import, Manage
+    Payees.
+  - Two small things it met and did not file, kept here: a transfer created through MCP to a tracking
+    account with no category shows "This needs a category" (right); and **clearing a row's category in
+    the edit row is not possible** (deleting the text and leaving the field puts the old category
+    back). The source lets a category be cleared only by choosing another, as far as the tickets say;
+    look at it when the register's screens for imports (EXF-463) are built, where "uncategorized"
+    matters.
+- **Flow 9, third run: `new_gaps`.** Everything about keeping two plans apart passed: the switch through
+  the submenu at both sizes; the switch with the next month held back 2 seconds (an empty grid and the
+  new plan's own name and account, nothing of the old plan after the click's own frame); the five
+  addresses by URL including both Reflect reports; wrong pairings by address (redirect to the plan's
+  own accounts), API (404 and 422) and MCP (readable errors); the pickers; deleting one plan.
+  **EXF-586 is confirmed fixed on live.**
+  - **One new gap, EXF-614 (triaged Low):** at a deleted plan's address the main area rightly says
+    "Plan not found", but the sidebar behaves as if an empty plan were open and offers Add Account,
+    whose dialog then gets a 404. A shell fix; rides with the next Build that holds the shell.
+
+**Flow verdicts now:** 1 `parity_known_gaps`, 2 `parity_known_gaps`, 5 `parity_known_gaps` (rerun with
+the import owed), 8 `new_gaps` (gap fixed; rerun after the Reflect Build), 9 `new_gaps` (EXF-614),
+10 `new_gaps` (gap fixed; rerun owed), 11 `parity`; 3, 4, 6, 7 not run.
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): still in its final gate (head `2ed8b72`).
+- **Reflect: two reports** (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`): designed (`c70ce8f`), building.
+- **EXF-613** (`p_fc9382ad6b6d49d5b8403c1b52472548`): started, planning.
+
+**Ticket writes:** 2 (EXF-614 priority and comment).
+
+**Backlog:** 61 open feature tickets (33 done; 5 in progress). Gap: in progress EXF-613 (High); open
+EXF-558, EXF-560, EXF-562, EXF-589, EXF-614 (Low). Template: twenty-nine. Finished since each
+template's last review: Build 6, Deploy 8, Discover 2, Test user flow 6.
+
+**Next plan:** if the Plan-page Build has not merged, deploy the import alone and run flow 5 against the
+Sandbox; read EXF-477 and start it.
