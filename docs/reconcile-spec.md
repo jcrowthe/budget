@@ -2,7 +2,7 @@
 
 Implements [reconcile-design.md](reconcile-design.md); decisions are cited as D1–D12 and cases as "case n". Read `docs/conventions.md` first. Nobody opens the source app. Run `pnpm check` after every task; e2e only for the named specs (`pnpm e2e e2e/reconcile.spec.ts …`). After T1 delete `.e2e-state`.
 
-Out of bounds (read, never change): the brief's note 8 list (`apps/web/src/plan/**`, `pages/plan.tsx`, `packages/core/**`, …), every `paths.always_overlap` file and shared module, `e2e/support/real-click.ts`, the tests the conventions say are never edited. No new dependency.
+Out of bounds (read, never change): the brief's out-of-bounds list (note 3 of the carry-over brief: `apps/web/src/plan/**`, `pages/plan.tsx`, `packages/core/**`, …), every `paths.always_overlap` file and shared module, `e2e/support/real-click.ts`, the tests the conventions say are never edited. No new dependency.
 
 ## T1 Column (D1)
 
