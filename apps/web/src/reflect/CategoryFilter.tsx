@@ -17,6 +17,8 @@ export function CategoryFilter() {
     <FilterButton kind="categories" total={ids.length} selected={selected.size}>
       {({ anchorRef, close }) => (
         <FilterPopover
+          // A late read changes the listed items: start the draft again from them.
+          key={ids.length}
           anchorRef={anchorRef}
           title="Select Categories"
           searchPlaceholder="Search All Categories"

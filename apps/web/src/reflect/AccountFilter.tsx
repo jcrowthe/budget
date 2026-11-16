@@ -16,6 +16,8 @@ export function AccountFilter() {
     <FilterButton kind="accounts" total={ids.length} selected={selected.size}>
       {({ anchorRef, close }) => (
         <FilterPopover
+          // A late read changes the listed items: start the draft again from them.
+          key={ids.length}
           anchorRef={anchorRef}
           title="Select Accounts"
           searchPlaceholder="Search All Accounts"

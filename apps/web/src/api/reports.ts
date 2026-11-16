@@ -29,6 +29,7 @@ export const useReportSettings = (budgetId: string) =>
 export function useUpdateReportSettings(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ["report-settings-save", budgetId],
     scope: { id: `report-settings:${budgetId}` },
     mutationFn: async (v: { report: ReportSlug; patch: ReportSettingsUpdate }) =>
       (
@@ -78,7 +79,12 @@ export function useUpdateReportSettings(budgetId: string) {
       // A cancelled first read left nothing cached: read again.
       else void qc.invalidateQueries({ queryKey: settingsKey(budgetId) });
     },
-    onSuccess: (data) => qc.setQueryData(settingsKey(budgetId), data),
+    // Only the last save in the queue sets the cache: an earlier response would undo a later optimistic change.
+    onSuccess: (data) => {
+      if (qc.isMutating({ mutationKey: ["report-settings-save", budgetId] }) <= 1) {
+        qc.setQueryData(settingsKey(budgetId), data);
+      }
+    },
   });
 }
 
