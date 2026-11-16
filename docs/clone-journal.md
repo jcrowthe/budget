@@ -388,7 +388,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | PR #28 | merged `0b53a5f` (round 48), 62 minutes |
 | 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | live `b09078b` (6 minutes) |
 | 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
-| 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | running |
+| 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | live `3a3a977` (6 minutes) |
 | 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | pending | running |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
 
@@ -4222,3 +4222,43 @@ the Plan-page Build for EXF-498, 523, 521, 586) and three children started now.
   engine and the targets screens wait for the Plan-page Build.
 - Ticket writes: 8 (two priorities; three to In Progress; three comments).
 - Review cadence: Build 5, Deploy 1, Discover 2, Test user flow 3. **This round's review is the check-in.**
+
+### 2026-11-16 · Review round 50 (check-in)
+
+Children used 64 of 200. Four Builds are running: EXF-548 with EXF-551 (Reflect, regating on `3a3a977`
+after its third card); the Plan-page Build for EXF-498, 523, 521, 586 (built, head `be97b3e`); the Worker
+half of EXF-461; EXF-526 with EXF-524.
+
+**Ended: the Deploy of main `3a3a977`** (`p_8e0dbe332cab411d953c0e3eb9b6768c`), six minutes.
+**Live: https://budget.doxen.dev at `3a3a977`.**
+
+- **The out-of-order migration applied cleanly:** `20261116100100_payees.sql` was listed as pending before
+  the release and applied; none pending now. The same will hold for `100200` (report settings).
+- Checks passed: payees through REST and MCP (**39 tools**); the add row with `shift+N`, the calendar,
+  arithmetic in the amount (`12.34+5` gives 17.34), Enter saving and opening the next row, editing by
+  double-click, balances following; the payee dropdown without Starting Balance, filling the last-used
+  category; the account field on All Accounts (checked at 1024 only: its script crashed at 1440).
+- **The run prefix worked:** `purge 'ZZ-TEST D13'` printed `remaining 0`. One plan that is not a test plan.
+- One thing it noted against my expectation: `GET .../payees` lists the system payee Starting Balance by
+  default. The web picker hides it. For an API that is defensible (the row is marked `system`), but
+  `list_payees` should say so in its description: add to EXF-587 when it is built.
+
+**Reflect's third card (side turn): Regate**, chosen directly, because main had moved to `3a3a977`.
+
+**Running Builds:** the Plan-page Build's work is committed (`be97b3e`); the two Builds started in round 50
+have no commit yet.
+
+**Check-in sent** (round 50). Its points: the correction to round 40's report; the third Designer and the
+rule I now follow; what went live (plan menu, Ready to Assign and moves, transaction entry and payees,
+bank connection removal through the API; 39 tools); flows 1, 9 and 10; the choice about the bank screens;
+the child budget (64 used, about 70 more expected); the same requests as before.
+
+**Ticket writes:** none.
+
+**Backlog:** 75 open feature tickets (20 done; 8 in progress: EXF-548, 551, 498, 523, 521, 461, 526, 524).
+Gap: EXF-587, EXF-588 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress EXF-586 (High).
+Template: twenty-six (EXF-573 Urgent). Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`,
+11 `parity`. Finished since each template's last review: Build 5, Deploy 2, Discover 2, Test user flow 3.
+
+**Next plan:** flow tests on live with a run prefix: flow 1 again and flow 2 as far as built (outflow,
+inflow, overspend, cover); flow 9 again waits for EXF-586 on live.
