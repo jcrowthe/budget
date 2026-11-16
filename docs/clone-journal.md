@@ -7515,3 +7515,22 @@ template's last review: Build 3, Deploy 2, Discover 2, Test user flow 9.
 
 **Next plan:** no Deploy for the shell merge alone; the next merge (scheduled transactions or the
 Reflect fixes) is minutes away and one Deploy ships both. Nothing else is free to start.
+
+### 2026-11-16 · Plan round 87
+
+Children used 102 of 200. Nothing started; three Builds are running: scheduled transactions and the
+Reflect fixes (both in their gates on `85f3cc9`) and the credit engine carry-over. Main `85f3cc9`, live
+`8ec621e`. No tickets were filed at the last review.
+
+- **The shell's files are free again, and I looked for a ticket that needs only them:**
+  - Display Options (EXF-472) also changes the Plan page's pills and progress bars (`plan/**`, held by
+    the credit carry-over) and its dialog opens from the plan menu, which nobody opens in the source.
+  - Reordering accounts in the sidebar (EXF-490) needs the accounts service and repository (held by the
+    credit carry-over).
+  - The plans list page (EXF-471) is a parked screen.
+  - Moving the "enter what is due" trigger into the shell waits for scheduled transactions to merge.
+  So nothing starts.
+- **No Deploy for the shell merge alone:** the next card (scheduled transactions or the Reflect fixes)
+  is in its gate now; one Deploy ships both merges.
+
+Ticket writes: 0. Review cadence: Build 3, Deploy 2, Discover 2, Test user flow 9.
