@@ -81,6 +81,7 @@ export function MemoDialog({
           // biome-ignore lint/a11y/noAutofocus: the dialog opens for this one input
           autoFocus
           value={text}
+          maxLength={500}
           placeholder="Enter a memo for selected transactions"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {

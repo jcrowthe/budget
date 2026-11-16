@@ -74,6 +74,29 @@ describe("clear and unclear", () => {
   });
 });
 
+describe("clear with both sides of a transfer selected", () => {
+  for (const op of ["clear", "unclear"] as const) {
+    it(`${op}: both sides end in the new state, one log row each`, async () => {
+      const b = await plan();
+      const a1 = await account(b);
+      const a2 = await account(b);
+      const t = await tx(b, { account_id: a1, date: DAY, amount: -1000, transfer_account_id: a2 });
+      const o = t.transfer_transaction_id as string;
+      const from = op === "clear" ? "uncleared" : "cleared";
+      await setSql(t.id, `approved = 0, cleared = '${from}'`);
+      await setSql(o, `cleared = '${from}'`);
+      const before = await logs(b);
+      const res = await bulkOk(b, { op, ids: [t.id, o] });
+      expect(res.changed).toEqual([t.id, o]);
+      const to = op === "clear" ? "cleared" : "uncleared";
+      expect((await get(b, t.id)).cleared).toBe(to);
+      expect((await get(b, o)).cleared).toBe(to);
+      expect(await logs(b)).toBe(before + 2);
+      expect((await changeLogOf(t.id)).filter((l) => l.action === "update")).toHaveLength(1);
+    });
+  }
+});
+
 describe("memo, categorize, flag", () => {
   it("sets memos; a transfer's other side follows; null clears", async () => {
     const b = await plan();
@@ -265,6 +288,14 @@ describe("duplicate", () => {
     ]);
     expect(cs.subtransactions[0].id).not.toBe(s.subtransactions[0].id);
     expect(res.copies).toHaveLength(3);
+    const logged = await q(
+      "select after_json from change_log where entity_id = ? and action = 'create'",
+      ct.id,
+    );
+    expect(JSON.parse(logged[0]?.after_json)).toMatchObject({
+      transfer_account_id: a2,
+      transfer_transaction_id: ct.transfer_transaction_id,
+    });
     expect(ct.transfer_transaction_id).not.toBeNull();
     expect(ct.transfer_transaction_id).not.toBe(t.transfer_transaction_id);
     const side = await get(b, ct.transfer_transaction_id);

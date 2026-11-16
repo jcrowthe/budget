@@ -85,6 +85,17 @@ describe("refusals change nothing", () => {
     expect(detail).toContain("is a tracking account: its transactions take no category");
   });
 
+  it("move: a reconciled categorized row to a tracking account is skipped, not refused", async () => {
+    const b = await plan();
+    const a1 = await account(b);
+    const asset = await account(b, "otherAsset", 0);
+    const cat = await category(b);
+    const r = await tx(b, { account_id: a1, date: DAY, amount: -100, category_id: cat });
+    await setSql(r.id, "cleared = 'reconciled'");
+    const res = await bulkOk(b, { op: "move", ids: [r.id], value: asset });
+    expect(res.skipped).toEqual([{ id: r.id, reason: "reconciled" }]);
+  });
+
   it("categorize: an unknown category is refused", async () => {
     const b = await plan();
     const a = await account(b);

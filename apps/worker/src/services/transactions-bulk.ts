@@ -220,6 +220,10 @@ export async function bulkTransactions(
               id,
               "both sides of a transfer cannot be moved together",
             );
+          if (row.cleared === "reconciled") {
+            skip("reconciled");
+            break;
+          }
           if (
             account.onBudget &&
             !target.onBudget &&
@@ -231,8 +235,7 @@ export async function bulkTransactions(
               id,
               `${target.name} is a tracking account: its transactions take no category`,
             );
-          if (row.cleared === "reconciled") skip("reconciled");
-          else if (row.accountId === target.id) skip("unchanged");
+          if (row.accountId === target.id) skip("unchanged");
           else await planUpdate({ account_id: target.id });
           break;
         }
@@ -308,11 +311,14 @@ export async function bulkTransactions(
           }));
           out.push(...lineCopies);
           const names = { categoryName: row.categoryName, groupName: row.groupName };
-          logs.push(logShape({ ...copy, ...names }, lineCopies));
+          let side: txRepo.TransactionRow | undefined;
           if (row.transferAccountId && other) {
             copy.transferAccountId = row.transferAccountId;
-            const side = newOtherSide(copy, other.id, account.name, now);
+            side = newOtherSide(copy, other.id, account.name, now);
             copy.transferTransactionId = side.id;
+          }
+          logs.push(logShape({ ...copy, ...names }, lineCopies));
+          if (side && other) {
             out.push(side);
             logs.push(logShape({ ...side, categoryName: null, groupName: null }));
             if (row.transferTransactionId && idSet.has(row.transferTransactionId)) {
@@ -325,6 +331,16 @@ export async function bulkTransactions(
           changed.push(id);
           break;
         }
+      }
+    }
+
+    if (req.op === "clear" || req.op === "unclear") {
+      // A selected row's own plan already writes it (and approves it), so the other plan's mirror write of that
+      // row is dropped: it would overwrite the new state with the one read, and log the row twice.
+      for (const p of planned) {
+        if (p.kind !== "update") continue;
+        p.plan.others = p.plan.others.filter((o) => o.kind === "insert" || !idSet.has(o.before.id));
+        p.plan.logs = p.plan.logs.filter((l) => l.entityId === p.id || !idSet.has(l.entityId));
       }
     }
 
