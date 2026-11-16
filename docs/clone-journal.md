@@ -5194,3 +5194,17 @@ unchanged. Finished since each template's last review: Build 0 (reviewed now; th
 count), Deploy 5, Discover 2, Test user flow 5, Improve templates 3 in all.
 
 **Next plan:** nothing to start; the Deploy when EXF-593 merges.
+
+### 2026-11-16 · Plan round 63
+
+Children used 75 of 200. Three Builds are running, all from round 61: the targets carry-over (head
+`6c0c684`, after its review fixes), the EXF-593 Build (head `f35b98b`, built, in its checks and review)
+and the Reflect Build (still in its plan step). Main `6c73a00`, live `4e3eb7a`. No ticket was filed by me
+at the last review; EXF-610 and EXF-611, filed by the template review, exist and are High.
+
+**Started nothing.** The three Builds hold the Plan page, the register with the transactions, accounts
+and payees files, and Reflect; main waits for EXF-593 before any Deploy; flows 2 and 9 wait for that
+release. The plan declared in round 62 stands: the Deploy when EXF-593 merges, then EXF-462, the credit
+engine after the carry-over, Auto-Assign with snooze after the carry-over.
+
+Ticket writes: 0. Review cadence: Build 0, Deploy 5, Discover 2, Test user flow 5.
