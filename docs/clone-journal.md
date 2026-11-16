@@ -5394,3 +5394,50 @@ files, Reflect with the reports files, and the Plan page with the months and tar
 credit engine after the Plan-page Build.
 
 Ticket writes: 0. Review cadence: Build 2, Deploy 5, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 65
+
+Children used 77 of 200. One Build ended; two are running.
+
+**Ended: the EXF-593 Build (`p_563250b166984564b84cb2a32e722725`), merged as `3a98673` (PR #35)**,
+about 85 minutes, one card, about 9 dollars. EXF-593, EXF-590 and EXF-587 are Done.
+
+- I approved at its card: gate on the current base (`4da55a7`), e2e 259 of 259 three times, changed
+  specs ten times, no flake, no migration. I read the branch: `countsInBalance()` in
+  `repositories/transactions.ts` is used by every sum, guard and count of the accounts repository; the
+  design doc's table lists every reader of `transactions` with a verdict (the Implementer's "skipped
+  the list" meant only that it did not redo the Architect's); nothing out of bounds; no skipped test;
+  `DATE` kept in `mcp/tool-text.ts` beside the new `timestamps()` and `dates()`.
+- On main: 422 `account_closed`; `apps/web/src/register/openAccounts.ts` (`useOpenAccounts`);
+  `last_inflow_to_ready_to_assign` on payees; `apps/worker/test/mcp-timestamps.test.ts` with the rule in
+  `docs/conventions.md` that **every new tool adds its call there**; `e2e/account-guards.spec.ts`,
+  `e2e/payee-ready-to-assign.spec.ts`.
+- Two gate failures on the way, both fixed inside the Build: its own new spec pressed Tab before the
+  payee list had drawn; and its timestamp test caught the two target tools that arrived with the
+  targets merge (two one-line description edits in `mcp/tools/months.ts` and `targets.ts`).
+- Known and accepted: the closed-account check reads then writes (a named race).
+- **Source limits: its Designer went outside the named place** (All Accounts, and it opened a
+  transaction's edit row and left with Escape; nothing saved). Evidence posted on EXF-573.
+
+**Main is `3a98673`; live is `4e3eb7a`.** Three merges wait: transfers and splits (`6c73a00`, migration
+`20261116100500_transfers_splits.sql`), targets (`4da55a7`), the account guards (`3a98673`). **Nothing
+holds the release back now: Deploy at the next plan.** 52 tools on main.
+
+**Running:**
+- **Reflect carry-over** (`p_bce37969c15544d3aef56a825ebcb1d8`): 14 minutes in, at polish. Head
+  `8e5de64`: carry-over notes, the `localToday` import, the plan-switch guards and a unit test of the
+  placeholder option (my first point). Its base is `4da55a7`; its gate will rebase onto `3a98673`, and
+  its two tools must join the timestamp test.
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): 12 minutes in, in its plan step.
+
+**Free now:** the register, the transactions, accounts and payees files, the bank-connection files.
+Next plan: the Deploy; EXF-462 (import from Plaid); and a look at what else the register can take
+(scheduled transactions EXF-497, reconcile EXF-533, flags EXF-522, search EXF-528, the action bar
+EXF-520) beside the import, by manifest.
+
+**Ticket writes:** 6 (three Done, three comments).
+
+**Backlog:** 64 open feature tickets (30 done; 5 in progress: EXF-549, EXF-548, EXF-500, EXF-516,
+EXF-519). Gap: done now EXF-593, EXF-590, EXF-587; in progress EXF-588, EXF-591; open EXF-558, EXF-560,
+EXF-562, EXF-589 (Low). Template: twenty-eight. Flow verdicts unchanged. Finished since each
+template's last review: Build 3, Deploy 5, Discover 2, Test user flow 5.
