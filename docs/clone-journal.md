@@ -7144,3 +7144,40 @@ by me; `20261116101000_transaction_flags.sql` still pending).
 
 Ticket writes: 1 (EXF-630 priority). Review cadence: Build 2, Deploy 1 (cancelled `D22`), Discover 2,
 Test user flow 8; the template-ticket sweep is running.
+
+### 2026-11-16 · Review round 82
+
+Children used 101 of 200. One ended since review 81: Deploy `D22`, as abandoned after my cancel
+(recorded at review 81; nothing shipped). Six are running. Main `8ec621e`, live `357bc4f` (health read
+by me; one migration still pending).
+
+**Running, as read now:**
+- **Deploy `D23`** (`p_596994876dd74d549f308074a946366c`): its intake recorder wrote `deploy.env` at
+  14:14; the gate is running. Nothing to judge yet.
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): healthy box. The Clerk's merge
+  matched my figures exactly (55 files, 3,422 insertions, 122 deletions, no conflict); `pnpm check`
+  passes on the merge (1,532 tests). The Architect's "Carry-over" section is committed (`8b5f2db`).
+  - **The new conventions rule found a fourth per-row read on its first use:** creating a credit
+    account reads the payment group first, and creating accounts from a bank connection ran that read
+    once per account. It is being removed, with a counting test at 10 and 100 rows that must fail on
+    the old code. So the rule works when a step is asked to state calls per handler; the first three
+    cases were found by me reading code, this one by the Build itself.
+  - Backfill: names are never compared and no unique index covers names, so a card named like an
+    ordinary category is safe; the test gains that case. The partial-cover rule gets a Worker test
+    with an exact table. A narrow-window spec with the tickets' longest amounts is added.
+- **Shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`): implemented (`de012f7`), on base `5ebac3c`;
+  its card will need a regate, and is not approved while `D23` runs.
+- **Scheduled transactions** (`p_900d4c34d7c6414a980c2d1d87cfba26`) and **Reflect fixes**
+  (`p_7aa8691536924481bf53c457c86b24ea`): no commit yet.
+- **Template-ticket sweep** (`p_552c46323a86456abb5d968e351a103e`): reading.
+
+**Ticket writes:** 0.
+
+**Backlog:** unchanged: 56 open feature tickets (41 done; 6 in progress). Gap: open EXF-558, EXF-560,
+EXF-562, EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630; in progress EXF-614, EXF-621, EXF-625,
+EXF-626. Template: thirty-five. Flow verdicts unchanged. Finished since each template's last review:
+Build 2, Deploy 1, Discover 2, Test user flow 8.
+
+**Next plan:** nothing free to start; wait for `D23` and the cards. After `D23`: a flow test for flow 2
+again (bulk actions, flags, the register export) with a check that 60 imported rows can be rejected in
+one call needs a Sandbox bank, so it goes with the next run of flow 5.
