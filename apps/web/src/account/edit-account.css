@@ -32,6 +32,13 @@
 .dialog.form.edit-account input.field {
   margin-top: var(--space-2);
 }
+.dialog.form.edit-account input.field:focus {
+  border-color: var(--buttonPrimaryBackground);
+}
+.dialog.form.edit-account label {
+  margin-bottom: 0;
+  padding-bottom: var(--space-1);
+}
 .dialog.form.edit-account textarea.field {
   height: auto;
   min-height: 32px;
