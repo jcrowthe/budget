@@ -386,6 +386,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | completed (17 minutes): flow 9 `new_gaps` (EXF-586), flow 10 `new_gaps` (EXF-587), flow 1 `parity_known_gaps` |
 | 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
+| 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | running |
+| 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -3921,3 +3923,47 @@ EXF-586 (High), EXF-587 (Medium), EXF-560, EXF-562 (Low); in progress EXF-569, E
 twenty-six. Flow verdicts: 1 `parity_known_gaps` (its known gap, the Ready to Assign box, is now merged),
 9 and 10 `new_gaps`, 11 `parity`. Finished since each template's last review: Build 3, Deploy 0,
 Discover 2, Test user flow 3.
+
+### 2026-11-16 · Plan round 47
+
+Children used 61 of 200. Five are running: three Builds from earlier rounds (EXF-517 with EXF-507; EXF-548
+with EXF-551; EXF-579 with EXF-569) and two children started now.
+
+- No ticket was filed at the last review.
+- **Started the Deploy of main `b09078b`** (`p_19af5f217da344c69a6bc314de0cfbaa`), `gated_commit` `9959cf5`
+  (trees equal). Two merges: bank connection read, rename, reset and remove (one migration,
+  `20261116100300_bank_connections_reset.sql`), and the Ready to Assign box with moves.
+  - Checks: moves and a cover through REST, with the second cover refused; 38 tools; bank-connection reads
+    only (an empty list, a 404); the box, the breakdown, Assign, Move and Fix This with a real mouse at
+    two sizes.
+  - It may not open the plan submenu at all, may not create a connection, and gives the exact
+    expression of its plan count (the list is at `.data.budgets`).
+- **Started one Build for four tickets** (`p_65463dbc6be84add91017e885f952d56`): EXF-498 (selecting
+  categories), EXF-523 (the right panel's month and selection summaries), EXF-521 (the category inspector:
+  header, Available Balance, Notes) and EXF-586 (High: never show another plan's month as a placeholder).
+  - **Why together:** the selection is what the panel reads, the inspector is one state of the panel, and
+    the defect is in the month query all of them use. The Plan page files became free with the Ready to
+    Assign merge.
+  - Surface: `GET .../months/{month}/summary` (tool `get_month_summary`), `GET
+    .../months/{month}/categories/{category_id}` with a tool, `PATCH .../categories/{category_id}` takes
+    `note` (tool `set_category_note`); the month read carries each category's note. One migration,
+    named after `20261116100300`.
+  - Behaviour change: clicking a category's name selects it; the edit popover opens from the inspector's
+    pencil and a right-click. The existing categories and plan-grid specs change with it.
+  - Left out: the Target card (EXF-508, 514), Auto-Assign cards (EXF-519), Cost to Be Me (EXF-525),
+    Assigned in Future Months (EXF-527), grid filters (EXF-500), the shortcut registry (EXF-473).
+  - **Source: limited, with the wording that held in the Reflect Build.** One place (the test plan's Plan
+    page), a list of what may be done (select, hover, months, arrow keys, read style rules) and what never
+    (the plan button and menu, **Bank Connections and Add Account**, any account, saving anything,
+    collapsing a card, dragging the handle, clipped captures). Each step reports for itself.
+  - Out of bounds: the register, account, Reflect and shell files; `e2e/plans.spec.ts`,
+    `plan-urls.spec.ts`, `plan-menu.spec.ts` and `e2e/support/plans.ts` (the test-infrastructure Build).
+- **Scheduling rule:** four Builds' manifests are disjoint by brief (register, transactions and payees;
+  Reflect; scripts and three plan specs; the Plan page with months and categories). Shared docs only.
+  Migrations in flight: payees `100100`, report settings `100200`, category note `100400` (independent
+  tables; `100300` is on main).
+- **Not started:** flow tests wait for the Deploy (flow 1 again for the Ready to Assign box); EXF-461,
+  splits and transfers, and the credit engine wait for the transactions Build; EXF-587 waits for the
+  transactions tool file.
+- Ticket writes: 8 (four to In Progress, four comments).
+- Review cadence: Build 3, Deploy 0, Discover 2, Test user flow 3.
