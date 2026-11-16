@@ -12,18 +12,8 @@ source, are the specification; no screenshot of the source is kept, and nobody i
 "compare" below is against the ticket text and the clone's own look (`apps/web/src/register/`, the popovers of
 `apps/web/src/plan/`, `apps/web/src/shell/tokens.css`).
 
-What the tickets fix, in short (full text: EXF-517, EXF-507):
-- Add row at the top, selected: date (today, selected, calendar open), payee, category, memo, outflow, inflow;
-  cleared icon uncleared; Cancel, Save, Save and add another. Enter = Save and add another (same date, focus on
-  date). Escape or Cancel discards.
-- Date keys `-` `+` `=` `↑` `↓` `t` `m` `M` `y` `r` `Y`; typed `11/3`, `1/2/27`, `3` parsed on blur.
-- Payee picker: Saved Payees (visible, non-system, alphabetical), hint when none, `Create "<text>" Payee` first,
-  help line, hidden-payee line, Tab/Enter picks the best match; picking fills an empty category.
-- Category dropdown: Inflow / Ready to Assign with its amount, groups with categories and Available, search on
-  category or group, "No categories found with that name.", shown as `<Group>: <Category>`.
-- Amount arithmetic with two decimals; outflow and inflow exclusive; calculator icon on focus.
-- Empty row saves as $0.00 with "This needs a category"; the pill opens the row with the category open.
-- Edit: click selects only that row; click a selected row or double-click opens it focused on the clicked cell.
+The tickets' observed behaviour is restated, as built, in the Approach below; where the clone decides something
+the tickets leave open (Enter in an open list, Escape, negative amounts, blank calendar cells) it says so.
 
 ## Approach
 
@@ -177,7 +167,6 @@ in `register/icons.tsx`: `CalculatorIcon`, `ChevronLeftIcon`, `ChevronRightIcon`
   must keep `transactions.payee_name` in step or stop writing it). EXF-463 adds the attention column, the amber ⓘ
   and the banner, and "Approve" in place of Save on unapproved rows. EXF-497 adds the calendar's Repeat select.
   EXF-486 and EXF-533 create the other two system payees through `payeesRepo.systemPayee…`.
-- Every reader of `transactions` that used `payee_name` text now reads the joined payee.
 
 ## Out of scope
 
@@ -186,8 +175,8 @@ repeat, approving, remembered-category settings (EXF-515), undo (EXF-530).
 
 ## Acceptance
 
-Compare cases: **not compared: forbidden by the Lead; the tickets are the specification.** Each case below is
-checked on the clone only, in the e2e server, dark theme, 1600×900 unless stated. "Seed" = a ZZ-TEST plan with a
+Compare cases: **not compared: forbidden by the Lead; the tickets are the specification.** Clone only, e2e
+server, dark theme, 1600×900 unless stated. "Seed" = a ZZ-TEST plan with a
 checking account "ZZ Checking" ($2,500.00 on 11/01/2026), a credit card "ZZ Card" ($1,500.00 owed), a tracking
 asset, a group "D4 Register" with category "D4 Groceries" assigned $200.00 in Nov 2026.
 

@@ -1,11 +1,8 @@
 # Register entry spec (EXF-517, EXF-507)
 
 Implements [register-entry-design.md](register-entry-design.md). Tasks in order; each ends with how to verify.
-Follow `docs/conventions.md`. Never open the source app. Never edit `apps/web/src/plan/**`, `api/months.ts`,
-`api/assigned.ts`, `api/categories.ts`, `api/monthCache.ts`, `services/months.ts`, the months routes/schema,
-`apps/web/src/shell/**`, `apps/web/src/menu-actions/**`, `packages/core/src/**`, the other MCP tool files,
-`openapi.test.ts`, `mcp.test.ts`, `existing-surface.test.ts`, `e2e/mcp.spec.ts`, or any `paths.always_overlap`
-file. Reading/importing from them is fine (`useMonth`, `sidebarSections`, `STARTING_BALANCE_PAYEE`).
+Follow `docs/conventions.md`. Never open the source app. The out-of-bounds files of the Lead's note 15 stay
+untouched; importing from them is fine (`useMonth`, `sidebarSections`, `STARTING_BALANCE_PAYEE`).
 
 ## 1. Migration and tables
 
@@ -77,7 +74,6 @@ Then delete `.e2e-state`. Verify: `pnpm check` (`schema-drift.test.ts` passes).
   new payee is created with the transaction. Null or empty clears the payee.")`. Add `payee_id` to `updateFields`.
   Do **not** add a `.refine` to `TransactionCreateRequest` (its `.shape` feeds the MCP tool); the both-given rule
   is in the service.
-- `TransactionCreate` (the internal create) is unchanged in shape.
 
 `register.ts`:
 - `SortableTx` adds `payee_system?`. `categoryCell`: "notNeeded" for a credit type when `tx.payee_system ===
@@ -284,6 +280,5 @@ e2e/all-accounts.spec.ts --repeat-each=3`, then let final_gate run the full suit
 
 ## 9. Report
 
-Include every item of the Lead's "What to report" list: the screenshots kept (clone only, under
-`.screenshots/`), the statement that nobody opened the source, whether EXF-572 was on main, and `git diff
---stat origin/main` showing no out-of-bounds file.
+Answer every item of the Lead's "What to report" list, with `git diff --stat origin/main` showing no
+out-of-bounds file.
