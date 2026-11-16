@@ -14,6 +14,10 @@ export const BankAccount = z
     current_balance: Milliunits.nullable(),
     available_balance: Milliunits.nullable(),
     balance_updated_at: z.string().nullable(),
+    linked_account_id: z.uuid().nullable().openapi({
+      description:
+        "The plan account linked to this bank account in the given plan; null until linking exists (EXF-461)",
+    }),
   })
   .openapi("BankAccount");
 
@@ -26,9 +30,10 @@ export const BankConnection = z
     institution_name: z.string(),
     institution_logo: z.string().nullable(),
     nickname: z.string(),
-    status: z.string().openapi({ description: "connected" }),
+    status: z.string().openapi({ description: "connected (later: other statuses of the sync)" }),
     provider: z.string().openapi({ description: "Plaid" }),
     last_synced_at: z.string().nullable(),
+    last_reset_at: z.string().nullable(),
     created_at: z.string(),
     accounts: z.array(BankAccount),
   })
@@ -49,6 +54,21 @@ export const BankConnectionCreate = z
   .openapi("BankConnectionCreate");
 export const BankConnectionsQuery = z.object({ budget_id: z.uuid() });
 
+export const BankConnectionParams = z.object({
+  id: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: "id", in: "path" } }),
+});
+/** The query of every `/bank-connections/{id}` route: the plan decides the environment. */
+export const BankConnectionScope = z.object({ budget_id: z.uuid() });
+export const BankConnectionUpdate = z
+  .object({ nickname: z.string().max(100) })
+  .openapi("BankConnectionUpdate");
+export const BankConnectionDeleted = dataEnvelope(
+  z.object({ deleted: z.literal(true), plaid: z.enum(["removed", "already_removed"]) }),
+).openapi("BankConnectionDeletedResponse");
+
 export const BankConnectionResponse = dataEnvelope(
   z.object({ bank_connection: BankConnection }),
 ).openapi("BankConnectionResponse");
@@ -59,3 +79,4 @@ export const BankConnectionListResponse = dataEnvelope(
 export type BankAccount = z.infer<typeof BankAccount>;
 export type BankConnection = z.infer<typeof BankConnection>;
 export type BankConnectionCreate = z.infer<typeof BankConnectionCreate>;
+export type BankConnectionUpdate = z.infer<typeof BankConnectionUpdate>;

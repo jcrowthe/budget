@@ -26,6 +26,15 @@ for (const [file, mod] of Object.entries(modules)) {
 
 const toolsOf = (c: { tool: string | string[] }) => (Array.isArray(c.tool) ? c.tool : [c.tool]);
 
+/** `operation (file)` for each line whose `tool` is an empty list: no tool stands behind it. */
+function emptyToolLines(mods: Record<string, CoverageModule>): string[] {
+  return Object.entries(mods).flatMap(([file, mod]) =>
+    Object.entries(mod.operations ?? {})
+      .filter(([, c]) => c && "tool" in c && Array.isArray(c.tool) && c.tool.length === 0)
+      .map(([op]) => `${op} (${file})`),
+  );
+}
+
 const METHODS = ["get", "post", "put", "patch", "delete"];
 
 async function documentOperations(): Promise<string[]> {
@@ -100,6 +109,23 @@ describe("mcp-coverage", () => {
       bad,
       "toolsWithoutOperation in apps/worker/test/mcp-coverage/<resource>.ts names a tool that is not listed or that also maps to an operation.",
     ).toEqual([]);
+  });
+
+  it("no line maps an operation to an empty tool list", () => {
+    expect(
+      emptyToolLines(modules),
+      "Coverage lines whose tool is an empty list (operation and file). Name the tool(s) in that file of apps/worker/test/mcp-coverage/, or use { excluded: reason } (docs/conventions.md step 7).",
+    ).toEqual([]);
+  });
+
+  it("the empty-tool-list check names the operation and file", () => {
+    expect(
+      emptyToolLines({
+        "./mcp-coverage/fake.ts": {
+          operations: { "GET /fake": { tool: [] }, "GET /ok": { tool: "x" } },
+        },
+      }),
+    ).toEqual(["GET /fake (./mcp-coverage/fake.ts)"]);
   });
 
   it("every exclusion and note states a reason", () => {

@@ -15,6 +15,7 @@ export const bankConnections = sqliteTable(
     provider: text("provider").notNull(),
     lastSyncedAt: text("last_synced_at"),
     syncCursor: text("sync_cursor"),
+    lastResetAt: text("last_reset_at"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
