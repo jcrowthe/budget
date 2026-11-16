@@ -189,6 +189,33 @@ reassign_to?)`, `create_category(budget_id, group_id, name)`, `rename_category(b
   writes, the note) cancels in-flight month fetches before its optimistic write and the plan's months are
   refetched only when no write is pending, so a stale fetch cannot undo a collapse or an Assigned value.
 
+## Carry-over changes (carry-over Build, after merging `178c13a` onto main `2d1982e`)
+
+The design above stands; this Build adds only these. Spec: tasks T17–T19.
+
+1. **`updated_at` on moved transactions.** Main stores `transactions.updated_at` (not null; every writer sets it,
+   `docs/account-header-design.md` EXF-570). A delete with reassignment moves the deleted categories' active
+   transactions to the target; that update now also sets `updated_at` to the batch's `now` (the same value the
+   batch writes into the deleted categories' `deleted_at`). Transactions not moved (another category, or already
+   deleted) keep theirs. The change_log rows of the move are unchanged.
+2. **MCP for every REST operation of the feature.** Three tools over the existing services, results exactly the
+   REST `data`:
+
+   | Tool | File | Input | Service | Result |
+   | --- | --- | --- | --- | --- |
+   | `unhide_all_categories` | `mcp/tools/categories.ts` | `{budget_id}` | `unhideAll(env, actor, budget_id)` | `{unhidden: {group_ids, category_ids}}` |
+   | `get_category_usage` | `mcp/tools/categories.ts` | `{budget_id, category_id}` | `categoryUsage` | `{usage}` |
+   | `get_category_group_usage` | `mcp/tools/category-groups.ts` | `{budget_id, group_id}` | `groupUsage` | `{usage}` |
+
+   `PATCH …/category_groups/{group_id}` with `collapsed` stays REST-only (interface state). Every description in
+   the two files says what the tool returns; where amounts are mentioned (the delete and usage tools), that money
+   is integer milliunits (1000 = one currency unit, negative is an outflow) and a month is `YYYY-MM-01`. Every
+   tool in both files takes `budget_id` through the file's one shared `budget_id` schema (`z.string().min(1)`,
+   like the REST path param), so a malformed or unknown plan is a not-found error in every tool, as in REST.
+3. **Merge fixes only.** A failure of `pnpm check` or the gate caused by main's changes is fixed at its cause and
+   reported; nothing else changes. The source app is not opened in this Build (Lead's rule); case 16 was compared
+   in the earlier Thread (`docs/categories-polish.md`).
+
 ## Out of scope
 
 Undo/Redo, drag reorder, selection and the multi-select menu, filtered-view disabling, Move pickers, migrations.
@@ -238,10 +265,21 @@ Test Budget Plan page, its own dark theme, 1600×813: **look only, leave with Ca
 15. **(495) Persistence and history.** Hide a category, reload: still hidden. change_log has `update` rows for
     hide and unhide with the actor; `set_category_hidden` matches the PATCH (Worker test).
 16. **Visual compare.** Popover widths, colours, arrow and button order match the live source states of cases 1
-    to 3 (screenshots above as reference only).
+    to 3 (screenshots above as reference only). **This Build: not compared, forbidden by the Lead; compared in
+    the earlier Thread** (`docs/categories-polish.md`).
+17. **(carry-over 1) Moved `updated_at`.** Worker test in `category-delete.test.ts`: after a delete of Fun with
+    `reassign_to=Target`, each moved transaction's `updated_at` equals Fun's `deleted_at` (the delete's time) and
+    is later than its own `created_at`; a transaction in Target and a deleted one in Fun keep their `updated_at`.
+18. **(carry-over 2) New tools.** Worker tests: `unhide_all_categories` returns what `POST …/categories/unhide_all`
+    returns on an equal plan, leaves nothing hidden, and logs `update` rows whose actor starts `mcp:`;
+    `get_category_usage` and `get_category_group_usage` equal the two `GET …/usage` bodies' `data`; all three with
+    an unknown plan (and the reads with an unknown id) answer `isError: true`; `listedToolNames()` contains the
+    three; every tool of the two files rejects `budget_id: ""` with the same schema.
+19. **(carry-over 3) Checks.** `pnpm check` passes; three full `pnpm e2e` runs pass with no failure other than,
+    at most, `e2e/plans.spec.ts:4` (EXF-569). Any other failing spec is a defect.
 
 ## Manifest
 
-touches: [packages/schema/src/categories.ts, apps/worker/src/services/categories.ts, apps/worker/src/services/category-delete.ts, apps/worker/src/repositories/categories.ts, apps/worker/src/repositories/category-groups.ts, apps/worker/src/repositories/month-categories.ts, apps/worker/src/repositories/category-reassign.ts, apps/worker/src/routes/categories.ts, apps/worker/src/routes/category-groups.ts, apps/worker/src/mcp/tools/categories.ts, apps/worker/src/mcp/tools/category-groups.ts, apps/worker/test/categories.test.ts, apps/worker/test/category-groups.test.ts, apps/worker/test/category-delete.test.ts, apps/worker/test/category-hidden.test.ts, apps/web/src/api/categories.ts, apps/web/src/plan/rows.tsx, apps/web/src/plan/PlanGrid.tsx, apps/web/src/plan/Toolbar.tsx, apps/web/src/plan/collapse.ts, apps/web/src/plan/plan-grid.css, apps/web/src/plan/icons.tsx, apps/web/src/plan/Popover.tsx, apps/web/src/plan/NamePopover.tsx, apps/web/src/plan/DeleteDialog.tsx, apps/web/src/plan/CategoryPicker.tsx, apps/web/src/plan/HiddenCategories.tsx, e2e/categories.spec.ts, e2e/categories-hidden.spec.ts, e2e/plan-grid.spec.ts, docs/categories-design.md, docs/categories-spec.md, docs/plan-grid-design.md, docs/README.md]
+touches: [packages/schema/src/categories.ts, apps/worker/src/repositories/guards.ts, apps/worker/test/category-helpers.ts, apps/web/src/api/assigned.ts, apps/web/src/api/months.ts, apps/web/src/api/monthCache.ts, docs/categories-polish.md, apps/worker/src/services/categories.ts, apps/worker/src/services/category-delete.ts, apps/worker/src/repositories/categories.ts, apps/worker/src/repositories/category-groups.ts, apps/worker/src/repositories/month-categories.ts, apps/worker/src/repositories/category-reassign.ts, apps/worker/src/routes/categories.ts, apps/worker/src/routes/category-groups.ts, apps/worker/src/mcp/tools/categories.ts, apps/worker/src/mcp/tools/category-groups.ts, apps/worker/test/categories.test.ts, apps/worker/test/category-groups.test.ts, apps/worker/test/category-delete.test.ts, apps/worker/test/category-hidden.test.ts, apps/web/src/api/categories.ts, apps/web/src/plan/rows.tsx, apps/web/src/plan/PlanGrid.tsx, apps/web/src/plan/Toolbar.tsx, apps/web/src/plan/collapse.ts, apps/web/src/plan/plan-grid.css, apps/web/src/plan/icons.tsx, apps/web/src/plan/Popover.tsx, apps/web/src/plan/NamePopover.tsx, apps/web/src/plan/DeleteDialog.tsx, apps/web/src/plan/CategoryPicker.tsx, apps/web/src/plan/HiddenCategories.tsx, e2e/categories.spec.ts, e2e/categories-hidden.spec.ts, e2e/plan-grid.spec.ts, docs/categories-design.md, docs/categories-spec.md, docs/plan-grid-design.md, docs/README.md]
 shared: []
 migrations: 0

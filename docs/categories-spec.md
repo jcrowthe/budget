@@ -264,3 +264,56 @@ row `div.grid-row.group-row.hidden-categories-row[role=row]` with empty `cell-co
 
 Done by the Architect: `docs/README.md` line, `docs/plan-grid-design.md` ⊕ sentence. The report (Implementer)
 lists routes, the picker props, EXF-498/504/496/500 attach points, and that `useDismiss.ts` was absent.
+
+## Carry-over Build (design "Carry-over changes"; acceptance 17–19)
+
+The branch `178c13a` is merged onto main `2d1982e`. Do not rewrite it; change only what T17–T19 name. Out of
+bounds: `shell/**`, `menu-actions/**`, `apps/web/index.html`, `/me`, the other `mcp/tools/*.ts` files, any
+REST-vs-tools surface test (EXF-572), every `paths.always_overlap` file. Do not open the source app.
+
+## T17. `updated_at` on moved transactions
+
+- `repositories/category-reassign.ts` `moveTransactionsStmt(db, budgetId, fromIds, targetId, now: string, guard)`:
+  `.set({ categoryId: targetId, updatedAt: now })`. Its one caller, `buildDeleteBatch` in
+  `services/category-delete.ts`, passes `p.now`. `logMovesStmt` unchanged.
+- `test/category-delete.test.ts`, new `it` in "delete with reassignment": seed; a transaction in Fun, one in
+  Target, and one in Fun deleted via `DELETE …/transactions/{id}` (or the service) before the category delete;
+  read the three `updated_at` (raw `select … from transactions`); wait ≥2 ms; DELETE Fun `?reassign_to=Target`;
+  then the moved one's `updated_at` = Fun's `categories.deleted_at` and > its old value; the other two equal
+  their old values.
+- Verify: `pnpm check`.
+
+## T18. MCP tools (design table)
+
+- `mcp/tools/categories.ts`: add `unhide_all_categories` (`z.object({ budget_id })` →
+  `{ unhidden: await unhideAll(env, actor, input.budget_id) }`) and `get_category_usage`
+  (`{ budget_id, category_id }` → `{ usage: await categoryUsage(env, input.budget_id, input.category_id) }`).
+- `mcp/tools/category-groups.ts`: add `get_category_group_usage` (`{ budget_id, group_id }` →
+  `{ usage: await groupUsage(env, input.budget_id, input.group_id) }`).
+- Every tool in both files uses the file's `const budget_id = z.string().min(1)` (no inline variant, no
+  `z.uuid()`); the services already answer `NotFound("Plan")` for a malformed or unknown id.
+- Descriptions, all eleven tools: start with what it does, then "Returns …" naming the result key and fields
+  (e.g. `{category}` with id, group_id, name, sort, hidden; `{deleted}` with category_ids, group_id,
+  reassigned_to, transactions_moved, months_merged; `{usage}` with category_count, transaction_count,
+  has_assigned, has_history; `{unhidden}` with group_ids, category_ids). The two delete and two usage tools also
+  say: "Money is integer milliunits (1000 = one currency unit, negative is an outflow); months are YYYY-MM-01."
+- Tests (in the files that already hold these areas; reuse `mcp`, `logs`, `send`, `api` from
+  `category-helpers.ts`):
+  - `category-hidden.test.ts`: two fresh plans, the same rows hidden in each; `POST …/categories/unhide_all` on
+    one, `unhide_all_categories` on the other; the two results have the same counts and each lists its own
+    plan's ids; nothing hidden afterwards; the MCP plan's change_log `update` rows all have an actor starting
+    `mcp:`; with `budget_id: crypto.randomUUID()` → `isError: true`.
+  - `category-delete.test.ts`: seed with history; `get_category_usage` / `get_category_group_usage`
+    `structuredContent.usage` equal the REST `data.usage`; an unknown category / group id → `isError: true`.
+  - `categories.test.ts` / `category-groups.test.ts`: add the new names to their `listedToolNames()` lists; one
+    `it` that imports `tools` from both modules and asserts, for each, that
+    `inputSchema.shape.budget_id.safeParse("").success` is false and `.safeParse("x").success` is true, and that
+    every description contains "Returns".
+- Do not edit `test/mcp.test.ts`, `test/existing-surface.test.ts` or `test/surface.ts`.
+- Verify: `pnpm check`.
+
+## T19. Merge fallout and gate
+
+- `pnpm check`; fix only failures caused by main's changes (e.g. a changed type) and report each.
+- `pnpm e2e` three times in the foreground (never background-and-poll). Only `e2e/plans.spec.ts:4` (EXF-569)
+  may fail, and only alone; anything else is a defect to fix, even if it passes when run alone.
