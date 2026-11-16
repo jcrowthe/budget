@@ -131,6 +131,12 @@ test.describe("card payments, 1440x900", () => {
     await expect(pill(page, DEBT)).toContainText("$0.00");
     await expect(pill(page, OVER)).toHaveClass(/negative/);
     // Payment rows have no progress bar.
+    await page.getByRole("tab", { name: "Progress Bars On" }).click();
+    await expect(page.getByRole("tab", { name: "Progress Bars On" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(row(page, "ZZ Fun").locator(".progress-bar")).toHaveCount(1);
     await expect(row(page, DEBT).locator(".progress-bar")).toHaveCount(0);
   });
 
@@ -175,8 +181,9 @@ test.describe("card payments, 1440x900", () => {
     await expect(card(page)).toContainText(
       "You need to assign $1,200.00 more to pay off your current balance.",
     );
-    await expect(panel(page).getByText("Total Underfunded")).toBeVisible();
-    await expect(panel(page).getByText("$1,200.00").first()).toBeVisible();
+    await expect(
+      panel(page).locator(".payment-total", { hasText: "Total Underfunded" }),
+    ).toContainText("$1,200.00");
     await noLinks();
     await untick(page, DEBT);
 
@@ -184,8 +191,12 @@ test.describe("card payments, 1440x900", () => {
     await expect(card(page)).toContainText(
       "Cover $30.00 in overspent categories in order to pay off your current balance.",
     );
-    await expect(panel(page).getByText("Total Underfunded")).toBeVisible();
-    await expect(panel(page).getByText("Overspent Categories", { exact: true })).toHaveCount(2);
+    await expect(
+      panel(page).locator(".payment-total", { hasText: "Total Underfunded" }),
+    ).toContainText("$30.00");
+    await expect(
+      panel(page).locator(".payment-total", { hasText: "Overspent Categories" }),
+    ).toContainText("$30.00");
     await noLinks();
     await realClick(
       page,

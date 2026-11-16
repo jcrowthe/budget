@@ -34,7 +34,7 @@
   min-height: 0;
   display: flex;
   /* EXF-646, EXF-622: the panel never gets narrower than 320px (the source's own minimum is 300px; its cards need
-     more), the grid's content never narrower than 440px. A narrower grid box scrolls inside itself. */
+     more), the grid's content never narrower than 428px (polish P2). A narrower grid box scrolls inside itself. */
   --panel-min: 320px;
   --grid-min: 428px;
 }

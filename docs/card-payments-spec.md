@@ -172,7 +172,7 @@ export function cardPayment(flows: readonly CardFlow[], month: Month, available:
 - **`PlanPanel` and `pages/plan.tsx`:** `PlanPanel` gains `onView: (v: PlanView) => void`; `pages/plan.tsx` passes
   `setView`. `pages/plan.tsx` calls `usePlanLayout(bodyRef)` and spreads its attributes on `.plan-body`.
 - **New `planLayout.ts`:**
-  - `PANEL_MIN = 320`, `GRID_MIN = 440`, `NARROW_BELOW = 562`, `FOLD_BELOW = 620`.
+  - `PANEL_MIN = 320`, `GRID_MIN = 428` (440 in the first draft; see polish P2), `NARROW_BELOW = 562`, `FOLD_BELOW = 620`.
   - `planLayout(body, grid) → { fold: body < FOLD_BELOW, narrow: grid < NARROW_BELOW }`.
   - `usePlanLayout(ref)` uses one ResizeObserver on the body and its `.plan-grid` child, and returns
     `{ "data-fold"?: "", "data-narrow"?: "" }`.
@@ -180,7 +180,7 @@ export function cardPayment(flows: readonly CardFlow[], month: Month, available:
 - **`panelWidth.ts`:** `MIN_PANEL_WIDTH = 320`.
 - **`plan-panel.css` `.plan-inspector`:** `width: clamp(var(--panel-min), var(--panel-width, 33%),
   max(var(--panel-min), min(60%, calc(100% - var(--grid-min)))))`, with `--panel-min: 320px` and `--grid-min:
-  440px` declared on `.plan-body` (plan-grid.css). Add `.plan-body[data-fold] .plan-inspector { display: none }`.
+  428px` (polish P2) declared on `.plan-body` (plan-grid.css). Add `.plan-body[data-fold] .plan-inspector { display: none }`.
 - **`plan-grid.css`:**
   - `.plan-grid { min-width: 0; overflow: auto }`, and its `[role=treegrid]` gets `min-width: var(--grid-min)`.
   - Under `.plan-body[data-narrow]`:

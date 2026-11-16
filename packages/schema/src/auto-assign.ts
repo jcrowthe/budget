@@ -230,7 +230,7 @@ export function autoAssignPreview(cs: readonly AutoAssignInput[]): AutoAssignPre
   const sumOthers = (f: (c: AutoAssignInput) => number) => others.reduce((n, c) => n + f(c), 0);
   const sumCards = (f: (c: AutoAssignInput) => number) => cards.reduce((n, c) => n + f(c), 0);
   const totalOthers = (s: AutoAssignStrategy) => sumOthers((c) => autoAssignResult(c, s));
-  const hidden = hiddenAmounts(cs.map((c) => ({ ...c })));
+  const hidden = hiddenAmounts(cs);
   return {
     category_count: cs.length,
     underfunded: hidden.underfunded,
