@@ -41,11 +41,6 @@
 .plan-grid.bars-on {
   --num-col: 15%;
 }
-.plan-inspector {
-  flex: none;
-  width: 442px;
-  border-left: 1px solid var(--separatorStandard);
-}
 
 .grid-head {
   position: sticky;
@@ -248,9 +243,10 @@
   border: 1px solid var(--inputBorder);
   border-radius: 3px;
 }
-.checkbox[aria-checked="true"] .checkbox-box {
-  border-color: var(--actionPrimary);
-  background: var(--actionPrimary);
+.checkbox[aria-checked="true"] .checkbox-box,
+.checkbox[aria-checked="mixed"] .checkbox-box {
+  border-color: var(--buttonPrimaryBackground);
+  background: var(--buttonPrimaryBackground);
 }
 .checkbox-box svg {
   width: 11px;
@@ -325,6 +321,9 @@
   background: var(--backgroundPrimary);
   border-top: 1px solid var(--separatorStandard);
   color: var(--labelPrimary);
+}
+.category-row.is-selected {
+  background: var(--rowSelected);
 }
 .bars-on .category-row {
   height: 44px;

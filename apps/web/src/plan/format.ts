@@ -1,8 +1,16 @@
 import { formatMoney, type Milliunits } from "@budget/core/money";
+import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 
 /** Plan currency formats arrive with EXF-468; until then dollars, with a real minus sign (U+2212). */
 export const money = (m: Milliunits): string => formatMoney(m).replace("-", "−");
+
+/** "+$40.00" for a positive amount, else the plain amount ("−$30.00", "$0.00"). */
+export const signed = (m: Milliunits): string => (m > 0 ? `+${money(m)}` : money(m));
+
+/** The full English month name of a first-of-month date, "November". */
+export const longMonth = (m: Month): string =>
+  new Date(`${m}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
 
 type Amounts = Pick<MonthCategoryDetail, "activity" | "assigned" | "carried">;
 

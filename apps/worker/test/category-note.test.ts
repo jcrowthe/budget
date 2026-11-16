@@ -73,7 +73,13 @@ describe("category note", () => {
     const viaMcp = (
       await mcp("set_category_note", { budget_id: s.bid, category_id: other.id, note: "same" })
     ).structuredContent.category;
-    expect(viaMcp).toMatchObject({ ...rest, id: other.id, group_id: expect.any(String), name: other.name, sort: other.sort });
+    expect(viaMcp).toMatchObject({
+      ...rest,
+      id: other.id,
+      group_id: expect.any(String),
+      name: other.name,
+      sort: other.sort,
+    });
     const cleared = await mcp("set_category_note", {
       budget_id: s.bid,
       category_id: other.id,

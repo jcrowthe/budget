@@ -54,6 +54,18 @@ export const CheckIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m9.5 17.5-5-5 1.9-1.9 3.1 3.1 8.1-8.1 1.9 1.9z" />
   </svg>
 );
+/** The dash of a half-checked checkbox. */
+export const SubtractIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M5 11h14v2H5z" />
+  </svg>
+);
+/** A pencil, 16 px when sized by CSS. */
+export const PencilIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="m4 16.6 10.9-10.9 3.4 3.4L7.4 20H4zM16.3 4.3l1.4-1.4a1.2 1.2 0 0 1 1.7 0l1.7 1.7a1.2 1.2 0 0 1 0 1.7l-1.4 1.4z" />
+  </svg>
+);
 /**
  * A 2×2 grid of + − × ÷ glyphs filling a 16-unit box. Measured on the source's calculator icon (getBBox, viewBox
  * 0 0 16 16): 1.5-unit strokes, '+' centred (3.5,3.5) with 7-unit arms, '−' bar x 9–16 at y 2.75–4.25, '×' centred

@@ -90,9 +90,11 @@ test("geometry matches the source", async ({ page }) => {
   );
   const grid = (await page.locator(".plan-grid").boundingBox())?.width ?? 0;
   const panel = await page.locator(".plan-inspector").boundingBox();
-  near(panel?.width ?? 0, 442);
+  // Source: the panel is 442 of the 1340px content area (33%), measured at 1600x813 on the test plan's Plan page.
+  const body = (await page.locator(".plan-body").boundingBox())?.width ?? 0;
+  expect(Math.abs((panel?.width ?? 0) - body * 0.33)).toBeLessThanOrEqual(2);
   expect(grid).toBeGreaterThan(562);
-  await expect(page.locator(".plan-inspector")).toBeEmpty();
+  await expect(page.locator(".plan-inspector")).toContainText("'s Summary");
 });
 
 test("values, labels and pill colours", async ({ page }) => {

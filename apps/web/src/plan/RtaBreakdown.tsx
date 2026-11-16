@@ -1,11 +1,8 @@
-import { addMonths, type Month } from "@budget/core/month";
+import { addMonths } from "@budget/core/month";
 import type { MonthDetail } from "@budget/schema/months";
-import { money } from "./format";
+import { longMonth, money } from "./format";
 import { AddCircleFillIcon, InfoCircleFillIcon, SubtractCircleFillIcon } from "./icons";
 import { Popover } from "./Popover";
-
-const longMonth = (m: Month) =>
-  new Date(`${m}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
 
 /** "+$1.00", "−$1.00" (money already carries U+2212), "+$0.00" at zero. */
 const signed = (m: number) => (m >= 0 ? `+${money(m)}` : money(m));
