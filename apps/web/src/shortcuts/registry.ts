@@ -218,3 +218,8 @@ export function shortcutById(id: ShortcutId): Shortcut {
   if (!s) throw new Error(`unknown shortcut ${id}`);
   return s;
 }
+
+/** Throws for a registry row that cannot be dispatched (no key combination). */
+export function assertBindable(id: ShortcutId): void {
+  if (!shortcutById(id).combos?.length) throw new Error(`shortcut ${id} has no key combination`);
+}

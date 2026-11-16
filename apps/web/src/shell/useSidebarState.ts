@@ -62,6 +62,8 @@ export function useSidebarState() {
       };
       const end = () => {
         cleanup();
+        // A click with no movement changes nothing (and must not forget a saved width).
+        if (current === startWidth) return setLive(null);
         const next = releaseWidth(current);
         save(next);
         setSaved(next);

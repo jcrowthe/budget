@@ -6,7 +6,12 @@ import {
   parseCombo,
   pickShortcut,
 } from "../apps/web/src/shortcuts/keys";
-import { SHORTCUT_SECTIONS, SHORTCUTS, THEN } from "../apps/web/src/shortcuts/registry";
+import {
+  assertBindable,
+  SHORTCUT_SECTIONS,
+  SHORTCUTS,
+  THEN,
+} from "../apps/web/src/shortcuts/registry";
 
 const TICKET = `Universal|Open Keyboard Shortcuts Help|?
 Universal|Expand/Collapse Sidebar|shift .
@@ -105,7 +110,13 @@ test("pickShortcut", () => {
   expect(pickShortcut(q, { ...ctx, bound: new Set() })).toBeNull();
   expect(pickShortcut(q, { ...ctx, inField: true })).toBeNull();
   expect(pickShortcut(q, { ...ctx, modalOpen: true })).toBeNull();
+  expect(pickShortcut({ ...q, ctrlKey: true }, ctx)).toBeNull();
   expect(pickShortcut({ ...q, repeat: true }, ctx)).toBeNull();
   expect(pickShortcut({ ...q, isComposing: true }, ctx)).toBeNull();
   expect(pickShortcut({ ...q, defaultPrevented: true }, ctx)).toBeNull();
+});
+
+test("a row without key combinations cannot be bound", () => {
+  expect(() => assertBindable("flag")).toThrow("shortcut flag has no key combination");
+  expect(() => assertBindable("open-help")).not.toThrow();
 });

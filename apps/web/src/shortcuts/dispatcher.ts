@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { pickShortcut } from "./keys";
-import { type ShortcutId, shortcutById } from "./registry";
+import { assertBindable, type ShortcutId } from "./registry";
 
 export type ShortcutHandler = (e: KeyboardEvent) => void;
 export const MODAL_SELECTOR = '[role="dialog"], [role="menu"], [aria-modal="true"], dialog[open]';
@@ -11,7 +11,7 @@ const handlers = new Map<ShortcutId, ShortcutHandler[]>();
 
 /** Binds `handler` to a registry shortcut while the calling component is mounted (and `enabled`). */
 export function useShortcut(id: ShortcutId, handler: ShortcutHandler, enabled = true): void {
-  if (!shortcutById(id).combos?.length) throw new Error(`shortcut ${id} has no key combination`);
+  assertBindable(id);
   const ref = useRef(handler);
   ref.current = handler;
   useEffect(() => {

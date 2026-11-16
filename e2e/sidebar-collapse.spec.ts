@@ -257,3 +257,22 @@ test("A14 the rail's mark opens the menu beside it; the tiles navigate", async (
     await expect(link).toHaveClass(/active/);
   }
 });
+
+test("a stray click on the rail's edge keeps the saved width", async ({ page, request }) => {
+  const id = await newPlan(request);
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("seeded")) {
+      sessionStorage.setItem("seeded", "1");
+      localStorage.setItem("sidebar-is-collapsed", "true");
+      localStorage.setItem("sidebar-preferred-width", "400");
+    }
+  });
+  await page.goto(`/${id}/budget`);
+  await expect.poll(() => width(page)).toBe(56);
+  await page.mouse.click(54, 400);
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("sidebar-preferred-width")))
+    .toBe("400");
+  await realClick(page, toggleBtn(page));
+  await expect.poll(() => width(page)).toBe(400);
+});
