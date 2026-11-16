@@ -5,6 +5,7 @@ import {
 } from "@budget/core/account-types";
 import type { EngineActivity } from "@budget/core/budget-engine";
 import type { PayeeSystem } from "@budget/schema/payees";
+import { transferPayeeName } from "@budget/schema/transfers";
 import {
   and,
   eq,
@@ -17,6 +18,7 @@ import {
   type SQLWrapper,
   sql,
 } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { categories } from "../db/schema/categories";
@@ -24,7 +26,14 @@ import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 
-export type TransactionRow = typeof transactions.$inferSelect;
+type Sel = typeof transactions.$inferSelect;
+type LinkCols =
+  | "transferAccountId"
+  | "transferTransactionId"
+  | "parentTransactionId"
+  | "splitIndex";
+/** The link columns are optional so a plain row can be built without them (they insert as null). */
+export type TransactionRow = Omit<Sel, LinkCols> & Partial<Pick<Sel, LinkCols>>;
 
 export function insertStmt(db: Db, row: TransactionRow) {
   return db.insert(transactions).values(row);
@@ -37,7 +46,7 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
   return db
     .insert(transactions)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId} where exists ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId}, ${r.transferAccountId ?? null}, ${r.transferTransactionId ?? null}, ${r.parentTransactionId ?? null}, ${r.splitIndex ?? null} where exists ${guard}`,
     );
 }
 
@@ -47,7 +56,11 @@ export async function balancesByAccount(
   budgetId: string,
   accountId?: string,
 ): Promise<Map<string, { cleared: number; uncleared: number }>> {
-  const conds = [eq(transactions.budgetId, budgetId), isNull(transactions.deletedAt)];
+  const conds = [
+    eq(transactions.budgetId, budgetId),
+    isNull(transactions.deletedAt),
+    isNull(transactions.parentTransactionId),
+  ];
   if (accountId) conds.push(eq(transactions.accountId, accountId));
   const rows = await db
     .select({
@@ -89,11 +102,16 @@ export async function activityByMonth(
     .from(transactions)
     .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))
     .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .leftJoin(ta, eq(ta.id, transactions.transferAccountId))
     .where(
       and(
         eq(transactions.budgetId, budgetId),
         isNull(transactions.deletedAt),
         lt(transactions.date, before),
+        // A transfer between two on-plan accounts counts nowhere: no category, not uncategorized, no Ready to Assign.
+        sql`not (${transactions.transferAccountId} is not null and ${accounts.onBudget} = 1 and coalesce(${ta.onBudget}, 0) = 1)`,
+        // A split parent counts nothing: its lines (rows of their own) count in their categories.
+        sql`not exists (select 1 from transactions l where l.parent_transaction_id = ${transactions.id} and l.deleted_at is null)`,
         not(
           and(
             inArray(accounts.type, UNCOUNTED_STARTING_TYPES),
@@ -138,6 +156,7 @@ export async function openAccountsBalances(
       and(
         eq(transactions.budgetId, budgetId),
         isNull(transactions.deletedAt),
+        isNull(transactions.parentTransactionId),
         isNull(accounts.deletedAt),
         eq(accounts.closed, false),
       ),
@@ -149,7 +168,10 @@ export type TransactionDetailRow = TransactionRow & {
   categoryName: string | null;
   groupName: string | null;
   payeeSystem: PayeeSystem | null;
+  transferAccountName: string | null;
 };
+
+const ta = alias(accounts, "ta");
 
 // Soft-deleted categories and groups still join, so an old row keeps its label.
 const detailSelect = (db: Db) =>
@@ -160,24 +182,31 @@ const detailSelect = (db: Db) =>
       groupName: categoryGroups.name,
       payeeName: payees.name,
       payeeSystem: payees.system,
+      transferAccountName: ta.name,
     })
     .from(transactions)
     .leftJoin(categories, eq(categories.id, transactions.categoryId))
     .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
-    .leftJoin(payees, eq(payees.id, transactions.payeeId));
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .leftJoin(ta, eq(ta.id, transactions.transferAccountId));
 
 const toDetail = (r: {
-  t: TransactionRow;
+  t: Sel;
   categoryName: string | null;
   groupName: string | null;
   payeeName: string | null;
   payeeSystem: PayeeSystem | null;
+  transferAccountName: string | null;
 }): TransactionDetailRow => ({
   ...r.t,
-  payeeName: r.payeeName ?? r.t.payeeName,
+  // A transfer's payee is the other account, by its current name.
+  payeeName: r.transferAccountName
+    ? transferPayeeName(r.transferAccountName)
+    : (r.payeeName ?? r.t.payeeName),
   categoryName: r.categoryName,
   groupName: r.groupName,
   payeeSystem: r.payeeSystem,
+  transferAccountName: r.transferAccountName,
 });
 
 export async function findDetail(
@@ -191,6 +220,7 @@ export async function findDetail(
         eq(transactions.id, id),
         eq(transactions.budgetId, budgetId),
         isNull(transactions.deletedAt),
+        isNull(transactions.parentTransactionId),
       ),
     )
     .limit(1);
@@ -208,6 +238,7 @@ export async function listDetailForAccount(
     eq(transactions.budgetId, budgetId),
     eq(transactions.accountId, accountId),
     isNull(transactions.deletedAt),
+    isNull(transactions.parentTransactionId),
   ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
   return (await detailSelect(db).where(and(...conds))).map(toDetail);
@@ -221,7 +252,11 @@ export async function listDetailForPlan(
   budgetId: string,
   sinceDate?: string,
 ): Promise<PlanDetailRow[]> {
-  const conds = [eq(transactions.budgetId, budgetId), isNull(transactions.deletedAt)];
+  const conds = [
+    eq(transactions.budgetId, budgetId),
+    isNull(transactions.deletedAt),
+    isNull(transactions.parentTransactionId),
+  ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
   const rows = await db
     .select({
@@ -231,12 +266,14 @@ export async function listDetailForPlan(
       accountName: accounts.name,
       payeeName: payees.name,
       payeeSystem: payees.system,
+      transferAccountName: ta.name,
     })
     .from(transactions)
     .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))
     .leftJoin(categories, eq(categories.id, transactions.categoryId))
     .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
     .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .leftJoin(ta, eq(ta.id, transactions.transferAccountId))
     .where(and(...conds));
   return rows.map((r) => ({ ...toDetail(r), accountName: r.accountName }));
 }
@@ -258,12 +295,67 @@ function holdsCondition(before: TransactionRow) {
     same(t.amount, before.amount),
     same(t.cleared, before.cleared),
     same(t.approved, before.approved),
+    same(t.transferAccountId, before.transferAccountId ?? null),
+    same(t.transferTransactionId, before.transferTransactionId ?? null),
   ) as SQL;
+}
+
+/** Like `holds`, and the row's `updated_at` is unchanged too: any write since the read makes it fail. */
+export function holdsAt(db: Db, before: TransactionRow) {
+  return db
+    .select({ x: sql`1` })
+    .from(transactions)
+    .where(and(holdsCondition(before), same(transactions.updatedAt, before.updatedAt)) as SQL);
+}
+
+/** One guard that holds while every given guard does. */
+export function allHold(guards: SQLWrapper[]): SQLWrapper {
+  return sql`(select 1 where ${sql.join(
+    guards.map((g) => sql`exists ${g}`),
+    sql` and `,
+  )})`;
+}
+
+/** A `SELECT 1` that holds when the row was written at `at` (its `updated_at`). */
+export function writtenAt(db: Db, id: string, at: string) {
+  return db
+    .select({ x: sql`1` })
+    .from(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.updatedAt, at)));
 }
 
 /** A `SELECT 1` that holds while the row still has every value of `before` and is not deleted. */
 export function holds(db: Db, before: TransactionRow) {
   return db.select({ x: sql`1` }).from(transactions).where(holdsCondition(before));
+}
+
+/** The columns a write may set on a row. */
+export type TxSet = Partial<
+  Pick<
+    Sel,
+    | "accountId"
+    | "date"
+    | "payeeName"
+    | "payeeId"
+    | "categoryId"
+    | "inflowToReadyToAssign"
+    | "memo"
+    | "amount"
+    | "cleared"
+    | "approved"
+    | "transferAccountId"
+    | "transferTransactionId"
+    | "updatedAt"
+    | "deletedAt"
+  >
+>;
+
+/** Sets the row's columns only while `guard` holds. */
+export function updateIfStmt(db: Db, id: string, set: TxSet, guard: SQLWrapper) {
+  return db
+    .update(transactions)
+    .set(set)
+    .where(and(eq(transactions.id, id), sql`exists ${guard}`));
 }
 
 export function updateIfHoldsStmt(
@@ -272,9 +364,10 @@ export function updateIfHoldsStmt(
   after: TransactionRow,
   updatedAt: string,
 ) {
-  return db
-    .update(transactions)
-    .set({
+  return updateIfStmt(
+    db,
+    before.id,
+    {
       accountId: after.accountId,
       date: after.date,
       payeeName: after.payeeName,
@@ -286,15 +379,86 @@ export function updateIfHoldsStmt(
       cleared: after.cleared,
       approved: after.approved,
       updatedAt,
-    })
-    .where(holdsCondition(before));
+    },
+    holds(db, before),
+  );
 }
 
-export function softDeleteIfHoldsStmt(db: Db, before: TransactionRow, at: string) {
+export function softDeleteIfStmt(db: Db, id: string, at: string, guard: SQLWrapper) {
+  return updateIfStmt(db, id, { deletedAt: at, updatedAt: at }, guard);
+}
+
+/** Soft-deletes the live lines of a split parent while `guard` holds. */
+export function softDeleteLinesIfStmt(db: Db, parentId: string, at: string, guard: SQLWrapper) {
   return db
     .update(transactions)
     .set({ deletedAt: at, updatedAt: at })
-    .where(holdsCondition(before));
+    .where(
+      and(
+        eq(transactions.parentTransactionId, parentId),
+        isNull(transactions.deletedAt),
+        sql`exists ${guard}`,
+      ),
+    );
+}
+
+/** Keeps the live lines' account, date, cleared and approved in step with their parent. */
+export function syncLinesIfStmt(
+  db: Db,
+  parentId: string,
+  set: Pick<Sel, "accountId" | "date" | "cleared" | "approved" | "updatedAt">,
+  guard: SQLWrapper,
+) {
+  return db
+    .update(transactions)
+    .set(set)
+    .where(
+      and(
+        eq(transactions.parentTransactionId, parentId),
+        isNull(transactions.deletedAt),
+        sql`exists ${guard}`,
+      ),
+    );
+}
+
+export type LineRow = TransactionRow & {
+  categoryName: string | null;
+  groupName: string | null;
+};
+
+/** The live lines of split parents, by parent then `split_index`. */
+export async function listLines(
+  db: Db,
+  budgetId: string,
+  filter: { accountId?: string; parentId?: string; sinceDate?: string },
+): Promise<LineRow[]> {
+  const conds = [
+    eq(transactions.budgetId, budgetId),
+    isNull(transactions.deletedAt),
+    sql`${transactions.parentTransactionId} is not null`,
+  ];
+  if (filter.accountId) conds.push(eq(transactions.accountId, filter.accountId));
+  if (filter.parentId) conds.push(eq(transactions.parentTransactionId, filter.parentId));
+  if (filter.sinceDate) conds.push(gte(transactions.date, filter.sinceDate));
+  const rows = await db
+    .select({
+      t: transactions,
+      categoryName: categories.name,
+      groupName: categoryGroups.name,
+      payeeName: payees.name,
+    })
+    .from(transactions)
+    .leftJoin(categories, eq(categories.id, transactions.categoryId))
+    .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .where(and(...conds))
+    .orderBy(transactions.parentTransactionId, transactions.splitIndex);
+  return rows.map((r) => ({
+    ...r.t,
+    payeeName: r.payeeName ?? r.t.payeeName,
+    categoryName: r.categoryName,
+    groupName: r.groupName,
+  }));
 }
 
 /** The name of a category's group (deleted or not), for the change_log copy of a row. */

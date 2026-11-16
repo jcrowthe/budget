@@ -60,10 +60,30 @@ export type TransactionCreateParsed = z.output<typeof TransactionCreate>;
 /** What a request may set: reconciling is not available through the transactions routes (EXF-533). */
 export const PlainClearedStatus = z.enum(["uncleared", "cleared"]);
 
+/** One line of a split transaction. */
+export const SubTransaction = z
+  .object({
+    id: z.string(),
+    amount: Milliunits,
+    payee_id: z.string().nullable(),
+    payee_name: z.string().nullable(),
+    category_id: z.string().nullable(),
+    category_name: z.string().nullable(),
+    category_group_name: z.string().nullable(),
+    inflow_to_ready_to_assign: z.boolean(),
+    memo: z.string().nullable(),
+  })
+  .openapi("SubTransaction");
+export type SubTransaction = z.infer<typeof SubTransaction>;
+
 export const TransactionDetail = Transaction.extend({
   category_name: z.string().nullable(),
   category_group_name: z.string().nullable(),
   payee_system: PayeeSystem.nullable(),
+  transfer_account_id: z.string().nullable(),
+  transfer_transaction_id: z.string().nullable(),
+  transfer_account_name: z.string().nullable(),
+  subtransactions: z.array(SubTransaction),
   updated_at: z.string(),
 }).openapi("TransactionDetail");
 
@@ -107,6 +127,32 @@ const requestFields = {
   // Checked in the service, so "reconciled" gets its own 422 detail.
   cleared: ClearedStatus.optional(),
   approved: z.boolean().optional(),
+  transfer_account_id: z
+    .string()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe(
+      "The other account of a transfer: the server creates or keeps its paired row (opposite amount, same date and memo). Null on update makes the transaction a plain one again.",
+    ),
+  subtransactions: z
+    .array(
+      z
+        .object({
+          amount: Milliunits,
+          payee_id: z.string().min(1).nullable().optional(),
+          payee_name: z.string().max(200).nullable().optional(),
+          category_id: z.string().min(1).nullable().optional(),
+          inflow_to_ready_to_assign: z.boolean().optional(),
+          memo: z.string().max(500).nullable().optional(),
+        })
+        .strict(),
+    )
+    .max(50)
+    .optional()
+    .describe(
+      "Split lines (at least two) whose signed amounts add up to amount; on update an empty list turns a split back into a plain transaction.",
+    ),
 };
 
 export const TransactionCreateRequest = z
@@ -126,6 +172,8 @@ const updateFields = z
     memo: requestFields.memo,
     cleared: requestFields.cleared,
     approved: requestFields.approved,
+    transfer_account_id: requestFields.transfer_account_id,
+    subtransactions: requestFields.subtransactions,
   })
   .strict();
 
@@ -150,3 +198,5 @@ export type TransactionDetail = z.infer<typeof TransactionDetail>;
 export type AccountBalances = z.infer<typeof AccountBalances>;
 export type TransactionCreateRequest = z.input<typeof TransactionCreateRequest>;
 export type TransactionUpdateRequest = z.input<typeof TransactionUpdateRequest>;
+
+export type SubTransactionInput = NonNullable<TransactionCreateRequest["subtransactions"]>[number];

@@ -64,7 +64,14 @@ export async function monthlySums(
       amount: sql<number>`sum(${transactions.amount})`,
     })
     .from(transactions)
-    .where(and(live(budgetId), lt(transactions.date, beforeDate)))
+    // Split lines are left out: the parent row carries the split's whole amount. Both transfer sides stay in.
+    .where(
+      and(
+        live(budgetId),
+        isNull(transactions.parentTransactionId),
+        lt(transactions.date, beforeDate),
+      ),
+    )
     .groupBy(transactions.accountId, month);
   return rows.map((r) => ({ account_id: r.account_id, month: `${r.month}-01`, amount: r.amount }));
 }

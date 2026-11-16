@@ -24,6 +24,10 @@ function tx(over: Partial<TransactionDetail>): TransactionDetail {
     payee_id: null,
     payee_system: null,
     updated_at: "x",
+    transfer_account_id: null,
+    transfer_transaction_id: null,
+    transfer_account_name: null,
+    subtransactions: [],
     ...over,
   };
 }
@@ -151,6 +155,25 @@ describe("categoryCell", () => {
         on_budget: true,
       }),
     ).toEqual({ kind: "notNeeded" });
+  });
+  it("a split shows its own cell and text", () => {
+    const line = {
+      id: "l",
+      amount: -1000,
+      payee_id: null,
+      payee_name: null,
+      category_id: null,
+      category_name: null,
+      category_group_name: null,
+      inflow_to_ready_to_assign: false,
+      memo: null,
+    };
+    expect(categoryCell(tx({ subtransactions: [line, line] }), budget)).toEqual({ kind: "split" });
+  });
+  it("a transfer between on-plan accounts needs no category; with a tracking account it does", () => {
+    const t = tx({ transfer_account_id: "x", payee_name: "Transfer : X" });
+    expect(categoryCell(t, budget, { on_budget: true })).toEqual({ kind: "notNeeded" });
+    expect(categoryCell(t, budget, { on_budget: false })).toEqual({ kind: "needsCategory" });
   });
   it("needs a category otherwise", () => {
     expect(categoryCell(tx({ payee_name: "Shop" }), budget)).toEqual({ kind: "needsCategory" });

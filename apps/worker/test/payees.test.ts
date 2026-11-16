@@ -68,7 +68,13 @@ describe("listing", () => {
     for (const name of ["beta", "Alpha", "Gamma"]) {
       await post(bid, { account_id: aid, date: DAY, amount: -1, payee_name: name });
     }
-    const all = await payees(bid);
+    const everything = await payees(bid);
+    // The open account is offered as a transfer entry ("Transfer : <account>"); it is not a stored payee.
+    const transfer = everything.filter((p) => p.transfer_account_id !== null);
+    expect(transfer).toEqual([
+      expect.objectContaining({ id: `transfer:${aid}`, system: null, hidden: false }),
+    ]);
+    const all = everything.filter((p) => p.transfer_account_id === null);
     expect(all.map((p) => p.name)).toEqual(["Alpha", "beta", "Gamma", "Starting Balance"]);
     expect(all.at(-1)).toMatchObject({ system: "starting_balance", hidden: false });
     expect((await payees(bid, "?q=AM")).map((p) => p.name)).toEqual(["Gamma"]);

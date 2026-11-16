@@ -1,5 +1,6 @@
 import type { MonthGroupDetail } from "./months";
 import type { TransactionDetail } from "./transactions";
+import { transferCategoryRule } from "./transfers";
 
 // Repeat core's CREDIT_ACCOUNT_TYPES and STARTING_BALANCE_PAYEE (this package does not depend on core);
 // a Worker test asserts they are equal.
@@ -20,7 +21,12 @@ export const PLAN_SORT_COLUMNS = ["account", ...REGISTER_SORT_COLUMNS] as const;
 export type PlanSortColumn = (typeof PLAN_SORT_COLUMNS)[number];
 export type SortDir = "asc" | "desc";
 
-type SortableTx = { account_name?: string; payee_system?: string | null } & Pick<
+type SortableTx = {
+  account_name?: string;
+  payee_system?: string | null;
+  transfer_account_id?: string | null;
+  subtransactions?: readonly unknown[];
+} & Pick<
   TransactionDetail,
   | "id"
   | "date"
@@ -36,6 +42,7 @@ type SortableTx = { account_name?: string; payee_system?: string | null } & Pick
 
 /** "Group: Name", "Inflow: Ready to Assign", or "" without either. */
 export function categoryText(tx: SortableTx): string {
+  if (tx.subtransactions?.length) return "Split (Multiple Categories)...";
   if (tx.category_id && tx.category_name) {
     return tx.category_group_name
       ? `${tx.category_group_name}: ${tx.category_name}`
@@ -46,16 +53,22 @@ export function categoryText(tx: SortableTx): string {
 
 export type CategoryCell =
   | { kind: "text"; text: string }
+  | { kind: "split" }
   | { kind: "notNeeded" }
   | { kind: "needsCategory" };
 
 export function categoryCell(
   tx: SortableTx,
   account: { type: string; on_budget: boolean },
+  transferAccount: { on_budget: boolean } | null = null,
 ): CategoryCell {
+  if (tx.subtransactions?.length) return { kind: "split" };
   const text = categoryText(tx);
   if (text) return { kind: "text", text };
   if (!account.on_budget) return { kind: "notNeeded" };
+  if (tx.transfer_account_id && transferCategoryRule(account, transferAccount) === "not_needed") {
+    return { kind: "notNeeded" };
+  }
   if (REGISTER_CREDIT_TYPES.includes(account.type) && tx.payee_system === "starting_balance") {
     return { kind: "notNeeded" };
   }
