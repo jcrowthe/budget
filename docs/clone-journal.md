@@ -3078,3 +3078,20 @@ Nothing is off course.
 and EXF-572 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium), EXF-560,
 EXF-562 (Low). Template: sixteen. Flow verdicts: 9 `new_gaps`, 10 `new_gaps`, 11 `parity`. Finished since
 each template's last review: Build 8, Deploy 8, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 38
+
+Children used 49 of 200. Three Builds are running, all started in round 37: the categories carry-over
+(EXF-494, EXF-495), the plan-menu carry-over (EXF-571, EXF-470, EXF-454) and EXF-572 (MCP coverage).
+Nothing started this round.
+
+- No ticket was filed at the last review.
+- **Why nothing new:** the three Builds hold the grid and categories files, the shell, and the MCP tool
+  files. What is ready needs one of them: EXF-517 with EXF-507 need the category picker and the
+  transactions tool file; EXF-491 with EXF-492 need the picker and the grid; EXF-460 with EXF-461 need the
+  shell.
+- No Deploy: main `2d1982e` is one merge ahead of live `82aac3a`; one Deploy when the three Builds have
+  merged. No flow test until then.
+- At the cards of the categories carry-over and EXF-572: whichever merges second must add the category
+  operations to the coverage mapping (see the round 37 plan).
+- Review cadence: Build 8, Deploy 8, Discover 2, Test user flow 2.
