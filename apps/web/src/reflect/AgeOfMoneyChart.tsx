@@ -4,8 +4,6 @@ import type { AgeOfMoney } from "@budget/schema/reports";
 import { useEffect, useRef, useState } from "react";
 
 const HEIGHT = 320;
-// The hover column covers the whole column height, and reaches this far above the chart (the svg overflows visibly).
-const HOVER_ABOVE = 48;
 const PAD = { left: 72, right: 16, top: 16, bottom: 48 };
 
 export function AgeOfMoneyChart({ months }: { months: AgeOfMoney["months"] }) {
@@ -90,6 +88,7 @@ export function AgeOfMoneyChart({ months }: { months: AgeOfMoney["months"] }) {
             r={4}
           />
         ))}
+        {/* The hover column covers the plot from its top edge to the baseline, no more (EXF-621). */}
         {months.map((m, i) => (
           // biome-ignore lint/a11y/noStaticElementInteractions: pointer-only hover; the "Current" value and the API carry the figures
           <rect
@@ -97,9 +96,9 @@ export function AgeOfMoneyChart({ months }: { months: AgeOfMoney["months"] }) {
             className="aom-hover"
             data-month={m.month}
             x={PAD.left + col * i}
-            y={-HOVER_ABOVE}
+            y={PAD.top}
             width={col}
-            height={base + HOVER_ABOVE}
+            height={plotH}
             fill="transparent"
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(null)}

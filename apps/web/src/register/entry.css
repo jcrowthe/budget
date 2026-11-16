@@ -346,6 +346,33 @@ button.needs-category {
   background: var(--buttonPrimaryBackground);
   color: var(--labelPrimary);
 }
+/* The Repeat select under the day grid (EXF-497); not compared: the source's calendar was out of reach. */
+.calendar-repeat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.calendar-repeat label {
+  white-space: nowrap;
+}
+.calendar-repeat select {
+  box-sizing: border-box;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px;
+  border: 1px solid var(--borderSubtle);
+  border-radius: 4px;
+  background: var(--backgroundPrimary);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+}
 /* Source: the calendar's radius is 0.4rem, as .popover uses. */
 .entry-dropdown[role="dialog"] .entry-dropdown-panel {
   border-radius: 0.4rem;

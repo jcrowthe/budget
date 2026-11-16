@@ -107,12 +107,57 @@ test("553-2 553-3 the chart, its labels and the tooltip", async ({ page, request
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(page.url()).toBe(url);
 
-  for (const dy of [0, 6, -40]) {
+  // EXF-621: the hover columns end at the plot's top edge, so the high point is 40px above the marker,
+  // or 1px inside the plot's top edge where the marker sits less than 40px under it.
+  const plotTop = (await page.locator(".aom-chart line.aom-grid:not(.aom-base)").boundingBox())
+    ?.y as number;
+  const nov = await markerCentre(page, "2026-11-01");
+  for (const dy of [0, 6, -Math.min(40, nov.y - (plotTop + 1))]) {
     await page.mouse.move(oct.x, oct.y);
     await hoverMonth(page, "2026-11-01", 0, dy);
     await expect(tooltip(page).locator("div")).toHaveText(["Nov 2026", "122 days"]);
   }
   await expect(page.locator('.aom-marker[data-month="2026-11-01"]')).toHaveClass(/selected/);
+  expect((await markerCentre(page, "2026-10-01")).y).toBeGreaterThanOrEqual(plotTop + 41);
+  await hoverMonth(page, "2026-10-01", 0, -40);
+  await expect(tooltip(page).locator("div")).toHaveText(["Oct 2026", "114 days"]);
+});
+
+test("621 the Current value is outside the hover columns", async ({ page, request }) => {
+  const { plan } = await seedSpendingExample(request);
+  await openAge(page, plan.id);
+  await expect(page.getByTestId("aom-current")).toHaveText("122 days");
+  await expect(page.locator('.aom-marker[data-month="2026-11-01"]')).toBeVisible();
+  // The value element is a block as wide as the card: aim at its text, measured with a Range.
+  const v = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="aom-current"]') as Element;
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const b = r.getBoundingClientRect();
+    return { x: b.x, y: b.y, width: b.width, height: b.height };
+  });
+  const svg = (await page.locator(".aom-chart svg").boundingBox()) as { x: number };
+  const x = v.x + v.width - 8;
+  const y = v.y + v.height / 2;
+  expect(x).toBeGreaterThanOrEqual(svg.x + 72);
+  const onValue = await page.evaluate(
+    ([px, py]) => {
+      const el = document.elementFromPoint(px, py);
+      const cur = document.querySelector('[data-testid="aom-current"]');
+      return !!el && !!cur && cur.contains(el);
+    },
+    [x, y],
+  );
+  expect(onValue).toBe(true);
+  await page.mouse.move(x, y);
+  await page.waitForTimeout(300);
+  await expect(tooltip(page)).toHaveCount(0);
+  await expect(page.locator(".aom-marker.selected")).toHaveCount(0);
+  await page.mouse.move(v.x + 2, y);
+  await page.mouse.down();
+  await page.mouse.move(v.x + v.width - 2, y, { steps: 8 });
+  await page.mouse.up();
+  expect(await page.evaluate(() => getSelection()?.toString())).toContain("122 days");
 });
 
 test("553-4 the info card and no filters or export", async ({ page, request }) => {
