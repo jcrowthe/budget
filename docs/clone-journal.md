@@ -384,7 +384,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | live `41bee46` (6 minutes) |
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
 | 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | running |
-| 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | running |
+| 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -3655,3 +3655,54 @@ started now.
   only: `docs/README.md`, `docs/conventions.md`.
 - Ticket writes: 5 (EXF-579 priority; EXF-579 and EXF-569 to In Progress with comments).
 - Review cadence: Build 1, Deploy 0 (review running), Discover 2, Test user flow 2.
+
+### 2026-11-16 · Review round 43
+
+Children used 59 of 200. Six are running: five Builds (EXF-491 with EXF-492; EXF-517 with EXF-507; EXF-548
+with EXF-551; the Worker half of EXF-460 with EXF-574; EXF-579 with EXF-569) and the flow tests.
+
+**Ended: the Deploy template review** (`p_d5c887068b264f6a9d70d9f9ec940ebc`), 11 minutes. Its card reached
+me this time; I approved all nine proposals with three changes.
+
+- Filed, with the priorities I set:
+  - EXF-580 (High): every count of live data comes from a profile recipe run by code.
+  - EXF-581 (High): the live app's privacy rules live in the profile and the template, not in each brief.
+  - EXF-582 (Medium): the four recorder steps become code; commit ids resolved to full ones.
+  - EXF-583 (Medium): the release summary carries the deploy script's report lines.
+  - EXF-584 (Low): on a tree equal to the gated commit the gate runs a fast check.
+  - EXF-585 (Low): the verifier's answer schema accepts what cleanup does.
+- Comments on EXF-559 (the browser install), EXF-456 (profile keys checked before a child starts) and
+  EXF-556 (a test prefix per run).
+- My three changes: the count recipe prints numbers only and never a name or id; the saved deploy log masks
+  every secret the Thread holds and is never an output; an equal tree runs a fast check, never no check,
+  because live holds real data.
+- **What I learned:**
+  - The wrong plan count of round 31 came from `jq '.data|length'` on an object, which is always 1. Five
+    of six verifiers that counted hit a `jq` error and improvised. The last verifier said it made one
+    list request and made five. **Asking for the method does not make it checkable: until EXF-580, I
+    count myself** (the read-only check of round 40) when the number matters.
+  - A Deploy costs about $0.40 and five minutes; 26 % of the time is four recorder steps with no judgement.
+  - I was wrong twice in my notes: all nine shipped Deploys skipped e2e, and the first Deploy lacked ten
+    profile keys, not one.
+- **The screenshot it asked me to check** (`verify-01-menu-closed-submenu.png` of the last Deploy): I
+  cannot open it. `apps/web/src/shell/Sidebar.tsx` shows "Budget" in the plan button until the plan has
+  loaded, which is the 6-character text; the menu's first level lists no plans and the submenu was closed.
+  No other plan can be in it.
+
+**Running, branch heads read:**
+
+- EXF-491 with EXF-492: polish rounds on the Ready to Assign box (head `c91aff2`).
+- EXF-517 with EXF-507: review fixes (one save at a time, `shift+N`, Tab after arrows), head `6c6c867`.
+- EXF-548 with EXF-551: e2e specs written (head `9c660a2`).
+- Bank connections: tests for every acceptance case (head `9c9c1f5`).
+- EXF-579 with EXF-569: design and spec written.
+- Flow tests: started, no output yet.
+
+**Main is `41bee46`; live is `41bee46`.** Nothing merged this round.
+
+**Ticket writes:** 6 (priorities of EXF-580 to EXF-585).
+
+**Backlog:** 78 open feature tickets (16 done; 7 in progress). Gap: EXF-558 (High), EXF-560, EXF-562 (Low);
+in progress EXF-569, EXF-574, EXF-579. Template: twenty-six (EXF-573 Urgent; EXF-563, 576, 580, 581 High).
+Flow verdicts: 9 and 10 `new_gaps` (fixes live, running again), 11 `parity`, 1 running. Finished since each
+template's last review: Build 1, Deploy 0, Discover 2, Test user flow 2.
