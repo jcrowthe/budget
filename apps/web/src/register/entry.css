@@ -1,0 +1,261 @@
+/* The add and edit row (EXF-517), its lists and the calendar. Colours come from tokens.css and register.css. */
+.register-table .entry-body td {
+  height: 36px;
+  overflow: visible;
+  background: var(--register-entry-row);
+  cursor: default;
+}
+.register-table .entry-body td.num {
+  padding-right: 1.6px;
+}
+.register-table .entry-body .entry-actions-row td {
+  height: auto;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.register-table .entry-body .entry-row td {
+  border-bottom: 0;
+}
+.entry-input {
+  position: relative;
+  display: block;
+}
+.entry-input input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+}
+.entry-input input::placeholder {
+  color: var(--labelTertiary);
+}
+.entry-input input:focus {
+  outline: 0;
+  border-color: var(--actionPrimary);
+  box-shadow: 0 0 0 1px var(--actionPrimary);
+}
+.entry-input input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.entry-amount input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.entry-amount.is-focused input {
+  padding-left: 22px;
+}
+.entry-calculator {
+  position: absolute;
+  top: 7px;
+  left: 6px;
+  color: var(--labelSecondary);
+  pointer-events: none;
+}
+.entry-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.entry-message {
+  flex: 1;
+  color: var(--labelNegative);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  white-space: normal;
+}
+.entry-button {
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.entry-button.subtle {
+  background: var(--buttonSubtleBackground);
+}
+.entry-button.subtle:hover {
+  background: var(--buttonSubtleBackgroundHover);
+}
+.entry-button.primary {
+  background: var(--buttonPrimaryBackground);
+}
+.entry-button:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.entry-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.register-table .needs-category {
+  font: inherit;
+  font-size: 12px;
+}
+button.needs-category {
+  cursor: pointer;
+}
+
+/* Lists and the calendar: drawn on <body>, so they are positioned by Dropdown.tsx. */
+.entry-dropdown {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--separatorStandard);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: left;
+  overflow: hidden;
+}
+.entry-dropdown-body {
+  overflow-y: auto;
+  padding: var(--space-1) 0;
+}
+.entry-dropdown-footer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-top: 1px solid var(--separatorStandard);
+}
+.entry-footer-button {
+  padding: 4px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--buttonSubtleBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: 12px;
+}
+.entry-footer-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.entry-heading {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.entry-help {
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  color: var(--labelSecondary);
+}
+.entry-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  cursor: pointer;
+}
+.entry-option:hover {
+  background: var(--menuHover);
+}
+.entry-option.is-active {
+  background: var(--sidebarActive);
+}
+.entry-option-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.entry-available {
+  padding: 0 7px;
+  border-radius: 1000px;
+  font-variant-numeric: tabular-nums;
+}
+.entry-available.zero {
+  background: var(--inputBackground);
+  color: var(--labelTertiary);
+}
+.entry-available.positive {
+  background: var(--statusPositive);
+  color: var(--backgroundPrimary);
+}
+.entry-available.negative {
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+}
+
+.calendar {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+}
+.calendar-title {
+  font-weight: 600;
+}
+.calendar-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.calendar-arrow:hover {
+  background: var(--menuHover);
+}
+.calendar-row {
+  display: grid;
+  grid-template-columns: repeat(7, 30px);
+  gap: 2px;
+}
+.calendar-dow {
+  padding: 4px 0;
+  color: var(--labelSecondary);
+  font-size: 12px;
+  text-align: center;
+}
+.calendar-day,
+.calendar-blank {
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+}
+.calendar-day {
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  cursor: pointer;
+}
+.calendar-day:hover {
+  background: var(--menuHover);
+}
+.calendar-day.is-today {
+  border-color: var(--register-today-ring);
+}
+.calendar-day.is-selected {
+  background: var(--buttonPrimaryBackground);
+}

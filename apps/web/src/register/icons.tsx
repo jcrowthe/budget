@@ -82,3 +82,21 @@ export const MinusIcon = (p: P) => (
     <path d="M4 10.500h16v3H4z" />
   </svg>
 );
+export const CalculatorIcon = (p: P) => (
+  <svg {...base} width={14} height={14} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M5 1h14a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2Zm1 3v5h12V4H6Zm1 8v2.4h2.4V12H7Zm3.8 0v2.4h2.4V12h-2.4Zm3.8 0v2.4H17V12h-2.4ZM7 15.8v2.4h2.4v-2.4H7Zm3.8 0v2.4h2.4v-2.4h-2.4Zm3.8 0v2.4H17v-2.4h-2.4Z"
+    />
+  </svg>
+);
+export const ChevronLeftIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path d="M15.5 3 7 12l8.5 9 1.8-1.7L10.6 12l6.7-7.3z" />
+  </svg>
+);
+export const ChevronRightIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path d="M8.5 3 17 12l-8.5 9-1.8-1.7L13.4 12 6.7 4.7z" />
+  </svg>
+);

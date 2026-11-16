@@ -1,5 +1,6 @@
 import {
   PlanTransactionListResponse,
+  type TransactionCreateRequest,
   TransactionListResponse,
   TransactionResponse,
   type TransactionUpdateRequest,
@@ -37,6 +38,28 @@ export const updateTransaction = async (
       schema: TransactionResponse,
     })
   ).data.transaction;
+
+export const createTransaction = async (budgetId: string, body: TransactionCreateRequest) =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/transactions`, {
+      method: "POST",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: TransactionResponse,
+    })
+  ).data.transaction;
+
+/** Creates (no `id`) or changes (with `id`) a row; every query of the plan refetches when it succeeds. */
+export function useSaveTransaction(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id?: string; body: TransactionCreateRequest | TransactionUpdateRequest }) =>
+      v.id
+        ? updateTransaction(budgetId, v.id, v.body as TransactionUpdateRequest)
+        : createTransaction(budgetId, v.body as TransactionCreateRequest),
+    onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
+  });
+}
 
 export const useAccountTransactions = (budgetId: string, accountId: string, enabled = true) =>
   useQuery({

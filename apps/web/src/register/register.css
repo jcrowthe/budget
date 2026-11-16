@@ -3,6 +3,8 @@
   --register-needs-category: #daac00;
   --register-needs-category-label: #362c05;
   --register-icon-muted: #727484;
+  --register-entry-row: var(--register-row-selected);
+  --register-today-ring: var(--actionPrimary);
 }
 
 .register {
