@@ -7722,3 +7722,29 @@ Deploy 3 (one cancelled, two shipped), Discover 2, Test user flow 9.
 plan's four addresses, and the shell's new parts with two test plans (the plan menu under the usual
 rule: only its own `ZZ-TEST` rows, no capture with the menu open). It is the tenth flow test; the
 first review of the Test user flow template follows it.
+
+### 2026-11-16 · Plan round 90
+
+Children used 105 of 200. One started now; three are running with the credit engine carry-over (in or
+near its gate) and the carry-over of scheduled transactions and the Reflect fixes. Main and live
+`85f3cc9`. No tickets were filed at the last review.
+
+- **Started: flow 9, fourth run, on live** (`p_4eb0cb81def14945807989a771db369c`; prefix `ZZ-TEST F90`).
+  Two plans that differ in everything a person sees. New places where one plan could show in another
+  since the last run, each walked: the view chip in use, the ticked category and the Auto-Assign
+  amounts across a switch; all five Reflect reports by address with reads held back; the register's
+  ticked row, action bar and flag; the bulk, flag, snooze and Auto-Assign operations with the other
+  plan's ids through REST and through MCP; the sidebar's collapsed state (shared on purpose: said so,
+  so it is not filed as a leak); the plan menu from the rail and its Keyboard Shortcuts entry (which
+  `D24` could not check); and the fix of EXF-614 on a deleted plan's four addresses, with the requests
+  each page makes.
+  - The plan menu may be opened here under the usual rule: only rows named `ZZ-TEST F90` are clicked,
+    nothing else is read, no capture with the menu open.
+  - My figures: A 411.00 Ready to Assign, Rent 589.00, target 200.00 short, account 1,000.00; B
+    2,222.00, Food −22.00, account 2,200.00. "DIFFERS FROM THE BRIEF" if one is wrong.
+  - **It is the tenth flow test: the first review of the Test user flow template follows it.**
+- **Not started:** no Build (the two carry-overs hold everything a free ticket needs); no Deploy (main
+  and live are equal).
+- **Cards:** no Deploy is in flight, so a card on the current base can be approved, one at a time.
+
+Ticket writes: 0. Review cadence: Build 5, Deploy 3, Discover 2, Test user flow 9 (the tenth running).
