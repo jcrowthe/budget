@@ -237,7 +237,7 @@ export function EntryRow({
             </button>
             <button
               type="button"
-              className="entry-button primary"
+              className="entry-button is-primary"
               disabled={busy}
               onClick={() => submit("close")}
             >
@@ -246,7 +246,7 @@ export function EntryRow({
             {mode === "add" && (
               <button
                 type="button"
-                className="entry-button primary"
+                className="entry-button is-primary"
                 disabled={busy}
                 onClick={() => submit("again")}
               >

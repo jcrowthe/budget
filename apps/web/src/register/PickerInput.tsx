@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Dropdown } from "./Dropdown";
+import { CaretDownIcon, CheckIcon } from "./icons";
 
 export type PickerRender = {
   active: number;
@@ -24,7 +25,7 @@ export function PickerInput<T>({
   disabled,
   title,
   startOpen,
-  minWidth,
+  width,
   listLabel,
   footer,
   render,
@@ -40,7 +41,7 @@ export function PickerInput<T>({
   disabled?: boolean;
   title?: string;
   startOpen?: boolean;
-  minWidth: number;
+  width: number;
   listLabel: string;
   footer?: ReactNode;
   render: (ctx: PickerRender) => ReactNode;
@@ -95,7 +96,7 @@ export function PickerInput<T>({
   };
 
   return (
-    <div className="entry-input" ref={setAnchor}>
+    <div className="entry-input entry-picker" ref={setAnchor}>
       <input
         type="text"
         aria-label={label}
@@ -125,8 +126,9 @@ export function PickerInput<T>({
           onBlurCommit?.();
         }}
       />
+      <CaretDownIcon className="entry-caret" />
       {open && anchor && !disabled ? (
-        <Dropdown anchor={anchor} label={listLabel} minWidth={minWidth} footer={footer}>
+        <Dropdown anchor={anchor} label={listLabel} width={width} footer={footer}>
           {render({
             active,
             pick,
@@ -144,12 +146,17 @@ export function Option({
   name,
   onPick,
   onHover,
+  checked,
+  variant,
   children,
 }: {
   active: boolean;
   name: string;
   onPick: () => void;
   onHover: () => void;
+  /** Draws the check in the leading slot (the current value). */
+  checked?: boolean;
+  variant?: "create";
   children: ReactNode;
 }) {
   return (
@@ -159,12 +166,19 @@ export function Option({
       aria-selected={active}
       aria-label={name}
       tabIndex={-1}
-      className={`entry-option${active ? " is-active" : ""}`}
+      className={`entry-option${variant ? ` is-${variant}` : ""}${active ? " is-active" : ""}`}
       onMouseDown={(e) => e.preventDefault()}
       onMouseMove={onHover}
       onClick={onPick}
     >
-      {children}
+      <div className="entry-option-inner">
+        {variant ? null : (
+          <span className="entry-check-slot">
+            {checked ? <CheckIcon width={16} height={16} /> : null}
+          </span>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

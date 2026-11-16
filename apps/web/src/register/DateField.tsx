@@ -1,6 +1,7 @@
 import { dateKeyAction, formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
 import { useState } from "react";
 import { Calendar } from "./Calendar";
+import { CaretDownIcon } from "./icons";
 
 /** The date input with its calendar (open while focused) and the keys of EXF-517. */
 export function DateField({
@@ -27,7 +28,7 @@ export function DateField({
   };
 
   return (
-    <div className="entry-input" ref={setAnchor}>
+    <div className="entry-input entry-picker" ref={setAnchor}>
       <input
         type="text"
         aria-label="Date"
@@ -58,6 +59,7 @@ export function DateField({
           if (parsed) onChange(formatEntryDate(parsed), parsed);
         }}
       />
+      <CaretDownIcon className="entry-caret" />
       {open && anchor ? (
         <Calendar
           anchor={anchor}

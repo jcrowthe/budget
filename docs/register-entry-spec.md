@@ -252,7 +252,7 @@ Contracts:
 - Save: compute `date = parseEntryDate(dateText, localToday())`; on null show the message and focus the date.
   After "again": reopen an empty draft with `dateText` = the saved date, focus date with calendar open.
 
-`entry.css`: styles of the design's Look section; `--register-entry-row` and `--register-today-ring` declared in
+`entry.css`: styles of the design's Look section; `--register-entry-row` and `--register-label-action` declared in
 `register.css`'s `:root` block (edit). No raw colours outside those declarations.
 
 Verify: `pnpm check`; `pnpm dev`, then by hand: acceptance 1–8 on a ZZ-TEST plan.

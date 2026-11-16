@@ -15,7 +15,7 @@ export function AmountField({
   const [focused, setFocused] = useState(false);
   return (
     <div className={`entry-input entry-amount${focused ? " is-focused" : ""}`}>
-      {focused ? <CalculatorIcon className="entry-calculator" /> : null}
+      <CalculatorIcon className="entry-calculator" width={16} height={16} />
       <input
         type="text"
         inputMode="decimal"

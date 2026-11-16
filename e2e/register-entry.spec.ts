@@ -171,7 +171,7 @@ test("category search and the disabled footer", async ({ page, request }) => {
   await expect(option(page, "Ready to Assign")).toBeVisible();
   await expect(option(page, "D4 Groceries")).toContainText("$200.00");
   await expect(button(page, "Payment/Transfer")).toBeDisabled();
-  await expect(button(page, "Split")).toBeDisabled();
+  await expect(button(page, "Split (Multiple Categories)")).toBeDisabled();
   await category(page).fill("zzzz");
   await expect(
     page.getByText("No categories found with that name.", { exact: true }),
@@ -207,7 +207,11 @@ test("amount arithmetic, exclusivity and the stored amount", async ({ page, requ
   await outflow(page).fill("12.34+5");
   await outflow(page).press("Tab");
   await inflow(page).focus();
-  await expect(page.locator(".entry-calculator")).toBeVisible();
+  // Source: the 16px calculator shows (opacity 1) only on the focused amount field.
+  await expect(page.locator(".entry-amount.is-focused .entry-calculator")).toHaveCSS(
+    "opacity",
+    "1",
+  );
   await inflow(page).fill("5");
   await expect(outflow(page)).toHaveValue("");
   await outflow(page).fill("12.34+5");

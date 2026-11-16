@@ -49,7 +49,7 @@ export function PayeeField({
       initialActive={initialActive}
       disabled={disabled}
       title={title}
-      minWidth={260}
+      width={320}
       listLabel="Payees"
       onPick={(item) => {
         if (item.kind === "create") onChange({ id: null, name: value.name });
@@ -87,10 +87,11 @@ export function PayeeField({
                     <Option
                       active={active === i}
                       name={name}
+                      variant="create"
                       onPick={() => pick(i)}
                       onHover={() => hover(i)}
                     >
-                      {top.kind === "create" ? <PlusCircleIcon width={14} height={14} /> : null}
+                      {top.kind === "create" ? <PlusCircleIcon width={12} height={12} /> : null}
                       <span>{name}</span>
                     </Option>
                   );
@@ -111,6 +112,7 @@ export function PayeeField({
                   key={p.id}
                   active={active === i}
                   name={p.name}
+                  checked={p.id === value.id}
                   onPick={() => pick(i)}
                   onHover={() => hover(i)}
                 >

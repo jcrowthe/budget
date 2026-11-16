@@ -98,7 +98,7 @@ All in `apps/web/src/register/`; pure logic in `packages/schema/src/` with unit 
   text, else the last valid date, else today) and replace the text; any other key types. On blur the text is
   parsed (`parseEntryDate`) and reformatted, or left as typed when it does not parse. The **calendar** opens
   while the field has focus: title `Nov 2026`, ‹ › (aria-labels "Previous month", "Next month"), `Su`…`Sa`
-  header, day buttons (blank cells outside the month), today ringed, the field's date filled; clicking a day sets
+  header, day buttons (blank cells outside the month), today filled (not ringed), the field's date filled; clicking a day sets
   it and keeps focus in the field. No "Repeat" select (EXF-497).
 - **Payee field** (placeholder "payee"): a combobox over the plan's payees (one query, hidden included, filtered
   client-side by `payeeMenu`).
@@ -120,7 +120,7 @@ All in `apps/web/src/register/`; pure logic in `packages/schema/src/` with unit 
   (`categoryMenu`): case-insensitive substring on category or group name; a matching group lists all its
   categories; no match → "No categories found with that name." First match highlighted; Enter or Tab picks;
   blur without a pick restores the shown value. The value shows as `<Group>: <Category>` or
-  `Inflow: Ready to Assign`. Footer buttons "Payment/Transfer" (EXF-526) and "Split" (EXF-524) drawn disabled.
+  `Inflow: Ready to Assign`. Footer buttons "Payment/Transfer" (EXF-526) and "Split (Multiple Categories)" (EXF-524) drawn disabled.
   No "New Category" or `Create "<text>" Category`. In All Accounts, a tracking account chosen in the account
   field empties and disables the category field.
 - **Account field** (All Accounts only, placeholder "account"): the open accounts in sidebar order
@@ -157,7 +157,7 @@ Edit row background `--register-row-selected`; inputs 28px tall, `--inputBackgro
 radius `--radius-xs`, focus ring 1px `--actionPrimary`; dropdown/calendar like `.popover`
 (`--backgroundSecondary`, `--shadowMenu`, `--radius-lg`), option hover `--menuHover`, active option
 `--sidebarActive`, headers 12px/600 uppercase `--labelSecondary`. New custom properties, in `register.css` only:
-`--register-entry-row: var(--register-row-selected)` and `--register-today-ring: var(--actionPrimary)`. New icons
+`--register-entry-row: var(--register-row-selected)` and `--register-label-action: #a3acff` (the calendar arrows; the Plan's `--labelAction` is not loaded here). New icons
 in `register/icons.tsx`: `CalculatorIcon`, `ChevronLeftIcon`, `ChevronRightIcon` (PlusCircleIcon exists).
 
 ## Downstream
@@ -182,7 +182,7 @@ asset, a group "D4 Register" with category "D4 Groceries" assigned $200.00 in No
 
 1. (517) On ZZ Checking, focus the page body, press Shift+N. A row appears above the others with its checkbox
    ticked, the date field focused showing today's local date `MM/DD/YYYY` fully selected, and a calendar titled
-   with the current month (`Nov 2026`) with ‹ ›, `Su`…`Sa` and today ringed. Shift+N typed inside the memo field
+   with the current month (`Nov 2026`) with ‹ ›, `Su`…`Sa` and today filled. Shift+N typed inside the memo field
    types "N". The "Add Transaction" button opens the same row.
 2. (517) In the date field type `11/15/2026`, then press `m` → `11/01/2026`; retype, `M` (Shift+M) → `11/30/2026`;
    `y` → `01/01/2026`; `r` → `12/31/2026`; `Y` → `12/31/2026`; from 11/15: `-` `-` → `11/13/2026`; `+` `+` →
@@ -195,7 +195,7 @@ asset, a group "D4 Register" with category "D4 Groceries" assigned $200.00 in No
    the empty category shows `D4 Register: D4 Groceries`. `GET …/payees` lists it once.
 4. (517) In the category field type `d4 gro` → "D4 Groceries" listed and highlighted; `zzzz` → "No categories
    found with that name."; `d4 reg` lists every category of D4 Register; `inflow` lists Ready to Assign with the
-   month's amount. Footer "Payment/Transfer" and "Split" are disabled.
+   month's amount. Footer "Payment/Transfer" and "Split (Multiple Categories)" are disabled.
 5. (517) Outflow `12.34+5` then Tab → `17.34`; saved, the API row has `amount: -17340`. Table: `100/4`→`25.00`,
    `3*2.5`→`7.50`, `10-2.5`→`7.50`, `(2+3)*2`→`10.00`, `1,234.5`→`1,234.50`, `5+`→`5.00`, `-5` in outflow →
    `5.00` in outflow, `abc` and `0` → empty. Typing in inflow empties outflow. A focused amount field shows the

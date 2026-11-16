@@ -33,7 +33,7 @@ export function AccountField({
       disabled={disabled}
       title={title}
       startOpen={startOpen}
-      minWidth={220}
+      width={320}
       listLabel="Accounts"
       onBlurCommit={() => setTyped(null)}
       onPick={(a) => {
@@ -49,6 +49,7 @@ export function AccountField({
               key={a.id}
               active={active === i}
               name={a.name}
+              checked={a.id === value}
               onPick={() => pick(i)}
               onHover={() => hover(i)}
             >

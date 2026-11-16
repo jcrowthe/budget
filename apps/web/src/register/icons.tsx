@@ -90,13 +90,3 @@ export const CalculatorIcon = (p: P) => (
     />
   </svg>
 );
-export const ChevronLeftIcon = (p: P) => (
-  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
-    <path d="M15.5 3 7 12l8.5 9 1.8-1.7L10.6 12l6.7-7.3z" />
-  </svg>
-);
-export const ChevronRightIcon = (p: P) => (
-  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
-    <path d="M8.5 3 17 12l-8.5 9-1.8-1.7L13.4 12 6.7 4.7z" />
-  </svg>
-);

@@ -1,6 +1,6 @@
 import { addMonths, monthGrid, monthTitle } from "@budget/schema/date-entry";
+import { ChevronCircleLeftIcon, ChevronCircleRightIcon } from "../plan/monthNavIcons";
 import { Dropdown } from "./Dropdown";
-import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -23,7 +23,7 @@ export function Calendar({
   // mousedown never leaves the date field, so its focus (and this calendar) stay.
   const keep = (e: React.MouseEvent) => e.preventDefault();
   return (
-    <Dropdown anchor={anchor} label="Calendar" role="dialog" minWidth={232}>
+    <Dropdown anchor={anchor} label="Calendar" role="dialog" width={230}>
       <div className="calendar">
         <div className="calendar-head">
           <button
@@ -34,7 +34,7 @@ export function Calendar({
             onMouseDown={keep}
             onClick={() => onMonth(addMonths(month, -1))}
           >
-            <ChevronLeftIcon />
+            <ChevronCircleLeftIcon size={24} />
           </button>
           <span className="calendar-title" aria-live="polite">
             {monthTitle(month)}
@@ -47,17 +47,17 @@ export function Calendar({
             onMouseDown={keep}
             onClick={() => onMonth(addMonths(month, 1))}
           >
-            <ChevronRightIcon />
+            <ChevronCircleRightIcon size={24} />
           </button>
         </div>
-        <div className="calendar-grid">
-          <div className="calendar-row">
-            {DAYS.map((d) => (
-              <span key={d} className="calendar-dow">
-                {d}
-              </span>
-            ))}
-          </div>
+        <div className="calendar-dow-row">
+          {DAYS.map((d) => (
+            <span key={d} className="calendar-dow">
+              {d}
+            </span>
+          ))}
+        </div>
+        <div className="calendar-days">
           {monthGrid(month).map((week) => (
             <div key={week.find(Boolean) ?? month} className="calendar-row">
               {week.map((iso, i) =>
