@@ -382,7 +382,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
 | 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | live `41bee46` (6 minutes) |
-| 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
+| 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | PR #26 | merged `3007076` (round 45), 35 minutes |
 | 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | completed (17 minutes): flow 9 `new_gaps` (EXF-586), flow 10 `new_gaps` (EXF-587), flow 1 `parity_known_gaps` |
 | 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
@@ -3806,3 +3806,46 @@ with EXF-507; EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574; EXF
 - **For the Ready to Assign card:** the month query still keeps previous data across plans (EXF-586). Do
   not ask for it there: a rework costs a full pass; EXF-586 is its own ticket.
 - Review cadence: Build 1, Deploy 0, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 45
+
+Children used 59 of 200. Four Builds are running: EXF-491 with EXF-492 (at its gate after a spec fix);
+EXF-517 with EXF-507 (gate fixes in specs); EXF-548 with EXF-551 (polish applied); EXF-579 with EXF-569
+(built, five full runs green).
+
+**Ended: the bank-connection Worker Build, merged as `3007076` (PR #26)**, 35 minutes. EXF-574 is Done.
+EXF-460 goes back to Backlog with a comment: its Worker half is on main, its screens are not built.
+
+- I approved at its card after reading the branch: gate e2e 127 of 127 three times; no file under
+  `apps/web/`; no Designer activity and no screenshot. **Seven of seven Builds without a screen have had no
+  source comparison.**
+- On main now: `GET`/`PATCH`/`DELETE /api/v1/bank-connections/{id}`, `POST .../{id}/link-token` (update
+  mode, 409 `reset_too_soon` within 24 hours), `POST .../{id}/reset`; all scoped by the plan's environment.
+  Tools `get_bank_connection`, `rename_bank_connection`, `remove_bank_connection`. `deleteSecretStmt` in
+  the shared `secrets` module. `BankConnectionRefused` (409 or 502) in the service.
+- Removal: Plaid first; "Item gone" completes locally; any other Plaid failure, a network failure
+  included, answers 502 `plaid_remove_failed` and removes nothing (tested, then retried).
+- EXF-461 adds the unlinking at the marked line in `removeBankConnection`, and fills `linked_account_id`.
+- One migration is pending on live: `20261116100300_bank_connections_reset.sql` (one nullable column).
+- **A connection made by mistake on live can now be removed once this is deployed**, through REST or MCP.
+
+**Running Builds (heads and one transcript read):**
+
+- EXF-579 with EXF-569: `pickLastOpened` in `shell/useCurrentPlan.ts` is tested directly from a spec; a new
+  helper `e2e/support/plans.ts` (`showOnlyPlans`); the same pattern fixed in `plan-urls.spec.ts` and
+  `plan-menu.spec.ts`. Five full runs of 128 and a repeat run of 300 green. No app file changed; it never
+  called live.
+- EXF-517 with EXF-507: head `0cc71f3`, a gate fix in a spec ("wait for the category match before Tab in
+  the Plan activity spec").
+- EXF-491 with EXF-492: head `6998460`, the spec fix after its first gate run.
+- EXF-548 with EXF-551: head `0d09fff`, polish applied. **Read its Designer's lines before its card, and
+  look for `keepPreviousData` in `api/reports.ts` (EXF-586).**
+
+**Main is `3007076`; live is `41bee46`**, one merge behind. Deploy when one or two more Builds have merged.
+
+**Ticket writes:** 4 (EXF-574 Done with a comment; EXF-460 to Backlog with a comment).
+
+**Backlog:** 79 open feature tickets (16 done; 6 in progress: EXF-491, 492, 517, 507, 548, 551). Gap:
+EXF-558 and EXF-586 (High), EXF-587 (Medium), EXF-560, EXF-562 (Low); in progress EXF-569, EXF-579; done
+now also EXF-574. Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`,
+11 `parity`. Finished since each template's last review: Build 2, Deploy 0, Discover 2, Test user flow 3.
