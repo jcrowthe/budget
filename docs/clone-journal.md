@@ -366,6 +366,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | running |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
+| 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2315,3 +2316,43 @@ editing `plan-grid.css`). Decide in the plan; group them.
 **Backlog:** 87 open feature tickets (7 done; 4 in progress: EXF-493, 513, 494, 495), all triaged. Gap:
 EXF-558 (High), EXF-454, EXF-560, EXF-562 (Low). Template: fifteen. Finished since each template's last
 review: Build 2, Deploy 6, Discover 2, Test user flow 0.
+
+### 2026-11-16 · Plan round 29
+
+Children used 40 of 200. Four Builds are running: EXF-493 (pull request #15), EXF-513 (#16), the two-ticket
+Build for EXF-494 and EXF-495, and one started now.
+
+- No ticket was filed at the last review.
+- **Started EXF-459, Plaid Link and bank connections** (`p_3f31601a41c146cfafb7c84cc556af19`), the start
+  of the Plaid chain. I had planned it for a quiet moment, expecting new Worker variables; reading
+  `wrangler.jsonc`, `env.ts` and the approved architecture showed that is not needed: the Durable Object
+  binding and a cron already exist, and Plaid credentials are stored encrypted in D1, not in Worker
+  variables. So it can run beside the others. Decisions I gave in the brief:
+  - **Credentials:** `PUT /api/v1/plaid/credentials` (write-only) and `GET` (which environments are set,
+    never a value); `scripts/plaid-credentials.sh` pushes them from the environment; `scripts/deploy.sh`
+    runs it after the smoke test (a failure warns, it does not fail the release).
+  - **No new dependency, no always-overlap file:** Plaid's REST API by `fetch`; Plaid Link from Plaid's own
+    script URL. A response header that blocks it may be changed where it is set (possibly `middleware/`).
+  - **Environment is a property of the plan:** a new column on `budgets` (`bank_environment`, default
+    `production`, `sandbox` for test plans; `scripts/live-test-plans.sh create` sets it). A connection
+    records its environment and is used only with plans of the same one. This replaces the looser wording in
+    the architecture ("each Item records Sandbox or Production").
+  - **OAuth banks:** `/plaid/oauth` page and `redirect_uri` for production plans. **The person must register
+    `https://budget.doxen.dev/plaid/oauth` in their Plaid dashboard**: add to the check-in.
+  - Tables `bank_connections` and `bank_accounts` as the ticket names them (the architecture said
+    `plaid_items` and `plaid_accounts`; the ticket's names win).
+  - After linking, a plain confirmation screen; account selection is EXF-461, Manage Bank Connections
+    EXF-460. MCP: `list_bank_connections` only.
+  - Tests: Plaid stubbed in Worker tests; one real Sandbox round trip without a browser, only when the
+    Sandbox variables are present; the production secret never used.
+  - **Source limits, tighter than usual:** the bank search may be typed in, no bank may be clicked, and
+    Manage Bank Connections may not be opened at all (it lists the person's real banks).
+  - It holds the shell (the add-account dialog), the budgets files and two scripts. Out of bounds: the Plan
+    page, header and months files; the account page, register and transactions files; the grid and the
+    categories files.
+- **No Deploy and no flow tests yet**, as planned in round 28: after EXF-493 and EXF-513 merge.
+- Not started: anything else in the shell (EXF-459 holds it), EXF-562, EXF-558.
+- Next groupings stay as written in round 28, plus: EXF-460 with EXF-461 after EXF-459; EXF-462 with
+  EXF-463 after that.
+- Review cadence: Build 2, Deploy 6, Discover 2.
+- Ticket writes this round: 2.
