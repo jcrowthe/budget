@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 1 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
+Review counters (finished children since that template's last review): Build 2 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -364,7 +364,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | live `d2e659b` |
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | running |
-| 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | running |
+| 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -2274,3 +2274,44 @@ from earlier rounds, and one started now.
   (selection and the inspector); EXF-524 with EXF-526 (splits and transfers) if their sizes allow.
 - Review cadence: Build 1, Deploy 6, Discover 2.
 - Ticket writes this round: 4.
+
+### 2026-11-16 · Review round 28
+
+Children used 39 of 200. Three Builds are running: EXF-493 (pull request #15), EXF-513 (#16), and the
+two-ticket Build for EXF-494 and EXF-495 (with its Architect, no manifest yet). No card is waiting.
+
+**Ended: the Build for EXF-483 (sidebar groups), merged as `5c4802e` (PR #14)** after 58 minutes, first gate
+passed (e2e 62 of 62 three times). Ticket Done and commented. I read the diff before approving (25 files,
++1598/-50).
+
+- Core `account-types.ts`: `DISPLAY_GROUPS`, `displayGroup(type, closed)`, `sidebarSections`. `Account` has
+  `group` in REST and MCP.
+- **`ui-state` resource:** `GET` / `PUT /api/v1/budgets/{budget_id}/ui-state`; table `ui_state(budget_id,
+  key, value, updated_at)` (migration `20261115231600_ui_state.sql`); keys are the lines of
+  `UI_STATE_FIELDS` in `packages/schema/src/ui-state.ts` (one today: `collapsed_account_groups`); a strict
+  schema refuses unknown keys; no history row; no MCP tool. Web: `api/ui-state.ts`. **EXF-472 should move
+  the grid's progress-bar choice here.**
+- The sidebar lists closed accounts too now (`useAccounts` asks for them), under CLOSED.
+- Acceptance 5 pass, 10 partial, 0 fail: the partial cases cannot be seen in the source today or cannot be
+  created through a route yet; they rest on fixture tests. Codify added a geometry test for the header.
+- **Open point:** the Designer saw the source list CLOSED accounts in an order that is not A to Z (polish
+  P3, declined because the ticket and my note said A to Z). Unknown which rule the source uses (perhaps the
+  account order, or the time of closing). Ask the first flow test that closes accounts, or the Build that
+  adds closing, to observe it.
+- The Tester could not screenshot the source's CLOSED group: the shared tab's screenshot call timed out.
+  More evidence that children share one browser (EXF-479).
+
+**Main is `5c4802e`; live is `d2e659b`.** Not live: Assigned (EXF-489) and the sidebar groups, with one
+migration pending (`20261115231600_ui_state.sql`). Two more pull requests are open (EXF-493, EXF-513); the
+plan is still one Deploy after they merge.
+
+**The shell and the accounts files are free again.** Candidates that needed them: EXF-482 (loan types),
+EXF-486 (Edit Account, with EXF-484 after the register merges), EXF-470 to EXF-474 (plan menu, display
+options, shortcuts, sidebar resize), EXF-468 (plan formats), EXF-562 (tokens; but the categories Build is
+editing `plan-grid.css`). Decide in the plan; group them.
+
+**Ticket writes:** 2 (EXF-483 Done and comment).
+
+**Backlog:** 87 open feature tickets (7 done; 4 in progress: EXF-493, 513, 494, 495), all triaged. Gap:
+EXF-558 (High), EXF-454, EXF-560, EXF-562 (Low). Template: fifteen. Finished since each template's last
+review: Build 2, Deploy 6, Discover 2, Test user flow 0.
