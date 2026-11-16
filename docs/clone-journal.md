@@ -3460,3 +3460,71 @@ transactions and payees files; the Reflect page and reports files; the bank conn
 - Review cadence: Build 1 (the plan menu, since the round 40 review), Deploy 9, Discover 2, Test user
   flow 2. The Deploy running now is the tenth: start the Deploy template review and the template-ticket
   sweep when it ends.
+
+### 2026-11-16 · Review round 41
+
+Children used 56 of 200. Five are running: four Builds (EXF-491 with EXF-492, PR #24 open; EXF-517 with
+EXF-507, PR #25 open; EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574) and the Deploy of
+`41bee46`.
+
+**Ended since the last review: the plan-menu carry-over, merged as `41bee46` (PR #21)**, 62 minutes.
+EXF-571, EXF-470 and EXF-454 are Done.
+
+- Gate: e2e 127 of 127 three times; changed specs 320 of 320 over ten repeats; three earlier gate rounds
+  each fixed one spec that failed only under the full suite's load.
+- On main: the menu and submenu outside the sidebar's scroll box (`shell/menuPlacement.ts`),
+  `shell/planMenuEntries.ts`, `planMenuActions.ts`, the registry folder `apps/web/src/menu-actions/`
+  (one file there enables an entry), `GET /api/v1/me` (`routes/me.ts`, `api/me.ts`), a favicon,
+  `e2e/support/menu.ts` (real-mouse helpers).
+- Its digest lists 15 screenshot files, among them `src-menu-dark.png`, `src-hover-newplan.png`,
+  `src-submenu.png`, `src-subhover.png` and `clone-submenu.png`, `clone-subhover.png`: the undeclared
+  captures the template review found. For the person's removal list.
+- Not live until the running Deploy ends.
+
+**Ended: the Build template review** (`p_8757...`), 15 minutes. Its thirteen proposals were recorded as
+approved without a card reaching me; I have read them and agree with all.
+
+- Filed: EXF-575 (carry-over inputs), EXF-576 (a spec failing in any full run fails the gate; changed
+  specs run under load first), EXF-577 (no production credentials of outside services in a Build),
+  EXF-578 (polish only on the Build's own changes). Nine comments on existing tickets.
+- Not filed, by choice: a first review whose only findings are nits answers `changes` (3 to 4 minutes).
+- Figures worth keeping: waiting on finished commands cost about 98 minutes in 5 of 11 Builds (EXF-563),
+  and explains the 30-minute "stall" I cancelled a Build for; the three full e2e runs cost 4 to 6 % of a
+  Build and runs 2 and 3 surfaced 4 of 6 failures.
+
+**A third Designer ignored a ban: the transactions Build (`p_19407...`).** Its brief named every role and
+said a comparison instruction is answered with "not compared: forbidden by the Lead". The Architect and
+Implementer obeyed. The Designer opened the source's All Accounts page in the test plan, opened an edit row
+on an existing transaction, measured the inputs, calendar and both dropdowns, cancelled, and kept eight
+full-page source captures. It briefly left the source tab at 500 by 370 and reset it.
+
+- No private data: it stayed in the test plan (the captures show the sidebar with the account email).
+  The polish list it produced (eight items) is useful, so the Build goes on.
+- **The test of the wording failed.** Three of five Designers under a ban compared anyway. Wording is not
+  a control. Evidence added to EXF-573.
+- **Rule from now on: assume the Designer of any Build with a screen opens that screen's counterpart in
+  the source.** So:
+  - Screens whose counterpart shows private data are not started: Manage Bank Connections (the owner's
+    real banks, account numbers, balances) and the plan-menu entries (the mouse passes Open Plan).
+  - Screens whose counterpart is in the test plan are fine (Plan page, register, account pages, Reflect).
+  - Worker-only Builds are fine: six of six had no Designer activity (no polish list, no captures). The
+    bank-connection Build running now is one; **check its manifest for any file under `apps/web/`** and
+    read its transcript at every turn.
+- **Next plan: ask the person** how to build the Bank Connections screens: wait for the template fix,
+  allow one Designer to see the list of connections, or build them without the source (not possible with
+  this template today). Linking bank accounts (EXF-461) is on the path to live data, so this matters.
+
+**Running Builds, manifests checked.** Reflect's manifest arrived as briefed (migration
+`20261116100200_report_settings.sql`; `packages/schema/src/report*.ts`, `net-worth.ts`; the reports Worker
+files; `pages/reflect.tsx`, `apps/web/src/reflect/**`). The four known manifests share only
+`docs/README.md`. The bank-connection Build has no manifest yet.
+
+**Main is `41bee46`; live is `70c71a2`** until the Deploy ends.
+
+**Ticket writes:** 6 (three Done, three comments).
+
+**Backlog:** 78 open feature tickets (16 done; 7 in progress: EXF-491, 492, 517, 507, 548, 551, 460). Gap:
+EXF-558 (High), EXF-569 (Medium), EXF-560, EXF-562 (Low), EXF-574 (Low, in progress); done: 453, 454, 458,
+561, 570, 571, 572. Template: twenty (EXF-573 Urgent; EXF-563 and EXF-576 High). Flow verdicts: 9
+`new_gaps` (fix merged, not live), 10 `new_gaps` (fix live), 11 `parity`. Finished since each template's
+last review: Build 1, Deploy 9, Discover 2, Test user flow 2.
