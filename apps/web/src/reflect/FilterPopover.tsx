@@ -139,7 +139,6 @@ export function FilterPopover({
               />
             );
           }
-          const ids = n.children.map((c) => c.id);
           const allIds = (nodes.find((x) => x.key === n.key)?.children ?? n.children).map(
             (c) => c.id,
           );
@@ -164,7 +163,6 @@ export function FilterPopover({
                   onChange={() => toggle([c.id], !draft.has(c.id))}
                 />
               ))}
-              {ids.length === 0 && null}
             </div>
           );
         })}

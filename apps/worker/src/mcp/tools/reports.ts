@@ -1,4 +1,6 @@
 import { Month } from "@budget/schema/common/dates";
+import { monthIndex } from "@budget/schema/report-range";
+import { MAX_REPORT_MONTHS } from "@budget/schema/reports";
 import { z } from "zod";
 import { getNetWorth } from "../../services/reports";
 import { Id, MONEY, MONTH } from "../tool-text";
@@ -28,6 +30,13 @@ export const tools: McpToolDef[] = [
       }
       if (input.start_month && input.end_month && input.start_month > input.end_month) {
         throw new Error("start_month must not be after end_month");
+      }
+      if (
+        input.start_month &&
+        input.end_month &&
+        monthIndex(input.end_month) - monthIndex(input.start_month) >= MAX_REPORT_MONTHS
+      ) {
+        throw new Error(`At most ${MAX_REPORT_MONTHS} months`);
       }
       return getNetWorth(env, input.budget_id, {
         start_month: input.start_month,

@@ -13,13 +13,16 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
   const range = (max - min) / 1000 || 1;
   const rough = range / (count - 1);
   const mag = 10 ** Math.floor(Math.log10(rough));
-  const f = rough / mag;
-  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * mag * 1000;
-  const out: number[] = [];
-  for (let t = Math.floor(min / step) * step; t <= Math.ceil(max / step) * step + 1e-6; t += step) {
-    out.push(Math.round(t));
+  // The smallest 1/2/2.5/5/10 × 10^n step whose ticks fit in count ticks.
+  for (const f of [1, 2, 2.5, 5, 10, 20]) {
+    const step = f * mag * 1000;
+    const lo = Math.floor(min / step);
+    const hi = Math.ceil(max / step);
+    if (hi - lo + 1 <= count) {
+      return Array.from({ length: hi - lo + 1 }, (_, k) => Math.round((lo + k) * step));
+    }
   }
-  return out;
+  return [];
 }
 
 export function NetWorthChart({ data }: { data: NetWorth }) {

@@ -75,6 +75,8 @@ export function useUpdateReportSettings(budgetId: string) {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.previous) qc.setQueryData(settingsKey(budgetId), ctx.previous);
+      // A cancelled first read left nothing cached: read again.
+      else void qc.invalidateQueries({ queryKey: settingsKey(budgetId) });
     },
     onSuccess: (data) => qc.setQueryData(settingsKey(budgetId), data),
   });
