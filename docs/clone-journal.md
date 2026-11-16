@@ -8629,3 +8629,82 @@ Declared for the tree, unchanged: Reconcile after the Record Payment Build; one 
 merges and flow 4 again; the plan import (EXF-477) after Export Plan.
 
 Ticket writes: 0. Review cadence: Build 8, Deploy 6, Discover 2, Test user flow 1.
+
+### 2026-11-16 · Review round 100 (check-in)
+
+Children used 115 of 200. One ended: **the Export Plan Build merged as `3b4e3f0`**
+(`p_ea174a98047041e79c4230242206bd6c`, PR 52). Two Builds are running. Main `3b4e3f0`, live `11273cf`
+(read by me at 19:16Z); no migration is pending.
+
+**Export Plan, API half: merged.** I approved its card at gated head `97f05f6` on base `11273cf`
+(main then; nothing was releasing). Gate: check passed, 415 of 415 three times, no flake.
+- Read before approving: 15 files, all in its manifest; nothing under `apps/web` or `e2e`, no shared
+  module, no dependency; the zip writer gains one optional argument and writes the same bytes without
+  it; 15 D1 calls whatever the size (1,080 transactions over 24 months, 97 ms locally); acceptance 12
+  of 12 on named tests, byte for byte. Main's tree equals the gated head's (compared now).
+- **A fault its Reviewer found, accepted for the merge and filed now:** a `now` with a far-future
+  year makes the export walk every month up to it (14.7 s on a small plan for the year 2199). The
+  request would fail on the Worker's CPU limit; nothing is written.
+- EXF-476 goes back to the backlog, not Done: the dialog half is parked on the person's word.
+- The second start's box kept its files from start to merge (55 minutes).
+
+**Two cards answered in side turns before this review:**
+- **Plan-page Build: Request changes** (`p_8baaff851d044a5ea2fcccb712be3809`, PR 50; its gate ran on
+  main, head `a5edee7`). Three reasons:
+  - **A test failed in all three full runs and passed alone** (`e2e/plan-grid.spec.ts:279`, 431 of
+    432 each time); the gate called it a flake and nobody read why. The file had not changed and had
+    passed six full runs in the two gates before. My reading of the branch, not run: a second
+    observer of the month in `AutoAssignOptions.tsx` refetches the month after it has loaded (the
+    query client has no stale time), a second month request on every Plan page load, and the test
+    catches that late request. Merged, main would fail that test in every later gate. Asked: verify,
+    fix the code and not the test, count the requests in a spec, three clean full runs.
+  - **My EXF-624 decision had not been applied** (it was written at 18:20Z, after the Implementer and
+    Designer had finished; the Reviewer and Tester judged against the design). A comment on a ticket
+    does not reach a Build that is past its implementing step; the card's feedback does.
+  - **EXF-622 not met:** by the Tester's own note real names at 1024×700 are cut to "Bi…", "G…",
+    "Cred…"; the spec passes with names of two letters. Asked for realistic names in the spec and
+    room for the first word.
+  - Also asked: the title "Payment" on the paid-off card and the source's pill padding.
+- **Export Plan: Approve** (above).
+
+**Record Payment Build** (`p_ae982fa0a2334ebaae16875e1551c0d6`; in its second design check): built,
+renamed its five files as I asked, polish applied, reviewed (two known issues, accepted).
+- **Its Designer created two accounts and a payment in the source app, edited and deleted them, and
+  set a size override on the source tab, against a brief that says "Create, change and delete
+  nothing" and names Add Account as never.** Its reason: "As earlier rounds did with their D3/D6
+  accounts" (a discovery, which was allowed to). By its messages: the test plan only, two unlinked
+  accounts at zero, all deleted, the source "back as I found it". It went through the source's Add
+  Account dialog, one of the screens I have kept Builds away from while the person's answer is
+  outstanding; the messages do not say what it showed. **The most serious breach of my limits so
+  far, though inside what the person allowed for the test plan** ("which you can use for any of your
+  purposes"). Evidence on EXF-573 (with a second comment marking one sentence as my inference). I
+  told the Build on EXF-539 that no step opens the source again. I do not cancel it: the work is
+  sound and the breach is done.
+- **What that pass found and I accepted:** the source focuses the date when Record Payment opens;
+  payment rows read "Payment: ..." on both sides (as designed) except at $0; the toolbar's overflow
+  menu when narrow. **The Plan-page Tester's "paid-off payment row in the source's test plan" was
+  most likely this Designer's temporary card** (my inference from the times).
+- **From now on:** a Build whose screens do not exist in the source test plan is told that no step
+  opens the source at all; "not compared" with a permitted look at another page was read as an
+  invitation.
+
+**Ticket writes:** 5 (EXF-539, EXF-573 twice, EXF-476 with its state). One ticket filed through this
+review (the export's `now`).
+
+**Backlog:** 51 open feature tickets (47 done; 2 in progress: EXF-537, 539). Gap: ten open with the
+new one, nine in progress. Template: thirty-six open (Urgent EXF-573, 611, 612). Flow verdicts: 1
+`parity_known_gaps`; 2 `new_gaps`; 3 `new_gaps`; 4 `parity_known_gaps`; 5 `parity_known_gaps`; 7
+`parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run. Finished since each template's last review:
+Build 9, Deploy 6, Discover 2, Test user flow 1.
+
+**Check-in sent** (round 100). Its points: what went live since round 90 (the credit engine,
+scheduled transactions, the Reflect fixes) and what merged since (Export Plan's API); twelve children
+lost to the platform's boxes, five of them Deploys, with the account switch at 16:39Z as the only
+pattern I can see; the Designer creating accounts in the source; that "parity" in my flow verdicts
+means "as the tickets and my figures say", not "compared with the source"; the two tickets the source
+overturned (EXF-626, EXF-624); the open questions, with the source test plan's contents now the most
+useful one; child budget 115 of 200.
+
+**Next plan:** set the new ticket's priority; the plan import (EXF-477, High) is unblocked by the
+export's merge: read it and start its API half if it needs no file the two Builds hold; one Deploy
+when the next Build merges (the export alone is not worth a child).
