@@ -1,7 +1,8 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
+import { idList, jsonBool } from "./guards";
 
 export type CategoryRow = typeof categories.$inferSelect;
 
@@ -65,4 +66,183 @@ export function insertIfSortStmt(db: Db, row: CategoryRow) {
     .select(
       sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
     );
+}
+
+// EXF-494, EXF-495. The conditions below are SQL booleans: a guard ANDs them into a statement's WHERE.
+
+/** The lowest sort_order among the group's active categories, or null when there is none. */
+export async function minSort(db: Db, groupId: string): Promise<number | null> {
+  const [r] = await db
+    .select({ m: sql<number | null>`min(${categories.sortOrder})` })
+    .from(categories)
+    .where(and(eq(categories.groupId, groupId), isNull(categories.deletedAt)));
+  return r?.m ?? null;
+}
+
+/** Holds while `sort` is still one below the lowest active sort_order of the group (0 when it is empty). */
+export function sortIsFirst(groupId: string, sort: number): SQL {
+  return sql`(select coalesce(min(${categories.sortOrder}), 1) - 1 from ${categories} where ${categories.groupId} = ${groupId} and ${categories.deletedAt} is null) = ${sort}`;
+}
+
+/** Holds while no other active category of the group has this name (trimmed, case-insensitive). */
+export function nameFree(groupId: string, name: string, exceptId?: string): SQL {
+  return sql`not exists (select 1 from ${categories} where ${categories.groupId} = ${groupId} and ${categories.deletedAt} is null and ${exceptId ? sql`${categories.id} <> ${exceptId}` : sql`1`} and lower(trim(${categories.name})) = lower(trim(${name})))`;
+}
+
+export async function nameTaken(
+  db: Db,
+  groupId: string,
+  name: string,
+  exceptId?: string,
+): Promise<boolean> {
+  const rows = await db.all(sql`select 1 as x where not (${nameFree(groupId, name, exceptId)})`);
+  return rows.length > 0;
+}
+
+/** Holds while the active category still has this `updated_at`. */
+export function holds(id: string, updatedAt: string): SQL {
+  return sql`exists (select 1 from ${categories} where ${categories.id} = ${id} and ${categories.deletedAt} is null and ${categories.updatedAt} = ${updatedAt})`;
+}
+
+export function insertIfStmt(db: Db, r: CategoryRow, guard: SQL) {
+  return db
+    .insert(categories)
+    .select(
+      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${guard}`,
+    );
+}
+
+export function updateIfStmt(
+  db: Db,
+  id: string,
+  set: Partial<Pick<CategoryRow, "name" | "hidden" | "updatedAt">>,
+  guard: SQL,
+) {
+  return db
+    .update(categories)
+    .set(set)
+    .where(and(eq(categories.id, id), isNull(categories.deletedAt), guard));
+}
+
+export async function listActiveInGroup(db: Db, groupId: string): Promise<CategoryRow[]> {
+  return db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.groupId, groupId), isNull(categories.deletedAt)))
+    .orderBy(categories.sortOrder, categories.id);
+}
+
+export async function listActiveByIds(
+  db: Db,
+  budgetId: string,
+  ids: readonly string[],
+): Promise<CategoryRow[]> {
+  if (ids.length === 0) return [];
+  return db
+    .select()
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        isNull(categories.deletedAt),
+        inArray(categories.id, [...ids]),
+      ),
+    );
+}
+
+/** The `where` shared by the flip statements: active categories of a group now hidden/unhidden. */
+function flipWhere(groupId: string, to: boolean, exceptId?: string): SQL {
+  return sql`${categories.groupId} = ${groupId} and ${categories.deletedAt} is null and ${categories.hidden} = ${to ? 0 : 1}${exceptId ? sql` and ${categories.id} <> ${exceptId}` : sql``}`;
+}
+
+/** Sets `hidden = to` on the group's active categories that have the other value (except one). */
+export function flipInGroupStmt(
+  db: Db,
+  groupId: string,
+  to: boolean,
+  now: string,
+  guard: SQL,
+  exceptId?: string,
+) {
+  return db
+    .update(categories)
+    .set({ hidden: to, updatedAt: now })
+    .where(sql`${flipWhere(groupId, to, exceptId)} and ${guard}`);
+}
+
+/** The categories `flipInGroupStmt` would change, as a `select` for `logSelectStmt`. */
+export function flipInGroupInner(groupId: string, to: boolean, guard: SQL, exceptId?: string): SQL {
+  return sql`select * from ${categories} where ${flipWhere(groupId, to, exceptId)} and ${guard}`;
+}
+
+export function hiddenInPlanInner(budgetId: string): SQL {
+  return sql`select * from ${categories} where ${categories.budgetId} = ${budgetId} and ${categories.deletedAt} is null and ${categories.hidden} = 1`;
+}
+
+export function unhideAllStmt(db: Db, budgetId: string, now: string) {
+  return db
+    .update(categories)
+    .set({ hidden: false, updatedAt: now })
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        isNull(categories.deletedAt),
+        eq(categories.hidden, true),
+      ),
+    );
+}
+
+export async function listHiddenInPlan(db: Db, budgetId: string): Promise<CategoryRow[]> {
+  return db
+    .select()
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        isNull(categories.deletedAt),
+        eq(categories.hidden, true),
+      ),
+    );
+}
+
+/** Soft-deletes the active categories in `ids` while `guard` holds. */
+export function softDeleteManyStmt(db: Db, ids: readonly string[], now: string, guard: SQL) {
+  return db
+    .update(categories)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(inArray(categories.id, [...ids]), isNull(categories.deletedAt), guard));
+}
+
+/** The `select` a category-change log row is built from (its columns are those of `categories`). */
+export const categoryJson = (): SQL =>
+  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(sql`hidden`)})`;
+export const categoryJsonHidden = (to: boolean): SQL =>
+  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(to ? sql`1` : sql`0`)})`;
+
+/** A category group's or category's history (R5): active transactions and months with a non-zero assigned. */
+export async function historyOf(
+  db: Db,
+  budgetId: string,
+  ids: readonly string[],
+): Promise<{ transactions: number; assignedMonths: number }> {
+  if (ids.length === 0) return { transactions: 0, assignedMonths: 0 };
+  const [r] = await db.all<{ t: number; a: number }>(
+    sql`select (select count(*) from transactions where budget_id = ${budgetId} and deleted_at is null and category_id in (${idList(ids)})) as t, (select count(distinct month) from month_categories where budget_id = ${budgetId} and assigned <> 0 and category_id in (${idList(ids)})) as a`,
+  );
+  return { transactions: r?.t ?? 0, assignedMonths: r?.a ?? 0 };
+}
+
+/** Holds while no active transaction and no non-zero assigned amount refers to the categories. */
+export function noHistory(budgetId: string, ids: readonly string[]): SQL {
+  return sql`not exists (select 1 from transactions where budget_id = ${budgetId} and deleted_at is null and category_id in (${idList(ids)})) and not exists (select 1 from month_categories where budget_id = ${budgetId} and assigned <> 0 and category_id in (${idList(ids)}))`;
+}
+
+/** Holds while every category in `ids` is active. */
+export function allActive(ids: readonly string[]): SQL {
+  return sql`(select count(*) from ${categories} where ${categories.id} in (${idList(ids)}) and ${categories.deletedAt} is null) = ${ids.length}`;
+}
+
+/** Holds while the category is active and so is its group. */
+export function activeInActiveGroup(budgetId: string, id: string): SQL {
+  return sql`exists (select 1 from ${categories} c join ${categoryGroups} g on g.id = c.group_id where c.id = ${id} and c.budget_id = ${budgetId} and c.deleted_at is null and g.deleted_at is null)`;
 }
