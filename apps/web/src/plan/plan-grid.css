@@ -165,6 +165,8 @@
   padding: 0 2px 0 6px;
 }
 .cell-available {
+  /* EXF-535: the widest pill (the card icon and "−$1,200.00") must not run out of its column at 1024px */
+  min-width: 7.5rem;
   padding: 0;
   display: flex;
   justify-content: flex-end;

@@ -32,7 +32,6 @@ import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
-import * as groupsRepo from "../repositories/category-groups";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import {
@@ -152,7 +151,6 @@ export async function createAccount(
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, v.budget_id))) throw new NotFound("Plan");
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const existingGroup = await groupsRepo.findPaymentGroup(db, v.budget_id);
     const row: accountsRepo.AccountRow = {
       id: crypto.randomUUID(),
       budgetId: v.budget_id,
@@ -191,7 +189,6 @@ export async function createAccount(
         name: row.name,
         type: row.type,
         now: new Date().toISOString(),
-        existingGroup,
         accountExists: sql`exists ${accountsRepo.existsStmt(db, row.id)}`,
       }),
     ]);
@@ -779,7 +776,6 @@ export async function insertAccountWithStartingBalance(
   const db = getDb(env);
   const { amount } = spec;
   const existingSystem = await payeesRepo.findSystem(db, budgetId, "starting_balance");
-  const existingGroup = await groupsRepo.findPaymentGroup(db, budgetId);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const now = new Date().toISOString();
     const row: accountsRepo.AccountRow = {
@@ -869,7 +865,6 @@ export async function insertAccountWithStartingBalance(
         name: row.name,
         type: row.type,
         now,
-        existingGroup,
         accountExists: sql`exists ${g2}`,
       }),
     ]);

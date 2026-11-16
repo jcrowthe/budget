@@ -96,6 +96,36 @@ describe("the payment category lifecycle", () => {
     expect(mcpLog.actor.startsWith("mcp:")).toBe(true);
   });
 
+  it("two cards created one after the other leave one group, one group log row and one category per card", async () => {
+    const bid = await newPlan();
+    const visa = await account(bid, "ZZ Visa", "creditCard");
+    const amex = await account(bid, "ZZ Amex", "lineOfCredit");
+    const groups = (
+      await env.DB.prepare(
+        "select id from category_groups where budget_id = ? and kind is not null and deleted_at is null",
+      )
+        .bind(bid)
+        .all<Json>()
+    ).results;
+    expect(groups).toHaveLength(1);
+    const cats = (
+      await env.DB.prepare(
+        "select account_id, group_id from categories where budget_id = ? and kind is not null and deleted_at is null",
+      )
+        .bind(bid)
+        .all<Json>()
+    ).results;
+    expect(cats.map((c) => c.account_id).sort()).toEqual([visa, amex].sort());
+    expect(cats.every((c) => c.group_id === groups[0].id)).toBe(true);
+    const groupLogs = (await logs(bid)).filter(
+      (l) =>
+        l.entity_type === "category_group" &&
+        l.action === "create" &&
+        l.after_json.includes('"kind"'),
+    );
+    expect(groupLogs.map((l) => l.entity_id)).toEqual([groups[0].id]);
+  });
+
   it("renaming the card renames the category (with a log row); closing keeps it; deleting removes it", async () => {
     const bid = await newPlan();
     const visa = await account(bid, "ZZ Visa", "creditCard");

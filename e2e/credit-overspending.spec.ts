@@ -149,3 +149,122 @@ for (const size of SIZES) {
     });
   });
 }
+
+// T14.4: the largest amounts of the tickets' examples (1,200.00 from C, 777.77 from B) at 1024×700.
+test.describe("1024x700 fit", () => {
+  const WIDE = { credit: "ZZ Wide Credit", cash: "ZZ Wide Cash", mixed: "ZZ Wide Mixed" };
+  let planId = "";
+  test.beforeEach(async ({ request, page }) => {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.clock.setFixedTime(new Date("2026-11-16T12:00:00"));
+    const { budget } = await call(request, "post", "/api/v1/budgets", {
+      name: testName("credit-wide"),
+    });
+    planId = budget.id;
+    const base = `/api/v1/budgets/${planId}`;
+    const open = async (name: string, type: string, balance: number) =>
+      (await call(request, "post", `${base}/accounts`, { name, type, balance, date: "2026-11-02" }))
+        .account.id;
+    const checking = await open("ZZ-TEST Checking", "checking", 5000000);
+    const visa = await open(VISA, "creditCard", 0);
+    const { category_group: g } = await call(request, "post", `${base}/category_groups`, {
+      name: "ZZ Group",
+    });
+    const cat: Record<string, string> = {};
+    for (const name of Object.values(WIDE)) {
+      cat[name] = (
+        await call(request, "post", `${base}/categories`, { group_id: g.id, name })
+      ).category.id;
+    }
+    const tx = (account: string, amount: number, category: string) =>
+      call(request, "post", `${base}/transactions`, {
+        account_id: account,
+        date: "2026-11-10",
+        amount,
+        category_id: cat[category],
+      });
+    await tx(visa, -1200000, WIDE.credit);
+    await tx(checking, -1200000, WIDE.cash);
+    await tx(checking, -777770, WIDE.mixed);
+    await tx(visa, -1200000, WIDE.mixed);
+  });
+  test.afterEach(async ({ request }) => {
+    await removePlan(request, { id: planId } as never);
+  });
+
+  test("EXF-535: at 1024×700 the pills, messages and spending lines fit", async ({ page }) => {
+    await open(page, { id: planId, cat: {} });
+    const TOL = 0.5;
+    type R = { l: number; r: number; t: number; b: number };
+    const rect = (loc: ReturnType<typeof pill>): Promise<R> =>
+      loc.evaluate((e) => {
+        const x = e.getBoundingClientRect();
+        return { l: x.left, r: x.right, t: x.top, b: x.bottom };
+      });
+    const noOverflow = async (loc: ReturnType<typeof pill>, what: string) => {
+      const m = await loc.evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+      expect(m.s, `${what}: scrollWidth ${m.s} vs clientWidth ${m.c}`).toBeLessThanOrEqual(
+        m.c + TOL,
+      );
+    };
+    const inside = (a: R, o: R, what: string) => {
+      expect(a.l, `${what}: left ${a.l} vs ${o.l}`).toBeGreaterThanOrEqual(o.l - TOL);
+      expect(a.r, `${what}: right ${a.r} vs ${o.r}`).toBeLessThanOrEqual(o.r + TOL);
+    };
+
+    const texts: [string, string][] = [
+      [WIDE.credit, "−$1,200.00"],
+      [WIDE.cash, "−$1,200.00"],
+      [WIDE.mixed, "−$1,977.77"],
+    ];
+    for (const [name, text] of texts) {
+      const p = pill(page, name);
+      await expect(p).toHaveText(text);
+      await noOverflow(p, `pill ${name}`);
+      const cell = p.locator("xpath=..");
+      const pr = await rect(p);
+      inside(pr, await rect(cell), `pill ${name} in its cell`);
+      const prev = cell.locator("xpath=preceding-sibling::*[1]");
+      if ((await prev.count()) > 0) {
+        const ar = await rect(prev);
+        expect(pr.l, `pill ${name} overlaps the Activity cell`).toBeGreaterThanOrEqual(ar.r - TOL);
+      }
+    }
+    const icon = pill(page, WIDE.credit).locator('svg[data-icon="card"]');
+    inside(await rect(icon), await rect(pill(page, WIDE.credit)), "icon in the yellow pill");
+
+    const msg = panel(page).locator(".inspector-message");
+    const messages: [string, RegExp][] = [
+      [WIDE.credit, /by \$1,200\.00 with credit\./],
+      [WIDE.cash, /by \$1,200\.00\. Cover this overspending/],
+      [WIDE.mixed, /by \$1,977\.77 with cash and credit\. Add at least \$777\.77 to this category/],
+    ];
+    for (const [name, re] of messages) {
+      await realClick(page, box(page, name));
+      await expect(msg).toHaveText(re);
+      await noOverflow(msg, `message ${name}`);
+      inside(await rect(msg), await rect(msg.locator("xpath=..")), `message ${name} in its card`);
+      if (name === WIDE.mixed) {
+        const line = (label: string) =>
+          panel(page).locator(".panel-row", { has: page.getByText(label, { exact: true }) });
+        const cash = line("Cash Spending");
+        const credit = line("Credit Spending");
+        await expect(cash.locator(".panel-row-value")).toHaveText("−$777.77");
+        await expect(credit.locator(".panel-row-value")).toHaveText("−$1,200.00");
+        for (const l of [cash, credit]) {
+          const label = l.locator(".panel-row-label");
+          const value = l.locator(".panel-row-value");
+          await noOverflow(label, "spending label");
+          await noOverflow(value, "spending value");
+          const lr = await rect(label);
+          const vr = await rect(value);
+          expect(lr.r, `label right ${lr.r} vs value left ${vr.l}`).toBeLessThanOrEqual(vr.l + TOL);
+          const card = await rect(l.locator("xpath=ancestor::section[1]"));
+          inside(lr, card, "label in its card");
+          inside(vr, card, "value in its card");
+        }
+      }
+      await realClick(page, box(page, name));
+    }
+  });
+});

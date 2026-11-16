@@ -160,22 +160,3 @@ export function unhideAllGroupsStmt(db: Db, budgetId: string, now: string) {
 
 export const groupJson = (to?: boolean): SQL =>
   sql`json_object('id', id, 'budget_id', budget_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(to === undefined ? sql`hidden` : to ? sql`1` : sql`0`)}, 'collapsed', ${jsonBool(sql`collapsed`)})`;
-
-/** The plan's live Credit Card Payments group (EXF-532), or undefined while it has no credit account. */
-export async function findPaymentGroup(
-  db: Db,
-  budgetId: string,
-): Promise<CategoryGroupRow | undefined> {
-  const [row] = await db
-    .select()
-    .from(categoryGroups)
-    .where(
-      and(
-        eq(categoryGroups.budgetId, budgetId),
-        isNotNull(categoryGroups.kind),
-        isNull(categoryGroups.deletedAt),
-      ),
-    )
-    .limit(1);
-  return row;
-}

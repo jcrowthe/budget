@@ -6,7 +6,6 @@ import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { changeLog } from "../db/schema/change-log";
 import { paymentCategoryJson } from "../repositories/categories";
-import type { CategoryGroupRow } from "../repositories/category-groups";
 import { type LogBase, logSelectStmt } from "../repositories/guards";
 
 // EXF-532. Each credit account has one payment category in the plan's "Credit Card Payments" group. The
@@ -58,29 +57,26 @@ export function paymentCreateStmts(
     name: string;
     type: string;
     now: string;
-    existingGroup: CategoryGroupRow | undefined;
     accountExists: SQL;
   },
 ): BatchItem[] {
   if (!isCreditType(p.type)) return [];
   const out: BatchItem[] = [];
   const noCategory = sql`not exists (select 1 from categories where account_id = ${p.accountId} and deleted_at is null)`;
-  if (!p.existingGroup) {
-    const gid = crypto.randomUUID();
-    const guard = sql`${p.accountExists} and not exists (select 1 from category_groups where budget_id = ${p.budgetId} and kind is not null and deleted_at is null)`;
-    out.push(
-      db
-        .insert(categoryGroups)
-        .select(
-          sql`select ${gid}, ${p.budgetId}, ${PAYMENT_GROUP_NAME}, coalesce((select min(sort_order) from category_groups where budget_id = ${p.budgetId} and deleted_at is null), 1) - 1, 0, 0, ${p.now}, ${p.now}, null, 'credit_card_payments' where ${guard}`,
-        ),
-      db
-        .insert(changeLog)
-        .select(
-          sql`select ${crypto.randomUUID()}, ${p.budgetId}, ${p.actor}, 'create', 'category_group', g.id, null, json_object('id', g.id, 'budget_id', g.budget_id, 'name', g.name, 'sort', g.sort_order, 'hidden', json('false'), 'collapsed', json('false'), 'kind', g.kind), ${p.now} from category_groups g where g.id = ${gid}`,
-        ),
-    );
-  }
+  const gid = crypto.randomUUID();
+  const groupGuard = sql`${p.accountExists} and not exists (select 1 from category_groups where budget_id = ${p.budgetId} and kind is not null and deleted_at is null)`;
+  out.push(
+    db
+      .insert(categoryGroups)
+      .select(
+        sql`select ${gid}, ${p.budgetId}, ${PAYMENT_GROUP_NAME}, coalesce((select min(sort_order) from category_groups where budget_id = ${p.budgetId} and deleted_at is null), 1) - 1, 0, 0, ${p.now}, ${p.now}, null, 'credit_card_payments' where ${groupGuard}`,
+      ),
+    db
+      .insert(changeLog)
+      .select(
+        sql`select ${crypto.randomUUID()}, ${p.budgetId}, ${p.actor}, 'create', 'category_group', g.id, null, json_object('id', g.id, 'budget_id', g.budget_id, 'name', g.name, 'sort', g.sort_order, 'hidden', json('false'), 'collapsed', json('false'), 'kind', g.kind), ${p.now} from category_groups g where g.id = ${gid}`,
+      ),
+  );
   const cid = crypto.randomUUID();
   const guard = sql`${p.accountExists} and ${noCategory} and ${livePaymentGroupOf(p.budgetId)} is not null`;
   out.push(

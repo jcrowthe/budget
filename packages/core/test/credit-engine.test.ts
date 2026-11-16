@@ -349,7 +349,7 @@ describe("EXF-535 steps 1-11", () => {
       .reduce((n, r) => n + r.amount, 0);
     expect(balance).toBe(-335000);
   });
-  it("covering only the cash part leaves the payment category alone", () => {
+  it("a partly covered category overspent with cash and credit loses its cash part first (step 8, Empty assigned 35.00)", () => {
     const assigned = { groceries: 255000, dining: 95000, empty: 35000 };
     const d = computeMonth(replay(6, s8rows, ASSIGNED, assigned), NOV);
     // Empty: -75 + 35 = -40 -> cash 0? credit spending 40 holds the credit part at 40, so the cash part fell first.

@@ -367,3 +367,4 @@ migrations: 1
 `packages/schema/test/register.test.ts` (fixture fields), and the Carry-over's
 `apps/worker/test/credit-call-count.test.ts`. Unchanged: `plan-views.ts`, `packages/schema/src/categories.ts`,
 `apps/web/src/api/months.ts`, `services/account-links.ts`.
+- **Carry-over build (T14):** the create no longer reads the payment group (`findPaymentGroup` removed; the guarded insert always runs). The count test "creating a credit account makes as many D1 calls as creating a checking account" passed before the change too: the read ran for every account type, so credit equalled checking; the saving is one call on every create. The 1024×700 test failed before the fix (the yellow pill with its icon ran 17px out of its column); `.cell-available` now has `min-width: 7.5rem`.

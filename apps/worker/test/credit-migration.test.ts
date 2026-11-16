@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { createBudget } from "../src/services/budgets";
-import { createCategoryGroup } from "../src/services/categories";
+import { createCategory, createCategoryGroup } from "../src/services/categories";
 import { json } from "./helpers";
 
 // EXF-532 (Lead's note 1): the migration's backfill for plans that already have credit accounts.
@@ -123,6 +123,58 @@ describe("credit payment categories migration backfill", () => {
       kind: "credit_card_payments",
     });
     expect(m.groups[0].categories.map((c: Json) => c.name)).toEqual(["ZZ Visa", "ZZ LOC"]);
+  });
+
+  it("two cards named like an ordinary group and an ordinary category get one system group and one payment category each", async () => {
+    const bid = await newPlan();
+    const bills = await createCategoryGroup(env, actor, { budget_id: bid, name: "ZZ Bills" });
+    await createCategory(env, actor, { budget_id: bid, group_id: bills.id, name: "ZZ Rent" });
+    const card = await account(bid, "ZZ Bills", "creditCard");
+    const loc = await account(bid, "ZZ Rent", "lineOfCredit");
+    // "Before": no row with a kind, as in the first test.
+    await env.DB.prepare("delete from categories where budget_id = ? and kind is not null")
+      .bind(bid)
+      .run();
+    await env.DB.prepare("delete from category_groups where budget_id = ? and kind is not null")
+      .bind(bid)
+      .run();
+    const ordinary = async () => ({
+      groups: await rows(
+        "select * from category_groups where budget_id = ? and kind is null order by id",
+        bid,
+      ),
+      cats: await rows(
+        "select * from categories where budget_id = ? and kind is null order by id",
+        bid,
+      ),
+    });
+    const before = await ordinary();
+    const queries = inserts();
+    for (const q of queries) await env.DB.prepare(q).run();
+    const snap = async () => ({
+      kinds: await rows(
+        "select id, name, kind, account_id, group_id from category_groups g left join (select id as cid, name as cname, account_id, group_id from categories where kind is not null) c on c.group_id = g.id where g.budget_id = ? and g.kind is not null order by cid",
+        bid,
+      ),
+      ordinary: await ordinary(),
+    });
+    const once = await snap();
+    const groups = await rows(
+      "select id from category_groups where budget_id = ? and kind = 'credit_card_payments'",
+      bid,
+    );
+    expect(groups).toHaveLength(1);
+    const pays = await rows(
+      "select name, account_id, group_id from categories where budget_id = ? and kind = 'credit_card_payment' order by name",
+      bid,
+    );
+    expect(pays).toEqual([
+      { name: "ZZ Bills", account_id: card, group_id: groups[0]?.id },
+      { name: "ZZ Rent", account_id: loc, group_id: groups[0]?.id },
+    ]);
+    expect(await ordinary()).toEqual(before);
+    for (const q of queries) await env.DB.prepare(q).run();
+    expect(await snap()).toEqual(once);
   });
 });
 

@@ -203,13 +203,68 @@ describe("EXF-535 steps 1-11 and the December reads", () => {
     expect(await w.balance("Visa")).toBe(-335000);
   });
 
-  it("covering only the cash part (assigning less than the credit part's worth) leaves the card alone", async () => {
+  it("covering part of a cash-only overspending leaves the card alone", async () => {
     const w = await world({ Visa: {} }, ["Cashy"]);
     await w.post("Checking", -25000, { category: "Cashy" });
     const before = catByName(await w.month(NOV), "Visa").activity;
     await w.assign("Cashy", 10000);
     expect(catByName(await w.month(NOV), "Visa").activity).toBe(before);
     expect(catByName(await w.month(NOV), "Cashy").overspent).toEqual({ cash: 15000, credit: 0 });
+  });
+
+  it("a partly covered category overspent with cash and credit loses its cash part first", async () => {
+    const w = await world({ Visa: {} }, ["Mixed"]);
+    await w.post("Checking", -25000, { category: "Mixed" });
+    await w.post("Visa", -40000, { category: "Mixed" });
+    // Dec's cash_overspending_previous is the negative of the cash part (see the 10.00 case below).
+    const rows = [
+      {
+        assigned: 0,
+        available: -65000,
+        cash: 25000,
+        credit: 40000,
+        state: "cash_overspent",
+        pay: 0,
+      },
+      {
+        assigned: 10000,
+        available: -55000,
+        cash: 15000,
+        credit: 40000,
+        state: "cash_overspent",
+        pay: 0,
+      },
+      {
+        assigned: 25000,
+        available: -40000,
+        cash: 0,
+        credit: 40000,
+        state: "credit_overspent",
+        pay: 0,
+      },
+      {
+        assigned: 35000,
+        available: -30000,
+        cash: 0,
+        credit: 30000,
+        state: "credit_overspent",
+        pay: 10000,
+      },
+    ];
+    for (const r of rows) {
+      await w.assign("Mixed", r.assigned);
+      const nov = await w.month(NOV);
+      expect(catByName(nov, "Mixed"), `assigned ${r.assigned}`).toMatchObject({
+        available: r.available,
+        overspent: { cash: r.cash, credit: r.credit },
+        state: r.state,
+      });
+      expect(catByName(nov, "Visa").activity, `payment at ${r.assigned}`).toBe(r.pay);
+      expect(
+        (await w.month(DEC)).rta_breakdown.cash_overspending_previous,
+        `December at ${r.assigned}`,
+      ).toBe(r.cash === 0 ? 0 : -r.cash);
+    }
   });
 
   it("a 10.00 cash overspending lowers December's Ready to Assign, a 5.00 credit one does not", async () => {
