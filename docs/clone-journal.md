@@ -8925,3 +8925,37 @@ open. Finished since each template's last review: Build 0, Deploy 7, Discover 2,
 
 **Next plan:** flows 2 and 4 on live `49012cd` (flow 2's fourth run: its three gaps are fixed; the
 cleared-state check above; flow 4's second run with Record Payment).
+
+### 2026-11-16 · Plan round 103
+
+Children used 120 of 200. One started now; five are running. Main and live `49012cd` (read by me at
+23:04Z). No tickets were filed at the last review. The person has not answered the round-100
+check-in.
+
+- **Started: flows 2 and 4 on live `49012cd`** (`p_ae5252ec1b92433790c8c1722e8fc7c2`; prefix
+  `ZZ-TEST F103`; one child). No source app; the plan menu is not opened; nothing is exported but the
+  test plan's own rows.
+  - **Flow 2 (everyday transactions), fourth run:** entry, an edit, a transfer, a split; then the
+    three fixed gaps: a shift+click range (EXF-635), Move to Account on All Accounts (EXF-636), a
+    refusal that names the row (EXF-637); categorize, flag, clear, delete and export from the bar.
+    My figures by hand: checking 995.00, 982.66, 980.00, 930.00, 870.00, 875.00, 905.00; savings
+    543.00, 538.00; Food's Activity −45.00, Fun's −112.00; Ready to Assign 1,600.00.
+  - **The cleared-state probe** (`D28`'s unexplained reading): the `cleared` state of two ticked rows
+    is read before and after opening the More menu and pressing Escape, three ways. If it changes,
+    the tester finds the action and files it.
+  - **Flow 4 (credit card), second run, short:** the Payment pill, Record Payment with its prefilled
+    row, an overpayment (the pill −30.00 in red, next month's Ready to Assign 1,670.00), the card
+    listed as "To/From" on the cash side, the card's own payment category refused, the tool.
+  - The brief keeps the rules taken from the template review (check my arithmetic first; file what
+    contradicts a written rule; text fit at 1024×700; results saved per step) and lists the known
+    gaps.
+- **Not started:** no Build (the Plan page, the import and Reconcile are running; the candidates
+  left, plan formats EXF-468 and the register's View options EXF-529, touch files they hold); no
+  Deploy (main and live are equal).
+- **Running besides:** the Plan-page Build (reworking), the plan import Build (implementing), the
+  Reconcile Build (parked by the rate limit at 20:17Z; to be checked at the next review) and the
+  Build template review.
+- **Cards while the flow test is on live:** a Build may merge (a merge does not change live); no
+  Deploy starts until the flow test ends.
+
+Ticket writes: 0. Review cadence: Build 0, Deploy 7, Discover 2, Test user flow 1 (one running).
