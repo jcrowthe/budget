@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { placeMenu, placeSubmenu } from "../apps/web/src/shell/menuPlacement";
+import { placeMenu, placeMenuBeside, placeSubmenu } from "../apps/web/src/shell/menuPlacement";
 import {
   collectPlanMenuActions,
   PLAN_MENU,
@@ -53,6 +53,12 @@ test("placement", () => {
   const row = { left: 12, top: 100, right: 244, bottom: 133 };
   const size = { width: 200, height: 150 };
   // Source (Designer, 1440\u00d7900): left = Open Plan row.right, top = row.top.
+  // Beside the collapsed rail (56 wide): 8px right of its edge, level with the rail logo.
+  expect(placeMenuBeside({ left: 8, top: 8, right: 47, bottom: 55 }, 56, 700)).toEqual({
+    left: 64,
+    top: 8,
+    maxHeight: 676,
+  });
   expect(placeSubmenu(menu, row, size, 1440, 900)).toEqual({ left: 244, top: 100, maxHeight: 884 });
   // Flip to the left of the menu when there is no room on the right.
   expect(

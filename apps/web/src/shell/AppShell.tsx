@@ -1,4 +1,5 @@
 import { Outlet } from "react-router";
+import { ShortcutsHost } from "../shortcuts/ShortcutsHost";
 import { Sidebar } from "./Sidebar";
 
 export function AppShell() {
@@ -8,6 +9,7 @@ export function AppShell() {
       <main className="main">
         <Outlet />
       </main>
+      <ShortcutsHost />
     </div>
   );
 }
