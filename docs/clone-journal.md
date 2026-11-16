@@ -5280,3 +5280,55 @@ EXF-516) on the Plan page, and decide whether the credit engine (EXF-532, EXF-53
 (it changes `packages/core` and reads `transactions`: by my new rule it must not run beside a Build that
 changes what a transaction row means; EXF-593 does not, it only reads); (3) the Deploy the moment
 EXF-593 merges.
+
+### 2026-11-16 · Plan round 64
+
+Children used 77 of 200. Two started now; three are running with the EXF-593 Build (in its final gate on
+`4da55a7`). Main `4da55a7`, live `4e3eb7a`. No ticket was filed at the last review.
+
+**Started:**
+
+1. **Reflect, carried over** (`p_bce37969c15544d3aef56a825ebcb1d8`; EXF-549, the last part of EXF-548,
+   EXF-588, EXF-591). Four Clerk jobs; the third merges
+   `origin/exfab/p_9f66acebf3b14e939ad0a7e27b241cb2` and **stops if that branch's head is not `41f818e`**
+   or the diff is much smaller than 39 files (the lesson from the plan-menu carry-over). Architect: no
+   redesign, no source. Seven points for the Reviewer and Tester, first of them that the plan-switch
+   spec must fail with the old placeholder or the design must say the remount is the guard.
+2. **The Plan page's view chips, snooze and Auto-Assign** (`p_3b70b79de2c54d278a92cb5686f8ed74`;
+   EXF-500, EXF-516, EXF-519), one Build because they interlock: Underfunded and Snoozed need snooze,
+   Auto-Assign's Underfunded leaves snoozed targets out, plan-wide Auto-Assign follows the view.
+   - One pure definition of each view, used by the grid, the subtotals, the panel, both month reads
+     (`view=`) and plan-wide Auto-Assign.
+   - Snooze per category and month, current month only by the owner's `today`; migration
+     `20261116100700_...`; the engine's part in `packages/core/src/targets.ts` (the one shared-module
+     change in flight).
+   - Auto-Assign arithmetic as pure code reproducing every worked example; averages over at most the
+     last 12 months (my decision; not observable); one atomic batch with a history row per changed
+     category; buttons disabled until the month is read again.
+   - Tools `preview_auto_assign`, `auto_assign`, `snooze_target`, `view` on `get_plan_month` and
+     `get_month_summary`.
+   - **Source: the strictest limit so far, because one click there moves money:** the test plan's Plan
+     page; chips may be clicked; the Auto-Assign card and the Assign popover's Auto tab may be looked
+     at and hovered, **never clicked**; no snooze switch, no Shift+Z, no typing.
+
+**New lines in both briefs** (from the template review and from today's lost boxes): the source check
+passing is not permission, and the Designer and Tester write the limits out in their first message; no
+theme change even for a moment, no viewport override, no typing into the source; a deleted capture is
+still reported; no test skipped to pass a gate; and "if the box loses its files, say so at once and do
+not re-run checks by hand".
+
+**How the three Builds fit:** disjoint. EXF-593 holds the register and the transactions, accounts and
+payees files; the Reflect carry-over holds Reflect and the reports files (its plan-switch cases go in
+its own spec, not in `e2e/plan-switch.spec.ts`); the Plan-page Build holds the Plan page, the months,
+month-categories and targets files and `packages/core/src/targets.ts`.
+
+**Not started, and why:**
+- **The credit engine (EXF-532, EXF-535):** it changes `packages/core`, `services/months.ts` and the
+  activity query in `repositories/transactions.ts`. The first two are held by the Plan-page Build, the
+  third by EXF-593. It also changes what the month read means, so by my new rule it does not run beside
+  a Build that computes from month reads. After the Plan-page Build.
+- **EXF-462 (import from Plaid):** needs the transactions and accounts files; after EXF-593 merges.
+- **No Deploy** until EXF-593 merges. No flow test until that release.
+
+Ticket writes: 9 (three to In Progress, six comments). Review cadence: Build 2, Deploy 5, Discover 2,
+Test user flow 5.
