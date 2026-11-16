@@ -12,6 +12,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { ZodError } from "zod";
 import type { AppEnv } from "../env";
 import { apiError, NotFound } from "../middleware/errors";
+import { PaymentLocked } from "../services/credit-payments";
 import { deleteTarget, SnoozeRefused, setTarget, setTargetSnooze } from "../services/targets";
 
 const tags = ["Targets"];
@@ -23,7 +24,10 @@ const errors = {
   403: json(ErrorBody, "Forbidden"),
   404: json(ErrorBody, "Plan, category or target not found"),
   409: json(ErrorBody, "The target was changed concurrently"),
-  422: json(ErrorBody, "Invalid target or date"),
+  422: json(
+    ErrorBody,
+    "Invalid target or date, or payment_category_target: a credit card payment category",
+  ),
 };
 
 const app = new OpenAPIHono<AppEnv>({
@@ -95,6 +99,7 @@ export default app
             e.issues.map((i) => i.message).join("; "),
           ) as never;
         }
+        if (e instanceof PaymentLocked) return apiError(c, 422, e.code, e.message) as never;
         throw e;
       }
     },

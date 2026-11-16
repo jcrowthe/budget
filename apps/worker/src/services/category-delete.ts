@@ -15,6 +15,7 @@ import { allOf, idList, type LogBase, whenQuery } from "../repositories/guards";
 import * as monthCatsRepo from "../repositories/month-categories";
 import * as targetsRepo from "../repositories/targets";
 import { categoryToApi, groupToApi, HistoryExists, InvalidReassignTarget } from "./categories";
+import { PaymentLocked } from "./credit-payments";
 import { targetToApi } from "./targets";
 
 const MAX_ATTEMPTS = 5;
@@ -217,9 +218,9 @@ async function checkTarget(
   const bad = (m: string) => new InvalidReassignTarget(`reassign_to ${m}`);
   if (!isUuid(reassignTo)) throw bad("is not a category of this plan");
   if (deleting.includes(reassignTo)) throw bad("is a category being deleted");
-  if (!(await categoriesRepo.findActive(db, budgetId, reassignTo))) {
-    throw bad("is not an active category of this plan");
-  }
+  const target = await categoriesRepo.findActive(db, budgetId, reassignTo);
+  if (!target) throw bad("is not an active category of this plan");
+  if (target.kind !== null) throw bad("is a credit card payment category");
   return reassignTo;
 }
 
@@ -239,6 +240,7 @@ async function run(
         ? await groupsRepo.findActive(db, budgetId, opts.groupId)
         : undefined;
       if (!g) throw new NotFound("Category group");
+      if (g.kind !== null) throw new PaymentLocked("payment_group_locked");
       group = g;
       cats = await categoriesRepo.listActiveInGroup(db, g.id);
     } else {
@@ -246,6 +248,7 @@ async function run(
         ? await categoriesRepo.findActive(db, budgetId, opts.categoryId as string)
         : undefined;
       if (!c) throw new NotFound("Category");
+      if (c.kind !== null) throw new PaymentLocked("payment_category_locked");
       cats = [c];
     }
     const ids = cats.map((c) => c.id);

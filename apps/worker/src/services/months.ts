@@ -31,9 +31,9 @@ import * as groupsRepo from "../repositories/category-groups";
 import * as monthCatRepo from "../repositories/month-categories";
 import * as monthRangeRepo from "../repositories/month-range";
 import * as monthsRepo from "../repositories/months";
+import { planActivity } from "../repositories/plan-activity";
 import * as snoozesRepo from "../repositories/target-snoozes";
 import * as targetsRepo from "../repositories/targets";
-import * as txRepo from "../repositories/transactions";
 import { todayUtc } from "./targets";
 
 // Type-level check: the engine's read model and the API schema are the same shape, both ways.
@@ -278,7 +278,7 @@ async function loadInput(
       categoriesRepo.listActive(db, budgetId),
       monthCatRepo.listForBudget(db, budgetId),
       monthsRepo.listNotes(db, budgetId),
-      txRepo.activityByMonth(db, budgetId, activityBefore),
+      planActivity(db, budgetId, activityBefore),
       withTargets ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
       withTargets ? snoozesRepo.listForBudget(db, budgetId) : Promise.resolve([]),
     ]);

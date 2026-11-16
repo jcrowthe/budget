@@ -1,11 +1,18 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are; the keys are the page's (shortcuts.ts)
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
-import { targetPill, targetStatusText } from "@budget/schema/target-wording";
+import { targetStatusText } from "@budget/schema/target-wording";
 import { useEffect, useRef } from "react";
 import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
-import { amountClass, money, plainSections, statusLabel, targetSections } from "./format";
+import {
+  amountClass,
+  categoryPill,
+  money,
+  plainSections,
+  statusLabel,
+  targetSections,
+} from "./format";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -52,6 +59,7 @@ export function GroupRow({
   checked,
   onCheck,
 }: {
+  /** A group with a `kind` (Credit Card Payments) belongs to the app: no edit popover, no add button. */
   g: MonthGroupDetail;
   checked: boolean | "mixed";
   onCheck: () => void;
@@ -62,6 +70,7 @@ export function GroupRow({
   addOpen: boolean;
 }) {
   const nameRef = useRef<HTMLButtonElement>(null);
+  const locked = g.kind !== null;
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a right-click opens the edit popover; the name button does the same by keyboard
     <div
@@ -71,7 +80,7 @@ export function GroupRow({
       aria-expanded={!collapsed}
       onContextMenu={(e) => {
         e.preventDefault();
-        if (nameRef.current) onEditName(nameRef.current);
+        if (!locked && nameRef.current) onEditName(nameRef.current);
       }}
     >
       <div className="cell-margin" />
@@ -89,24 +98,32 @@ export function GroupRow({
         <Checkbox label={g.name} checked={checked} onChange={onCheck} />
       </div>
       <div className="cell-name" role="rowheader">
-        <button
-          type="button"
-          ref={nameRef}
-          className="group-name"
-          title={g.name}
-          onClick={(e) => onEditName(e.currentTarget)}
-        >
-          {g.name}
-        </button>
-        <button
-          type="button"
-          className={`add-category${addOpen ? " active" : ""}`}
-          aria-label="Add Category"
-          title="Add Category"
-          onClick={(e) => onAddCategory(e.currentTarget)}
-        >
-          <PlusCircleFillIcon />
-        </button>
+        {locked ? (
+          <span className="group-name" title={g.name}>
+            {g.name}
+          </span>
+        ) : (
+          <>
+            <button
+              type="button"
+              ref={nameRef}
+              className="group-name"
+              title={g.name}
+              onClick={(e) => onEditName(e.currentTarget)}
+            >
+              {g.name}
+            </button>
+            <button
+              type="button"
+              className={`add-category${addOpen ? " active" : ""}`}
+              aria-label="Add Category"
+              title="Add Category"
+              onClick={(e) => onAddCategory(e.currentTarget)}
+            >
+              <PlusCircleFillIcon />
+            </button>
+          </>
+        )}
       </div>
       <div className="num cell-assigned" role="cell">
         {money(g.assigned)}
@@ -157,7 +174,7 @@ export function CategoryRow({
 }) {
   const status = bars && c.target && c.available >= 0 ? targetStatusText(c) : null;
   const label = bars && !status ? statusLabel(c) : null;
-  const pill = c.target ? targetPill(c) : null;
+  const pill = categoryPill(c);
   const nameRef = useRef<HTMLButtonElement>(null);
   const pillRef = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: c.available re-runs it when a disabled pill becomes enabled
@@ -179,7 +196,7 @@ export function CategoryRow({
       aria-selected={selected}
       onContextMenu={(e) => {
         e.preventDefault();
-        if (nameRef.current) onContextMenu(nameRef.current);
+        if (c.kind === null && nameRef.current) onContextMenu(nameRef.current);
       }}
     >
       <div className="cell-margin" />

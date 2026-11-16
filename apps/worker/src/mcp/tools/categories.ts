@@ -10,7 +10,7 @@ export const tools: McpToolDef[] = [
   {
     name: "create_category",
     description:
-      "Create a category at the top of a group. The name is trimmed and must be unique in the group (case-insensitive). Returns {category} with id, group_id, name, sort, hidden and note.",
+      "Create a category at the top of a group. The name is trimmed and must be unique in the group (case-insensitive). Returns {category} with id, group_id, name, sort, hidden and note. (Not for the Credit Card Payments group or its payment categories: that is a 422.)",
     inputSchema: z.object({ budget_id, group_id: z.string().min(1), name: z.string() }),
     run: async (input: { budget_id: string; group_id: string; name: string }, { env, actor }) => ({
       category: await addCategory(env, actor, input),
@@ -19,7 +19,7 @@ export const tools: McpToolDef[] = [
   {
     name: "rename_category",
     description:
-      "Rename a category. The name is trimmed and must be unique in its group. Returns {category} with id, group_id, name, sort, hidden and note.",
+      "Rename a category. The name is trimmed and must be unique in its group. Returns {category} with id, group_id, name, sort, hidden and note. (Not for the Credit Card Payments group or its payment categories: that is a 422.)",
     inputSchema: z.object({ budget_id, category_id, name: z.string() }),
     run: async (
       input: { budget_id: string; category_id: string; name: string },
@@ -31,7 +31,7 @@ export const tools: McpToolDef[] = [
   {
     name: "set_category_hidden",
     description:
-      "Hide or unhide a category. Hidden categories still count in Ready to Assign. Unhiding a category in a hidden group brings the group back with only that category. Returns {category} with id, group_id, name, sort, hidden and note.",
+      "Hide or unhide a category. Hidden categories still count in Ready to Assign. Unhiding a category in a hidden group brings the group back with only that category. Returns {category} with id, group_id, name, sort, hidden and note. (Not for the Credit Card Payments group or its payment categories: that is a 422.)",
     inputSchema: z.object({ budget_id, category_id, hidden: z.boolean() }),
     run: async (
       input: { budget_id: string; category_id: string; hidden: boolean },
@@ -51,7 +51,7 @@ export const tools: McpToolDef[] = [
   {
     name: "delete_category",
     description:
-      "Delete a category. If it has transactions or assigned amounts, reassign_to (another category) is required: its transactions and assigned amounts move to that category, and Ready to Assign is unchanged, except that in later months it rises when the merge cancels cash overspending. Returns {deleted} with category_ids, group_id, reassigned_to, transactions_moved and months_merged. Money is integer milliunits (1000 = one currency unit, negative is an outflow); months are YYYY-MM-01.",
+      "Delete a category. If it has transactions or assigned amounts, reassign_to (another category) is required: its transactions and assigned amounts move to that category, and Ready to Assign is unchanged, except that in later months it rises when the merge cancels cash overspending. Returns {deleted} with category_ids, group_id, reassigned_to, transactions_moved and months_merged. Money is integer milliunits (1000 = one currency unit, negative is an outflow); months are YYYY-MM-01. (Not for the Credit Card Payments group or its payment categories: that is a 422.)",
     inputSchema: z.object({ budget_id, category_id, reassign_to: z.string().min(1).optional() }),
     run: async (
       input: { budget_id: string; category_id: string; reassign_to?: string },

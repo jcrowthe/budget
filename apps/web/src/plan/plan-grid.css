@@ -500,6 +500,11 @@ button.category-name {
   flex: none;
   margin: -1px 4px 0 0;
 }
+/* EXF-535: the credit-overspent pill keeps the label colour for its card icon, with the source's .35rem gap. */
+.available-pill.credit .pill-icon {
+  fill: currentColor;
+  margin: -1px 0.35rem 0 0;
+}
 .status-label strong {
   font-weight: 700;
 }

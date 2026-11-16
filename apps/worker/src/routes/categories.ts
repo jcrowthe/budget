@@ -31,7 +31,10 @@ const errors = {
     ErrorBody,
     "The category has history and reassign_to is missing, or a concurrent change",
   ),
-  422: json(ErrorBody, "Invalid request, duplicate name or invalid reassign_to"),
+  422: json(
+    ErrorBody,
+    "Invalid request, duplicate name, invalid reassign_to, or payment_group_locked / payment_category_locked (the Credit Card Payments group and its categories)",
+  ),
 };
 
 const app = new OpenAPIHono<AppEnv>({

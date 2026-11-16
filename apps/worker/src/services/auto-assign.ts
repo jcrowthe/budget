@@ -76,6 +76,7 @@ async function loadScope(
       carried: c.carried,
       activity: c.activity,
       target: c.target,
+      payment: c.kind === "credit_card_payment",
       ...historyFigures(month, figures, first),
     };
   });

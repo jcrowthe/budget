@@ -123,7 +123,9 @@ export function PlanGrid({
   const editAt = editRequest?.at;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new request (its timestamp) is the trigger
   useEffect(() => {
-    if (editRequest)
+    // A credit card payment category belongs to its account: it has no edit popover (EXF-532).
+    const target = data?.groups.flatMap((g) => g.categories).find((c) => c.id === editRequest?.id);
+    if (editRequest && target?.kind !== "credit_card_payment")
       setPop({ kind: "edit-category", categoryId: editRequest.id, anchor: editRequest.anchor });
   }, [editAt]);
 
@@ -224,7 +226,7 @@ export function PlanGrid({
     }
     if (pop.kind === "edit-group") {
       const g = allGroups.find((x) => x.id === pop.groupId);
-      if (!g) return null;
+      if (!g || g.kind !== null) return null;
       return (
         <NamePopover
           anchor={pop.anchor}
@@ -246,7 +248,7 @@ export function PlanGrid({
     }
     if (pop.kind === "edit-category") {
       const c = allGroups.flatMap((x) => x.categories).find((x) => x.id === pop.categoryId);
-      if (!c) return null;
+      if (!c || c.kind !== null) return null;
       return (
         <NamePopover
           anchor={pop.anchor}
@@ -408,7 +410,7 @@ export function PlanGrid({
                           }
                           onNameClick={(anchor) => {
                             // EXF-592: a click on the name of the one selected category opens its edit popover.
-                            if (selected.size === 1 && selected.has(c.id)) {
+                            if (c.kind === null && selected.size === 1 && selected.has(c.id)) {
                               setPop({ kind: "edit-category", categoryId: c.id, anchor });
                             } else onSelection(() => selectOnly(c.id));
                           }}
