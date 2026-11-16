@@ -6024,3 +6024,59 @@ to the Reflect Build (neither expects one; if both take it, the second renames a
 
 Ticket writes: 6 (two to In Progress, one blocking link set, three comments). Review cadence: Build 6,
 Deploy 8, Discover 2, Test user flow 6.
+
+### 2026-11-16 · Review round 72
+
+Children used 86 of 200. One Build ended; three are running.
+
+**Ended: the EXF-613 Build (`p_fc9382ad6b6d49d5b8403c1b52472548`), merged as `c9e9d1c` (PR #41)**, about
+55 minutes, one card. EXF-613 is Done.
+
+- I approved after reading its design and the budget code: gate on the current base (`9e77748`), e2e
+  276 of 276 three times, one additive migration (`20261116100900_sync_failed_at.sql`).
+- **The limits it found, with sources:** 50 D1 queries per invocation on Cloudflare's free plan (1,000
+  paid), a `db.batch` counting as one. It assumes the free plan. My guess in the ticket was right in
+  kind and worse in size: by its count the merged import made about 1,070 calls for 500 entries, over
+  the paid limit too.
+- As built: a budget of 45 calls per run; units of up to 90 entries; a stopped run saves **no** cursor
+  and reports `has_more` (the next run re-reads and the written entries change nothing); names and
+  match details read in one batch; a failed run sets `delayed` and `sync_failed_at`; the scheduled
+  handler goes round-robin with caps (5 runs per connection, 40 per invocation).
+- Open until flow 5 on live: whether each Durable Object request has its own allowance, and the plan.
+- It made small additive edits in `repositories/transactions.ts` (a `parentIds` filter on `listLines`)
+  and `repositories/accounts.ts`, files the register Build also holds: that Build rebases over them.
+
+**My side-turn decisions since the last review, for the record:**
+- **Plan-page Build, second card: Request changes.** (Its first card got a Regate from me in a side
+  turn that is not in this journal's earlier entries: the base had moved, and two Notes-card tests had
+  failed in two of three full runs.) At the second card the gate was clean on the current base, and I
+  found the cause in the code: **the new Auto-Assign card draws an empty body until its preview
+  arrives and then grows by up to eight buttons, pushing the Notes card down under the pointer.** A
+  layout jump for a person and a miss for a real-mouse test. Asked: the card keeps its height while
+  loading; a spec that proves the Notes card does not move; the Notes tests ten times under load; the
+  same for the Assign popover; the snooze race test forced or renamed. No source app for that round.
+  Its head is now `b6af0b3` ("Auto-Assign list keeps its height while loading; layout spec; stable
+  real clicks").
+- Lesson: **a test filed as a flake at one gate and green at the next has not been explained.** Read
+  the code around it before approving, especially when the Build adds something that loads late above
+  it.
+
+**Main is `c9e9d1c`; live is `e2bcd35`.** Two merges wait (the import, the sync budget), two migrations
+pending on live (`100800`, `100900`; read with the pending script). The tree of `c9e9d1c` equals the
+gated head `141f5e3`.
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): rework committed (`b6af0b3`), on its way
+  back through checks, review, acceptance and the gate.
+- **Reflect: two reports** (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`): head `4c074a7`, second polish round.
+- **Register: selection, action bar, flags** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): built (`d539ba2`).
+
+**Ticket writes:** 2 (EXF-613 Done and comment).
+
+**Backlog:** 61 open feature tickets (33 done; 7 in progress: EXF-500, 516, 519, 550, 552, 520, 522).
+Gap: done now EXF-613; open EXF-558, EXF-560, EXF-562, EXF-589, EXF-614 (Low). Template: twenty-nine.
+Flow verdicts unchanged from round 71. Finished since each template's last review: Build 7, Deploy 8,
+Discover 2, Test user flow 6.
+
+**Next plan:** Deploy `c9e9d1c` now (the import with its budget: this is the release flow 5 needs), then
+flow 5 against the Sandbox.
