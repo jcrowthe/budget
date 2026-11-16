@@ -5556,3 +5556,38 @@ twenty-eight. Flow verdicts unchanged. Finished since each template's last revie
 
 **Next plan:** (1) the Deploy of `3a98673` again; (2) the import carried over from
 `origin/exfab/p_e051b02d89624ff7a3e8144e9f9710c2` (head `16c5a85`), without the guard.
+
+### 2026-11-16 · Plan round 67
+
+Children used 81 of 200. Two started now; four are running with the Reflect carry-over and the
+Plan-page Build. Main `3a98673`, live `4e3eb7a`. No ticket was filed at the last review.
+
+**Started:**
+
+1. **Deploy of main `3a98673`, second attempt** (`p_3e2eeca31173462c8bb9ef7b3bcc1676`), `gated_commit`
+   `74dfa4f`, run prefix `ZZ-TEST D18`. The same brief as round 66, with three changes: it says the first
+   attempt did nothing; it stops after the gate if main has moved (a Build may merge within the hour,
+   and I do not want an ungated tree released by a rule I wrote loosely last time); and "if one of the
+   Lead's figures does not match, do not adjust the check: report the figure, the step and the answer".
+2. **The Plaid import, carried over** (`p_c81492d33faf41b1bc8a985e48688b83`; EXF-462 with the API half
+   of EXF-463). Four Clerk jobs; the third merges
+   `origin/exfab/p_e051b02d89624ff7a3e8144e9f9710c2` (head `16c5a85`: two documents and an index line)
+   and stops if the head differs. The Architect does not redesign; the code is written here.
+   - **The guard is replaced by its opposite:** "Do not stop because a file under `/workspace/.exfab/`
+     is missing; `request.json` is normally gone after the Clerk's step."
+   - Eight points accepted from the design, seven sharpened by me. The ones that matter most: a full
+     re-read of the feed must not bring back what the owner rejected nor change what the owner
+     approved, edited or matched (with a test); a sync never changes a reconciled row; a run is bounded
+     and reports `has_more`; no token in the history or in a log line (a test searches for it).
+   - Holds the Plaid client, the Durable Object, `scheduled.ts`, the bank-connection files and the
+     transactions, accounts and payees files of the Worker; migration `20261116100800_plaid_import.sql`.
+
+**How the four fit:** disjoint files (checked against the Plan-page Build's manifest, which arrived
+last round). All three Builds edit the timestamp test's call list, the coverage files they own and the
+docs index; the import brief says to keep every entry at a rebase.
+
+**If the Reflect carry-over or the Plan-page Build ends as failed with "request.json is gone":** it is
+my old guard; carry it over, do not look further.
+
+Ticket writes: 1 (a comment on EXF-462). Review cadence: Build 4, Deploy 6, Discover 2, Test user
+flow 5.
