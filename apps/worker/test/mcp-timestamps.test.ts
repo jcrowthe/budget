@@ -28,6 +28,8 @@ type Ctx = {
   bankAccount: string;
   bankAccount2: string;
   secondPlan: string;
+  sched: string;
+  sched2: string;
 };
 let ctx: Ctx;
 
@@ -128,7 +130,24 @@ async function seed(): Promise<Ctx> {
       .run();
   }
   const secondPlan = await createPlan("sandbox");
+  const mkSched = async (memo: string) =>
+    (
+      await data(
+        await send(`/api/v1/budgets/${bid}/scheduled-transactions`, "POST", {
+          account_id: checking,
+          date_first: "2099-01-15",
+          frequency: "monthly",
+          amount: -4000,
+          payee_name: "ZZ Sched",
+          memo,
+        }),
+      )
+    ).scheduled_transaction.id as string;
+  const sched = await mkSched("one");
+  const sched2 = await mkSched("two");
   return {
+    sched,
+    sched2,
     bid,
     spare,
     other,
@@ -260,6 +279,29 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["sync_bank_connections", (c) => ({ budget_id: c.bid, bank_connection_id: c.conn })],
   ["close_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
   ["reopen_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
+  ["list_scheduled_transactions", (c) => ({ budget_id: c.bid })],
+  ["get_scheduled_transaction", (c) => ({ budget_id: c.bid, id: c.sched })],
+  [
+    "create_scheduled_transaction",
+    (c) => ({
+      budget_id: c.bid,
+      account_id: c.checking,
+      date_first: "2099-02-01",
+      frequency: "weekly",
+      amount: -100,
+      payee_name: "ZZ Sched N",
+    }),
+  ],
+  [
+    "update_scheduled_transaction",
+    (c) => ({ budget_id: c.bid, id: c.sched, memo: "ZZ updated", today: "2026-11-15" }),
+  ],
+  ["enter_due_scheduled_transactions", (c) => ({ budget_id: c.bid, today: "2026-11-15" })],
+  [
+    "enter_scheduled_transaction_now",
+    (c) => ({ budget_id: c.bid, id: c.sched2, today: "2026-11-15" }),
+  ],
+  ["delete_scheduled_transaction", (c) => ({ budget_id: c.bid, id: c.sched })],
   ["delete_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.spareTx })],
   ["reject_transactions", (c) => ({ budget_id: c.bid, ids: [c.importTx] })],
   ["delete_transactions", (c) => ({ budget_id: c.bid, ids: [c.bulkTx] })],

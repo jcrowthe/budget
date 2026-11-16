@@ -50,6 +50,7 @@ function Row({ item }: { item: Item }) {
 
 /** The bar's More menu, in the source's order and with its dividers. */
 export function MoreMenu({
+  scheduled = false,
   anchor,
   count,
   unclear,
@@ -63,6 +64,8 @@ export function MoreMenu({
   onExport,
   onDelete,
 }: {
+  /** The selection is scheduled rows: only Delete works in this Build. */
+  scheduled?: boolean;
   anchor: HTMLElement;
   count: number;
   /** Every non-reconciled selected row is cleared: the menu offers "Mark as Uncleared". */
@@ -80,56 +83,79 @@ export function MoreMenu({
 }) {
   const [sub, setSub] = useState(false);
   const moveBtn = useRef<HTMLButtonElement>(null);
-  const groups: Item[][] = [
-    ...(unclear
-      ? [
-          [
-            {
-              label: "Mark as Uncleared",
-              icon: <ClearedCircleIcon />,
-              keys: ["C"],
-              onClick: onUnclear,
-            },
-          ],
-        ]
-      : []),
+  const later = { ticket: "later", title: "Not available for scheduled transactions yet" };
+  const matchGroup: Item[] = [
+    {
+      label: "Match",
+      icon: <LinkIcon />,
+      keys: ["M"],
+      disabled: { ticket: "EXF-464", title: MATCH_TITLE },
+    },
+    {
+      label: "Unmatch",
+      icon: <LinkBrokenIcon />,
+      keys: ["shift", "U"],
+      disabled: { ticket: "EXF-464" },
+    },
+  ];
+  const scheduledGroups: Item[][] = [
+    matchGroup,
+    [{ label: "Duplicate", icon: <DuplicateIcon />, keys: ["shift", "D"], disabled: later }],
     [
+      { label: "Memo...", icon: <MemoIcon />, disabled: later },
       {
-        label: "Match",
-        icon: <LinkIcon />,
-        keys: ["M"],
-        disabled: { ticket: "EXF-464", title: MATCH_TITLE },
-      },
-      {
-        label: "Unmatch",
-        icon: <LinkBrokenIcon />,
-        keys: ["shift", "U"],
-        disabled: { ticket: "EXF-464" },
-      },
-    ],
-    [
-      { label: "Duplicate", icon: <DuplicateIcon />, keys: ["shift", "D"], onClick: onDuplicate },
-      ...(oneRow
-        ? [
-            {
-              label: "Make Repeating",
-              icon: <RepeatIcon />,
-              keys: ["shift", "T"],
-              disabled: { ticket: "EXF-503" },
-            },
-          ]
-        : []),
-    ],
-    [{ label: "Memo...", icon: <MemoIcon />, onClick: onMemo }],
-    [
-      {
-        label: `Export ${countLabel(count)}`,
-        icon: <ExportIcon />,
-        onClick: onExport,
+        label: "Move to Account",
+        icon: <ExportIcon style={{ transform: "rotate(-90deg)" }} />,
+        disabled: later,
       },
     ],
+    [{ label: `Export ${countLabel(count)}`, icon: <ExportIcon />, disabled: later }],
     [{ label: "Delete", icon: <TrashIcon />, keys: ["delete"], onClick: onDelete }],
   ];
+  const groups: Item[][] = scheduled
+    ? scheduledGroups
+    : [
+        ...(unclear
+          ? [
+              [
+                {
+                  label: "Mark as Uncleared",
+                  icon: <ClearedCircleIcon />,
+                  keys: ["C"],
+                  onClick: onUnclear,
+                },
+              ],
+            ]
+          : []),
+        matchGroup,
+        [
+          {
+            label: "Duplicate",
+            icon: <DuplicateIcon />,
+            keys: ["shift", "D"],
+            onClick: onDuplicate,
+          },
+          ...(oneRow
+            ? [
+                {
+                  label: "Make Repeating",
+                  icon: <RepeatIcon />,
+                  keys: ["shift", "T"],
+                  disabled: { ticket: "EXF-503" },
+                },
+              ]
+            : []),
+        ],
+        [{ label: "Memo...", icon: <MemoIcon />, onClick: onMemo }],
+        [
+          {
+            label: `Export ${countLabel(count)}`,
+            icon: <ExportIcon />,
+            onClick: onExport,
+          },
+        ],
+        [{ label: "Delete", icon: <TrashIcon />, keys: ["delete"], onClick: onDelete }],
+      ];
   return (
     <Popover anchor={anchor} placement="above" width={232} label="More actions" onClose={onClose}>
       <ul className="bulk-list">

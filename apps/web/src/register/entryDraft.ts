@@ -1,6 +1,12 @@
 import { evaluateAmountEntry, formatAmountEntry, signedAmount } from "@budget/schema/amount-entry";
 import { formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
 import type { Payee } from "@budget/schema/payees";
+import type { Frequency } from "@budget/schema/recurrence";
+import type {
+  ScheduledTransaction,
+  ScheduledTransactionCreate,
+  ScheduledTransactionUpdate,
+} from "@budget/schema/scheduled-transactions";
 import type {
   SubTransactionInput,
   TransactionCreateRequest,
@@ -22,7 +28,8 @@ export type Field = "account" | "date" | "payee" | "category" | "memo" | "outflo
 export type Open =
   | null
   | { mode: "add"; key: number; date?: string }
-  | { mode: "edit"; id: string; focus: Field; openCategory?: boolean; split?: true };
+  | { mode: "edit"; id: string; focus: Field; openCategory?: boolean; split?: true }
+  | { mode: "editScheduled"; id: string; focus: Field };
 
 export type CategoryValue = { kind: "none" } | { kind: "rta" } | { kind: "category"; id: string };
 
@@ -70,6 +77,8 @@ export type Draft = {
   outflowText: string;
   inflowText: string;
   cleared: "uncleared" | "cleared";
+  /** The calendar's Repeat select; "never" for a real row. */
+  frequency: Frequency;
 };
 
 export function emptyDraft(date: string, accountId: string | null): Draft {
@@ -85,6 +94,7 @@ export function emptyDraft(date: string, accountId: string | null): Draft {
     outflowText: "",
     inflowText: "",
     cleared: "uncleared",
+    frequency: "never",
   };
 }
 
@@ -117,6 +127,28 @@ export function draftFromTx(tx: TransactionDetail): Draft {
     outflowText: tx.amount < 0 ? formatAmountEntry(-tx.amount) : "",
     inflowText: tx.amount > 0 ? formatAmountEntry(tx.amount) : "",
     cleared: tx.cleared === "cleared" ? "cleared" : "uncleared",
+    frequency: "never",
+  };
+}
+
+/** A scheduled row opened for editing: its next date and its frequency. */
+export function draftFromScheduled(s: ScheduledTransaction): Draft {
+  return {
+    transferAccountId: null,
+    lines: null,
+    accountId: s.account_id,
+    dateText: formatEntryDate(s.date_next),
+    lastDate: s.date_next,
+    payee: { id: s.payee_id, name: s.payee_name ?? "" },
+    category: s.category_id
+      ? { kind: "category", id: s.category_id }
+      : s.inflow_to_ready_to_assign
+        ? { kind: "rta" }
+        : { kind: "none" },
+    memo: s.memo ?? "",
+    ...amountTexts(s.amount),
+    cleared: "uncleared",
+    frequency: s.frequency,
   };
 }
 
@@ -234,5 +266,51 @@ export function draftToPatch(
   } else if (!d.lines && was.lines) {
     patch.subtransactions = [];
   }
+  return patch;
+}
+
+/** The body of a new schedule: the date is the series' first date. */
+export function draftToScheduledCreate(
+  d: Draft,
+  accountId: string,
+  today: string,
+): ScheduledTransactionCreate {
+  const date = parseEntryDate(d.dateText, today) as string;
+  const memo = d.memo.trim();
+  const payee = payeeFields(d.payee);
+  return {
+    account_id: accountId,
+    date_first: date,
+    frequency: d.frequency,
+    amount: draftAmount(d),
+    ...(memo ? { memo } : {}),
+    ...("payee_id" in payee && payee.payee_id === null ? {} : payee),
+    ...(d.category.kind === "none" ? {} : categoryFields(d.category)),
+  };
+}
+
+/** Only what differs from the series as it was opened; a new date or frequency re-anchors it. */
+export function draftToScheduledPatch(
+  before: ScheduledTransaction,
+  d: Draft,
+  today: string,
+): ScheduledTransactionUpdate {
+  const was = draftFromScheduled(before);
+  const patch: ScheduledTransactionUpdate = {};
+  const date = parseEntryDate(d.dateText, today) as string;
+  if (date !== before.date_next || d.frequency !== before.frequency) patch.date_first = date;
+  if (d.frequency !== before.frequency) patch.frequency = d.frequency;
+  if (d.accountId && d.accountId !== before.account_id) patch.account_id = d.accountId;
+  const payeeChanged = d.payee.id
+    ? d.payee.id !== before.payee_id
+    : d.payee.name.trim() !== (before.payee_name ?? "");
+  if (payeeChanged) Object.assign(patch, payeeFields(d.payee));
+  if (JSON.stringify(d.category) !== JSON.stringify(was.category)) {
+    Object.assign(patch, categoryFields(d.category));
+  }
+  if (d.memo.trim() !== (before.memo ?? ""))
+    patch.memo = d.memo.trim() === "" ? null : d.memo.trim();
+  const amount = draftAmount(d);
+  if (amount !== before.amount) patch.amount = amount;
   return patch;
 }

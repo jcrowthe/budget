@@ -15,6 +15,8 @@ type Keys = {
   duplicate?: () => void;
   flag?: () => void;
   del?: () => void;
+  /** Enter Now, for a selection of scheduled rows. */
+  enterNow?: () => void;
 };
 
 const inField = (t: EventTarget | null) => {
@@ -46,6 +48,7 @@ export function useRegisterKeys(keys: Keys) {
       let act: (() => void) | undefined;
       if (e.key === "Escape") act = k.clearSelection;
       else if (e.key === "Delete" || e.key === "Backspace") act = k.del;
+      else if (!e.shiftKey && key === "e") act = k.enterNow;
       else if (!e.shiftKey && key === "c") act = k.clear;
       else if (!e.shiftKey && key === "k") act = k.categorize;
       else if (!e.shiftKey && key === "a") act = k.approve;
