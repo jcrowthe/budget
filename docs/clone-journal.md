@@ -394,7 +394,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
 | 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | live `74f1041` (14 minutes) |
 | 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
-| 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | running |
+| 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | completed (21 minutes): flow 8 `new_gaps` (EXF-591), flow 5 `parity_known_gaps` |
 | 2026-11-16 | 56 | Build feature, EXF-508, EXF-514, EXF-592 targets form and display (`p_74b956498a4b4ce1bed94c516291a48f`) | EXF-508, 514, 592 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -4623,3 +4623,58 @@ fixes; EXF-486 with EXF-488, dialogs built), the flow test for flows 8 and 5, an
 - Review cadence: Build 8, Deploy 3, Discover 2, Test user flow 4. **Two more Builds and the Build
   template review is due**: its notes should lead with the Refresh-then-Regate cost of the docs index
   line (four Builds, two to four cards each) and with the source limits that have held since round 40.
+
+### 2026-11-16 · Review round 56
+
+Children used 69 of 200. Three Builds are running: EXF-526 with EXF-524 (regating on `113ced4`, my choice
+at its first card), EXF-486 with EXF-488 (polish applied), EXF-508 with EXF-514 and EXF-592 (started).
+
+**Ended: the flow tests on live `74f1041`** (`p_2dd7fe181bcc4d478325a3cef0c35e32`), 21 minutes, two flows.
+No source app; every control reached with a real mouse; the prefixed purge left nothing.
+
+- **Flow 8, first run, Net Worth only: `new_gaps`.** The worked example of EXF-551 entered through the API
+  gives the header, every row of the month table, the September tooltip, the presets, arrows and Custom
+  range, the remembered filter, the CSV lines and the tool's figure exactly as the ticket states. **One
+  new gap, EXF-591 (Low):** with no debts among the selected accounts the header prints "-$0.00". Ride
+  with the next Reflect Build (EXF-549, EXF-588).
+  - A Starting Balance's date can be changed through the API (the lock covers payee, category and
+    account): good, EXF-461's "move the date earlier to import earlier" depends on it.
+- **Flow 5, first run, as far as built: `parity_known_gaps`.** **Plaid Link can be driven in a headless
+  browser**: the tester connected First Platypus Bank through the app's Add Account screen on its Sandbox
+  test plan, listed the connection through MCP with no secret in any field, added two accounts with
+  Starting Balances, was refused a second add, unlinked and linked again, was refused a cash account,
+  renamed the connection, and **removed it** (`{"deleted":true,"plaid":"removed"}`; the list is empty, the
+  read answers not found). The accounts stayed, unlinked. Known gaps only: the screens (EXF-460, EXF-461)
+  and the import (EXF-462).
+  - So flow 5 can grow with each Build: next the import (EXF-462).
+
+**The transfers and splits Build's first card (side turn): Regate, and not ready to approve.**
+
+- Base moved (`74f1041` to `113ced4`), so Regate, as the card's rule says.
+- **A defect it would bring in:** a split is a parent row plus line rows in `transactions`. The Build
+  excluded line rows wherever its own files sum amounts, but `apps/worker/src/repositories/reports.ts`
+  line 64 (Net Worth) sums every row of an account and was out of its bounds: **a split would count twice
+  in Net Worth.** Its Implementer flagged the file. I checked every other `sum(` over transactions: it is
+  the only reader left. **At its next card: Request changes** for that line and a Worker test (a split of
+  -100.00 moves net worth by -100.00), unless main has moved again; then Regate once more first.
+- **Lesson for briefs: when a Build changes what a row of a shared table means, its brief must name every
+  reader of that table, in or out of its bounds, and give it leave to fix them.** I listed the files it
+  held and forgot the report's query.
+- Its Reviewer found a real defect (re-pointing a transfer wrote false history rows; fixed, with a test of
+  the exact rows). Six polish items applied. Nothing saved in the source's test plan.
+- Two rule slips, no private data: its Designer looked at the source in the light theme as well as dark
+  and set it back (the brief said not to change the theme); its Implementer ran `git fetch` once. For
+  the next Build template review.
+
+**Running Builds:** account editing at `8894a6f` (polish applied); targets not yet committed.
+
+**Main is `113ced4`; live is `74f1041`** (one merge behind: the Plan-page Build, migration `100400`). The
+flow test has ended: **Deploy next plan**, then flow 9 again.
+
+**Ticket writes:** 2 (EXF-591 priority and comment).
+
+**Backlog:** 72 open feature tickets (24 done; 6 in progress: EXF-526, 524, 486, 488, 508, 514). Gap:
+EXF-587, EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 (Low); in progress EXF-592.
+Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 5 `parity_known_gaps`,
+8 `new_gaps` (EXF-591), 9 and 10 `new_gaps`, 11 `parity`. Finished since each template's last review:
+Build 8, Deploy 3, Discover 2, Test user flow 5.
