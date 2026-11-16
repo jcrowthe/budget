@@ -233,6 +233,44 @@ describe("sync budget (EXF-613)", () => {
   });
 
   it(
+    "EXF-613 8: a page that only removes entries deletes them",
+    async () => {
+      stubBank();
+      const { conn, account } = await world1();
+      const list = many(40, "ZZ-X");
+      feed.pages = [{ added: list }];
+      await runUntilDone(env, conn);
+      expect(await imports(account)).toHaveLength(40);
+      feed.pages = [{ added: list }, { removed: list.map((t) => t.transaction_id) }];
+      const rs = await runUntilDone(env, conn);
+      expect(sum(rs, "removed")).toBe(40);
+      expect(await imports(account)).toHaveLength(0);
+    },
+    LONG,
+  );
+
+  it(
+    "EXF-613 8: removals that span several runs finish",
+    async () => {
+      stubBank();
+      const { conn, account } = await world1();
+      const list = many(40, "ZZ-Y");
+      feed.pages = [{ added: list }];
+      await runUntilDone(env, conn);
+      feed.pages = [
+        { added: list },
+        { added: many(1, "ZZ-Z"), removed: list.map((t) => t.transaction_id) },
+      ];
+      const rs = await runUntilDone(env, conn, {}, 10);
+      expect(rs.length).toBeGreaterThanOrEqual(2);
+      expect(rs.at(-1)?.has_more).toBe(false);
+      expect(sum(rs, "removed")).toBe(40);
+      expect(await imports(account)).toHaveLength(1);
+    },
+    LONG,
+  );
+
+  it(
     "EXF-613 6: a mutation restart after a stop begins at the loop's first cursor",
     async () => {
       const inner = syncPages(() => feed.pages);

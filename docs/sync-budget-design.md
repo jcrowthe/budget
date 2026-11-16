@@ -219,7 +219,7 @@ skipped. `scheduled.ts` and `durable/plaid-item-sync.ts` do not change.
 - The BankConnection API and its change_log copies gain `sync_failed_at`.
 - The `delayed` description changes in the schema and in `sync_bank_connections`. `has_more` now also means
   "the run stopped at its budget".
-- Tests that fix how many runs a large import takes may change: 462-15 and the two 462-24 cases. Every other
+- Tests that fix how many runs a large import takes may change: 462-15 and the two 462-24 cases; 462-11 fixes the ordinal of a failing batch and changes with it. Every other
   existing test passes unchanged.
 - After the migration, delete `.e2e-state`.
 
@@ -280,7 +280,7 @@ Setup: `world1()` (Sandbox plan, connection, linked checking, `today` 2026-03-10
    - A `login_required` connection whose run throws keeps `login_required`.
 5. **Unchanged (AC 5, note 7).**
    - Every existing test in `plaid-sync.test.ts`, `plaid-sync-runs.test.ts`, `transactions-approve.test.ts`,
-     `bank-connections*.test.ts` and `mcp-*.test.ts` passes unchanged. The exceptions are 462-15 and 462-24,
+     `bank-connections*.test.ts` and `mcp-*.test.ts` passes unchanged. The exceptions are 462-15, 462-24 and 462-11 (the failing batch's ordinal moves from 2 to 4, because batches 1 and 2 are reads),
      and only where they fix runs or rows per run.
    - `git diff 9e77748 -- apps/worker/src` shows no change to `countsInBalance`, `balancesByAccount`,
      `activityByMonth` or the reports.

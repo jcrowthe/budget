@@ -257,7 +257,7 @@ not import a symbol that is new in this Build.
 Existing tests:
 - `plaid-sync.test.ts`, `plaid-sync-runs.test.ts`, `transactions-approve.test.ts`, `bank-connections*.test.ts`
   and `mcp-*.test.ts` must pass **unchanged**.
-- The only allowed edits are in **462-15** and the two **462-24** cases. Make one only if the run fixes
+- The only allowed edits are in **462-15**, the two **462-24** cases and **462-11** (its `failingBatchEnv(2)` became `failingBatchEnv(4)`: batches 1 and 2 are now the run's reads). Make one only if the run fixes
   differ, and then only replace a single-run expectation with `runUntilDone` and totals. Name each edit in
   the report.
 - No test is skipped.

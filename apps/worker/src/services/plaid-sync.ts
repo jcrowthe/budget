@@ -594,7 +594,7 @@ async function syncConnection(
 
     // The bank withdrew these: an unapproved import goes (no tombstone: it may come back).
     if (removed.length > 0 && !stopped) {
-      removal: for (const budgetId of planIds) {
+      removal: for (const budgetId of new Set(open.map((l) => l.account.budgetId))) {
         for (const slice of importsRepo.chunked(removed, SYNC_UNIT_SIZE)) {
           if (!budget.fits(1)) {
             stopped = true;
@@ -603,7 +603,8 @@ async function syncConnection(
           const groups: Group[] = [];
           for (const r of await importsRepo.rowsByImportId(db, budgetId, slice)) {
             if (removedPlan(r) !== "delete") continue;
-            if (!budget.fits(2)) {
+            // Two reads, one write batch and the final batch: a group is always written.
+            if (!budget.fits(3)) {
               stopped = true;
               break;
             }
