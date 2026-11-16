@@ -8199,3 +8199,21 @@ it comes through to its card, the platform is holding files again; I then approv
 releasing) and start **one** Deploy for both merges (the credit engine and scheduled transactions,
 two migrations), which also saves a Deploy. If the carry-over is lost at its gate instead, I ask the
 person about the platform before spending more.
+
+### 2026-11-16 · Plan round 95
+
+Children used 110 of 200. Nothing started; two Builds are running (the carry-over of scheduled
+transactions and the Reflect fixes, at its final gate; the Plan-page Build, implementing). Main
+`b84f513`, live `85f3cc9` (read by me at 17:22Z). No tickets were filed at the last review. The
+person has not answered the check-in.
+
+- **No Deploy now, on purpose** (decided at review 94): two Deploys in a row lost their files within
+  minutes of starting (EXF-612) and a third now has the same odds. The carry-over's final gate is a
+  code step on the same platform. When its card comes, the gate has run in a box that kept its files:
+  I approve it if it is clean on base `b84f513` (nothing is releasing), and start one Deploy for both
+  merges. If that Build is lost at its gate, I ask the person about the platform.
+- **No Build:** every unblocked ticket needs files the two running Builds hold; Export Plan waits for
+  the scheduled-transactions table.
+- **No flow test:** live has not changed since flow 9 passed; flows 4, 7 and 8 wait for the Deploy.
+
+Ticket writes: 0. Review cadence: Build 6, Deploy 5, Discover 2, Test user flow 0.
