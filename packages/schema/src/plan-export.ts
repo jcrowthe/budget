@@ -176,7 +176,11 @@ export function nowRangeText(serverToday: string): string {
 
 /** The last month the Plan file may hold: the server's month plus EXPORT_MONTHS_AHEAD, as YYYY-MM-01. */
 export function exportMonthCeiling(serverToday: string): string {
-  const total = Number(serverToday.slice(0, 4)) * 12 + Number(serverToday.slice(5, 7)) - 1 + EXPORT_MONTHS_AHEAD;
+  const total =
+    Number(serverToday.slice(0, 4)) * 12 +
+    Number(serverToday.slice(5, 7)) -
+    1 +
+    EXPORT_MONTHS_AHEAD;
   return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}-01`;
 }
 
