@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 3 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
+Review counters (finished children since that template's last review): Build 4 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -363,7 +363,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | PR #13 | merged `0c81b09` (round 27) |
 | 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | live `d2e659b` |
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
-| 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | running |
+| 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | merged `2fcde22` (round 30) |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
 | 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | pending | running |
@@ -2428,3 +2428,59 @@ and EXF-459 (Plaid Link), and the Deploy started now.
 - **For the check-in at this round's review:** the child budget (41 of 200 with 86 feature tickets open),
   the Plaid redirect URI, sign-in, the stored captures.
 - Ticket writes this round: 1.
+
+### 2026-11-16 · Review round 30 (check-in)
+
+Children used 41 of 200. Three are running: the Deploy of `0de1856` (gate and release passed; verifying) and
+the Builds for EXF-494 with EXF-495 (categories) and EXF-459 (Plaid Link). No card is waiting.
+
+**Ended: the Build for EXF-513 (register), merged as `2fcde22` (PR #16)** after 74 minutes, first gate
+passed (e2e 76 of 76 three times). Ticket Done and commented. I read the diff before approving (21 files,
++2999/-4).
+
+- Routes: `GET .../accounts/{account_id}/transactions`, and `GET/POST/PATCH/DELETE .../transactions[/{id}]`;
+  tools `list_transactions`, `get_account_balances`, `create_transaction`, `update_transaction`,
+  `delete_transaction`. Services `addTransaction`, `updateTransaction`, `deleteTransaction`,
+  `listAccountTransactions`, `getAccountBalances`, `getTransaction` beside the unchanged
+  `createTransaction`.
+- `packages/schema/src/register.ts`: `sortTransactions` and the sort columns (shared by the Worker and web).
+- Web: `apps/web/src/register/**` (`Register.tsx`, `RegisterTable.tsx`, `RegisterToolbar.tsx`, `format.ts`,
+  `icons.tsx`, `register.css`), `api/transactions.ts`; two lines in `pages/account.tsx`.
+- Refusals: 409 `transaction_reconciled`; 409 `starting_balance_locked`; 422 "This payee name is reserved"
+  for "Starting Balance" on a credit account. EXF-532 removes the last two with the rule behind them.
+- **`updated_at` is derived from `change_log`** (the newest row per transaction), one grouped query per
+  list, because I froze the insert builders in the brief and a new column would have changed them. Correct
+  today, too slow once thousands of transactions exist (the YNAB import, Plaid sync). **Filing a gap
+  ticket: store it as a column.** The next Build in these files (EXF-517 with EXF-507) should carry it.
+- Acceptance 9 pass, 3 partial (the source's side could not be shown), 0 fail. Polish: 14 applied.
+
+**Deploy `p_a1da6c560bc5490c9e8e5b0b06f37c25`:** gate passed, release passed, **live at `0de1856`**
+(migration applied, smoke ok). Its API checks 1 to 5 passed and the browser checks were running when I
+read it; read the report at the next review.
+
+**The categories Build's manifest arrived** (two tickets, one design): schema `categories.ts`; categories
+service and new `category-delete.ts`; category repositories and new `category-reassign.ts`; new routes and
+tools for categories and category groups; grid files (`rows.tsx`, `PlanGrid.tsx`, `Toolbar.tsx`,
+`collapse.ts`, `plan-grid.css`, `icons.tsx`) and new `Popover.tsx`, `NamePopover.tsx`, `DeleteDialog.tsx`,
+`CategoryPicker.tsx`, `HiddenCategories.tsx`; tests; no migration. It names its own `Popover.tsx` (it
+started before `useDismiss.ts` merged). Disjoint from EXF-459.
+
+**Check-in sent** (round 30): what is live, what landed since round 20, the backlog, the child budget with
+numbers, risks, next steps, and four things only the person can do.
+
+**For the next plan:**
+
+- Main `2fcde22` is one merge ahead of live (the register). Deploy it with the categories Build, or sooner
+  for the flow tests: flows 2 and 10 need the transactions API live.
+- Unblocked by the register: EXF-484 with EXF-486 (account header, Edit Account; the shell is held by
+  EXF-459, the account page is free), EXF-517 with EXF-507 (inline transactions, payee picker; carries the
+  `updated_at` column), EXF-532 (credit engine: core, the transactions repository, the categories files the
+  categories Build holds), EXF-548 (report shell).
+- Flow tests 9, 11 and 1 on live `0de1856`.
+
+**Ticket writes:** 2 (EXF-513 Done and comment).
+
+**Backlog:** 85 open feature tickets (9 done; 3 in progress: EXF-494, 495, 459), all triaged. Gap: EXF-558
+(High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562 (Low), plus the one filed now. Template: fifteen.
+Finished since each template's last review: Build 4, Deploy 6 (7 when the running one ends), Discover 2,
+Test user flow 0.
