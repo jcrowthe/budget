@@ -21,9 +21,10 @@ import {
   skipReason,
   syncStatusForError,
 } from "@budget/schema/plaid-import";
-import type { SQLWrapper } from "drizzle-orm";
+import { and, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { getDb } from "../db/client";
+import { changeLog } from "../db/schema/change-log";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
@@ -174,7 +175,7 @@ export async function runSync(
         p = new Map(
           list
             .filter((x) => x.system === null)
-            .map((x) => [x.name, { id: x.id, lastCategoryId: x.lastCategoryId }]),
+            .map((x) => [x.name, { lastCategoryId: x.lastCategoryId }]),
         );
         payeesOf.set(budgetId, p);
       }
@@ -344,11 +345,7 @@ export async function runSync(
           ...bankValues,
           source: "plaid",
         };
-        let payeeId: string | null = null;
-        if (payeeName) {
-          payeeId = addPayee(db, g, budgetId, payeeName, now, guard, payees.get(payeeName)?.id);
-          if (!payees.has(payeeName)) payees.set(payeeName, { id: payeeId, lastCategoryId: null });
-        }
+        if (payeeName) addPayee(db, g, budgetId, payeeName, now, guard);
         const names = await namesOf(db, budgetId, cat.categoryId);
         g.add(
           changeLogInsertIf(
@@ -360,7 +357,7 @@ export async function runSync(
               entityType: "transaction",
               entityId: newRow.id,
               before: null,
-              after: logShape({ ...newRow, payeeId, ...names }),
+              after: logShape({ ...newRow, ...names }),
             },
             guard,
           ),
@@ -374,6 +371,18 @@ export async function runSync(
           ),
           "added",
         );
+        if (payeeName) {
+          g.add(
+            logPayeeIdStmt(
+              db,
+              newRow.id,
+              "create",
+              budgetId,
+              payeeName,
+              txRepo.writtenAt(db, newRow.id, now),
+            ),
+          );
+        }
         groups.push(g);
       }
     }
@@ -510,7 +519,32 @@ function importValues(txn: PlaidTxn, amount: number, payeeName: string | null) {
 }
 
 /** A group of statements with the kind of change each one counts, when it changes a row. */
-type PayeeMap = Map<string, { id: string; lastCategoryId: string | null }>;
+type PayeeMap = Map<string, { lastCategoryId: string | null }>;
+
+/**
+ * Fills `payee_id` in the newest change_log copy of the transaction with the payee its row points to (the
+ * row's payee_id is resolved by name in SQL), while `guard` holds.
+ */
+function logPayeeIdStmt(
+  db: Db,
+  transactionId: string,
+  action: "create" | "update",
+  budgetId: string,
+  name: string,
+  guard: SQLWrapper,
+) {
+  return db
+    .update(changeLog)
+    .set({
+      afterJson: sql`json_set(${changeLog.afterJson}, '$.payee_id', ${payeesRepo.ordinaryIdByNameSql(budgetId, name)})`,
+    })
+    .where(
+      and(
+        sql`${changeLog.id} = (select c.id from change_log c where c.entity_type = 'transaction' and c.entity_id = ${transactionId} and c.action = ${action} order by c.rowid desc limit 1)`,
+        sql`exists ${guard}`,
+      ),
+    );
+}
 
 class Group {
   stmts: unknown[] = [];
@@ -529,8 +563,7 @@ function addPayee(
   name: string,
   now: string,
   guard: SQLWrapper,
-  knownId: string | undefined,
-): string {
+): void {
   const p: payeesRepo.PayeeRow = {
     // Always a fresh id: a known payee may have been renamed or merged since it was read.
     id: crypto.randomUUID(),
@@ -550,15 +583,14 @@ function addPayee(
         actor: PLAID_ACTOR,
         action: "create",
         entityType: "payee",
-        entityId: knownId ?? p.id,
+        entityId: p.id,
         before: null,
-        after: { id: knownId ?? p.id, name: p.name, hidden: p.hidden, system: p.system },
+        after: { id: p.id, name: p.name, hidden: p.hidden, system: p.system },
       },
       txRepo.allHold([guard, payeesRepo.missingByNameGuard(budgetId, name)]),
     ),
   );
   g.add(payeesRepo.insertByNameIfMissingStmt(db, p, guard));
-  return knownId ?? p.id;
 }
 
 /**
@@ -606,16 +638,11 @@ async function followBank(
     groupName: before?.groupName ?? null,
   };
   const g = new Group();
-  const newPayeeId = newPayee
-    ? addPayee(db, g, budgetId, newPayee, now, guard, payees.get(newPayee)?.id)
-    : null;
-  if (newPayee && newPayeeId && !payees.has(newPayee)) {
-    payees.set(newPayee, { id: newPayeeId, lastCategoryId: null });
-  }
+  if (newPayee) addPayee(db, g, budgetId, newPayee, now, guard);
   const merged = {
     ...have,
     ...set,
-    payeeId: newPayee ? newPayeeId : set.payeeId === null ? null : have.payeeId,
+    payeeId: newPayee ? null : set.payeeId === null ? null : have.payeeId,
   } as Row;
   g.add(
     changeLogInsertIf(
@@ -633,6 +660,11 @@ async function followBank(
     ),
   );
   g.add(txRepo.updateIfStmt(db, have.id, { ...set, updatedAt: now }, guard), "modified");
+  if (newPayee) {
+    g.add(
+      logPayeeIdStmt(db, have.id, "update", budgetId, newPayee, txRepo.writtenAt(db, have.id, now)),
+    );
+  }
   return g;
 }
 

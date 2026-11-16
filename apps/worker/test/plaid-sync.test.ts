@@ -1,5 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { Env } from "../src/env";
+import { runSync } from "../src/services/plaid-sync";
 import { json } from "./helpers";
 import { plaidError, plaidTxn } from "./plaid-stub";
 import {
@@ -115,30 +117,80 @@ describe("bank import (EXF-462)", () => {
     ).toBe(1);
   });
 
-  it("462: a payee renamed between two syncs does not break the second", async () => {
+  it("462: a payee renamed after the sync read it but before it wrote does not break the sync or its history", async () => {
     stubBank();
     const { plan, conn, account } = await world1();
     const e = (id: string, amount: number) =>
       plaidTxn({ transaction_id: id, amount, date: "2026-03-12", name: "ZZ Old" });
-    feed.pages = [{ added: [e("ZZ-P1", 3)] }, { added: [e("ZZ-P2", 4), e("ZZ-P3", 5)] }];
+    feed.pages = [{ added: [e("ZZ-P1", 3)] }];
+    await syncOne(plan, conn);
+    const old = (
+      await q("select id from payees where budget_id = ? and name = 'ZZ Old'", plan)
+    )[0] as Json;
+    // the rename lands right after the sync's read of the payee list
+    let renamed = false;
+    const rename = async () => {
+      if (renamed) return;
+      renamed = true;
+      await env.DB.prepare("update payees set name = 'ZZ Renamed' where id = ?").bind(old.id).run();
+    };
+    const wrapStmt = (stmt: D1PreparedStatement, listsPayees: boolean): D1PreparedStatement =>
+      new Proxy(stmt, {
+        get(target, prop) {
+          const v = Reflect.get(target, prop, target);
+          if (typeof v !== "function") return v;
+          if (prop === "bind")
+            return (...a: unknown[]) => wrapStmt(v.apply(target, a), listsPayees);
+          if (listsPayees && (prop === "all" || prop === "raw" || prop === "first")) {
+            return async (...a: unknown[]) => {
+              const out = await v.apply(target, a);
+              await rename();
+              return out;
+            };
+          }
+          return v.bind(target);
+        },
+      });
+    const DB = new Proxy(env.DB, {
+      get(target, prop) {
+        const v = Reflect.get(target, prop, target);
+        if (prop === "prepare") {
+          return (sql: string) =>
+            wrapStmt(target.prepare(sql), /^\s*select/i.test(sql) && sql.includes('from "payees"'));
+        }
+        return typeof v === "function" ? v.bind(target) : v;
+      },
+    });
+    feed.pages = [{ added: [e("ZZ-P1", 3), e("ZZ-P2", 4), e("ZZ-P3", 5)] }];
     await env.DB.prepare("update bank_connections set sync_cursor = null where id = ?")
       .bind(conn)
       .run();
-    // first sync reads page 1 only (cursor c1 afterwards)
-    feed.pages = [{ added: [e("ZZ-P1", 3)] }];
-    await syncOne(plan, conn);
-    await env.DB.prepare(
-      "update payees set name = 'ZZ Renamed' where budget_id = ? and name = 'ZZ Old'",
-    )
-      .bind(plan)
-      .run();
-    feed.pages = [{ added: [e("ZZ-P1", 3)] }, { added: [e("ZZ-P2", 4), e("ZZ-P3", 5)] }];
-    const r = await syncOne(plan, conn);
+    const r = await runSync({ ...env, DB } as Env, conn);
+    expect(renamed).toBe(true);
     expect(r.added).toBe(2);
     expect(await imports(account)).toHaveLength(3);
-    expect(
-      await count("select count(*) n from payees where budget_id = ? and name = 'ZZ Old'", plan),
-    ).toBe(1);
+    const fresh = (
+      await q("select id from payees where budget_id = ? and name = 'ZZ Old'", plan)
+    )[0] as Json;
+    expect(fresh.id).not.toBe(old.id);
+    const creates = async (id: unknown) =>
+      count(
+        "select count(*) n from change_log where entity_type = 'payee' and entity_id = ? and action = 'create'",
+        id,
+      );
+    expect(await creates(fresh.id)).toBe(1);
+    expect(await creates(old.id)).toBe(1);
+    // each new import's history names the payee its row points to
+    for (const row of (await imports(account)).filter((x) => x.import_id !== "ZZ-P1")) {
+      const log = (
+        await q(
+          "select json_extract(after_json, '$.payee_id') p from change_log where entity_type = 'transaction' and entity_id = ? and action = 'create'",
+          row.id,
+        )
+      )[0] as Json;
+      expect(log.p).toBe(row.payee_id);
+      expect(row.payee_id).toBe(fresh.id);
+    }
   });
 
   it("462-3: syncing again, and again from a null cursor, changes nothing", async () => {
