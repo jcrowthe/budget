@@ -55,9 +55,12 @@ What the source shows (dark theme, test plan, every figure $0.00). Exact sizes a
 - "All categories" means every category that is not hidden, in a group that is not hidden, collapsed groups
   included. Uncategorized is never selectable. ↑/↓ walk the rows in visible order (collapsed groups skipped),
   as the Assigned editor already does.
-- **Name click**: selects only that category; the edit popover no longer opens from the name. Focus stays on
-  the name. (Difference: the source also opens the row's Assigned editor. We don't, because the page shortcuts
-  must work outside fields, and an open editor would take the next arrow key.)
+- **Name click**: selects only that category; focus stays on the name. A click on the name of the one selected
+  category opens its edit popover (EXF-592), as the source does; a click on any other name, or with several
+  selected, opens nothing.
+  **Deliberate difference (EXF-592 point 2):** the source also focuses the row's Assigned input when a row is
+  selected by click or ↑/↓. We don't: the editor commits on blur and on ↑/↓, so every arrow press would become a
+  possible write, and Escape and Ctrl+A would need to tell an unedited field from one being typed in.
 - **Assigned click**: selects only that category and opens the editor as today. When the editor moves to the
   next or previous row (↑/↓/Enter in the cell), the selection follows.
 - **Checkbox**: toggles one category; the anchor is set only when there was none. **Group checkbox**: if all its
@@ -177,7 +180,7 @@ of note 6 has nothing to apply to.
 ## Out of scope
 
 "Cost to Be Me" (EXF-525); the Auto-Assign cards (EXF-519); "Assigned in Future Months" (EXF-527); "For You";
-the Target card (EXF-508, EXF-514), with no gap drawn for any of them; grid filters (EXF-500); the shortcut
+the Target card (built in EXF-508, EXF-514); grid filters (EXF-500); the shortcut
 registry (EXF-473); credit spending (EXF-532); opening the Assigned editor on a name click or ↓.
 
 ## Acceptance
