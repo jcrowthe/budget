@@ -20,8 +20,12 @@ export const Category = z
     name: z.string(),
     sort: z.number().int(),
     hidden: z.boolean(),
+    note: z.string().nullable(),
   })
   .openapi("Category");
+
+/** The longest category note, in characters (the month note's cap). */
+export const CATEGORY_NOTE_MAX = 5000;
 
 const name = z.string().trim().min(1).max(100);
 
@@ -60,7 +64,11 @@ export const CategoryGroupUpdate = z
   .openapi("CategoryGroupUpdate");
 
 export const CategoryUpdate = z
-  .object({ name: categoryName.optional(), hidden: z.boolean().optional() })
+  .object({
+    name: categoryName.optional(),
+    hidden: z.boolean().optional(),
+    note: z.string().max(CATEGORY_NOTE_MAX).nullable().optional(),
+  })
   .refine(something, "Nothing to update")
   .openapi("CategoryUpdate");
 

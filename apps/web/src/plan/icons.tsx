@@ -54,6 +54,29 @@ export const CheckIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m9.5 17.5-5-5 1.9-1.9 3.1 3.1 8.1-8.1 1.9 1.9z" />
   </svg>
 );
+/** The dash of a half-checked checkbox. */
+export const SubtractIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M5 11h14v2H5z" />
+  </svg>
+);
+/** A pencil filling its box (16 px when sized by CSS). */
+export const PencilIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="m0 19.2 14.4-14.4 4.8 4.8L4.8 24H0zM20.9 7.9l-4.8-4.8 1.7-1.7a2.4 2.4 0 0 1 3.4 0l1.4 1.4a2.4 2.4 0 0 1 0 3.4z" />
+  </svg>
+);
+/** Card chevrons that fill their box: the source's panel chevrons are full-bleed, the grid's are not. */
+export const CardChevronDownIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M0 5.6 1.6 4 12 14.4 22.4 4 24 5.6l-12 12z" />
+  </svg>
+);
+export const CardChevronRightIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M5.6 0 4 1.6 14.4 12 4 22.4 5.6 24l12-12z" />
+  </svg>
+);
 /**
  * A 2×2 grid of + − × ÷ glyphs filling a 16-unit box. Measured on the source's calculator icon (getBBox, viewBox
  * 0 0 16 16): 1.5-unit strokes, '+' centred (3.5,3.5) with 7-unit arms, '−' bar x 9–16 at y 2.75–4.25, '×' centred

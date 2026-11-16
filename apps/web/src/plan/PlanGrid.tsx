@@ -17,6 +17,19 @@ import { MovePopover } from "./MovePopover";
 import { NamePopover } from "./NamePopover";
 import { useProgressBars } from "./progressBars";
 import { CategoryRow, Checkbox, type FocusTarget, GroupRow, UncategorizedRow } from "./rows";
+import {
+  checkState,
+  extend,
+  headerClick,
+  type Selection,
+  selectAll,
+  selectOnly,
+  step,
+  toggle,
+  toggleMany,
+  visibleSelection,
+} from "./selection";
+import { usePlanShortcuts } from "./shortcuts";
 import { Toolbar } from "./Toolbar";
 import "./plan-grid.css";
 
@@ -37,7 +50,22 @@ type Open =
       transactionCount: number;
     };
 
-export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }) {
+/** Asks the grid to open a category's edit popover (the inspector's pencil). */
+export type EditRequest = { id: string; anchor: HTMLElement; at: number };
+
+export function PlanGrid({
+  budgetId,
+  month,
+  selection,
+  onSelection,
+  editRequest,
+}: {
+  budgetId: string;
+  month: Month;
+  selection: Selection;
+  onSelection: (f: (s: Selection) => Selection) => void;
+  editRequest: EditRequest | null;
+}) {
   const q = useMonth(budgetId, month);
   const data = q.data;
   const [bars, setBars] = useProgressBars();
@@ -45,21 +73,6 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
   const groups = (data?.groups ?? []).filter((g) => !g.hidden);
   const ids = groups.map((g) => g.id);
   const allCollapsed = groups.length > 0 && groups.every((g) => isCollapsed(g.id));
-
-  const idsKey = ids.join(",");
-  // biome-ignore lint/correctness/useExhaustiveDependencies: idsKey stands for ids
-  useEffect(() => {
-    // EXF-473 moves this binding into the shortcut registry.
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
-      const t = e.target as HTMLElement | null;
-      if (t?.closest("input, textarea, [contenteditable]")) return;
-      e.preventDefault();
-      setCollapsed(ids, e.key === "ArrowUp");
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [idsKey, setCollapsed]);
 
   const [editing, setEditing] = useState<string | null>(null);
   const [focusReq, setFocusReq] = useState<{ id: string; target: FocusTarget; at: number } | null>(
@@ -76,6 +89,22 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
   const order = groups.flatMap((g) =>
     isCollapsed(g.id) ? [] : g.categories.filter((c) => !c.hidden).map((c) => c.id),
   );
+  // Every selectable category, collapsed groups included (Uncategorized is never one).
+  const all = groups.flatMap((g) => g.categories.filter((c) => !c.hidden).map((c) => c.id));
+  const selected = new Set(visibleSelection(selection, all));
+  usePlanShortcuts({
+    onStep: (dir) => onSelection((s) => step(s, order, dir)),
+    onExtend: (dir) => onSelection((s) => extend(s, order, dir)),
+    onSelectAll: () => onSelection((s) => selectAll(all, s)),
+    onClear: () => onSelection(() => ({ ids: [], anchor: null, cursor: null })),
+    onCollapseAll: (collapsed) => setCollapsed(ids, collapsed),
+  });
+  const editAt = editRequest?.at;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new request (its timestamp) is the trigger
+  useEffect(() => {
+    if (editRequest)
+      setPop({ kind: "edit-category", categoryId: editRequest.id, anchor: editRequest.anchor });
+  }, [editAt]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: month is the trigger
   useEffect(() => {
@@ -91,7 +120,9 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
   const closeCell = (id: string, how: CloseHow, committed?: Promise<void>) => {
     const i = order.indexOf(id);
     if (how === "next" || how === "prev") {
-      setEditing(order[how === "next" ? i + 1 : i - 1] ?? null);
+      const to = order[how === "next" ? i + 1 : i - 1];
+      setEditing(to ?? null);
+      if (to) onSelection(() => selectOnly(to));
       return;
     }
     setEditing(null);
@@ -240,7 +271,7 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
   const headerLabel = allCollapsed ? "Expand all" : "Collapse all";
   return (
     <section className={`plan-grid${bars ? " bars-on" : ""}`}>
-      <div role="treegrid" aria-label="Plan" aria-busy={q.isPending}>
+      <div role="treegrid" aria-label="Plan" aria-busy={!data}>
         <div className="grid-head" role="rowgroup">
           <Toolbar
             bars={bars}
@@ -261,7 +292,11 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
               </button>
             </div>
             <div className="cell-checkbox">
-              <Checkbox label="Check all" />
+              <Checkbox
+                label={all.length > 0 && selected.size === all.length ? "Uncheck all" : "Check all"}
+                checked={checkState(all, selected)}
+                onChange={() => onSelection((s) => headerClick(s, all))}
+              />
             </div>
             <div className="cell-name" role="columnheader">
               <strong>CATEGORY</strong>
@@ -318,6 +353,18 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                       setPop({ kind: "add-category", groupId: g.id, anchor })
                     }
                     addOpen={pop?.kind === "add-category" && pop.groupId === g.id}
+                    checked={checkState(
+                      g.categories.filter((c) => !c.hidden).map((c) => c.id),
+                      selected,
+                    )}
+                    onCheck={() =>
+                      onSelection((s) =>
+                        toggleMany(
+                          s,
+                          g.categories.filter((c) => !c.hidden).map((c) => c.id),
+                        ),
+                      )
+                    }
                   />
                   {!collapsed &&
                     g.categories
@@ -327,8 +374,15 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                           key={c.id}
                           c={c}
                           bars={bars}
+                          selected={selected.has(c.id)}
+                          onSelect={(how) =>
+                            onSelection((s) =>
+                              how === "only" ? selectOnly(c.id) : toggle(s, c.id),
+                            )
+                          }
                           editing={editing === c.id}
                           onOpen={() => {
+                            onSelection(() => selectOnly(c.id));
                             setEditing(c.id);
                             setFocusReq(null);
                             setNotice(null);
@@ -341,7 +395,7 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                               : null
                           }
                           onFocusDone={() => setFocusReq(null)}
-                          onEditName={(anchor) =>
+                          onContextMenu={(anchor) =>
                             setPop({ kind: "edit-category", categoryId: c.id, anchor })
                           }
                           onPill={(anchor) =>

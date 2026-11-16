@@ -1,0 +1,265 @@
+/* The Plan page's right panel. Values measured on the source at 1600x813, dark theme (docs/plan-panel-design.md). */
+:root {
+  --rowSelected: #1b1d48;
+  --panelTooltipLabel: #ededf5;
+  --panelTooltipShadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  --panelTooltipDelay: 1.9s;
+}
+
+/* The grid keeps its 562px minimum: the panel is at most 60% of the body and at most what is left of it. */
+.plan-inspector {
+  position: relative;
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  width: min(max(var(--panel-width, 33%), 280px), 60%, calc(100% - 562px));
+  border-left: 1px solid var(--separatorStandard);
+  background: var(--backgroundPrimary);
+}
+.panel-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 16px 16px 48px 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--labelSecondary);
+}
+
+.panel-resizer {
+  position: relative;
+  flex: none;
+  z-index: 3;
+  width: 3px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.panel-resizer-indicator {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 8px;
+  height: 40px;
+  margin-top: -20px;
+  margin-left: -12px;
+  border-radius: 100px;
+  background: var(--actionPrimary);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.panel-resizer:hover .panel-resizer-indicator,
+.panel-resizer:focus-visible .panel-resizer-indicator,
+.panel-resizer.is-dragging .panel-resizer-indicator {
+  opacity: 1;
+}
+.panel-resizer:focus-visible {
+  outline: none;
+}
+
+.panel-card {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: var(--backgroundSecondary);
+}
+.card-roll-up {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 53px;
+  padding: 16px;
+  border: 0;
+  background: transparent;
+  color: var(--labelHeading);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.card-roll-up svg {
+  width: 12px;
+  height: 12px;
+  margin-left: 8px;
+  flex: none;
+}
+.card-roll-up-right {
+  display: flex;
+  margin-left: auto;
+  padding-left: 8px;
+}
+.panel-card-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 21px;
+  color: var(--labelHeading);
+}
+.panel-card-body {
+  box-sizing: border-box;
+  padding: 16px 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.panel-card-body[hidden] {
+  display: none;
+}
+.panel-card-static {
+  padding: 16px;
+}
+
+.panel-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  line-height: 17px;
+  cursor: default;
+}
+.panel-card-body > .panel-row:last-child {
+  margin-bottom: 0;
+}
+.panel-tip-anchor {
+  margin-bottom: var(--space-2);
+}
+.panel-tip-anchor:last-child {
+  margin-bottom: 0;
+}
+.panel-tip-anchor > .panel-row {
+  margin-bottom: 0;
+}
+.panel-row.is-total {
+  padding-top: 8px;
+}
+.panel-row.is-total .panel-row-label {
+  color: var(--labelHeading);
+}
+.panel-row-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.panel-row:focus-visible {
+  outline: 1px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+
+.panel-tip-anchor {
+  position: relative;
+}
+.panel-tip-anchor.is-end .panel-tooltip {
+  right: 0;
+  left: auto;
+}
+.panel-tooltip {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 288px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--inputBackground);
+  box-shadow: var(--panelTooltipShadow);
+  color: var(--panelTooltipLabel);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  pointer-events: none;
+  animation: panel-tip-in 0.1s var(--panelTooltipDelay) both;
+}
+@keyframes panel-tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  padding-bottom: var(--space-2);
+  margin-bottom: 16px;
+}
+.panel-title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--font-size-month);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--labelHeading);
+}
+.panel-heading .panel-title {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.panel-pencil {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  flex: none;
+  margin-left: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #727484;
+  cursor: pointer;
+}
+.panel-pencil svg {
+  width: 16px;
+  height: 16px;
+}
+/* The display pill lets the pointer through to the card header, as the source's disabled pill does. */
+.card-roll-up-right .available-pill {
+  pointer-events: none;
+}
+.panel-multi {
+  margin-bottom: 16px;
+}
+.panel-multi .panel-title {
+  padding-bottom: 8px;
+}
+.panel-names {
+  margin: 0;
+  color: var(--labelSecondary);
+}
+
+.note-display,
+.note-field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 64px;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelSecondary);
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.note-display {
+  cursor: text;
+}
+.note-field {
+  padding: 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 6px;
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  resize: vertical;
+}
+.note-field:focus-visible {
+  outline: 1px solid var(--actionPrimary);
+}
+.panel-error {
+  margin-top: 8px;
+  color: var(--categoryBalanceNegativeLabel);
+}

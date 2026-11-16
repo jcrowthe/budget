@@ -5,14 +5,18 @@ import {
   type EngineInput,
 } from "@budget/core/budget-engine";
 import { addMonths, type Month, toMonth } from "@budget/core/month";
+import { monthTotals } from "@budget/schema/month-totals";
 import {
   AssignedSet,
   MoneyMove,
   type MonthCategory,
+  type MonthCategoryDetail,
   type MonthDetail,
+  type MonthGroupDetail,
   MonthNoteSet,
   type MonthRange,
   type MonthSummary,
+  type MonthTotals,
 } from "@budget/schema/months";
 import { sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
@@ -31,7 +35,13 @@ import { todayUtc } from "./targets";
 
 // Type-level check: the engine's read model and the API schema are the same shape, both ways.
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
-const _sameShape: Same<CoreMonthDetail, MonthDetail> = true;
+// The API's category also carries its `note`, which the engine does not know: attached after computeMonth.
+type EngineShape = Omit<MonthDetail, "groups"> & {
+  groups: (Omit<MonthGroupDetail, "categories"> & {
+    categories: Omit<MonthCategoryDetail, "note">[];
+  })[];
+};
+const _sameShape: Same<CoreMonthDetail, EngineShape> = true;
 void _sameShape;
 
 async function requirePlan(db: Db, budgetId: string) {
@@ -258,7 +268,7 @@ async function loadInput(
   budgetId: string,
   activityBefore: string,
   withTargets = false,
-): Promise<EngineInput> {
+): Promise<EngineInput & { categoryNotes: Map<string, string | null> }> {
   const [groups, categories, assignments, notes, activity, targetRows] = await Promise.all([
     groupsRepo.listActive(db, budgetId),
     categoriesRepo.listActive(db, budgetId),
@@ -268,6 +278,7 @@ async function loadInput(
     withTargets ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
   ]);
   return {
+    categoryNotes: new Map(categories.map((c) => [c.id, c.note ?? null])),
     groups,
     categories,
     assignments: assignments.map((a) => ({
@@ -290,7 +301,32 @@ export async function getPlanMonth(
   const db = getDb(env);
   await requirePlan(db, budgetId);
   const input = await loadInput(db, budgetId, addMonths(month, 1), true);
-  return computeMonth({ ...input, today }, month);
+  const detail = computeMonth({ ...input, today }, month);
+  return {
+    ...detail,
+    groups: detail.groups.map((g) => ({
+      ...g,
+      categories: g.categories.map((c) => ({ ...c, note: input.categoryNotes.get(c.id) ?? null })),
+    })),
+  };
+}
+
+/**
+ * Totals of one month over the visible categories, or over exactly `categoryIds` (hidden ones included).
+ * An id that is not an active category of the plan is a 404.
+ */
+export async function getMonthSummary(
+  env: Env,
+  budgetId: string,
+  month: Month,
+  categoryIds?: string[],
+): Promise<MonthTotals> {
+  const detail = await getPlanMonth(env, budgetId, month);
+  if (categoryIds) {
+    const known = new Set(detail.groups.flatMap((g) => g.categories.map((c) => c.id)));
+    if (categoryIds.some((id) => !known.has(id))) throw new NotFound("Category");
+  }
+  return monthTotals(detail, categoryIds);
 }
 
 export async function listPlanMonths(

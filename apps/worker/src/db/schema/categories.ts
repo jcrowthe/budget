@@ -12,6 +12,7 @@ export const categories = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     deletedAt: text("deleted_at"),
+    note: text("note"),
   },
   (t) => [index("categories_group").on(t.groupId), index("categories_budget").on(t.budgetId)],
 );

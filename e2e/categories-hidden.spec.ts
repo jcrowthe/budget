@@ -32,7 +32,7 @@ const groupRow = (page: Page, name: string) =>
 const popover = (page: Page, name: string) => page.getByRole("dialog", { name });
 const hiddenRow = (page: Page) => page.locator(".hidden-categories-row");
 const hide = async (page: Page, name: string) => {
-  await page.locator(".category-name", { hasText: name }).click();
+  await page.locator(".category-name", { hasText: name }).click({ button: "right" });
   await popover(page, "Edit Category").getByRole("button", { name: "Hide" }).click();
 };
 

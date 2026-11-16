@@ -1,4 +1,5 @@
-import type { AssignedResult } from "@budget/schema/month-categories";
+import type { AssignedResult, CategoryMonth } from "@budget/schema/month-categories";
+import { categoryMonth } from "@budget/schema/month-totals";
 import { z } from "zod";
 import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
@@ -28,4 +29,18 @@ export async function setAssignedAndRead(
     },
     ready_to_assign: m.ready_to_assign,
   };
+}
+
+/** One category's figures for one month, with its note. */
+export async function getMonthCategory(
+  env: Env,
+  budgetId: string,
+  month: string,
+  categoryId: string,
+): Promise<CategoryMonth> {
+  if (!isUuid(budgetId)) throw new NotFound("Plan");
+  if (!isUuid(categoryId)) throw new NotFound("Category");
+  const r = categoryMonth(await getPlanMonth(env, budgetId, month), categoryId);
+  if (!r) throw new NotFound("Category");
+  return r;
 }

@@ -2,7 +2,13 @@ import { Month } from "@budget/schema/common/dates";
 import { InputMonth, MonthNoteUpdate } from "@budget/schema/months";
 import { z } from "zod";
 import { NotFound } from "../../middleware/errors";
-import { getMonthRange, getPlanMonth, listPlanMonths, setMonthNote } from "../../services/months";
+import {
+  getMonthRange,
+  getMonthSummary,
+  getPlanMonth,
+  listPlanMonths,
+  setMonthNote,
+} from "../../services/months";
 import { Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
@@ -12,10 +18,26 @@ const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5,
 export const tools: McpToolDef[] = [
   {
     name: "get_plan_month",
-    description: `Read one month of a plan. ${MONTH} ${MONEY} Returns { month, note, ready_to_assign, rta_breakdown, groups, uncategorized }: each group and each of its categories has id, name, hidden, assigned, activity and available; categories also carried and target.`,
+    description: `Read one month of a plan. ${MONTH} ${MONEY} Returns { month, note, ready_to_assign, rta_breakdown, groups, uncategorized }: each group and each of its categories has id, name, hidden, assigned, activity and available; categories also carried, target and note.`,
     inputSchema: z.object({ budget_id: Id, month: Month }),
     run: async (input: { budget_id: string; month: string }, { env }) =>
       getPlanMonth(env, input.budget_id, input.month),
+  },
+  {
+    name: "get_month_summary",
+    description: `Totals of one month of a plan: with category_ids, exactly those categories (hidden ones included); without, every category that is not hidden and not in a hidden group. ${MONTH} ${MONEY} Returns { leftover, assigned, activity, available }: leftover is the positive Available carried from the previous month; available = leftover + assigned + activity. An unknown category id is an error.`,
+    inputSchema: z.object({
+      budget_id: Id,
+      month: InputMonth,
+      category_ids: z.array(Id).min(1).max(500).optional(),
+    }),
+    run: async (input: { budget_id: string; month: string; category_ids?: string[] }, { env }) =>
+      getMonthSummary(
+        env,
+        input.budget_id,
+        input.month,
+        input.category_ids && [...new Set(input.category_ids)],
+      ),
   },
   {
     name: "list_plan_months",

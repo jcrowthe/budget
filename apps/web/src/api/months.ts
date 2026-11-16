@@ -8,9 +8,10 @@ import {
   type MonthRange,
   MonthRangeResponse,
 } from "@budget/schema/months";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite } from "./monthCache";
+import { keepPreviousInPlan } from "./placeholder";
 
 export const getMonth = async (budgetId: string, month: Month): Promise<MonthDetail> =>
   (await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}`, { schema: MonthDetailResponse }))
@@ -21,7 +22,7 @@ export const useMonth = (budgetId: string, month: Month) =>
   useQuery({
     queryKey: ["month", budgetId, month],
     queryFn: () => getMonth(budgetId, month),
-    placeholderData: keepPreviousData,
+    placeholderData: keepPreviousInPlan<MonthDetail>(budgetId),
   });
 
 export const getMonthRange = async (budgetId: string): Promise<MonthRange> =>
