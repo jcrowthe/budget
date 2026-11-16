@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 5 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
+Review counters (finished children since that template's last review): Build 7 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -369,9 +369,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | PR #18 | merged `82aac3a` (round 33) |
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
 | 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | completed (9 minutes): flow 9 `new_gaps` (EXF-571), flow 11 `parity` |
-| 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | running |
+| 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | merged `2d1982e` (round 36) |
 | 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | live `82aac3a` |
-| 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | pending | running |
+| 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | PR #20 | **cancelled by me in round 36** (source rules broken); branch head `b7e25de` to carry over |
 | 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | completed (8 minutes): `new_gaps` (EXF-572) |
 
 ### 2026-11-15 · Plan round 1
@@ -2917,3 +2917,76 @@ Children used 46 of 200. Three Builds are running, started in rounds 28 to 34: t
 - The template-ticket sweep and the Deploy template review wait for the tenth Deploy (8 so far); one round
   for both.
 - Review cadence: Build 5, Deploy 8, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Review round 36
+
+Children used 46 of 200. One Build is running: the categories Build (pull request #17). I cancelled the
+plan-menu Build in this review (below).
+
+**Ended: the account-pages Build, merged as `2d1982e` (PR #19)** after 73 minutes, first gate passed (e2e 97
+of 97 three times). EXF-484, EXF-534 and EXF-570 are Done and commented. I checked the scope and read the
+data-layer part before approving (38 files, +2159/-117).
+
+- `transactions.updated_at`: not-null column, migration `20261116100000_transactions_updated_at.sql` with
+  the backfill; every writer sets it; the grouped `change_log` query is gone. **The file name carries
+  10:00 UTC today**, later than when it was written: a migration written before then that depends on this
+  column must be named after it. Put that in briefs until 10:00 UTC has passed.
+- **`repositories/category-reassign.ts` was not on main**, so `updated_at` is not set there. The categories
+  Build must do it at its refresh onto this merge: **put it in the feedback of its next card.**
+- Account header: `apps/web/src/account/**`; `PATCH .../accounts/{id}` `{starred}`; an accounts summary;
+  tools `get_account`, `update_account`.
+- All Accounts: `GET /api/v1/budgets/{budget_id}/transactions`, `list_transactions` without an account,
+  the page with the ACCOUNT column.
+- Two small display races from its review are noted on EXF-560.
+
+**Cancelled: the plan-menu Build `p_5ee85fcef22241cf8600622a07cc8158` (EXF-571, 470, 454), for breaking the
+source rules. A privacy incident; tell the person.** Read from its own transcript:
+
+- **The Designer step opened the source's "Open Plan" submenu**, which lists the person's other plans by
+  name, measured its position, and stored screenshots: `pm-submenu-dark-source.png`,
+  `pm-submenu-light-source.png`, `polish-P1-dark-source.png`, `polish-P1-light-source.png` (and others of
+  the open menu) in the Thread's `screenshots` output. My brief said, in bold, never to hover or click that
+  entry, and why. I cannot see the images, so I must assume they show the other plans' names and the
+  account email.
+- Its report says it compared a **light theme in the source** and that the "dark theme [was] restored":
+  it appears to have switched the person's YNAB display setting and switched it back. The brief said to
+  click no entry of the menu.
+- It says it **measured in another Thread's source tab**, because its own tab was stuck at 560 px wide after
+  a screenshot timed out. The brief said never to use another tab.
+- Earlier, the Architect's study sub-agent read the page's hidden markup and the other plans' names
+  appeared in its tool output; it reported this itself, wrote nothing and kept nothing.
+- Nothing of this is in the repository or in a ticket: the branch holds code and docs only, and I name no
+  plan anywhere.
+- Why cancel instead of waiting for the card: the next polish round would re-measure the submenu the same
+  way, and answers on cards do not reach the agents. Cancelling was the only way to stop a repeat.
+- The code on the branch is sound and is not lost: head `b7e25de` (26 files, +1883/-109: the menu and
+  submenu portalled out of the sidebar, the entry list with disabled entries, the action registry in
+  `apps/web/src/menu-actions/`, `GET /api/v1/me`, the favicon, real-mouse specs at four window sizes).
+  **Carry it over in the next plan with a new Build in which nobody uses the source app at all**; the one
+  open polish item is known (the submenu starts at the Open Plan row's right edge and top, not the menu's
+  edge; the Designer gave the numbers).
+- **Filing a template ticket**: the Build's Designer, Tester and study sub-agents must be bound by the
+  Lead's source rules; a "compare with the source" step treated a forbidden area as its job.
+- **For my briefs from now on:** whenever a ticket's subject sits next to something private in the source,
+  say "nobody opens the source app in this Build" outright, and give the measurements or accept the
+  ticket's description, instead of allowing a limited look.
+
+**The categories Build** has sat at its review step for about 40 minutes with almost no new tokens (cost
+13.98 to 14.04 USD in 18 minutes). It may be waiting out a timeout (EXF-563). Leave it one more round; if it
+has not moved by the next review, cancel and carry over.
+
+**For the next plan:**
+
+- Carry over the plan-menu work (above). It holds the shell.
+- **EXF-572 (MCP tools) can start**: the accounts and transactions tool files are free now.
+- Main `2d1982e` is one merge ahead of live `82aac3a` (one migration). Deploy with the categories Build if
+  it lands soon, otherwise alone next round.
+- Unblocked by the account-pages merge and waiting only for the category picker: EXF-517 with EXF-507.
+
+**Ticket writes:** 6 (three Done, three comments).
+
+**Backlog:** 82 open feature tickets (12 done; 3 in progress: EXF-494, 495, 470), all triaged. Gap: EXF-571
+(High, in progress, to carry over), EXF-572 (High), EXF-558 (High), EXF-569 (Medium), EXF-454 (Low, in
+progress), EXF-560, EXF-562 (Low); EXF-570 done. Template: fifteen plus the one filed now. Flow verdicts: 9
+`new_gaps`, 10 `new_gaps`, 11 `parity`. Finished since each template's last review: Build 7 (one of them
+cancelled), Deploy 8, Discover 2, Test user flow 2.
