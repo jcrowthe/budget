@@ -5332,3 +5332,51 @@ month-categories and targets files and `packages/core/src/targets.ts`.
 
 Ticket writes: 9 (three to In Progress, six comments). Review cadence: Build 2, Deploy 5, Discover 2,
 Test user flow 5.
+
+### 2026-11-16 · Review round 64
+
+Children used 77 of 200. No child ended since the last review; three Builds are running. Main `4da55a7`,
+live `4e3eb7a`.
+
+**Running, as read now:**
+- **EXF-593 with EXF-590 and EXF-587** (`p_563250b166984564b84cb2a32e722725`): in `gate_fix`, its second.
+  - First gate failure: its own new spec (`e2e/payee-ready-to-assign.spec.ts`) pressed Tab before the
+    payee list had drawn, under load 8 on 5 CPUs; fixed by waiting for the option (`0e3c71b`).
+  - Second: after its rebase onto targets (`4da55a7`), **its new timestamp test failed on the two target
+    tools that arrived with that merge**: exactly the seam I named in the briefs. It is fixing their date
+    wording and adding them to the test's calls. That edit touches `mcp/tools/targets.ts`, which the
+    Plan-page Build now holds: a one-line description change, accepted; the Plan-page Build rebases
+    over it.
+  - What it built, from its reports: `countsInBalance()` exported from `repositories/transactions.ts`
+    and used by every sum, guard and count in the accounts repository; the Reviewer swapped the old
+    file back and saw the split test fail (409), so the test proves the fix; 422 `account_closed` on
+    every new row, move and new transfer link; Add Transaction and File Import disabled on a closed
+    account and on All Accounts when no account is open; Undo and Redo drawn disabled until EXF-530;
+    `last_inflow_to_ready_to_assign`; `mcp-timestamps.test.ts` calling all 51 tools, with a paragraph
+    in `docs/conventions.md` that a new tool must be added to it.
+  - **To check at its card:** its Implementer wrote that it skipped the per-reader verdict list and did
+    not check `from-bank` and `link` against a closed account; the Architect's design doc says it has
+    both (the list, and "left as they are: `from-bank` only creates open accounts, `link` already
+    refuses a closed one"). Read the design doc's list on the branch before approving. Known and
+    accepted: the closed-account check reads then writes (a race the design names).
+  - **Source limits: two slips by its Designer, nothing saved.** It opened the edit row of a transaction
+    in the test plan and left with Escape, and it looked at All Accounts; my brief named one place (a
+    closed account's page) and said never to click a row. It did refuse to change the theme. Evidence
+    for EXF-573, to post when the Build ends.
+- **Reflect carry-over** (`p_bce37969c15544d3aef56a825ebcb1d8`): the Clerk's merge is in (`96ebe97`); in
+  its plan step.
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): at intake.
+
+**For the two new Builds, a consequence of EXF-593 merging first:** each new tool must be added to
+`apps/worker/test/mcp-timestamps.test.ts` and its description must use the date and timestamp helpers
+of `mcp/tool-text.ts`; their gates will fail until they do. Both briefs say a test for this is coming;
+if a card shows that failure, it is this.
+
+**Ticket writes:** none.
+
+**Backlog:** 64 open feature tickets (30 done; 5 in progress: EXF-549, EXF-548, EXF-500, EXF-516,
+EXF-519). Gap: in progress EXF-593 (High), EXF-587, EXF-588, EXF-590, EXF-591; open EXF-558, EXF-560,
+EXF-562, EXF-589 (Low). Template: twenty-eight. Flow verdicts unchanged. Finished since each
+template's last review: Build 2, Deploy 5, Discover 2, Test user flow 5.
+
+**Next plan:** nothing to start unless EXF-593 has merged: then the Deploy and EXF-462.
