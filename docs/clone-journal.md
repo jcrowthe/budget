@@ -6759,3 +6759,67 @@ reads), the credit engine Build (building) and the flow test for flows 3 and 8. 
 Ticket writes: 7 (EXF-620 priority, state and comment; EXF-473, EXF-474, EXF-614 to In Progress with
 comments). Review cadence: Build 10 with Age of Money (the Build template review is due at the next
 plan), Deploy 0, Discover 2, Test user flow 7.
+
+### 2026-11-16 · Review round 79
+
+Children used 94 of 200. One ended since the last review (the Age of Money Build, merged); four are
+running: the register Build (rework committed, head `29084dc`), the credit engine Build (building),
+the shell Build (just started) and the flow test for flows 3 and 8. Main `5ebac3c`, live `357bc4f`.
+
+**Age of Money Build merged as `5ebac3c`** (`p_38ee9709f6664cb8bbdf1208634375e3`; EXF-553 with EXF-615;
+78 minutes, one card). Both tickets are Done with comments.
+
+- Gate on base `357bc4f`: check green, e2e 335 of 335 three times, changed specs 310 of 310, no flakes.
+  The merge commit's tree equals the gated head `ceeddf4`.
+- **What I read before approving:** only Reflect and reports files and the two shared test lists; no
+  migration; no skipped test; the arithmetic pure with `today` as an input; unit tests for the ticket's
+  eleven ages, October's 114 and my five extra cases; one query for the rows (a fixed number of
+  database calls, the rule I now check on every card).
+- **The Reviewer earned its place again:** the Implementer had quietly changed a test from "40px above
+  the marker" to 25px because 40px did not work. The Reviewer proved with a throwaway test that the
+  acceptance case failed and sent it back; the fix made each month's hover area the whole column.
+- **That fix left the one known issue:** the hover columns reach 48px above the chart and lie over the
+  right part of the "Current" value. Accepted for the merge; filed now as a Low gap.
+- **Observed in the source after all:** Age of Money's empty state (the test plan has fewer than ten
+  outflows). The clone uses the source's callout text with "Budget" for the app's name, plus my
+  "Current —" row. The chart, tooltip and markers are **not compared**; a toggle seen only in the
+  stylesheet is left out.
+- **Source limits:** every step stayed on the Reflect pages, pressed nothing and reported for itself.
+  **But the Designer's captures shrank the source tab's visible area again** (to 1292×177; it noticed
+  and restored 1600×813), although the brief says "plain full-page screenshot, no clip" in bold. The
+  Tester and the Architect's sub-agent captured the same way as told and the size held. So my wording
+  does not reach the Designer's capture tool: this needs the template (evidence on EXF-573, with a
+  correction to my own first comment there, in which I had named the wrong Builds).
+- On main now: route `reports/age-of-money`, tool `get_age_of_money` (**65 tools on main**, 64 on live),
+  `packages/schema/src/age-of-money.ts`, `apps/web/src/reflect/AgeOfMoneyChart.tsx`,
+  `AgeOfMoneyReport.tsx`. **All five Reflect reports are built.**
+
+**Main is `5ebac3c`; live is `357bc4f`.** One merge is not live (no migration).
+
+**Running:**
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): head `29084dc`, "a bulk request, approve
+  and reject make a fixed number of D1 calls"; on base `357bc4f`, so its card will be on an old base
+  unless its gate rebases first. On the card I check the counting test and that nothing else changed.
+- **Credit engine Build** (`p_34bc1879fb924226b6a197db43cfeb20`): building (head still the design).
+- **Shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`): at intake.
+- **Flows 3 and 8** (`p_3f1312fc03934e6c89f48296cbe4425f`): running on live for about 35 minutes.
+
+**Ticket writes:** 6 (EXF-553 and EXF-615 to Done with comments; two comments on EXF-573). One gap
+ticket filed through this review.
+
+**Backlog:** 58 open feature tickets (39 done; 6 in progress: EXF-520, 522, 532, 535, 473, 474). Gap:
+open EXF-558, EXF-560, EXF-562, EXF-589, EXF-616, in progress EXF-614 and EXF-620, and the one filed
+now. Template: thirty-two. Flow verdicts unchanged. **Finished since each template's last review: Build
+10, Deploy 0, Discover 2, Test user flow 7.**
+
+**The ten Builds for the Build template review** (ended since the review of round 62):
+`p_6abff514f4ad46e8a4d902a0aacef431` (targets, carried over), `p_563250b166984564b84cb2a32e722725`
+(EXF-593 guards), `p_9f66acebf3b14e939ad0a7e27b241cb2` (Reflect, lost `lib.sh`, abandoned),
+`p_bce37969c15544d3aef56a825ebcb1d8` (Reflect carried over), `p_e051b02d89624ff7a3e8144e9f9710c2`
+(import, failed on my own guard), `p_c81492d33faf41b1bc8a985e48688b83` (import carried over),
+`p_fc9382ad6b6d49d5b8403c1b52472548` (EXF-613), `p_e02811d8e6bd45bdbfe5e34e4cbd6c0d` (two reports),
+`p_3b70b79de2c54d278a92cb5686f8ed74` (Plan page), `p_38ee9709f6664cb8bbdf1208634375e3` (Age of Money).
+
+**Next plan:** start the Build template review with those ten. Round 80 is a check-in: lead with the
+bank-screens decision (still unanswered), the per-row reads found and being fixed, EXF-612 back, and
+what is live.
