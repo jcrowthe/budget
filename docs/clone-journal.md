@@ -2566,3 +2566,20 @@ Nothing is off course. No card is waiting.
 Gap: EXF-570 (High, in progress), EXF-558 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562 (Low).
 Template: fifteen. Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user
 flow 0.
+
+### 2026-11-16 · Plan round 32
+
+Children used 43 of 200. Four are running, all started in rounds 28 to 31: the categories Build (EXF-494,
+EXF-495; pull request #17), the Plaid Link Build (EXF-459; pull request #18), the account-pages Build
+(EXF-484, EXF-534, EXF-570) and the first flow test (flows 9 and 11). Nothing started this round.
+
+- No ticket was filed at the last review.
+- **Why nothing new:** the three Builds hold the grid and the categories files, the shell with the budgets
+  files and scripts, and the account pages with the transactions and accounts files. What is free (the
+  months files, the Plan header, core, the Reflect page) is wanted by:
+  - EXF-491 with EXF-492, which need the category picker from the categories Build;
+  - EXF-532 (credit engine), which needs the transactions repository and the categories files;
+  - the reports (EXF-548 and after), which I hold until splits and transfers exist, because every report
+    query would have to be rewritten when a transaction can have several categories or two sides.
+- No Deploy: main `2fcde22` is one merge ahead of live; deploy when the categories Build merges.
+- Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 0.
