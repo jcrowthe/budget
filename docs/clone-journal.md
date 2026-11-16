@@ -4999,3 +4999,68 @@ Deploy 5, Discover 2, Test user flow 5.
 
 **Next plan:** (1) the EXF-593 Build with EXF-590 and EXF-587; (2) beside it the Reflect Build (EXF-549,
 EXF-588, EXF-591); (3) the Build template review; (4) targets: the carry-over if still parked.
+
+### 2026-11-16 · Plan round 61
+
+Children used 75 of 200. Four started now, all running: three Builds and the Build template review. Main
+is `6c73a00`; live is `4e3eb7a`. No ticket was filed at the last review. The person's note at the
+check-in: not provided.
+
+**The parked targets Thread: cancelled, carried over.** `p_74b956498a4b4ce1bed94c516291a48f` was still
+parked (`infra_failed` at `checks`, one card open that never reached me) after more than 35 minutes. I
+cancelled it so that one Thread holds the Plan-page files, and tried its branch on main in a throwaway
+worktree: it merges cleanly (49 files, +4801/-122).
+
+**Started:**
+
+1. **Targets, carried over** (`p_6abff514f4ad46e8a4d902a0aacef431`; EXF-508, EXF-514, EXF-592). An
+   ordinary Build with four Clerk jobs; the third merges `origin/exfab/p_74b956498a4b4ce1bed94c516291a48f`
+   (head `972ece4`), expected size quoted as "at least". Architect: no redesign, no source. Implementer:
+   only merge breakage and findings. Designer and Tester: the same limited permission as the first Build
+   (the test plan's Plan page, Create Target, leave with Cancel). Six points for the Reviewer and Tester:
+   `today` validated; Assign through the Assigned path; no target of another plan as a placeholder; tool
+   descriptions; a split's lines counting toward a target; the form at 1024×700. Holds the Plan page,
+   months, targets and `packages/core/src/targets.ts` (the one shared-module change in flight).
+2. **EXF-593 with EXF-590 and EXF-587** (`p_563250b166984564b84cb2a32e722725`). It gates the release.
+   - One exported condition "a row that counts in an account's balance" in `repositories/transactions.ts`,
+     used by every sum, guard and count in `repositories/accounts.ts`; a written list of every reader of
+     `transactions` with a verdict each.
+   - 422 `account_closed` for a new transaction, a move into, a new transfer to and a split on a closed
+     account; existing rows stay editable. Add Transaction disabled, `shift+N` inert, no closed account
+     in the All Accounts account field or the transfer choices.
+   - The payees read gains `last_inflow_to_ready_to_assign`; the payee field fills Ready to Assign.
+   - Timestamps in tool descriptions, checked by a **new** test file driven by what the tools return
+     (`mcp-descriptions.test.ts` stays untouched). **My decision on system payees:** the list keeps
+     returning them, marked `system`, so a `payee_id` always resolves; the description says so.
+   - Source: one place only, a closed account's page in the test plan, to see the disabled button.
+   - Holds the transactions, accounts and payees files, `mcp/tool-text.ts`, five tool files, the register.
+3. **Reflect Spending Breakdown** (`p_9f66acebf3b14e939ad0a7e27b241cb2`; EXF-549, the last part of
+   EXF-548, EXF-588, EXF-591).
+   - The spending rule written once, split- and transfer-aware, modelled on `activityByMonth`; my own
+     decisions where the source could not show a split (a line is one transaction of its category, one
+     drill-down row, one CSV row).
+   - Pure arithmetic reproducing every figure of the ticket; `today` from the browser.
+   - A store-only ZIP writer of the app's own (no new dependency), tested against a standard reader.
+   - Tools `get_spending_breakdown` and one for the drill-down read; the ZIP excluded with a reason.
+   - Source: the test plan's Reflect pages; never a row of the popover, never Export, never Done after a
+     changed tick.
+   - Holds `apps/web/src/reflect/**`, `api/reports.ts`, the reports files of the Worker and schema.
+4. **Build template review** (`p_f6248992db5940c2a4028088c5b110d1`) on the ten Builds since round 40 and
+   the parked one. First points: every merge sends every other open Build back through its gate (the
+   docs index line); what binds the Designer on the source (a ban does not, a limited permission does);
+   two Builds changing what a row of a shared table means; the parked Thread whose card reached nobody.
+
+**How the three Builds fit:** their files are disjoint. Each brief names the other two as out of bounds.
+The seams I named: (a) the EXF-593 Build may not edit `repositories/reports.ts`; the Reflect Build may
+use its exported condition if it is on main at its rebase; (b) the EXF-593 Build's new timestamp test
+calls every tool, so a tool the other two add must state its timestamps (both briefs say so); (c) only
+the carry-over touches `packages/core`.
+
+**Not started:** no Deploy (main waits for EXF-593); no flow test (flows 2 and 9 after that release;
+flow 3 when targets are live); EXF-462 after EXF-593; the credit engine after targets.
+
+**At the cards:** straight to Regate when the base has moved. Likely order of merges: the carry-over or
+EXF-593 first, Reflect last. When EXF-593 has merged: Deploy at once.
+
+Ticket writes: 17 (seven to In Progress, ten comments). Review cadence: Build 0 (review started now,
+eleven Threads), Deploy 5, Discover 2, Test user flow 5.
