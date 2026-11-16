@@ -1,7 +1,9 @@
 import { IsoDate } from "@budget/schema/common/dates";
 import { Milliunits } from "@budget/schema/common/money";
 import {
+  FlagColor,
   PlainClearedStatus,
+  type TransactionBulkRequest,
   TransactionCreateRequest,
   type TransactionUpdateRequest,
   transactionUpdateShape,
@@ -19,6 +21,7 @@ import {
   rejectTransactions,
   updateTransaction,
 } from "../../services/transactions";
+import { bulkTransactions } from "../../services/transactions-bulk";
 import { dates, Id, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
@@ -28,7 +31,7 @@ type Update = z.input<typeof TransactionUpdateRequest>;
 export const tools: McpToolDef[] = [
   {
     name: "list_transactions",
-    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} since_date limits the rows, not the balances. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name, subtransactions (the lines of a split, else []), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. ${dates("date", "since_date") + " " + timestamps(["updated_at", "created_at"])}`,
+    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} since_date limits the rows, not the balances. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name, subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. ${dates("date", "since_date") + " " + timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id.optional(),
@@ -43,7 +46,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "list_unapproved_transactions",
-    description: `List the transactions that need you: the unapproved ones (imports from the bank to review) and those that need a category (an on-plan account, no category, not Ready to Assign, not a split or an on-plan transfer or a Starting Balance). With account_id: that account's rows; without: every account's rows with account_name. ${MONEY} Returns { transactions, balances: { cleared, uncleared, working } }; each row has the fields of list_transactions, including approved, import_id, source (plaid for an import), imported_payee, bank_description and matched. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
+    description: `List the transactions that need you: the unapproved ones (imports from the bank to review) and those that need a category (an on-plan account, no category, not Ready to Assign, not a split or an on-plan transfer or a Starting Balance). With account_id: that account's rows; without: every account's rows with account_name. ${MONEY} Returns { transactions, balances: { cleared, uncleared, working } }; each row has the fields of list_transactions, including approved, flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an import), imported_payee, bank_description and matched. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id.optional() }),
     run: async (input: { budget_id: string; account_id?: string }, { env }) =>
       input.account_id
@@ -77,7 +80,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_transaction",
-    description: `Read one transaction of a plan. ${MONEY} ${dates("date")} Returns { transaction } with id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name and subtransactions (the lines of a split, else []), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. A deleted transaction, or one of another plan, is a tool error (not found). ${timestamps(["updated_at", "created_at"])}`,
+    description: `Read one transaction of a plan. ${MONEY} ${dates("date")} Returns { transaction } with id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name and subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. A deleted transaction, or one of another plan, is a tool error (not found). ${timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({ budget_id: Id, transaction_id: Id }),
     run: async (input: { budget_id: string; transaction_id: string }, { env }) => ({
       transaction: await getTransaction(env, input.budget_id, input.transaction_id),
@@ -128,7 +131,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "update_transaction",
-    description: `Change fields of a transaction; send only what changes. ${MONEY} ${dates("date")} cleared is uncleared or cleared. category_id and inflow_to_ready_to_assign follow the create_transaction rules, and so do payee_id and payee_name (null clears the payee). transfer_account_id sets or changes the other account of a transfer (null makes it a plain transaction again); amount, date and memo of a transfer are mirrored to its other side. subtransactions replaces the lines of a split (an empty list makes it a plain transaction); send amount with it when the total changes. Saving a change to an unapproved transaction approves it (unless approved: false is sent). A reconciled transaction (or a transfer whose other side is reconciled), and a credit account's Starting Balance payee, category and account, cannot be changed (tool error). Returns { transaction } with the same fields as get_transaction. Both accounts must be open: a closed from or to account is a tool error (account_closed). A transaction of a closed account can still be changed or deleted, but moving a transaction into a closed account, or a new transfer to one, is a tool error (account_closed). ${timestamps(["updated_at", "created_at"])}`,
+    description: `Change fields of a transaction; send only what changes. flag_color (red, orange, yellow, green, blue, purple, or null to clear) sets the flag: sent alone it neither approves the transaction nor is refused for a reconciled one. ${MONEY} ${dates("date")} cleared is uncleared or cleared. category_id and inflow_to_ready_to_assign follow the create_transaction rules, and so do payee_id and payee_name (null clears the payee). transfer_account_id sets or changes the other account of a transfer (null makes it a plain transaction again); amount, date and memo of a transfer are mirrored to its other side. subtransactions replaces the lines of a split (an empty list makes it a plain transaction); send amount with it when the total changes. Saving a change to an unapproved transaction approves it (unless approved: false is sent). A reconciled transaction (or a transfer whose other side is reconciled), and a credit account's Starting Balance payee, category and account, cannot be changed (tool error). Returns { transaction } with the same fields as get_transaction. Both accounts must be open: a closed from or to account is a tool error (account_closed). A transaction of a closed account can still be changed or deleted, but moving a transaction into a closed account, or a new transfer to one, is a tool error (account_closed). ${timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({
       budget_id: Id,
       transaction_id: Id,
@@ -147,5 +150,74 @@ export const tools: McpToolDef[] = [
     run: async (input: { budget_id: string; transaction_id: string }, { env, actor }) => ({
       transaction: await deleteTransaction(env, actor, input.budget_id, input.transaction_id),
     }),
+  },
+  {
+    name: "bulk_update_transactions",
+    description: `Change 1 to 100 transactions of a plan at once with one op, all or nothing: every id is checked first and a refused request changes nothing. ${MONEY} ops and their value: clear / unclear (no value) set cleared or uncleared; categorize (value: a category id, or "ready_to_assign" for Inflow: Ready to Assign) sets the category and approves the row; memo (value: text, or null to clear) sets the memo (a transfer's other side follows); move (value: an account id) moves the rows to that account and keeps their other fields; duplicate (no value) adds a hand-entered, approved copy of each row in the same account (a split with its lines, a transfer as a new pair; the copy has no bank fields and no flag). Reconciled rows are skipped, so are rows that already have the value, and for categorize those that take no category (a split, a tracking account's row, an on-plan transfer, a credit Starting Balance); each skipped id is listed with its reason. A closed target account, an unknown id or category, a transfer moved into its other account and a categorized row moved to a tracking account refuse the whole request, naming the id. Returns { op, changed, skipped: [{ id, reason }], others (other sides of transfers that changed too), copies: [{ id, copy_id }] (duplicate), transactions } where transactions are the rows after the change (the copies for duplicate), each as get_transaction returns it. ${dates("date")} ${timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      ids: z.array(Id).min(1).max(100),
+      op: z.enum(["clear", "unclear", "categorize", "memo", "move", "duplicate"]),
+      value: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe(
+          "categorize: a category id or ready_to_assign; memo: the text or null; move: an account id; send nothing for clear, unclear and duplicate",
+        ),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        ids: string[];
+        op: "clear" | "unclear" | "categorize" | "memo" | "move" | "duplicate";
+        value?: string | null;
+      },
+      { env, actor },
+    ) => {
+      const { budget_id, ids, op, value } = input;
+      const body =
+        op === "clear" || op === "unclear" || op === "duplicate"
+          ? { op, ids }
+          : { op, ids, value: value as string };
+      return bulkTransactions(env, actor, budget_id, body as TransactionBulkRequest);
+    },
+  },
+  {
+    name: "delete_transactions",
+    description: `Delete 1 to 100 transactions of a plan at once (soft delete), all or nothing. Deleting either side of a transfer deletes both, and deleting a split deletes its lines; a deleted bank import is never imported again. A reconciled transaction (or a transfer whose other side is reconciled) is refused (409 transaction_reconciled) unless confirm_reconciled is true. It cannot be undone through the API. An unknown id refuses the whole request and nothing is deleted. ${MONEY} Returns { op, changed, skipped, others (other sides of transfers deleted too), copies, transactions } where transactions are the rows as they were. ${dates("date")} ${timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      ids: z.array(Id).min(1).max(100),
+      confirm_reconciled: z.boolean().optional(),
+    }),
+    run: async (
+      input: { budget_id: string; ids: string[]; confirm_reconciled?: boolean },
+      { env, actor },
+    ) =>
+      bulkTransactions(env, actor, input.budget_id, {
+        op: "delete",
+        ids: input.ids,
+        confirm_reconciled: input.confirm_reconciled,
+      }),
+  },
+  {
+    name: "flag_transactions",
+    description: `Set or clear the colour flag of 1 to 100 transactions at once, all or nothing. color is red, orange, yellow, green, blue or purple, or null to clear. A transfer's two sides are flagged separately and a split's lines carry no flag. The rows are not approved by it, and reconciled rows can be flagged. ${MONEY} Returns { op, changed, skipped (rows that already had the colour), others, copies, transactions } where transactions are the rows after the change, each with flag_color. ${dates("date")} ${timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      ids: z.array(Id).min(1).max(100),
+      color: FlagColor.nullable(),
+    }),
+    run: async (
+      input: { budget_id: string; ids: string[]; color: string | null },
+      { env, actor },
+    ) =>
+      bulkTransactions(env, actor, input.budget_id, {
+        op: "flag",
+        ids: input.ids,
+        value: input.color as never,
+      }),
   },
 ];

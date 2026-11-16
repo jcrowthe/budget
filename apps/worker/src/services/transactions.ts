@@ -32,6 +32,7 @@ import { runGroups, type StatementGroup } from "./batch-groups";
 import { resolvePayee } from "./payees";
 import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
+import { bulkTransactions } from "./transactions-bulk";
 
 export function transactionToApi(row: txRepo.TransactionRow): Transaction {
   return {
@@ -53,6 +54,7 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
     imported_payee: row.importedPayee ?? null,
     bank_description: row.bankDescription ?? null,
     matched: (row.importId ?? null) !== null && (row.source ?? null) === null,
+    flag_color: row.flagColor ?? null,
   };
 }
 
@@ -147,7 +149,7 @@ const MAX_ATTEMPTS = 5;
 /** A rule of the register routes failed; the route answers `status` with `code` and this message. */
 export class TransactionRefused extends Error {
   constructor(
-    public status: 409 | 422,
+    public status: 404 | 409 | 422,
     public code: string,
     detail: string,
   ) {
@@ -159,9 +161,9 @@ export class TransactionRefused extends Error {
 const unprocessable = (detail: string) =>
   new TransactionRefused(422, "unprocessable_entity", detail);
 const closedAccount = (detail: string) => new TransactionRefused(422, "account_closed", detail);
-const CLOSED_NO_NEW = "This account is closed: it takes no new transactions";
-const CLOSED_NO_MOVE = "A transaction cannot be moved into a closed account";
-const CLOSED_OTHER = "The other account of a transfer is closed: it must be open";
+export const CLOSED_NO_NEW = "This account is closed: it takes no new transactions";
+export const CLOSED_NO_MOVE = "A transaction cannot be moved into a closed account";
+export const CLOSED_OTHER = "The other account of a transfer is closed: it must be open";
 
 export function lineToApi(l: txRepo.LineRow): SubTransaction {
   return {
@@ -342,7 +344,7 @@ export async function getTransaction(
   return detailOf(db, budgetId, id);
 }
 
-const isCreditStartingBalance = (
+export const isCreditStartingBalance = (
   account: { type: string },
   row: Pick<txRepo.TransactionDetailRow, "payeeSystem" | "categoryId" | "inflowToReadyToAssign">,
 ) =>
@@ -371,6 +373,7 @@ async function validate(
   budgetId: string,
   merged: txRepo.TransactionRow,
   account: accountsRepo.AccountRow,
+  known?: ReadonlyMap<string, unknown>,
 ) {
   if (merged.categoryId && merged.inflowToReadyToAssign) {
     throw unprocessable(
@@ -380,7 +383,12 @@ async function validate(
   if (!account.onBudget && (merged.categoryId || merged.inflowToReadyToAssign)) {
     throw unprocessable("Tracking accounts do not take a category");
   }
-  if (merged.categoryId && !(await categoriesRepo.findActive(db, budgetId, merged.categoryId))) {
+  if (
+    merged.categoryId &&
+    !(known
+      ? known.has(merged.categoryId)
+      : await categoriesRepo.findActive(db, budgetId, merged.categoryId))
+  ) {
     throw unprocessable("Category not found in this plan");
   }
 }
@@ -391,8 +399,9 @@ async function otherAccountOf(
   accountId: string,
   otherId: string,
   requireOpen = true,
+  known?: ReadonlyMap<string, accountsRepo.AccountRow>,
 ): Promise<accountsRepo.AccountRow> {
-  const other = await accountsRepo.findActive(db, budgetId, otherId);
+  const other = known ? known.get(otherId) : await accountsRepo.findActive(db, budgetId, otherId);
   if (!other) throw unprocessable("Account not found in this plan");
   if (other.id === accountId) throw unprocessable("A transfer needs two different accounts");
   if (requireOpen && other.closed) throw closedAccount(CLOSED_OTHER);
@@ -649,7 +658,7 @@ type OtherOp =
   | { kind: "delete"; before: txRepo.TransactionDetailRow; row: txRepo.TransactionRow }
   | { kind: "insert"; row: txRepo.TransactionRow };
 
-type Plan = {
+export type Plan = {
   before: txRepo.TransactionDetailRow;
   beforeLines: txRepo.LineRow[];
   after: txRepo.TransactionRow;
@@ -672,8 +681,102 @@ const setOf = (r: txRepo.TransactionRow, updatedAt: string): txRepo.TxSet => ({
   approved: r.approved,
   transferAccountId: r.transferAccountId ?? null,
   transferTransactionId: r.transferTransactionId ?? null,
+  flagColor: r.flagColor ?? null,
   updatedAt,
 });
+
+/** The statements of one planned change, grouped by when they may run: payees, logs, then the rest, then the row's own write. */
+export function planWrites(
+  db: Db,
+  w: {
+    budgetId: string;
+    actor: string;
+    id: string;
+    kind: "update" | "delete";
+    plan: Plan;
+    now: string;
+    guard: SQLWrapper;
+    selfGuard: SQLWrapper;
+  },
+) {
+  const { budgetId, actor, id, kind, plan, now, guard, selfGuard } = w;
+  const { before, after } = plan;
+  const payees: unknown[] = [];
+  const logs: unknown[] = [];
+  const rest: unknown[] = [];
+  for (const pc of plan.payeeCreates) {
+    payees.push(
+      payeesRepo.insertIfStmt(db, pc, guard),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "create",
+          entityType: "payee",
+          entityId: pc.id,
+          before: null,
+          after: payeeLog(pc),
+        },
+        guard,
+      ),
+    );
+  }
+  for (const l of plan.logs) {
+    logs.push(changeLogInsertIf(db, { budgetId, actor, ...l }, guard));
+  }
+  if (plan.lines.mode === "sync") {
+    rest.push(
+      txRepo.syncLinesIfStmt(
+        db,
+        id,
+        {
+          accountId: after.accountId,
+          date: after.date,
+          cleared: after.cleared,
+          approved: after.approved,
+          updatedAt: now,
+        },
+        guard,
+      ),
+    );
+  } else if (plan.lines.mode !== "none") {
+    rest.push(txRepo.softDeleteLinesIfStmt(db, id, now, guard));
+    for (const r of plan.lines.rows) rest.push(txRepo.insertIfStmt(db, r, guard));
+  }
+  // A row the user deletes that came from the bank is never imported again.
+  const deleted = [
+    ...(kind === "delete" ? [before] : []),
+    ...plan.others.flatMap((o) => (o.kind === "delete" ? [o.row] : [])),
+  ];
+  for (const d of deleted) {
+    if (!d.importId) continue;
+    rest.push(
+      importsRepo.tombstoneIfStmt(
+        db,
+        {
+          accountId: d.accountId,
+          importId: d.importId,
+          budgetId,
+          reason: "deleted",
+          transactionId: d.id,
+        },
+        guard,
+        now,
+      ),
+    );
+  }
+  for (const o of plan.others) {
+    if (o.kind === "insert") rest.push(txRepo.insertIfStmt(db, o.row, guard));
+    else if (o.kind === "delete") rest.push(txRepo.softDeleteIfStmt(db, o.row.id, now, guard));
+    else rest.push(txRepo.updateIfStmt(db, o.row.id, setOf(o.row, now), guard));
+  }
+  const self =
+    kind === "delete"
+      ? txRepo.softDeleteIfStmt(db, id, now, selfGuard)
+      : txRepo.updateIfStmt(db, id, setOf(after, now), selfGuard);
+  return { payees, logs, rest, self };
+}
 
 async function mutate(
   env: Env,
@@ -705,81 +808,8 @@ async function mutate(
     const selfGuard = lastOther
       ? txRepo.allHold([txRepo.holdsAt(db, before), txRepo.writtenAt(db, lastOther.row.id, now)])
       : guard;
-    const { after } = plan;
-    const statements: unknown[] = [];
-    for (const pc of plan.payeeCreates) {
-      statements.push(
-        payeesRepo.insertIfStmt(db, pc, guard),
-        changeLogInsertIf(
-          db,
-          {
-            budgetId,
-            actor,
-            action: "create",
-            entityType: "payee",
-            entityId: pc.id,
-            before: null,
-            after: payeeLog(pc),
-          },
-          guard,
-        ),
-      );
-    }
-    for (const l of plan.logs) {
-      statements.push(changeLogInsertIf(db, { budgetId, actor, ...l }, guard));
-    }
-    if (plan.lines.mode === "sync") {
-      statements.push(
-        txRepo.syncLinesIfStmt(
-          db,
-          id,
-          {
-            accountId: after.accountId,
-            date: after.date,
-            cleared: after.cleared,
-            approved: after.approved,
-            updatedAt: now,
-          },
-          guard,
-        ),
-      );
-    } else if (plan.lines.mode !== "none") {
-      statements.push(txRepo.softDeleteLinesIfStmt(db, id, now, guard));
-      for (const r of plan.lines.rows) statements.push(txRepo.insertIfStmt(db, r, guard));
-    }
-    // A row the user deletes that came from the bank is never imported again.
-    const deleted = [
-      ...(kind === "delete" ? [before] : []),
-      ...plan.others.flatMap((o) => (o.kind === "delete" ? [o.row] : [])),
-    ];
-    for (const d of deleted) {
-      if (!d.importId) continue;
-      statements.push(
-        importsRepo.tombstoneIfStmt(
-          db,
-          {
-            accountId: d.accountId,
-            importId: d.importId,
-            budgetId,
-            reason: "deleted",
-            transactionId: d.id,
-          },
-          guard,
-          now,
-        ),
-      );
-    }
-    for (const o of plan.others) {
-      if (o.kind === "insert") statements.push(txRepo.insertIfStmt(db, o.row, guard));
-      else if (o.kind === "delete")
-        statements.push(txRepo.softDeleteIfStmt(db, o.row.id, now, guard));
-      else statements.push(txRepo.updateIfStmt(db, o.row.id, setOf(o.row, now), guard));
-    }
-    statements.push(
-      kind === "delete"
-        ? txRepo.softDeleteIfStmt(db, id, now, selfGuard)
-        : txRepo.updateIfStmt(db, id, setOf(after, now), selfGuard),
-    );
+    const w0 = planWrites(db, { budgetId, actor, id, kind, plan, now, guard, selfGuard });
+    const statements: unknown[] = [...w0.payees, ...w0.logs, ...w0.rest, w0.self];
     let results: Awaited<ReturnType<typeof db.batch>>;
     try {
       results = await db.batch(stmts(statements));
@@ -798,7 +828,19 @@ async function mutate(
   throw new Conflict("Transaction");
 }
 
-async function prepare(
+/**
+ * What `prepare` needs for many rows, read once with set queries by the caller: the lines by parent id, the other
+ * sides of transfers, the plan's accounts and the active categories (with their group names) the rows and the
+ * change mention. With it `prepare` makes no database call, so a request over many rows makes a fixed number.
+ */
+export type Reads = {
+  lines: ReadonlyMap<string, txRepo.LineRow[]>;
+  others: ReadonlyMap<string, txRepo.TransactionDetailRow>;
+  accounts: ReadonlyMap<string, accountsRepo.AccountRow>;
+  categories: ReadonlyMap<string, { categoryName: string; groupName: string }>;
+};
+
+export async function prepare(
   db: Db,
   budgetId: string,
   before: txRepo.TransactionDetailRow,
@@ -806,8 +848,17 @@ async function prepare(
   kind: "update" | "delete",
   patch: TransactionUpdateRequest | undefined,
   now: string,
+  opts: { allowReconciled?: boolean; reads?: Reads } = {},
 ): Promise<Plan> {
-  const beforeLines = await txRepo.listLines(db, budgetId, { parentId: before.id });
+  const reads = opts.reads;
+  const namesFor = async (id: string | null | undefined) => {
+    if (!reads) return namesOf(db, budgetId, id);
+    const n = id ? reads.categories.get(id) : undefined;
+    return { categoryName: n?.categoryName ?? null, groupName: n?.groupName ?? null };
+  };
+  const beforeLines = reads
+    ? (reads.lines.get(before.id) ?? [])
+    : await txRepo.listLines(db, budgetId, { parentId: before.id });
   const isSplit = beforeLines.length > 0;
   const beforeLog = logShape(before, beforeLines);
   const plan: Plan = {
@@ -820,12 +871,14 @@ async function prepare(
     logs: [],
   };
   const otherBefore = before.transferTransactionId
-    ? await txRepo.findDetail(db, budgetId, before.transferTransactionId)
+    ? reads
+      ? reads.others.get(before.transferTransactionId)
+      : await txRepo.findDetail(db, budgetId, before.transferTransactionId)
     : undefined;
 
   if (kind === "delete" || !patch) {
     if (otherBefore) {
-      refuseOtherReconciled(otherBefore);
+      if (!(kind === "delete" && opts.allowReconciled)) refuseOtherReconciled(otherBefore);
       plan.others.push({ kind: "delete", before: otherBefore, row: otherBefore });
       plan.logs.push({
         action: "delete",
@@ -848,7 +901,13 @@ async function prepare(
 
   const p = patch;
   const cleared = parseCleared(p.cleared);
-  const account = p.account_id ? await activeAccount(db, budgetId, p.account_id) : beforeAccount;
+  const readAccount = async (id: string) => {
+    if (!reads) return activeAccount(db, budgetId, id);
+    const a = reads.accounts.get(id);
+    if (!a) throw new NotFound("Account");
+    return a;
+  };
+  const account = p.account_id ? await readAccount(p.account_id) : beforeAccount;
   if (account.id !== before.accountId && account.closed) throw closedAccount(CLOSED_NO_MOVE);
   const isTransfer = Boolean(before.transferAccountId);
   const linesIn = p.subtransactions;
@@ -903,6 +962,7 @@ async function prepare(
     cleared: cleared ?? before.cleared,
     // Saving an edit approves the row, unless the request says approved: false.
     approved: p.approved ?? true,
+    flagColor: p.flag_color === undefined ? (before.flagColor ?? null) : p.flag_color,
   };
   plan.after = after;
   if (isTransfer && !transferAfterId) {
@@ -969,13 +1029,20 @@ async function prepare(
   let otherAccount: accountsRepo.AccountRow | undefined;
   if (transferAfterId) {
     // An existing transfer may point at an account closed since: only a new or changed link needs it open.
-    otherAccount = await otherAccountOf(db, budgetId, account.id, transferAfterId, becomesTransfer);
+    otherAccount = await otherAccountOf(
+      db,
+      budgetId,
+      account.id,
+      transferAfterId,
+      becomesTransfer,
+      reads?.accounts,
+    );
     after.payeeId = null;
     after.payeeName = transferPayeeName(otherAccount.name);
     after.transferAccountId = otherAccount.id;
     applyTransferRule(after, account, otherAccount, sentCategory);
   }
-  await validate(db, budgetId, after, account);
+  await validate(db, budgetId, after, account, reads?.categories);
 
   if (transferAfterId && otherAccount) {
     if (isTransfer && !becomesTransfer && otherBefore) {
@@ -990,7 +1057,7 @@ async function prepare(
           entityType: "transaction",
           entityId: next.id,
           before: logShape(otherBefore),
-          after: logShape({ ...next, ...(await namesOf(db, budgetId, next.categoryId)) }),
+          after: logShape({ ...next, ...(await namesFor(next.categoryId)) }),
         });
       }
     } else {
@@ -1035,7 +1102,7 @@ async function prepare(
   const names =
     after.categoryId === before.categoryId
       ? { categoryName: before.categoryName, groupName: before.groupName }
-      : await namesOf(db, budgetId, after.categoryId);
+      : await namesFor(after.categoryId);
   plan.logs.unshift({
     action: "update",
     entityType: "transaction",
@@ -1053,7 +1120,19 @@ export async function updateTransaction(
   id: string,
   patch: TransactionUpdateRequest,
 ): Promise<TransactionDetail> {
-  return mutate(env, actor, budgetId, id, "update", TransactionUpdateRequest.parse(patch));
+  const p = TransactionUpdateRequest.parse(patch);
+  const keys = Object.keys(p);
+  if (keys.length === 1 && p.flag_color !== undefined) {
+    // A flag alone neither approves the row nor is refused for a reconciled one.
+    const found = await txRepo.findDetail(getDb(env), budgetId, id);
+    if (!found) {
+      await activePlan(getDb(env), budgetId);
+      throw new NotFound("Transaction");
+    }
+    await bulkTransactions(env, actor, budgetId, { op: "flag", ids: [id], value: p.flag_color });
+    return getTransaction(env, budgetId, id);
+  }
+  return mutate(env, actor, budgetId, id, "update", p);
 }
 
 export async function deleteTransaction(
@@ -1069,11 +1148,30 @@ export async function deleteTransaction(
 const distinct = (ids: readonly string[]) => [...new Set(ids)];
 
 async function readAll(db: Db, budgetId: string, ids: readonly string[]) {
-  const rows = await Promise.all(ids.map((id) => txRepo.findDetail(db, budgetId, id)));
-  return rows.map((r) => {
+  const found = await txRepo.findDetailMany(db, budgetId, ids);
+  return ids.map((id) => {
+    const r = found.get(id);
     if (!r) throw new NotFound("Transaction");
     return r;
   });
+}
+
+/** The lines (by parent) and the transfer other sides of these rows, in two set queries. */
+async function linksOf(db: Db, budgetId: string, rows: readonly txRepo.TransactionDetailRow[]) {
+  const lines = new Map<string, txRepo.LineRow[]>();
+  for (const l of await txRepo.listLines(db, budgetId, { parentIds: rows.map((r) => r.id) })) {
+    const k = l.parentTransactionId as string;
+    lines.set(k, [...(lines.get(k) ?? []), l]);
+  }
+  const otherIds = rows.flatMap((r) => (r.transferTransactionId ? [r.transferTransactionId] : []));
+  return { lines, others: await txRepo.findDetailMany(db, budgetId, otherIds) };
+}
+
+/** The rows as the API shows them, read with two set queries. */
+async function detailsOf(db: Db, budgetId: string, ids: readonly string[]) {
+  const rows = await readAll(db, budgetId, ids);
+  const { lines } = await linksOf(db, budgetId, rows);
+  return rows.map((r) => transactionDetailToApi(r, lines.get(r.id) ?? []));
 }
 
 /**
@@ -1092,15 +1190,16 @@ export async function approveTransactions(
   let pending = wanted;
   for (let attempt = 0; attempt < MAX_ATTEMPTS && pending.length > 0; attempt++) {
     const rows = (await readAll(db, budgetId, pending)).filter((r) => !r.approved);
+    const links = await linksOf(db, budgetId, rows);
     const now = new Date().toISOString();
     const covered = new Set<string>();
     const groups: StatementGroup[] = [];
     const owners: string[] = [];
     for (const row of rows) {
       if (covered.has(row.id)) continue;
-      const lines = await txRepo.listLines(db, budgetId, { parentId: row.id });
+      const lines = links.lines.get(row.id) ?? [];
       const other = row.transferTransactionId
-        ? await txRepo.findDetail(db, budgetId, row.transferTransactionId)
+        ? links.others.get(row.transferTransactionId)
         : undefined;
       const otherOpen = other && !other.approved ? other : undefined;
       covered.add(row.id);
@@ -1171,13 +1270,14 @@ export async function approveTransactions(
       groups.push(stmts);
       owners.push(row.id);
     }
-    const results = await runGroups(db, groups);
+    // One batch for every row: a batch is one D1 call whatever its size.
+    const results = await runGroups(db, groups, Number.MAX_SAFE_INTEGER);
     pending = owners.filter((_, i) => (results[i]?.[(results[i]?.length ?? 1) - 1] ?? 0) === 0);
     // A request id that was the other side of a covered row is done when that row was.
     if (pending.length === 0) break;
   }
   if (pending.length > 0) throw new Conflict("Transaction");
-  return Promise.all(wanted.map((id) => detailOf(db, budgetId, id)));
+  return detailsOf(db, budgetId, wanted);
 }
 
 /**
@@ -1218,8 +1318,9 @@ export async function rejectTransactions(
     const now = new Date().toISOString();
     const groups: StatementGroup[] = [];
     const details: TransactionDetail[] = [];
+    const { lines: linesOfRow } = await linksOf(db, budgetId, rows);
     for (const row of rows) {
-      const lines = await txRepo.listLines(db, budgetId, { parentId: row.id });
+      const lines = linesOfRow.get(row.id) ?? [];
       const guard = txRepo.holdsAt(db, row);
       groups.push([
         changeLogInsertIf(

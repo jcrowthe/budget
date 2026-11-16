@@ -14,11 +14,14 @@ export function Tooltip({
   content,
   delayed = true,
   align = "start",
+  placement = "below",
   children,
 }: {
   content: ReactNode;
   delayed?: boolean;
-  align?: "start" | "end";
+  align?: "start" | "end" | "center";
+  /** `above` is the action bar's shortcut tooltip: centred over its button. */
+  placement?: "below" | "above";
   children: (props: TriggerProps) => ReactElement;
 }) {
   const id = useId();
@@ -39,7 +42,7 @@ export function Tooltip({
         <span
           id={id}
           role="tooltip"
-          className={`acct-tooltip is-${align}${delayed ? " is-delayed" : ""}`}
+          className={`acct-tooltip is-${align}${placement === "above" ? " is-above" : ""}${delayed ? " is-delayed" : ""}`}
         >
           {content}
         </span>

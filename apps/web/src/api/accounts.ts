@@ -224,7 +224,4 @@ export function useSetStarred(budgetId: string, accountId: string) {
 }
 
 /** The browser's local date as YYYY-MM-DD (the Starting Balance date). */
-export function localToday(now: Date = new Date()): string {
-  const p = (n: number, w = 2) => String(n).padStart(w, "0");
-  return `${p(now.getFullYear(), 4)}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
-}
+export { localToday } from "./today";

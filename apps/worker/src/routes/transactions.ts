@@ -4,6 +4,8 @@ import { PLAN_SORT_COLUMNS, REGISTER_SORT_COLUMNS } from "@budget/schema/registe
 import {
   PlanTransactionListResponse,
   TRANSACTION_NEEDS,
+  TransactionBulkRequest,
+  TransactionBulkResponse,
   TransactionCreateRequest,
   TransactionIdsRequest,
   TransactionListResponse,
@@ -25,6 +27,8 @@ import {
   TransactionRefused,
   updateTransaction,
 } from "../services/transactions";
+import { bulkTransactions } from "../services/transactions-bulk";
+import { exportTransactions } from "../services/transactions-export";
 
 const tags = ["Transactions"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -144,6 +148,49 @@ export default app
         needs: q.needs,
       });
       return c.json({ data }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/transactions/export",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id") }),
+        query: z.object({
+          ids: z
+            .string()
+            .min(1)
+            .refine(
+              (v) => {
+                const n = v.split(",").filter(Boolean).length;
+                return n >= 1 && n <= 100;
+              },
+              { message: "ids must hold 1 to 100 transaction ids, separated by commas" },
+            )
+            .describe("Transaction ids, comma-separated (1 to 100)"),
+        }),
+      },
+      responses: {
+        200: {
+          description:
+            "The selected transactions as a CSV file (Account, Flag, Date, Payee, Category Group/Category, Category Group, Category, Memo, Outflow, Inflow, Cleared)",
+          content: { "text/csv": { schema: z.string() } },
+        },
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const ids = c.req.valid("query").ids.split(",").filter(Boolean);
+      return refusals(c, async () => {
+        const { csv, fileName } = await exportTransactions(c.env, budget_id, ids);
+        const ascii = fileName.replace(/[^\x20-\x7e]/g, "_").replaceAll('"', "'");
+        return c.body(csv, 200, {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+        }) as never;
+      });
     },
   )
   .openapi(
@@ -294,6 +341,36 @@ export default app
       return refusals(c, async () => {
         const transactions = await rejectTransactions(c.env, actor, budget_id, ids);
         return c.json({ data: { transactions } }, 200);
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/transactions/bulk",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id") }),
+        body: {
+          content: { "application/json": { schema: TransactionBulkRequest } },
+          required: true,
+        },
+      },
+      responses: {
+        200: json(
+          TransactionBulkResponse,
+          "What changed, what was skipped and why. All or nothing: a refused request changes nothing",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const actor = c.get("identity").actor;
+      return refusals(c, async () => {
+        const data = await bulkTransactions(c.env, actor, budget_id, body);
+        return c.json({ data }, 200);
       });
     },
   );

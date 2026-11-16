@@ -12,11 +12,17 @@ import { transferCellText } from "@budget/schema/transfers";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useAccounts } from "../api/accounts";
-import { useAccountTransactions, usePlanTransactions, useSetCleared } from "../api/transactions";
+import {
+  useAccountTransactions,
+  usePlanTransactions,
+  useSetCleared,
+  useSetFlag,
+} from "../api/transactions";
 import { accountPath } from "../shell/planPaths";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
+import { FlagCell } from "./FlagMenu";
 import { registerDate, registerMoney } from "./format";
 import {
   CaretDownIcon,
@@ -24,10 +30,12 @@ import {
   ChevronRightIcon,
   ClearedFilledIcon,
   ClearedOutlineIcon,
+  FlagFilledIcon,
   LockIcon,
   TransferIcon,
 } from "./icons";
 import { useOpenAccounts } from "./openAccounts";
+import { useSelection } from "./selection";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
 
@@ -93,10 +101,9 @@ export function RegisterTable({
     () => new Map((accountsQ.data ?? []).map((a) => [a.id, a])),
     [accountsQ.data],
   );
-  const setCleared = useSetCleared(
-    budgetId,
-    plan ? ["transactions", budgetId, "all"] : ["transactions", budgetId, account.id],
-  );
+  const listKey = plan ? ["transactions", budgetId, "all"] : ["transactions", budgetId, account.id];
+  const setCleared = useSetCleared(budgetId, listKey);
+  const setFlag = useSetFlag(budgetId, listKey);
   const [sort, setSort] = useState<{ column: PlanSortColumn; dir: SortDir }>({
     column: "date",
     dir: "desc",
@@ -104,18 +111,28 @@ export function RegisterTable({
   const { openAccounts } = useOpenAccounts(budgetId);
   const navigate = useNavigate();
   const location = useLocation();
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const { selected, set: setSelected, toggle: toggleRow, setRows } = useSelection();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const showCategory = plan || account.on_budget;
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
     (h) => showCategory || h.column !== "category",
   );
-  const colCount = columns.length + 2;
+  const colCount = columns.length + 3;
   const data = q.data;
   const rows = useMemo(
     () => (data ? sortTransactions<Row>(data.transactions, sort.column, sort.dir) : []),
     [data, sort],
   );
+
+  // The selection and the bar read the rows as shown; ids that left the list drop out of the selection.
+  useEffect(() => setRows(rows), [rows, setRows]);
+  useEffect(() => {
+    if (!data) return;
+    const live = new Set(rows.map((r) => r.id));
+    if ([...selected].some((id) => !live.has(id))) {
+      setSelected([...selected].filter((id) => live.has(id)));
+    }
+  }, [data, rows, selected, setSelected]);
 
   const clickHeader = (column: PlanSortColumn) =>
     setSort((s) =>
@@ -125,14 +142,7 @@ export function RegisterTable({
     );
   const allState: boolean | "mixed" =
     rows.length > 0 && selected.size === rows.length ? true : selected.size > 0 ? "mixed" : false;
-  const toggleAll = () =>
-    setSelected(allState === true ? new Set() : new Set(rows.map((r) => r.id)));
-  const toggleRow = (id: string) =>
-    setSelected((s) => {
-      const n = new Set(s);
-      if (!n.delete(id)) n.add(id);
-      return n;
-    });
+  const toggleAll = () => setSelected(allState === true ? [] : rows.map((r) => r.id));
 
   const accountOf = (tx: Row) =>
     account ?? byId.get(tx.account_id) ?? { type: "checking", on_budget: true };
@@ -142,7 +152,7 @@ export function RegisterTable({
   const editTx = editAt >= 0 ? rows[editAt] : undefined;
 
   const openEdit = (tx: Row, field: Field, openCategory = false) => {
-    setSelected(new Set([tx.id]));
+    setSelected([tx.id]);
     onOpen({ mode: "edit", id: tx.id, focus: field, openCategory });
   };
 
@@ -151,7 +161,7 @@ export function RegisterTable({
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per visit, when the rows are there
   useEffect(() => {
     if (!wanted || rows.length === 0 || !rows.some((r) => r.id === wanted)) return;
-    setSelected(new Set([wanted]));
+    setSelected([wanted]);
     document.querySelector(`tr[data-tx="${wanted}"]`)?.scrollIntoView({ block: "center" });
   }, [wanted, location.key, rows.length > 0]);
 
@@ -174,7 +184,7 @@ export function RegisterTable({
       if (document.querySelector('[aria-modal="true"]')) return;
       if (!only || !splittable(only)) return;
       e.preventDefault();
-      setSelected(new Set([only.id]));
+      setSelected([only.id]);
       onOpen({ mode: "edit", id: only.id, focus: "category", split: true });
     };
     document.addEventListener("keydown", onKey);
@@ -188,12 +198,16 @@ export function RegisterTable({
   const onRowClick = (e: React.MouseEvent, tx: Row) => {
     if (isControl(e)) return;
     if (tx.cleared === "reconciled") {
-      setSelected(new Set([tx.id]));
+      setSelected([tx.id]);
       return;
     }
-    if (selected.has(tx.id)) openEdit(tx, fieldOf(e));
+    if (selected.has(tx.id) && selected.size > 1) {
+      // Several are selected: a click on one of them selects only that row.
+      setSelected([tx.id]);
+      if (open) onCloseEntry();
+    } else if (selected.has(tx.id)) openEdit(tx, fieldOf(e));
     else {
-      setSelected(new Set([tx.id]));
+      setSelected([tx.id]);
       if (open) onCloseEntry();
     }
   };
@@ -224,6 +238,12 @@ export function RegisterTable({
         <tr data-tx={tx.id} className={checked ? "is-checked" : undefined} {...rowProps}>
           <td className="cell-check">
             <Box state={checked} label="Select transaction" onClick={() => toggleRow(tx.id)} />
+          </td>
+          <td className="cell-flag">
+            <FlagCell
+              color={tx.flag_color}
+              onPick={(color) => setFlag.mutate({ id: tx.id, color })}
+            />
           </td>
           {plan && (
             <td data-field="account" title={tx.account_name}>
@@ -320,6 +340,7 @@ export function RegisterTable({
               {...rowProps}
             >
               <td className="cell-check" />
+              <td className="cell-flag" />
               {plan && <td />}
               <td />
               <td data-field="payee" title={l.payee_name ?? undefined}>
@@ -365,6 +386,7 @@ export function RegisterTable({
       >
         <colgroup>
           <col className="col-check" />
+          <col className="col-flag" />
           {plan && <col className="col-account" />}
           <col className="col-date" />
           <col className="col-payee" />
@@ -378,6 +400,9 @@ export function RegisterTable({
           <tr>
             <th className="cell-check">
               <Box state={allState} label="Select all transactions" onClick={toggleAll} />
+            </th>
+            <th className="cell-flag" aria-label="Flag">
+              <FlagFilledIcon />
             </th>
             {columns.map((h) => {
               const active = sort.column === h.column;
