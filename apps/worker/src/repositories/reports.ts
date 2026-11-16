@@ -2,6 +2,7 @@ import type { AccountType } from "@budget/core/account-types";
 
 type Month = string;
 
+import type { IncomeRow } from "@budget/schema/income-expense";
 import type { MonthlySum } from "@budget/schema/net-worth";
 import type { SpendingRow } from "@budget/schema/spending-breakdown";
 import { transferPayeeName } from "@budget/schema/transfers";
@@ -175,6 +176,80 @@ export async function findCategoryOrGroup(
     kind === "category"
       ? sql`select name from categories where id = ${id} and budget_id = ${budgetId}`
       : sql`select name from category_groups where id = ${id} and budget_id = ${budgetId}`,
+  );
+  return rows[0]?.name ?? null;
+}
+
+interface IncomeRaw {
+  id: string;
+  parent_id: string | null;
+  account_id: string;
+  account_name: string;
+  date: string;
+  created_at: string;
+  split_index: number | null;
+  amount: number;
+  payee_id: string | null;
+  payee_name: string | null;
+  memo: string | null;
+  cleared: IncomeRow["cleared"];
+}
+
+/**
+ * THE INCOME RULE (one place). An income row is a non-deleted transaction of the plan that:
+ * - is on a non-deleted on-plan account (closed ones included), dated in [start, endBefore);
+ * - is not a split parent; a line counts when its parent is not deleted;
+ * - has inflow_to_ready_to_assign set, whatever its sign (a balance adjustment is negative when it is negative);
+ * - is not a transfer, and its payee is not the Starting Balance system payee.
+ * Its payee is the line's own when it has one, else the split's; a row with no payee has payee_id null.
+ * Excluded accounts are applied by the caller; the category filter never applies to income.
+ */
+export async function incomeRows(
+  db: Db,
+  budgetId: string,
+  range: { start: Month; endBefore: string },
+): Promise<IncomeRow[]> {
+  const rows = await db.all<IncomeRaw>(sql`
+    select t.id as id, t.parent_transaction_id as parent_id, t.account_id as account_id, a.name as account_name,
+      t.date as date, t.created_at as created_at, t.split_index as split_index, t.amount as amount,
+      case when t.payee_id is not null or t.payee_name is not null then t.payee_id else p.payee_id end as payee_id,
+      coalesce(py.name, t.payee_name, pp.name, p.payee_name) as payee_name,
+      t.memo as memo, coalesce(p.cleared, t.cleared) as cleared
+    from transactions t
+    join accounts a on a.id = t.account_id and a.budget_id = ${budgetId} and a.deleted_at is null and a.on_budget = 1
+    left join transactions p on p.id = t.parent_transaction_id
+    left join payees py on py.id = t.payee_id
+    left join payees pp on pp.id = p.payee_id
+      and t.payee_id is null and t.payee_name is null
+    where t.budget_id = ${budgetId} and t.deleted_at is null
+      and t.date >= ${range.start} and t.date < ${range.endBefore}
+      and (t.parent_transaction_id is null or p.deleted_at is null)
+      and not exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null)
+      and t.inflow_to_ready_to_assign = 1
+      and t.transfer_account_id is null
+      and coalesce(py.system, pp.system, '') <> 'starting_balance'
+  `);
+  return rows.map((r) => ({
+    id: r.id,
+    transaction_id: r.parent_id ?? r.id,
+    subtransaction_id: r.parent_id ? r.id : null,
+    account_id: r.account_id,
+    account_name: r.account_name,
+    date: r.date,
+    created_at: r.created_at,
+    split_index: r.split_index,
+    amount: r.amount,
+    payee_id: r.payee_id,
+    payee_name: r.payee_name,
+    memo: r.memo,
+    cleared: r.cleared,
+  }));
+}
+
+/** The name of a payee of the plan (deleted ones included), or null when the plan has none. */
+export async function findPayee(db: Db, budgetId: string, id: string): Promise<string | null> {
+  const rows = await db.all<{ name: string }>(
+    sql`select name from payees where id = ${id} and budget_id = ${budgetId}`,
   );
   return rows[0]?.name ?? null;
 }
