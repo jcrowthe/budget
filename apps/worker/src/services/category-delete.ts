@@ -52,9 +52,16 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
     : null;
   // Nothing before the final statements changes any part of this guard, so it holds for all of them.
   const full = allOf(hist, target, cats, groupActive, groupExact);
-  // The group goes only if its delete log row of this batch was written (so the guard held) and it is empty.
+  // The group goes only if this batch's categories were soft-deleted (deleted_at = now, no wall clock involved),
+  // none is left active in it, and the rest of the guard still holds.
   const groupGo = p.group
-    ? sql`exists (select 1 from change_log where entity_type = 'category_group' and entity_id = ${p.group.id} and action = 'delete' and created_at = ${p.now}) and not exists (select 1 from categories where group_id = ${p.group.id} and deleted_at is null)`
+    ? allOf(
+        hist,
+        target,
+        groupActive,
+        sql`(select count(*) from categories where id in (${idList(ids)}) and deleted_at = ${p.now}) = ${ids.length}`,
+        sql`not exists (select 1 from categories where group_id = ${p.group.id} and deleted_at is null)`,
+      )
     : null;
   const log = (entityType: string, action: LogBase["action"] = "delete"): LogBase => ({
     budgetId,

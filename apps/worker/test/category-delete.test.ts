@@ -319,6 +319,33 @@ describe("delete with reassignment", () => {
     }
   });
 
+  it("a group batch built before an awaited read still deletes the group (no clock dependence)", async () => {
+    const s = await seed();
+    await s.tx("2026-10-12", -1000, s.fun);
+    const db = getDb(env);
+    const now = new Date().toISOString();
+    const grp = (await groupsRepo.findActive(db, s.bid, s.g.id)) as groupsRepo.CategoryGroupRow;
+    const cats = await categoriesRepo.listActiveInGroup(db, s.g.id);
+    const other = group(await month(s.bid, NOV), "Bills").categories[0]?.id as string;
+    await new Promise((r) => setTimeout(r, 15));
+    const stmts = buildDeleteBatch(db, {
+      budgetId: s.bid,
+      actor,
+      now,
+      categoryIds: cats.map((c) => c.id),
+      group: grp,
+      categories: cats,
+      targetId: other,
+      targets: [],
+    });
+    const results = (await db.batch(stmts as never)) as { meta: { changes: number } }[];
+    expect(results.at(-1)?.meta.changes).toBe(1);
+    const row = await env.DB.prepare("select deleted_at from category_groups where id = ?")
+      .bind(s.g.id)
+      .first<{ deleted_at: string | null }>();
+    expect(row?.deleted_at).toBe(now);
+  });
+
   it("MCP delete_category and delete_category_group equal REST", async () => {
     const s = await seed();
     await s.assign(s.fun, OCT, 1000);
