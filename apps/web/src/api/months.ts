@@ -12,10 +12,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite } from "./monthCache";
 import { keepPreviousInPlan } from "./placeholder";
+import { localToday } from "./today";
 
+/** Target figures use the person's own date, so the read carries the browser's local day. */
 export const getMonth = async (budgetId: string, month: Month): Promise<MonthDetail> =>
-  (await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}`, { schema: MonthDetailResponse }))
-    .data;
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}?today=${localToday()}`, {
+      schema: MonthDetailResponse,
+    })
+  ).data;
 
 /** Unknown fields are stripped by the schema, so additions to the read model cannot break the grid. */
 export const useMonth = (budgetId: string, month: Month) =>

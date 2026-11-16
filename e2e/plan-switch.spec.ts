@@ -11,6 +11,7 @@ import {
 } from "./plan-panel.fixtures";
 import { authHeaders } from "./support/auth";
 import { mouseClick } from "./support/menu";
+import { card, MONTHLY, putTarget, utcToday } from "./targets.fixtures";
 
 // EXF-586: after a plan switch the Plan page never shows the previous plan's month, at any network speed.
 
@@ -136,4 +137,44 @@ test("changing the month inside one plan keeps the rows on screen while the next
     await page.waitForTimeout(100);
   }
   await expect(page.locator(".category-row").first()).toBeVisible();
+});
+
+test("switching plans shows nothing of the previous plan's target while the next month loads", async ({
+  page,
+  request,
+}) => {
+  await putTarget(request, x, RENT, MONTHLY, utcToday(Date.now()));
+  await onlyOurPlans(page);
+  await openPlan(page, x);
+  await page.locator(".category-name", { hasText: RENT }).click();
+  await expect(
+    card(page).getByRole("heading", { name: "Set Aside Another $100.00 Each Month" }),
+  ).toBeVisible();
+
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => {
+    release = r;
+  });
+  await page.route(`**/api/v1/budgets/${y.id}/months/*`, async (route) => {
+    await held;
+    await route.continue().catch(() => {});
+  });
+  await switchTo(page, x, y);
+  await expect(page).toHaveURL(new RegExp(`/${y.id}/budget`));
+  const noTarget = async () => {
+    await expect(card(page)).toHaveCount(0);
+    await expect(page.getByText("$100.00")).toHaveCount(0);
+    await expect(page.locator(".status-label")).toHaveCount(0);
+    await expect(page.locator(".available-pill [data-icon]")).toHaveCount(0);
+  };
+  await noTarget();
+  await page.waitForTimeout(1000);
+  await noTarget();
+  release();
+
+  await expect(page.locator(".category-row").first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("$100.00")).toHaveCount(0);
+  await expect(page.getByText("Each Month")).toHaveCount(0);
+  await expect(page.locator(".status-label")).toHaveCount(0);
+  await expect(page.locator(".available-pill [data-icon]")).toHaveCount(0);
 });

@@ -380,6 +380,12 @@ export function PlanGrid({
                               how === "only" ? selectOnly(c.id) : toggle(s, c.id),
                             )
                           }
+                          onNameClick={(anchor) => {
+                            // EXF-592: a click on the name of the one selected category opens its edit popover.
+                            if (selected.size === 1 && selected.has(c.id)) {
+                              setPop({ kind: "edit-category", categoryId: c.id, anchor });
+                            } else onSelection(() => selectOnly(c.id));
+                          }}
                           editing={editing === c.id}
                           onOpen={() => {
                             onSelection(() => selectOnly(c.id));

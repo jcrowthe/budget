@@ -8,7 +8,8 @@ type Handlers = {
   onCollapseAll: (collapsed: boolean) => void;
 };
 
-const IGNORED = "input, textarea, select, [contenteditable], [role=dialog], [role=menu]";
+const IGNORED =
+  "input, textarea, select, [contenteditable], [role=dialog], [role=menu], .target-form";
 
 /**
  * The Plan page's keyboard shortcuts, bound on the window while the page is mounted: ↓ ↑ move the selection,

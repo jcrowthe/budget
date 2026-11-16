@@ -5,6 +5,7 @@ import {
   computeTargetMonth,
   countWeekdays,
   type TargetDefinition,
+  targetBar,
   targetPeriod,
 } from "../src/targets";
 
@@ -317,5 +318,45 @@ describe("engine wiring", () => {
   });
   it("needs today", () => {
     expect(() => computeMonth({ ...input, today: undefined }, DEC)).toThrow(RangeError);
+  });
+});
+
+describe("targetBar", () => {
+  const bar = (d: TargetDefinition, month: string, o: Parameters<typeof run>[2] = {}) =>
+    targetBar(t(d, month, o), o.L ?? 0);
+  it("monthly set aside: leftover then needed", () => {
+    expect(bar(def({}), DEC, { L: 70000 })).toEqual({ sections: [70000, 100000], fill: 70000 });
+    expect(bar(def({}), NOV, { A: 40000 })).toEqual({ sections: [100000], fill: 40000 });
+  });
+  it("weekly: one section per week after the leftover", () => {
+    const w = def({ cadence: "weekly", amount: 25000, day_of_week: 6 });
+    expect(bar(w, DEC, { L: 40000 })).toEqual({
+      sections: [40000, 25000, 25000, 25000, 25000],
+      fill: 40000,
+    });
+    expect(bar(w, JAN, { L: 40000 }).sections).toEqual([40000, 25000, 25000, 25000, 25000, 25000]);
+    expect(bar(w, NOV).sections).toEqual([25000, 25000]);
+  });
+  it("refill counts the funded amount only", () => {
+    expect(bar(def({ behavior: "refill" }), NOV, { L: 50000, A: 50000 })).toEqual({
+      sections: [100000],
+      fill: 100000,
+    });
+  });
+  it("yearly and balance fill against the total", () => {
+    const y = def({ cadence: "yearly", amount: 1200000, due_date: "2027-10-31" });
+    expect(bar(y, NOV, { A: 100000 })).toEqual({ sections: [1200000], fill: 100000 });
+    const b = def({
+      cadence: "custom",
+      behavior: "balance",
+      amount: 600000,
+      due_month: "2027-04-01",
+    });
+    expect(bar(b, NOV, { L: 150000 })).toEqual({ sections: [600000], fill: 150000 });
+    expect(bar(b, NOV, { L: -10000 }).fill).toBe(0);
+  });
+  it("a weekly target created on the last Sunday has no sections", () => {
+    const w = def({ cadence: "weekly", amount: 25000, day_of_week: 6, created_on: "2026-11-29" });
+    expect(bar(w, NOV).sections).toEqual([]);
   });
 });

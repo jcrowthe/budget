@@ -118,3 +118,50 @@ export const CheckCircleFillIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm-1.6 15.6L6 12.2l1.4-1.4 3 3 6.2-6.2L18 9z" />
   </svg>
 );
+
+// Targets (EXF-508, EXF-514): own 16-unit artwork.
+const small = { viewBox: "0 0 16 16", fill: "currentColor" } as const;
+export const ClockIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11ZM7.25 4.5v4l2.9 1.7.75-1.3-2.15-1.25V4.5z" />
+  </svg>
+);
+export const ClockCheckIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path d="M8 1a7 7 0 1 0 7 7h-1.5A5.5 5.5 0 1 1 8 2.5zM7.25 4.5v4l2.9 1.7.75-1.3-2.15-1.25V4.5zM11.4 1.3 9.9 2.8l1.9 1.9 3.3-3.3-1.1-1.1-2.2 2.2z" />
+  </svg>
+);
+export const TrashIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path d="M6 1h4l.5 1.5H14V4H2V2.5h3.5zM3.2 5h9.6l-.7 9.1a1 1 0 0 1-1 .9H4.9a1 1 0 0 1-1-.9zM6 6.5v6h1.2v-6zm2.8 0v6H10v-6z" />
+  </svg>
+);
+export const CaretDownIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 9 9" fill="currentColor" aria-hidden="true" {...p}>
+    <path d="M0.8 2.5 4.5 6.5 8.2 2.5z" />
+  </svg>
+);
+export const CalendarIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path d="M4.5 0v2H2.5A1.5 1.5 0 0 0 1 3.5v10A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 13.5 2h-2V0H10v2H6V0zM2.5 6h11v7.5h-11z" />
+  </svg>
+);
+export const ChevronLeftIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path d="M10.6 2.4 9.2 1 2.2 8l7 7 1.4-1.4L5 8z" />
+  </svg>
+);
+export const ChevronRightIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path d="M5.4 2.4 6.8 1l7 7-7 7-1.4-1.4L11 8z" />
+  </svg>
+);
+/** The donut beside the Target card's title. */
+export const TargetRingIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...small} aria-hidden="true" {...p}>
+    <path
+      d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"
+      fillRule="evenodd"
+    />
+  </svg>
+);

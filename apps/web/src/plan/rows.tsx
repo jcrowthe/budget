@@ -1,10 +1,11 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are; the keys are the page's (shortcuts.ts)
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
+import { targetPill, targetStatusText } from "@budget/schema/target-wording";
 import { useEffect, useRef } from "react";
 import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
-import { amountClass, barSegments, money, statusLabel } from "./format";
+import { amountClass, money, plainSections, statusLabel, targetSections } from "./format";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -133,6 +134,7 @@ export function CategoryRow({
   focusRequest,
   onFocusDone,
   onSelect,
+  onNameClick,
   onPill,
   selected,
   onContextMenu,
@@ -140,6 +142,8 @@ export function CategoryRow({
   c: MonthCategoryDetail;
   selected: boolean;
   onSelect: (how: "only" | "toggle") => void;
+  /** A click on the name: the grid decides between selecting the row and opening its edit popover (EXF-592). */
+  onNameClick: (anchor: HTMLElement) => void;
   /** Right-click: the row's edit popover, anchored at the name. */
   onContextMenu: (anchor: HTMLElement) => void;
   bars: boolean;
@@ -151,7 +155,9 @@ export function CategoryRow({
   onFocusDone: () => void;
   onPill: (anchor: HTMLElement) => void;
 }) {
-  const label = bars ? statusLabel(c) : null;
+  const status = bars && c.target && c.available >= 0 ? targetStatusText(c) : null;
+  const label = bars && !status ? statusLabel(c) : null;
+  const pill = c.target ? targetPill(c) : null;
   const nameRef = useRef<HTMLButtonElement>(null);
   const pillRef = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: c.available re-runs it when a disabled pill becomes enabled
@@ -188,13 +194,23 @@ export function CategoryRow({
             ref={nameRef}
             className="category-name"
             title={c.note ? `${c.name}\n${c.note}` : c.name}
-            onClick={() => onSelect("only")}
+            onClick={(e) => onNameClick(e.currentTarget)}
           >
             {c.name}
           </button>
+          {status && (
+            <span className="status-label">
+              {status.amount && <strong>{status.amount}</strong>}
+              {status.text}
+            </span>
+          )}
           {label && <span className="status-label">{label}</span>}
         </div>
-        {bars && <ProgressBar segments={barSegments(c)} />}
+        {bars && (
+          <ProgressBar
+            sections={c.target && c.available >= 0 ? targetSections(c) : plainSections(c)}
+          />
+        )}
       </div>
       <div className="cell-assigned" role="cell">
         <AssignedCell
@@ -210,7 +226,14 @@ export function CategoryRow({
         <span className={amountClass(c.activity)}>{money(c.activity)}</span>
       </div>
       <div className="cell-available" role="cell">
-        <AvailablePill ref={pillRef} amount={c.available} onOpen={onPill} />
+        <AvailablePill
+          ref={pillRef}
+          amount={c.available}
+          onOpen={onPill}
+          tone={pill?.tone}
+          icon={pill?.icon}
+          title={pill?.title}
+        />
       </div>
       <div className="cell-margin" />
     </div>

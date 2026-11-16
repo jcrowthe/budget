@@ -11,6 +11,8 @@ export function PanelCard({
   collapsed = false,
   onToggle,
   right,
+  icon,
+  ruled = false,
   children,
 }: {
   id: string;
@@ -18,8 +20,22 @@ export function PanelCard({
   collapsed?: boolean;
   onToggle?: () => void;
   right?: ReactNode;
+  /** Beside the title (the Target card's donut). */
+  icon?: ReactNode;
+  /** A static header over a rule and a body padded 16 all round (the Target form). */
+  ruled?: boolean;
   children: ReactNode;
 }) {
+  if (!onToggle && ruled) {
+    return (
+      <section className="panel-card">
+        <h2 className="panel-card-title panel-card-ruled-title">{title}</h2>
+        <div id={id} className="panel-card-ruled-body">
+          {children}
+        </div>
+      </section>
+    );
+  }
   if (!onToggle) {
     return (
       <section className="panel-card">
@@ -40,6 +56,7 @@ export function PanelCard({
         onClick={onToggle}
       >
         <h2 className="panel-card-title">{title}</h2>
+        {icon}
         {collapsed ? <CardChevronRightIcon /> : <CardChevronDownIcon />}
         {right && <span className="card-roll-up-right">{right}</span>}
       </button>
