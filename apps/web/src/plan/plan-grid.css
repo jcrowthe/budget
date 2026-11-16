@@ -36,7 +36,7 @@
   /* EXF-646, EXF-622: the panel never gets narrower than 320px (the source's own minimum is 300px; its cards need
      more), the grid's content never narrower than 440px. A narrower grid box scrolls inside itself. */
   --panel-min: 320px;
-  --grid-min: 440px;
+  --grid-min: 428px;
 }
 .plan-grid {
   flex: 1;
@@ -80,6 +80,20 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
+}
+/* Polish P1: in the narrow layout the toolbar never wraps; Undo and Redo keep only their icon (the label stays in
+   the accessible name). */
+.plan-body[data-narrow] .toolbar-button {
+  position: relative;
+  white-space: nowrap;
+}
+.plan-body[data-narrow] .toolbar-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .toolbar-button svg {
   width: 0.8rem;
@@ -188,7 +202,7 @@
    rest; the Available column keeps the width of its widest pill. */
 .plan-body[data-narrow] .cell-assigned {
   padding-left: 4px;
-  min-width: 6.5rem;
+  min-width: 5.75rem;
 }
 .plan-body[data-narrow] .cell-activity {
   padding-left: 4px;

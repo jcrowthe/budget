@@ -3,7 +3,7 @@ import { type RefObject, useEffect, useState } from "react";
 /** The panel never gets narrower than this (`--panel-min` in plan-grid.css). */
 export const PANEL_MIN = 320;
 /** The grid's content never gets narrower than this (`--grid-min`); a narrower box scrolls inside itself. */
-export const GRID_MIN = 440;
+export const GRID_MIN = 428;
 /** Under this grid box width the number columns take fixed minimums (`data-narrow`). */
 export const NARROW_BELOW = 562;
 /** Under this Plan body width the panel is folded away: it would leave the grid under 300px. */
