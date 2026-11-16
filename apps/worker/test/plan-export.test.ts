@@ -2,11 +2,13 @@ import { utcMinute } from "@budget/schema/plan-export";
 import { describe, expect, it } from "vitest";
 import { type Json, tool } from "./bulk-helpers";
 import { json } from "./helpers";
-import { buildF, changeLogCount, NOW, readZip, text } from "./plan-export-helpers";
+import { buildF, changeLogCount, NOW, PINNED, pinPlanClock, readZip, text } from "./plan-export-helpers";
 import { apiPaths, listedToolNames } from "./surface";
 
 // EXF-476 (API half): Export Plan. Expected files are written by hand from the ticket's rules and the
 // amounts worked out from fixture F (docs/plan-export-design.md, "Acceptance"); nothing is computed by the code under test.
+
+pinPlanClock();
 
 const STEM = "ZZ TEST Ex port 7 as of 2026-11-16 09-05";
 const ZIP_NAME = `Budget Export - ${STEM}.zip`;
@@ -125,9 +127,10 @@ describe("EXF-476 Export Plan (API half)", () => {
 
   it("case 1: without now the stamp is the UTC minute of the call", async () => {
     const f = await buildF();
-    const before = utcMinute(new Date());
+    const before = "2026-11-16T12:00";
     const { res } = await fetchZip(f.bid, "");
-    const after = utcMinute(new Date());
+    const after = before;
+    expect(utcMinute(new Date(PINNED))).toBe(before);
     const stamp = (m: string) => `${m.slice(0, 10)} ${m.slice(11, 13)}-${m.slice(14, 16)}`;
     const names = [before, after].map(
       (m) => `attachment; filename="Budget Export - ZZ TEST Ex port 7 as of ${stamp(m)}.zip"`,

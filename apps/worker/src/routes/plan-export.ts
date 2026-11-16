@@ -3,7 +3,7 @@ import { PlanExportQuery } from "@budget/schema/plan-export";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
-import { exportPlan } from "../services/plan-export";
+import { ExportNowOutOfRange, exportPlan } from "../services/plan-export";
 
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
   description,
@@ -46,7 +46,14 @@ app.openapi(
   }),
   async (c) => {
     const { budget_id } = c.req.valid("param");
-    const { fileName, bytes } = await exportPlan(c.env, budget_id, c.req.valid("query"));
+    let out: Awaited<ReturnType<typeof exportPlan>>;
+    try {
+      out = await exportPlan(c.env, budget_id, c.req.valid("query"));
+    } catch (e) {
+      if (e instanceof ExportNowOutOfRange) return apiError(c, 422, "unprocessable_entity", e.message);
+      throw e;
+    }
+    const { fileName, bytes } = out;
     return c.body(bytes as unknown as ArrayBuffer, 200, {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="${fileName}"`,
