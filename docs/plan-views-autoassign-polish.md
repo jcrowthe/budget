@@ -5,3 +5,4 @@
 - P3 [scoped] `#panel-auto-assign > .auto-assign-body` padding 0 and `#panel-auto-assign` bottom padding 18px; the Assign popover's body keeps its padding (not comparable at RTA $0).
 - P4 [scoped] "View All Categories" gets the `is-ghost` modifier (`.view-all.is-ghost`); the empty message is centred, gap 8px, 14px/500; `.view-all` itself is unchanged.
 - P5 [applied] `.auto-assign-option strong` uses tabular-nums.
+- P6 [scoped] `#panel-auto-assign` bottom padding 16px; the extra 2px is a margin on the last option group, so the empty-view body is 16px padded only.

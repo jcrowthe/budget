@@ -216,5 +216,9 @@
   padding: 0;
 }
 #panel-auto-assign {
-  padding-bottom: calc(var(--space-3) + 2px);
+  padding-bottom: var(--space-3);
+}
+/* Source: the extra 2px comes from the last option button's margin, so an empty body is 16px padded only. */
+#panel-auto-assign .auto-assign-group:last-of-type {
+  margin-bottom: 2px;
 }
