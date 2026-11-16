@@ -7107,3 +7107,40 @@ user flow 8.
 **Next plan:** a new Deploy for `8ec621e` (prefix `ZZ-TEST D23`; the same brief; it is child 100).
 The template-ticket sweep, now that the three new tickets have priorities. No Build card is approved
 while the Deploy runs.
+
+### 2026-11-16 · Plan round 82
+
+Children used 101 of 200. Two started now; six are running with the shell Build, the credit engine
+carry-over, scheduled transactions and the Reflect fixes. Main `8ec621e`, live `357bc4f` (health read
+by me; `20261116101000_transaction_flags.sql` still pending).
+
+- The ticket filed at the last review exists: **EXF-630** (three leftovers of the register's bulk
+  actions), set to Low.
+- **Started: Deploy `D23`** (`p_596994876dd74d549f308074a946366c`), the second attempt at `8ec621e`
+  after `D22` lost its box. Same inputs (`expect_commit` `8ec621e`, gated head `43519e5`, trees
+  identical: checked again) and the same checks, with the prefix `ZZ-TEST D23` and one new paragraph:
+  every agent step lists `/workspace/.exfab` first and pastes the listing; if a file it needs is
+  missing it answers "PLATFORM FILES MISSING IN THIS BOX" with the listing and stops, and nothing is
+  released on a record that was typed in. So a second loss costs minutes, not a guess, and each
+  listing is evidence for EXF-612 either way.
+  - **No Build card is approved while it runs.** Four Builds are open; the shell Build is nearest its
+    card and is on an old base anyway (Regate).
+- **Started: the template-ticket sweep** (`p_552c46323a86456abb5d968e351a103e`; Improve templates, mode
+  sweep), the first in 82 rounds; 35 template tickets are open. Two reviews today found nothing to
+  close, so I asked for more than duplicates: one ordered list of the whole set by what each fault has
+  cost this clone, grouped by what has to change (the platform's boxes, the Build template's prompts,
+  its code steps, the Deploy template, the profile); priorities that no longer fit; texts a later
+  finding has overturned; and anything that is really a ticket of the app. It proposes; I approve.
+  With the standing line: "Post evidence for an existing ticket with comment_ticket or in your report;
+  never file stand-in tickets."
+- **Not started:** no new Build (the four running hold the shell, the Plan page and engine, the
+  register and transactions, and Reflect); Export Plan's API half and the Plan-page gaps wait for the
+  credit engine; flow tests wait for `D23`.
+- **Child budget, looked at again at the half-way mark:** 101 used. Of those, seven were lost to the
+  platform's boxes and four were the carry-overs that redid them, and about ten were template reviews
+  and the sweep. For the 56 open feature tickets and nine open gaps I still expect about 25 Builds, 12
+  Deploys, 12 flow tests and 5 reviews: about 55. That fits in the 99 left with room for losses at
+  today's rate, but not for much more than that.
+
+Ticket writes: 1 (EXF-630 priority). Review cadence: Build 2, Deploy 1 (cancelled `D22`), Discover 2,
+Test user flow 8; the template-ticket sweep is running.
