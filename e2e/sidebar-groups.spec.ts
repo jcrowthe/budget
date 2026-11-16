@@ -52,6 +52,7 @@ function fx(p: Record<string, unknown>) {
     bank_account_id: null,
     linked: false,
     import_start_date: null,
+    can_delete: false,
     ...p,
   };
 }
@@ -169,7 +170,7 @@ test("fixture: starred, loans and closed", async ({ page, request }) => {
   ]);
 });
 
-test("pencil shows on hover and does nothing yet", async ({ page, request }) => {
+test("pencil shows on hover and opens Edit Account", async ({ page, request }) => {
   const id = await newPlan(request);
   await addAccount(request, id, "ZZ-TEST Check", "checking", 250000);
   await page.goto(`/${id}/budget`);
@@ -182,6 +183,8 @@ test("pencil shows on hover and does nothing yet", async ({ page, request }) => 
   const url = page.url();
   await pencil.click();
   expect(page.url()).toBe(url);
+  await expect(page.getByRole("dialog", { name: "Edit Account", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 

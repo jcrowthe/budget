@@ -54,6 +54,10 @@ export const Account = z
       description:
         "The first date a bank import may bring in (YYYY-MM-DD); null when the account is not linked",
     }),
+    can_delete: z.boolean().openapi({
+      description:
+        "True when DELETE would succeed: an open account whose only transaction is its Starting Balance (or none), a closed account with no transactions",
+    }),
   })
   .openapi("Account");
 
@@ -81,7 +85,13 @@ export const AccountCreateRequest = z
   })
   .openapi("AccountCreateRequest");
 
-const accountUpdateFields = z.object({ starred: z.boolean().optional() }).strict();
+const accountUpdateFields = z
+  .object({
+    name: z.string().max(100).optional(),
+    note: z.string().max(500).nullable().optional(),
+    starred: z.boolean().optional(),
+  })
+  .strict();
 
 /** The PATCH fields without the "at least one" rule, for the MCP tool's input shape. */
 export const accountUpdateShape = accountUpdateFields.shape;
@@ -89,6 +99,23 @@ export const accountUpdateShape = accountUpdateFields.shape;
 export const AccountUpdateRequest = accountUpdateFields
   .refine((o) => Object.keys(o).length > 0, "Nothing to update")
   .openapi("AccountUpdateRequest");
+
+export const accountAdjustFields = { balance: Milliunits, today: PlanDate.optional() };
+
+export const AccountAdjustBalanceRequest = z
+  .object(accountAdjustFields)
+  .strict()
+  .openapi("AccountAdjustBalanceRequest");
+
+export const accountCloseFields = { today: PlanDate.optional() };
+
+export const AccountCloseRequest = z
+  .object(accountCloseFields)
+  .strict()
+  .openapi("AccountCloseRequest");
+
+export const MANUAL_ADJUSTMENT_PAYEE = "Manual Balance Adjustment";
+export const CLOSED_ACCOUNT_MEMO = "Closed Account";
 
 export const AccountLinkOverride = z
   .object({
@@ -138,6 +165,14 @@ export const AccountCreateResponse = dataEnvelope(
   z.object({ account: Account, starting_balance: Transaction }),
 ).openapi("AccountCreateResponse");
 
+export const AccountAdjustmentResponse = dataEnvelope(
+  z.object({ account: Account, adjustment: Transaction.nullable() }),
+).openapi("AccountAdjustmentResponse");
+
+export const AccountDeleteResponse = dataEnvelope(
+  z.object({ account_id: z.uuid(), deleted_transaction_ids: z.array(z.uuid()) }),
+).openapi("AccountDeleteResponse");
+
 export const AccountsFromBankResponse = dataEnvelope(
   z.object({ created: z.array(z.object({ account: Account, starting_balance: Transaction })) }),
 ).openapi("AccountsFromBankResponse");
@@ -150,3 +185,5 @@ export type AccountCreateRequest = z.input<typeof AccountCreateRequest>;
 export type AccountUpdateRequest = z.input<typeof AccountUpdateRequest>;
 export type AccountsFromBankRequest = z.input<typeof AccountsFromBankRequest>;
 export type AccountLinkRequest = z.input<typeof AccountLinkRequest>;
+export type AccountAdjustBalanceRequest = z.input<typeof AccountAdjustBalanceRequest>;
+export type AccountCloseRequest = z.input<typeof AccountCloseRequest>;

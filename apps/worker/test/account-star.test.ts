@@ -113,7 +113,7 @@ describe("starring an account", () => {
     expect((await star(bid, crypto.randomUUID(), { starred: true })).status).toBe(404);
     expect((await star(bid, otherAcc, { starred: true })).status).toBe(404);
     expect((await star(bid, aid, {})).status).toBe(422);
-    expect((await star(bid, aid, { name: "x" })).status).toBe(422);
+    expect((await star(bid, aid, { colour: "x" })).status).toBe(422);
     expect((await star(bid, aid, { starred: "yes" })).status).toBe(422);
   });
 

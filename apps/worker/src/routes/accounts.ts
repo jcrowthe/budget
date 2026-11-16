@@ -1,6 +1,10 @@
 import {
+  AccountAdjustBalanceRequest,
+  AccountAdjustmentResponse,
+  AccountCloseRequest,
   AccountCreateRequest,
   AccountCreateResponse,
+  AccountDeleteResponse,
   AccountListResponse,
   AccountResponse,
   AccountSummaryResponse,
@@ -13,10 +17,14 @@ import { apiError } from "../middleware/errors";
 import {
   AccountRefused,
   addUnlinkedAccount,
+  adjustBalance,
+  closeAccount,
+  deleteAccount,
   getAccount,
   getAccountSummary,
   listAccounts,
   NameTaken,
+  reopenAccount,
   UnsupportedAccountType,
   updateAccount,
 } from "../services/accounts";
@@ -30,6 +38,10 @@ const budgetParam = z
   .string()
   .min(1)
   .openapi({ param: { name: "budget_id", in: "path" } });
+const accountParam = z
+  .string()
+  .min(1)
+  .openapi({ param: { name: "account_id", in: "path" } });
 const errors = {
   403: json(ErrorBody, "Forbidden"),
   404: json(ErrorBody, "Plan or account not found"),
@@ -108,7 +120,10 @@ export default app
       },
       responses: {
         200: json(AccountResponse, "The account after the change"),
-        409: json(ErrorBody, "The account changed concurrently"),
+        409: json(
+          ErrorBody,
+          "The account name already exists, or the account changed concurrently",
+        ),
         ...errors,
       },
     }),
@@ -124,6 +139,7 @@ export default app
         );
         return c.json({ data: { account } }, 200);
       } catch (e) {
+        if (e instanceof NameTaken) return apiError(c, 409, "name_taken", e.message) as never;
         if (e instanceof AccountRefused) {
           return apiError(c, e.status, e.code, e.message) as never;
         }
@@ -180,6 +196,118 @@ export default app
         if (e instanceof UnsupportedAccountType) {
           return apiError(c, 422, "unprocessable_entity", e.message) as never;
         }
+        throw e;
+      }
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/accounts/{account_id}/adjust-balance",
+      tags,
+      request: {
+        params: z.object({ budget_id: budgetParam, account_id: accountParam }),
+        body: {
+          content: { "application/json": { schema: AccountAdjustBalanceRequest } },
+          required: true,
+        },
+      },
+      responses: {
+        200: json(
+          AccountAdjustmentResponse,
+          "The account and the adjustment (null when unchanged)",
+        ),
+        409: json(ErrorBody, "The account changed concurrently"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, account_id } = c.req.valid("param");
+      try {
+        const data = await adjustBalance(
+          c.env,
+          c.get("identity").actor,
+          budget_id,
+          account_id,
+          c.req.valid("json"),
+        );
+        return c.json({ data }, 200);
+      } catch (e) {
+        if (e instanceof AccountRefused) return apiError(c, e.status, e.code, e.message) as never;
+        throw e;
+      }
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/accounts/{account_id}/close",
+      tags,
+      request: {
+        params: z.object({ budget_id: budgetParam, account_id: accountParam }),
+        body: {
+          content: { "application/json": { schema: AccountCloseRequest } },
+          required: false,
+        },
+      },
+      responses: {
+        200: json(
+          AccountAdjustmentResponse,
+          "The closed account and the zeroing adjustment, if any",
+        ),
+        409: json(ErrorBody, "The account changed concurrently"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, account_id } = c.req.valid("param");
+      const data = await closeAccount(
+        c.env,
+        c.get("identity").actor,
+        budget_id,
+        account_id,
+        c.req.valid("json") ?? {},
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/accounts/{account_id}/reopen",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam, account_id: accountParam }) },
+      responses: {
+        200: json(AccountResponse, "The re-opened account"),
+        409: json(ErrorBody, "The account changed concurrently"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, account_id } = c.req.valid("param");
+      const account = await reopenAccount(c.env, c.get("identity").actor, budget_id, account_id);
+      return c.json({ data: { account } }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "delete",
+      path: "/budgets/{budget_id}/accounts/{account_id}",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam, account_id: accountParam }) },
+      responses: {
+        200: json(AccountDeleteResponse, "The deleted account and its Starting Balance"),
+        409: json(ErrorBody, "has_transactions: the account has other transactions"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, account_id } = c.req.valid("param");
+      try {
+        const data = await deleteAccount(c.env, c.get("identity").actor, budget_id, account_id);
+        return c.json({ data }, 200);
+      } catch (e) {
+        if (e instanceof AccountRefused) return apiError(c, e.status, e.code, e.message) as never;
         throw e;
       }
     },

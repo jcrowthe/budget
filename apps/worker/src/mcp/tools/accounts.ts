@@ -1,7 +1,11 @@
 import {
+  type AccountAdjustBalanceRequest,
+  type AccountCloseRequest,
   AccountCreateRequest,
   type AccountLinkRequest,
   type AccountsFromBankRequest,
+  accountAdjustFields,
+  accountCloseFields,
   accountLinkFields,
   accountsFromBankFields,
   accountUpdateShape,
@@ -10,9 +14,13 @@ import { z } from "zod";
 import { createAccountsFromBank, linkAccount, unlinkAccount } from "../../services/account-links";
 import {
   addUnlinkedAccount,
+  adjustBalance,
+  closeAccount,
+  deleteAccount,
   getAccount,
   getAccountSummary,
   listAccounts,
+  reopenAccount,
   updateAccount,
 } from "../../services/accounts";
 import { DATE, Id, MONEY } from "../tool-text";
@@ -37,19 +45,64 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "update_account",
-    description: `Change an account; send only what changes. starred adds it to or removes it from the sidebar's STARRED group; a closed account cannot be starred (tool error). ${MONEY} Returns { account } with id, name, type, starred, closed, group, cleared_balance, uncleared_balance and balance.`,
+    description: `Change an account; send only what changes. name must be unique among the plan's accounts ignoring case (a blank or taken name is a tool error); note is free text up to 500 characters (null or blank clears it); starred adds it to or removes it from the sidebar's STARRED group, and a closed account cannot be starred (tool error). ${MONEY} Returns { account } with id, name, note, type, starred, closed, group, cleared_balance, uncleared_balance, balance and can_delete.`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id,
       ...accountUpdateShape,
     }),
     run: async (
-      input: { budget_id: string; account_id: string; starred?: boolean },
+      input: {
+        budget_id: string;
+        account_id: string;
+        name?: string;
+        note?: string | null;
+        starred?: boolean;
+      },
       { env, actor },
     ) => {
       const { budget_id, account_id, ...patch } = input;
       return { account: await updateAccount(env, actor, budget_id, account_id, patch) };
     },
+  },
+  {
+    name: "adjust_account_balance",
+    description: `Set an open account's working balance by adding a cleared, approved "Manual Balance Adjustment" transaction for the difference. On-plan accounts (checking, savings, cash, creditCard, lineOfCredit) send it to Ready to Assign, so Ready to Assign changes by the same amount; tracking and loan accounts take no category and leave Ready to Assign unchanged. balance is the signed working balance (debts negative). No difference means no transaction. A closed account is refused (tool error). ${MONEY} ${DATE} today is the adjustment's date and defaults to the UTC date. Returns { account, adjustment }: the account with its new balances, and the transaction (null when nothing changed).`,
+    inputSchema: z.object({ budget_id: Id, account_id: Id, ...accountAdjustFields }),
+    run: async (
+      input: { budget_id: string; account_id: string } & AccountAdjustBalanceRequest,
+      { env, actor },
+    ) => {
+      const { budget_id, account_id, ...rest } = input;
+      return adjustBalance(env, actor, budget_id, account_id, rest);
+    },
+  },
+  {
+    name: "close_account",
+    description: `Close an account. A non-zero balance is first zeroed by a cleared "Manual Balance Adjustment" with memo "Closed Account" (on-plan accounts send it to Ready to Assign, tracking and loan accounts take no category). The account is also unstarred and, when linked, unlinked from its bank account. A closed account is returned unchanged. ${MONEY} ${DATE} today is the adjustment's date and defaults to the UTC date. Returns { account, adjustment } (adjustment null when the balance was zero).`,
+    inputSchema: z.object({ budget_id: Id, account_id: Id, ...accountCloseFields }),
+    run: async (
+      input: { budget_id: string; account_id: string } & AccountCloseRequest,
+      { env, actor },
+    ) => {
+      const { budget_id, account_id, ...rest } = input;
+      return closeAccount(env, actor, budget_id, account_id, rest);
+    },
+  },
+  {
+    name: "reopen_account",
+    description: `Re-open a closed account. The closing adjustment stays and the star is not restored; an open account is returned unchanged. ${MONEY} Returns { account } with id, name, closed, group, cleared_balance, uncleared_balance, balance and can_delete.`,
+    inputSchema: z.object({ budget_id: Id, account_id: Id }),
+    run: async (input: { budget_id: string; account_id: string }, { env, actor }) => ({
+      account: await reopenAccount(env, actor, input.budget_id, input.account_id),
+    }),
+  },
+  {
+    name: "delete_account",
+    description: `Delete an account and its Starting Balance transaction (both soft-deleted; Ready to Assign follows). Refused with a tool error when the account has any other transaction, or, for a closed account, any transaction at all: close it instead to keep its history. A linked account is unlinked. Returns { account_id, deleted_transaction_ids }. ${MONEY}`,
+    inputSchema: z.object({ budget_id: Id, account_id: Id }),
+    run: async (input: { budget_id: string; account_id: string }, { env, actor }) =>
+      deleteAccount(env, actor, input.budget_id, input.account_id),
   },
   {
     name: "create_account",

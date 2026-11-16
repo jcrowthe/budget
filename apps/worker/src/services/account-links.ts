@@ -15,8 +15,13 @@ import { bankBalanceToPlan } from "../plaid/amounts";
 import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as budgetsRepo from "../repositories/budgets";
-import * as txRepo from "../repositories/transactions";
-import { accountToApi, insertAccountWithStartingBalance, LinkRefused, NameTaken } from "./accounts";
+import {
+  accountFacts,
+  accountToApi,
+  insertAccountWithStartingBalance,
+  LinkRefused,
+  NameTaken,
+} from "./accounts";
 import { getBudgetEnvironment } from "./budgets";
 
 const MAX_ATTEMPTS = 5;
@@ -136,8 +141,8 @@ export async function createAccountsFromBank(
   return { created };
 }
 
-async function balancesOf(db: Db, budgetId: string, accountId: string) {
-  return (await txRepo.balancesByAccount(db, budgetId, accountId)).get(accountId);
+async function balancesOf(db: Db, budgetId: string, row: accountsRepo.AccountRow) {
+  return (await accountFacts(db, budgetId, row.id))(row);
 }
 
 export async function linkAccount(
@@ -169,7 +174,7 @@ export async function linkAccount(
     if (holder) throw taken(holder.name);
     const reconciled = await accountsRepo.latestReconciledDate(db, accountId);
     const importStartDate = reconciled ? minusDays(reconciled, 3) : today;
-    const balances = await balancesOf(db, budgetId, accountId);
+    const balances = await balancesOf(db, budgetId, before);
     const after = { ...before, bankAccountId: bank.id, importStartDate };
     const [, result] = await db.batch([
       changeLogInsertIf(
@@ -203,7 +208,7 @@ export async function unlinkAccount(
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await accountsRepo.findActive(db, budgetId, accountId);
     if (!before) throw new NotFound("Account");
-    const balances = await balancesOf(db, budgetId, accountId);
+    const balances = await balancesOf(db, budgetId, before);
     if (before.bankAccountId === null) return accountToApi(before, balances);
     const after = { ...before, bankAccountId: null, importStartDate: null };
     const [, result] = await db.batch([
@@ -241,7 +246,7 @@ export async function unlinkForConnectionStmts(
   const rows = await accountsRepo.linkedToConnection(db, connectionId);
   const stmts: BatchItem[] = [];
   for (const row of rows) {
-    const balances = await balancesOf(db, row.budgetId, row.id);
+    const balances = await balancesOf(db, row.budgetId, row);
     stmts.push(
       changeLogInsertIf(
         db,

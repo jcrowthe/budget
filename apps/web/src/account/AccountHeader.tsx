@@ -1,10 +1,11 @@
 import { formatMoney } from "@budget/core/money";
 import type { Account, AccountType } from "@budget/schema/accounts";
 import type { AccountBalances } from "@budget/schema/transactions";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import { useAccountSummary, useSetStarred } from "../api/accounts";
 import { ClearedFilledIcon, ClearedOutlineIcon } from "../register/icons";
 import { ACCOUNT_BADGE, ACCOUNT_TYPE_LABEL } from "../shell/accountTypeLabels";
+import { EditAccountDialog } from "./EditAccountDialog";
 import {
   CardIcon,
   CashIcon,
@@ -108,6 +109,7 @@ function Star({ account }: { account: Account }) {
 
 /** The account page's header. Without an account (still loading) it is empty. */
 export function AccountHeader({ account }: { account?: Account }) {
+  const [editing, setEditing] = useState(false);
   if (!account) {
     return (
       <header className="acct-head">
@@ -136,14 +138,13 @@ export function AccountHeader({ account }: { account?: Account }) {
           </div>
         </div>
         <div className="acct-actions">
-          {/* Drawn, not wired: the Edit Account dialog is EXF-486, reconciling EXF-533. */}
           <Tooltip content="Edit Account" align="end">
             {(tip) => (
               <button
                 type="button"
                 className="acct-edit"
                 aria-label="Edit Account"
-                data-ticket="EXF-486"
+                onClick={() => setEditing(true)}
                 {...tip}
               >
                 <PencilIcon />
@@ -175,6 +176,13 @@ export function AccountHeader({ account }: { account?: Account }) {
         uncleared={account.uncleared_balance}
         working={account.balance}
       />
+      {editing ? (
+        <EditAccountDialog
+          budgetId={account.budget_id}
+          account={account}
+          onClose={() => setEditing(false)}
+        />
+      ) : null}
     </header>
   );
 }

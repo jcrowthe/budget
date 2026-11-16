@@ -1,0 +1,108 @@
+/* Edit Account and Close Account: the dialog box itself is `.dialog.form` (shell/global.css). */
+.edit-account .form-body h3 {
+  margin: 0 0 11.8px;
+  padding-bottom: var(--space-1);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  line-height: var(--line-height);
+}
+.dialog.form.edit-account .dialog-head .icon-button {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.dialog.form.edit-account .dialog-head .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.dialog.form.edit-account .field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 15px;
+  border: 1px solid var(--inputBorder);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font-family: inherit;
+  font-weight: 500;
+}
+.dialog.form.edit-account input.field {
+  margin-top: var(--space-2);
+}
+.dialog.form.edit-account input.field:focus {
+  border-color: var(--buttonPrimaryBackground);
+}
+.dialog.form.edit-account label {
+  margin-bottom: 0;
+  padding-bottom: var(--space-1);
+}
+.dialog.form.edit-account textarea.field {
+  height: auto;
+  min-height: 32px;
+  resize: vertical;
+  line-height: var(--line-height);
+}
+.dialog.form.edit-account textarea.field:focus {
+  border-color: var(--actionPrimary);
+}
+.edit-account hr {
+  margin: 0 0 var(--space-3);
+  border: 0;
+  border-top: 1px solid var(--borderSubtle);
+}
+.edit-account .helper {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.edit-account .error-bar {
+  margin: -15px 0 var(--space-3);
+  padding: 4px 8px;
+  border-radius: 0 0 4px 4px;
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+}
+.edit-account .close-text {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-sm);
+}
+.edit-account .info-box {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--backgroundSecondary);
+  font-size: var(--font-size-sm);
+}
+.edit-account .footer-left {
+  display: flex;
+  gap: var(--space-2);
+  margin-right: auto;
+}
+.dialog.form.edit-account .dialog-footer .ghost {
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--buttonGhostLabel);
+  font-size: var(--font-size-sm);
+}
+.dialog.form.edit-account .dialog-footer .ghost:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackground);
+}
+.dialog.form.edit-account .dialog-footer .destructive {
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+}
+.dialog.form.edit-account .dialog-footer .destructive:disabled {
+  background: var(--menuHover);
+  color: var(--labelTertiary);
+  cursor: default;
+}
+.dialog.form.edit-account .dialog-footer .secondary:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.dialog.form.edit-account .dialog-footer .primary:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}

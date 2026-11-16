@@ -18,7 +18,7 @@ export function SidebarAccounts({
 }: {
   budgetId: string;
   accounts: Account[];
-  onEdit?: (accountId: string) => void; // EXF-486 wires onEdit
+  onEdit?: (accountId: string) => void;
 }) {
   const ui = useUiState(budgetId);
   const save = useSaveUiState(budgetId);
