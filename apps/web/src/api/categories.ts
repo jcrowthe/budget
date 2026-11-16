@@ -9,7 +9,7 @@ import type { MonthDetail } from "@budget/schema/months";
 import { type QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { apiFetch } from "./client";
-import { beginWrite, endWrite } from "./monthCache";
+import { beginWrite, endWrite, inOrder } from "./monthCache";
 
 const base = (b: string) => `/api/v1/budgets/${b}` as const;
 const write = { idempotencyKey: undefined as string | undefined };
@@ -203,7 +203,8 @@ export function useSetCategoryNote(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { categoryId: string; before: string | null; note: string }) =>
-      setCategoryNote(budgetId, v.categoryId, normalizeNote(v.note)),
+      // One after another: an absolute write must not be overtaken by a later save of the same note.
+      inOrder(budgetId, () => setCategoryNote(budgetId, v.categoryId, normalizeNote(v.note))),
     onMutate: async (v) => {
       await beginWrite(qc, budgetId);
       const value = normalizeNote(v.note);

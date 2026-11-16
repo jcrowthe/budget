@@ -117,6 +117,20 @@ test("keys typed in a field leave the selection alone", async ({ page }) => {
   await unchecked(page, PHONE);
   await input.press("Escape");
   await checked(page, RENT);
+  // The note field is a field too: Escape, ArrowDown and Ctrl+A leave the selection and the inspector alone.
+  await page.locator(".category-name", { hasText: RENT }).click();
+  await realClick(page, panel(page).locator(".note-display"));
+  const note = panel(page).getByRole("textbox", { name: "Note" });
+  await note.pressSequentially("abc");
+  await note.press("Control+a");
+  await note.press("ArrowDown");
+  await checked(page, RENT);
+  await unchecked(page, PHONE);
+  await expect(panel(page).getByRole("heading", { level: 1, name: RENT })).toBeVisible();
+  await expect(note).toBeFocused();
+  await note.press("Escape");
+  await checked(page, RENT);
+  await expect(panel(page).getByRole("heading", { level: 1, name: RENT })).toBeVisible();
 });
 
 test("a right-click opens the edit popover of a category or a group", async ({ page }) => {

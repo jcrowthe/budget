@@ -223,6 +223,34 @@ test("a two-line note is saved on blur, shown after a reload, in the hover title
   await expect(page.locator(".category-name", { hasText: RENT })).toHaveAttribute("title", RENT);
 });
 
+test("two note saves in a row land in order even when the first is slow", async ({
+  page,
+  request,
+}) => {
+  await openPlan(page, s);
+  await select(page, RENT);
+  let first = true;
+  await page.route(`**/api/v1/budgets/${s.id}/categories/${s.cat[RENT]}`, async (route) => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    if (first) {
+      first = false;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    await route.continue().catch(() => {});
+  });
+  const save = async (text: string) => {
+    await realClick(page, panel(page).locator(".note-display"));
+    await panel(page).getByRole("textbox", { name: "Note" }).fill(text);
+    await realClick(page, page.locator(".grid-toolbar"));
+  };
+  await save("first");
+  await save("second");
+  await expect.poll(() => noteOf(request), { timeout: 10000 }).toBe("second");
+  await expect(panel(page).locator(".note-display")).toHaveText("second");
+  await page.waitForTimeout(500);
+  expect(await noteOf(request)).toBe("second");
+});
+
 test("the REST summary, the category month and the tool agree with the panel", async ({
   page,
   request,
