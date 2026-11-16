@@ -377,7 +377,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | PR #21 | merged `41bee46` (round 41; no card reached me); **its Designer opened the source despite the ban** (round 39 review) |
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | PR #23 | merged `70c71a2` (round 39) |
 | 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | PR #24 | merged `b09078b` (round 46), 88 minutes |
-| 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
+| 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | PR #25 | merged `3a3a977` (round 49), about 2 hours 5 minutes, four cards |
 | 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
@@ -4112,3 +4112,61 @@ failed regate, spec fix committed); EXF-548 with EXF-551 (review fixes); the Pla
   - the open requests: removal of the stored captures and transcript, the two Plaid dashboard settings.
 - Ticket writes: 2 (EXF-558 priority and comment).
 - Review cadence: Build 4, Deploy 1, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 49
+
+Children used 61 of 200. Two Builds are running: EXF-548 with EXF-551 (Reflect, regating) and the Plan-page
+Build for EXF-498, 523, 521 and 586 (Worker side under way).
+
+**Ended: the transactions Build, merged as `3a3a977` (PR #25)**, a little over two hours and four cards.
+EXF-517 and EXF-507 are Done. What EXF-507 left open is noted on the tickets that own it: the picker's
+"Payments and Transfers" section on EXF-526, "Manage Payees" on EXF-510.
+
+- Its four cards: Refresh (base moved to `b09078b`); Regate (the rebase rewrote its docs commit); Regate
+  again, chosen directly (base moved to `0b53a5f`); Approve (gate on `0b53a5f`: e2e 165 of 165 three
+  times).
+- **Going straight to Regate when I know the README line will conflict saved a card.** Do that from now on
+  when the base moved by a merge that added a docs index line (every merge does).
+- On main now: `payees` table and `transactions.payee_id` (migration `20261116100100_payees.sql`);
+  `repositories/payees.ts`, `services/payees.ts`, `routes/payees.ts`, tool `list_payees`; transactions
+  accept `payee_id` or `payee_name` and reads carry `payee_id`, `payee_name`, `payee_system`; the Starting
+  Balance rule keys on the system payee; `apps/web/src/register/EntryRow.tsx` with `DateField`, `Calendar`,
+  `PayeeField`, `CategoryField`, `AmountField`, `AccountField`, `Dropdown`, `PickerInput`;
+  `packages/schema/src/date-entry.ts`, `amount-entry.ts`, `payees.ts`; `e2e/support/register-seed.ts`.
+- The old `payee_name` column is still written, so a rollback of the Worker still shows names.
+- **The transactions files, `services/accounts.ts` and the register are free.** This unblocks EXF-461
+  (linked accounts), EXF-524 with EXF-526 (splits and transfers), EXF-532 (credit engine), EXF-587
+  (timestamp formats in tool descriptions).
+
+**Reflect: two cards in side turns.** Refresh (base moved to `0b53a5f`), then Regate (docs commit
+rewritten). I had hoped the refresh would outlast the transactions Build's gate; it came back in two
+minutes. Its gate started on `0b53a5f`; main is now `3a3a977`, so its next card will need one more Regate.
+
+- Read at its card: the work is ready. Three follow-ups, none urgent, filed now as one ticket for the next
+  Reflect Build: `useNetWorth` keeps previous data across a plan change (not reachable today: a plan
+  switch lands on the Plan page first, which unmounts the report); duplicate axis labels for a range
+  under one dollar; the category popover and date menu anchored differently from the source.
+
+**The Plan-page Build is on course** (transcript read). Its Architect's study stayed on the test plan's
+Plan page and reported one slip itself: an Escape and three arrow keys were sent while focus was in an
+Assigned field; nothing was typed or saved. Design choices worth knowing:
+
+- The panel's figures are computed in the browser from the month already loaded, with the same function
+  the server uses (`packages/schema/src/month-totals.ts`): no new request to race the month cache.
+- The helper is `keepPreviousInPlan` in `apps/web/src/api/placeholder.ts`.
+- The panel width is kept for the browser-tab session only.
+- One deliberate difference from the source: clicking a name or pressing ↓ selects without opening the
+  Assigned editor, so the arrow keys keep working as page shortcuts.
+
+**Filing two tickets:** the Reflect follow-ups; and one category dropdown for the Plan page and the
+register (two exist now).
+
+**Main is `3a3a977`; live is `b09078b`**, two merges behind (test infrastructure; transaction entry with
+one migration). **Deploy next plan**, then flows 1 and 2.
+
+**Ticket writes:** 5 (two Done, three comments).
+
+**Backlog:** 75 open feature tickets (20 done; 5 in progress: EXF-548, 551, 498, 523, 521). Gap: EXF-587
+(Medium), EXF-558, EXF-560, EXF-562 (Low), two new filed now; in progress EXF-586 (High). Template:
+twenty-six. Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished since each
+template's last review: Build 5, Deploy 1, Discover 2, Test user flow 3.
