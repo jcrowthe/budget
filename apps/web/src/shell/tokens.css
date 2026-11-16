@@ -7,6 +7,7 @@
   --sidebarHover: #1b1d48;
   --sidebarActive: #1c1f58;
   --menuHover: #292b3d;
+  --menuDisabledLabel: var(--labelTertiary);
   --labelPrimary: #fff;
   --labelSecondary: #c4c5cf;
   --labelTertiary: #9b9caa;
@@ -41,6 +42,10 @@
   --space-card: 0.65rem;
   --space-half: 0.2rem;
   --sidebar-resizer: 3px;
+  --menu-min-width: 240px;
+  --menu-max-width: 480px;
+  --menu-edge: 16px;
+  --z-menu: 25;
   --line-height: 1.2;
 
   --font: "Figtree Variable", "Helvetica Neue", Helvetica, Arial, sans-serif;

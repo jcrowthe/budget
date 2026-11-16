@@ -50,11 +50,10 @@ a {
 .plan-button {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
   width: calc(var(--sidebar-width) - 17px);
   height: 46px;
   margin: var(--space-2);
-  padding: 0 var(--space-2);
+  padding: 5px var(--space-2) 5px 0;
   border: 0;
   border-radius: var(--radius-lg);
   background: transparent;
@@ -65,13 +64,34 @@ a {
 .plan-button:hover {
   background: var(--sidebarHover);
 }
-.plan-button .name {
+.plan-button .logo {
+  margin: 0 var(--space-2);
+}
+.plan-text {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.plan-button .name {
   font-size: var(--font-size-lg);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.plan-button .identity {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--labelMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-button svg:last-child {
+  margin-left: auto;
 }
 .logo {
   width: 24px;
@@ -150,72 +170,83 @@ a {
   height: 12px;
 }
 
+@keyframes menu-fade {
+  from {
+    opacity: 0;
+  }
+}
 .menu {
-  position: absolute;
-  top: calc(46px + 2 * var(--space-2));
-  left: var(--space-2);
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: var(--menu-min-width);
+  max-width: var(--menu-max-width);
   padding: var(--space-1);
-  width: calc(var(--sidebar-width) - 17px);
-  z-index: 20;
+  overflow-y: auto;
+  z-index: var(--z-menu);
   background: var(--backgroundTertiary);
   border-radius: var(--radius-xs);
   box-shadow: var(--shadowMenu);
+  animation: menu-fade 0.2s;
+  outline: none;
 }
-.menu button {
+.menu [role="menuitem"] {
   display: flex;
   justify-content: flex-start;
   gap: 12px;
   align-items: center;
   width: 100%;
-  height: 33px;
   border-radius: var(--radius-xs);
   padding: var(--space-2) 12px;
   border: 0;
   background: transparent;
+  color: var(--labelPrimary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+  line-height: var(--line-height);
   text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
+  outline: none;
 }
-.menu button:hover,
-.menu button[aria-expanded="true"] {
+.menu [role="menuitem"]:hover:not([aria-disabled="true"]),
+.menu [role="menuitem"]:focus-visible,
+.menu [role="menuitem"][aria-expanded="true"] {
   background: var(--menuHover);
 }
-.menu button .label {
+.menu [role="menuitem"][aria-disabled="true"] {
+  color: var(--menuDisabledLabel);
+  cursor: default;
+}
+.menu [role="menuitem"] .label {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.menu button svg {
+.menu [role="menuitem"] svg {
   width: 16px;
   height: 16px;
   flex: none;
   color: var(--labelTertiary);
 }
-.menu button svg.chevron {
+.menu [role="menuitem"] svg.chevron {
   width: 12px;
   height: 12px;
 }
-.submenu-heading {
+.menu-heading {
   padding: var(--space-2) 12px;
   font-size: 12px;
   font-weight: 600;
   line-height: 14.4px;
   color: var(--labelSecondary);
 }
-.submenu {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  width: max-content;
-  padding: var(--space-1);
-  background: var(--backgroundTertiary);
-  border-radius: var(--radius-xs);
-  box-shadow: var(--shadowMenu);
-}
-.menu-item-wrap {
-  position: relative;
+.menu-separator {
+  flex: none;
+  margin: 4px 12px;
+  border: 0;
+  border-top: 1px solid var(--borderSubtle);
 }
 
 .page-header {
