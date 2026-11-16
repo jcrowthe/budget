@@ -4332,3 +4332,21 @@ EXF-587, EXF-588 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress
 Template: twenty-six. Flow verdicts: 1 `parity_known_gaps` (running again), 9 and 10 `new_gaps`,
 11 `parity`, 2 running. Finished since each template's last review: Build 6, Deploy 2, Discover 2, Test
 user flow 3.
+
+### 2026-11-16 · Plan round 52
+
+Children used 65 of 200. Four are running, all from earlier rounds: the Plan-page Build (EXF-498, 523, 521,
+586), the Worker half of EXF-461 (PR #30 open), EXF-526 with EXF-524, and the flow tests for flows 1 and 2.
+**Nothing started this round.**
+
+- No ticket was filed at the last review. The person's note at the check-in: not provided.
+- **No Deploy yet:** main `df5afbe` is one merge ahead of live `3a3a977` (Reflect with Net Worth). The
+  Plan-page Build and the linked-accounts Build are both past their build steps; one Deploy ships what has
+  merged when the first of them lands. A flow test is on live now with its own prefix, so a Deploy could
+  run beside it, but there is no hurry for one report.
+- **No new Build:** the Reflect files are free, but the spending reports need splits and transfers; the
+  Plan page, the accounts files and the transactions files are held.
+- **Card order when they come:** the Plan-page Build and the linked-accounts Build will reach their gates
+  close together. Approve whichever card arrives first if its base is still main; the other then goes
+  straight to Regate.
+- Review cadence: Build 6, Deploy 2, Discover 2, Test user flow 3.
