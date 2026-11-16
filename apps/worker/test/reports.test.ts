@@ -217,4 +217,54 @@ describe("reports", () => {
     });
     expect(body.result?.structuredContent).toEqual(rest);
   });
+
+  it("a split counts once with the parent's amount, REST and tool", async () => {
+    const bid = await plan();
+    const chk = await account(bid, "D8 Split", "checking", 1000000, "2026-10-01");
+    const res = await json(
+      `${base(bid)}/transactions`,
+      { method: "POST" },
+      {
+        account_id: chk,
+        date: "2026-10-05",
+        amount: -100000,
+        subtransactions: [{ amount: -60000 }, { amount: -25000 }, { amount: -15000 }],
+      },
+    );
+    expect(res.status).toBe(201);
+    const q = "start_month=2026-10-01&end_month=2026-10-01&today=2026-11-15";
+    const { data } = await nw(bid, q);
+    expect(data.net_worth).toBe(900000);
+    expect(data.months[0].accounts[0].balance).toBe(900000);
+    await mcpRpc("initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "test", version: "1" },
+    });
+    const { body } = await mcpRpc("tools/call", {
+      name: "get_net_worth",
+      arguments: { budget_id: bid, start_month: "2026-10-01", end_month: "2026-10-01" },
+    });
+    expect(body.result?.structuredContent?.net_worth).toBe(900000);
+  });
+
+  it("a transfer between on-plan accounts moves money between accounts, not net worth", async () => {
+    const bid = await plan();
+    const a = await account(bid, "D8 From", "checking", 1000000, "2026-10-01");
+    const b = await account(bid, "D8 To", "savings", 200000, "2026-10-01");
+    const q = "start_month=2026-10-01&end_month=2026-10-01&today=2026-11-15";
+    const before = (await nw(bid, q)).data;
+    const res = await json(
+      `${base(bid)}/transactions`,
+      { method: "POST" },
+      { account_id: a, date: "2026-10-05", amount: -50000, transfer_account_id: b },
+    );
+    expect(res.status).toBe(201);
+    const after = (await nw(bid, q)).data;
+    expect(after.net_worth).toBe(before.net_worth);
+    const bal = (d: Json, id: string) =>
+      d.months[0].accounts.find((x: Json) => x.id === id).balance;
+    expect(bal(after, a)).toBe(bal(before, a) - 50000);
+    expect(bal(after, b)).toBe(bal(before, b) + 50000);
+  });
 });
