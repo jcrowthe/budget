@@ -1,5 +1,6 @@
 import { sidebarSections } from "@budget/core/account-types";
 import type { Account } from "@budget/schema/accounts";
+import { paymentDisplay } from "@budget/schema/card-payments";
 import {
   categoryCell,
   type PlanSortColumn,
@@ -112,7 +113,7 @@ export function RegisterTable({
   const { openAccounts } = useOpenAccounts(budgetId);
   const navigate = useNavigate();
   const location = useLocation();
-  const { selected, set: setSelected, toggle: toggleRow, setRows } = useSelection();
+  const { selected, set: setSelected, pick, setRows } = useSelection();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const showCategory = plan || account.on_budget;
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
@@ -154,7 +155,7 @@ export function RegisterTable({
   const editTx = editAt >= 0 ? rows[editAt] : undefined;
 
   const openEdit = (tx: Row, field: Field, openCategory = false) => {
-    setSelected([tx.id]);
+    pick("real", tx.id, "only");
     onOpen({ mode: "edit", id: tx.id, focus: field, openCategory });
   };
 
@@ -199,19 +200,29 @@ export function RegisterTable({
     !!(e.target as HTMLElement).closest("button,input,[role=checkbox]");
   const onRowClick = (e: React.MouseEvent, tx: Row) => {
     if (isControl(e)) return;
+    if (e.shiftKey) {
+      // EXF-635: Shift+click selects the range from the anchor; it never opens editing.
+      pick("real", tx.id, "rangeOnly");
+      if (open) onCloseEntry();
+      return;
+    }
     if (tx.cleared === "reconciled") {
-      setSelected([tx.id]);
+      pick("real", tx.id, "only");
       return;
     }
     if (selected.has(tx.id) && selected.size > 1) {
       // Several are selected: a click on one of them selects only that row.
-      setSelected([tx.id]);
+      pick("real", tx.id, "only");
       if (open) onCloseEntry();
     } else if (selected.has(tx.id)) openEdit(tx, fieldOf(e));
     else {
-      setSelected([tx.id]);
+      pick("real", tx.id, "only");
       if (open) onCloseEntry();
     }
+  };
+  /** Shift+click must not start a text selection. */
+  const noShiftSelect = (e: React.MouseEvent) => {
+    if (e.shiftKey) e.preventDefault();
   };
 
   const toggleCollapsed = (id: string) =>
@@ -224,11 +235,15 @@ export function RegisterTable({
   const dataRow = (tx: Row) => {
     const transferAccount = tx.transfer_account_id ? byId.get(tx.transfer_account_id) : undefined;
     const cell = categoryCell(tx, accountOf(tx), transferAccount ?? null);
+    // D3: a transfer between a card and an on-plan cash account reads as a payment on both sides.
+    const sideAcct = account ?? byId.get(tx.account_id);
+    const pay = transferAccount && sideAcct ? paymentDisplay(sideAcct, transferAccount) : null;
     const checked = selected.has(tx.id);
     const lines = tx.subtransactions;
     const expanded = !collapsed.has(tx.id);
     const rowProps = {
       onClick: (e: React.MouseEvent) => onRowClick(e, tx),
+      onMouseDown: noShiftSelect,
       onDoubleClick: (e: React.MouseEvent) => {
         if (isControl(e) || tx.cleared === "reconciled") return;
         openEdit(tx, fieldOf(e));
@@ -239,7 +254,11 @@ export function RegisterTable({
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes */}
         <tr data-tx={tx.id} className={checked ? "is-checked" : undefined} {...rowProps}>
           <td className="cell-check">
-            <Box state={checked} label="Select transaction" onClick={() => toggleRow(tx.id)} />
+            <Box
+              state={checked}
+              label="Select transaction"
+              onClick={(e) => pick("real", tx.id, e.shiftKey ? "rangeAdd" : "toggle")}
+            />
           </td>
           <td className="cell-flag">
             <FlagCell
@@ -254,9 +273,11 @@ export function RegisterTable({
           )}
           <td data-field="date">{registerDate(tx.date)}</td>
           {tx.transfer_account_id && tx.transfer_account_name ? (
-            <td data-field="payee" title={tx.payee_name ?? undefined}>
+            <td data-field="payee" title={pay?.payee ?? tx.payee_name ?? undefined}>
               <span className="transfer-payee">
-                <span className="transfer-name">{transferCellText(tx.transfer_account_name)}</span>
+                <span className="transfer-name">
+                  {pay?.payee ?? transferCellText(tx.transfer_account_name)}
+                </span>
                 <button
                   type="button"
                   className="transfer-link"
@@ -279,8 +300,13 @@ export function RegisterTable({
             </td>
           )}
           {showCategory && (
-            <td data-field="category" title={cell.kind === "text" ? cell.text : undefined}>
-              {cell.kind === "split" ? (
+            <td
+              data-field="category"
+              title={pay?.category ?? (cell.kind === "text" ? cell.text : undefined)}
+            >
+              {pay ? (
+                pay.category
+              ) : cell.kind === "split" ? (
                 <span className="split-parent">
                   <button
                     type="button"

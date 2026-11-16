@@ -9,7 +9,7 @@ export function Box({
 }: {
   state: boolean | "mixed";
   label: string;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   tabIndex?: number;
 }) {
   return (
@@ -22,6 +22,9 @@ export function Box({
       tabIndex={tabIndex}
       className={`register-checkbox${state ? " is-on" : ""}`}
       onClick={onClick}
+      onMouseDown={(e) => {
+        if (e.shiftKey) e.preventDefault();
+      }}
     >
       <span className="box">
         {state === "mixed" ? <MinusIcon /> : state ? <CheckIcon /> : null}
