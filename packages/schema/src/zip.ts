@@ -1,4 +1,4 @@
-/** A store-only ZIP writer (no compression, no ZIP64). Pure; for the Reflect exports. */
+/** A store-only ZIP writer (no compression, no ZIP64). Pure; for the Reflect exports and Export Plan. */
 
 let table: Uint32Array | null = null;
 
@@ -42,9 +42,12 @@ function dosDate(date: string): number {
   return ((y - 1980) << 9) | (Number(date.slice(5, 7)) << 5) | Number(date.slice(8, 10));
 }
 
-export function storeZip(files: ZipFile[], date: string): Uint8Array {
+/** `time` is HH:mm (seconds are not written); omitted, the MS-DOS time field stays 0. */
+export function storeZip(files: ZipFile[], date: string, time?: string): Uint8Array {
   if (files.length > 0xffff) throw new Error("Too many files for a ZIP without ZIP64");
   const day = dosDate(date);
+  const clock =
+    time === undefined ? 0 : (Number(time.slice(0, 2)) << 11) | (Number(time.slice(3, 5)) << 5);
   const entries = files.map((f) => ({
     name: utf8(f.name),
     data: f.data,
@@ -71,7 +74,7 @@ export function storeZip(files: ZipFile[], date: string): Uint8Array {
     u16(20); // version needed
     u16(0x0800); // UTF-8 names
     u16(0); // stored
-    u16(0); // time
+    u16(clock); // time
     u16(day);
     u32(e.crc);
     u32(e.data.length);
@@ -90,7 +93,7 @@ export function storeZip(files: ZipFile[], date: string): Uint8Array {
     u16(20);
     u16(0x0800);
     u16(0);
-    u16(0);
+    u16(clock); // time
     u16(day);
     u32(e.crc);
     u32(e.data.length);

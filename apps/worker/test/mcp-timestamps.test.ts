@@ -173,6 +173,7 @@ const results = new Map<string, Json>();
 const CALLS: [string, (c: Ctx) => Json][] = [
   ["list_budgets", () => ({})],
   ["get_budget", (c) => ({ budget_id: c.bid })],
+  ["export_budget", (c) => ({ budget_id: c.bid, now: "2026-11-16T09:05" })],
   ["create_budget", () => ({ name: "ZZ-TEST made by tool", bank_environment: "sandbox" })],
   ["update_budget", (c) => ({ budget_id: c.bid, name: "ZZ-TEST renamed" })],
   ["list_accounts", (c) => ({ budget_id: c.bid, include_closed: true })],
