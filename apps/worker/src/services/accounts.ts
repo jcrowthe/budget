@@ -23,7 +23,7 @@ import {
   MANUAL_ADJUSTMENT_PAYEE,
 } from "@budget/schema/accounts";
 import type { AccountBalances, Transaction } from "@budget/schema/transactions";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
@@ -654,6 +654,12 @@ export async function deleteAccount(
         throw new AccountRefused(PAYMENT_HISTORY_TEXT, 409, "payment_category_has_history");
       }
     }
+    // The account's own writes also hold only while its payment category has no history, so money that lands
+    // on the category between the read above and the batch cannot orphan it.
+    const payClear = (except: string | null): SQL =>
+      payment
+        ? sql`${accountsRepo.noOtherTransactions(accountId, except)} and not exists (select 1 from transactions t where t.budget_id = ${budgetId} and t.deleted_at is null and t.category_id = ${payment.id}) and not exists (select 1 from month_categories m where m.budget_id = ${budgetId} and m.assigned <> 0 and m.category_id = ${payment.id})`
+        : accountsRepo.noOtherTransactions(accountId, except);
     if (startingId && startingTx) {
       stmts.push(
         changeLogInsertIf(
@@ -667,18 +673,14 @@ export async function deleteAccount(
             before: transactionToApi(startingTx),
             after: null,
           },
-          accountsRepo.accountHolds(
-            db,
-            before,
-            accountsRepo.noOtherTransactions(accountId, startingId),
-          ),
+          accountsRepo.accountHolds(db, before, payClear(startingId)),
         ),
         accountsRepo.softDeleteStartingBalanceStmt(
           db,
           before,
           startingId,
           at,
-          accountsRepo.noOtherTransactions(accountId, startingId),
+          payClear(startingId),
         ),
       );
     }
@@ -705,18 +707,19 @@ export async function deleteAccount(
           before: accountToApi(before, facts),
           after: null,
         },
-        accountsRepo.accountHolds(db, before, accountsRepo.noOtherTransactions(accountId, null)),
+        accountsRepo.accountHolds(db, before, payClear(null)),
       ),
-      accountsRepo.softDeleteIfStmt(
-        db,
-        before,
-        at,
-        accountsRepo.noOtherTransactions(accountId, null),
-      ),
+      accountsRepo.softDeleteIfStmt(db, before, at, payClear(null)),
     );
     const results = await db.batch(stmts as unknown as [BatchItem, ...BatchItem[]]);
     if ((results[results.length - 1]?.meta.changes ?? 0) > 0) {
       return { account_id: accountId, deleted_transaction_ids: startingId ? [startingId] : [] };
+    }
+    if (payment) {
+      const history = await categoriesRepo.historyOf(db, budgetId, [payment.id]);
+      if (history.transactions > 0 || history.assignedMonths > 0) {
+        throw new AccountRefused(PAYMENT_HISTORY_TEXT, 409, "payment_category_has_history");
+      }
     }
   }
   throw new Conflict("Account");

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { deleteAccount } from "../src/services/accounts";
 import { createBudget } from "../src/services/budgets";
 import { createCategory, createCategoryGroup } from "../src/services/categories";
 import { setAssigned } from "../src/services/months";
@@ -173,6 +174,55 @@ describe("the payment category lifecycle", () => {
     expect((await month(bid)).groups[0].categories).toHaveLength(1);
     const t = await mcp("delete_account", { budget_id: bid, account_id: visa });
     expect(t.isError).toBe(true);
+  });
+
+  it("money landing on the payment category between the read and the batch leaves the account alive (409, nothing written)", async () => {
+    const bid = await newPlan();
+    const visa = await account(bid, "ZZ Visa", "creditCard");
+    const payId = (await month(bid)).groups[0].categories[0].id;
+    const before = await logs(bid);
+    let raced = false;
+    const db = new Proxy(env.DB, {
+      get(t, k) {
+        const v = (t as unknown as Record<string | symbol, unknown>)[k];
+        if (k === "batch") {
+          return async (list: D1PreparedStatement[]) => {
+            if (!raced) {
+              raced = true;
+              await setAssigned(env, actor, {
+                budget_id: bid,
+                month: NOV,
+                category_id: payId,
+                assigned: 1000,
+              });
+            }
+            return t.batch(list);
+          };
+        }
+        return typeof v === "function" ? (v as (...x: unknown[]) => unknown).bind(t) : v;
+      },
+    });
+    await expect(
+      deleteAccount({ ...env, DB: db } as typeof env, actor, bid, visa),
+    ).rejects.toMatchObject({ status: 409, code: "payment_category_has_history" });
+    expect(raced).toBe(true);
+    const acc = await env.DB.prepare("select deleted_at from accounts where id = ?")
+      .bind(visa)
+      .first<Json>();
+    expect(acc.deleted_at).toBeNull();
+    const cat = await env.DB.prepare("select deleted_at from categories where id = ?")
+      .bind(payId)
+      .first<Json>();
+    expect(cat.deleted_at).toBeNull();
+    const tx = await env.DB.prepare(
+      "select count(*) n from transactions where account_id = ? and deleted_at is null",
+    )
+      .bind(visa)
+      .first<Json>();
+    expect(tx.n).toBe(1);
+    expect((await logs(bid)).filter((l) => l.action === "delete")).toHaveLength(
+      before.filter((l) => l.action === "delete").length,
+    );
   });
 });
 
