@@ -21,3 +21,5 @@ One line per design doc, appended by each Build (merge=union).
 - [Month navigation design](month-nav-design.md): EXF-493 Plan header month arrows, month picker, Today, month note; PATCH months/{month} note, GET month-range facts, set_month_note (spec: [month-nav-spec.md](month-nav-spec.md))
 - [Account register design](account-register-design.md): EXF-513 transactions REST + MCP (plain cases, derived updated_at, reconciled and credit Starting Balance refusals), account page register toolbar and sortable table, cleared toggle (spec: [account-register-spec.md](account-register-spec.md))
 - [Account register polish](account-register-polish.md): Designer polish list for the account register, with applied status
+- [Categories design](categories-design.md): EXF-494/EXF-495 create, rename, delete (with reassignment), hide and unhide category groups and categories; collapse saved on the server; shared category picker (spec: [categories-spec.md](categories-spec.md))
+- [Categories polish](categories-polish.md): EXF-494/EXF-495 Designer polish list

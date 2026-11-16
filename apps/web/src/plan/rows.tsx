@@ -29,10 +29,16 @@ export function GroupRow({
   g,
   collapsed,
   onToggle,
+  onEditName,
+  onAddCategory,
+  addOpen,
 }: {
   g: MonthGroupDetail;
   collapsed: boolean;
   onToggle: () => void;
+  onEditName: (anchor: HTMLElement) => void;
+  onAddCategory: (anchor: HTMLElement) => void;
+  addOpen: boolean;
 }) {
   return (
     <div className="grid-row group-row" role="row" aria-level={1} aria-expanded={!collapsed}>
@@ -51,15 +57,20 @@ export function GroupRow({
         <Checkbox label={g.name} />
       </div>
       <div className="cell-name" role="rowheader">
-        <span className="group-name" title={g.name}>
-          {g.name}
-        </span>
-        {/* Inert until EXF-494 */}
         <button
           type="button"
-          className="add-category"
+          className="group-name"
+          title={g.name}
+          onClick={(e) => onEditName(e.currentTarget)}
+        >
+          {g.name}
+        </button>
+        <button
+          type="button"
+          className={`add-category${addOpen ? " active" : ""}`}
           aria-label="Add Category"
           title="Add Category"
+          onClick={(e) => onAddCategory(e.currentTarget)}
         >
           <PlusCircleFillIcon />
         </button>
@@ -89,6 +100,7 @@ export function CategoryRow({
   onCommit,
   focusRequest,
   onFocusDone,
+  onEditName,
 }: {
   c: MonthCategoryDetail;
   bars: boolean;
@@ -98,6 +110,7 @@ export function CategoryRow({
   onCommit: (after: number) => Promise<void>;
   focusRequest: FocusTarget | null;
   onFocusDone: () => void;
+  onEditName: (anchor: HTMLElement) => void;
 }) {
   const label = bars ? statusLabel(c) : null;
   const nameRef = useRef<HTMLButtonElement>(null);
@@ -119,10 +132,23 @@ export function CategoryRow({
       <div className="cell-checkbox">
         <Checkbox label={c.name} />
       </div>
-      <div className="cell-name" role="rowheader">
+      <div
+        className="cell-name"
+        role="rowheader"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (nameRef.current) onEditName(nameRef.current);
+        }}
+      >
         <div className="name-line">
-          {/* Inert until EXF-494's rename popover */}
-          <button type="button" ref={nameRef} className="category-name" title={c.name}>
+          {/* EXF-498: open the popover only when the row is already selected (the first click selects). */}
+          <button
+            type="button"
+            ref={nameRef}
+            className="category-name"
+            title={c.name}
+            onClick={(e) => onEditName(e.currentTarget)}
+          >
             {c.name}
           </button>
           {label && <span className="status-label">{label}</span>}
