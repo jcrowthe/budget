@@ -7,6 +7,10 @@ import {
   type TargetDraft,
 } from "@budget/schema/target-form";
 import {
+  SNOOZE_LABEL,
+  SNOOZE_ONLY_CURRENT,
+  SNOOZE_TIP_BODY,
+  SNOOZE_TIP_TITLE,
   targetBreakdown,
   targetDonut,
   targetEmptyText,
@@ -18,9 +22,13 @@ import { useEffect, useRef, useState } from "react";
 import { useCommitAssigned } from "../../api/assigned";
 import { useDeleteTarget, useSaveTarget } from "../../api/targets";
 import { localToday } from "../../api/today";
+import { localCurrentMonth } from "../../shell/planPaths";
 import { money } from "../format";
-import { TargetRingIcon } from "../icons";
+import { QuestionCircleIcon, TargetRingIcon } from "../icons";
+import { useToggleSnooze } from "../snooze";
 import { PanelCard } from "./PanelCard";
+import { PanelTooltip } from "./PanelTooltip";
+import { Switch } from "./Switch";
 import { TargetForm } from "./TargetForm";
 import "./target.css";
 
@@ -106,6 +114,7 @@ export function TargetCard({
     setAssigning((a) => (a !== null && a !== toGo ? null : a));
   }, [toGo]);
 
+  const snooze = useToggleSnooze(budgetId, month);
   const today = localToday();
   const busy = waitingFor !== null;
   const open = (d: TargetDraft) => {
@@ -246,6 +255,41 @@ export function TargetCard({
         >
           Edit Target
         </button>
+        <div className="target-snooze">
+          <Switch
+            label={SNOOZE_LABEL}
+            checked={c.target_snoozed}
+            disabled={month !== localCurrentMonth() || snooze.waiting}
+            onChange={(on) => snooze.toggle(c.id, on)}
+          />
+          <PanelTooltip
+            align="end"
+            text={
+              <>
+                <strong>{SNOOZE_TIP_TITLE}</strong>
+                <br />
+                {SNOOZE_TIP_BODY}
+                {month !== localCurrentMonth() && (
+                  <>
+                    <br />
+                    {SNOOZE_ONLY_CURRENT}
+                  </>
+                )}
+              </>
+            }
+          >
+            {(trigger) => (
+              <button
+                type="button"
+                {...trigger}
+                className="snooze-help"
+                aria-label="About snoozing"
+              >
+                <QuestionCircleIcon />
+              </button>
+            )}
+          </PanelTooltip>
+        </div>
       </div>
     </PanelCard>
   );

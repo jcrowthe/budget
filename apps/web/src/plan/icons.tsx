@@ -165,3 +165,28 @@ export const TargetRingIcon = (p: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+export const LightningIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M13.5 1 4 13.5h6.2L9 23l10-13h-6.4z" />
+  </svg>
+);
+export const WarningTriangleIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 2.5 1.5 21h21zM11 9h2v6h-2zm0 8h2v2h-2z" fillRule="evenodd" />
+  </svg>
+);
+/** "zᶻ": a large and a small Z. */
+export const SnoozeIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M3 8h11v2.2L6.6 17.5H14V20H3v-2.2L10.4 10.5H3z" />
+    <path d="M15.5 2.5H22v1.8l-4 4.2h4V10h-6.5V8.2l4-4.2h-4z" />
+  </svg>
+);
+export const QuestionCircleIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path
+      d="M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21Zm-1 15.5h2v2h-2zm1-11.2a3.7 3.7 0 0 1 1.3 7.2c-.2.1-.3.2-.3.4V14h-2v-1.2c0-.9.6-1.6 1.3-1.9a1.7 1.7 0 1 0-2.3-1.6h-2A3.7 3.7 0 0 1 12 5.8Z"
+      fillRule="evenodd"
+    />
+  </svg>
+);

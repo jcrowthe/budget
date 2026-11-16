@@ -1,11 +1,14 @@
 import type { Month } from "@budget/core/month";
+import { overspentCount, type PlanView, viewCategories } from "@budget/schema/plan-views";
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { useMonth } from "../api/months";
+import { KeyboardTip } from "../plan/KeyboardTip";
 import { type EditRequest, PlanGrid } from "../plan/PlanGrid";
 import { PlanHeader } from "../plan/PlanHeader";
 import { PlanPanel } from "../plan/panel/PlanPanel";
 import { useSelection, visibleSelection } from "../plan/selection";
+import { ViewChips } from "../plan/ViewChips";
 import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
@@ -15,14 +18,19 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const detail = useMonth(budgetId, month).data;
-  // Every selectable category: not hidden, in a group that is not hidden.
-  const all = (detail?.groups ?? [])
-    .filter((g) => !g.hidden)
-    .flatMap((g) => g.categories.filter((c) => !c.hidden).map((c) => c.id));
+  // The chip in use is not saved: All after a reload or a plan switch, kept across months.
+  const [view, setView] = useState<PlanView>("all");
+  const viewAll = () => setView("all");
+  // Overspent leaves with its last category (not compared with the source).
+  useEffect(() => {
+    if (view === "overspent" && detail && overspentCount(detail) === 0) setView("all");
+  }, [view, detail]);
+  // Every selectable category: what the view shows (not hidden, in a group that is not hidden).
+  const all = detail ? viewCategories(detail, view).map((c) => c.id) : [];
   return (
     <div className="plan-page">
-      <PlanHeader budgetId={budgetId} month={month} />
-      {/* EXF-500: the view chips row goes here, between the header and the grid */}
+      <PlanHeader budgetId={budgetId} month={month} view={view} onViewAll={viewAll} />
+      <ViewChips detail={detail} view={view} onView={setView} />
       <div className="plan-body" ref={bodyRef}>
         <PlanGrid
           budgetId={budgetId}
@@ -30,15 +38,20 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
           selection={selection}
           onSelection={setSelection}
           editRequest={editRequest}
+          view={view}
+          onViewAll={viewAll}
         />
         <PlanPanel
           budgetId={budgetId}
           month={month}
           selected={visibleSelection(selection, all)}
+          view={view}
+          onViewAll={viewAll}
           onEditCategory={(id, anchor) => setEditRequest({ id, anchor, at: Date.now() })}
           bodyRef={bodyRef}
         />
       </div>
+      <KeyboardTip />
     </div>
   );
 }

@@ -144,7 +144,7 @@ for (const size of [
     await open(page);
     await realClick(page, box(page).getByRole("button", { name: "Assign", exact: true }));
     const dlg = page.getByRole("dialog", { name: "Assign", exact: true });
-    await expect(dlg.getByRole("tab", { name: "Auto", exact: true })).toBeDisabled();
+    await expect(dlg.getByRole("tab", { name: "Auto", exact: true })).toBeEnabled();
     await expect(dlg.getByRole("tab", { name: "Manually", exact: true })).toHaveAttribute(
       "aria-selected",
       "true",

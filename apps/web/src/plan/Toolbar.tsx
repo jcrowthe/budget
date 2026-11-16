@@ -14,16 +14,20 @@ export function Toolbar({
   bars,
   setBars,
   onAddGroup,
+  addGroupDisabled = false,
 }: {
   bars: boolean;
   setBars: (on: boolean) => void;
   onAddGroup: (anchor: HTMLElement) => void;
+  /** Disabled while a view other than All is shown. */
+  addGroupDisabled?: boolean;
 }) {
   return (
     <div className="grid-toolbar" role="row">
       <button
         type="button"
-        className="toolbar-button"
+        className="toolbar-button is-view-disabled"
+        disabled={addGroupDisabled}
         title="Add Category Group"
         onClick={(e) => onAddGroup(e.currentTarget)}
       >
