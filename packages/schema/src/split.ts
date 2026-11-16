@@ -1,3 +1,4 @@
+import { screenMoney } from "./screen-money";
 /** Split arithmetic, all in milliunits (1000 = one unit, an outflow is negative). */
 
 export const splitSum = (lines: readonly number[]): number => lines.reduce((a, b) => a + b, 0);
@@ -29,8 +30,6 @@ export function autoDistribute(total: number, lines: readonly number[]): number[
 }
 
 export function unbalancedText(total: number, sum: number): string {
-  // The schema package does not depend on core, so the same en-US dollar format is spelled here.
-  const f = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n / 1000);
+  const f = screenMoney;
   return `The total is ${f(total)}, but the splits add up to ${f(sum)}. How would you like to handle the unassigned ${f(total - sum)}?`;
 }

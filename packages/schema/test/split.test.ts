@@ -33,7 +33,7 @@ describe("split arithmetic", () => {
   });
   it("words the dialog", () => {
     expect(unbalancedText(-100000, -85000)).toBe(
-      "The total is -$100.00, but the splits add up to -$85.00. How would you like to handle the unassigned -$15.00?",
+      "The total is −$100.00, but the splits add up to −$85.00. How would you like to handle the unassigned −$15.00?",
     );
   });
 });

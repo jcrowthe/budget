@@ -367,6 +367,7 @@ describe("atomicity", () => {
       deletedAt: null,
       bankAccountId: null,
       importStartDate: null,
+      lastReconciledAt: null,
     };
     const [res] = await db.batch([
       accountsRepo.insertIfStmt(db, row, accountsRepo.newAccountGuard(db, bid, 1, row.name)),

@@ -10,6 +10,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   },
   "POST /budgets/{budget_id}/accounts/{account_id}/close": { tool: "close_account" },
   "POST /budgets/{budget_id}/accounts/{account_id}/reopen": { tool: "reopen_account" },
+  "POST /budgets/{budget_id}/accounts/{account_id}/reconcile": { tool: "reconcile_account" },
   "DELETE /budgets/{budget_id}/accounts/{account_id}": { tool: "delete_account" },
   "GET /budgets/{budget_id}/account-summary": { tool: "get_account_summary" },
   "POST /budgets/{budget_id}/accounts/from-bank": { tool: "create_accounts_from_bank" },
