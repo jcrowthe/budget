@@ -17,6 +17,7 @@ export function Dropdown({
   width,
   role = "listbox",
   children,
+  header,
   footer,
 }: {
   anchor: HTMLElement;
@@ -24,6 +25,7 @@ export function Dropdown({
   width: number;
   role?: "listbox" | "dialog";
   children: ReactNode;
+  header?: ReactNode;
   footer?: ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -85,6 +87,7 @@ export function Dropdown({
         <path d="M0 15 15 0 30 15Z" />
       </svg>
       <div className="entry-dropdown-panel">
+        {header ? <div className="entry-dropdown-header">{header}</div> : null}
         <div ref={body} className="entry-dropdown-body">
           {children}
         </div>

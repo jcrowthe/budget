@@ -69,36 +69,32 @@ export function PayeeField({
           Manage Payees
         </button>
       }
+      header={({ active, pick, hover }) => {
+        const top = items[0];
+        if (!top || top.kind === "saved") return null;
+        const name =
+          top.kind === "create"
+            ? `Create "${top.text}" Payee`
+            : (menu.top as { label: string }).label;
+        return (
+          <Option
+            active={active === 0}
+            name={name}
+            variant="create"
+            onPick={() => pick(0)}
+            onHover={() => hover(0)}
+          >
+            {top.kind === "create" ? <PlusCircleIcon width={12} height={12} /> : null}
+            <span>{name}</span>
+          </Option>
+        );
+      }}
       render={({ active, pick, hover }) => {
-        let n = 0;
+        let n = items[0] && items[0].kind !== "saved" ? 1 : 0;
         const next = () => n++;
         return (
           <>
-            {items[0] && items[0].kind !== "saved" ? (
-              <>
-                {(() => {
-                  const i = next();
-                  const top = items[0];
-                  const name =
-                    top.kind === "create"
-                      ? `Create "${top.text}" Payee`
-                      : (menu.top as { label: string }).label;
-                  return (
-                    <Option
-                      active={active === i}
-                      name={name}
-                      variant="create"
-                      onPick={() => pick(i)}
-                      onHover={() => hover(i)}
-                    >
-                      {top.kind === "create" ? <PlusCircleIcon width={12} height={12} /> : null}
-                      <span>{name}</span>
-                    </Option>
-                  );
-                })()}
-                {menu.help ? <div className="entry-help">{menu.help}</div> : null}
-              </>
-            ) : null}
+            {menu.help ? <div className="entry-help">{menu.help}</div> : null}
             {menu.saved.length > 0 || menu.hint ? (
               <div role="presentation" className="entry-heading">
                 {menu.heading}

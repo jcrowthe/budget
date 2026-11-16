@@ -27,6 +27,7 @@ export function PickerInput<T>({
   startOpen,
   width,
   listLabel,
+  header,
   footer,
   render,
 }: {
@@ -43,6 +44,8 @@ export function PickerInput<T>({
   startOpen?: boolean;
   width: number;
   listLabel: string;
+  /** A fixed block above the scrolling list. */
+  header?: (ctx: PickerRender) => ReactNode;
   footer?: ReactNode;
   render: (ctx: PickerRender) => ReactNode;
 }) {
@@ -128,7 +131,13 @@ export function PickerInput<T>({
       />
       <CaretDownIcon className="entry-caret" />
       {open && anchor && !disabled ? (
-        <Dropdown anchor={anchor} label={listLabel} width={width} footer={footer}>
+        <Dropdown
+          anchor={anchor}
+          label={listLabel}
+          width={width}
+          footer={footer}
+          header={header?.({ active, pick, hover: (i) => setActive(i) })}
+        >
           {render({
             active,
             pick,

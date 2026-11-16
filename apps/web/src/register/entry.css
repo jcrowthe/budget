@@ -6,13 +6,14 @@
   cursor: default;
 }
 /* Source (edit row): every field cell has 1.6px padding on all sides. */
-.register-table .entry-body td:not(.cell-check):not(.cell-cleared) {
+.register-table .entry-body .entry-row td:not(.cell-check):not(.cell-cleared) {
   padding: 1.6px;
 }
 /* Source: the buttons end at the inflow cell's right edge minus 1.6px, leaving the cleared column (36px). */
 .register-table .entry-body .entry-actions-row td {
   height: 36px;
-  padding: 1.6px 37.6px 1.6px 1.6px;
+  /* Source: buttons start 6.5px below the row top. */
+  padding: 2.6px 37.6px 0.6px 1.6px;
   border-bottom: 1px solid var(--separatorStandard);
 }
 .register-table .entry-body .entry-row td {
@@ -157,6 +158,15 @@ button.needs-category {
   padding-top: 4px;
   border-bottom: 1px solid var(--borderSubtle);
 }
+.entry-dropdown[role="dialog"] .entry-dropdown-body {
+  padding-top: 0;
+  border-bottom: 0;
+}
+/* Source: the payee list's footer has no padding of its own; its button carries 16px and is as wide as its text. */
+.entry-dropdown-footer:has(> [data-ticket="EXF-510"]) {
+  padding: 0;
+  align-items: flex-start;
+}
 .entry-dropdown-footer {
   display: flex;
   flex-direction: column;
@@ -181,6 +191,7 @@ button.needs-category {
 }
 /* Manage Payees is a plain text button (disabled until EXF-510). */
 .entry-footer-button[data-ticket="EXF-510"] {
+  width: auto;
   height: auto;
   padding: 16px;
   background: transparent;
@@ -220,10 +231,14 @@ button.needs-category {
   align-items: center;
   width: 20px;
 }
+/* Source (.modal-action-header): 41.8px tall, padding 12px 16px, line-height 16.8px, rule below, above the list. */
+.entry-dropdown-header {
+  border-bottom: 1px solid var(--borderSubtle);
+}
 .entry-option.is-create {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--borderSubtle);
   color: var(--actionPrimary);
+  line-height: 16.8px;
 }
 .entry-option.is-create .entry-option-inner {
   padding: 0;

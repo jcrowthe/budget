@@ -8,3 +8,10 @@
 - P6 [applied]: list container is `--backgroundTertiary`, no border, radius 4px, `--shadowMenu`, width 320, centred with an arrow (down when above the field); create item is a bordered header block in `--actionPrimary` with a 12px plus icon; headings 12/600 normal case; option rows 28.8px with a 20px check slot and `--menuHover` highlight; body at most 210px with a 1px bottom rule; Manage Payees is a disabled text button (EXF-510).
 - P7 [applied]: category list width 400 with the same container; zero Available is plain `--labelSecondary` text; positive and negative stay pills. Footer buttons are full-width secondary buttons; "Split" is now "Split (Multiple Categories)" and `e2e/register-entry.spec.ts` follows. "Payment/Transfer" stays (EXF-526), styled the same.
 - P8 [applied]: with a value set and nothing typed, the category list starts with a "Selected" section holding the current category (checked, highlighted); it is also checked in its own group.
+
+## Second round
+
+- R1 [applied]: the field-cell padding rule is limited to `.entry-row`, so the action row keeps its 37.6px right padding (buttons end at the inflow cell's right edge minus 1.6px); padding 2.6px/0.6px puts the buttons 6.5px below the row top (source).
+- R2 [applied]: the calendar's body has no padding-top and no bottom rule (`.entry-dropdown[role="dialog"]`), so the header sits 16px from the top.
+- R3 [applied]: `Create "<text>" Payee` and the hidden-payee line are a fixed header block above the scrolling list (`header` on Dropdown/PickerInput): padding 12px 16px, line-height 16.8px, 1px rule below, still `role="option"` at index 0.
+- R4 [applied]: the payee list's footer has no padding of its own and Manage Payees is as wide as its text with 16px padding; scoped by `:has(> [data-ticket="EXF-510"])` so the category footer keeps its 12px 16px.
