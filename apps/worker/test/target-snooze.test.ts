@@ -140,7 +140,7 @@ describe("target snooze", () => {
     expect(await logs(s.bid, "target_snooze")).toHaveLength(1);
   });
 
-  it("a snooze racing a target delete leaves no snooze behind", async () => {
+  it("a snooze and a target delete started together leave no snooze behind (the order is not forced)", async () => {
     const s = await seed();
     await Promise.all([
       s.put(true),

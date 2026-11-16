@@ -26,7 +26,8 @@ export const NEXT = monthIso(1);
 export const monthLabel = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
 
-export const chip = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
+export const chip = (page: Page, name: string) =>
+  page.locator(".view-chips").getByRole("button", { name, exact: true });
 export const autoCard = (page: Page) =>
   panel(page).locator(".panel-card", { has: page.locator("#panel-auto-assign") });
 export const option = (scope: Locator, label: string) =>

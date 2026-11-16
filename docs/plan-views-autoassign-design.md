@@ -266,3 +266,7 @@ migrations: 1
 
 Outside the Lead's list: `packages/schema/src/ui-state.ts`, for the one `snooze_tip_seen` key that remembers the
 keyboard tip (the codebase's mechanism for such state). None of note 10's files changes.
+
+## Loading state of the Auto-Assign list (rework)
+
+While a preview is loading, `AutoAssignOptions` draws all eight rows for the scope kind (singular labels for one category) in their final layout, disabled, with a dash for the amount; no figures of another selection are shown (the preview query has no placeholder data). `.auto-assign-list` keeps the height of all eight rows (300px), so the Notes card and the cards below never move: not when the preview arrives, not when Underfunded (one category) or Reduce Overfunding is hidden (blank space stays at the bottom of the card), not when the selection changes between categories. The Assign popover's Auto tab uses the same list, so it keeps one height too. The remaining shift: leaving or entering an empty view (the card shows its short message there); that follows a chip click, not a selection. `e2e/auto-assign-layout.spec.ts` holds the preview read back for one second and compares the Notes card's top edge.

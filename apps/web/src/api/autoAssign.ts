@@ -10,7 +10,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite, inOrder } from "./monthCache";
-import { keepPreviousInPlan } from "./placeholder";
 import { localToday } from "./today";
 
 /** Which categories an option works on: exactly these, or the ones a Plan view shows. */
@@ -46,7 +45,7 @@ export const useAutoAssignPreview = (
   useQuery({
     queryKey: ["auto-assign", budgetId, month, scopeKey(scope)],
     queryFn: () => getAutoAssignPreview(budgetId, month, scope),
-    placeholderData: keepPreviousInPlan<AutoAssignPreview>(budgetId),
+    // No placeholder: figures of another selection are never shown (the card draws a skeleton instead).
     enabled,
   });
 
