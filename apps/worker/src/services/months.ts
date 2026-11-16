@@ -26,6 +26,7 @@ import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
+import * as cardFlowsRepo from "../repositories/card-flows";
 import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
 import * as monthCatRepo from "../repositories/month-categories";
@@ -270,17 +271,18 @@ async function loadInput(
   db: Db,
   budgetId: string,
   activityBefore: string,
-  withTargets = false,
+  full = false,
 ): Promise<EngineInput & { categoryNotes: Map<string, string | null> }> {
-  const [groups, categories, assignments, notes, activity, targetRows, snoozeRows] =
+  const [groups, categories, assignments, notes, activity, targetRows, snoozeRows, flows] =
     await Promise.all([
       groupsRepo.listActive(db, budgetId),
       categoriesRepo.listActive(db, budgetId),
       monthCatRepo.listForBudget(db, budgetId),
       monthsRepo.listNotes(db, budgetId),
       planActivity(db, budgetId, activityBefore),
-      withTargets ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
-      withTargets ? snoozesRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+      full ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+      full ? snoozesRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+      full ? cardFlowsRepo.cardFlows(db, budgetId, activityBefore) : Promise.resolve([]),
     ]);
   const snoozedBy = new Map<string, Month[]>();
   for (const r of snoozeRows)
@@ -295,6 +297,7 @@ async function loadInput(
       assigned: a.assigned,
     })),
     activity,
+    cardFlows: flows,
     notes: notes.map((n) => ({ month: n.month, note: n.note })),
     targets: targetRows.map((r) => ({
       categoryId: r.categoryId,

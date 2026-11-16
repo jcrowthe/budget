@@ -17,6 +17,7 @@ import { localCurrentMonth } from "../shell/planPaths";
 import type { CloseHow } from "./AssignedCell";
 import { CoverPopover } from "./CoverPopover";
 import { useCollapsedGroups } from "./collapse";
+import { useNumberColumns } from "./columnWidths";
 import { DeleteDialog } from "./DeleteDialog";
 import { HiddenCategoriesRow } from "./HiddenCategories";
 import { ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
@@ -83,6 +84,7 @@ export function PlanGrid({
   const data = q.data;
   const [bars, setBars] = useProgressBars();
   const { isCollapsed, setCollapsed } = useCollapsedGroups(budgetId, data?.groups);
+  const columns = useNumberColumns(data);
   const shown = data && viewDetail(data, view);
   const groups = (shown?.groups ?? []).filter((g) => !g.hidden);
   const inView = view !== "all";
@@ -293,7 +295,7 @@ export function PlanGrid({
 
   const headerLabel = allCollapsed ? "Expand all" : "Collapse all";
   return (
-    <section className={`plan-grid${bars ? " bars-on" : ""}`}>
+    <section className={`plan-grid${bars ? " bars-on" : ""}`} style={columns}>
       <div role="treegrid" aria-label="Plan" aria-busy={!data}>
         <div className="grid-head" role="rowgroup">
           <Toolbar

@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   type AutoAssignInput,
   type AutoAssignStrategy,
+  autoAssignHeight,
   autoAssignOptions,
   autoAssignPreview,
   autoAssignResult,
+  hiddenAmounts,
   historyFigures,
+  ORDINARY_SKIPS,
   PAYMENT_SKIPS,
 } from "../src/auto-assign";
 import type { CategoryTargetMonth } from "../src/targets";
@@ -45,6 +48,9 @@ const input = (o: Partial<AutoAssignInput> = {}): AutoAssignInput => ({
   last_spent: 0,
   average_assigned: 0,
   average_spent: 0,
+  last_paid: 0,
+  average_paid: 0,
+  payment_underfunded: 0,
   payment: false,
   ...o,
 });
@@ -72,6 +78,8 @@ describe("Auto-Assign worked examples", () => {
       spent_last_month: 30000,
       average_assigned: 100000,
       average_spent: 30000,
+      paid_last_month: 0,
+      average_paid: 0,
       reduce_overfunding: 0,
       reset_available: 0,
       reset_assigned: 0,
@@ -132,10 +140,11 @@ describe("Auto-Assign worked examples", () => {
 });
 
 describe("historyFigures", () => {
-  const f = (month: string, assigned: number, spent = 0) => ({
+  const f = (month: string, assigned: number, spent = 0, paid = 0) => ({
     month,
     assigned,
     activity: -spent,
+    paid,
   });
   it("Jan, refill category assigned Nov 100 / Dec 30, spent 30 / 0", () => {
     const h = historyFigures(
@@ -204,16 +213,52 @@ describe("autoAssignOptions", () => {
       [3, "Reset Assigned Amounts"],
     ]);
   });
-  it("singular labels for one; Underfunded hidden for one at 0 but shown for many", () => {
-    const zero = { ...p, underfunded: 0 };
-    const one = autoAssignOptions(zero, "one").map((x) => x.label);
-    expect(one).not.toContain("Underfunded");
+  it("singular labels for one", () => {
+    const one = autoAssignOptions(p, "one").map((x) => x.label);
     expect(one).toContain("Reset Available Amount");
     expect(one).toContain("Reset Assigned Amount");
-    expect(autoAssignOptions(zero, "many").map((x) => x.label)).toContain("Underfunded");
   });
-  it("Reduce Overfunding hidden at 0", () => {
-    expect(autoAssignOptions(p, "many").map((x) => x.label)).not.toContain("Reduce Overfunding");
+  it("EXF-624 (reversed after the source was seen): Underfunded shows at 0 for many, hides for one and payment; Reduce Overfunding hides at 0 everywhere", () => {
+    const zero = { ...p, underfunded: 0, reduce_overfunding: 0 };
+    expect(autoAssignOptions(zero, "many").map((x) => x.label)).toContain("Underfunded");
+    for (const scope of ["one", "payment"] as const) {
+      expect(autoAssignOptions(zero, scope).map((x) => x.label)).not.toContain("Underfunded");
+    }
+    for (const scope of ["many", "one", "payment"] as const) {
+      expect(autoAssignOptions(zero, scope).map((x) => x.label)).not.toContain(
+        "Reduce Overfunding",
+      );
+    }
+    const shown = autoAssignOptions({ ...p, reduce_overfunding: 5000 }, "many").map((x) => x.label);
+    expect(shown).toContain("Underfunded");
+    expect(shown).toContain("Reduce Overfunding");
+  });
+  it("`hidden` decides the rows, the preview decides the amounts", () => {
+    const blank = { ...p, underfunded: 0, reduce_overfunding: 0 };
+    const o = autoAssignOptions(blank, "many", { underfunded: 5, reduce_overfunding: 0 });
+    expect(o.map((x) => x.label)).toContain("Underfunded");
+    expect(o.find((x) => x.strategy === "underfunded")?.amount).toBe(0);
+  });
+  it("the payment list: Underfunded, Assigned Last Month, Paid Last Month, Average Assigned, Average Paid, resets", () => {
+    const o = autoAssignOptions(p, "payment");
+    expect(o.map((x) => [x.group, x.label])).toEqual([
+      [1, "Underfunded"],
+      [2, "Assigned Last Month"],
+      [2, "Paid Last Month"],
+      [2, "Average Assigned"],
+      [2, "Average Paid"],
+      [3, "Reset Available Amount"],
+      [3, "Reset Assigned Amount"],
+    ]);
+    expect(o.find((x) => x.strategy === "paid_last_month")?.title).toBeNull();
+    expect(o.find((x) => x.strategy === "average_paid")?.title).toBe(
+      "Assign your historical average paid to this card.",
+    );
+  });
+  it("autoAssignHeight is the source's 352 / 304 / 386", () => {
+    expect(autoAssignHeight(autoAssignOptions(p, "many"))).toBe(352); // 7 rows, 3 groups
+    expect(autoAssignHeight(autoAssignOptions({ ...p, underfunded: 0 }, "one"))).toBe(304); // 6 rows, 2 groups
+    expect(autoAssignHeight(autoAssignOptions({ ...p, reduce_overfunding: 5 }, "many"))).toBe(386); // 8 rows
   });
   it("titles", () => {
     const o = autoAssignOptions(p, "many");
@@ -242,14 +287,56 @@ describe("EXF-532: credit card payment categories", () => {
     expect(autoAssignResult(pay({ carried: 1000, activity: 500 }), "reset_available")).toBe(-1500);
     expect(autoAssignResult(pay(), "reset_assigned")).toBe(0);
   });
-  it("keeps Assigned under Underfunded, Reduce Overfunding, Spent Last Month and Average Spent", () => {
+  it("keeps Assigned under Reduce Overfunding, Spent Last Month and Average Spent", () => {
     for (const s of PAYMENT_SKIPS) expect(autoAssignResult(pay(), s)).toBe(5000);
   });
-  it("is left out of the four sums of the preview", () => {
+  it("is left out of the sums that read targets or spending", () => {
     const p = autoAssignPreview([pay(), input({ last_spent: 100, average_spent: 40 })]);
     expect(p.spent_last_month).toBe(100);
     expect(p.average_spent).toBe(40);
     expect(p.assigned_last_month).toBe(7000);
     expect(p.category_count).toBe(2);
+  });
+});
+
+describe("EXF-537: payment strategies and hidden amounts", () => {
+  const pay = (o: Partial<AutoAssignInput> = {}) =>
+    input({ payment: true, assigned: 5000, last_paid: 100000, average_paid: 40000, ...o });
+  it("Underfunded adds the card's Total Underfunded; 0 when it is not alone", () => {
+    expect(autoAssignResult(pay({ payment_underfunded: 1200000 }), "underfunded")).toBe(1205000);
+    expect(autoAssignResult(pay(), "underfunded")).toBe(5000);
+  });
+  it("Paid Last Month and Average Paid change only payment categories", () => {
+    expect(autoAssignResult(pay(), "paid_last_month")).toBe(100000);
+    expect(autoAssignResult(pay(), "average_paid")).toBe(40000);
+    const o = input({ assigned: 7, last_paid: 9, average_paid: 9 });
+    expect(autoAssignResult(o, "paid_last_month")).toBe(7);
+    expect(autoAssignResult(o, "average_paid")).toBe(7);
+    expect(ORDINARY_SKIPS).toEqual(["paid_last_month", "average_paid"]);
+  });
+  it("preview: paid sums over payment categories; underfunded counts the lone card", () => {
+    const p = autoAssignPreview([pay({ payment_underfunded: 300 }), dec(0, 100000)]);
+    expect(p.paid_last_month).toBe(100000);
+    expect(p.average_paid).toBe(40000);
+    expect(p.underfunded).toBe(100300);
+  });
+  it("hiddenAmounts", () => {
+    const t = target({ to_go_this_month: 70, overfunded: 30 });
+    expect(
+      hiddenAmounts([
+        { assigned: 50, target: t, payment: false, payment_underfunded: 0 },
+        { assigned: 0, target: null, payment: true, payment_underfunded: 9 },
+      ]),
+    ).toEqual({ underfunded: 79, reduce_overfunding: 30 });
+  });
+  it("history figures carry paid", () => {
+    const m = (month: string, paid: number) => ({ month, assigned: 0, activity: 0, paid });
+    const h = historyFigures(
+      "2027-01-01",
+      [m("2026-11-01", 100000), m("2026-12-01", 30000)],
+      "2026-11-01",
+    );
+    expect(h.last_paid).toBe(30000);
+    expect(h.average_paid).toBe(65000);
   });
 });

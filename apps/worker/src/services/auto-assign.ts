@@ -64,7 +64,12 @@ async function loadScope(
     const c = byId.get(id) as MonthDetail["groups"][number]["categories"][number];
     const figures = previous.map((d) => {
       const p = d.groups.flatMap((g) => g.categories).find((x) => x.id === id);
-      return { month: d.month, assigned: p?.assigned ?? 0, activity: p?.activity ?? 0 };
+      return {
+        month: d.month,
+        assigned: p?.assigned ?? 0,
+        activity: p?.activity ?? 0,
+        paid: p?.payment?.paid ?? 0,
+      };
     });
     const firstActive = figures.find((f) => f.assigned !== 0 || f.activity !== 0)?.month;
     const createdMonth = created.get(id) ?? month;
@@ -77,6 +82,7 @@ async function loadScope(
       activity: c.activity,
       target: c.target,
       payment: c.kind === "credit_card_payment",
+      payment_underfunded: ids.length === 1 && c.payment ? c.payment.underfunded : 0,
       ...historyFigures(month, figures, first),
     };
   });

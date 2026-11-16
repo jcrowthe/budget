@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 
 const KEY = "budget.planPanelWidth";
-export const MIN_PANEL_WIDTH = 280;
+export const MIN_PANEL_WIDTH = 320;
 export const MAX_PANEL_FRACTION = 0.6;
 
 const read = (): number | null => {

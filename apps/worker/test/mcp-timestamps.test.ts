@@ -358,7 +358,10 @@ const CALLS: [string, (c: Ctx) => Json][] = [
 ];
 
 /** A tool this test cannot call, with the reason. */
-const NOT_CALLED: Record<string, string> = { pay_credit_card: "the seed has no credit card" };
+const NOT_CALLED: Record<string, string> = {
+  pay_credit_card: "the seed has no credit card",
+  get_card_payment_status: "returns amounts only, no timestamp; the fixture has no credit account",
+};
 
 /** A tool of a file another Build holds, whose result holds a timestamp the description may not name yet. */
 const HELD: Record<string, string> = {};
