@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 7 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
+Review counters (finished children since that template's last review): Build 8 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -365,7 +365,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | merged `2fcde22` (round 30) |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
-| 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | PR #17 | running |
+| 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | PR #17 | **cancelled by me in round 37** (stalled in review; main moved); branch head `178c13a` carried over |
 | 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | PR #18 | merged `82aac3a` (round 33) |
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
 | 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | completed (9 minutes): flow 9 `new_gaps` (EXF-571), flow 11 `parity` |
@@ -373,6 +373,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | live `82aac3a` |
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | PR #20 | **cancelled by me in round 36** (source rules broken); branch head `b7e25de` to carry over |
 | 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | completed (8 minutes): `new_gaps` (EXF-572) |
+| 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | pending | running |
+| 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | pending | running |
+| 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2990,3 +2993,54 @@ has not moved by the next review, cancel and carry over.
 progress), EXF-560, EXF-562 (Low); EXF-570 done. Template: fifteen plus the one filed now. Flow verdicts: 9
 `new_gaps`, 10 `new_gaps`, 11 `parity`. Finished since each template's last review: Build 7 (one of them
 cancelled), Deploy 8, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 37
+
+Children used 49 of 200. Three Builds are running, all started now. I cancelled the categories Build in this
+plan (below).
+
+- The template ticket filed at the last review exists: **EXF-573** (the Build's Designer, Tester and study
+  steps obey the Lead's source rules). Set to High.
+- **Cancelled the categories Build `p_4f6bdb700cf54bec9c138cdfb3649b02`** and carried it over. Its
+  transcript shows the Reviewer wrote "running the touched specs" at 01:28 UTC and nothing after: 30
+  minutes at one step with no new tokens (the waiting pattern of EXF-563, or a hung run). Main had also
+  moved by two merges, one of which needs a change in its `category-reassign.ts`, so its next card would
+  have meant Request changes and another full pass anyway. Its branch head `178c13a` has everything:
+  the feature, the fixes for two write races its Reviewer found in delete and unhide, polish P1 to P5, and
+  **the fix I asked for**: `apps/web/src/api/monthCache.ts`, one rule for every writer of the cached month,
+  with a test that reproduces the collapse and refetch race. (So my Request changes did reach the agents:
+  the notice with my explanation is in the transcript, and the Implementer followed the payload.)
+- **Carry-over pattern when main has moved:** the Clerk's merge job is `git merge --no-edit
+  origin/exfab/<old thread>` (not `--ff-only`), with the expected diff size printed and the rule for a
+  `docs/README.md` conflict. I tried both merges with `git merge-tree` first: no conflicts.
+- **Started the carry-over of EXF-494 and EXF-495** (`p_4fe1cb348be24f9f9bee5b5622d29168`): merge
+  `178c13a` (expected 39 files, +4896/-94 against main), then three changes only: `updated_at` on the
+  transactions a delete with reassignment moves; MCP tools for `unhide_all` and the two usage reads, with
+  the description rules; fixes for anything the merge breaks. It holds `apps/web/src/plan/**`,
+  `api/categories.ts`, `api/assigned.ts`, `api/months.ts`, `api/monthCache.ts` and the categories files.
+- **Started the carry-over of EXF-571, EXF-470 and EXF-454, the plan menu**
+  (`p_9a58f4af528e469b93711c3de218e26d`): merge `b7e25de` (expected 26 files, +1883/-109), then one change:
+  the Open Plan submenu starts at the Open Plan row's right edge and top (numbers from the cancelled
+  Thread's Designer: left 244, top 100 at the default size), with the two tests and the design doc that
+  encode the old placement. It holds the shell, `menu-actions/`, the `/me` route, the favicon.
+- **In both carry-overs nobody opens the source app at all**, said in capitals for every role, with the
+  sentence to answer when a step's own instructions ask for a comparison.
+- **Started EXF-572, MCP tool coverage** (`p_14fe85267f7449f192572c1b7cfc9cbf`), Worker only: six new tools
+  (`update_budget`, `delete_budget`, `get_budget`, `get_transaction`, `list_plan_months`,
+  `get_month_range`), a coverage test that reads the OpenAPI document and needs a tool or a stated exclusion
+  for every operation (mapping kept in one data file next to the test), a description test, the rule in
+  `docs/conventions.md`. Exclusions by design: health, the OpenAPI document, Plaid credentials, link token
+  and creating a bank connection, institution search, `ui-state`, `/me`. It holds the six tool files on
+  main and adds no route.
+- **How the three fit together:** disjoint files. The categories carry-over brings its own tools and
+  description quality; EXF-572 adds the category operations to its mapping if they are on main when it
+  rebases, otherwise it reports that and whichever merges second adds the lines (check at the cards: **if
+  EXF-572 merges first, the categories carry-over must add its operations to the mapping file at its
+  refresh, or its gate will fail on the coverage test**; if categories merges first, EXF-572 adds them).
+  `/me` is excluded in advance.
+- **No Deploy now:** main `2d1982e` is one merge ahead of live `82aac3a`. One Deploy when these three have
+  merged; it will be the ninth.
+- No flow test: flows 1 and 2 and the re-runs of 9 and 10 after that Deploy.
+- Review cadence: Build 8 since the last Build review (two of them cancelled by me), Deploy 8, Discover 2,
+  Test user flow 2. The Build template review comes due again at 10; give it the two cancelled Threads.
+- Ticket writes this round: 5.
