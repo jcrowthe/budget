@@ -167,6 +167,9 @@
   padding: 0 2px 0 6px;
 }
 .cell-available {
+  /* EXF-535: the widest pill (card icon and "−$1,200.00") shows in full at 1024px. Acceptance overrides polish P7
+     (the source clips there, 84.3px); at wider windows the 15-18% column is wider than this anyway. */
+  min-width: 7.5rem;
   padding: 0;
   display: flex;
   justify-content: flex-end;

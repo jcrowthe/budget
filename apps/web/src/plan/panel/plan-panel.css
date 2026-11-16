@@ -73,6 +73,7 @@
 }
 .card-roll-up {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   box-sizing: border-box;
   width: 100%;
@@ -98,11 +99,8 @@
   margin-left: auto;
   padding-left: 8px;
 }
-/* A long title shrinks (and is cut) before the pill leaves the card at a narrow panel. */
+/* At a narrow panel the pill wraps under the title (right-aligned) instead of cutting it. */
 .card-roll-up .panel-card-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .panel-card-title {
