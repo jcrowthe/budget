@@ -313,3 +313,11 @@ with `page.mouse`. Category names below (Rent, Groceries, Fun) stand for any def
 touches: [apps/worker/src/routes/moves.ts, apps/worker/src/services/moves.ts, apps/worker/src/services/months.ts, apps/worker/src/mcp/tools/moves.ts, packages/schema/src/moves.ts, packages/schema/src/months.ts, packages/schema/src/assigned-edit.ts, apps/worker/test/moves.test.ts, apps/worker/test/mcp-coverage/moves.ts, packages/schema/test/**, apps/web/src/plan/**, apps/web/src/api/moves.ts, apps/web/src/api/assigned.ts, apps/web/src/api/months.ts, apps/web/src/api/monthCache.ts, e2e/rta.spec.ts, e2e/moves.spec.ts, docs/rta-moves-design.md, docs/rta-moves-spec.md, docs/README.md]
 shared: []
 migrations: 0
+
+## As built (departures from the plan)
+
+- The MCP coverage folder `apps/worker/test/mcp-coverage/` was on main when the Build started (EXF-572); `moves.ts` there maps both operations to both tools.
+- `buildMoveBatch(db, actor, v, moveId, reads, now)` takes the actor as its second argument (the log rows need it).
+- A 422 thrown by the service (not overspent, cover from itself) carries the envelope name `error`, not `unprocessable_entity` (the shared error handler maps every `HTTPException` that way); schema failures keep `unprocessable_entity`.
+- The picker input also opens its list on click, so a picked field can be reopened with the mouse.
+- Two e2e support files: `e2e/support/real-click.ts` and `e2e/support/plan-seed.ts`.

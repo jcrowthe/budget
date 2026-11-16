@@ -126,6 +126,10 @@ export function CategoryPicker({
           measure();
           setOpen(true);
         }}
+        onClick={() => {
+          measure();
+          setOpen(true);
+        }}
         onChange={(e) => {
           if (value !== null && e.target.value !== selectedName) onChange(null);
           setText(e.target.value);
