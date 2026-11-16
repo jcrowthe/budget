@@ -115,6 +115,32 @@ describe("bank import (EXF-462)", () => {
     ).toBe(1);
   });
 
+  it("462: a payee renamed between two syncs does not break the second", async () => {
+    stubBank();
+    const { plan, conn, account } = await world1();
+    const e = (id: string, amount: number) =>
+      plaidTxn({ transaction_id: id, amount, date: "2026-03-12", name: "ZZ Old" });
+    feed.pages = [{ added: [e("ZZ-P1", 3)] }, { added: [e("ZZ-P2", 4), e("ZZ-P3", 5)] }];
+    await env.DB.prepare("update bank_connections set sync_cursor = null where id = ?")
+      .bind(conn)
+      .run();
+    // first sync reads page 1 only (cursor c1 afterwards)
+    feed.pages = [{ added: [e("ZZ-P1", 3)] }];
+    await syncOne(plan, conn);
+    await env.DB.prepare(
+      "update payees set name = 'ZZ Renamed' where budget_id = ? and name = 'ZZ Old'",
+    )
+      .bind(plan)
+      .run();
+    feed.pages = [{ added: [e("ZZ-P1", 3)] }, { added: [e("ZZ-P2", 4), e("ZZ-P3", 5)] }];
+    const r = await syncOne(plan, conn);
+    expect(r.added).toBe(2);
+    expect(await imports(account)).toHaveLength(3);
+    expect(
+      await count("select count(*) n from payees where budget_id = ? and name = 'ZZ Old'", plan),
+    ).toBe(1);
+  });
+
   it("462-3: syncing again, and again from a null cursor, changes nothing", async () => {
     stubBank();
     const { plan, conn, account } = await world1();

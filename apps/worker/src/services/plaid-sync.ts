@@ -532,7 +532,8 @@ function addPayee(
   knownId: string | undefined,
 ): string {
   const p: payeesRepo.PayeeRow = {
-    id: knownId ?? crypto.randomUUID(),
+    // Always a fresh id: a known payee may have been renamed or merged since it was read.
+    id: crypto.randomUUID(),
     budgetId,
     name,
     hidden: false,
@@ -549,15 +550,15 @@ function addPayee(
         actor: PLAID_ACTOR,
         action: "create",
         entityType: "payee",
-        entityId: p.id,
+        entityId: knownId ?? p.id,
         before: null,
-        after: { id: p.id, name: p.name, hidden: p.hidden, system: p.system },
+        after: { id: knownId ?? p.id, name: p.name, hidden: p.hidden, system: p.system },
       },
       txRepo.allHold([guard, payeesRepo.missingByNameGuard(budgetId, name)]),
     ),
   );
   g.add(payeesRepo.insertByNameIfMissingStmt(db, p, guard));
-  return p.id;
+  return knownId ?? p.id;
 }
 
 /**
