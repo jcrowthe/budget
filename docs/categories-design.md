@@ -181,6 +181,14 @@ reassign_to?)`, `create_category(budget_id, group_id, name)`, `rename_category(b
   are selected. **EXF-500** disables the toolbar "Category Group" while a view filter is active. **EXF-491,
   EXF-492, EXF-517** use `CategoryPicker`.
 
+- **For EXF-504 (Undo):** `changeLogInsertIf` stamps each row's `created_at` with its own `new Date()` when the
+  statement is built, so the rows of one delete or hide batch can differ by a few milliseconds. Undo must group
+  them by something else (the actor and the entity ids, or the batch's `deleted_at` / `updated_at` value on the
+  rows themselves, which is one value per batch), not by equal `created_at`. The history module is unchanged.
+- **Cached month rule** (`api/monthCache.ts`): every writer of the cached months (Assigned, collapse, category
+  writes, the note) cancels in-flight month fetches before its optimistic write and the plan's months are
+  refetched only when no write is pending, so a stale fetch cannot undo a collapse or an Assigned value.
+
 ## Out of scope
 
 Undo/Redo, drag reorder, selection and the multi-select menu, filtered-view disabling, Move pickers, migrations.
