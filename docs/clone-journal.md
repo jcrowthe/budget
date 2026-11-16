@@ -7581,8 +7581,8 @@ was at work; its gate comes next. Its box was not hit, as far as its reports sho
 **Backlog:** unchanged: 54 open feature tickets (43 done; 4 in progress: EXF-532, 535, 497, 499). Gap:
 open EXF-558, EXF-560, EXF-562, EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630, EXF-631, EXF-635,
 EXF-636, EXF-637; in progress EXF-621, EXF-625, EXF-626. Template: thirty-four (EXF-573, EXF-611,
-EXF-612 Urgent). Flow verdicts unchanged. Finished since each template's last review: Build 5 (one
-merged, four lost or abandoned), Deploy 2, Discover 2, Test user flow 9.
+EXF-612 Urgent). Flow verdicts unchanged. Finished since each template's last review: Build 5 (two
+merged, three lost or abandoned), Deploy 2, Discover 2, Test user flow 9.
 
 **Next plan:** the carry-over Build for scheduled transactions and the Reflect fixes together (test
 the double merge in a throwaway worktree first). A Deploy for the shell merge alone is now worth it:
