@@ -135,14 +135,15 @@ export function EntryRow({
       ?.focus();
   // biome-ignore lint/correctness/useExhaustiveDependencies: focus once, when the row opens
   useEffect(() => {
-    if (startSplit) focusLine(0);
+    // Source: after S the memo of the parent row has focus, no list open.
+    if (startSplit) focusField("memo");
     else focusField(initialFocus);
   }, []);
   // The split just started (or a line was added): focus the new line's payee once it is drawn.
   const hadLines = useRef(isSplit);
   // biome-ignore lint/correctness/useExhaustiveDependencies: only when split mode starts
   useEffect(() => {
-    if (isSplit && !hadLines.current) focusLine(0);
+    if (isSplit && !hadLines.current) focusField("memo");
     hadLines.current = isSplit;
   }, [isSplit]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: only when a line is added

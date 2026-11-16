@@ -1,5 +1,7 @@
 :root {
   --register-row-selected: #1b1d48;
+  /* Source placeholder colour of the register inputs (getComputedStyle ::placeholder). */
+  --register-input-placeholder: #757575;
   --register-needs-category: #daac00;
   --register-needs-category-label: #362c05;
   --register-icon-muted: #727484;

@@ -37,8 +37,9 @@
   font-size: var(--font-size-sm);
   text-overflow: ellipsis;
 }
+/* Source (getComputedStyle(input, '::placeholder')): rgb(117, 117, 117) on the parent and the line inputs. */
 .entry-input input::placeholder {
-  color: var(--labelTertiary);
+  color: var(--register-input-placeholder);
 }
 .entry-input input:focus {
   outline: 0;
@@ -379,27 +380,51 @@ button.needs-category {
 .split-icon-button {
   width: 28px;
 }
+/* Source: 144.5x32, padding 4px 8px, 8px between the 12px icon and the text; its left edge is the minus
+   icon's (the date cell's right edge minus 29.6px), so it overflows into PAYEE and the plus sits under it. */
 .split-add {
-  gap: 6px;
-  padding: 0 8px;
+  gap: 8px;
+  padding: 4px 8px;
   white-space: nowrap;
+}
+.register-table .entry-body .split-remaining td.split-add-cell {
+  position: relative;
+  overflow: visible;
+}
+.split-add-cell .split-add {
+  position: absolute;
+  top: 1.6px;
+  left: calc(100% - 29.6px);
+}
+/* Source hover: --buttonSecondaryBackground, radius 8. */
+.split-icon-button:hover,
+.split-add:hover {
+  background: var(--buttonSecondaryBackground);
 }
 .split-icon-button:focus-visible,
 .split-add:focus-visible {
   outline: 0;
   box-shadow: 0 0 0 2px var(--actionPrimary);
 }
+/* Source: --labelPrimary, 14/500, right-aligned. */
 .register-table .entry-body .split-remaining .split-remaining-label {
-  color: var(--labelSecondary);
+  color: var(--labelPrimary);
+  font-weight: 500;
   text-align: right;
   white-space: nowrap;
 }
-.register-table .entry-body .split-remaining .split-remaining-number {
-  padding-right: 6px;
+/* Source: the number ends 5.0px from the cell's right edge. The selector must beat the entry row's
+   `td:not(.cell-check):not(.cell-cleared)` padding rule. */
+.register-table .entry-body .entry-row.split-remaining td.split-remaining-number {
+  padding-right: 5px;
   color: var(--labelPrimary);
 }
 .entry-footer-button.entry-split-button {
   background: var(--buttonSecondaryBackground);
+}
+/* Source hover: --buttonSecondaryBackgroundActive (dark rgba(117,131,255,.27)). */
+.entry-split-button:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundActive);
 }
 
 /* "Something Doesn't Add Up" */

@@ -154,7 +154,7 @@ lines never feed it (their payee is optional and their category is one part of a
 
 - **Start**: the footer's Split, or `s`/`S` (no modifier, not typing, no modal) with one saved row selected and
   nothing open, on-plan, not reconciled, not a transfer, not a credit Starting Balance. Category cleared, two empty
-  lines, focus in line 1's payee. `S` on a saved split opens it. Split is disabled (title "A transfer cannot be
+  lines, focus in the parent row's memo, no list open (source, polish P6). `S` on a saved split opens it. Split is disabled (title "A transfer cannot be
   split") on a transfer draft. No "Keyboard Tip" toast (note 9).
 - **Editor** (`SplitLines.tsx`): parent category `Split (Multiple Categories)...` (picking a category drops the
   lines); per line: blank cells, ⊖ (aria-label "Remove split") in DATE, payee (no transfers), category (no footer),

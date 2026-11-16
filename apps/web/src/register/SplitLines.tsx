@@ -121,12 +121,13 @@ export function SplitLines({
       ))}
       <tr className="entry-row split-remaining is-checked">
         {lead_}
-        <td colSpan={showCategory ? 3 : 2}>
+        <td className="split-add-cell">
           <button type="button" className="split-add" onClick={onAdd}>
             <PlusCircleIcon width={12} height={12} />
             <span>Add another split</span>
           </button>
         </td>
+        <td colSpan={showCategory ? 2 : 1} />
         <td className="split-remaining-label">Amount remaining to assign:</td>
         <td className="num split-remaining-number" data-field="remaining-outflow">
           {num(remaining.outflow)}
