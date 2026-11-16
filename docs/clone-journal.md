@@ -4941,3 +4941,61 @@ and that is the one I quote.)
 
 Ticket writes: 0. Review cadence: Build 9, Deploy 5, Discover 2, Test user flow 5. **This round's review
 is a check-in.**
+
+### 2026-11-16 · Review round 60 (check-in)
+
+Children used 71 of 200. One child ended: the transfers and splits Build. One is open: the targets Build,
+**still parked (`infra_failed` at `checks`, one card open, not delivered to me)**, now for about
+15 minutes.
+
+**Ended: the transfers and splits Build (`p_ed951d9308614f88bc3289bed3b27d78`), merged as `6c73a00`
+(PR #31)**, 2 hours 26 minutes, four cards, about 16 dollars. EXF-526 and EXF-524 are Done, with comments.
+
+- Cards: Regate (base moved), Request changes (the Net Worth sum counted a split twice: my brief's bounds
+  left that file out), Regate (base moved again: account editing), Approve (gate on `4e3eb7a`, e2e 232 of
+  232 three times, the changed specs ten times, no flake).
+- On main: migration `20261116100500_transfers_splits.sql` (`transfer_account_id`,
+  `transfer_transaction_id`, `parent_transaction_id`, `split_index`); `services/transaction-pairs.ts`,
+  `transaction-splits.ts`; `packages/schema/src/transfers.ts`, `split.ts`; tool `create_transfer`; the split
+  editor in the register; transfer payees derived when payees are read; `e2e/transfers.spec.ts`,
+  `splits.spec.ts`; `realClick` in `e2e/support/register-seed.ts` waits for the control to stop moving.
+- **I was wrong at the last card about one thing:** the list of every reader of `transactions` does exist.
+  The Implementer wrote it in its rework report (a table: balances, month activity, list and detail
+  reads, payee last-category, `monthlySums`, category history and delete guards, category reassign, latest
+  reconciled date). The Tester's note only said the Tester had not checked it. The list was made before
+  account editing merged, so it lacks the one reader that is wrong now: `repositories/accounts.ts` line
+  183, the balance guard. That is EXF-593.
+- Its Reviewer found a real defect before my first card (re-pointing a transfer wrote false history rows);
+  fixed with a test of the exact rows.
+- For the Build template review: two Regates only because main moved under a long Build; the Designer
+  viewed the source in the light theme against the brief and set it back; the Implementer ran `git fetch`
+  once; a gate flake came from the Build's own new spec (a real-mouse click on a moving footer) and was
+  fixed in the spec.
+
+**Main is `6c73a00`; live is `4e3eb7a`.** One merge is not live: transfers and splits, one migration.
+**It is not deployed until EXF-593 has merged**: on main now, adjusting the balance of, or closing, an
+account that holds a split would be refused, because the guard counts the split twice.
+
+**The targets Build**: code finished (head `972ece4`, PR #33 open), parked by the platform. No card has
+come in two turns. Next plan: start an ordinary carry-over Build from its branch if it is still parked;
+its files (the Plan page, months, targets, `packages/core/src/targets.ts`) stay held until then.
+
+**The Build template review is due:** ten Builds have finished since round 40.
+
+**Check-in sent** (round 60). Its points: what went live since round 50 (Reflect with Net Worth, account
+linking through the API, the Plan page's selection, panel and inspector, account editing; 50 tools);
+transfers and splits merged but held back for EXF-593, and why; the parked targets Build; flows 1, 2, 5,
+8; the child budget (71 used, about 86 more expected); the same four requests as before (the bank
+screens, the stored captures of two Threads, the Plaid dashboard settings, no real bank yet).
+
+**Ticket writes:** 4 (two Done, two comments).
+
+**Backlog:** 68 open feature tickets (28 done; 2 in progress: EXF-508, EXF-514). Gap: EXF-593 (High, now
+unblocked); EXF-587, EXF-588, EXF-590 (Medium); EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 (Low); in
+progress EXF-592. Template: twenty-six (EXF-573 Urgent). Flow verdicts: 1 `parity_known_gaps`,
+2 `new_gaps`, 5 `parity_known_gaps`, 8 `new_gaps`, 9 `new_gaps` (gap fixed, rerun owed), 10 `new_gaps`,
+11 `parity`; 3, 4, 6, 7 not run (not built). Finished since each template's last review: **Build 10**,
+Deploy 5, Discover 2, Test user flow 5.
+
+**Next plan:** (1) the EXF-593 Build with EXF-590 and EXF-587; (2) beside it the Reflect Build (EXF-549,
+EXF-588, EXF-591); (3) the Build template review; (4) targets: the carry-over if still parked.
