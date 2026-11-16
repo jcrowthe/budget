@@ -1,5 +1,5 @@
 import type { TargetBehavior } from "@budget/schema/targets";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CaretDownIcon, CheckCircleFillIcon } from "../icons";
 import { Popover } from "../Popover";
 
@@ -27,6 +27,7 @@ export function BehaviorDropdown({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const selfId = useId();
   const button = useRef<HTMLButtonElement>(null);
   const shown = options.find((o) => o.value === value) ?? options[0];
   const close = () => {
@@ -37,11 +38,12 @@ export function BehaviorDropdown({
     <>
       <button
         ref={button}
+        id={selfId}
         type="button"
         className="target-dropdown"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-labelledby={labelId}
+        aria-labelledby={`${labelId} ${selfId}`}
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
