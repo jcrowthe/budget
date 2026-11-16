@@ -4,7 +4,10 @@ import type { Db } from "../db/client";
 import { payees } from "../db/schema/payees";
 
 export type PayeeRow = typeof payees.$inferSelect;
-export type PayeeListRow = PayeeRow & { lastCategoryId: string | null };
+export type PayeeListRow = PayeeRow & {
+  lastCategoryId: string | null;
+  lastInflowToReadyToAssign: boolean;
+};
 
 /** Non-deleted payees of the plan, with the category of each one's latest transaction. */
 export async function listForPlan(
@@ -14,19 +17,25 @@ export async function listForPlan(
 ): Promise<PayeeListRow[]> {
   const conds = [eq(payees.budgetId, budgetId), isNull(payees.deletedAt)];
   if (!opts.includeHidden) conds.push(eq(payees.hidden, false));
+  const latestId = sql`(select t.id from transactions t
+        where t.payee_id = payees.id and t.deleted_at is null and t.parent_transaction_id is null
+        and not exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null)
+        order by t.date desc, t.created_at desc, t.id desc limit 1)`;
   const rows = await db
     .select({
       p: payees,
       live: sql<
         string | null
-      >`(select c.id from categories c where c.id = (select t.category_id from transactions t
-        where t.payee_id = payees.id and t.deleted_at is null and t.parent_transaction_id is null
-        and not exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null)
-        order by t.date desc, t.created_at desc, t.id desc limit 1) and c.deleted_at is null)`,
+      >`(select c.id from categories c where c.id = (select category_id from transactions where id = ${latestId}) and c.deleted_at is null)`,
+      rta: sql<number>`case when payees.system is null then coalesce((select inflow_to_ready_to_assign from transactions where id = ${latestId}), 0) else 0 end`,
     })
     .from(payees)
     .where(and(...conds));
-  return rows.map((r) => ({ ...r.p, lastCategoryId: r.live ?? null }));
+  return rows.map((r) => ({
+    ...r.p,
+    lastCategoryId: r.live ?? null,
+    lastInflowToReadyToAssign: Number(r.rta) === 1,
+  }));
 }
 
 export async function findActive(

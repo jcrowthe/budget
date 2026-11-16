@@ -9,6 +9,7 @@ export function AccountField({
   disabled,
   title,
   startOpen,
+  currentName,
   onChange,
 }: {
   accounts: Account[];
@@ -16,9 +17,11 @@ export function AccountField({
   disabled?: boolean;
   title?: string;
   startOpen?: boolean;
+  /** Shown when `value` is not among `accounts` (a closed account an existing row stays in). */
+  currentName?: string;
   onChange: (id: string) => void;
 }) {
-  const current = accounts.find((a) => a.id === value)?.name ?? "";
+  const current = accounts.find((a) => a.id === value)?.name ?? currentName ?? "";
   const [typed, setTyped] = useState<string | null>(null);
   const needle = (typed ?? "").trim().toLowerCase();
   const items = accounts.filter((a) => a.name.toLowerCase().includes(needle));

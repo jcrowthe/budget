@@ -7,6 +7,7 @@ const p = (name: string, over: Partial<Payee> = {}): Payee => ({
   hidden: false,
   system: null,
   last_category_id: null,
+  last_inflow_to_ready_to_assign: false,
   transfer_account_id: null,
   ...over,
 });

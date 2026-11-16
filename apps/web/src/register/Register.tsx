@@ -23,17 +23,22 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "N" || !e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented)
         return;
+      if (account?.closed) return;
       if (isTyping(e.target) || document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       openAdd();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openAdd]);
+  }, [openAdd, account?.closed]);
 
   return (
     <section className="register" aria-label="Register">
-      <RegisterToolbar name={account?.name ?? "All Accounts"} onAdd={() => openAdd()} />
+      <RegisterToolbar
+        name={account?.name ?? "All Accounts"}
+        onAdd={() => openAdd()}
+        closed={account?.closed === true}
+      />
       <RegisterTable
         budgetId={budgetId}
         account={account}

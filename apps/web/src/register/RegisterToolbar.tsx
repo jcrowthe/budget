@@ -1,7 +1,15 @@
 import { CaretDownIcon, FileUpIcon, PlusCircleIcon, RedoIcon, SearchIcon, UndoIcon } from "./icons";
 
 // Drawn, not wired: each button names the ticket that attaches its behaviour.
-export function RegisterToolbar({ name, onAdd }: { name: string; onAdd: () => void }) {
+export function RegisterToolbar({
+  name,
+  onAdd,
+  closed = false,
+}: {
+  name: string;
+  onAdd: () => void;
+  closed?: boolean;
+}) {
   return (
     <div className="register-toolbar" role="toolbar" aria-label="Register toolbar">
       <div className="toolbar-group left">
@@ -11,6 +19,7 @@ export function RegisterToolbar({ name, onAdd }: { name: string; onAdd: () => vo
           title="Add new transaction"
           data-ticket="EXF-517"
           onClick={onAdd}
+          disabled={closed}
         >
           <PlusCircleIcon />
           Add Transaction
@@ -20,6 +29,7 @@ export function RegisterToolbar({ name, onAdd }: { name: string; onAdd: () => vo
           className="toolbar-button"
           title="Import transactions from a bank file."
           data-ticket="EXF-531"
+          disabled={closed}
         >
           <FileUpIcon />
           File Import

@@ -4,6 +4,7 @@ import { accounts } from "../db/schema/accounts";
 import { bankAccounts } from "../db/schema/bank-accounts";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
+import { countsInBalance } from "./transactions";
 
 export type AccountRow = typeof accounts.$inferSelect;
 
@@ -156,7 +157,7 @@ export async function transactionFacts(
   budgetId: string,
   accountId?: string,
 ): Promise<Map<string, { count: number; startingId: string | null }>> {
-  const conds = [eq(transactions.budgetId, budgetId), isNull(transactions.deletedAt)];
+  const conds = [eq(transactions.budgetId, budgetId), countsInBalance()];
   if (accountId) conds.push(eq(transactions.accountId, accountId));
   const rows = await db
     .select({
@@ -180,14 +181,14 @@ export function transactionExistsStmt(db: Db, id: string) {
 
 /** A condition: the account's active transactions sum to `amount`. */
 export function accountSumIs(accountId: string, amount: number): SQL {
-  return sql`(select coalesce(sum(${transactions.amount}), 0) from ${transactions} where ${transactions.accountId} = ${accountId} and ${transactions.deletedAt} is null) = ${amount}`;
+  return sql`(select coalesce(sum(${transactions.amount}), 0) from ${transactions} where ${transactions.accountId} = ${accountId} and ${countsInBalance()}) = ${amount}`;
 }
 
 /** A condition: the account has no active transaction other than `exceptId`. */
 export function noOtherTransactions(accountId: string, exceptId: string | null): SQL {
   return exceptId === null
-    ? sql`not exists (select 1 from ${transactions} where ${transactions.accountId} = ${accountId} and ${transactions.deletedAt} is null)`
-    : sql`not exists (select 1 from ${transactions} where ${transactions.accountId} = ${accountId} and ${transactions.deletedAt} is null and ${transactions.id} <> ${exceptId})`;
+    ? sql`not exists (select 1 from ${transactions} where ${transactions.accountId} = ${accountId} and ${countsInBalance()})`
+    : sql`not exists (select 1 from ${transactions} where ${transactions.accountId} = ${accountId} and ${countsInBalance()} and ${transactions.id} <> ${exceptId})`;
 }
 
 /** A condition: no other non-deleted account of the plan has this name, ignoring ASCII case. */
@@ -329,7 +330,7 @@ export async function latestReconciledDate(db: Db, accountId: string): Promise<s
       and(
         eq(transactions.accountId, accountId),
         eq(transactions.cleared, "reconciled"),
-        isNull(transactions.deletedAt),
+        countsInBalance(),
       ),
     );
   return r?.d ?? null;

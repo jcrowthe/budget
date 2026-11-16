@@ -51,16 +51,17 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
 }
 
 /** Per account: the sum of cleared (and reconciled) and of uncleared active transactions. */
+/** A row that counts in an account's balance: not deleted and not a split line. Usable in `where()` and in raw `sql`. */
+export function countsInBalance(): SQL {
+  return and(isNull(transactions.deletedAt), isNull(transactions.parentTransactionId)) as SQL;
+}
+
 export async function balancesByAccount(
   db: Db,
   budgetId: string,
   accountId?: string,
 ): Promise<Map<string, { cleared: number; uncleared: number }>> {
-  const conds = [
-    eq(transactions.budgetId, budgetId),
-    isNull(transactions.deletedAt),
-    isNull(transactions.parentTransactionId),
-  ];
+  const conds = [eq(transactions.budgetId, budgetId), countsInBalance()];
   if (accountId) conds.push(eq(transactions.accountId, accountId));
   const rows = await db
     .select({
@@ -155,8 +156,7 @@ export async function openAccountsBalances(
     .where(
       and(
         eq(transactions.budgetId, budgetId),
-        isNull(transactions.deletedAt),
-        isNull(transactions.parentTransactionId),
+        countsInBalance(),
         isNull(accounts.deletedAt),
         eq(accounts.closed, false),
       ),

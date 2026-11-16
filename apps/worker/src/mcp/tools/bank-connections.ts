@@ -5,7 +5,7 @@ import {
   removeBankConnection,
   renameBankConnection,
 } from "../../services/bank-connections";
-import { Id, MONEY } from "../tool-text";
+import { Id, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const FIELDS =
@@ -14,7 +14,7 @@ const FIELDS =
 export const tools: McpToolDef[] = [
   {
     name: "list_bank_connections",
-    description: `List the bank connections (Plaid) of the plan's bank environment, with their bank accounts. Read only; no secret is ever returned. ${MONEY} Returns { bank_connections }: each with ${FIELDS}.`,
+    description: `List the bank connections (Plaid) of the plan's bank environment, with their bank accounts. Read only; no secret is ever returned. ${MONEY} Returns { bank_connections }: each with ${FIELDS}. ${timestamps(["last_synced_at", "last_reset_at", "created_at", "balance_updated_at"], ["last_synced_at", "last_reset_at", "balance_updated_at"])}`,
     inputSchema: z.object({ budget_id: Id }),
     run: async (input: { budget_id: string }, { env }) => ({
       bank_connections: await listBankConnections(env, input.budget_id),
@@ -22,7 +22,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_bank_connection",
-    description: `Get one bank connection (Plaid) of the plan's bank environment, with its bank accounts. Read only; no secret (no access token) is returned. ${MONEY} Returns { bank_connection } with ${FIELDS}. An unknown id, or one of the other environment, is an error.`,
+    description: `Get one bank connection (Plaid) of the plan's bank environment, with its bank accounts. Read only; no secret (no access token) is returned. ${MONEY} Returns { bank_connection } with ${FIELDS}. An unknown id, or one of the other environment, is an error. ${timestamps(["last_synced_at", "last_reset_at", "created_at", "balance_updated_at"], ["last_synced_at", "last_reset_at", "balance_updated_at"])}`,
     inputSchema: z.object({ budget_id: Id, bank_connection_id: Id }),
     run: async (input: { budget_id: string; bank_connection_id: string }, { env }) => ({
       bank_connection: await getBankConnection(env, input.budget_id, input.bank_connection_id),
@@ -30,7 +30,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "rename_bank_connection",
-    description: `Change the nickname of a bank connection. At most 100 characters; a blank nickname uses the bank's own name; an unchanged nickname writes nothing. No secret (no access token) is returned. ${MONEY} Returns { bank_connection } as get_bank_connection does, with the new nickname.`,
+    description: `Change the nickname of a bank connection. At most 100 characters; a blank nickname uses the bank's own name; an unchanged nickname writes nothing. No secret (no access token) is returned. ${MONEY} Returns { bank_connection } as get_bank_connection does, with the new nickname. ${timestamps(["last_synced_at", "last_reset_at", "created_at", "balance_updated_at"], ["last_synced_at", "last_reset_at", "balance_updated_at"])}`,
     inputSchema: z.object({ budget_id: Id, bank_connection_id: Id, nickname: z.string().max(100) }),
     run: async (
       input: { budget_id: string; bank_connection_id: string; nickname: string },

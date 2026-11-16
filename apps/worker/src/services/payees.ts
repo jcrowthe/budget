@@ -14,13 +14,18 @@ import { TransactionRefused } from "./transactions";
 
 type Db = ReturnType<typeof getDb>;
 
-export function payeeToApi(row: payeesRepo.PayeeRow, lastCategoryId: string | null = null): Payee {
+export function payeeToApi(
+  row: payeesRepo.PayeeRow,
+  lastCategoryId: string | null = null,
+  lastInflow = false,
+): Payee {
   return {
     id: row.id,
     name: row.name,
     hidden: row.hidden,
     system: row.system,
     last_category_id: lastCategoryId,
+    last_inflow_to_ready_to_assign: lastInflow,
     transfer_account_id: null,
   };
 }
@@ -43,10 +48,14 @@ export async function listPayees(
     hidden: false,
     system: null,
     last_category_id: null,
+    last_inflow_to_ready_to_assign: false,
     transfer_account_id: a.id,
   }));
   const needle = opts.q?.toLowerCase() ?? "";
-  return [...rows.map((r) => payeeToApi(r, r.lastCategoryId)), ...transfers]
+  return [
+    ...rows.map((r) => payeeToApi(r, r.lastCategoryId, r.lastInflowToReadyToAssign)),
+    ...transfers,
+  ]
     .filter((r) => needle === "" || r.name.toLowerCase().includes(needle))
     .sort(compareNames);
 }

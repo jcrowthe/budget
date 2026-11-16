@@ -77,6 +77,7 @@ export const payeeList = async (request: APIRequestContext, plan: string) =>
     hidden: boolean;
     system: string | null;
     last_category_id: string | null;
+    last_inflow_to_ready_to_assign: boolean;
   }[];
 
 /**
