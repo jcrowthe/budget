@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { accountBalance, accountRows, rewriteList, seedBulk } from "./support/bulk-seed";
-import { call, realClick } from "./support/register-seed";
+import { call, realClick, TODAY } from "./support/register-seed";
+import { mmddyyyy } from "./support/scheduled-seed";
 
 const rowOf = (page: Page, payee: string) =>
   page.locator(".register-table tbody tr[data-tx]").filter({ hasText: payee });
@@ -215,9 +216,12 @@ test("a tracking account row cannot take a category: the refusal is readable (Le
       .getByRole("menu", { name: "Move to Account", exact: true })
       .getByRole("menuitem", { name: "ZZ Asset", exact: true }),
   );
-  await expect(page.getByRole("alert").filter({ hasText: "tracking account" })).toContainText(
-    "ZZ Asset is a tracking account: its transactions take no category",
+  // EXF-637: the alert names the row (payee, date, amount), never its id.
+  const alert = page.getByRole("alert").filter({ hasText: "tracking account" });
+  await expect(alert).toHaveText(
+    `ZZ Fee on ${mmddyyyy(TODAY)} (-$4.50): ZZ Asset is a tracking account, so its transactions can't have a category. Remove the category first.`,
   );
+  expect(await alert.textContent()).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
   await expect(rowOf(page, "ZZ Fee")).toHaveCount(1);
   expect((await accountRows(request, s.plan, s.checking)).some((t) => t.id === s.fee)).toBe(true);
 });
@@ -403,6 +407,8 @@ test("the More menu for one row and for several (Lead)", async ({ page, request 
     "DuplicateshiftD",
     "Make RepeatingshiftT",
     "Memo...",
+    // EXF-636 (departure from EXF-520): All Accounts lists Move to Account too.
+    "Move to Account",
     "Export 1 Transaction",
     "Deletedelete",
   ]);
@@ -419,6 +425,6 @@ test("the More menu for one row and for several (Lead)", async ({ page, request 
   await openMore(page);
   await expect(moreItem(page, "Make Repeating")).toHaveCount(0);
   await expect(moreItem(page, "Export 2 Transactions")).toBeVisible();
-  // All Accounts never offers Move to Account.
-  await expect(moreItem(page, "Move to Account")).toHaveCount(0);
+  // EXF-636 (departure from EXF-520): All Accounts offers Move to Account too.
+  await expect(moreItem(page, "Move to Account")).toHaveCount(1);
 });

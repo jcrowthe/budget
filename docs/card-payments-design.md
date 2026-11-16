@@ -293,3 +293,23 @@ assigned 335000 in Nov. Worker amounts are in milliunits.
 touches: [packages/schema/src/card-payments.ts, packages/schema/src/register-selection.ts, packages/schema/src/payees.ts, packages/schema/test/card-payments.test.ts, packages/schema/test/register-selection.test.ts, packages/schema/test/payees.test.ts, apps/worker/src/services/card-payments.ts, apps/worker/src/routes/card-payments.ts, apps/worker/src/mcp/tools/card-payments.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/transactions-bulk.ts, apps/worker/src/services/transaction-splits.ts, apps/worker/src/services/scheduled-transactions.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/test/card-payments.test.ts, apps/worker/test/own-payment-category.test.ts, apps/worker/test/bulk-call-count.test.ts, apps/worker/test/bulk-helpers.ts, apps/worker/test/transactions-bulk-rules.test.ts, apps/worker/test/mcp-coverage/accounts.ts, apps/worker/test/mcp-timestamps.test.ts, apps/web/src/account/**, apps/web/src/register/**, e2e/card-payments.spec.ts, e2e/register-range.spec.ts, e2e/register-bulk.spec.ts, e2e/support/card-seed.ts, docs/card-payments-design.md, docs/card-payments-spec.md, docs/card-payments-polish.md, docs/README.md]
 shared: []
 migrations: 0
+
+## Build notes
+
+Measured by `apps/worker/test/bulk-call-count.test.ts`:
+- `payCreditCard`: 10 calls with `amount`, 18 without (the design estimated about 9 and 17: `createTransfer` re-reads the
+  plan and both accounts). Equal for 1 card / 10 rows and 4 cards / 100 rows.
+- Bulk move: equal for 10 rows of one account and 100 rows of three (splits and transfers in both), and for plain rows
+  alone. Plain rows make one call fewer than rows with transfers or splits, at either size.
+- Approve: 7 calls (was 8). Categorize targets a second category and stays equal at 10 and 100 rows.
+
+Departures:
+- **The toolbar threshold** is a container query at 900px of the toolbar's own width: File Import, Undo and Redo keep
+  their icon, name and title and hide their text. At 1024×700 the toolbar fits with Record Payment; at 1440 nothing hides.
+- **Sub-list differences.** `Reads.categories` carries `kind` and `accountId`; the scheduled update also checks the
+  category when only the account changes.
+- **Existing assertions changed** (the tickets require it): `register-bulk.spec.ts` (Move to Account on All Accounts,
+  in the menu list and in the tracking refusal text, which names `ZZ Fee on <date> (-$4.50)` for the seed's -4.50 row),
+  `transactions-bulk-rules.test.ts` (new reason text), `register-selection.test.ts` (`move` true on "all").
+- `extend` returns the cursor's id (the design said `void`), so the bar can scroll that row into view.
+- The 1024×700 spec pays the card twice what was spent, so the pill reads `-$12,345.67` (the widest figure).
