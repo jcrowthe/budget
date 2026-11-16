@@ -395,6 +395,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | live `74f1041` (14 minutes) |
 | 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
 | 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | running |
+| 2026-11-16 | 56 | Build feature, EXF-508, EXF-514, EXF-592 targets form and display (`p_74b956498a4b4ce1bed94c516291a48f`) | EXF-508, 514, 592 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4590,3 +4591,35 @@ EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low), one new Low
 EXF-586. Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 9 and 10 `new_gaps`
 (9's fix merged, not live), 11 `parity`, 8 and 5 running. Finished since each template's last review:
 Build 8, Deploy 3, Discover 2, Test user flow 4.
+
+### 2026-11-16 · Plan round 56
+
+Children used 69 of 200. Four are running: two Builds from earlier rounds (EXF-526 with EXF-524, review
+fixes; EXF-486 with EXF-488, dialogs built), the flow test for flows 8 and 5, and one Build started now.
+
+- The ticket filed at the last review exists: **EXF-592** (two selection behaviours), set to Low and put
+  into the Build below.
+- **Started EXF-508 with EXF-514 and EXF-592** (`p_74b956498a4b4ce1bed94c516291a48f`): the target form in
+  the inspector and the target's display in the grid and the inspector.
+  - The engine and the services `setTarget` and `deleteTarget` exist (EXF-511); the Build adds
+    `PUT` and `DELETE .../categories/{category_id}/target`, the tools `set_category_target` and
+    `delete_category_target`, the form and the display.
+  - **The owner's date decides:** the month and summary reads and the target write take `today`; a test
+    for the last evening of a month behind UTC.
+  - Every string of EXF-514 in one pure module with a table of unit tests.
+  - It may change `packages/core/src/targets.ts` and its test, nothing else in core (no other Build may
+    touch core now).
+  - Left out: snooze (EXF-516), Auto-Assign and Underfunded (EXF-519), filters (EXF-500), upcoming
+    transactions (EXF-505), card payment targets (EXF-538).
+  - Source: limited to the test plan's Plan page: select a category, press Create Target, look at the
+    unsaved form, Cancel. Never Save Target; never the plan menu, Bank Connections, Add Account, an
+    account or another plan. Saved target states cannot be seen there: the tickets are the specification.
+- **Scheduling rule, three Builds:** the Plan page with months, categories, targets and `core/targets.ts`;
+  transactions, payees and the register; accounts and the shell. Disjoint by brief.
+- **No Deploy this round:** main `113ced4` is one merge ahead of live (the Plan-page Build, one migration).
+  A flow test is on live now; a release under it could change pages mid-step. Deploy when it has ended,
+  with the transfers and splits Build if that has merged by then.
+- Ticket writes: 6 (three to In Progress, one priority, three comments).
+- Review cadence: Build 8, Deploy 3, Discover 2, Test user flow 4. **Two more Builds and the Build
+  template review is due**: its notes should lead with the Refresh-then-Regate cost of the docs index
+  line (four Builds, two to four cards each) and with the source limits that have held since round 40.
