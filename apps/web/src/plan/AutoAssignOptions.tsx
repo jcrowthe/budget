@@ -9,7 +9,7 @@ import {
 } from "@budget/schema/auto-assign";
 import { VIEW_NO_CATEGORIES, viewCategories } from "@budget/schema/plan-views";
 import { type AutoAssignScope, useAutoAssign, useAutoAssignPreview } from "../api/autoAssign";
-import { useMonth } from "../api/months";
+import { useCachedMonth } from "../api/months";
 import { money } from "./format";
 
 /**
@@ -29,7 +29,7 @@ export function AutoAssignOptions({
   onViewAll: () => void;
   onApplied?: () => void;
 }) {
-  const detail = useMonth(budgetId, month).data;
+  const detail = useCachedMonth(budgetId, month).data;
   const preview = useAutoAssignPreview(budgetId, month, scope).data;
   const { apply, busy, failed } = useAutoAssign(budgetId, month);
   // The rows come from the cached month through the same pure function as the preview (EXF-616, EXF-624): the

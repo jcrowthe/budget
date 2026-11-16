@@ -218,12 +218,16 @@ describe("autoAssignOptions", () => {
     expect(one).toContain("Reset Available Amount");
     expect(one).toContain("Reset Assigned Amount");
   });
-  it("EXF-624: Underfunded and Reduce Overfunding are hidden at 0 in every scope", () => {
+  it("EXF-624 (reversed after the source was seen): Underfunded shows at 0 for many, hides for one and payment; Reduce Overfunding hides at 0 everywhere", () => {
     const zero = { ...p, underfunded: 0, reduce_overfunding: 0 };
+    expect(autoAssignOptions(zero, "many").map((x) => x.label)).toContain("Underfunded");
+    for (const scope of ["one", "payment"] as const) {
+      expect(autoAssignOptions(zero, scope).map((x) => x.label)).not.toContain("Underfunded");
+    }
     for (const scope of ["many", "one", "payment"] as const) {
-      const labels = autoAssignOptions(zero, scope).map((x) => x.label);
-      expect(labels).not.toContain("Underfunded");
-      expect(labels).not.toContain("Reduce Overfunding");
+      expect(autoAssignOptions(zero, scope).map((x) => x.label)).not.toContain(
+        "Reduce Overfunding",
+      );
     }
     const shown = autoAssignOptions({ ...p, reduce_overfunding: 5000 }, "many").map((x) => x.label);
     expect(shown).toContain("Underfunded");

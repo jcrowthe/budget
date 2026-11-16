@@ -391,3 +391,6 @@
 .panel-card:has(> .card-roll-up[aria-controls="panel-for-payment"]) .card-roll-up {
   padding: 16px 8px 16px 16px;
 }
+.payment-card-body > .panel-card-title {
+  margin-bottom: 12px;
+}

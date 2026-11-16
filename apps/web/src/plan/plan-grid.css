@@ -202,11 +202,35 @@
    rest; the Available column keeps the width of its widest pill. */
 .plan-body[data-narrow] .cell-assigned {
   padding-left: 4px;
-  min-width: 5.75rem;
+  width: var(--col-assigned, 5.75rem);
+  min-width: 0;
 }
 .plan-body[data-narrow] .cell-activity {
   padding-left: 4px;
-  min-width: 5.25rem;
+  width: var(--col-activity, 5.25rem);
+  min-width: 0;
+}
+/* The outer margins and the header paddings give way too: the name column gets every pixel left. */
+.plan-body[data-narrow] .cell-margin:first-child,
+.plan-body[data-narrow] .cell-margin:last-child {
+  width: 8px;
+}
+.plan-body[data-narrow] .header-row .cell-assigned,
+.plan-body[data-narrow] .group-row .cell-assigned {
+  padding-left: 4px;
+}
+.plan-body[data-narrow] .header-row .cell-available,
+.plan-body[data-narrow] .group-row .cell-available {
+  padding-left: 4px;
+}
+/* The Available column takes the width of the month's widest pill (columnWidths.ts) instead of a fixed 7.5rem;
+   the pill stays whole (EXF-535 case 23). */
+.plan-body[data-narrow] .cell-available {
+  width: var(--col-available, 7.5rem);
+  min-width: 0;
+}
+.plan-body[data-narrow] .category-row:not(.uncategorized-row) .assigned-box {
+  width: 100%;
 }
 
 .header-row {

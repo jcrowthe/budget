@@ -64,9 +64,8 @@ for (const size of SIZES) {
     test("11. the card in its three states", async ({ page }) => {
       await openPlan(page, s);
       const card = autoCard(page);
-      // EXF-624 (departure from the case as written): Underfunded at $0.00 is hidden, so the plan-wide list starts
-      // with Assigned Last Month.
       const plan = [
+        "Underfunded",
         "Assigned Last Month",
         "Spent Last Month",
         "Average Assigned",
@@ -75,7 +74,7 @@ for (const size of SIZES) {
         "Reset Assigned Amounts",
       ];
       await expect(optionLabels(card)).toHaveText(plan);
-      await expect(option(card, "Underfunded")).toHaveCount(0);
+      await expect(option(card, "Underfunded")).toContainText("$0.00");
       await expect(option(card, "Reduce Overfunding")).toHaveCount(0);
       // Source (live Plan page, 1600x813): buttons 32px tall, 2px between them, 16px between groups.
       const boxes = await card.locator("button.auto-assign-option").evaluateAll((els) =>
@@ -85,10 +84,9 @@ for (const size of SIZES) {
         }),
       );
       expect(boxes.every((b) => Math.round(b.h) === 32)).toBe(true);
-      expect(Math.round((boxes[1]?.top ?? 0) - (boxes[0]?.bottom ?? 0))).toBe(2);
+      expect(Math.round((boxes[1]?.top ?? 0) - (boxes[0]?.bottom ?? 0))).toBe(16);
       expect(Math.round((boxes[2]?.top ?? 0) - (boxes[1]?.bottom ?? 0))).toBe(2);
-      expect(Math.round((boxes[3]?.top ?? 0) - (boxes[2]?.bottom ?? 0))).toBe(2);
-      expect(Math.round((boxes[4]?.top ?? 0) - (boxes[3]?.bottom ?? 0))).toBe(16);
+      expect(Math.round((boxes[5]?.top ?? 0) - (boxes[4]?.bottom ?? 0))).toBe(16);
       await expect(option(card, "Average Assigned")).toHaveAttribute(
         "title",
         "Feeling average? Fund all of your categories with your historical average assigned.",
@@ -105,6 +103,7 @@ for (const size of SIZES) {
         "title",
         "Reset all assigned amounts for this month, in case you want a do-over.",
       );
+      await expect(option(card, "Underfunded")).not.toHaveAttribute("title", /./);
       await check(page, RENT);
       await expect(optionLabels(card)).toHaveText([
         "Assigned Last Month",
@@ -320,9 +319,7 @@ for (const size of SIZES) {
       release();
       await expect(assignedBox(page, RENT)).toHaveText("$100.00");
       await expect(assignedBox(page, PHONE)).toHaveText("$100.00");
-      // EXF-624: once applied, Underfunded is $0.00 and its button is gone; the others are enabled again.
-      await expect(b).toHaveCount(0);
-      await expect(option(autoCard(page), "Assigned Last Month")).toBeEnabled();
+      await expect(b).toBeEnabled();
       expect(posts).toBe(1);
       for (const name of [RENT, PHONE]) {
         await expect

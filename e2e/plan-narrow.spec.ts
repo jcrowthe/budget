@@ -21,12 +21,12 @@ import { realClick } from "./support/real-click";
 test.use({ timezoneId: "UTC", viewport: { width: 1024, height: 700 } });
 const { at, today } = fixedClock();
 const PREV = monthIso(-1);
-const RENT = "ZZ Rent";
-const PHONE = "ZZ Phone";
-const MISC = "ZZ Misc";
-const DINING = "ZZ Dining";
-const VISA = "ZZ Visa";
-const CARD = "ZZ Card";
+const RENT = "Rent/Mortgage";
+const PHONE = "Groceries";
+const MISC = "Fun Money";
+const DINING = "Dining Out";
+const VISA = "Visa Rewards";
+const CARD = "Store Card";
 
 type Seed = { id: string; cat: Record<string, string> };
 
@@ -52,7 +52,7 @@ async function seed(request: APIRequestContext): Promise<Seed> {
   // Owes 2,560.00 since last month, with 1,200.00 assigned to its payment last month: Underfunded 1,360.00.
   await open(CARD, "creditCard", 2560000, `${PREV.slice(0, 8)}02`);
   const { category_group: g } = await call(request, "post", `${base}/category_groups`, {
-    name: "ZZ Bills",
+    name: "Monthly Bills",
   });
   const cat: Record<string, string> = {};
   for (const name of [RENT, PHONE, MISC, DINING]) {
@@ -221,27 +221,54 @@ test("21. a name keeps its first word, the target text gives way, the pill stays
   await open(page);
   await page.screenshot({ path: ".screenshots/narrow-rows.png" });
   const grid = page.locator(".plan-grid");
-  for (const name of [RENT, PHONE]) {
-    const r = row(page, name);
+  // Every category row of the plan, with and without target text: at least the first word of the name is whole
+  // (a Range over it fits the name's content box), no amount is cut and the pill is whole.
+  const rows = page.locator(".category-row:not(.uncategorized-row)");
+  const count = await rows.count();
+  expect(count).toBeGreaterThan(8);
+  let withTarget = 0;
+  for (let i = 0; i < count; i++) {
+    const r = rows.nth(i);
     const n = r.locator(".category-name");
-    const first = await n.evaluate((el) => {
+    const m = await n.evaluate((el) => {
       const text = el.firstChild as Text;
       const word = (text.textContent ?? "").split(" ")[0] ?? "";
       const range = document.createRange();
       range.setStart(text, 0);
       range.setEnd(text, word.length);
-      return range.getBoundingClientRect().width;
+      const cs = getComputedStyle(el);
+      return {
+        name: text.textContent,
+        first: range.getBoundingClientRect().width,
+        content:
+          el.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight),
+      };
     });
-    expect(await n.evaluate((el) => el.clientWidth), `${name} first word`).toBeGreaterThanOrEqual(
-      first,
-    );
+    expect(
+      m.content,
+      `${m.name}: first word ${m.first}px in ${m.content}px`,
+    ).toBeGreaterThanOrEqual(m.first - 0.5);
     const label = r.locator(".status-label");
-    const [nb, lb] = await Promise.all([n.boundingBox(), label.boundingBox()]);
-    expect((lb?.x ?? 0) + 0.5).toBeGreaterThanOrEqual((nb?.x ?? 0) + (nb?.width ?? 0));
-    await expect(label).toHaveAttribute("title", /.+/);
-    const p = r.locator(".available-pill");
-    expect(await p.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+    if ((await label.count()) > 0) {
+      withTarget++;
+      const [nb, lb] = await Promise.all([n.boundingBox(), label.boundingBox()]);
+      expect((lb?.x ?? 0) + 0.5).toBeGreaterThanOrEqual((nb?.x ?? 0) + (nb?.width ?? 0));
+      await expect(label).toHaveAttribute("title", /.+/);
+    }
+    for (const sel of [".available-pill", ".assigned-box", ".cell-activity"]) {
+      expect(
+        await r
+          .locator(sel)
+          .first()
+          .evaluate((el) => el.scrollWidth - el.clientWidth),
+        `${m.name} ${sel}`,
+      ).toBeLessThanOrEqual(0);
+    }
   }
+  expect(withTarget, "rows with target text").toBeGreaterThanOrEqual(2);
+  // The group rows: the payment group's PAYMENT button and totals are whole.
+  const pay = page.locator(".group-row", { hasText: "PAYMENT" }).locator(".cell-available");
+  expect(await pay.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
   expect(await grid.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
 });
 

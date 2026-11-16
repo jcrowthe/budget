@@ -265,9 +265,9 @@ export function autoAssignHeight(options: readonly AutoAssignOption[]): number {
 }
 
 /**
- * The buttons in order, with the ones that are hidden left out. Underfunded and Reduce Overfunding are left out
- * at 0 in every scope (EXF-624); the rows are decided by `hidden` when given (the web draws them before the
- * preview arrives), else by `p`.
+ * The buttons in order, with the ones that are hidden left out. Reduce Overfunding is left out at 0 in every
+ * scope; Underfunded at 0 only for one category or one payment category (not for "many"). The rows are decided
+ * by `hidden` when given (the web draws them before the preview arrives), else by `p`.
  */
 export function autoAssignOptions(
   p: AutoAssignPreview,
@@ -344,7 +344,9 @@ export function autoAssignOptions(
     },
   ];
   return all.filter((o) => {
-    if (o.strategy === "underfunded") return decide.underfunded !== 0;
+    // EXF-624, reversed by the Lead after the source was seen: Underfunded shows at $0.00 over several categories
+    // (the plan-wide card, a view, several ticked) and hides at $0.00 for one category.
+    if (o.strategy === "underfunded") return scope === "many" || decide.underfunded !== 0;
     if (o.strategy === "reduce_overfunding")
       return scope !== "payment" && decide.reduce_overfunding !== 0;
     if (o.strategy === "spent_last_month" || o.strategy === "average_spent")

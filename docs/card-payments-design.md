@@ -142,9 +142,8 @@ Interfaces, symbols and task order are in the spec; this is the shape.
 - `MonthCategoryDetail.payment` is required: fixtures and deep-equal tests gain `payment: null`. Four tool
   descriptions gain the new fields and strategies.
 - **At 1440×900 nothing changes:** the panel stays at 33% (389 > 320), the grid is wider than 562 (not narrow) and
-  the panel does not fold. One existing 1440 expectation is reversed on purpose: `e2e/auto-assign.spec.ts` case
-  11 expects "Underfunded $0.00" with nothing ticked, the gap EXF-624 fixes. Its list and gap checks change (spec
-  T12). **This is a departure in an existing spec**, listed in the pull request.
+  the panel does not fold. `e2e/auto-assign.spec.ts` case 11 keeps expecting "Underfunded $0.00" with nothing
+  ticked: EXF-624 was reversed by the Lead after the source was seen (case 19 only gains the two new preview fields).
 - At 1024 the panel is 320 px. A spec whose 1024 numbers change lists the change as a departure.
 - `docs/credit-engine-polish.md` P7 is rewritten to say what the code does now.
 
@@ -188,8 +187,9 @@ Worker tests go through REST. Nov is 2026-11-01. "P" is the card's `payment` fro
     - An Oct transfer of 100000 into Visa: Nov `paid_last_month` 100000, and POST sets Assigned 100000.
       `average_paid` = meanCent over the Average Assigned months.
     - An ordinary category under `paid_last_month` is unchanged.
-12. **[EXF-624, unit]** `autoAssignOptions` leaves out Underfunded and Reduce Overfunding at 0 for "many", "one" and
-    "payment". The "payment" list is the seven labels above.
+12. **[EXF-624, unit; reversed by the Lead after the source was seen]** `autoAssignOptions` lists Underfunded at 0
+    for "many" and leaves it out for "one" and "payment"; Reduce Overfunding is left out at 0 for all three. The
+    "payment" list is the seven labels above.
 
 Browser specs (clock 2026-11-16, plans made through the API, `realClick`, `{ exact: true }` names) at 1440×900
 unless stated:
@@ -222,8 +222,10 @@ unless stated:
     With the preview held by `page.route`, the height while held equals the height after, and the Notes card's top
     does not move. With the Snoozed view empty, the message and View All Categories show while the preview is held,
     and a MutationObserver counts 0 `.auto-assign-option` drawn. The same holds in the Assign popover's Auto tab.
-18. **[EXF-624]** On a plan whose targets are all funded, nothing ticked: no Underfunded and no Reduce Overfunding
-    in the card or in Ready to Assign > Assign > Auto.
+18. **[EXF-624, reversed by the Lead after the source was seen]** On a plan whose targets are all funded, nothing
+    ticked: Underfunded $0.00 is listed (352 px) and Reduce Overfunding is not, in the card and in Ready to Assign >
+    Assign > Auto; with one category ticked Underfunded is hidden (304 px). Several ticked: as main did ("not
+    compared" beyond the source's 352 px with three ticked).
 19. **[EXF-623, 1024×700]** With Underfunded $1,360.00 and Assigned Last Month $1,200.00, in the plan-wide card,
     an ordinary inspector and a payment inspector, every option button:
     - is 32 px tall with `scrollHeight ≤ clientHeight`;

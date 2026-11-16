@@ -114,8 +114,11 @@ function PaymentCard({
       break;
   }
   return (
-    <section className="panel-card payment-card" aria-label="Payment">
+    <section className="panel-card payment-card" aria-labelledby="payment-card-title">
       <div className="panel-card-static payment-card-body" data-state={p.state}>
+        <h2 id="payment-card-title" className="panel-card-title">
+          Payment
+        </h2>
         {body}
       </div>
     </section>
