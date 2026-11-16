@@ -65,12 +65,21 @@ export const ExclamationCircleIcon = (p: P) => (
     />
   </svg>
 );
-/** The solid credit card of Record Payment: a filled card with a cut-out stripe and chip. */
+/** The solid credit card of Record Payment: a filled card with a chip and a row of four dashes cut out (no stripe). */
 export const SolidCardIcon = (p: P) => (
   <svg {...base} width={16} height={16} aria-hidden="true" {...p}>
     <path
       fillRule="evenodd"
-      d="M3 3h18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-1 6v2h20V9H2Zm1 6v2h3v-2H3Z"
+      d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-1.500 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-4ZM3.500 15a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Z"
+    />
+  </svg>
+);
+/** An outlined question ring (outer r12, inner r10) with a filled "?" inside: the Payment label's help icon. */
+export const QuestionRingIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm0 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 3.500a3.700 3.700 0 0 0-3.700 3.700h2a1.700 1.700 0 1 1 2.300 1.600c-.7.300-1.300 1-1.300 1.900v1.800h2.100v-1.200c0-.2.100-.3.300-.4A3.700 3.700 0 0 0 12 5.500Zm0 10.500a1.500 1.500 0 1 0 0 3 1.500 1.500 0 0 0 0-3Z"
     />
   </svg>
 );

@@ -88,7 +88,7 @@
 }
 /* Buttons that do not fit move into the toolbar's More button (source: .js-toolbar-buttons-overflow; its popup is
    backgroundTertiary, radius 6.4px, padding 16px, 232px wide, with 32px ghost buttons). */
-.toolbar-overflow-body {
+.bulk-popover-body.toolbar-overflow-body {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -823,4 +823,9 @@
   border: 0;
   background: transparent;
   cursor: default;
+}
+
+/* Source: More starts right after the divider (hr margin-left 1rem), with no margin of its own. */
+.toolbar-divider + .toolbar-more {
+  margin-left: 0;
 }

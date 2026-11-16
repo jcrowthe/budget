@@ -1,7 +1,6 @@
 import { paymentTone } from "@budget/schema/card-payments";
 import { money } from "../plan/format";
-import { QuestionCircleIcon } from "../plan/icons";
-import { ExclamationCircleIcon } from "./icons";
+import { ExclamationCircleIcon, QuestionRingIcon } from "./icons";
 import { Tooltip } from "./Tooltip";
 import { usePaymentAvailable } from "./usePaymentAvailable";
 
@@ -32,7 +31,7 @@ export function PaymentBalance({
         {(tip) => (
           // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable to show its tooltip, like the balances
           <span className="acct-label" tabIndex={0} {...tip}>
-            <QuestionCircleIcon width={12} height={12} />
+            <QuestionRingIcon />
             Payment
           </span>
         )}

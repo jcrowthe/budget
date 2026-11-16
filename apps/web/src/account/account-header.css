@@ -241,7 +241,7 @@
 .acct-payment-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25em;
   box-sizing: border-box;
   padding: 0.205rem 0.5rem 0.125rem;
   border-radius: 1000px;
@@ -329,4 +329,9 @@
 /* Source: the Selected Total carries margin-right 1rem when the Payment block follows it. */
 .acct-selected-total:not(:last-child) {
   margin-right: 1rem;
+}
+
+/* Source (measured): the icon in the negative pill has margin-left -0.2rem and margin-bottom -0.08rem. */
+.acct-payment-pill svg {
+  margin: -0.15rem 0 0 -0.2rem;
 }
