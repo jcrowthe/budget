@@ -235,9 +235,18 @@ describe("bank connections: read, rename, reset, remove", () => {
       const plan = await createPlan("sandbox");
       stubPlaid(happy({ "/item/remove": () => ({ status: 400, body: { error_code: code } }) }));
       const c = await connect(plan);
+      await patch(plan, c.id, "ZZ Gone");
       const res = await del(plan, c.id);
       expect(res.status).toBe(200);
       expect(await data(res)).toEqual({ deleted: true, plaid: "already_removed" });
+      expect(
+        await rowCount("select count(*) n from bank_accounts where bank_connection_id = ?", c.id),
+      ).toBe(0);
+      const list = (await data(await json(`${BC}${q(plan)}`))).bank_connections as Json[];
+      expect(list.some((x) => x.id === c.id)).toBe(false);
+      const last = (await logRows(c.id)).at(-1);
+      expect(last).toMatchObject({ action: "delete", after_json: null });
+      expect(last?.before_json).toContain("ZZ Gone");
       expect(await rowCount("select count(*) n from bank_connections where id = ?", c.id)).toBe(0);
       expect(
         await rowCount(
@@ -424,8 +433,17 @@ describe("bank connections: read, rename, reset, remove", () => {
 
       stubPlaid(happy());
       const sandboxConn = await connect(sandboxPlan);
-      expect((await get(prodPlan, sandboxConn.id)).status).toBe(404);
-      expect((await del(prodPlan, sandboxConn.id)).status).toBe(404);
+      const others = await Promise.all([
+        get(prodPlan, sandboxConn.id),
+        patch(prodPlan, sandboxConn.id, "ZZ Hijack"),
+        post(prodPlan, sandboxConn.id, "link-token"),
+        post(prodPlan, sandboxConn.id, "reset"),
+        del(prodPlan, sandboxConn.id),
+      ]);
+      expect(others.map((r) => r.status)).toEqual([404, 404, 404, 404, 404]);
+      const still = (await data(await get(sandboxPlan, sandboxConn.id))).bank_connection as Json;
+      expect(still.nickname).toBe(sandboxConn.nickname);
+      expect(still.last_reset_at).toBeNull();
     } finally {
       await env.DB.prepare("delete from bank_connections where id = ?").bind(prodId).run();
       await env.DB.prepare("delete from secrets where name = ?")
