@@ -378,7 +378,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding-right: 4px;
+  /* a transparent border, not padding: overflow clips at the padding box, so a label squeezed to nothing must not
+     leave a 4px window onto its text */
+  border-right: 4px solid transparent;
   color: var(--labelSecondary);
   font-size: var(--font-size-sm);
   font-weight: 500;
