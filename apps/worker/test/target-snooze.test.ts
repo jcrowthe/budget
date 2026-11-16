@@ -134,6 +134,22 @@ describe("target snooze", () => {
     expect((await s.state()).target.status).toBe("underfunded");
   });
 
+  it("two concurrent identical requests log one change", async () => {
+    const s = await seed();
+    await Promise.all([s.put(true), s.put(true)]);
+    expect(await logs(s.bid, "target_snooze")).toHaveLength(1);
+  });
+
+  it("a snooze racing a target delete leaves no snooze behind", async () => {
+    const s = await seed();
+    await Promise.all([
+      s.put(true),
+      deleteTarget(env, actor, { budget_id: s.bid, category_id: s.ids.With as string }),
+    ]);
+    await s.target("With", MONTHLY100);
+    expect((await s.state()).target_snoozed).toBe(false);
+  });
+
   it("is on the surface", async () => {
     expect(await apiPaths()).toContain(
       "/api/v1/budgets/{budget_id}/months/{month}/categories/{category_id}/target-snooze",

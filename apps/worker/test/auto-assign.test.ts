@@ -201,6 +201,24 @@ describe("auto-assign: scope and history", () => {
     ).toEqual([]);
   });
 
+  it("a plan-wide run over many categories stays within D1's parameter limit", async () => {
+    const names = Array.from({ length: 40 }, (_, i) => `Many${i}`);
+    const s = await seedPlan(names);
+    for (const n of names) await s.assign(n, NOV, 10000);
+    const r = await post(s.bid, NOV, {
+      strategy: "reset_assigned",
+      category_ids: Object.values(s.ids),
+    });
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as Json).data.changed).toHaveLength(40);
+    const rows = (await logs(s.bid, "month_category")).filter((l) =>
+      l.after_json?.includes("auto_assign"),
+    );
+    expect(rows).toHaveLength(40);
+    const plan = await post(s.bid, NOV, { strategy: "reset_assigned", view: "all" });
+    expect(plan.status).toBe(200);
+  });
+
   it("refuses both scopes, a bad strategy and unknown ids", async () => {
     const s = await seedPlan(["A"]);
     const both = { strategy: "underfunded", category_ids: [s.ids.A], view: "all" };

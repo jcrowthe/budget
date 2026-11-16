@@ -54,8 +54,10 @@ export function AutoAssignOptions({
                 disabled={busy}
                 onClick={() => {
                   if (busy) return;
-                  void apply(o.strategy, scope);
-                  onApplied?.();
+                  // The popover closes once the run succeeded; a failure stays visible under the buttons.
+                  void apply(o.strategy, scope).then((ok) => {
+                    if (ok) onApplied?.();
+                  });
                 }}
               >
                 <span>{o.label}</span>

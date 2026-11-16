@@ -4,7 +4,7 @@ import { type Target, TargetDelete, TargetSet, type TargetSnooze } from "@budget
 import { sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
-import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
+import { type ChangeLogEntry, changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
@@ -162,26 +162,44 @@ export async function setTargetSnooze(
     category_id: input.category_id,
     snoozed: input.snoozed,
   };
-  const was = await snoozesRepo.find(db, input.budget_id, input.category_id, input.month);
-  if (was === input.snoozed) return result;
-  await db.batch([
-    changeLogInsert(db, {
-      budgetId: input.budget_id,
-      actor,
-      action: "update",
-      entityType: "target_snooze",
-      entityId: `${input.category_id}:${input.month}`,
-      before: { ...result, snoozed: was },
-      after: result,
-    }),
+  const now = new Date().toISOString();
+  // One batch: the log row only while the state is still what was read AND the target still exists; the
+  // write only if that row was written. A concurrent identical request or a target delete logs nothing.
+  const [log] = await db.batch([
+    changeLogInsertIf(
+      db,
+      {
+        budgetId: input.budget_id,
+        actor,
+        action: "update",
+        entityType: "target_snooze",
+        entityId: `${input.category_id}:${input.month}`,
+        before: { ...result, snoozed: !input.snoozed },
+        after: result,
+      },
+      snoozesRepo.stateHolds(db, input.budget_id, input.category_id, input.month, input.snoozed),
+    ),
     input.snoozed
-      ? snoozesRepo.insertStmt(db, {
-          budgetId: input.budget_id,
-          categoryId: input.category_id,
-          month: input.month,
-          createdAt: new Date().toISOString(),
-        })
-      : snoozesRepo.deleteStmt(db, input.budget_id, input.category_id, input.month),
+      ? snoozesRepo.insertIfStmt(
+          db,
+          {
+            budgetId: input.budget_id,
+            categoryId: input.category_id,
+            month: input.month,
+            createdAt: now,
+          },
+          sql`changes() > 0`,
+        )
+      : snoozesRepo.deleteStmt(
+          db,
+          input.budget_id,
+          input.category_id,
+          input.month,
+          sql`changes() > 0`,
+        ),
   ]);
+  if (log.meta.changes === 0 && !(await repo.find(db, input.budget_id, input.category_id))) {
+    throw new SnoozeRefused("This category has no target to snooze.");
+  }
   return result;
 }

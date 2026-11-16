@@ -114,12 +114,13 @@ export function buildAutoAssignBatch(
     ...s,
     cell: { budgetId: v.budget_id, month: v.month, categoryId: s.id },
   }));
-  const allHold = sql`${sql.join(
-    keyed.map((s) => sql`exists ${monthCatRepo.holds(db, s.cell, s.before)}`),
-    sql` and `,
-  )}`;
-  const guard = db.select({ x: sql`1` }).from(sql`(select 1)`).where(allHold);
-  const logs = keyed.map((s) =>
+  // Every statement has a fixed number of parameters whatever the number of cells (D1 allows 100): the
+  // expected (id, before) pairs travel as ONE json parameter.
+  const expected = JSON.stringify(keyed.map((s) => ({ id: s.id, before: s.before ?? null })));
+  const allHold = sql`not exists (select 1 from json_each(${expected}) j left join month_categories m on m.budget_id = ${v.budget_id} and m.month = ${v.month} and m.category_id = json_extract(j.value, '$.id') where m.assigned is not json_extract(j.value, '$.before'))`;
+  const guardAll = db.select({ x: sql`1` }).from(sql`(select 1)`).where(allHold);
+  const guardPrev = db.select({ x: sql`1` }).from(sql`(select 1)`).where(sql`changes() > 0`);
+  const logs = keyed.map((s, i) =>
     changeLogInsertIf(
       db,
       {
@@ -136,7 +137,7 @@ export function buildAutoAssignBatch(
           auto_assign: { id: runId, strategy: v.strategy },
         },
       },
-      guard,
+      i === 0 ? guardAll : guardPrev,
     ),
   );
   const writes = keyed.map((s, i) =>

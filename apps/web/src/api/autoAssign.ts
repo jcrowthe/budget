@@ -53,7 +53,8 @@ export const useAutoAssignPreview = (
 // Busy per plan and month: from the click until the month has been read again. Shared by every Auto-Assign
 // button of that month (the card and the Assign popover), so a second click cannot apply with stale figures.
 // `at` is the month query's read count when the POST answered; null while the POST is still out.
-const busyKeys = new Map<string, { at: number | null }>();
+const busyKeys = new Map<string, { at: number | null; token: number }>();
+let runs = 0;
 const listeners = new Set<() => void>();
 const emit = () => {
   for (const l of listeners) l();
@@ -84,9 +85,10 @@ export function useAutoAssign(budgetId: string, month: Month) {
   }, [key, reads]);
 
   const apply = useCallback(
-    async (strategy: AutoAssignStrategy, scope: AutoAssignScope) => {
-      if (isBusy(key)) return;
-      busyKeys.set(key, { at: null });
+    async (strategy: AutoAssignStrategy, scope: AutoAssignScope): Promise<boolean> => {
+      if (isBusy(key)) return false;
+      const token = ++runs;
+      busyKeys.set(key, { at: null, token });
       emit();
       setFailed(false);
       const release = () => {
@@ -110,13 +112,18 @@ export function useAutoAssign(budgetId: string, month: Month) {
         setFailed(true);
         release();
         endWrite(qc, budgetId);
-        return;
+        return false;
       }
-      busyKeys.set(key, { at: qc.getQueryState(["month", budgetId, month])?.dataUpdateCount ?? 0 });
+      busyKeys.set(key, {
+        at: qc.getQueryState(["month", budgetId, month])?.dataUpdateCount ?? 0,
+        token,
+      });
       setTimeout(() => {
-        if (busyKeys.get(key)?.at !== null) release();
+        // Only this run's own entry: a later run has its own token.
+        if (busyKeys.get(key)?.token === token) release();
       }, BUSY_LIMIT_MS);
       endWrite(qc, budgetId);
+      return true;
     },
     [qc, budgetId, month, key],
   );
