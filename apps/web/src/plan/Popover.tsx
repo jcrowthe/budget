@@ -1,0 +1,100 @@
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+const ARROW_W = 30;
+const ARROW_H = 15;
+const MARGIN = 8;
+
+/**
+ * A box below its anchor, centred on it, with an up-arrow on its top edge (measured on the source: box top =
+ * anchor bottom + 15). Escape closes it and returns focus to the anchor; a click outside does nothing, as in the
+ * source (a transparent overlay catches it). A popover that closes on an outside click would use EXF-493's
+ * `useDismiss.ts`, which is not on main yet.
+ */
+export function Popover({
+  anchor,
+  width,
+  label,
+  onClose,
+  className,
+  children,
+}: {
+  anchor: HTMLElement;
+  width: number;
+  label: string;
+  onClose: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  // Measured at render, so the first paint is already in place and the input can take focus on mount.
+  const box = useRef<HTMLDivElement>(null);
+  const place = () => {
+    const r = anchor.getBoundingClientRect();
+    const h = box.current?.offsetHeight ?? 0;
+    // Below the anchor; above it when the box would run off the bottom of the window.
+    const above =
+      r.bottom + ARROW_H + h > window.innerHeight - MARGIN && r.top - ARROW_H - h >= MARGIN;
+    const centre = r.left + r.width / 2;
+    const w = Math.min(width, window.innerWidth - 2 * MARGIN);
+    const left = Math.max(MARGIN, Math.min(centre - w / 2, window.innerWidth - w - MARGIN));
+    const arrow = Math.max(8, Math.min(centre - left - ARROW_W / 2, w - ARROW_W - 8));
+    return { left, top: above ? r.top - ARROW_H - h : r.bottom + ARROW_H, arrow, above };
+  };
+  const [pos, setPos] = useState(place);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: place reads only anchor and width
+  useLayoutEffect(() => {
+    const measure = () => setPos(place());
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [anchor, width]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      closeRef.current();
+      anchor.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [anchor]);
+
+  return createPortal(
+    <div className="popover-overlay">
+      <div
+        ref={box}
+        className={`popover${className ? ` ${className}` : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        style={{
+          width,
+          maxWidth: `calc(100vw - ${2 * MARGIN}px)`,
+          left: pos.left,
+          top: pos.top,
+        }}
+      >
+        <svg
+          className={`popover-arrow${pos.above ? " is-down" : ""}`}
+          width={ARROW_W}
+          height={ARROW_H}
+          viewBox="0 0 30 15"
+          style={{ left: pos.arrow }}
+          aria-hidden="true"
+        >
+          <path d="M0 15 15 0 30 15Z" />
+        </svg>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}

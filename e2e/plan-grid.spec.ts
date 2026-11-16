@@ -162,8 +162,28 @@ test("Uncategorized Transactions appears only with uncategorized activity", asyn
   await expect(page.locator(".uncategorized-row")).toHaveCount(0);
 });
 
-test("collapse: one group, all, shortcuts, and it survives a reload", async ({ page }) => {
+test("collapse: one group, all, and the shortcuts", async ({ page }) => {
   await stub(page, fixtureF(ISO));
+  // The stubbed plan has no real groups: the saves are answered here. The reload survives on real data in
+  // categories.spec.ts.
+  await page.route("**/api/v1/budgets/*/category_groups/*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          category_group: {
+            id: "00000000-0000-4000-8000-000000000000",
+            budget_id: "00000000-0000-4000-8000-000000000000",
+            name: "x",
+            sort: 0,
+            hidden: false,
+            collapsed: true,
+          },
+        },
+      }),
+    }),
+  );
   await open(page);
   await page.getByRole("button", { name: "Collapse Bills categories" }).click();
   await expect(cats(page)).toHaveCount(2);
@@ -173,9 +193,6 @@ test("collapse: one group, all, shortcuts, and it survives a reload", async ({ p
     "$120.00",
   ]);
   await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
-  await expect(cats(page)).toHaveCount(2);
 
   await page.getByRole("button", { name: "Expand Bills categories" }).click();
   await page.getByRole("button", { name: "Collapse all" }).click();

@@ -3,14 +3,34 @@
 import type { Month } from "@budget/core/month";
 import { useEffect, useState } from "react";
 import { useCommitAssigned } from "../api/assigned";
+import { useCategoryActions } from "../api/categories";
+import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
 import type { CloseHow } from "./AssignedCell";
 import { useCollapsedGroups } from "./collapse";
+import { DeleteDialog } from "./DeleteDialog";
+import { HiddenCategoriesRow } from "./HiddenCategories";
 import { ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
+import { NamePopover } from "./NamePopover";
 import { useProgressBars } from "./progressBars";
 import { CategoryRow, Checkbox, type FocusTarget, GroupRow, UncategorizedRow } from "./rows";
 import { Toolbar } from "./Toolbar";
 import "./plan-grid.css";
+
+/** The one open popover or dialog: opening another replaces it. */
+type Open =
+  | { kind: "add-group"; anchor: HTMLElement }
+  | { kind: "add-category"; groupId: string; anchor: HTMLElement }
+  | { kind: "edit-group"; groupId: string; anchor: HTMLElement }
+  | { kind: "edit-category"; categoryId: string; anchor: HTMLElement }
+  | {
+      kind: "delete";
+      what: "category" | "group";
+      id: string;
+      name: string;
+      ids: string[];
+      transactionCount: number;
+    };
 
 export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }) {
   const q = useMonth(budgetId, month);
@@ -41,6 +61,8 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
     null,
   );
   const [notice, setNotice] = useState<string | null>(null);
+  const [pop, setPop] = useState<Open | null>(null);
+  const actions = useCategoryActions(budgetId);
   const commit = useCommitAssigned(budgetId, month, () =>
     setNotice("Couldn't save the assigned amount."),
   );
@@ -73,12 +95,128 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
     }
   };
 
+  const close = () => setPop(null);
+  const allGroups = data?.groups ?? [];
+
+  /** Deletes at once when there is no history, else opens the dialog (also when a racing write adds some). */
+  const startDelete = async (
+    what: "category" | "group",
+    id: string,
+    name: string,
+    ids: string[],
+  ) => {
+    const dialog = (transactionCount: number): Open => ({
+      kind: "delete",
+      what,
+      id,
+      name,
+      ids,
+      transactionCount,
+    });
+    try {
+      const usage = await (what === "group" ? actions.groupUsage(id) : actions.categoryUsage(id));
+      if (usage.has_history) {
+        setPop(dialog(usage.transaction_count));
+        return;
+      }
+      await (what === "group" ? actions.deleteGroup(id) : actions.deleteCategory(id));
+      close();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        const usage = await (what === "group" ? actions.groupUsage(id) : actions.categoryUsage(id));
+        setPop(dialog(usage.transaction_count));
+        return;
+      }
+      close();
+      setNotice(`Couldn't delete the ${what}.`);
+    }
+  };
+
+  const renderPopover = () => {
+    if (!pop) return null;
+    if (pop.kind === "add-group") {
+      return (
+        <NamePopover
+          anchor={pop.anchor}
+          mode="add-group"
+          onSubmit={async (name) => void (await actions.createGroup(name))}
+          onClose={close}
+        />
+      );
+    }
+    if (pop.kind === "add-category") {
+      return (
+        <NamePopover
+          anchor={pop.anchor}
+          mode="add-category"
+          onSubmit={async (name) => void (await actions.createCategory(pop.groupId, name))}
+          onClose={close}
+        />
+      );
+    }
+    if (pop.kind === "edit-group") {
+      const g = allGroups.find((x) => x.id === pop.groupId);
+      if (!g) return null;
+      return (
+        <NamePopover
+          anchor={pop.anchor}
+          mode="edit-group"
+          initial={g.name}
+          onSubmit={async (name) => void (await actions.updateGroup(g.id, { name }))}
+          onHide={async () => void (await actions.updateGroup(g.id, { hidden: true }))}
+          onDelete={() =>
+            void startDelete(
+              "group",
+              g.id,
+              g.name,
+              g.categories.map((c) => c.id),
+            )
+          }
+          onClose={close}
+        />
+      );
+    }
+    if (pop.kind === "edit-category") {
+      const c = allGroups.flatMap((x) => x.categories).find((x) => x.id === pop.categoryId);
+      if (!c) return null;
+      return (
+        <NamePopover
+          anchor={pop.anchor}
+          mode="edit-category"
+          initial={c.name}
+          onSubmit={async (name) => void (await actions.updateCategory(c.id, { name }))}
+          onHide={async () => void (await actions.updateCategory(c.id, { hidden: true }))}
+          onDelete={() => void startDelete("category", c.id, c.name, [c.id])}
+          onClose={close}
+        />
+      );
+    }
+    return (
+      <DeleteDialog
+        budgetId={budgetId}
+        kind={pop.what}
+        id={pop.id}
+        name={pop.name}
+        ids={pop.ids}
+        categoryCount={pop.ids.length}
+        transactionCount={pop.transactionCount}
+        groups={allGroups}
+        onDone={close}
+        onCancel={close}
+      />
+    );
+  };
+
   const headerLabel = allCollapsed ? "Expand all" : "Collapse all";
   return (
     <section className={`plan-grid${bars ? " bars-on" : ""}`}>
       <div role="treegrid" aria-label="Plan" aria-busy={q.isPending}>
         <div className="grid-head" role="rowgroup">
-          <Toolbar bars={bars} setBars={setBars} />
+          <Toolbar
+            bars={bars}
+            setBars={setBars}
+            onAddGroup={(anchor) => setPop({ kind: "add-group", anchor })}
+          />
           <div className="grid-row header-row" role="row">
             <div className="cell-margin" />
             <div className="cell-collapse">
@@ -145,6 +283,11 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                     g={g}
                     collapsed={collapsed}
                     onToggle={() => setCollapsed([g.id], !collapsed)}
+                    onEditName={(anchor) => setPop({ kind: "edit-group", groupId: g.id, anchor })}
+                    onAddCategory={(anchor) =>
+                      setPop({ kind: "add-category", groupId: g.id, anchor })
+                    }
+                    addOpen={pop?.kind === "add-category" && pop.groupId === g.id}
                   />
                   {!collapsed &&
                     g.categories
@@ -168,14 +311,19 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                               : null
                           }
                           onFocusDone={() => setFocusReq(null)}
+                          onEditName={(anchor) =>
+                            setPop({ kind: "edit-category", categoryId: c.id, anchor })
+                          }
                         />
                       ))}
                 </div>
               );
             })}
+            {data && <HiddenCategoriesRow groups={data.groups} budgetId={budgetId} />}
           </div>
         )}
       </div>
+      {renderPopover()}
     </section>
   );
 }
