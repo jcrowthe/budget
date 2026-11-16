@@ -9,6 +9,7 @@ import {
 } from "@budget/schema/months";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
+import { beginWrite, endWrite } from "./monthCache";
 
 export const getMonth = async (budgetId: string, month: Month): Promise<MonthDetail> =>
   (await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}`, { schema: MonthDetailResponse }))
@@ -50,12 +51,12 @@ export function useSetMonthNote(budgetId: string) {
   return useMutation({
     mutationFn: (v: { month: Month; note: string | null }) =>
       setMonthNote(budgetId, v.month, v.note),
-    onMutate: (v) => {
+    onMutate: async (v) => {
+      await beginWrite(qc, budgetId);
       qc.setQueryData<MonthDetail>(key(v.month), (d) => d && { ...d, note: v.note });
     },
-    onError: (_e, v) => qc.invalidateQueries({ queryKey: key(v.month) }),
-    onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: key(v.month) });
+    onSettled: () => endWrite(qc, budgetId),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["month-range", budgetId] });
     },
   });

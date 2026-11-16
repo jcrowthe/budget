@@ -5,6 +5,7 @@ import type { MonthDetail } from "@budget/schema/months";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { apiFetch } from "./client";
+import { beginWrite, endWrite } from "./monthCache";
 
 export const setAssignedAmount = async (
   budgetId: string,
@@ -22,7 +23,7 @@ export const setAssignedAmount = async (
   ).data;
 
 /** Per plan: the PATCHes run one after another (an absolute set, so the last one sent must arrive last). */
-const queues = new Map<string, { tail: Promise<unknown>; pending: number }>();
+const queues = new Map<string, Promise<unknown>>();
 
 /**
  * Returns commit(categoryId, before, after): writes the new numbers into the cached month at once, sends the
@@ -39,12 +40,9 @@ export function useCommitAssigned(
     async (categoryId, before, after) => {
       if (after === before) return;
       const key = ["month", budgetId, month];
-      await qc.cancelQueries({ queryKey: key, exact: true });
+      await beginWrite(qc, budgetId);
       qc.setQueryData<MonthDetail>(key, (d) => d && applyAssigned(d, categoryId, after));
-      const q = queues.get(budgetId) ?? { tail: Promise.resolve(), pending: 0 };
-      queues.set(budgetId, q);
-      q.pending++;
-      q.tail = q.tail.then(() =>
+      const tail = (queues.get(budgetId) ?? Promise.resolve()).then(() =>
         setAssignedAmount(budgetId, month, categoryId, after)
           .catch((e) => {
             qc.setQueryData<MonthDetail>(key, (d) => {
@@ -55,14 +53,9 @@ export function useCommitAssigned(
             });
             onError(e);
           })
-          .finally(() => {
-            // Refetch only when nothing else is in flight, so it cannot overwrite a pending optimistic value.
-            if (--q.pending === 0) {
-              queues.delete(budgetId);
-              qc.invalidateQueries({ queryKey: ["month", budgetId] });
-            }
-          }),
+          .finally(() => endWrite(qc, budgetId)),
       );
+      queues.set(budgetId, tail);
     },
     [qc, budgetId, month, onError],
   );
