@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 4 (last reviewed in round 24, fourteen Threads), Deploy 7, Test user flow 0,
+Review counters (finished children since that template's last review): Build 4 (last reviewed in round 24, fourteen Threads), Deploy 7, Test user flow 1,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -368,7 +368,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | PR #17 | running |
 | 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | PR #18 | running |
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
-| 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | running |
+| 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | completed (9 minutes): flow 9 `new_gaps` (EXF-571), flow 11 `parity` |
 | 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -2583,3 +2583,59 @@ EXF-495; pull request #17), the Plaid Link Build (EXF-459; pull request #18), th
     query would have to be rewritten when a transaction can have several categories or two sides.
 - No Deploy: main `2fcde22` is one merge ahead of live; deploy when the categories Build merges.
 - Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 0.
+
+### 2026-11-16 · Review round 32
+
+Children used 43 of 200. Three Builds are running: the categories Build (pull request #17), the Plaid Link
+Build (pull request #18) and the account-pages Build. No card is waiting.
+
+**Ended: the first flow test `p_943f5578ff6e4b7db6ffdab96fd95d00`, completed in 9 minutes. Verdict
+`new_gaps`.** The template works on this profile; two flows fit in one child.
+
+| Flow | Verdict | Note |
+| -- | -- | -- |
+| 9. Two plans keep their data apart | `new_gaps` | data is separate everywhere; one new gap in the plan menu |
+| 11. The Access lock | `parity` | every request without credentials gets 401 |
+
+- **Flow 9:** all ten steps hold for the data: accounts, assignments, the month note, Ready to Assign
+  (210000 and 85000), page titles and the sidebar's collapse state are per plan in the interface, REST and
+  MCP; another plan's account id answers 404 and the page falls back to All Accounts.
+- **New gap EXF-571 (set to High): the plan menu's Open Plan submenu is clipped by the sidebar**, so a
+  mouse user cannot pick another plan. The submenu sits at x 247 to 394 inside a sidebar that is 259 px wide
+  with `overflow: auto`. The browser tests never saw it because Playwright's click scrolls the element into
+  view. **Until it is fixed, a person can switch plans only by URL.** It is in the shell
+  (`PlanMenu.tsx`), which EXF-459 holds: fix it right after that merges, in one Build with EXF-470 (the
+  full plan menu) and EXF-454 (menu polish). Lesson for briefs: ask the Tester to click with a real mouse
+  move at the element's centre for anything in a popover or menu.
+- **Flow 11:** `/`, the API, `/mcp`, a static asset, forged service-token headers, an unsigned and a
+  self-signed JWT, and six other paths all answer 401 from Access; plain HTTP redirects to HTTPS; with the
+  service token everything answers. Side note from the report: `/favicon.ico` returns the app's HTML, so
+  the app has no favicon file (small; fold into the shell Build above).
+- The "Done" navigation after adding an account rendered in 183 ms without a reload: the earlier blank
+  screenshot was the Deploy verifier's timing, not a defect.
+- Cleanup left nothing.
+
+**Correction to the round 31 plan: the person has NOT yet signed in.** The Deploy verifier of `0de1856`
+reported "1 plan on the live clone does not start with ZZ-TEST". The flow test then saw only test plans in
+the plan menu, so I checked, read only: the live API lists no plan that is not a test plan, and the live
+`change_log` holds 16 plan rows, all creates and deletes of test plans by the service token (eight pairs:
+six Deploy checks and this flow test), and none by a user. The table `budgets` has 8 rows, all test plans,
+all deleted. So the verifier's count was wrong, and what I wrote in the round 31 plan and told the person
+("your sign-in works") was wrong. Told the person in this turn's summary. The stricter rules for the live
+app (never open `/`, never list all plans, mask plan menus) stay: they are right for the day the person
+does sign in.
+
+- How I checked, for next time: `GET /api/v1/budgets` with the service token piped through `jq` to print
+  counts and timestamps only; `wrangler d1 execute budget-db --remote` with `SELECT` statements on
+  `change_log` and `budgets` that return the actor kind, the action, the time and whether the name has the
+  test prefix, never a name. (`pnpm exec wrangler` installed the dependencies in my box; the repository is
+  unchanged.)
+- For the Deploy template review (Deploy 7 of 10): a verifier's count of non-test plans was wrong once;
+  ask for the method next time (the exact filter), not only the number.
+
+**Ticket writes:** 1 (EXF-571 High).
+
+**Backlog:** 85 open feature tickets (9 done; 5 in progress), all triaged. Gap: EXF-570 (High, in
+progress), EXF-571 (High), EXF-558 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562 (Low). Template:
+fifteen. **Flow verdicts: flow 9 `new_gaps`, flow 11 `parity`; the other nine not run yet.** Finished since
+each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 1.
