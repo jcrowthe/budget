@@ -17,6 +17,16 @@ export const MATCH_WINDOW_DAYS = 10;
 export const RECONCILED_GRACE_DAYS = 3;
 export const MAX_UPDATES_PER_RUN = 500;
 export const MAX_PAGES_PER_RUN = 4;
+/** Calls (D1 statements or batches, plus Plaid calls) one run may plan for, its final batch included.
+ *  Free plan: 50 D1 queries and 50 subrequests per invocation; a db.batch is one query. */
+export const RUN_CALL_BUDGET = 45;
+/** The counter refuses a call past this; the failure write may still make one more. */
+export const RUN_CALL_HARD_LIMIT = 48;
+/** Entries per unit: D1 allows 100 bound parameters a statement. */
+export const SYNC_UNIT_SIZE = 90;
+/** One scheduled invocation: at most this many runs (DO requests), and none started after this time. */
+export const SCHEDULED_MAX_RUNS = 40;
+export const SCHEDULED_WALL_MS = 10 * 60_000;
 
 export interface PlaidTxn {
   transaction_id: string;

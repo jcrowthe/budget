@@ -93,6 +93,7 @@ export function updateConnectionStmt(
       | "syncErrorSince"
       | "syncAccounts"
       | "syncLoopCursor"
+      | "syncFailedAt"
     >
   >,
   guard?: SQLWrapper,
@@ -101,6 +102,19 @@ export function updateConnectionStmt(
     .update(bankConnections)
     .set(set)
     .where(and(eq(bankConnections.id, id), guard ? sql`exists ${guard}` : undefined));
+}
+
+/** Holds while the connection exists and needs no repair (login_required, broken): a failed run may say so. */
+export function failureMayBeRecorded(db: Db, id: string): SQLWrapper {
+  return db
+    .select({ one: sql`1` })
+    .from(bankConnections)
+    .where(
+      and(
+        eq(bankConnections.id, id),
+        notInArray(bankConnections.status, ["login_required", "broken"]),
+      ),
+    );
 }
 
 /** A `SELECT 1` that holds while the connection's `sync_cursor` is still `cursor` (null-safe). */

@@ -277,6 +277,21 @@ connection via `POST /bank-connections` (stub), checking via `POST …/accounts/
 26. **(Lead) No token.** Over a success, a 400, a 500 and a thrown fetch, with `console.*` spied: no
     response, log argument or `change_log` text (whole table) holds any `SENTINEL` value.
 
+## Per-run budget and failed runs (EXF-613)
+
+Details: [sync-budget-design.md](sync-budget-design.md).
+- **Budget.** One run makes at most 45 calls (`RUN_CALL_BUDGET`). A call is a D1 statement or a `db.batch`, or
+  a Plaid call, and the final batch counts.
+- **Reads.** Names are read once per plan; match-candidate lines once per unit. The per-account reads go into
+  one batch.
+- **Budget stop.** A run stopped by the budget writes what it decided in order, then a final batch *without*
+  cursors, link set or `sync_error_since`, and reports `has_more`. The next run reads the same entries again,
+  and the ones already written are no-ops.
+- **Failed runs.** A run that fails in Budget sets `delayed` and the new `sync_failed_at`, with a change_log
+  row, and keeps the cursor. The next finished run clears it.
+- **Schedule.** `syncDueConnections` runs connections round-robin, at most 40 runs and 10 minutes per
+  invocation.
+
 ## Manifest
 
 touches: [apps/worker/migrations/20261116100800_plaid_import.sql, apps/worker/src/db/schema/transactions.ts, apps/worker/src/db/schema/bank-connections.ts, apps/worker/src/db/schema/import-tombstones.ts, apps/worker/src/plaid/transactions.ts, apps/worker/src/durable/plaid-item-sync.ts, apps/worker/src/scheduled.ts, apps/worker/src/services/plaid-sync.ts, apps/worker/src/services/bank-connections.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/transaction-pairs.ts, apps/worker/src/services/accounts.ts, apps/worker/src/services/payees.ts, apps/worker/src/repositories/bank-connections.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/imports.ts, apps/worker/src/repositories/accounts.ts, apps/worker/src/repositories/payees.ts, apps/worker/src/routes/transactions.ts, apps/worker/src/routes/bank-connections.ts, apps/worker/src/mcp/tools/transactions.ts, apps/worker/src/mcp/tools/bank-connections.ts, apps/worker/src/mcp/tools/accounts.ts, packages/schema/src/plaid-import.ts, packages/schema/src/transactions.ts, packages/schema/src/accounts.ts, packages/schema/src/bank-connections.ts, packages/schema/test/plaid-import.test.ts, packages/schema/test/register.test.ts, apps/worker/test/plaid-stub.ts, apps/worker/test/plaid-sync*.ts, apps/worker/test/transactions-approve.test.ts, apps/worker/test/mcp-coverage/transactions.ts, apps/worker/test/mcp-coverage/bank-connections.ts, apps/worker/test/mcp-timestamps.test.ts, docs/plaid-import-design.md, docs/plaid-import-spec.md, docs/README.md, docs/conventions.md]

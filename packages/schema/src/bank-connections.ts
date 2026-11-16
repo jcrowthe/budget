@@ -33,11 +33,15 @@ export const BankConnection = z
     nickname: z.string(),
     status: z.string().openapi({
       description:
-        "connected, delayed (the bank or Plaid did not answer), login_required (the bank needs a new sign-in), broken (the connection is lost) or not_set_up",
+        "connected, delayed (the bank or Plaid did not answer, or the last sync failed in Budget, see sync_failed_at; it is retried), login_required (the bank needs a new sign-in), broken (the connection is lost) or not_set_up",
     }),
     provider: z.string().openapi({ description: "Plaid" }),
     last_synced_at: z.string().nullable(),
     last_reset_at: z.string().nullable(),
+    sync_failed_at: z.string().nullable().default(null).openapi({
+      description:
+        "When the last sync that failed in Budget (not at the bank) ended; null once a sync finishes. Such a sync leaves status delayed and is retried.",
+    }),
     created_at: z.string(),
     accounts: z.array(BankAccount),
   })
@@ -83,7 +87,11 @@ export const SyncResult = z
     modified: z.number().int().min(0).describe("Imported transactions changed to follow the bank"),
     removed: z.number().int().min(0).describe("Unapproved imports the bank withdrew, deleted"),
     skipped: z.number().int().min(0).describe("Entries not imported by the import rules"),
-    has_more: z.boolean().describe("True when the bank has more to read: sync again"),
+    has_more: z
+      .boolean()
+      .describe(
+        "True when there is more to read (the bank has more, or the run stopped at its limit): sync again",
+      ),
     last_synced_at: z.string().nullable(),
   })
   .openapi("SyncResult");

@@ -16,7 +16,10 @@ import {
   payeeNameOf,
   pickMatch,
   removedPlan,
+  SCHEDULED_MAX_RUNS,
+  SCHEDULED_WALL_MS,
   type SkipReason,
+  SYNC_UNIT_SIZE,
   type SyncStatus,
   skipReason,
   syncStatusForError,
@@ -35,14 +38,14 @@ import { getAccessToken } from "../plaid/tokens";
 import { type BalanceAccount, fetchBalances, fetchSyncPages } from "../plaid/transactions";
 import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
-import * as budgetsRepo from "../repositories/budgets";
 import * as importsRepo from "../repositories/imports";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { toApi } from "./bank-connections";
-import { runGroups, type StatementGroup } from "./batch-groups";
+import { batchCount, runGroups } from "./batch-groups";
 import { getBudgetEnvironment } from "./budgets";
-import { logShape, namesOf } from "./transactions";
+import { CallBudget, countedEnv, countedPlaid, SyncBudgetTooSmall } from "./sync-budget";
+import { logShape } from "./transactions";
 
 /** Who a bank sync writes as, whoever asked for it. */
 export const PLAID_ACTOR = "service:plaid";
@@ -99,17 +102,91 @@ interface PlanAccount {
   bank: bankRepo.BankAccountRow;
 }
 
-/** One run of the sync of one connection. Throws on anything that is not the bank's answer. */
+type Stmts = Parameters<Db["batch"]>[0];
+
+const forNewRow = (n: importsRepo.CategoryNames, id: string | null) => {
+  const c = id ? n.get(id) : undefined;
+  return c && !c.deleted
+    ? { categoryName: c.name, groupName: c.groupName }
+    : { categoryName: null, groupName: null };
+};
+
+const forExisting = (n: importsRepo.CategoryNames, id: string | null) => {
+  const c = id ? n.get(id) : undefined;
+  return c
+    ? { categoryName: c.name, groupName: c.groupName }
+    : { categoryName: null, groupName: null };
+};
+
+/**
+ * One run of the sync of one connection. Throws on anything that is not the bank's answer, after leaving the
+ * connection `delayed` with `sync_failed_at`. A run stays inside a budget of D1 and Plaid calls (Cloudflare's
+ * per-invocation limits): when it is used up the run stops, writes what it has, keeps the cursor and reports
+ * `has_more`.
+ */
 export async function runSync(
   env: Env,
   connectionId: string,
-  opts: { maxUpdates?: number; maxPages?: number } = {},
+  opts: { maxUpdates?: number; maxPages?: number; callBudget?: number } = {},
 ): Promise<SyncResult> {
-  const db = getDb(env);
+  const budget = new CallBudget(opts.callBudget);
+  const cenv = countedEnv(env, budget);
+  const db = getDb(cenv);
   const row = await bankRepo.findById(db, connectionId);
   if (!row) throw new NotFound("Bank connection");
+  const accounts: { list: bankRepo.BankAccountRow[] } = { list: [] };
+  try {
+    return await syncConnection(cenv, db, budget, row, accounts, opts);
+  } catch (e) {
+    await recordFailure(db, row, accounts.list, budget).catch(() => {});
+    throw e;
+  }
+}
+
+/** Leaves the connection `delayed` with the time of the failure (a needed repair is never hidden). No cursor. */
+async function recordFailure(
+  db: Db,
+  row: bankRepo.BankConnectionRow,
+  accounts: bankRepo.BankAccountRow[],
+  budget: CallBudget,
+) {
+  budget.failing();
+  const now = new Date().toISOString();
+  const guard = bankRepo.failureMayBeRecorded(db, row.id);
+  await db.batch([
+    changeLogInsertIf(
+      db,
+      {
+        budgetId: null,
+        actor: PLAID_ACTOR,
+        action: "update",
+        entityType: "bank_connection",
+        entityId: row.id,
+        before: toApi(row, accounts),
+        after: toApi({ ...row, status: "delayed", syncFailedAt: now, updatedAt: now }, accounts),
+      },
+      guard,
+    ),
+    bankRepo.updateConnectionStmt(
+      db,
+      row.id,
+      { status: "delayed", syncFailedAt: now, updatedAt: now },
+      guard,
+    ),
+  ]);
+}
+
+async function syncConnection(
+  env: Env,
+  db: Db,
+  budget: CallBudget,
+  row: bankRepo.BankConnectionRow,
+  holder: { list: bankRepo.BankAccountRow[] },
+  opts: { maxUpdates?: number; maxPages?: number },
+): Promise<SyncResult> {
   if ((NEEDS_REPAIR as readonly string[]).includes(row.status)) return empty(row, row.status);
   const bankAccounts = await bankRepo.accountsOf(db, row.id);
+  holder.list = bankAccounts;
   const now = new Date().toISOString();
 
   const token = await getAccessToken(env, row.id);
@@ -119,7 +196,7 @@ export async function runSync(
   }
   let plaid: Awaited<ReturnType<typeof plaidFor>>;
   try {
-    plaid = await plaidFor(env, row.environment);
+    plaid = countedPlaid(await plaidFor(env, row.environment), budget);
   } catch (e) {
     if (e instanceof PlaidNotSetUp) return empty(row, "not_set_up");
     throw e;
@@ -127,13 +204,12 @@ export async function runSync(
 
   // Links: the open accounts of live plans that are linked to a bank account of this connection.
   const bankById = new Map(bankAccounts.map((b) => [b.id, b]));
-  const live = new Map<string, boolean>();
+  const linkedRows = await accountsRepo.linkedToConnection(db, row.id);
+  const live = await importsRepo.livePlanIds(db, [...new Set(linkedRows.map((a) => a.budgetId))]);
   const linked: PlanAccount[] = [];
-  for (const a of await accountsRepo.linkedToConnection(db, row.id)) {
-    if (!live.has(a.budgetId))
-      live.set(a.budgetId, !!(await budgetsRepo.findActive(db, a.budgetId)));
+  for (const a of linkedRows) {
     const bank = a.bankAccountId ? bankById.get(a.bankAccountId) : undefined;
-    if (live.get(a.budgetId) && bank) linked.push({ account: a, bank });
+    if (live.has(a.budgetId) && bank) linked.push({ account: a, bank });
   }
   const open = linked.filter((l) => !l.account.closed);
   const links = linkSet(open.map((l) => l.account));
@@ -162,7 +238,31 @@ export async function runSync(
     removed: 0,
     skipped: 0,
   };
-  const groups: Group[] = [];
+  let stopped = false;
+  let wrote = false;
+
+  /** Writes the longest prefix of the groups that still leaves room for the final batch. */
+  const write = async (groups: Group[]) => {
+    let k = groups.length;
+    while (
+      k > 0 &&
+      batchCount(groups.slice(0, k).map((g) => g.stmts.length)) > budget.batchesLeft()
+    )
+      k--;
+    if (k < groups.length) stopped = true;
+    if (k === 0) return;
+    const written = groups.slice(0, k);
+    const results = await runGroups(
+      db,
+      written.map((g) => g.stmts),
+    );
+    wrote = true;
+    for (const [i, changes] of results.entries()) {
+      for (const [j, kind] of (written[i]?.kinds ?? []).entries()) {
+        if (kind && (changes[j] ?? 0) > 0) counts[kind]++;
+      }
+    }
+  };
 
   if (pages) {
     const { upserts, removed } = netChanges(pages.pages);
@@ -187,41 +287,90 @@ export async function runSync(
         a.txn.transaction_id.localeCompare(b.txn.transaction_id),
     );
 
-    for (const { account, bank } of open) {
-      const mine = sorted.filter((u) => u.txn.account_id === bank.plaidAccountId);
-      if (mine.length === 0) continue;
-      const budgetId = account.budgetId;
-      const payees = await planPayees(budgetId);
-      const ids = mine.map((u) => u.txn.transaction_id);
-      const idSet = new Set(ids);
-      const [tombstoned, existingRows, startingBalanceDate, latestReconciledDate] =
-        await Promise.all([
-          importsRepo.tombstonedIds(db, budgetId, ids),
-          importsRepo.rowsByImportId(db, budgetId, ids),
-          accountsRepo.startingBalanceDate(db, account.id),
-          accountsRepo.latestReconciledDate(db, account.id),
-        ]);
-      const existing = new Map(existingRows.map((r) => [r.importId as string, r]));
+    // What each account with entries needs, read in one batch with the plans' category names.
+    const work = open
+      .map(({ account, bank }) => ({
+        account,
+        bank,
+        mine: sorted.filter((u) => u.txn.account_id === bank.plaidAccountId),
+      }))
+      .filter((w) => w.mine.length > 0);
+    const planIds = [...new Set(work.map((w) => w.account.budgetId))];
+    for (const id of planIds) await planPayees(id);
+    const queries: unknown[] = [];
+    const at = work.map(({ account, mine }) => {
       const dates = mine.map((u) => u.txn.date);
       const lo = dates.reduce((a, b) => (a < b ? a : b));
       const hi = dates.reduce((a, b) => (a > b ? a : b));
-      const candidates = await importsRepo.matchCandidates(
-        db,
-        account.id,
-        minusDays(lo, MATCH_WINDOW_DAYS),
-        minusDays(hi, -MATCH_WINDOW_DAYS),
+      const slot = {
+        lo,
+        hi,
+        start: queries.length,
+        recent: -1,
+      };
+      queries.push(
+        accountsRepo.startingBalanceDateQuery(db, account.id),
+        accountsRepo.latestReconciledDateQuery(db, account.id),
+        importsRepo.matchCandidatesQuery(
+          db,
+          account.id,
+          minusDays(lo, MATCH_WINDOW_DAYS),
+          minusDays(hi, -MATCH_WINDOW_DAYS),
+        ),
       );
+      if (recovery) {
+        slot.recent = queries.length;
+        queries.push(importsRepo.liveDateAmountsQuery(db, account.id, lo, hi));
+      }
+      return slot;
+    });
+    const namesAt = new Map(planIds.map((id) => [id, queries.length + planIds.indexOf(id)]));
+    for (const id of planIds) queries.push(importsRepo.categoryNamesQuery(db, id));
+    const got =
+      queries.length > 0
+        ? ((await db.batch(queries as unknown as Stmts)) as unknown as unknown[][])
+        : [];
+    const namesOfPlan = new Map(
+      planIds.map((id) => [
+        id,
+        importsRepo.toCategoryNames(
+          (got[namesAt.get(id) as number] ?? []) as Parameters<
+            typeof importsRepo.toCategoryNames
+          >[0],
+        ),
+      ]),
+    );
+
+    units: for (const [w, { account, bank, mine }] of work.entries()) {
+      const slot = at[w] as (typeof at)[number];
+      const budgetId = account.budgetId;
+      const payees = payeesOf.get(budgetId) as PayeeMap;
+      const names = namesOfPlan.get(budgetId) as importsRepo.CategoryNames;
+      const idSet = new Set(mine.map((u) => u.txn.transaction_id));
+      const startingBalanceDate =
+        (got[slot.start] as { d: string | null }[] | undefined)?.[0]?.d ?? null;
+      const latestReconciledDate =
+        (got[slot.start + 1] as { d: string | null }[] | undefined)?.[0]?.d ?? null;
+      const candidates = ((got[slot.start + 2] ?? []) as Row[]).map(importsRepo.toCandidate);
+      const candidateById = new Map(candidates.map((c) => [c.id, c]));
       const candidateList = candidates.map((c) => ({
         id: c.id,
         date: c.date,
         amount: c.amount,
         createdAt: c.createdAt,
       }));
-      const recent = recovery
-        ? (await importsRepo.liveDateAmounts(db, account.id, lo, hi))
-            .filter((r) => !r.importId || !idSet.has(r.importId))
-            .map((r) => ({ date: r.date, amount: r.amount }))
-        : [];
+      const recent =
+        slot.recent >= 0
+          ? (
+              (got[slot.recent] ?? []) as {
+                date: string;
+                amount: number;
+                importId: string | null;
+              }[]
+            )
+              .filter((r) => !r.importId || !idSet.has(r.importId))
+              .map((r) => ({ date: r.date, amount: r.amount }))
+          : [];
       const rules = {
         closed: account.closed,
         importStartDate: account.importStartDate,
@@ -234,202 +383,263 @@ export async function runSync(
       };
       const used = new Set<string>();
 
-      for (const { txn } of mine) {
-        const have = existing.get(txn.transaction_id);
-        if (have) {
-          const g = await followBank(db, budgetId, payees, have, txn, now);
-          if (g) groups.push(g);
-          continue;
+      for (const unit of importsRepo.chunked(mine, SYNC_UNIT_SIZE)) {
+        // Room for: the read batch, a lines read, one write batch and the final batch.
+        if (!budget.fits(3)) {
+          stopped = true;
+          break units;
         }
-        if (skipReason(txn, rules, tombstoned.has(txn.transaction_id))) {
-          counts.skipped++;
-          continue;
+        const ids = unit.map((u) => u.txn.transaction_id);
+        const [tombRows, existingRows] = (await db.batch([
+          importsRepo.tombstonesQuery(db, budgetId, ids),
+          importsRepo.rowsByImportIdQuery(db, budgetId, ids),
+        ] as unknown as Stmts)) as [{ id: string }[], Row[]];
+        const tombstoned = new Set(tombRows.map((r) => r.id));
+        const existing = new Map(existingRows.map((r) => [r.importId as string, r]));
+
+        // Decide first (no reads), then read the lines of every parent the unit changes, then build.
+        type Decision =
+          | { kind: "follow"; have: Row; plan: NonNullable<ReturnType<typeof followPlan>> }
+          | { kind: "tombstone"; txn: PlaidTxn; amount: number; notKnown: SQLWrapper }
+          | { kind: "import"; txn: PlaidTxn; amount: number; pick: string | null };
+        const decisions: Decision[] = [];
+        for (const { txn } of unit) {
+          const have = existing.get(txn.transaction_id);
+          if (have) {
+            const plan = followPlan(budgetId, have, txn);
+            if (plan) decisions.push({ kind: "follow", have, plan });
+            continue;
+          }
+          if (skipReason(txn, rules, tombstoned.has(txn.transaction_id))) {
+            counts.skipped++;
+            continue;
+          }
+          const amount = milli(txn.amount);
+          const pick = pickMatch({ date: txn.date, amount }, candidateList, used);
+          if (pick) used.add(pick);
+          if (!pick && recovery && isRecoveryDuplicate({ date: txn.date, amount }, recent)) {
+            counts.skipped++;
+            decisions.push({
+              kind: "tombstone",
+              txn,
+              amount,
+              notKnown: importsRepo.notKnownSql(budgetId, txn.transaction_id),
+            });
+            continue;
+          }
+          decisions.push({ kind: "import", txn, amount, pick });
         }
-        const amount = milli(txn.amount);
-        const payeeName = payeeNameOf(txn);
-        const pick = pickMatch({ date: txn.date, amount }, candidateList, used);
-        const notKnown = importsRepo.notKnownSql(budgetId, txn.transaction_id);
-        if (!pick && recovery && isRecoveryDuplicate({ date: txn.date, amount }, recent)) {
-          counts.skipped++;
-          const g = new Group();
-          g.add(
-            importsRepo.tombstoneIfStmt(
-              db,
-              {
-                accountId: account.id,
-                importId: txn.transaction_id,
-                budgetId,
-                reason: "duplicate",
-                transactionId: null,
-              },
-              notKnown,
-              now,
-            ),
-          );
-          groups.push(g);
-          continue;
-        }
-        const g = new Group();
-        const guard = txRepo.allHold([
-          notKnown,
-          importsRepo.accountLinkedOpenSql(account.id, bank.id),
-        ]);
-        const bankValues = importValues(txn, amount, payeeName);
-        if (pick) {
-          used.add(pick);
-          const c = (candidates.find((x) => x.id === pick) as importsRepo.MatchCandidate).row;
-          const cleared = c.cleared === "reconciled" ? "reconciled" : "cleared";
-          const matchGuard = txRepo.allHold([txRepo.holdsAt(db, c), guard]);
-          const lines = await txRepo.listLines(db, budgetId, { parentId: c.id });
-          const before = await txRepo.findDetail(db, budgetId, c.id);
-          const names = {
-            categoryName: before?.categoryName ?? null,
-            groupName: before?.groupName ?? null,
-          };
-          const after: Row = { ...c, ...bankValues, cleared, approved: true, updatedAt: now };
-          g.add(
-            changeLogInsertIf(
-              db,
-              {
-                budgetId,
-                actor: PLAID_ACTOR,
-                action: "update",
-                entityType: "transaction",
-                entityId: c.id,
-                before: logShape({ ...c, ...names }, lines),
-                after: logShape({ ...after, ...names }, lines),
-              },
-              matchGuard,
-            ),
-          );
-          if (lines.length > 0) {
-            g.add(
-              txRepo.syncLinesIfStmt(
+        const parentIds = decisions.flatMap((d) =>
+          d.kind === "follow" ? [d.have.id] : d.kind === "import" && d.pick ? [d.pick] : [],
+        );
+        const lineRows = await txRepo.listLines(db, budgetId, { parentIds });
+        const linesOf = (id: string) => lineRows.filter((l) => l.parentTransactionId === id);
+
+        const groups: Group[] = [];
+        for (const d of decisions) {
+          if (d.kind === "follow") {
+            groups.push(
+              followBank(
                 db,
-                c.id,
-                { accountId: c.accountId, date: c.date, cleared, approved: true, updatedAt: now },
+                budgetId,
+                d.have,
+                d.plan,
+                forExisting(names, d.have.categoryId),
+                linesOf(d.have.id),
+                now,
+              ),
+            );
+            continue;
+          }
+          if (d.kind === "tombstone") {
+            const g = new Group();
+            g.add(
+              importsRepo.tombstoneIfStmt(
+                db,
+                {
+                  accountId: account.id,
+                  importId: d.txn.transaction_id,
+                  budgetId,
+                  reason: "duplicate",
+                  transactionId: null,
+                },
+                d.notKnown,
+                now,
+              ),
+            );
+            groups.push(g);
+            continue;
+          }
+          const { txn, amount, pick } = d;
+          const payeeName = payeeNameOf(txn);
+          const notKnown = importsRepo.notKnownSql(budgetId, txn.transaction_id);
+          const g = new Group();
+          const guard = txRepo.allHold([
+            notKnown,
+            importsRepo.accountLinkedOpenSql(account.id, bank.id),
+          ]);
+          const bankValues = importValues(txn, amount, payeeName);
+          if (pick) {
+            const c = (candidateById.get(pick) as importsRepo.MatchCandidate).row;
+            const cleared = c.cleared === "reconciled" ? "reconciled" : "cleared";
+            const matchGuard = txRepo.allHold([txRepo.holdsAt(db, c), guard]);
+            const lines = linesOf(c.id);
+            const catNames = forExisting(names, c.categoryId);
+            const after: Row = { ...c, ...bankValues, cleared, approved: true, updatedAt: now };
+            g.add(
+              changeLogInsertIf(
+                db,
+                {
+                  budgetId,
+                  actor: PLAID_ACTOR,
+                  action: "update",
+                  entityType: "transaction",
+                  entityId: c.id,
+                  before: logShape({ ...c, ...catNames }, lines),
+                  after: logShape({ ...after, ...catNames }, lines),
+                },
                 matchGuard,
               ),
             );
+            if (lines.length > 0) {
+              g.add(
+                txRepo.syncLinesIfStmt(
+                  db,
+                  c.id,
+                  { accountId: c.accountId, date: c.date, cleared, approved: true, updatedAt: now },
+                  matchGuard,
+                ),
+              );
+            }
+            // The row's own write comes last: it changes updated_at, which the guards above rest on.
+            g.add(
+              txRepo.updateIfStmt(
+                db,
+                c.id,
+                { ...bankValues, cleared, approved: true, updatedAt: now },
+                matchGuard,
+              ),
+              "matched",
+            );
           }
-          // The row's own write comes last: it changes updated_at, which the guards above rest on.
-          g.add(
-            txRepo.updateIfStmt(
-              db,
-              c.id,
-              { ...bankValues, cleared, approved: true, updatedAt: now },
-              matchGuard,
-            ),
-            "matched",
+          // The insert: the import itself, or the fallback of a match whose candidate changed meanwhile.
+          // Once the match is written the id is known, and every statement below is a no-op.
+          const cat = categoryFor(
+            kinds,
+            amount,
+            payeeName ? (payees.get(payeeName) ?? null) : null,
           );
-        }
-        // The insert: the import itself, or the fallback of a match whose candidate changed meanwhile.
-        // Once the match is written the id is known, and every statement below is a no-op.
-        const cat = categoryFor(kinds, amount, payeeName ? (payees.get(payeeName) ?? null) : null);
-        const newRow: Row = {
-          id: crypto.randomUUID(),
-          budgetId,
-          accountId: account.id,
-          date: txn.date,
-          payeeId: null,
-          payeeName,
-          categoryId: cat.categoryId,
-          inflowToReadyToAssign: cat.inflowToReadyToAssign,
-          memo: null,
-          amount,
-          cleared: "cleared",
-          approved: false,
-          createdAt: now,
-          deletedAt: null,
-          updatedAt: now,
-          ...bankValues,
-          source: "plaid",
-        };
-        if (payeeName) addPayee(db, g, budgetId, payeeName, now, guard);
-        const names = await namesOf(db, budgetId, cat.categoryId);
-        g.add(
-          changeLogInsertIf(
-            db,
-            {
-              budgetId,
-              actor: PLAID_ACTOR,
-              action: "create",
-              entityType: "transaction",
-              entityId: newRow.id,
-              before: null,
-              after: logShape({ ...newRow, ...names }),
-            },
-            guard,
-          ),
-        );
-        g.add(
-          txRepo.insertIfStmt(
-            db,
-            newRow,
-            guard,
-            payeeName ? payeesRepo.ordinaryIdByNameSql(budgetId, payeeName) : undefined,
-          ),
-          "added",
-        );
-        if (payeeName) {
-          g.add(
-            logPayeeIdStmt(
-              db,
-              newRow.id,
-              "create",
-              budgetId,
-              payeeName,
-              txRepo.writtenAt(db, newRow.id, now),
-            ),
-          );
-        }
-        groups.push(g);
-      }
-    }
-
-    // The bank withdrew these: an unapproved import goes (no tombstone: it may come back).
-    if (removed.length > 0) {
-      for (const budgetId of new Set(open.map((l) => l.account.budgetId))) {
-        for (const r of await importsRepo.rowsByImportId(db, budgetId, removed)) {
-          if (removedPlan(r) !== "delete") continue;
-          const full = await txRepo.findDetail(db, budgetId, r.id);
-          if (!full) continue;
-          const lines = await txRepo.listLines(db, budgetId, { parentId: r.id });
-          const guard = txRepo.writtenAt(db, r.id, r.updatedAt);
-          const g = new Group();
+          const newRow: Row = {
+            id: crypto.randomUUID(),
+            budgetId,
+            accountId: account.id,
+            date: txn.date,
+            payeeId: null,
+            payeeName,
+            categoryId: cat.categoryId,
+            inflowToReadyToAssign: cat.inflowToReadyToAssign,
+            memo: null,
+            amount,
+            cleared: "cleared",
+            approved: false,
+            createdAt: now,
+            deletedAt: null,
+            updatedAt: now,
+            ...bankValues,
+            source: "plaid",
+          };
+          if (payeeName) addPayee(db, g, budgetId, payeeName, now, guard);
           g.add(
             changeLogInsertIf(
               db,
               {
                 budgetId,
                 actor: PLAID_ACTOR,
-                action: "delete",
+                action: "create",
                 entityType: "transaction",
-                entityId: r.id,
-                before: logShape(full, lines),
-                after: null,
+                entityId: newRow.id,
+                before: null,
+                after: logShape({ ...newRow, ...forNewRow(names, cat.categoryId) }),
               },
               guard,
             ),
           );
-          g.add(txRepo.softDeleteLinesIfStmt(db, r.id, now, guard));
-          g.add(txRepo.softDeleteIfStmt(db, r.id, now, guard), "removed");
+          g.add(
+            txRepo.insertIfStmt(
+              db,
+              newRow,
+              guard,
+              payeeName ? payeesRepo.ordinaryIdByNameSql(budgetId, payeeName) : undefined,
+            ),
+            "added",
+          );
+          if (payeeName) {
+            g.add(
+              logPayeeIdStmt(
+                db,
+                newRow.id,
+                "create",
+                budgetId,
+                payeeName,
+                txRepo.writtenAt(db, newRow.id, now),
+              ),
+            );
+          }
           groups.push(g);
+        }
+        await write(groups);
+        if (stopped) break units;
+      }
+    }
+
+    // The bank withdrew these: an unapproved import goes (no tombstone: it may come back).
+    if (removed.length > 0 && !stopped) {
+      removal: for (const budgetId of new Set(open.map((l) => l.account.budgetId))) {
+        for (const slice of importsRepo.chunked(removed, SYNC_UNIT_SIZE)) {
+          if (!budget.fits(1)) {
+            stopped = true;
+            break removal;
+          }
+          const groups: Group[] = [];
+          for (const r of await importsRepo.rowsByImportId(db, budgetId, slice)) {
+            if (removedPlan(r) !== "delete") continue;
+            // Two reads, one write batch and the final batch: a group is always written.
+            if (!budget.fits(3)) {
+              stopped = true;
+              break;
+            }
+            const full = await txRepo.findDetail(db, budgetId, r.id);
+            if (!full) continue;
+            const lines = await txRepo.listLines(db, budgetId, { parentId: r.id });
+            const guard = txRepo.writtenAt(db, r.id, r.updatedAt);
+            const g = new Group();
+            g.add(
+              changeLogInsertIf(
+                db,
+                {
+                  budgetId,
+                  actor: PLAID_ACTOR,
+                  action: "delete",
+                  entityType: "transaction",
+                  entityId: r.id,
+                  before: logShape(full, lines),
+                  after: null,
+                },
+                guard,
+              ),
+            );
+            g.add(txRepo.softDeleteLinesIfStmt(db, r.id, now, guard));
+            g.add(txRepo.softDeleteIfStmt(db, r.id, now, guard), "removed");
+            groups.push(g);
+          }
+          await write(groups);
+          if (stopped) break removal;
         }
       }
     }
   }
-
-  // The writes of the sync come first, in batches that are each safe to repeat.
-  const results = await runGroups(
-    db,
-    groups.map((g) => g.stmts),
-  );
-  for (const [i, changes] of results.entries()) {
-    for (const [j, kind] of (groups[i]?.kinds ?? []).entries()) {
-      if (kind && (changes[j] ?? 0) > 0) counts[kind]++;
-    }
-  }
+  // Nothing written and nothing left to try: the next run would stop at the same place.
+  if (stopped && !wrote) throw new SyncBudgetTooSmall();
 
   // The cursor, the sync time, the status and the balances come last, in one batch.
   const finished = new Date().toISOString();
@@ -438,6 +648,7 @@ export async function runSync(
     ...row,
     status: "connected",
     lastSyncedAt: finished,
+    syncFailedAt: null,
     updatedAt: finished,
   };
   const byPlaidId = new Map(balances.map((b) => [b.account_id, b]));
@@ -479,19 +690,22 @@ export async function runSync(
     bankRepo.updateConnectionStmt(
       db,
       row.id,
-      {
-        ...(pages
-          ? {
-              syncCursor: pages.nextCursor,
-              syncLoopCursor: pages.hasMore ? (loopCursor ?? startCursor ?? "") : null,
-            }
-          : {}),
-        syncAccounts: links,
-        lastSyncedAt: finished,
-        status: "connected",
-        syncErrorSince: null,
-        updatedAt: finished,
-      },
+      stopped
+        ? { lastSyncedAt: finished, status: "connected", syncFailedAt: null, updatedAt: finished }
+        : {
+            ...(pages
+              ? {
+                  syncCursor: pages.nextCursor,
+                  syncLoopCursor: pages.hasMore ? (loopCursor ?? startCursor ?? "") : null,
+                }
+              : {}),
+            syncAccounts: links,
+            lastSyncedAt: finished,
+            status: "connected",
+            syncErrorSince: null,
+            syncFailedAt: null,
+            updatedAt: finished,
+          },
       guard,
     ),
   );
@@ -501,7 +715,7 @@ export async function runSync(
     bank_connection_id: row.id,
     status: "connected",
     ...counts,
-    has_more: pages?.hasMore ?? false,
+    has_more: stopped || (pages?.hasMore ?? false),
     last_synced_at: finished,
   };
 }
@@ -596,16 +810,9 @@ function addPayee(
 /**
  * An entry whose id is already on a live row of the plan: never an insert. A reconciled row takes only the
  * bank's description; an unapproved import follows the bank; anything else keeps the user's values and takes
- * the description and the bank's own copies. Nothing differs: no statement.
+ * the description and the bank's own copies. Nothing differs: null.
  */
-async function followBank(
-  db: Db,
-  budgetId: string,
-  payees: PayeeMap,
-  have: Row,
-  txn: PlaidTxn,
-  now: string,
-): Promise<Group | null> {
+function followPlan(budgetId: string, have: Row, txn: PlaidTxn) {
   const how = modifiedPlan(have);
   const amount = milli(txn.amount);
   const payeeName = payeeNameOf(txn);
@@ -629,14 +836,20 @@ async function followBank(
       newPayee = payeeName;
     }
   }
-  if (Object.keys(set).length === 0) return null;
+  return Object.keys(set).length === 0 ? null : { set, newPayee };
+}
+
+function followBank(
+  db: Db,
+  budgetId: string,
+  have: Row,
+  plan: { set: txRepo.TxSet; newPayee: string | null },
+  names: { categoryName: string | null; groupName: string | null },
+  lines: txRepo.LineRow[],
+  now: string,
+): Group {
+  const { set, newPayee } = plan;
   const guard = txRepo.writtenAt(db, have.id, have.updatedAt);
-  const before = await txRepo.findDetail(db, budgetId, have.id);
-  const lines = await txRepo.listLines(db, budgetId, { parentId: have.id });
-  const names = {
-    categoryName: before?.categoryName ?? null,
-    groupName: before?.groupName ?? null,
-  };
   const g = new Group();
   if (newPayee) addPayee(db, g, budgetId, newPayee, now, guard);
   const merged = {
@@ -700,24 +913,38 @@ export async function syncPlan(env: Env, budgetId: string): Promise<{ results: S
   return { results };
 }
 
-/** The scheduled sync: every connection never synced or not synced for 6 hours, whatever the cron's rate. */
-export async function syncDueConnections(env: Env, now: Date = new Date()): Promise<SyncResult[]> {
-  const due = await bankRepo.listDue(
+/**
+ * The scheduled sync: every connection never synced or not synced for 6 hours, whatever the cron's rate.
+ * Round-robin, so every due connection makes progress: each run is its own Durable Object request, and one
+ * invocation starts at most SCHEDULED_MAX_RUNS of them, none after SCHEDULED_WALL_MS.
+ */
+export async function syncDueConnections(
+  env: Env,
+  now: Date = new Date(),
+  run: typeof requestSync = requestSync,
+): Promise<SyncResult[]> {
+  let active = await bankRepo.listDue(
     getDb(env),
     new Date(now.getTime() - DUE_AFTER_MS).toISOString(),
   );
   const out: SyncResult[] = [];
-  for (const conn of due) {
-    try {
-      for (let i = 0; i < MAX_RUNS_PER_CONNECTION; i++) {
-        const r = await requestSync(env, conn);
+  const started = Date.now();
+  let runs = 0;
+  for (let round = 0; round < MAX_RUNS_PER_CONNECTION && active.length > 0; round++) {
+    const next: typeof active = [];
+    for (const conn of active) {
+      if (runs >= SCHEDULED_MAX_RUNS || Date.now() - started >= SCHEDULED_WALL_MS) return out;
+      runs++;
+      try {
+        const r = await run(env, conn);
         out.push(r);
-        if (!r.has_more) break;
+        if (r.has_more) next.push(conn);
+      } catch {
+        // One connection's failure must not stop the next; only its id is logged.
+        console.error(`sync failed for connection ${conn.id}`);
       }
-    } catch {
-      // One connection's failure must not stop the next; only its id is logged.
-      console.error(`sync failed for connection ${conn.id}`);
     }
+    active = next;
   }
   return out;
 }

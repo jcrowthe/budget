@@ -8,6 +8,7 @@ import {
   type FeedPage,
   type PlaidCall,
   type PlaidHandler,
+  plaidTxn,
   SENTINEL,
   seedSandboxCredentials,
   stubPlaid,
@@ -153,3 +154,122 @@ export function failingBatchEnv(n: number): Env {
 }
 
 export const hand = (plan: string, body: Json) => json(TX(plan), { method: "POST" }, { ...body });
+
+/**
+ * An env whose DB counts calls (each statement execution; a batch or exec counts as one), with the counts.
+ * Written on its own, apart from the counter of the code under test.
+ */
+export function countingEnv(base: Env = env): { env: Env; calls: { d1: number }; reset(): void } {
+  const calls = { d1: 0 };
+  const decorate = (stmt: D1PreparedStatement): D1PreparedStatement => {
+    const s = stmt as unknown as Record<string, unknown>;
+    const orig = {
+      bind: stmt.bind.bind(stmt),
+      all: stmt.all.bind(stmt),
+      raw: stmt.raw.bind(stmt),
+      first: stmt.first.bind(stmt),
+      run: stmt.run.bind(stmt),
+    };
+    s.bind = (...v: unknown[]) => decorate(orig.bind(...v));
+    for (const m of ["all", "raw", "first", "run"] as const) {
+      s[m] = (...a: unknown[]) => {
+        calls.d1++;
+        return (orig[m] as (...x: unknown[]) => unknown)(...a);
+      };
+    }
+    return stmt;
+  };
+  const real = base.DB;
+  const DB = Object.create(real) as D1Database;
+  const d = DB as unknown as Record<string, unknown>;
+  d.prepare = (sql: string) => decorate(real.prepare(sql));
+  d.batch = (stmts: D1PreparedStatement[]) => {
+    calls.d1++;
+    return real.batch(stmts);
+  };
+  d.exec = (sql: string) => {
+    calls.d1++;
+    return real.exec(sql);
+  };
+  return {
+    env: { ...base, DB } as Env,
+    calls,
+    reset() {
+      calls.d1 = 0;
+    },
+  };
+}
+
+/** Seeds, by SQL, a payee per name with one categorised hand row dated 2026-01-05 (payee history). */
+export async function seedPayeeHistory(
+  plan: string,
+  account: string,
+  names: string[],
+  categoryId: string,
+): Promise<void> {
+  const stmts: D1PreparedStatement[] = [];
+  for (const [i, name] of names.entries()) {
+    const pid = `zz-hist-p-${i}-${plan.slice(0, 8)}`;
+    stmts.push(
+      env.DB.prepare(
+        "insert into payees (id, budget_id, name, hidden, created_at, updated_at) values (?, ?, ?, 0, '2026-01-05T00:00:00.000Z', '2026-01-05T00:00:00.000Z')",
+      ).bind(pid, plan, name),
+      env.DB.prepare(
+        "insert into transactions (id, budget_id, account_id, date, amount, cleared, approved, created_at, updated_at, payee_id, payee_name, category_id) values (?, ?, ?, '2026-01-05', -1000, 'cleared', 1, '2026-01-05T00:00:00.000Z', '2026-01-05T00:00:00.000Z', ?, ?, ?)",
+      ).bind(`zz-hist-t-${i}-${plan.slice(0, 8)}`, plan, account, pid, name, categoryId),
+    );
+  }
+  for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
+}
+
+/** Runs runSync until has_more is false (at most `max`), returning each result. */
+export async function runUntilDone(
+  e: Env,
+  conn: string,
+  opts: Parameters<typeof import("../src/services/plaid-sync").runSync>[2] = {},
+  max = 8,
+): Promise<Json[]> {
+  const { runSync } = await import("../src/services/plaid-sync");
+  const out: Json[] = [];
+  for (let i = 0; i < max; i++) {
+    const r = (await runSync(e, conn, opts)) as unknown as Json;
+    out.push(r);
+    if (!r.has_more) break;
+  }
+  return out;
+}
+
+const NAMES = Array.from({ length: 500 }, (_, i) => `ZZ Payee ${i}`);
+const entries = () =>
+  NAMES.map((name, i) =>
+    plaidTxn({
+      transaction_id: `ZZ-C${String(i).padStart(4, "0")}`,
+      amount: 1 + i / 100,
+      name,
+    }),
+  );
+
+/** 500 new entries on one page with payee history for each payee, and ten hand rows to match. */
+export async function budgetWorld() {
+  const w = await world1();
+  const m = await data(await json(`/api/v1/budgets/${w.plan}/months/2026-03-01`));
+  const cat = m.groups.flatMap((g: Json) => g.categories)[0].id as string;
+  await seedPayeeHistory(w.plan, w.account, NAMES, cat);
+  const list = entries();
+  feed.pages = [{ added: list }];
+  const stmts = list
+    .slice(0, 10)
+    .map((t, i) =>
+      env.DB.prepare(
+        "insert into transactions (id, budget_id, account_id, date, amount, cleared, approved, created_at, updated_at) values (?, ?, ?, ?, ?, 'cleared', 1, '2026-03-11T00:00:00.000Z', '2026-03-11T00:00:00.000Z')",
+      ).bind(
+        `zz-hand-${i}-${w.plan.slice(0, 8)}`,
+        w.plan,
+        w.account,
+        t.date,
+        -Math.round(t.amount * 1000),
+      ),
+    );
+  await env.DB.batch(stmts);
+  return { ...w, cat };
+}

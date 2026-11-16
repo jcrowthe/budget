@@ -19,6 +19,7 @@ export const bankConnections = sqliteTable(
     syncErrorSince: text("sync_error_since"),
     syncAccounts: text("sync_accounts"),
     syncLoopCursor: text("sync_loop_cursor"),
+    syncFailedAt: text("sync_failed_at"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
