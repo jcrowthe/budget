@@ -3,13 +3,16 @@ import { useMemo } from "react";
 import { useMonth } from "../api/months";
 import { FilterButton } from "./FilterButton";
 import { FilterPopover } from "./FilterPopover";
-import { categoryItems, excludedAfterDone, leafIds } from "./filters";
+import { categoryItems, excludedAfterDone, leafIds, scopeToGroup } from "./filters";
 import { useReportState } from "./state";
 
 export function CategoryFilter() {
-  const { budgetId, settings, today, update } = useReportState();
+  const { budgetId, settings, today, categoryGroupId, update } = useReportState();
   const { data } = useMonth(budgetId, monthOfDate(today));
-  const nodes = useMemo(() => categoryItems(data), [data]);
+  const nodes = useMemo(
+    () => scopeToGroup(categoryItems(data), categoryGroupId),
+    [data, categoryGroupId],
+  );
   const ids = leafIds(nodes);
   const excluded = new Set(settings.excluded_category_ids);
   const selected = new Set(ids.filter((id) => !excluded.has(id)));
@@ -18,7 +21,7 @@ export function CategoryFilter() {
       {({ anchorRef, close }) => (
         <FilterPopover
           // A late read changes the listed items: start the draft again from them.
-          key={ids.length}
+          key={`${categoryGroupId}:${ids.length}`}
           anchorRef={anchorRef}
           title="Select Categories"
           searchPlaceholder="Search All Categories"

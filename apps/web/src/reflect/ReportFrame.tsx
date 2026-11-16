@@ -22,11 +22,17 @@ const HAS_CATEGORIES: readonly ReportSlug[] = [
 export function ReportFrame({
   report,
   title,
+  heading,
+  categoryGroupId = null,
   onExport,
   children,
 }: {
   report: ReportSlug;
   title: string;
+  /** Replaces the plain title inside the h1 (the drilled report's breadcrumb). */
+  heading?: ReactNode;
+  /** Scopes the category filter to one group (a drilled Spending Breakdown). */
+  categoryGroupId?: string | null;
   /** Gets the frame's resolved state (range, filters), which the page cannot see. */
   onExport?: (state: ReportState) => Promise<void>;
   children: ReactNode;
@@ -52,6 +58,7 @@ export function ReportFrame({
           settings,
           facts,
           today,
+          categoryGroupId,
           update,
         }
       : null;
@@ -63,7 +70,7 @@ export function ReportFrame({
     <div className="reflect">
       <ReportTabs />
       <div className="reflect-head">
-        <h1>{title}</h1>
+        <h1>{heading ?? title}</h1>
         {!isAge && (
           <button
             type="button"
