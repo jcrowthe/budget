@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 8, Test user flow 2,
+Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 9, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -378,7 +378,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | PR #23 | merged `70c71a2` (round 39) |
 | 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | pending | running |
 | 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
-| 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | running |
+| 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | running |
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
 
@@ -3318,3 +3318,69 @@ gate; EXF-491 with EXF-492; EXF-517 with EXF-507) and three children started now
 - Review cadence: Build 0 (review running), Deploy 8, Discover 2, Test user flow 2. **This round's review
   is the check-in**: tell the person about both source incidents and the stored captures, and ask again
   about sign-in, the Plaid dashboard settings and the child limit.
+
+### 2026-11-16 · Review round 40 (check-in)
+
+Children used 54 of 200. Five are running: four Builds (plan menu at its last gate; EXF-491 with EXF-492;
+EXF-517 with EXF-507; EXF-548 with EXF-551) and the Build template review.
+
+**Ended: the Deploy of main `70c71a2`** (`p_1569dfe9b3fd4313ad8828bf37c9da61`), six minutes.
+**Live: https://budget.doxen.dev at `70c71a2`.**
+
+- Short commit ids as inputs worked (`EXPECT_COMMIT=70c71a2`, `GATED_COMMIT=ed91c16`): the gate skipped
+  e2e because the trees were equal.
+- Migration `20261116100000_transactions_updated_at.sql` applied; none pending. Smoke ok.
+- All seven checks passed: `updated_at` moves on a change; star, account summary and the plan-wide list;
+  the category operations through REST; **33 MCP tools**; `delete_budget` on its own test plan; the account
+  page, All Accounts and the category popovers with a real mouse; purge `remaining 0`.
+- Not checked: clicking one entry in the hidden-categories popover; a row that existed before the
+  migration (it may only write test data).
+- The release summary still does not carry the `plaid credentials:` line (for the Deploy template review).
+
+**The person has signed in.** The Deploy counted one plan that is not a test plan, and said how. I checked
+read-only (the API list printing counts only, and `change_log` grouped by the actor's kind):
+
+- One plan, created 2026-11-16 01:53:00 UTC by an actor of kind `user:`, with the default 3 groups and 11
+  categories from the same batch. It is a `production` plan. No account, no bank connection, no later
+  change. Its `last_opened_at` is 02:55:26 UTC.
+- So **sign-in through Cloudflare Access works**, which no child could test. Open question 1 is answered.
+- I did not read its name and nobody opened it. Children only have the service token, so `user:` cannot
+  be a child.
+- `last_opened_at` fell while the Deploy's verifier was working. Its transcript shows only its own test
+  plans, and opening is not in `change_log`, so I cannot prove who opened it; most likely the person's
+  own tab reloading after the release.
+- **From now on the live database holds the person's data.** The rules already in every brief cover it
+  (test plans only, never the bare `/`, never list plans, additive migrations). Add to every Deploy and
+  flow brief: "one real plan exists on live; never open, read or change it".
+- For the person: do not connect a real bank yet. Linking works on a production plan, but nothing imports
+  transactions (EXF-462) and no route removes a connection (EXF-460).
+
+**Running Builds.**
+
+- Plan menu (`p_9a58...`): three gate failures so far, all in specs (parallel specs and one database; a
+  route still fetching when a test ended). Head `40e5650`; its card should come next. Approve or abandon.
+- EXF-491 with EXF-492: manifest arrived, as briefed (`moves` route, service, tool, coverage file; the
+  Plan page; `assigned-edit.ts`). No migration.
+- EXF-517 with EXF-507: Worker side committed (617 tests), register UI under way. Its Architect said
+  nobody opened the source. It chose exact-match payee names (case kept) so the backfill merges nothing;
+  it keeps writing the old `payee_name` column so a rollback still shows names. It uses a new
+  `amount-entry.ts`, not `assigned-edit.ts`: no overlap with the Plan Build.
+- EXF-548 with EXF-551: with its Architect.
+- Scheduling rule: the manifests known share only `docs/README.md`. `packages/schema/test/**` appears as a
+  glob in one and as named files in another: different files.
+
+**Ticket writes:** none this review.
+
+**Backlog:** 80 open feature tickets (14 done; 7 in progress: EXF-470, 491, 492, 517, 507, 548, 551). Gap:
+EXF-571 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium), EXF-560, 562,
+574 (Low). Template: sixteen, EXF-573 Urgent. Flow verdicts: 9 `new_gaps`, 10 `new_gaps` (its fix is live
+now: run it again), 11 `parity`. Finished since each template's last review: Build 0 (review running),
+Deploy 9, Discover 2, Test user flow 2.
+
+**Check-in sent** (round 40): progress, the two source incidents and the stored captures, the person's
+plan on live, the child budget (200 looks enough with grouped Builds: about 80 more children expected),
+and three questions (remove the captures and check the YNAB theme; the two Plaid dashboard settings;
+anything they saw on live that is wrong).
+
+**Next plan:** flow tests on live (flow 1 and flow 10 again, one child); the plan-menu card; after its
+merge EXF-460 with EXF-461.
