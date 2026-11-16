@@ -1,5 +1,7 @@
 import type { MonthSpan, RangeFacts } from "@budget/schema/report-range";
 import {
+  type AgeOfMoney,
+  AgeOfMoneyResponse,
   type IncomeExpense,
   IncomeExpenseResponse,
   type NetWorth,
@@ -325,3 +327,15 @@ export const downloadIncomeExpenseCsv = (
     `/api/v1/budgets/${budgetId}/reports/income-expense/export?${spendingQuery(span, excludedCats, excludedAccts, today)}`,
     `budget-reflect-income-expense-${today}.csv`,
   );
+
+export const useAgeOfMoney = (budgetId: string, today: string) =>
+  useQuery({
+    queryKey: ["age-of-money", budgetId, today],
+    placeholderData: keepPreviousInPlan(budgetId),
+    queryFn: async (): Promise<AgeOfMoney> =>
+      (
+        await apiFetch(`/api/v1/budgets/${budgetId}/reports/age-of-money?today=${today}`, {
+          schema: AgeOfMoneyResponse,
+        })
+      ).data,
+  });

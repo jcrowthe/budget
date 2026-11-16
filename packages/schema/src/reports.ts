@@ -175,6 +175,17 @@ export const NetWorth = z
   .openapi("NetWorth");
 export const NetWorthResponse = dataEnvelope(NetWorth).openapi("NetWorthResponse");
 export type NetWorth = z.infer<typeof NetWorth>;
+
+export const AgeOfMoneyQuery = z.object({ today: Today.optional() });
+export const AgeOfMoneyMonth = z
+  .object({ month: Month, days: z.number().int() })
+  .openapi("AgeOfMoneyMonth");
+export const AgeOfMoney = z
+  .object({ current_days: z.number().int().nullable(), months: z.array(AgeOfMoneyMonth) })
+  .openapi("AgeOfMoney");
+export const AgeOfMoneyResponse = dataEnvelope(AgeOfMoney).openapi("AgeOfMoneyResponse");
+export type AgeOfMoney = z.infer<typeof AgeOfMoney>;
+export type AgeOfMoneyQuery = z.infer<typeof AgeOfMoneyQuery>;
 export type ReportSettings = z.infer<typeof ReportSettings>;
 export type ReportSettingsList = z.infer<typeof ReportSettingsList>;
 

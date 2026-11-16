@@ -72,7 +72,9 @@ test("548-1 five tabs, active underline, headings", async ({ page, request }) =>
   await expect(page.getByRole("button", { name: "Export", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Previous Period", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "All Accounts", exact: true })).toHaveCount(0);
-  await expect(page.getByText("This report is not built yet.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Understanding Age of Money", exact: true }),
+  ).toBeVisible();
   // Income v Expense is built (a table with AVERAGE and TOTAL, Export on); Net Worth has no category filter.
   await page.getByRole("link", { name: "Income v Expense", exact: true }).click();
   await expect(page.getByRole("columnheader", { name: "AVERAGE", exact: true })).toBeVisible();

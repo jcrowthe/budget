@@ -84,6 +84,69 @@ test("550-3 hover a group segment and a marker", async ({ page, request }) => {
   await expect(tip(page)).toHaveText(["Jun 2026", "$0.00", "Total Spending"]);
 });
 
+const SEP = '.st-marker[data-month="2026-09-01"]';
+async function markerCentre(page: Page) {
+  const box = await page.locator(SEP).boundingBox();
+  expect(box).not.toBeNull();
+  const b = box as { x: number; y: number; width: number; height: number };
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+}
+const isMarker = (page: Page, x: number, y: number) =>
+  page.evaluate(
+    ([px, py]) => document.elementFromPoint(px, py)?.matches(".st-marker") ?? false,
+    [x, y],
+  );
+
+test("615-1 the marker's tooltip opens from its centre and its lower edge on a month with spending", async ({
+  page,
+  request,
+}) => {
+  const { plan } = await seedSpendingExample(request);
+  await setRange(request, plan.id, "spending-trends", "2026-09-01", "2026-09-01");
+  await openReport(page, plan.id, "spending-trends");
+  await expect(page.getByTestId("st-total")).toHaveText("$175.24");
+  await expect(page.locator(SEP)).toHaveCount(1);
+  const c = await markerCentre(page);
+  for (const dy of [0, 5]) {
+    await page.mouse.move(c.x + 60, c.y + 60); // away, so each hover starts afresh
+    await expect(page.locator(".st-tooltip")).toHaveCount(0);
+    expect(await isMarker(page, c.x, c.y + dy)).toBe(true);
+    await page.mouse.move(c.x, c.y + dy);
+    await expect(tip(page)).toHaveText(["Sep 2026", "$175.24", "Total Spending"]);
+  }
+});
+
+test("615-2 a click on the marker or on the segment below it reaches the segment", async ({
+  page,
+  request,
+}) => {
+  const { plan, groupId } = await seedSpendingExample(request);
+  await setRange(request, plan.id, "spending-trends", "2026-09-01", "2026-09-01");
+  await openReport(page, plan.id, "spending-trends");
+  await expect(page.getByTestId("st-total")).toHaveText("$175.24");
+  const dialog = page.getByRole("dialog", {
+    name: "Uncategorized Transactions–SEP 2026",
+    exact: true,
+  });
+  const u = await segmentPoint(page, "2026-09-01", "uncategorized");
+  await page.mouse.move(u.x, u.y);
+  await page.mouse.click(u.x, u.y);
+  await expect(dialog).toBeVisible();
+  await realClick(page, dialog.getByRole("button", { name: "Close", exact: true }));
+  await expect(dialog).toHaveCount(0);
+  const c = await markerCentre(page);
+  expect(await isMarker(page, c.x, c.y + 3)).toBe(true);
+  await page.mouse.move(c.x, c.y + 3);
+  await page.mouse.click(c.x, c.y + 3);
+  await expect(dialog).toBeVisible();
+  await realClick(page, dialog.getByRole("button", { name: "Close", exact: true }));
+  await expect(dialog).toHaveCount(0);
+  const g = await segmentPoint(page, "2026-09-01", groupId);
+  await page.mouse.move(g.x, g.y);
+  await page.mouse.click(g.x, g.y);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("All Groups › D8 Group");
+});
+
 test("550-4 drill into a group, then a category's popover", async ({ page, request }) => {
   const { plan, ids, groupId } = await seedSpendingExample(request);
   await setRange(request, plan.id, "spending-trends", "2026-05-01", "2026-11-01");

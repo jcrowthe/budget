@@ -514,10 +514,6 @@
 .reflect-body {
   padding: 0 var(--space-4) 56px;
 }
-.reflect-placeholder {
-  margin: 0;
-  color: var(--labelTertiary);
-}
 
 .nw-card {
   margin-bottom: var(--space-3);

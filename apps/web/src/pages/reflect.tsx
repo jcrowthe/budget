@@ -7,6 +7,7 @@ import {
   useReportSettings,
   useUpdateReportSettings,
 } from "../api/reports";
+import { AgeOfMoneyReport } from "../reflect/AgeOfMoneyReport";
 import { IncomeExpenseReport } from "../reflect/IncomeExpenseReport";
 import { NetWorthReport } from "../reflect/NetWorthReport";
 import { ReportFrame } from "../reflect/ReportFrame";
@@ -56,7 +57,7 @@ function ReportPage({ slug }: { slug: ReportSlug }) {
       ) : slug === "income-expense" ? (
         <IncomeExpenseReport />
       ) : (
-        <p className="reflect-placeholder">This report is not built yet.</p>
+        <AgeOfMoneyReport />
       )}
     </ReportFrame>
   );
