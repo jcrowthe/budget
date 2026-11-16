@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 4 (last reviewed in round 24, fourteen Threads), Deploy 7, Test user flow 1,
+Review counters (finished children since that template's last review): Build 5 (last reviewed in round 24, fourteen Threads), Deploy 7, Test user flow 1,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -366,10 +366,10 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | merged `2fcde22` (round 30) |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | PR #17 | running |
-| 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | PR #18 | running |
+| 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | PR #18 | merged `82aac3a` (round 33) |
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
 | 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | completed (9 minutes): flow 9 `new_gaps` (EXF-571), flow 11 `parity` |
-| 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | pending | running |
+| 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2657,3 +2657,75 @@ Build (EXF-484, EXF-534, EXF-570). Nothing started this round.
   the element's centre, not a DOM click, and checks that the element is the topmost one there."
 - Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 1.
 - Ticket writes this round: 1.
+
+### 2026-11-16 · Review round 33
+
+Children used 43 of 200. Two Builds are running: the categories Build (EXF-494, EXF-495; pull request #17,
+working on the changes I asked for) and the account-pages Build (EXF-484, 534, 570; pull request #19, in
+polish). No card is waiting.
+
+**Ended: the Build for EXF-459 (Plaid Link), merged as `82aac3a` (PR #18)** after 67 minutes. Ticket Done
+and commented. I read the sensitive parts of the diff before approving (55 files, +3708/-19).
+
+- `apps/worker/src/plaid/**`: `client.ts` (`plaidFor(env, environment)`, REST by `fetch`, errors carry only
+  Plaid's code and display message), `credentials.ts` (secret names `plaid_credentials:<environment>`),
+  `tokens.ts` (`plaid_access_token:<connection id>`), `amounts.ts` (`plaidToMilliunits`), `institutions.ts`
+  (popular lists, ids verified against Plaid Sandbox).
+- Routes: `PUT`/`GET /api/v1/plaid/credentials`; `GET /api/v1/institutions`, `/institutions/popular`;
+  `POST /api/v1/bank-connections/link-token`, `POST` and `GET /api/v1/bank-connections`; all plan-aware
+  through `getBudgetEnvironment`. Tool `list_bank_connections`.
+- `budgets.bank_environment` (`production` default, `sandbox`): migration
+  `20261116002832_budgets_bank_environment.sql`; tables in `20261116002833_bank_connections.sql`.
+  `scripts/live-test-plans.sh create` now makes sandbox plans.
+- **`scripts/deploy.sh` now pushes the Plaid credentials after the smoke test** (`scripts/plaid-credentials.sh`;
+  a failure warns, the release still passes). The next Deploy stores Sandbox and Production credentials
+  encrypted in the live database. Ask that Deploy to report the script's one status line and
+  `GET /api/v1/plaid/credentials`.
+- Web: `shell/BankSearch.tsx`, `BankConnected.tsx`, `plaidLink.ts` (Plaid's script loaded on demand),
+  `pages/plaid-oauth.tsx`; a temporary `?add-accounts=connections` parameter for the second variant until
+  EXF-460.
+- No Content-Security-Policy exists in the app, so nothing had to change for Plaid Link. (Worth a hardening
+  ticket one day; not now.)
+- Acceptance 14 pass, 1 partial (Plaid's real Link frame could not be scripted past the login), 0 fail. The
+  first flow test of flow 5 should drive Sandbox Link by hand on live.
+- **To note:** the Tester ran `scripts/plaid-credentials.sh` against the local dev server in its box, which
+  stored both credential sets (encrypted) in that box's local database. My brief said the production
+  secret must not be used by the Build at all. No Plaid production call was made and the box is discarded;
+  I will word that rule more exactly next time ("do not export or send `PLAID_PRODUCTION_SECRET` anywhere,
+  including to a local server").
+- Colours: three literals were used because their tokens live in the grid's CSS (`--labelAction`,
+  `--separatorStandard`, `--actionSecondary`). EXF-562 (move the grid's colours into `tokens.css`) now also
+  serves this dialog and the Plan header; raise it to Medium at the next plan.
+- Gate: the full run was 88 of 88 twice and 87 of 88 once: `e2e/plans.spec.ts:4` again (EXF-569).
+
+**The categories Build:** I answered its card with Request changes (side turn). Two of three full e2e runs
+failed at `e2e/assigned.spec.ts:192`; the gate called it a flake, but it is a race the branch introduces:
+collapse is an optimistic write to the cached month, and the Assigned queue's refetch, started earlier,
+returns the old `collapsed` and reopens the group. Asked for one rule for every writer of the cached month
+(cancel in-flight fetches before an optimistic write; refetch only when no write is pending) in one module,
+a test that reproduces the race with a delayed response, three clean full runs, and two small items from
+the Tester. This also covers the web leftovers on EXF-560. It is at 47 visits and comparing popover arrows
+(round 3), so the feedback reached it (approval-card feedback is the one channel that works).
+
+**The account-pages Build's manifest arrived** and it lists `apps/worker/src/repositories/category-reassign.ts`,
+a file the categories Build creates. That is the conditional edit I asked for (set `updated_at` there if the
+file is on main at its rebase). By the letter of the scheduling rule this is an overlap of two running
+Builds. I let both run: the file exists in only one branch until one of them merges, and whichever merges
+second must handle it. **At each of the two cards, check that file**: if categories merges first, the
+account-pages Build must set `updated_at` in it; if account-pages merges first, the categories Build must
+do so at its refresh, and I say so in that card's feedback.
+
+**For the next plan:**
+
+- **Deploy main `82aac3a` now** (the register and Plaid Link; two migrations; the first run of the
+  credentials push). Do not wait for the categories Build any longer.
+- **The shell is free:** start the plan-menu Build (EXF-571 High, with EXF-470 and EXF-454). Then EXF-460
+  with EXF-461 (also shell), one after the other.
+- Flow 10 (REST and MCP) can run after that Deploy; flows 1 and 2 after the categories Build ships.
+
+**Ticket writes:** 2 (EXF-459 Done and comment).
+
+**Backlog:** 84 open feature tickets (10 done; 4 in progress: EXF-494, 495, 484, 534), all triaged. Gap:
+EXF-570 (High, in progress), EXF-571 (High), EXF-558 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562
+(Low). Template: fifteen. Flow verdicts: 9 `new_gaps`, 11 `parity`. Finished since each template's last
+review: Build 5, Deploy 7, Discover 2, Test user flow 1.
