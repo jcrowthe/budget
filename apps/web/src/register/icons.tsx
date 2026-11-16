@@ -125,14 +125,26 @@ const line = {
   height: 16,
   "aria-hidden": true,
 } as const;
+// A pennant with no pole: a rounded rectangle whose right edge has a V notch (24 x 15 drawing, shown at 20 x 12.5).
+const PENNANT = "M3 1h19l-5 6.500 5 6.500H3a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2Z";
 export const FlagOutlineIcon = (p: P) => (
-  <svg {...line} aria-hidden="true" {...p}>
-    <path d="M5 21V4M5 4h12l-2.500 4.500L17 13H5" />
+  <svg
+    viewBox="0 0 24 15"
+    width={20}
+    height={12.5}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...p}
+  >
+    <path d={PENNANT} />
   </svg>
 );
 export const FlagFilledIcon = (p: P) => (
-  <svg {...line} aria-hidden="true" {...p}>
-    <path d="M5 21V4M5 4h12l-2.500 4.500L17 13H5Z" fill="currentColor" />
+  <svg viewBox="0 0 24 15" width={20} height={12.5} fill="currentColor" aria-hidden="true" {...p}>
+    <path d={PENNANT} />
   </svg>
 );
 export const CloseSmallIcon = (p: P) => (

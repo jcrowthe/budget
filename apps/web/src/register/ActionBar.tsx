@@ -10,6 +10,7 @@ import {
 import type { FlagColor } from "@budget/schema/transactions";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Tooltip } from "../account/Tooltip";
 import { useAccounts } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { downloadExport, useApproveReject, useBulkTransactions } from "../api/transactions";
@@ -52,6 +53,46 @@ function useRegisterBox() {
     };
   }, []);
   return box;
+}
+
+const Key = ({ k }: { k: string }) => <kbd className="acct-tip-key">{k}</kbd>;
+/** The shortcut tooltip of a bar button: the description, then its key caps. */
+function Tip({
+  text,
+  keys,
+  then,
+  children,
+}: {
+  text: string;
+  keys: string[];
+  then?: string;
+  children: Parameters<typeof Tooltip>[0]["children"];
+}) {
+  return (
+    <Tooltip
+      placement="above"
+      align="center"
+      delayed={false}
+      content={
+        <span className="acct-tip-shortcut">
+          <span>{text}</span>
+          <span className="acct-tip-keys">
+            {keys.map((k) => (
+              <Key key={k} k={k} />
+            ))}
+            {then ? (
+              <>
+                <span>then</span>
+                <Key k={then} />
+              </>
+            ) : null}
+          </span>
+        </span>
+      }
+    >
+      {children}
+    </Tooltip>
+  );
 }
 
 /**
@@ -252,57 +293,77 @@ export function ActionBar({
                 </button>
                 <hr />
                 {actions.approve && (
-                  <button
-                    type="button"
-                    className="action-bar-button"
-                    title="Approve (A)"
-                    onClick={doApprove}
-                  >
-                    Approve
-                  </button>
+                  <Tip text="Approve" keys={["A"]}>
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        onClick={doApprove}
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </Tip>
                 )}
                 {actions.reject && (
-                  <button
-                    type="button"
-                    className="action-bar-button"
-                    title="Reject (shift+R)"
-                    onClick={doReject}
-                  >
-                    Reject
-                  </button>
+                  <Tip text="Reject" keys={["shift", "R"]}>
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        onClick={doReject}
+                      >
+                        Reject
+                      </button>
+                    )}
+                  </Tip>
                 )}
                 {actions.categorize && (
-                  <button
-                    ref={catBtn}
-                    type="button"
-                    className="action-bar-button"
-                    title="Categorize (K)"
-                    onClick={() => (menu === "categorize" ? close() : doCategorize())}
-                  >
-                    <CategorizeIcon />
-                    Categorize
-                  </button>
+                  <Tip text="Categorize" keys={["K"]}>
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        ref={catBtn}
+                        type="button"
+                        className="action-bar-button"
+                        onClick={() => (menu === "categorize" ? close() : doCategorize())}
+                      >
+                        <CategorizeIcon />
+                        Categorize
+                      </button>
+                    )}
+                  </Tip>
                 )}
-                <button
-                  ref={flagBtn}
-                  type="button"
-                  className="action-bar-button"
-                  title="Flag (shift+F, then 0-6)"
-                  aria-haspopup="menu"
-                  onClick={() => setMenu((m) => (m === "flag" ? null : "flag"))}
-                >
-                  <FlagFilledIcon />
-                  Flag
-                </button>
+                <Tip text="Flag" keys={["shift", "F"]} then="0‑6">
+                  {(tip) => (
+                    <button
+                      {...tip}
+                      ref={flagBtn}
+                      type="button"
+                      className="action-bar-button"
+                      aria-haspopup="menu"
+                      onClick={() => setMenu((m) => (m === "flag" ? null : "flag"))}
+                    >
+                      <FlagFilledIcon />
+                      Flag
+                    </button>
+                  )}
+                </Tip>
                 {actions.clear === "clear" && (
-                  <button
-                    type="button"
-                    className="action-bar-button"
-                    title="Toggle cleared state"
-                    onClick={doClear}
-                  >
-                    Clear
-                  </button>
+                  <Tip text="Toggle cleared state" keys={["C"]}>
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        onClick={doClear}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </Tip>
                 )}
                 <hr />
                 <button

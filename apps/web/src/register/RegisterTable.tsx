@@ -30,7 +30,7 @@ import {
   ChevronRightIcon,
   ClearedFilledIcon,
   ClearedOutlineIcon,
-  FlagOutlineIcon,
+  FlagFilledIcon,
   LockIcon,
   TransferIcon,
 } from "./icons";
@@ -402,7 +402,7 @@ export function RegisterTable({
               <Box state={allState} label="Select all transactions" onClick={toggleAll} />
             </th>
             <th className="cell-flag" aria-label="Flag">
-              <FlagOutlineIcon />
+              <FlagFilledIcon />
             </th>
             {columns.map((h) => {
               const active = sort.column === h.column;

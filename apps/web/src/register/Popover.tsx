@@ -15,6 +15,10 @@ export function Popover({
   width,
   label,
   role = "menu",
+  className,
+  bodyClass,
+  dx = 4,
+  belowTrim = 0,
   onClose,
   children,
 }: {
@@ -23,6 +27,13 @@ export function Popover({
   width: number;
   label: string;
   role?: "menu";
+  /** Extra class of the popover (for example `is-submenu`) and of its body (`is-flags`). */
+  className?: string;
+  bodyClass?: string;
+  /** For `right`: the gap from the anchor's right edge (negative overlaps it). */
+  dx?: number;
+  /** For `below`: pixels the menu moves up into the arrow's room, so the arrow overlaps the anchor more. */
+  belowTrim?: number;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -41,8 +52,8 @@ export function Popover({
       el.style.width = `${w}px`;
       const h = el.offsetHeight;
       if (placement === "right") {
-        const fitsRight = r.right + 4 + w <= window.innerWidth - MARGIN;
-        el.style.left = `${fitsRight ? r.right + 4 : Math.max(MARGIN, r.left - 4 - w)}px`;
+        const fitsRight = r.right + dx + w <= window.innerWidth - MARGIN;
+        el.style.left = `${fitsRight ? r.right + dx : Math.max(MARGIN, r.left - dx - w)}px`;
         el.style.top = `${Math.max(MARGIN, Math.min(r.top - 4, window.innerHeight - h - MARGIN))}px`;
         el.style.bottom = "auto";
         tip.style.display = "none";
@@ -61,7 +72,7 @@ export function Popover({
         el.style.bottom = `${window.innerHeight - r.top + ARROW_H}px`;
       } else {
         el.style.bottom = "auto";
-        el.style.top = `${r.bottom + ARROW_H}px`;
+        el.style.top = `${r.bottom + ARROW_H - belowTrim}px`;
       }
     };
     place();
@@ -96,7 +107,12 @@ export function Popover({
 
   return createPortal(
     // biome-ignore lint/a11y/useAriaPropsSupportedByRole: a menu takes a label
-    <div ref={box} className="bulk-popover" role={role} aria-label={label}>
+    <div
+      ref={box}
+      className={`bulk-popover${className ? ` ${className}` : ""}`}
+      role={role}
+      aria-label={label}
+    >
       <svg
         ref={arrow}
         className="bulk-popover-arrow"
@@ -107,7 +123,7 @@ export function Popover({
       >
         <path d="M0 15 15 0 30 15Z" />
       </svg>
-      <div className="bulk-popover-body">{children}</div>
+      <div className={`bulk-popover-body${bodyClass ? ` ${bodyClass}` : ""}`}>{children}</div>
     </div>,
     document.body,
   );

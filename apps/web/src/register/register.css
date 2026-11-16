@@ -13,8 +13,10 @@
   --register-actionbar-hover: rgba(255, 255, 255, 0.15);
   --register-menu-bg: #1f2038;
   --register-menu-hover: #292b3d;
-  --register-keycap-bg: rgba(114, 116, 132, 0.24);
+  --register-keycap-bg: rgba(114, 116, 132, 0.18);
   --register-menu-disabled: #9b9caa;
+  /* Disabled entry icon: the source's --inputBorderSubtle, measured on the disabled Match entry of the More menu. */
+  --register-icon-disabled: #56596c;
   --register-flag-red: #ff453a;
   --register-flag-orange: #ff9f0a;
   --register-flag-yellow: #ffd60a;
@@ -363,16 +365,15 @@
 .register-table td.cell-flag {
   padding: 0 6.4px 0 0;
   overflow: visible;
-  text-align: center;
+  text-align: left;
 }
 .flag-cell-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: 36px;
   height: 22px;
-  padding: 0;
+  padding: 0 var(--space-2);
   border: 0;
   border-radius: 24px;
   background: transparent;
@@ -447,6 +448,7 @@
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+  line-height: 16.8px;
   pointer-events: auto;
   animation: register-bar-in 0.2s;
 }
@@ -476,8 +478,16 @@
 .action-bar-button:active {
   background: var(--register-actionbar-hover);
 }
+.action-bar-button svg {
+  width: 12px;
+  height: 12px;
+}
+.action-bar-uncheck svg {
+  width: 8px;
+  height: 8px;
+}
 .action-bar-uncheck {
-  margin-right: 4px;
+  margin-right: 0;
 }
 .register-action-bar-inner hr {
   width: 1px;
@@ -506,7 +516,7 @@
 .bulk-popover-body {
   box-sizing: border-box;
   max-height: calc(100vh - 8.125rem);
-  padding: 1px;
+  padding: 0;
   overflow-y: auto;
   border-radius: 6.4px;
   background: var(--register-menu-bg);
@@ -514,6 +524,12 @@
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+}
+.bulk-popover-body.is-flags {
+  padding: 1px;
+}
+.bulk-popover.is-submenu .bulk-popover-body {
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.1);
 }
 .bulk-popover-arrow {
   position: absolute;
@@ -557,6 +573,7 @@
   background: var(--register-menu-hover);
 }
 .bulk-item[aria-disabled="true"] {
+  padding-block: 6px;
   color: var(--register-menu-disabled);
   cursor: default;
 }
@@ -565,7 +582,22 @@
 }
 .bulk-item-icon {
   display: inline-flex;
-  margin-right: 11px;
+  margin-right: 11.5px;
+  color: var(--labelTertiary);
+}
+.bulk-item[aria-disabled="true"] .bulk-item-icon {
+  color: var(--register-icon-disabled);
+}
+.bulk-item.is-active {
+  background: var(--register-menu-hover);
+}
+.bulk-chevron {
+  display: inline-flex;
+  color: var(--labelTertiary);
+}
+.bulk-chevron svg {
+  width: 12px;
+  height: 12px;
 }
 .bulk-item-label {
   flex: 1;
@@ -584,8 +616,11 @@
   padding: 0 4px;
   border-radius: 4px;
   background: var(--register-keycap-bg);
-  color: var(--labelSecondary);
+  color: var(--register-icon-muted);
   font: inherit;
+}
+.bulk-item:not([aria-disabled="true"]):hover kbd {
+  color: var(--labelPrimary);
 }
 .bulk-move {
   max-height: 300px;
@@ -603,10 +638,11 @@
 .flags-list li {
   display: flex;
   justify-content: space-between;
-  margin: 16px 12px;
+  margin: 16px;
 }
 .flags-list kbd {
   min-height: 24px;
+  color: var(--labelSecondary);
   background: var(--register-menu-hover);
 }
 .flag-pill {
@@ -630,9 +666,9 @@
 }
 .bulk-popover .flags-footer {
   display: flex;
-  margin: 16px 12px;
+  margin: 16px;
 }
-.bulk-popover hr {
+.bulk-popover hr.flags-hr {
   height: 1px;
   margin: 0;
   border: 0;
@@ -657,7 +693,7 @@
   box-sizing: border-box;
   width: 100%;
   height: 32px;
-  margin-top: 4px;
+  margin: 8px 0;
   padding: 4px 8px;
   border: 1px solid var(--buttonPrimaryBackground);
   border-radius: var(--radius-xs);
@@ -681,4 +717,14 @@
   gap: var(--space-2);
   margin: 0 auto 0 0;
   font-weight: 500;
+}
+
+/* The Memo dialog: label and input spacing, and a disabled Update in the menu's grey (measured in the source's Memo dialog). */
+.dialog.form.bulk-dialog label:not(.bulk-dialog-check) {
+  margin: 0;
+}
+.bulk-dialog .dialog-footer .primary:disabled {
+  opacity: 1;
+  background: var(--menuHover);
+  color: var(--labelTertiary);
 }

@@ -10,8 +10,11 @@ export function FlagMenu({
   flagged,
   onPick,
   onClose,
+  belowTrim,
 }: {
   anchor: HTMLElement;
+  /** Pixels the menu sits closer to its anchor (the flag cell's menu overlaps its arrow more). */
+  belowTrim?: number;
   placement: "above" | "below";
   /** True when a target row is flagged: "Clear 0" is listed. */
   flagged: boolean;
@@ -35,7 +38,15 @@ export function FlagMenu({
   }, [flagged]);
 
   return (
-    <Popover anchor={anchor} placement={placement} width={238} label="Flags" onClose={onClose}>
+    <Popover
+      anchor={anchor}
+      placement={placement}
+      width={238}
+      label="Flags"
+      bodyClass="is-flags"
+      belowTrim={belowTrim}
+      onClose={onClose}
+    >
       <ul className="flags-list">
         {flagged && (
           <li>
@@ -68,7 +79,7 @@ export function FlagMenu({
           </li>
         ))}
       </ul>
-      <hr />
+      <hr className="flags-hr" />
       <div className="flags-footer">
         <button
           type="button"
@@ -113,6 +124,7 @@ export function FlagCell({
         <FlagMenu
           anchor={btn.current}
           placement="below"
+          belowTrim={5}
           flagged={color !== null}
           onClose={() => setOpen(false)}
           onPick={(c) => {
