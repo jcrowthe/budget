@@ -1,12 +1,23 @@
 import { env } from "cloudflare:test";
 import { crc32 } from "@budget/schema/zip";
-import { expect } from "vitest";
+import { afterAll, expect } from "vitest";
 import type { Env } from "../src/env";
 import { createBudget } from "../src/services/budgets";
+import { planClock } from "../src/services/plan-clock";
 import { actor, type Json, q, send, setSql } from "./bulk-helpers";
 import { json } from "./helpers";
 
 export const NOW = "2026-11-16T09:05";
+export const PINNED = "2026-11-16T12:00:00.000Z";
+
+/** Pins the server clock of the export and the import (EXF-670: `now` must be near it); restored after the file. */
+export function pinPlanClock(at = PINNED): void {
+  const real = planClock.now;
+  planClock.now = () => new Date(at);
+  afterAll(() => {
+    planClock.now = real;
+  });
+}
 export const PLAN_NAME = "ZZ-TEST Ex/port: 7";
 
 export interface ZipEntry {
