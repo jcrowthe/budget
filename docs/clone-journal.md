@@ -9267,3 +9267,23 @@ open, eight in progress. Template: forty open (Urgent EXF-573, 611, 612). Flow v
 Finished since each template's last review: Build 3, Deploy 7, Discover 2, Test user flow 2.
 
 **Next plan:** nothing to start.
+
+### 2026-11-16 · Plan round 107
+
+Children used 123 of 200. Nothing started; three Builds are running (the Plan-page, plan import and
+Reconcile carry-overs). Main and live `49012cd`. No tickets were filed at the last review. The person
+has not answered the round-100 check-in.
+
+- **Why nothing new:** the three Builds hold the Plan page with the engine, the account page and
+  register with the transactions service, and the import with the export's files; every other
+  unblocked ticket needs one of those or a shared module, or waits on the person's word (the bank
+  screens, the plan menu's dialogs). Main and live are equal: no Deploy and no flow test. Reviews:
+  Build 3, Deploy 7, Discover 2, Test user flow 2 since each template's last review; none is due.
+- **Cards:** answered at once. A clean card on main: approve; the others then rebase (the two named
+  test-file conflicts are in their briefs). A checks or gate card with no log: Abandon and carry
+  over.
+
+Declared for the tree, unchanged: one Deploy for the three merges as they land; flows 3, 4 and 6
+after it; then plan formats (EXF-468) or the register's View options (EXF-529).
+
+Ticket writes: 0.
