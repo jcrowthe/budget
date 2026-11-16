@@ -19,6 +19,7 @@ const cat = (
   available: v[3],
   target: null,
   note: null,
+  target_snoozed: false,
   ...extra,
 });
 
