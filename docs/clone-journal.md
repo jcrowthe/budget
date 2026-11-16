@@ -387,7 +387,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | completed (11 minutes): filed EXF-580 to EXF-585, three comments |
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | PR #28 | merged `0b53a5f` (round 48), 62 minutes |
 | 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | live `b09078b` (6 minutes) |
-| 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
+| 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | PR #29 | merged `113ced4` (round 55), about 2 hours, one card |
 | 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | live `3a3a977` (6 minutes) |
 | 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | PR #30 | merged `74f1041` (round 53), 45 minutes, one card |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
@@ -4546,3 +4546,47 @@ with EXF-524; EXF-486 with EXF-488) and the flow test started now.
 - Main and live are both `74f1041`: nothing to deploy.
 - No new Build: the Plan page, the transactions files, the accounts files and the shell are all held.
 - Review cadence: Build 7, Deploy 3, Discover 2, Test user flow 4.
+
+### 2026-11-16 · Review round 55
+
+Children used 68 of 200. Three are running: EXF-526 with EXF-524 (review fixes, head `0610e27`), EXF-486
+with EXF-488 (dialogs built, head `372b09d`), and the flow tests for flows 8 and 5.
+
+**Ended: the Plan-page Build, merged as `113ced4` (PR #29)**, about two hours and one card. EXF-498,
+EXF-521, EXF-523 and EXF-586 are Done. The filter point of EXF-523 is noted on EXF-500.
+
+- I approved at its card after reading the branch: gate on the current base, e2e 211 of 211 three times,
+  changed specs 460 of 460. **Its gate landed on a quiet main, so one card was enough.**
+- On main: `apps/web/src/api/placeholder.ts` (`keepPreviousInPlan`), used by the month and
+  bank-connections queries; selection state and `plan/shortcuts.ts`; the right panel (month summary,
+  selection summary, inspector with Available Balance and Notes, resize handle);
+  `packages/schema/src/month-totals.ts`; `GET .../months/{month}/summary` (`get_month_summary`),
+  `GET .../months/{month}/categories/{category_id}` (`get_month_category`), `note` on the category PATCH
+  (`set_category_note`); migration `20261116100400_category_note.sql`; `e2e/plan-switch.spec.ts`;
+  the conventions line on placeholders.
+- **A four-ticket Build worked**: one design, twenty acceptance cases named by ticket, seven polish items.
+- Its steps kept to the source limits and each said so for itself: the fourth Build in a row where naming
+  one place and a list of forbidden controls held.
+- Two deliberate differences from the source, filed now as one Low ticket: a click on an already selected
+  name opens the edit popover there; and a click on a name or ↓ also opens that row's Assigned editor.
+
+**The Plan page and the months and categories files are free.** Ready there: EXF-508 with EXF-514 (targets
+form and display, into the inspector), then EXF-519 (Auto-Assign), EXF-532 (credit engine: also needs the
+transactions files and `packages/core`).
+
+**Running Builds, heads read:**
+
+- Transfers and splits: "re-link inserts before it deletes; closed other account no longer blocks
+  edits": review fixes. Its gate will run on a main that has just moved: straight to Regate if its card
+  shows the old base.
+- Account editing: both dialogs built and wired to both pencils.
+
+**Main is `113ced4`; live is `74f1041`**, one merge behind with one migration (`100400`).
+
+**Ticket writes:** 10 (four Done; six comments).
+
+**Backlog:** 72 open feature tickets (24 done; 4 in progress: EXF-526, 524, 486, 488). Gap: EXF-587,
+EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low), one new Low filed now; done now also
+EXF-586. Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 9 and 10 `new_gaps`
+(9's fix merged, not live), 11 `parity`, 8 and 5 running. Finished since each template's last review:
+Build 8, Deploy 3, Discover 2, Test user flow 4.
