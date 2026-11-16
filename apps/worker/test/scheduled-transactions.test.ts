@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { json } from "./helpers";
-import { apiPaths, listedToolNames } from "./surface";
 import { tool } from "./account-helpers";
+import { json } from "./helpers";
 import {
   account,
   body,
@@ -18,6 +17,7 @@ import {
   send,
   TODAY,
 } from "./scheduled-helpers";
+import { apiPaths, listedToolNames } from "./surface";
 
 const base = (a: string, extra: Json = {}) => ({
   account_id: a,
@@ -117,7 +117,9 @@ describe("scheduled transactions: create and read", () => {
     const t = await account(b, "otherAsset", 1000);
     const c = await category(b);
     const closed = await account(b, "checking", 0);
-    expect((await send(`/api/v1/budgets/${b}/accounts/${closed}/close`, "POST", {})).status).toBe(200);
+    expect((await send(`/api/v1/budgets/${b}/accounts/${closed}/close`, "POST", {})).status).toBe(
+      200,
+    );
     const res = await send(S(b), "POST", base(closed));
     expect(res.status).toBe(422);
     expect(((await res.json()) as Json).error.name).toBe("account_closed");
@@ -126,7 +128,9 @@ describe("scheduled transactions: create and read", () => {
     expect(JSON.stringify(await tr.json())).toContain("Tracking accounts do not take a category");
     // a refused create leaves no row, no payee and no log
     expect(await q("select id from scheduled_transactions where budget_id = ?", b)).toEqual([]);
-    expect(await q("select id from payees where budget_id = ? and name = 'ZZ-TEST Landlord'", b)).toEqual([]);
+    expect(
+      await q("select id from payees where budget_id = ? and name = 'ZZ-TEST Landlord'", b),
+    ).toEqual([]);
     expect(a).toBeTruthy();
   });
 
@@ -177,8 +181,16 @@ describe("scheduled transactions: recurrence through Enter Now", () => {
     ]);
   });
   it("twice a month from the 10th and from the 31st", async () => {
-    expect(await walk("twiceAMonth", "2026-12-10", 2)).toEqual(["2026-12-10", "2026-12-25", "2027-01-10"]);
-    expect(await walk("twiceAMonth", "2027-01-31", 2)).toEqual(["2027-01-31", "2027-02-16", "2027-02-28"]);
+    expect(await walk("twiceAMonth", "2026-12-10", 2)).toEqual([
+      "2026-12-10",
+      "2026-12-25",
+      "2027-01-10",
+    ]);
+    expect(await walk("twiceAMonth", "2027-01-31", 2)).toEqual([
+      "2027-01-31",
+      "2027-02-16",
+      "2027-02-28",
+    ]);
   });
 });
 
@@ -188,7 +200,16 @@ describe("scheduled transactions: Enter Now", () => {
     const a = await account(b);
     const c = await category(b);
     const id = (
-      await sched(b, base(a, { date_first: "2026-11-25", frequency: "monthly", category_id: c, memo: "ZZ m", flag_color: "red" }))
+      await sched(
+        b,
+        base(a, {
+          date_first: "2026-11-25",
+          frequency: "monthly",
+          category_id: c,
+          memo: "ZZ m",
+          flag_color: "red",
+        }),
+      )
     ).scheduled_transaction.id;
     const res = await enter(b, id);
     expect(res.status).toBe(201);
@@ -236,7 +257,10 @@ describe("scheduled transactions: Enter Now", () => {
       (await sched(b, base(a, { frequency: "monthly" }))).scheduled_transaction.id,
       (await sched(b, base(a))).scheduled_transaction.id,
     ];
-    const bad = await send(`${S(b)}/bulk?today=${TODAY}`, "POST", { op: "enter_now", ids: [...ids, "nope"] });
+    const bad = await send(`${S(b)}/bulk?today=${TODAY}`, "POST", {
+      op: "enter_now",
+      ids: [...ids, "nope"],
+    });
     expect(bad.status).toBe(404);
     const ok = await send(`${S(b)}/bulk?today=${TODAY}`, "POST", { op: "enter_now", ids });
     expect(ok.status).toBe(201);
@@ -258,7 +282,10 @@ describe("scheduled transactions: edit and delete", () => {
     const res = await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", { memo: "ZZ-TEST rent" });
     expect(res.status).toBe(200);
     const d = await body(res);
-    expect(d.scheduled_transaction).toMatchObject({ memo: "ZZ-TEST rent", date_next: "2026-11-20" });
+    expect(d.scheduled_transaction).toMatchObject({
+      memo: "ZZ-TEST rent",
+      date_next: "2026-11-20",
+    });
     const del = await send(`${S(b)}/${id}`, "DELETE");
     expect(del.status).toBe(200);
     expect((await body(del)).scheduled_transaction.deleted).toBe(true);
@@ -274,9 +301,17 @@ describe("scheduled transactions: edit and delete", () => {
     const b = await plan();
     const a = await account(b);
     const id = (await sched(b, base(a, { frequency: "monthly" }))).scheduled_transaction.id;
-    const moved = await body(await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", { date_first: "2026-12-05" }));
-    expect(moved.scheduled_transaction).toMatchObject({ date_first: "2026-12-05", date_next: "2026-12-05" });
-    const never = await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", { date_first: TODAY, frequency: "never" });
+    const moved = await body(
+      await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", { date_first: "2026-12-05" }),
+    );
+    expect(moved.scheduled_transaction).toMatchObject({
+      date_first: "2026-12-05",
+      date_next: "2026-12-05",
+    });
+    const never = await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", {
+      date_first: TODAY,
+      frequency: "never",
+    });
     expect(never.status).toBe(422);
     expect(JSON.stringify(await never.json())).toContain("Enter Now");
   });
@@ -284,9 +319,16 @@ describe("scheduled transactions: edit and delete", () => {
   it("changing only the frequency re-anchors at date_next", async () => {
     const b = await plan();
     const a = await account(b);
-    const id = (await sched(b, base(a, { frequency: "monthly", date_first: "2026-12-31" }))).scheduled_transaction.id;
-    const d = await body(await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", { frequency: "weekly" }));
-    expect(d.scheduled_transaction).toMatchObject({ date_first: "2026-12-31", date_next: "2026-12-31", frequency: "weekly" });
+    const id = (await sched(b, base(a, { frequency: "monthly", date_first: "2026-12-31" })))
+      .scheduled_transaction.id;
+    const d = await body(
+      await send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", { frequency: "weekly" }),
+    );
+    expect(d.scheduled_transaction).toMatchObject({
+      date_first: "2026-12-31",
+      date_next: "2026-12-31",
+      frequency: "weekly",
+    });
   });
 
   it("an empty patch is 422", async () => {
@@ -301,18 +343,24 @@ describe("scheduled transactions: entering what is due", () => {
   it("enters one unapproved row dated its date, advances, and does nothing the second time", async () => {
     const b = await plan();
     const a = await account(b);
-    const id = (await sched(b, base(a, { date_first: "2026-11-16", frequency: "weekly" }))).scheduled_transaction.id;
+    const id = (await sched(b, base(a, { date_first: "2026-11-16", frequency: "weekly" })))
+      .scheduled_transaction.id;
     const first = await body(await enterDueRest(b, "2026-11-16"));
     expect(first.entered).toHaveLength(1);
     expect(first.entered[0]).toMatchObject({ scheduled_transaction_id: id, date: "2026-11-16" });
     const rows = await realRows(b, a);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ date: "2026-11-16", approved: 0, cleared: "uncleared" });
-    expect((await body(await json(`${S(b)}/${id}`))).scheduled_transaction.date_next).toBe("2026-11-23");
+    expect((await body(await json(`${S(b)}/${id}`))).scheduled_transaction.date_next).toBe(
+      "2026-11-23",
+    );
     const again = await body(await enterDueRest(b, "2026-11-16"));
     expect(again.entered).toEqual([]);
     expect(await realRows(b, a)).toHaveLength(1);
-    const logs = await q("select actor from change_log where entity_id = ? and action = 'update'", id);
+    const logs = await q(
+      "select actor from change_log where entity_id = ? and action = 'update'",
+      id,
+    );
     expect(logs.map((l) => l.actor)).toEqual(["service:scheduler"]);
   });
 
@@ -349,7 +397,10 @@ describe("scheduled transactions: entering what is due", () => {
     const rta = async () =>
       (await body(await json(`/api/v1/budgets/${b}/months/2026-11-01`))).ready_to_assign as number;
     const before = await rta();
-    await sched(b, base(a, { date_first: "2026-11-20", amount: 500000, inflow_to_ready_to_assign: true }));
+    await sched(
+      b,
+      base(a, { date_first: "2026-11-20", amount: 500000, inflow_to_ready_to_assign: true }),
+    );
     expect(await rta()).toBe(before);
   });
 });
@@ -393,13 +444,23 @@ describe("scheduled transactions: MCP and surface", () => {
       }),
     );
     const id = made.scheduled_transaction.id;
-    expect(parse(await tool("list_scheduled_transactions", { budget_id: b })).scheduled_transactions).toHaveLength(1);
-    expect(parse(await tool("get_scheduled_transaction", { budget_id: b, id })).scheduled_transaction.id).toBe(id);
-    const upd = parse(await tool("update_scheduled_transaction", { budget_id: b, id, memo: "ZZ", today: TODAY }));
+    expect(
+      parse(await tool("list_scheduled_transactions", { budget_id: b })).scheduled_transactions,
+    ).toHaveLength(1);
+    expect(
+      parse(await tool("get_scheduled_transaction", { budget_id: b, id })).scheduled_transaction.id,
+    ).toBe(id);
+    const upd = parse(
+      await tool("update_scheduled_transaction", { budget_id: b, id, memo: "ZZ", today: TODAY }),
+    );
     expect(upd.scheduled_transaction.memo).toBe("ZZ");
-    const ent = parse(await tool("enter_scheduled_transaction_now", { budget_id: b, id, today: TODAY }));
+    const ent = parse(
+      await tool("enter_scheduled_transaction_now", { budget_id: b, id, today: TODAY }),
+    );
     expect(ent.transaction.date).toBe(TODAY);
-    const due = parse(await tool("enter_due_scheduled_transactions", { budget_id: b, today: TODAY }));
+    const due = parse(
+      await tool("enter_due_scheduled_transactions", { budget_id: b, today: TODAY }),
+    );
     expect(due.entered).toEqual([]);
     const del = parse(await tool("delete_scheduled_transaction", { budget_id: b, id }));
     expect(del.scheduled_transaction.deleted).toBe(true);

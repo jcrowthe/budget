@@ -10,6 +10,7 @@ import {
   listScheduled,
   updateScheduled,
 } from "../src/services/scheduled-transactions";
+import { actor } from "./bulk-helpers";
 import {
   account,
   type Json,
@@ -21,7 +22,6 @@ import {
   schedLogs,
   TODAY,
 } from "./scheduled-helpers";
-import { actor } from "./bulk-helpers";
 
 /** `env` whose database counts each executed statement (run, all, first, raw) and each batch as one call. */
 function counting(): { env: Env; calls: () => number; reset: () => void } {
@@ -75,7 +75,17 @@ async function insertDue(budgetId: string, accountId: string, n: number, due: st
   const stmts = Array.from({ length: n }, (_, i) =>
     env.DB.prepare(
       "insert into scheduled_transactions (id, budget_id, account_id, date_first, date_next, frequency, amount, inflow_to_ready_to_assign, write_token, created_at, updated_at) values (?, ?, ?, ?, ?, 'monthly', ?, 0, ?, ?, ?)",
-    ).bind(crypto.randomUUID(), budgetId, accountId, due, due, -100 - i, crypto.randomUUID(), now, now),
+    ).bind(
+      crypto.randomUUID(),
+      budgetId,
+      accountId,
+      due,
+      due,
+      -100 - i,
+      crypto.randomUUID(),
+      now,
+      now,
+    ),
   );
   for (let i = 0; i < stmts.length; i += 50) await env.DB.batch(stmts.slice(i, i + 50));
 }
@@ -95,7 +105,11 @@ describe("scheduled transactions: D1 calls", () => {
     for (const n of [10, 100]) {
       const { b, a } = await world(n);
       const c = counting();
-      const r = await enterDue(c.env, { budgetIds: [b], day: "2026-11-16", actor: "service:scheduler" });
+      const r = await enterDue(c.env, {
+        budgetIds: [b],
+        day: "2026-11-16",
+        actor: "service:scheduler",
+      });
       expect(r.entered).toHaveLength(n);
       expect(await realRows(b, a)).toHaveLength(n);
       out.push(c.calls());
@@ -111,7 +125,9 @@ describe("scheduled transactions: D1 calls", () => {
     for (const op of ["enter_now", "delete"] as const) {
       for (const n of [10, 100]) {
         const { b } = await world(n, "2026-12-01");
-        const ids = (await q("select id from scheduled_transactions where budget_id = ?", b)).map((r) => r.id as string);
+        const ids = (await q("select id from scheduled_transactions where budget_id = ?", b)).map(
+          (r) => r.id as string,
+        );
         const c = counting();
         const r = await bulkScheduled(c.env, actor, b, { op, ids }, TODAY);
         expect(r.results).toHaveLength(n);
@@ -163,7 +179,7 @@ describe("scheduled transactions: D1 calls", () => {
     const plans = [await world(0), await world(0), await world(0)];
     const first = plans[0];
     if (!first) throw new Error("no plan");
-    for (const [i, p] of plans.entries()) await insertDue(p.b, p.a, 50, "2026-11-16");
+    for (const p of plans) await insertDue(p.b, p.a, 50, "2026-11-16");
     // one due on the cron's own day (11/17) must not be entered
     await insertDue(first.b, first.a, 1, "2026-11-17");
     const now = new Date().toISOString();
@@ -179,19 +195,43 @@ describe("scheduled transactions: D1 calls", () => {
       runs += 1;
       return { has_more: false } as never;
     }) as never);
-    const entered = await q("select count(*) n from transactions where date = '2026-11-16' and approved = 0 and budget_id in (?, ?, ?)", ...plans.map((p) => p.b));
+    const entered = await q(
+      "select count(*) n from transactions where date = '2026-11-16' and approved = 0 and budget_id in (?, ?, ?)",
+      ...plans.map((p) => p.b),
+    );
     expect(entered[0]?.n).toBe(100);
-    const actors = await q("select distinct actor from change_log where entity_type = 'scheduled_transaction' and action = 'update' and budget_id in (?, ?, ?)", ...plans.map((p) => p.b));
+    const actors = await q(
+      "select distinct actor from change_log where entity_type = 'scheduled_transaction' and action = 'update' and budget_id in (?, ?, ?)",
+      ...plans.map((p) => p.b),
+    );
     expect(actors.map((x) => x.actor)).toEqual(["service:scheduler"]);
-    expect((await q("select count(*) n from scheduled_transactions where date_next = '2026-11-17' and budget_id = ?", first.b))[0]?.n).toBe(1);
+    expect(
+      (
+        await q(
+          "select count(*) n from scheduled_transactions where date_next = '2026-11-17' and budget_id = ?",
+          first.b,
+        )
+      )[0]?.n,
+    ).toBe(1);
     expect(runs).toBeLessThanOrEqual(37);
     expect(c.calls() + runs).toBeLessThanOrEqual(41);
     figures["cron d1"] = c.calls();
     figures["cron runs"] = runs;
     // the rest is left for the next run
     c.reset();
-    await cronRun(c.env, new Date("2026-11-17T03:00:00Z"), (async () => ({ has_more: false }) as never) as never);
-    expect((await q("select count(*) n from transactions where date = '2026-11-16' and approved = 0 and budget_id in (?, ?, ?)", ...plans.map((p) => p.b)))[0]?.n).toBe(150);
+    await cronRun(
+      c.env,
+      new Date("2026-11-17T03:00:00Z"),
+      (async () => ({ has_more: false }) as never) as never,
+    );
+    expect(
+      (
+        await q(
+          "select count(*) n from transactions where date = '2026-11-16' and approved = 0 and budget_id in (?, ?, ?)",
+          ...plans.map((p) => p.b),
+        )
+      )[0]?.n,
+    ).toBe(150);
   });
 
   it("reports the figures", () => {
@@ -214,7 +254,9 @@ describe("scheduled transactions: races", () => {
     const lost = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
     expect(lost.reason).toMatchObject({ status: 409, code: "conflict" });
     expect(await realRows(b, a)).toHaveLength(1);
-    expect((await q("select date_next from scheduled_transactions where id = ?", id))[0]?.date_next).toBe("2026-12-25");
+    expect(
+      (await q("select date_next from scheduled_transactions where id = ?", id))[0]?.date_next,
+    ).toBe("2026-12-25");
     expect((await schedLogs(id)).map((l) => l.action)).toEqual(["create", "update"]);
   });
 
@@ -227,8 +269,22 @@ describe("scheduled transactions: races", () => {
     expect(r1.entered.length + r2.entered.length).toBe(5);
     expect(await realRows(b, a)).toHaveLength(5);
     // one `update` log row per schedule, none doubled
-    expect((await q("select count(*) n from change_log where budget_id = ? and entity_type = 'scheduled_transaction'", b))[0]?.n).toBe(5);
-    expect((await q("select count(*) n from change_log where budget_id = ? and entity_type = 'transaction' and action = 'create' and json_extract(after_json, '$.date') = '2026-11-16'", b))[0]?.n).toBe(5);
+    expect(
+      (
+        await q(
+          "select count(*) n from change_log where budget_id = ? and entity_type = 'scheduled_transaction'",
+          b,
+        )
+      )[0]?.n,
+    ).toBe(5);
+    expect(
+      (
+        await q(
+          "select count(*) n from change_log where budget_id = ? and entity_type = 'transaction' and action = 'create' and json_extract(after_json, '$.date') = '2026-11-16'",
+          b,
+        )
+      )[0]?.n,
+    ).toBe(5);
   });
 
   it("a gate whose token changed between the read and the batch writes nothing", async () => {
@@ -238,13 +294,17 @@ describe("scheduled transactions: races", () => {
     const before = (await q("select count(*) n from change_log where budget_id = ?", b))[0]?.n;
     const res = await bulkScheduled(env, actor, b, { op: "enter_now", ids: [id] }, TODAY, {
       beforeWrite: async () => {
-        await env.DB.prepare("update scheduled_transactions set write_token = 'other' where id = ?").bind(id).run();
+        await env.DB.prepare("update scheduled_transactions set write_token = 'other' where id = ?")
+          .bind(id)
+          .run();
       },
     });
     expect(res.results).toEqual([]);
     expect(res.skipped).toEqual([{ id, reason: "changed" }]);
     expect(await realRows(b, a)).toEqual([]);
-    expect((await q("select count(*) n from change_log where budget_id = ?", b))[0]?.n).toBe(before);
+    expect((await q("select count(*) n from change_log where budget_id = ?", b))[0]?.n).toBe(
+      before,
+    );
     expect(S(b)).toContain(b);
   });
 });

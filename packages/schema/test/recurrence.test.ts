@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  FREQUENCIES,
-  FREQUENCY_LABELS,
   dayBefore,
   dueStep,
+  FREQUENCIES,
+  FREQUENCY_LABELS,
   nextDate,
   occurrenceAfter,
   placeSchedule,
@@ -87,7 +87,8 @@ describe("recurrence", () => {
     expect(occurrenceAfter("2026-11-01", "weekly", "2026-11-22")).toBe("2026-11-29");
   });
   it("an anchor after `after` is returned", () => {
-    for (const f of FREQUENCIES) expect(occurrenceAfter("2026-12-01", f, "2026-11-15")).toBe("2026-12-01");
+    for (const f of FREQUENCIES)
+      expect(occurrenceAfter("2026-12-01", f, "2026-11-15")).toBe("2026-12-01");
   });
   it("never has only its anchor", () => {
     expect(occurrenceAfter("2026-11-20", "never", "2026-11-15")).toBe("2026-11-20");
