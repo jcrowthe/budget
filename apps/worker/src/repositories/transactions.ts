@@ -564,6 +564,30 @@ export async function listLines(
   }));
 }
 
+/** The names of the active categories (in active groups) among `ids`, in one query: id → category and group name. */
+export async function categoryNamesMany(
+  db: Db,
+  budgetId: string,
+  ids: readonly string[],
+): Promise<Map<string, { categoryName: string; groupName: string }>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: categories.id, categoryName: categories.name, groupName: categoryGroups.name })
+    .from(categories)
+    .innerJoin(
+      categoryGroups,
+      and(eq(categoryGroups.id, categories.groupId), isNull(categoryGroups.deletedAt)),
+    )
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        isNull(categories.deletedAt),
+        sql`${categories.id} in (select value from json_each(${JSON.stringify(ids)}))`,
+      ),
+    );
+  return new Map(rows.map((r) => [r.id, { categoryName: r.categoryName, groupName: r.groupName }]));
+}
+
 /** The name of a category's group (deleted or not), for the change_log copy of a row. */
 export async function groupNameOfCategory(db: Db, categoryId: string): Promise<string | null> {
   const [r] = await db

@@ -12,7 +12,6 @@ import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
-import * as categoriesRepo from "../repositories/categories";
 import * as txRepo from "../repositories/transactions";
 import { newOtherSide } from "./transaction-pairs";
 import {
@@ -24,6 +23,7 @@ import {
   type Plan,
   planWrites,
   prepare,
+  type Reads,
   TransactionRefused,
   transactionDetailToApi,
 } from "./transactions";
@@ -32,7 +32,12 @@ type Db = ReturnType<typeof getDb>;
 type Skip = TransactionBulkResult["skipped"][number];
 type Stmts = Parameters<Db["batch"]>[0];
 
-/** A plan over this many statements is refused: it keeps one request within D1's per-invocation query limit. */
+/**
+ * A plan over this many statements is refused. A batch is one D1 call whatever its size, so this does not protect the
+ * per-invocation call limit; it bounds the size of one atomic batch (and of the statements the Worker builds).
+ * A bulk request makes a fixed number of D1 calls whatever the number of rows: the plan check, one read of the
+ * rows, their lines, the accounts, the other sides, the categories, then one batch and two set reads for the answer.
+ */
 export const BULK_MAX_STATEMENTS = 400;
 const MAX_ATTEMPTS = 3;
 
@@ -96,6 +101,23 @@ export async function bulkTransactions(
     const accounts = new Map(
       (await accountsRepo.list(db, budgetId, { includeClosed: true })).map((a) => [a.id, a]),
     );
+    // Every other read the planner needs, in set queries, so no call is made inside the per-row loop.
+    const otherSides = await txRepo.findDetailMany(
+      db,
+      budgetId,
+      rows.size === 0
+        ? []
+        : [...rows.values()].flatMap((r) =>
+            r.transferTransactionId ? [r.transferTransactionId] : [],
+          ),
+    );
+    const categoryIds = new Set<string>();
+    for (const r of [...rows.values(), ...otherSides.values()]) {
+      if (r.categoryId) categoryIds.add(r.categoryId);
+    }
+    if (req.op === "categorize" && req.value !== "ready_to_assign") categoryIds.add(req.value);
+    const categories = await txRepo.categoryNamesMany(db, budgetId, [...categoryIds]);
+    const reads: Reads = { lines: linesOf, others: otherSides, accounts, categories };
     const now = new Date().toISOString();
     const idSet = new Set(ids);
     const planned: Planned[] = [];
@@ -110,10 +132,7 @@ export async function bulkTransactions(
     };
 
     if (req.op === "categorize") {
-      if (
-        req.value !== "ready_to_assign" &&
-        !(await categoriesRepo.findActive(db, budgetId, req.value))
-      ) {
+      if (req.value !== "ready_to_assign" && !categories.has(req.value)) {
         throw refuse(
           422,
           "unprocessable_entity",
@@ -146,7 +165,7 @@ export async function bulkTransactions(
       const planUpdate = async (patch: TransactionUpdateRequest) => {
         let plan: Plan;
         try {
-          plan = await prepare(db, budgetId, row, account, "update", patch, now);
+          plan = await prepare(db, budgetId, row, account, "update", patch, now, { reads });
         } catch (e) {
           return withId(id, e);
         }
@@ -246,6 +265,7 @@ export async function bulkTransactions(
           try {
             plan = await prepare(db, budgetId, row, account, "delete", undefined, now, {
               allowReconciled: req.confirm_reconciled === true,
+              reads,
             });
           } catch (e) {
             return withId(id, e);

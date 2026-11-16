@@ -45,7 +45,8 @@ They come from the test plan's All Accounts register (dark, at the window as fou
   (`json_each`), so it stays under D1's 100 bound parameters a statement.
 - **Limits.** At most 100 ids, the same as approve and reject: every id is read first and one batch holds every statement.
   A plan over **400 statements** (for example, many large splits duplicated) is refused with 422 `too_many_changes`
-  "Select fewer transactions: this change is too large for one request". This keeps one request within D1's per-invocation query limit.
+  "Select fewer transactions: this change is too large for one request". The cap bounds the size of one atomic batch; it does not protect the per-invocation call limit, because a batch is one D1 call whatever its size.
+  **A bulk request makes a fixed number of D1 calls whatever the number of rows** (the Free plan allows 50 per invocation): the plan check, one read each of the rows, their lines, the accounts, the other sides of the transfers and the categories, one batch, and two set reads for the answer (at most 20 in all, the same for 10 and 100 rows; `bulk-call-count.test.ts` counts them). `prepare` is given those reads and makes no call of its own for a bulk row; approve and reject read the same way and write in one batch.
 - **Skipped versus refused.**
   - **Skipped** (left alone and reported with a reason) when the row's *state* means the op does not apply: it is reconciled (every op except
     flag and delete), it already has the value (`unchanged`), or it takes no category (categorize).
