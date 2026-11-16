@@ -151,7 +151,16 @@ for (const size of SIZES) {
       await expect(assignedBox(page, RENT)).toHaveText("$0.00");
       await apply(page, "Underfunded");
       await expect(assignedBox(page, RENT)).toHaveText("$100.00");
-      await assign(request, s, RENT, 30000, NEXT);
+      // This test is idle on the API for several seconds; the server closes an idle keep-alive socket after 5s,
+      // so the request context can reuse a dead one (ECONNRESET). Setting an absolute amount is safe to repeat.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await assign(request, s, RENT, 30000, NEXT);
+          break;
+        } catch (e) {
+          if (attempt >= 2 || !/ECONNRESET|socket hang up/.test(String(e))) throw e;
+        }
+      }
       await page.reload();
       await check(page, RENT);
       await expect(amount("Underfunded")).toHaveText("$70.00");
