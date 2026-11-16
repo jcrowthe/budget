@@ -365,11 +365,13 @@ export async function removeBankConnection(
   }
   const db = getDb(env);
   for (let attempt = 0; attempt < MAX_REMOVE_ATTEMPTS; attempt++) {
-    // Read the links as late as possible. The deletes hold only while no account outside this read is
-    // linked, so a link made since loses the batch (and the next attempt unlinks and logs it).
-    const unlink = await unlinkForConnectionStmts(db, actor, row.id);
-    const holds = repo.removalHolds(db, row.id, accountsRepo.noOtherLinks(row.id, unlink.ids));
-    await db.batch([
+    // Read the links as late as possible. The connection's log row and deletes come after the unlinks and
+    // hold only while no account is linked to the connection, so a link made or changed since the read
+    // loses the batch (and the next attempt unlinks and logs it).
+    const unlinks = await unlinkForConnectionStmts(db, actor, row.id);
+    const holds = repo.removalHolds(db, row.id, accountsRepo.noLinksToConnection(row.id));
+    const statements = [
+      ...unlinks,
       changeLogInsertIf(
         db,
         {
@@ -383,11 +385,11 @@ export async function removeBankConnection(
         },
         holds,
       ),
-      ...unlink.stmts,
       repo.deleteAccountsStmt(db, row.id, holds),
       repo.deleteConnectionStmt(db, row.id, holds),
       repo.deleteTokenWhenGoneStmt(db, row.id),
-    ]);
+    ];
+    await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
     if ((await repo.connectionExists(db, row.id)).length === 0) return { deleted: true, plaid };
   }
   throw new Conflict("Bank connection");

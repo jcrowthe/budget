@@ -371,18 +371,16 @@ describe("account links", () => {
     ).created[0].account.id as string;
     const a2 = await manual(plan, "ZZ Late");
     const db = getDb(env);
-    const unlink = await unlinkForConnectionStmts(db, REST_ACTOR, conn.id);
-    // a link commits after the read and before the batch
+    const unlinks = await unlinkForConnectionStmts(db, REST_ACTOR, conn.id);
+    // after the read: a1 is unlinked and relinked to another bank account of the connection, and a2 is linked
+    expect((await unlink(plan, a1)).status).toBe(200);
+    expect((await link(plan, a1, { bank_account_id: bank["ZZ Card"], today: T })).status).toBe(200);
     expect((await link(plan, a2, { bank_account_id: bank["ZZ Savings"], today: T })).status).toBe(
       200,
     );
-    const holds = bankRepo.removalHolds(
-      db,
-      conn.id,
-      accountsRepo.noOtherLinks(conn.id, unlink.ids),
-    );
+    const holds = bankRepo.removalHolds(db, conn.id, accountsRepo.noLinksToConnection(conn.id));
     await db.batch([
-      ...unlink.stmts,
+      ...unlinks,
       bankRepo.deleteAccountsStmt(db, conn.id, holds),
       bankRepo.deleteConnectionStmt(db, conn.id, holds),
     ] as unknown as Parameters<typeof db.batch>[0]);
@@ -392,16 +390,17 @@ describe("account links", () => {
       await count("select count(*) n from bank_accounts where bank_connection_id = ?", conn.id),
     ).toBe(4);
     expect((await getAcc(plan, a2)).linked).toBe(true);
-    expect((await getAcc(plan, a1)).linked).toBe(false);
+    expect((await getAcc(plan, a1)).bank_account_id).toBe(bank["ZZ Card"]);
     // the real removal retries from a fresh read and logs every unlink
     const ok = await json(`/api/v1/bank-connections/${conn.id}?budget_id=${plan}`, {
       method: "DELETE",
     });
     expect(ok.status).toBe(200);
+    expect((await getAcc(plan, a1)).linked).toBe(false);
     expect((await getAcc(plan, a2)).linked).toBe(false);
     const updates = (await logs(plan, "account")).filter((r) => r.action === "update");
-    // a1 unlinked once; a2 linked once and unlinked once
-    expect(updates).toHaveLength(3);
+    // a1: unlink, relink, final unlink; a2: link, final unlink
+    expect(updates).toHaveLength(5);
     expect(
       await count(
         "select count(*) n from accounts where budget_id = ? and bank_account_id is not null",

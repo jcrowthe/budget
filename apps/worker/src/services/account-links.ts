@@ -228,15 +228,16 @@ export async function unlinkAccount(
 }
 
 /**
- * The statements that unlink every account linked to the connection; they go into the removal's batch.
- * `ids` are the accounts read: the unlink touches only those, and the caller guards the deletes with
- * `accountsRepo.noOtherLinks(db, connectionId, ids)`, so a link made since the read loses the batch.
+ * The statements that unlink every account linked to the connection, one guarded log row and one guarded
+ * UPDATE per account as read (each holds only while the account still has the bank account it was read
+ * with). They go into the removal's batch, which then guards its deletes on
+ * `accountsRepo.noLinksToConnection`, so a link made or changed since the read loses the batch.
  */
 export async function unlinkForConnectionStmts(
   db: Db,
   actor: string,
   connectionId: string,
-): Promise<{ stmts: BatchItem[]; ids: string[] }> {
+): Promise<BatchItem[]> {
   const rows = await accountsRepo.linkedToConnection(db, connectionId);
   const stmts: BatchItem[] = [];
   for (const row of rows) {
@@ -255,9 +256,8 @@ export async function unlinkForConnectionStmts(
         },
         accountsRepo.unlinkHolds(db, row),
       ),
+      accountsRepo.unlinkIfStmt(db, row),
     );
   }
-  const ids = rows.map((r) => r.id);
-  stmts.push(accountsRepo.unlinkByConnectionStmt(db, connectionId, ids));
-  return { stmts, ids };
+  return stmts;
 }
