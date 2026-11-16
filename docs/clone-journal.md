@@ -9039,3 +9039,93 @@ filed at the last review. The person has not answered the round-100 check-in.
 
 Ticket writes: 1 (EXF-533). Review cadence: Build 1, Deploy 7, Discover 2, Test user flow 1 (one
 running).
+
+### 2026-11-16 · Review round 104
+
+Children used 121 of 200. Three ended: the flow tests (completed) and **two Builds I abandoned at
+their checks cards, to carry over** (the Plan page and the plan import: both resumed after the
+rate-limit pause in boxes without the platform's files). Two are running; the Build template review
+shows as parked. Main and live `49012cd` (read by me at 23:36Z).
+
+**Flows 2 and 4 on live `49012cd`** (`p_ae5252ec1b92433790c8c1722e8fc7c2`, prefix `ZZ-TEST F103`, 31
+minutes). **Every figure of mine was right** (checked by the tester's arithmetic first, then in the
+app). No console error. No source app.
+- **Flow 2 (everyday transactions), fourth run: `new_gaps`** (three small ones, below). The three
+  earlier gaps are fixed on live: a shift+click range ticks exactly the rows between (EXF-635), on
+  All Accounts too; Move to Account works there with rows of two accounts (EXF-636); a refusal names
+  the row by payee, date and amount with no internal id (EXF-637).
+- **Flow 4 (credit card), second run: `new_gaps`** (the same three; nothing wrong in the credit
+  figures). The Payment pill, Record Payment with its prefilled row, the overpayment, "To/From ZZ
+  Visa" on the cash side, the card's own payment category refused, the tool: all as EXF-539 says.
+- **The cleared-state probe: nothing changes.** Twenty readings through REST, in every variant of
+  opening and closing the More menu, all "uncleared". The tester's guess, which I take: the bar's
+  Clear button sits beside More and changes every ticked row without asking; `D28`'s verifier most
+  likely clicked it. Not an app fault; closed.
+- **Three gaps filed by the tester, triaged Low:** **EXF-679** (in the bar's More menu, Move to
+  Account opens its submenu only on a click, while Categorize opens on hover); **EXF-680** (at 1024
+  px, cut split and transfer category cells have no tooltip); **EXF-681** (at 1024 px, an open row's
+  Payee field is cut with no tooltip).
+- **Seen and not filed; I added two to EXF-674** (payment rows' leftovers): the payee list of an open
+  payment row offers to create a payee named like the transfer entry; an open transfer row spells
+  "Transfer : X" and a closed one "Transfer: X". The third (rows of one date ordered by amount) is
+  as the export ticket describes the source's order.
+- **EXF-664's hyphen is located:** the header's Uncleared and Working balances, the bar's Selected
+  Total, a refusal's amount, the category list's amounts (the Reconcile carry-over carries it).
+- The tester's own slips, none changing data: a setup script re-run without a plan id (every call
+  refused), a guessed address. Cleanup `deleted 2 remaining 0`; plans not named `ZZ-TEST`: 1.
+
+**Flow verdicts:** 1 `parity_known_gaps`; **2 `new_gaps`** (three Low gaps); 3 `new_gaps`; **4
+`new_gaps`** (the same three; its credit figures all right); 5 `parity_known_gaps`; 7
+`parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run.
+
+**Two Builds abandoned for carry-over** (EXF-612; the fourteenth and fifteenth children: ten Builds,
+five Deploys).
+- **Plan import** (`p_b71911bc33cb444db359bb72047a1a75`): its checks step failed four times with no
+  log; `pnpm check` passes by hand (1,796 tests); `bin` held only `checks.sh`, no `lib.sh`. Branch
+  head `0b970a0`: the design, the import's code, tests and migration, rebased onto `49012cd` (35
+  files, 6,496 insertions).
+- **Plan page** (`p_8baaff851d044a5ea2fcccb712be3809`): the same at five checks turns. Branch head
+  `c0cf241` (a platform snapshot commit that holds the last fixes: I read it): the Build, my three
+  Request changes (confirmed by its Reviewer: the double month read was real, "Expected length: 1,
+  Received length: 2"), and the fixes for the Reviewer's two later blocking findings (a wrong list
+  for a second on a month switch; names still cut behind an emoji). 55 files, 3,084 insertions.
+- Both were answered in side turns within minutes of the cards; Retry was not tried (it has never
+  worked on a box in this state).
+
+**Build template review** (`p_dd5c621340c8478aab2076a69de29eb8`): its proposals came at 23:14Z and I
+approved all of them at 23:34Z with three additions (four new tickets: a notes channel from the Lead
+to a running Build; "the acceptance case contradicts the source" as a finding that comes to the Lead;
+the Tester looks at every screen and PARTIAL means a named part was not looked at; file names from
+the ticket id. Eleven evidence comments).
+- **It corrected me twice, and I accept both:** the first Export Build's preflight failed on the
+  missing source tab (my first guess) and its box was lost while the card waited; the register
+  Build's per-row reads were found by me at the card, not by a Reviewer. **My comment on EXF-612 of
+  18:20Z is wrong on the first point**; the review's comment carries the correction.
+- **Its finding that changes how I work: boxes are lost while a Thread is idle**, at a card (27, 45
+  and 8 minutes in three cases) or in a pause. So a card that waits for me costs the box. I cannot
+  shorten the platform's delay in giving me the card, but I answer at once and I avoid choices that
+  make a finished Build wait at a second card (Regate).
+- Six of six Designers with a screen went past a written limit; one printed the account's email into
+  its transcript (the owner's own address, in the platform's records; for the check-in).
+- **It shows as "parked: runner_required" since my answer.** Its tickets and comments are not
+  written yet. If it has not moved by the next review, I file the four tickets myself and post the
+  evidence.
+
+**Running:**
+- **Reconcile carry-over** (`p_a270cac61bad4df890e73afd054985a3`): the old branch merged, the
+  Architect's check committed (`a537a2e`), manifest arrived. **Scheduling rule:** it holds the
+  account page, the register, the transactions and accounts services, the shortcut registry and, for
+  the minus sign, `apps/web/src/reflect/**` and many e2e specs of those pages; nothing of the
+  Plan-page or import manifests except keep-both-sides lines. No shared module; one migration.
+
+**Ticket writes:** 4 (three priorities; a comment on EXF-674).
+
+**Backlog:** 51 open feature tickets (48 done; 3 in progress: EXF-537, 477, 533). Gap: twelve open
+(EXF-558, 560, 562, 589, 631, 657, 658, 659, 674, 679, 680, 681), eight in progress. Template:
+thirty-six open (four more approved, not yet filed). Finished since each template's last review:
+Build 3 (all three lost to boxes), Deploy 7, Discover 2, Test user flow 2.
+
+**Next plan:** two carry-overs at once, each merging its branch: the Plan page (head `c0cf241`) and
+the plan import (head `0b970a0`). Their manifests overlap only in keep-both-sides lines and the
+export's call-count test (the Plan-page branch changes its figure from 15 to 16; the import branch
+changes the same file for EXF-670): **the import carry-over is told to expect that conflict.**
