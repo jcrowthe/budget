@@ -177,3 +177,55 @@ test("EXF-624: nothing underfunded hides Underfunded and Reduce Overfunding, in 
     dlg.locator("button.auto-assign-option > span", { hasText: /^Reduce Overfunding$/ }),
   ).toHaveCount(0);
 });
+
+test("EXF-616 25b: with one ticked, the Available Balance header holds title, chevron and pill on one row", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.getByRole("checkbox", { name: PHONE, exact: true }).click();
+  await expect(panel(page).getByRole("heading", { name: PHONE, exact: true })).toBeVisible();
+  const head = panel(page).locator(".card-roll-up", { hasText: "Available Balance" });
+  // Design doc, "Auto-Assign card (live)": the header is one row, 54.8 px in the source (live compare, 25b).
+  const hb = await head.boundingBox();
+  expect(Math.abs((hb?.height ?? 0) - 54.8)).toBeLessThanOrEqual(2);
+  const title = await head.locator(".panel-card-title").boundingBox();
+  const pill = await head.locator(".available-pill").boundingBox();
+  // On one row: the pill's vertical middle lies inside the title's box.
+  const mid = (pill?.y ?? 0) + (pill?.height ?? 0) / 2;
+  expect(mid).toBeGreaterThanOrEqual(title?.y ?? 0);
+  expect(mid).toBeLessThanOrEqual((title?.y ?? 0) + (title?.height ?? 0));
+  // The chevron sits between the title and the pill on that row.
+  const chev = await head.locator("svg").first().boundingBox();
+  expect(chev?.x ?? 0).toBeGreaterThanOrEqual((title?.x ?? 0) - 1);
+  expect((chev?.x ?? 0) + (chev?.width ?? 0)).toBeLessThanOrEqual((pill?.x ?? 0) + 1);
+});
+
+test("EXF-616 25c: a category row's pill is 22 px tall with 7 px side padding", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  const pill = page.locator(".category-row", { hasText: RENT }).locator(".available-pill").first();
+  await expect(pill).toBeVisible();
+  // Design doc, "Row": the pill is 22 px tall, padding 2px 7px (live compare of the source's plan row, 25c).
+  expect(Math.round((await pill.boundingBox())?.height ?? 0)).toBe(22);
+  const pad = await pill.evaluate((el) => {
+    const c = getComputedStyle(el);
+    return [c.paddingLeft, c.paddingRight];
+  });
+  expect(pad).toEqual(["7px", "7px"]);
+});
+
+test("EXF-616 24: realClick waits for the height to settle before clicking the centre", async ({
+  page,
+}) => {
+  await page.setContent(`<style>body{margin:0}#b{position:absolute;left:20px;top:20px;width:100px;height:20px}</style>
+    <button id="b">x</button>
+    <script>
+      window.clickY = null;
+      document.getElementById('b').addEventListener('click', e => { window.clickY = e.clientY; });
+      setTimeout(() => { document.getElementById('b').style.height = '200px'; }, 30);
+    </script>`);
+  await realClick(page, page.locator("#b"));
+  // x, y and width never change; only the height does. The click lands on the final centre (20 + 200 / 2).
+  expect(await page.evaluate(() => (window as unknown as { clickY: number }).clickY)).toBe(120);
+});
