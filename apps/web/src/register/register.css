@@ -125,7 +125,12 @@
 .register-table .col-account {
   width: 10%;
 }
+/* 96px as in the source (measured: getComputedStyle width on the date cell, All Accounts, dark theme). */
 .register-table .col-date {
+  width: 96px;
+}
+/* A repeating scheduled row needs about 100px (date text, margin, repeat icon): not compared, the source has none. */
+.register-table.has-scheduled .col-date {
   width: 112px;
 }
 .register-table .col-payee,
