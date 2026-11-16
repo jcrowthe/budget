@@ -27,3 +27,5 @@ One line per design doc, appended by each Build (merge=union).
 - [Categories design](categories-design.md): EXF-494/EXF-495 create, rename, delete (with reassignment), hide and unhide category groups and categories; collapse saved on the server; shared category picker (spec: [categories-spec.md](categories-spec.md))
 - [Categories polish](categories-polish.md): EXF-494/EXF-495 Designer polish list
 - [MCP coverage design](mcp-coverage-design.md): EXF-572 an MCP tool for every REST operation (get/update/delete_budget, get_transaction, list_plan_months, get_month_range, get_account_summary), the mcp-coverage map and test, description and id rules checked by mcp-descriptions (spec: [mcp-coverage-spec.md](mcp-coverage-spec.md))
+- [Plan menu design](plan-menu-design.md): EXF-571/470/454 plan menu and submenu portalled out of the sidebar (real-mouse reachable), full entry list with disabled unbuilt entries, `menu-actions/` registry, `GET /api/v1/me`, menu width 240 and colours, favicon (spec: [plan-menu-spec.md](plan-menu-spec.md))
+- [Plan menu polish](plan-menu-polish.md): submenu placed at the Open Plan row's right edge and top
