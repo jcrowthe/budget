@@ -234,3 +234,21 @@ All Worker or unit tests; nothing is compared with the source. `planClock` = 202
 touches: [packages/schema/src/zip.ts, packages/schema/test/zip.test.ts, packages/schema/src/plan-import.ts, packages/schema/src/plan-import-read.ts, packages/schema/test/plan-import*.test.ts, packages/schema/src/plan-export.ts, packages/schema/test/plan-export.test.ts, apps/worker/migrations/20261116101300_plan_imports.sql, apps/worker/src/db/schema/plan-imports.ts, apps/worker/src/repositories/plan-import.ts, apps/worker/src/services/plan-import.ts, apps/worker/src/services/plan-import-compare.ts, apps/worker/src/services/plan-clock.ts, apps/worker/src/services/plan-export.ts, apps/worker/src/routes/plan-import.ts, apps/worker/src/routes/plan-export.ts, apps/worker/src/mcp/tools/plan-import.ts, apps/worker/src/mcp/tools/plan-export.ts, apps/worker/test/plan-import*.test.ts, apps/worker/test/plan-import-helpers.ts, apps/worker/test/plan-export*.test.ts, apps/worker/test/plan-export-helpers.ts, apps/worker/test/mcp-coverage/budgets.ts, apps/worker/test/mcp-timestamps.test.ts, docs/plan-import-design.md, docs/plan-import-spec.md, docs/plan-export-design.md, docs/README.md]
 shared: []
 migrations: 1
+
+## As built (departures from the plan above, and measured numbers)
+
+- `ImportError` lives in `plan-import-read.ts` (re-exported by `plan-import.ts`) so the two files do not import each
+  other; `identifyFiles` also returns `planDelimiter` (the two files may differ); `ImportPlan.planRows` has no `label`.
+- `summary.formats.delimiter` is `"comma"` or `"tab"`. A split line's `split_index` is 0-based like the app's.
+- Several date formats are one answer, not a question, when they read every date of the Register alike (a file whose
+  only date is `10/10/2026`): the question is asked only between formats that give different dates.
+- A step whose R2 chunk is unreadable JSON, like one whose batch throws, cleans up and answers 422 `import_failed`.
+- Task 0: `DecompressionStream("deflate-raw")` works in the Worker test pool (`plan-import-zip.test.ts`); no inflater by hand.
+- **Size (case 10, local, `plan-import-calls.test.ts`)**: 30 accounts, 200 categories (6 hidden, 4 payment), 96 months
+  (19,200 Plan rows), 20,030 Register rows, zip 356 KB: **17 invocations** (start + 16 continues), **at most 3 D1 and
+  2 R2 calls** per invocation, slowest **start ≈ 3.2 s** (dry run ≈ 3.3 s, the same work). Of it, `computeMonth` once per
+  Plan month is ≈ 2.8 s (the engine recomputes the timeline from the first month each call), parse and build ≈ 0.2 s,
+  unzip and decode < 0.05 s. A Worker CPU limit below that cannot take call 1 or a dry run of a plan this size; the
+  state machine is then split (store / parse / compare) without changing the API, as written above.
+- Not covered by a test: the cron never runs against a half-written plan only because `listDue` joins active plans
+  (`plan-import-steps.test.ts` inserts a due schedule into a hidden plan to prove it).

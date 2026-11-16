@@ -131,7 +131,7 @@ export type Upload = { name: string; data: Uint8Array | string };
 
 export function importForm(files: Upload[], fields: Record<string, string> = {}): FormData {
   const form = new FormData();
-  for (const f of files) form.append("file", new File([f.data as BlobPart], f.name));
+  for (const f of files) form.append("file", new File([f.data as unknown as ArrayBuffer], f.name));
   for (const [k, v] of Object.entries(fields)) form.append(k, v);
   return form;
 }
@@ -165,7 +165,7 @@ export async function runToDone(first: Json, envOverride: Partial<Env> = {}) {
   while (data.state !== "done") {
     const res = await continueImportRest(data.import_id, envOverride);
     calls++;
-    data = (await res.json()).data;
+    data = ((await res.json()) as Json).data;
     expect(calls).toBeLessThan(500);
   }
   return { data, calls };

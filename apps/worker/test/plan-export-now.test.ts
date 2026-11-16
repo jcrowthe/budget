@@ -28,9 +28,7 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
       expect(res.status, now).toBe(422);
       expect(body.error.name ?? body.error.id).toBeTruthy();
       expect(JSON.stringify(body.error)).toContain("unprocessable_entity");
-      expect(body.error.detail).toBe(
-        `now must be within one day of the server's date (${RANGE})`,
-      );
+      expect(body.error.detail).toBe(`now must be within one day of the server's date (${RANGE})`);
     }
   });
 

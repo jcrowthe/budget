@@ -57,13 +57,11 @@ function refuse(c: Parameters<typeof apiError>[0], e: unknown) {
 }
 
 const uploadBody = z.object({
-  file: z
-    .custom<File | File[]>()
-    .openapi({
-      type: "string",
-      format: "binary",
-      description: "The export ZIP, or the Plan and Register files (give `file` twice)",
-    }),
+  file: z.custom<File | File[]>().openapi({
+    type: "string",
+    format: "binary",
+    description: "The export ZIP, or the Plan and Register files (give `file` twice)",
+  }),
   name: z
     .string()
     .optional()
@@ -72,19 +70,13 @@ const uploadBody = z.object({
     .string()
     .optional()
     .openapi({ description: "YYYY-MM-DD; rows dated after it become scheduled" }),
-  date_format: z
-    .string()
-    .optional()
-    .openapi({
-      description:
-        "One of MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD, YYYY-MM-DD, DD-MM-YYYY, DD.MM.YYYY, YYYY.MM.DD",
-    }),
-  currency_format: z
-    .string()
-    .optional()
-    .openapi({
-      description: "JSON: { currency_symbol, symbol_placement, decimal_separator, decimal_digits }",
-    }),
+  date_format: z.string().optional().openapi({
+    description:
+      "One of MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD, YYYY-MM-DD, DD-MM-YYYY, DD.MM.YYYY, YYYY.MM.DD",
+  }),
+  currency_format: z.string().optional().openapi({
+    description: "JSON: { currency_symbol, symbol_placement, decimal_separator, decimal_digits }",
+  }),
   account_types: z
     .string()
     .optional()

@@ -444,6 +444,7 @@ export async function continueImport(
 }
 
 const ABANDONED = "This import was cancelled or expired; start again";
+const FAILED = "The import failed while writing; nothing was kept";
 
 async function stepOf(
   env: Env,
@@ -466,7 +467,13 @@ async function stepOf(
     await cleanUp(env, row, now);
     throw new ImportRefused(409, "import_abandoned", ABANDONED);
   }
-  const parts = JSON.parse(await object.text()) as repo.ChunkPart[];
+  let parts: repo.ChunkPart[];
+  try {
+    parts = JSON.parse(await object.text()) as repo.ChunkPart[];
+  } catch {
+    await cleanUp(env, row, now);
+    throw new ImportRefused(422, "import_failed", FAILED);
+  }
   const last = n === row.chunkCount - 1;
   const stmts = [
     ...repo.insertRowsStmts(
@@ -510,11 +517,7 @@ async function stepOf(
     )) as typeof results;
   } catch {
     await cleanUp(env, row, now);
-    throw new ImportRefused(
-      422,
-      "import_failed",
-      "The import failed while writing; nothing was kept",
-    );
+    throw new ImportRefused(422, "import_failed", FAILED);
   }
   if ((results[results.length - 1]?.meta.changes ?? 0) === 0) {
     // Another call took this step (a repeat after a lost answer, or two at once): answer the state as it is.

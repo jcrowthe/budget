@@ -20,7 +20,9 @@ describe("task 0: DecompressionStream('deflate-raw') in the Worker pool", () => 
     const raw = new TextEncoder().encode(text);
     const compressed = new Uint8Array(
       await new Response(
-        new Blob([raw as unknown as ArrayBuffer]).stream().pipeThrough(new CompressionStream("deflate-raw")),
+        new Blob([raw as unknown as ArrayBuffer])
+          .stream()
+          .pipeThrough(new CompressionStream("deflate-raw")),
       ).arrayBuffer(),
     );
     expect(compressed.length).toBeLessThan(raw.length / 10);
@@ -32,7 +34,9 @@ describe("task 0: DecompressionStream('deflate-raw') in the Worker pool", () => 
     const raw = new TextEncoder().encode("abc".repeat(1000));
     const compressed = new Uint8Array(
       await new Response(
-        new Blob([raw as unknown as ArrayBuffer]).stream().pipeThrough(new CompressionStream("deflate-raw")),
+        new Blob([raw as unknown as ArrayBuffer])
+          .stream()
+          .pipeThrough(new CompressionStream("deflate-raw")),
       ).arrayBuffer(),
     );
     expect(await code(inflateRaw(compressed, 10))).toBe("zip_crc");
