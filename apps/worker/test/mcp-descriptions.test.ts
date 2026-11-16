@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { operations } from "./mcp-coverage-map";
+import type { Coverage } from "./mcp-coverage-types";
 import { apiDocument, mcpRpc, toolFileNames } from "./surface";
 
 // biome-ignore lint/suspicious/noExplicitAny: JSON schema nodes
 type Schema = any;
 type Listed = { name: string; description: string; inputSchema: Schema };
+
+const coverage = import.meta.glob<{ operations?: Record<string, Coverage> }>(
+  "./mcp-coverage/*.ts",
+  { eager: true },
+);
+const operations: Record<string, Coverage> = Object.assign(
+  {},
+  ...Object.values(coverage).map((m) => m.operations ?? {}),
+);
 
 const loaded = (async () => {
   await mcpRpc(
@@ -19,6 +28,9 @@ const loaded = (async () => {
   };
 })();
 
+// Integer properties that are not amounts (a display position).
+const NOT_MONEY = new Set(["sort"]);
+
 function hasInteger(node: Schema, doc: Schema, seen = new Set<string>()): boolean {
   if (!node || typeof node !== "object") return false;
   if (Array.isArray(node)) return node.some((n) => hasInteger(n, doc, seen));
@@ -30,7 +42,11 @@ function hasInteger(node: Schema, doc: Schema, seen = new Set<string>()): boolea
   }
   const t = node.type;
   if (t === "integer" || (Array.isArray(t) && t.includes("integer"))) return true;
-  return Object.values(node).some((v) => hasInteger(v, doc, seen));
+  return Object.entries(node).some(([key, v]) =>
+    key === "properties" && v && typeof v === "object"
+      ? Object.entries(v).some(([prop, p]) => !NOT_MONEY.has(prop) && hasInteger(p, doc, seen))
+      : hasInteger(v, doc, seen),
+  );
 }
 
 const patternsOf = (prop: Schema): string[] =>
@@ -55,7 +71,7 @@ describe("mcp-descriptions", () => {
 
     let money = hasInteger(inputSchema, doc);
     for (const [key, c] of Object.entries(operations)) {
-      if (!("tool" in c) || c.tool !== name) continue;
+      if (!("tool" in c) || ![c.tool].flat().includes(name)) continue;
       const [method, path] = key.split(" ") as [string, string];
       const responses = doc.paths[`/api/v1${path}`]?.[method.toLowerCase()]?.responses ?? {};
       for (const [status, r] of Object.entries<Schema>(responses)) {
