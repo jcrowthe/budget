@@ -313,3 +313,12 @@ Verify: `pnpm check` green. Do not run the full e2e suite (final_gate does).
 `docs/conventions.md`, Product rules, Actor: add "`service:plaid` for the writes of a bank sync". The
 `docs/README.md` line is already there. Each step's report says, for itself, that it did not open the source
 app, call Plaid or call the live app.
+
+## T13. Per-run budget (EXF-613)
+
+See [sync-budget-spec.md](sync-budget-spec.md). It covers:
+- `CallBudget` and the counted env and Plaid client;
+- the context batch and the units;
+- the final batch on a budget stop;
+- `recordFailure` and `sync_failed_at` (migration `20261116100900_sync_failed_at.sql`);
+- the round-robin `syncDueConnections`.

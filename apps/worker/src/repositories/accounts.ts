@@ -322,8 +322,8 @@ export async function findByBankAccount(
 }
 
 /** The latest date of the account's active reconciled transactions, or null. */
-export async function latestReconciledDate(db: Db, accountId: string): Promise<string | null> {
-  const [r] = await db
+export function latestReconciledDateQuery(db: Db, accountId: string) {
+  return db
     .select({ d: sql<string | null>`max(${transactions.date})` })
     .from(transactions)
     .where(
@@ -333,7 +333,10 @@ export async function latestReconciledDate(db: Db, accountId: string): Promise<s
         countsInBalance(),
       ),
     );
-  return r?.d ?? null;
+}
+
+export async function latestReconciledDate(db: Db, accountId: string): Promise<string | null> {
+  return (await latestReconciledDateQuery(db, accountId))[0]?.d ?? null;
 }
 
 function linkCondition(before: AccountRow, bankAccountId: string) {
@@ -409,8 +412,8 @@ export function noLinksToConnection(connectionId: string) {
 }
 
 /** The earliest date of the account's live Starting Balance rows, or null. */
-export async function startingBalanceDate(db: Db, accountId: string): Promise<string | null> {
-  const [r] = await db
+export function startingBalanceDateQuery(db: Db, accountId: string) {
+  return db
     .select({ d: sql<string | null>`min(${transactions.date})` })
     .from(transactions)
     .innerJoin(payees, eq(payees.id, transactions.payeeId))
@@ -421,5 +424,8 @@ export async function startingBalanceDate(db: Db, accountId: string): Promise<st
         eq(payees.system, "starting_balance"),
       ),
     );
-  return r?.d ?? null;
+}
+
+export async function startingBalanceDate(db: Db, accountId: string): Promise<string | null> {
+  return (await startingBalanceDateQuery(db, accountId))[0]?.d ?? null;
 }

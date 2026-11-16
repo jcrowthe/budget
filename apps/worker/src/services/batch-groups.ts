@@ -46,3 +46,18 @@ export async function runGroups(
   await flush();
   return out;
 }
+
+/** The number of batches `runGroups(db, groups, max)` would make for groups of these sizes. */
+export function batchCount(sizes: readonly number[], max = STATEMENTS_PER_BATCH): number {
+  let batches = 0;
+  let current = 0;
+  for (const n of sizes) {
+    if (n === 0) continue;
+    if (current > 0 && current + n > max) {
+      batches++;
+      current = 0;
+    }
+    current += n;
+  }
+  return current > 0 ? batches + 1 : batches;
+}

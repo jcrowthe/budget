@@ -487,8 +487,14 @@ export type LineRow = TransactionRow & {
 export async function listLines(
   db: Db,
   budgetId: string,
-  filter: { accountId?: string; parentId?: string; sinceDate?: string },
+  filter: {
+    accountId?: string;
+    parentId?: string;
+    parentIds?: readonly string[];
+    sinceDate?: string;
+  },
 ): Promise<LineRow[]> {
+  if (filter.parentIds && filter.parentIds.length === 0) return [];
   const conds = [
     eq(transactions.budgetId, budgetId),
     isNull(transactions.deletedAt),
@@ -496,6 +502,8 @@ export async function listLines(
   ];
   if (filter.accountId) conds.push(eq(transactions.accountId, filter.accountId));
   if (filter.parentId) conds.push(eq(transactions.parentTransactionId, filter.parentId));
+  if (filter.parentIds)
+    conds.push(inArray(transactions.parentTransactionId, [...filter.parentIds]));
   if (filter.sinceDate) conds.push(gte(transactions.date, filter.sinceDate));
   const rows = await db
     .select({

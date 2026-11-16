@@ -35,6 +35,7 @@ export function toApi(
     provider: row.provider,
     last_synced_at: row.lastSyncedAt,
     last_reset_at: row.lastResetAt,
+    sync_failed_at: row.syncFailedAt,
     created_at: row.createdAt,
     accounts: accounts.map((a) => ({
       id: a.id,
@@ -157,6 +158,7 @@ export async function createBankConnection(
         syncErrorSince: null,
         syncAccounts: null,
         syncLoopCursor: null,
+        syncFailedAt: null,
         createdAt: now,
         updatedAt: now,
       };
