@@ -7653,3 +7653,18 @@ template's last review: Build 5, Deploy 2, Discover 2, Test user flow 9.
 
 **Next plan:** nothing free to start. When `D24` has shipped: flow 9 again on live (EXF-614) as the
 tenth flow test, then the first review of the Test user flow template.
+
+### 2026-11-16 · Plan round 89
+
+Children used 104 of 200. Nothing started; three are running: Deploy `D24`, the carry-over of
+scheduled transactions and the Reflect fixes, and the credit engine carry-over. Main `85f3cc9`. No
+tickets were filed at the last review.
+
+- **Why nothing new:** the two Builds hold the register and transactions files, Reflect, the engine,
+  the months and categories files and the Plan page. The shell is free, but its open tickets need
+  files the credit carry-over holds or a parked screen (plan 87). A flow test waits for `D24`'s
+  release, so that it runs on the new version.
+- **Cards:** none is approved while `D24` is in flight; after it, one at a time (the credit carry-over
+  first if both are waiting, since it has been open longest).
+
+Ticket writes: 0. Review cadence: Build 5, Deploy 2, Discover 2, Test user flow 9.
