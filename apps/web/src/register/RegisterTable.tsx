@@ -1,6 +1,6 @@
 import { sidebarSections } from "@budget/core/account-types";
 import type { Account } from "@budget/schema/accounts";
-import { paymentDisplay } from "@budget/schema/card-payments";
+import { paymentDisplay, paymentPrefill } from "@budget/schema/card-payments";
 import {
   categoryCell,
   type PlanSortColumn,
@@ -471,7 +471,8 @@ export function RegisterTable({
             plan={plan}
             showCategory={showCategory}
             date={open.date}
-            initialFocus={plan ? "account" : "date"}
+            initialFocus={open.payment ? "payee" : plan ? "account" : "date"}
+            prefillInflow={open.payment ? paymentPrefill(open.payment.inflow) : undefined}
             onClose={onCloseEntry}
             onSaved={onSaved}
           />

@@ -108,8 +108,13 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     cursorRef.current = null;
     setAnchor(next);
   }, []);
-  const orderOf = (list: List): string[] =>
-    list === "real" ? rowsRef.current.map((r) => r.id) : scheduledRowsRef.current.map((r) => r.id);
+  const orderOf = useCallback(
+    (list: List): string[] =>
+      list === "real"
+        ? rowsRef.current.map((r) => r.id)
+        : scheduledRowsRef.current.map((r) => r.id),
+    [],
+  );
   const apply = useCallback(
     (list: List, ids: Iterable<string>) => (list === "real" ? set(ids) : setScheduled(ids)),
     [set, setScheduled],
@@ -130,7 +135,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       else apply(list, [id]);
       moveAnchor({ list, id });
     },
-    [apply, moveAnchor, toggle, toggleScheduled],
+    [apply, moveAnchor, orderOf, toggle, toggleScheduled],
   );
   const extend = useCallback(
     (step: 1 | -1) => {
@@ -145,7 +150,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       apply(a.list, rangeIds(order, a.id, cursor) ?? [a.id]);
       return cursor;
     },
-    [apply],
+    [apply, orderOf],
   );
   const clear = useCallback(() => {
     dropSelected();

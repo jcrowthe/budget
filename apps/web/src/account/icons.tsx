@@ -56,3 +56,8 @@ export const StarFilledIcon = (p: P) => (
     <path d="m12 1 3.300 7 7.700 1-5.600 5.300 1.400 7.700-6.800-3.700-6.800 3.700 1.400-7.700L1 9l7.700-1L12 1Z" />
   </svg>
 );
+export const InfoIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 7h2v6h-2zm0-3h2v2h-2z" />
+  </svg>
+);

@@ -42,6 +42,7 @@
 
 /* The page's .main scrolls, so the toolbar and the header row stick to its top. */
 .register-toolbar {
+  container: register-toolbar / inline-size;
   position: sticky;
   top: 0;
   z-index: 3;
@@ -86,6 +87,23 @@
   align-items: center;
   margin-left: var(--space-3);
 }
+/* Narrow toolbar: File Import, Undo and Redo keep their icon, name and title, and drop the visible text. */
+@container register-toolbar (max-width: 900px) {
+  .toolbar-label.can-hide {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.toolbar-label {
+  white-space: nowrap;
+}
+.register-toolbar .toolbar-group {
+  min-width: 0;
+}
 .search-box svg {
   position: absolute;
   left: 10px;
@@ -94,7 +112,8 @@
 }
 .search-box input {
   box-sizing: border-box;
-  width: 192px;
+  /* Shrinks first when the toolbar is tight (EXF-539: the extra Record Payment button). */
+  width: clamp(120px, 20cqw, 192px);
   height: 32px;
   padding: 0 0 0 28px;
   border: 1px solid var(--inputBorder);

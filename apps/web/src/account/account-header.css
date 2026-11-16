@@ -7,6 +7,13 @@
   --account-tooltip-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   --account-secondary-hover: rgba(117, 131, 255, 0.27);
   --account-tooltip-delay: 1.9s;
+  /* The Payment pill's tones repeat the Plan grid's (plan/** is held by another Build). */
+  --account-payment-zero-bg: var(--inputBackground);
+  --account-payment-zero-label: #9b9caa;
+  --account-payment-positive-bg: var(--statusPositive);
+  --account-payment-positive-label: #0c0d22;
+  --account-payment-negative-bg: var(--statusNegative);
+  --account-payment-negative-label: #fff;
   /* The action bar's shortcut tooltip bubble, measured on the source's Flag button tooltip. */
   --account-tooltip-shortcut-bg: #3c3e53;
 }
@@ -217,6 +224,41 @@
   font-weight: 500;
   line-height: 20px;
   text-align: center;
+}
+
+/* The Payment pill (EXF-539): the payment category's Available this month. */
+.acct-payment {
+  margin-left: var(--space-4);
+  min-width: 0;
+}
+.acct-selected-total + .acct-payment {
+  margin-left: 1rem;
+}
+.acct-payment-pill {
+  align-self: flex-start;
+  box-sizing: border-box;
+  min-height: 24px;
+  padding: 4px 7px 2px;
+  border-radius: 1000px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.acct-payment-pill.is-zero {
+  background: var(--account-payment-zero-bg);
+  color: var(--account-payment-zero-label);
+}
+.acct-payment-pill.is-positive {
+  background: var(--account-payment-positive-bg);
+  color: var(--account-payment-positive-label);
+}
+.acct-payment-pill.is-negative {
+  background: var(--account-payment-negative-bg);
+  color: var(--account-payment-negative-label);
+}
+.acct-payment .acct-label {
+  white-space: nowrap;
 }
 
 /* The Selected Total sits at the right end of the strip (source: .accounts-header-balances-right, margin-left auto). */

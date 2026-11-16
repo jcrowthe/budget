@@ -1,5 +1,8 @@
 import type { Account } from "@budget/schema/accounts";
-import { useCallback, useEffect, useState } from "react";
+import { isCredit } from "@budget/schema/card-payments";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
+import { usePaymentAvailable } from "../account/usePaymentAvailable";
 import { ActionBar } from "./ActionBar";
 import type { Open } from "./entryDraft";
 import { useOpenAccounts } from "./openAccounts";
@@ -25,6 +28,32 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
     setOpen({ mode: "add", key: Date.now() + Math.random(), date });
   }, []);
 
+  // EXF-539: Record Payment opens a new row dated today with Inflow set to the payment Available (D2).
+  const credit = !!account && isCredit(account.type);
+  const pay = usePaymentAvailable(budgetId, account?.id ?? "", credit);
+  const openPayment = () =>
+    setOpen({
+      mode: "add",
+      key: Date.now() + Math.random(),
+      payment: { inflow: pay.available ?? null },
+    });
+  // `?record-payment` (the Plan page's button) opens that row once, then drops the parameter (D7).
+  const [params, setParams] = useSearchParams();
+  const wantsPayment = params.has("record-payment");
+  const handled = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the account and its month are there
+  useEffect(() => {
+    if (!wantsPayment || handled.current || !account) return;
+    if (credit && !account.closed) {
+      if (!pay.settled) return;
+      openPayment();
+    }
+    handled.current = true;
+    const next = new URLSearchParams(params);
+    next.delete("record-payment");
+    setParams(next, { replace: true });
+  }, [wantsPayment, account, credit, pay.settled]);
+
   // Shift+N adds a transaction unless the user is typing or a dialog is open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,6 +77,8 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
         name={account?.name ?? "All Accounts"}
         onAdd={() => openAdd()}
         closed={closed}
+        onRecordPayment={credit ? openPayment : undefined}
+        paymentDisabled={!account || account.closed || !pay.settled}
       />
       <RegisterTable
         budgetId={budgetId}
