@@ -6381,3 +6381,70 @@ Declared for the tree: Deploy `D21`, the credit engine Build (EXF-532, EXF-535),
 transactions Build (EXF-497, EXF-499), the Deploy template review, flows 3 and 8.
 
 Ticket writes: 0. Review cadence: Build 8, Deploy 9, Discover 2, Test user flow 7.
+
+### 2026-11-16 · Review round 76
+
+Children used 89 of 200. One ended (the Plan-page Build, merged); two are running: the register Build
+and the Age of Money Build. Main `357bc4f`, live `c9e9d1c`. Journal branch merged up to main.
+
+**Plan-page Build merged as `357bc4f`** (`p_3b70b79de2c54d278a92cb5686f8ed74`; EXF-500 view chips,
+EXF-516 target snooze, EXF-519 Auto-Assign; four hours, 73 visits, three cards). The merge commit's
+tree equals the gated head `e555934`.
+
+- Third card, approved. Gate on base `033e011` (main then), head the gated head, check green, e2e
+  327/328 then 328/328 twice, changed specs 470/470 at ten repeats.
+- **The defect I sent back is fixed.** The Auto-Assign card draws its rows disabled, at full height,
+  while its preview loads. The new `e2e/auto-assign-layout.spec.ts` holds the preview back a second and
+  compares the Notes card's top edge; the Reviewer ran it against the old code and it failed there
+  (741 → 959). The Notes tests passed 110 of 110 at ten repeats under load.
+- **What I read on the branch before approving:** no always-overlap file, no skipped test; in
+  `packages/core` only the optional `snoozed_months` input my brief allowed; the migration only adds
+  the table `target_snoozes`; coverage lines for the three new operations.
+- **The gate's one flake, read:** `e2e/plan-grid.spec.ts:251` (the grid's error, empty and loading
+  states) failed once in three full runs and passed 5 of 5 alone. It is an older test with a 1.5 second
+  window for seeing the loading state, in a file this branch does not change, and the branch does not
+  touch the loading path. I took it as load (three Builds were gating on the same box). **If it fails at
+  another gate it gets a ticket**; this is the first time it appears.
+- Two spec faults the Build found in its own specs on the way: a click on a button still disabled
+  while the preview loads (now waits), and an API call over a keep-alive socket the dev server had
+  closed after five idle seconds (that one call now retries on a reset; it sets an absolute amount).
+  The second explains the "load" failure of the gate before; the Implementer first called it load and
+  then looked again, which is what I want.
+- **Known and accepted, filed now as one Low gap ticket:** the card keeps room for all eight rows, so
+  with Underfunded or Reduce Overfunding hidden it is 36 to 84 px taller than the source's card; in an
+  empty view the placeholder still shrinks to the short message (on a month change and when the
+  popover's Auto tab opens, not only after a chip click); and `realClick`'s "stopped moving" check
+  compares x, y and width but not height.
+- **Not compared with the source, by the limits, and said so on the tickets:** the Overspent chip, the
+  hidden-by-view footer, the snooze switch, pill and toast, and the popover's Auto tab. The source's
+  test plan has no targets, nothing overspent and nothing to assign; nobody may press Auto-Assign or
+  toggle a snooze there. These rest on the tickets' text.
+- On main now: routes `GET`/`POST …/months/{month}/auto-assign`, `PUT …/target-snooze`; tools
+  `preview_auto_assign`, `auto_assign`, `snooze_target` (**64 tools on main**, 59 on live);
+  `packages/schema/src/plan-views.ts`, `auto-assign.ts`; `apps/web/src/plan/ViewChips.tsx`,
+  `AutoAssignOptions.tsx`, `panel/AutoAssignCard.tsx`, `snooze.ts`; UI state key `snooze_tip_seen`.
+- `e2e/support/real-click.ts` changed for every spec (it now waits up to two seconds for its target to
+  stop moving). A guard, but it also means a later layout jump would no longer fail a click test: only
+  a spec that measures positions catches one. Worth a line in later Build briefs for panels.
+
+**Main is `357bc4f`; live is `c9e9d1c`.** Two merges are not live: the two Reflect reports and this
+one. Pending on live: migration `20261116100700_target_snoozes.sql` (checked with the pending script).
+
+**Running, both on base `033e011`, so each card will need a regate:**
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): head `e7b3de3`, fixing review findings.
+  It shares `packages/schema/src/ui-state.ts`, the timestamp test's call list and `docs/README.md`
+  with the merge; its brief says to keep every entry of both sides.
+- **Age of Money Build** (`p_38ee9709f6664cb8bbdf1208634375e3`): head `1a5bb24`, polish applied.
+
+**Ticket writes:** 6 (EXF-500, EXF-516, EXF-519 to Done, each with a comment). One gap ticket filed
+through this review.
+
+**Backlog:** 59 open feature tickets (38 done; 3 in progress: EXF-520, 522, 553). Gap: open EXF-558,
+EXF-560, EXF-562, EXF-589, EXF-614, EXF-615 (in progress) and the one filed now. Template:
+twenty-nine. Flow verdicts unchanged (flow 3 can now run once this is live). Finished since each
+template's last review: Build 9, Deploy 9, Discover 2, Test user flow 7.
+
+**Next plan:** Deploy `D21` for `357bc4f` (the tenth Deploy; migration `100700`; 64 tools; two new
+Reflect reports); approve no Build card while it is in flight. The credit engine Build (EXF-532,
+EXF-535): `packages/core` and the months files are free; check its manifest estimate against the
+register and Age of Money Builds first. After the Deploy: the Deploy template review, flows 3 and 8.
