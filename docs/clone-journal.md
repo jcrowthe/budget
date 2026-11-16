@@ -367,6 +367,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
 | 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | pending | running |
+| 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2397,3 +2398,33 @@ changes the Available pill in the grid rows that Build holds. So they start afte
 **Backlog:** 86 open feature tickets (8 done; 4 in progress: EXF-513, 494, 495, 459), all triaged. Gap:
 EXF-558 (High), EXF-454, EXF-560, EXF-562 (Low), plus the one filed now. Template: fifteen. Finished since
 each template's last review: Build 3, Deploy 6, Discover 2, Test user flow 0.
+
+### 2026-11-16 · Plan round 30
+
+Children used 41 of 200. Four are running: the Builds for EXF-513 (pull request #16), EXF-494 with EXF-495,
+and EXF-459 (Plaid Link), and the Deploy started now.
+
+- The gap ticket filed at the last review exists: **EXF-569** (the flaky "reopen the last used plan" spec).
+  Set to Medium. If its fix needs a Playwright project it edits `playwright.config.ts` and runs alone, in
+  the same moment as EXF-558.
+- **Started the Deploy of main `0de1856`** (`p_a1da6c560bc5490c9e8e5b0b06f37c25`), `gated_commit` `7e4acb6`
+  (trees equal), one additive migration (`20261115231600_ui_state.sql`). It ships edit Assigned, the sidebar
+  groups and month navigation. I did not wait for the register any longer: it has been in its Build for 70
+  minutes and three merges are worth showing. Checks asked: Assigned through the API and in the grid, the
+  month note and the limits read, `group` and `ui-state`, seven MCP tools, the header and the sidebar in a
+  browser, cleanup, and the count of plans that are not test plans. I told it about the flaky spec
+  (EXF-569).
+- **No new Build:** the three running Builds hold the account page and the transactions files, the grid and
+  the categories files, and the shell with the budgets files. What is free (the months files, the Plan
+  header) is wanted by EXF-491 with EXF-492, which need the category picker the categories Build is writing.
+- **Flow tests next round**, once this Deploy is live: flow 9 (two plans stay separate), flow 11 (Access
+  lock) and flow 1 as far as it goes (plan, account, assign to zero; creating categories is not live yet).
+  Flows 2 and 10 after the register is live.
+- **Template ticket sweep:** the plan calls for one about every 30 rounds. Fifteen template tickets are open;
+  the Build template review in rounds 24 to 26 read all of them and recorded their overlaps (nothing
+  closed). A sweep now would repeat that for one child. Deferred to about round 35, together with the Deploy
+  template review if it is due by then (Deploy 6 of 10, 7 after this one).
+- Review cadence: Build 3, Deploy 6, Discover 2.
+- **For the check-in at this round's review:** the child budget (41 of 200 with 86 feature tickets open),
+  the Plaid redirect URI, sign-in, the stored captures.
+- Ticket writes this round: 1.
