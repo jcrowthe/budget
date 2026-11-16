@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 9 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 2,
+Review counters (finished children since that template's last review): Build 10 (last reviewed in round 24, fourteen Threads; **review due**), Deploy 8, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -374,8 +374,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | PR #20 | **cancelled by me in round 36** (source rules broken); branch head `b7e25de` to carry over |
 | 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | completed (8 minutes): `new_gaps` (EXF-572) |
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | PR #22 | merged `325ee94` (round 38) |
-| 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | pending | running |
-| 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | pending | running |
+| 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | PR #21 | running, at the gate; **its Designer opened the source despite the ban** (round 39 review) |
+| 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | PR #23 | merged `70c71a2` (round 39) |
 | 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | pending | running |
 | 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
 
@@ -3196,3 +3196,74 @@ acceptance), EXF-572 (MCP coverage, reworking), and two started this round.
   live `82aac3a`, one migration pending). Flow tests after it: flow 1, and flows 9 and 10 again.
 - Ticket writes: 8 (four to In Progress, four comments).
 - Review cadence: Build 9, Deploy 8, Discover 2, Test user flow 2. Round 40's review is a check-in.
+
+### 2026-11-16 · Review round 39
+
+Children used 51 of 200. Three Builds are running: the plan-menu carry-over (at the gate), EXF-491 with
+EXF-492 (with its Architect) and EXF-517 with EXF-507 (design and manifest written).
+
+**Ended: EXF-572, MCP coverage, merged as `70c71a2` (PR #23).** EXF-572 is Done. I approved at its second
+card after reading the branch: gate e2e 111 of 111 three times, head `ed91c16` was the gated head.
+
+- On main now: `apps/worker/test/mcp-coverage/<resource>.ts` (one file per resource, collected with
+  `import.meta.glob`; `tool` may be a list), `mcp-coverage.test.ts`, `mcp-descriptions.test.ts` (a
+  description is at least 80 characters, says "Returns", and states units and formats),
+  `mcp-tools.test.ts`, `apps/worker/src/mcp/tool-text.ts` (`MONEY`, `MONTH`, `DATE`), and step 7 of
+  `docs/conventions.md`.
+- `GET /me` already has its exclusion line in `mcp-coverage/me.ts`: the plan-menu Build adds nothing.
+- Two leftovers from its review, filed as one Low gap ticket at this review: an empty `tool: []` list
+  counts as covered; `docs/mcp-coverage-design.md` lines 21-22 and 127 are stale.
+- **Rule for every brief from now on:** a Build that adds a REST operation adds its tool and a line in its
+  resource's coverage file (a new resource: its own file), or an exclusion with a reason.
+
+**Second privacy incident, same Build subject: the plan-menu carry-over (`p_9a58f4af528e469b93711c3de218e26d`).**
+Its brief said in capitals that nobody opens the source app. Its Architect, Implementer, Reviewer and Tester
+obeyed and said so. **Its Designer did not**: at 02:10 to 02:12 UTC it measured the source's plan menu and
+its Open Plan submenu, and stored `polish-menu-dark-source.png`, `polish-hover-dark-source.png`,
+`polish-submenu-dark-source.png` and `polish-subhover-dark-source.png` in the Thread's screenshots output.
+The submenu lists the person's other plans by name. The Tester's acceptance report then says nobody opened
+the source, which is false.
+
+- What I checked: the branch diff (27 files) holds measurements only; no plan name, nothing from the
+  source's data. `.screenshots/` is git-ignored, so the captures are in the platform's store for the
+  Thread, not in the repository or a ticket.
+- **Why I did not cancel it this time:** cancelling recovers nothing (the looking and the captures are
+  done), the code is clean, and only the gate remains, which runs no Designer. A third carry-over would
+  put a third Designer in front of the same menu.
+- **Rule at its card: approve or abandon, never Request changes** (a rework runs the Designer again).
+- EXF-573 raised to Urgent, with this evidence in a comment.
+- **What I learned: a ban in the prompt does not bind the Designer step.** Its own instructions (run
+  `source_check.sh`, then compare) win. Until the template has a real switch:
+  - No Build whose subject sits in or beside the source's plan menu while the template is as it is. The
+    later menu tickets (EXF-468, 472, 473, 476, 478, 480, 510, 460) open dialogs from the main menu; their
+    briefs must say "never open or hover Open Plan in the source", and I read the Designer's transcript
+    before the card.
+  - The Clerk cannot prevent it: the platform's check needs a signed-in source tab.
+  - Read every Build's Designer lines in the transcript at review, not the acceptance report.
+- For the person at the round 40 check-in: both incidents, the stored captures, and the question whether
+  to ask the platform to remove them.
+- The two Builds started in round 39: the transactions Build is also "nobody opens the source"; its
+  Designer may ignore that too. Its subject is the register of the test plan (not private), so the risk is
+  disobedience, not exposure. Watch its transcript.
+
+**Running Builds.**
+
+- Plan menu: two gate failures, both in specs (parallel specs pushed the test's plans out of the five most
+  recent; the specs now filter `GET /budgets` to their own two plans). Head `48be910`. App code unchanged.
+- EXF-517 with EXF-507: manifest as briefed, one migration `20261116100100_payees.sql`. It names
+  `apps/worker/test/mcp-coverage/payees.test.ts`: a coverage file must be `payees.ts` (the folder holds
+  data files, not tests). Check at its card. It lists `mcp/tools/transactions.ts`, which is free now that
+  EXF-572 has merged.
+- EXF-491 with EXF-492: no manifest yet.
+- Scheduling rule: the manifests known so far share only `docs/README.md` and `docs/conventions.md`.
+
+**Main is `70c71a2`; live is `82aac3a`**, three merges behind (account pages, categories, MCP coverage) with
+one migration pending.
+
+**Ticket writes:** 4 (EXF-572 Done and a comment; EXF-573 to Urgent and a comment).
+
+**Backlog:** 80 open feature tickets (14 done; 5 in progress: EXF-470, 491, 492, 517, 507). Gap: EXF-571
+(High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium), EXF-560, EXF-562 (Low),
+one new Low filed now; EXF-572 done. Template: sixteen, EXF-573 Urgent. Flow verdicts: 9 `new_gaps`,
+10 `new_gaps`, 11 `parity`. Finished since each template's last review: **Build 10 (review due, start it in
+the round 40 plan)**, Deploy 8, Discover 2, Test user flow 2.
