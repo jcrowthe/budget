@@ -8217,3 +8217,27 @@ person has not answered the check-in.
 - **No flow test:** live has not changed since flow 9 passed; flows 4, 7 and 8 wait for the Deploy.
 
 Ticket writes: 0. Review cadence: Build 6, Deploy 5, Discover 2, Test user flow 0.
+
+### 2026-11-16 · Review round 95
+
+Children used 110 of 200. Nothing new ended: this review follows Deploy `D26`'s end, recorded at
+review 94 (its state reads "failed": a refusal at the gate, `NOTHING_SHIPPED=yes`). Two Builds are
+running. Main `b84f513`, live `85f3cc9` (read by me at 17:26Z).
+
+- **`D26` is not a fault of the repository**, so no Build is started "to fix the Deploy": the gate
+  refused because the platform lost the file the step before it had written (EXF-612).
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`): acceptance passed at `924a372`; the Test Writer added two
+  fixed-date specs (cases 14 and 15, three clean repeats each) at 17:15Z; its final gate has been
+  running since. Its Tester found the source tab left on a Reflect page by the Designer and, rightly,
+  did not navigate it: it opened and pressed nothing.
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): the backend is committed (core, schema,
+  Worker, tools, tests); the Implementer is on the grid's rows and CSS since 17:14Z.
+- Neither has reported since about 17:15Z. A gate and a long implementing step are both quiet for
+  that long when healthy; if neither has moved by the next review I read their states for a parked
+  child, which sends no card.
+
+**Ticket writes:** 0. **Backlog, flow verdicts, review cadence:** unchanged from review 94 (Build 6,
+Deploy 5, Discover 2, Test user flow 0).
+
+**Next plan:** nothing to start; the Deploy stays held until the carry-over's gate has come through.
