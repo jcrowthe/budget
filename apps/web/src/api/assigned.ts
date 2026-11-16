@@ -5,7 +5,7 @@ import type { MonthDetail } from "@budget/schema/months";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { apiFetch } from "./client";
-import { beginWrite, endWrite } from "./monthCache";
+import { beginWrite, endWrite, inOrder } from "./monthCache";
 
 export const setAssignedAmount = async (
   budgetId: string,
@@ -21,9 +21,6 @@ export const setAssignedAmount = async (
       schema: AssignedResultResponse,
     })
   ).data;
-
-/** Per plan: the PATCHes run one after another (an absolute set, so the last one sent must arrive last). */
-const queues = new Map<string, Promise<unknown>>();
 
 /**
  * Returns commit(categoryId, before, after): writes the new numbers into the cached month at once, sends the
@@ -42,20 +39,18 @@ export function useCommitAssigned(
       const key = ["month", budgetId, month];
       await beginWrite(qc, budgetId);
       qc.setQueryData<MonthDetail>(key, (d) => d && applyAssigned(d, categoryId, after));
-      const tail = (queues.get(budgetId) ?? Promise.resolve()).then(() =>
-        setAssignedAmount(budgetId, month, categoryId, after)
-          .catch((e) => {
-            qc.setQueryData<MonthDetail>(key, (d) => {
-              const cur = d?.groups
-                .flatMap((g) => g.categories)
-                .find((c) => c.id === categoryId)?.assigned;
-              return d && cur === after ? applyAssigned(d, categoryId, before) : d;
-            });
-            onError(e);
-          })
-          .finally(() => endWrite(qc, budgetId)),
-      );
-      queues.set(budgetId, tail);
+      // The PATCHes run one after another (an absolute set, so the last one sent must arrive last).
+      void inOrder(budgetId, () => setAssignedAmount(budgetId, month, categoryId, after))
+        .catch((e) => {
+          qc.setQueryData<MonthDetail>(key, (d) => {
+            const cur = d?.groups
+              .flatMap((g) => g.categories)
+              .find((c) => c.id === categoryId)?.assigned;
+            return d && cur === after ? applyAssigned(d, categoryId, before) : d;
+          });
+          onError(e);
+        })
+        .finally(() => endWrite(qc, budgetId));
     },
     [qc, budgetId, month, onError],
   );

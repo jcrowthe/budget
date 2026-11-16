@@ -6,11 +6,14 @@ import { useCommitAssigned } from "../api/assigned";
 import { useCategoryActions } from "../api/categories";
 import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
+import { useMoveMoney } from "../api/moves";
 import type { CloseHow } from "./AssignedCell";
+import { CoverPopover } from "./CoverPopover";
 import { useCollapsedGroups } from "./collapse";
 import { DeleteDialog } from "./DeleteDialog";
 import { HiddenCategoriesRow } from "./HiddenCategories";
 import { ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
+import { MovePopover } from "./MovePopover";
 import { NamePopover } from "./NamePopover";
 import { useProgressBars } from "./progressBars";
 import { CategoryRow, Checkbox, type FocusTarget, GroupRow, UncategorizedRow } from "./rows";
@@ -23,6 +26,8 @@ type Open =
   | { kind: "add-category"; groupId: string; anchor: HTMLElement }
   | { kind: "edit-group"; groupId: string; anchor: HTMLElement }
   | { kind: "edit-category"; categoryId: string; anchor: HTMLElement }
+  | { kind: "move"; categoryId: string; anchor: HTMLElement }
+  | { kind: "cover"; categoryId: string; anchor: HTMLElement }
   | {
       kind: "delete";
       what: "category" | "group";
@@ -66,13 +71,17 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
   const commit = useCommitAssigned(budgetId, month, () =>
     setNotice("Couldn't save the assigned amount."),
   );
+  const move = useMoveMoney(budgetId, () => setNotice("Couldn't move the money."));
   // Visible categories in render order: what ↑/↓ walks.
   const order = groups.flatMap((g) =>
     isCollapsed(g.id) ? [] : g.categories.filter((c) => !c.hidden).map((c) => c.id),
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: month is the trigger
-  useEffect(() => setEditing(null), [month]);
+  useEffect(() => {
+    setEditing(null);
+    setPop((p) => (p?.kind === "move" || p?.kind === "cover" ? null : p));
+  }, [month]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(null), 5000);
@@ -198,6 +207,20 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
         />
       );
     }
+    if (pop.kind === "move" || pop.kind === "cover") {
+      if (!data) return null;
+      const Pop = pop.kind === "move" ? MovePopover : CoverPopover;
+      return (
+        <Pop
+          detail={data}
+          month={month}
+          categoryId={pop.categoryId}
+          anchor={pop.anchor}
+          onClose={close}
+          move={move}
+        />
+      );
+    }
     return (
       <DeleteDialog
         budgetId={budgetId}
@@ -320,6 +343,13 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
                           onFocusDone={() => setFocusReq(null)}
                           onEditName={(anchor) =>
                             setPop({ kind: "edit-category", categoryId: c.id, anchor })
+                          }
+                          onPill={(anchor) =>
+                            setPop({
+                              kind: c.available > 0 ? "move" : "cover",
+                              categoryId: c.id,
+                              anchor,
+                            })
                           }
                         />
                       ))}

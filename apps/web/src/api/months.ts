@@ -2,6 +2,7 @@ import type { Month } from "@budget/core/month";
 import {
   type MonthDetail,
   MonthDetailResponse,
+  MonthListResponse,
   type MonthNote,
   MonthNoteResponse,
   type MonthRange,
@@ -61,3 +62,16 @@ export function useSetMonthNote(budgetId: string) {
     },
   });
 }
+
+/** The summaries of the months from `from` to `to` (inclusive). Idle while `to` is null or before `from`. */
+export const useMonthList = (budgetId: string, from: Month, to: Month | null) =>
+  useQuery({
+    queryKey: ["month-list", budgetId, from, to],
+    enabled: !!to && to >= from,
+    queryFn: async () =>
+      (
+        await apiFetch(`/api/v1/budgets/${budgetId}/months?from=${from}&to=${to}`, {
+          schema: MonthListResponse,
+        })
+      ).data.months,
+  });

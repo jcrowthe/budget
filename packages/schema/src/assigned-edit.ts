@@ -117,3 +117,39 @@ export function applyAssigned(detail: MonthDetail, categoryId: string, assigned:
     ),
   };
 }
+
+/** A move of `amount` in `moveMonth` (a null side is Ready to Assign) applied to one cached month. */
+export function applyMove(
+  detail: MonthDetail,
+  moveMonth: string,
+  from: string | null,
+  to: string | null,
+  amount: number,
+): MonthDetail {
+  if (detail.month === moveMonth) {
+    const assignedOf = (d: MonthDetail, id: string) =>
+      d.groups.flatMap((g) => g.categories).find((c) => c.id === id)?.assigned;
+    let d = detail;
+    if (from !== null) {
+      const old = assignedOf(d, from);
+      if (old !== undefined) d = applyAssigned(d, from, old - amount);
+    }
+    if (to !== null) {
+      const old = assignedOf(d, to);
+      if (old !== undefined) d = applyAssigned(d, to, old + amount);
+    }
+    return d;
+  }
+  if (detail.month < moveMonth && (from === null) !== (to === null)) {
+    const s = to === null ? 1 : -1;
+    return {
+      ...detail,
+      ready_to_assign: detail.ready_to_assign + s * amount,
+      rta_breakdown: {
+        ...detail.rta_breakdown,
+        assigned_in_future: detail.rta_breakdown.assigned_in_future + s * amount,
+      },
+    };
+  }
+  return detail;
+}

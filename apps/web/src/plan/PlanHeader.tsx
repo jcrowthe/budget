@@ -1,11 +1,12 @@
 import { addMonths, type Month } from "@budget/core/month";
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useMonth, useMonthRange, useSetMonthNote } from "../api/months";
 import { localCurrentMonth, usePlanMonth } from "../shell/planPaths";
 import { MonthNotePopover } from "./MonthNotePopover";
 import { MonthPicker } from "./MonthPicker";
 import { canNext, canPrev, monthLabel, NEXT_DISABLED_TITLE, navLimits } from "./monthNav";
 import { CaretDownIcon, ChevronCircleLeftIcon, ChevronCircleRightIcon } from "./monthNavIcons";
+import { ReadyToAssign } from "./ReadyToAssign";
 import "./plan-header.css";
 
 type Open = { kind: "picker" | "note"; style: CSSProperties } | null;
@@ -23,18 +24,9 @@ function under(el: HTMLElement | null): CSSProperties {
 }
 
 /**
- * The Plan header. Left: arrows, month with its picker, Today and the month note.
- * `children` render in the centre block: EXF-491 passes the Ready to Assign pill there.
+ * The Plan header. Left: arrows, month with its picker, Today and the month note. Then the Ready to Assign box.
  */
-export function PlanHeader({
-  budgetId,
-  month,
-  children,
-}: {
-  budgetId: string;
-  month: Month;
-  children?: ReactNode;
-}) {
+export function PlanHeader({ budgetId, month }: { budgetId: string; month: Month }) {
   const current = localCurrentMonth();
   const limits = navLimits(useMonthRange(budgetId).data, current);
   const note = useMonth(budgetId, month).data?.note ?? null;
@@ -125,8 +117,9 @@ export function PlanHeader({
           />
         )}
       </div>
-      {/* EXF-491: the Ready to Assign pill is passed as children */}
-      <div className="plan-header-totals">{children}</div>
+      <div className="plan-header-totals">
+        <ReadyToAssign budgetId={budgetId} month={month} />
+      </div>
     </header>
   );
 }

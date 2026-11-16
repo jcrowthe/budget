@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyAssigned, evaluateAssigned, formatAssignedInput } from "../src/assigned-edit";
+import {
+  applyAssigned,
+  applyMove,
+  evaluateAssigned,
+  formatAssignedInput,
+} from "../src/assigned-edit";
 import type { MonthDetail } from "../src/months";
 
 describe("evaluateAssigned", () => {
@@ -126,5 +131,40 @@ describe("applyAssigned", () => {
     const d = detail();
     expect(applyAssigned(d, "zzz", 5)).toBe(d);
     expect(applyAssigned(d, "a", 100000)).toBe(d);
+  });
+});
+
+describe("applyMove", () => {
+  it("moves between categories in the same month, leaving Ready to Assign", () => {
+    const out = applyMove(detail(), "2026-11-01", "a", "b", 30000);
+    expect(out.groups[0]?.categories[0]).toMatchObject({ assigned: 70000, available: 70000 });
+    expect(out.groups[0]?.categories[1]).toMatchObject({ assigned: 30000, available: 30000 });
+    expect(out.ready_to_assign).toBe(500000);
+  });
+  it("moves to and from Ready to Assign", () => {
+    const toRta = applyMove(detail(), "2026-11-01", "a", null, 40000);
+    expect(toRta.ready_to_assign).toBe(540000);
+    expect(toRta.groups[0]?.categories[0]?.assigned).toBe(60000);
+    const fromRta = applyMove(detail(), "2026-11-01", null, "c", 40000);
+    expect(fromRta.ready_to_assign).toBe(460000);
+    expect(fromRta.groups[1]).toMatchObject({ assigned: 40000, available: 40000 });
+  });
+  it("lets the source go negative", () => {
+    const out = applyMove(detail(), "2026-11-01", "a", "b", 150000);
+    expect(out.groups[0]?.categories[0]).toMatchObject({ assigned: -50000, available: -50000 });
+  });
+  it("changes only Ready to Assign of an earlier month, and only for a one-sided move", () => {
+    const early = { ...detail(), month: "2026-10-01" };
+    const out = applyMove(early, "2026-11-01", "a", null, 40000);
+    expect(out.ready_to_assign).toBe(540000);
+    expect(out.rta_breakdown.assigned_in_future).toBe(40000);
+    expect(out.groups).toEqual(early.groups);
+    expect(applyMove(early, "2026-11-01", "a", "b", 40000)).toBe(early);
+  });
+  it("leaves a later month and unknown ids alone", () => {
+    const late = { ...detail(), month: "2026-12-01" };
+    expect(applyMove(late, "2026-11-01", "a", null, 40000)).toBe(late);
+    const d = detail();
+    expect(applyMove(d, "2026-11-01", "zzz", "yyy", 5)).toEqual(d);
   });
 });

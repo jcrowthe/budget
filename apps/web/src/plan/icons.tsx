@@ -73,3 +73,25 @@ export const CalculatorIcon = (p: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+
+// Ready to Assign box and breakdown (own artwork).
+export const SubtractCircleFillIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm5 12H7v-2h10z" />
+  </svg>
+);
+export const AddCircleFillIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm5 12h-4v4h-2v-4H7v-2h4V7h2v4h4z" />
+  </svg>
+);
+export const InfoCircleFillIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm1 16h-2v-6h2zm0-8h-2V7h2z" />
+  </svg>
+);
+export const CheckCircleFillIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm-1.6 15.6L6 12.2l1.4-1.4 3 3 6.2-6.2L18 9z" />
+  </svg>
+);
