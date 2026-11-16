@@ -5844,3 +5844,62 @@ import carry-over (at acceptance) and the two-report Reflect Build (planning). M
 
 Ticket writes: 0. Review cadence: Build 5, Deploy 8, Discover 2, Test user flow 5. **This round's
 review is a check-in.**
+
+### 2026-11-16 · Review round 70 (check-in)
+
+Children used 84 of 200. One Build ended; three children are running (the Plan-page Build in its final
+gate, the two-report Reflect Build, the flow tests for flows 2 and 9).
+
+**Ended: the Plaid import carry-over (`p_c81492d33faf41b1bc8a985e48688b83`), merged as `9e77748`
+(PR #39)**, about 65 minutes, two cards (Proceed after the review loop ran out; Approve), about 10
+dollars. EXF-462 is Done; EXF-463 is back in Backlog for its screens.
+
+- I approved after reading the sync on the branch: `services/plaid-sync.ts` (723 lines), the paging in
+  `plaid/transactions.ts`, the Durable Object, `scheduled.ts`, `services/batch-groups.ts` and the
+  migration. Gate on the current base (`e2bcd35`), e2e 276 of 276 three times.
+- What I confirmed in the code: writes first in groups that never straddle a batch, cursor and status
+  last under a guard on the old cursor ("sync conflict" if another run moved it); `notKnown` guard plus
+  the unique index `transactions_budget_import`; pending entries dropped in `netChanges`; match and
+  fallback insert in one group; reconciled rows take the description only; `fresh` re-read when the
+  link set is not covered; no pages and no cursor change when no open linked account; only
+  `/transactions/sync` and `/accounts/get`; logs name a connection id only.
+- **Not read by me:** the approve and reject service code (covered by its tests and three reviews).
+- **A risk I found and file now as a gap ticket (High):** one run makes, besides its batches, a read
+  per imported row that has a remembered category (`namesOf`) and two reads per match, and four per
+  account. A page is 500 entries. Cloudflare limits the database queries of one invocation (far lower
+  on a free plan than on a paid one, and I do not know which the owner has). A run that hits the limit
+  fails before the cursor is saved and would repeat the same work and fail again. The tests cannot
+  see this: the test runtime has no such limit. **Flow 5 on live must import the Sandbox's
+  transactions and report the count and whether the run completed.**
+- On main: migration `20261116100800_plaid_import.sql`; `packages/schema/src/plaid-import.ts`;
+  `repositories/imports.ts`; tools `sync_bank_connections`, `list_unapproved_transactions`,
+  `approve_transactions`, `reject_transactions`. **59 tools on main.**
+
+**Main is `9e77748`; live is `e2bcd35`** (one merge ahead: the import, one migration).
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): in `final_gate` after 100 minutes and about
+  14 dollars; head on origin `6662c05`. Its gate rebases onto `9e77748`.
+- **Reflect: two reports** (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`): building; no commit on origin yet.
+- **Flows 2 and 9** (`p_eabc968ad4f743d1834cb9c99a7e924e`): walking, six minutes in.
+
+**Check-in sent** (round 70). Its points: what went live since round 60 (transfers, splits, targets,
+account fixes, Spending Breakdown; 55 tools); the import merged and waiting for a release and a Sandbox
+proof; the platform's lost boxes (five children lost, EXF-612 and EXF-611) and my own wrong guard; the
+source-limit slips without private data; **the bank screens decision, which now stands between the
+owner and using the import from the interface**; the child budget (84 used, about 70 more expected);
+the unchanged requests.
+
+**Ticket writes:** 4 (one Done, one back to Backlog, two comments). One gap ticket filed through this
+review.
+
+**Backlog:** 61 open feature tickets (33 done; 5 in progress: EXF-500, 516, 519, 550, 552). Gap: open
+EXF-558, EXF-560, EXF-562, EXF-589 (Low) and the one filed now. Template: twenty-nine (EXF-573 and
+EXF-612 Urgent). Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps` (rerun running), 5
+`parity_known_gaps`, 8 `new_gaps` (its gap fixed; rerun after the Reflect Build), 9 `new_gaps` (rerun
+running), 10 `new_gaps` (its gap EXF-587 fixed; rerun owed), 11 `parity`; 3, 4, 6, 7 not run. Finished
+since each template's last review: Build 6, Deploy 8, Discover 2, Test user flow 5.
+
+**Next plan:** set the new ticket's priority; when the Plan-page Build merges: Deploy (import and Plan
+page, two migrations), then flows 3 and 5 (and 10 again); the credit engine on the freed
+`packages/core`; a Build for the per-run query count beside it (the import's files are free).
