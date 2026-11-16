@@ -9226,3 +9226,44 @@ me at 23:42Z). The person has not answered the round-100 check-in.
   Abandon and carry over.
 
 Ticket writes: 4 (four priorities). Review cadence: Build 3, Deploy 7, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Review round 106
+
+Children used 123 of 200. One ended: **the Build template review completed**
+(`p_dd5c621340c8478aab2076a69de29eb8`). Three Builds are running. Main and live `49012cd` (read by me
+at 23:43Z).
+
+**Build template review: what I approved, all of it filed.** Four tickets (EXF-682 notes from the
+Lead to a running Build, High; EXF-683 "the acceptance case contradicts the source" as a card,
+Medium; EXF-684 the Tester looks at every screen and what PARTIAL may mean, High; EXF-685 file names
+from the ticket id, Medium) and eleven evidence comments (EXF-573, 612, 611, 576, 563, 564, 578, 627,
+628, 629, 575), with my three additions; EXF-559's item 2 moved into EXF-682. Nothing approved was
+left unfiled.
+- What I take from it for my own work, beyond what review 104 recorded:
+  - **The Designer step is the one that breaks source limits (six of six), and wording does not hold
+    it.** Until the template changes, a Build whose screens the source cannot show gets no source at
+    all, and a Build whose screens it can show gets the earlier readings as recorded values where
+    they exist.
+  - **A card answer's free text is the only channel that reaches every later step.** A ticket
+    comment reaches only a step that happens to re-read the ticket (Implementers do; Designers,
+    Reviewers and Testers do not).
+  - **Boxes are lost while a Thread is idle** (a card, a pause): answer cards at once; avoid a second
+    card for a finished Build.
+  - A Reviewer's wait loop cost about 48 minutes across three Builds (EXF-563): nothing I can change
+    from a brief.
+  - The four lost Builds of that batch cost about 32 dollars and their carry-overs 21 more, by its
+    count.
+
+**Running:**
+- **Plan import carry-over** (`p_51a143af64a84fd4bef3df56774f8506`): healthy box; the merge clean at
+  `0b970a0` (35 files, 6,496 insertions); the Architect found the round-trip fixture already covers
+  all eight kinds of row and that two invisibility tests are missing (the bank sync, a plan the
+  owner deleted): the gaps I asked about.
+- **Plan-page carry-over** (`p_27170c2d7ee8476b927e1819efee5d26`) and **Reconcile carry-over**
+  (`p_a270cac61bad4df890e73afd054985a3`): working.
+
+**Ticket writes:** 0. **Backlog:** 51 open feature tickets (48 done; 3 in progress). Gap: twelve
+open, eight in progress. Template: forty open (Urgent EXF-573, 611, 612). Flow verdicts unchanged.
+Finished since each template's last review: Build 3, Deploy 7, Discover 2, Test user flow 2.
+
+**Next plan:** nothing to start.
