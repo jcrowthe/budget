@@ -8753,3 +8753,64 @@ Children used 116 of 200. One started now; three Builds are running. Main `3b4e3
 Ticket writes: 4 (EXF-477 and EXF-670 to In Progress, EXF-670's priority, a comment each). Review
 cadence: Build 9 (the tenth finished Build starts the Build template review), Deploy 6, Discover 2,
 Test user flow 1.
+
+### 2026-11-16 · Review round 101
+
+Children used 116 of 200. One ended: **the Record Payment Build merged as `49012cd`**
+(`p_ae982fa0a2334ebaae16875e1551c0d6`, PR 51; EXF-539, 635, 636, 637, 630 are Done). Two Builds are
+running. Main `49012cd`, live `11273cf` (read by me at 19:57Z): two merges are not live (Export
+Plan's API, Record Payment); no migration is pending.
+
+**The merge.** I approved its card at gated head `7e1aa13` on base `3b4e3f0` (main then; nothing
+releasing). Gate: check passed, 431 of 431 three times, changed specs ten times 300 of 300, no flake.
+Main's tree equals the gated head's (compared now).
+- Read before approving: 48 files, none out of bounds, no shared module, no migration, no skipped
+  test; the payments service checks the plan, the card and the paying account and reuses the
+  transfer code (10 D1 calls with an amount, 18 without, the same for one card and for four); the
+  own-payment-category rule sits in the one rule every write runs; the counting test covers a move
+  from several accounts and approve at 7 calls.
+- Acceptance: 10 pass, 12 partial (green specs, not looked at live; the card screens have nothing in
+  the source's test plan to compare with), 0 fail. Two known issues accepted (two simultaneous "pay
+  everything" requests; an old card row in its own payment category refuses edits: none on live).
+- **What its study read in the source and I note for later:** the source offers no Move to Account
+  on All Accounts when the ticked rows come from different accounts (the clone offers it, as
+  EXF-636 asks); the source's bar there has no Clear button where the clone's has one (not filed:
+  the discovery ticket for the bar lists Clear; to be looked at when the test plan has open
+  accounts).
+- **A ticket comment did not reach a running step, again:** after I wrote on EXF-539 that no step
+  opens the source any more, the Tester still ticked four rows on the source's All Accounts for
+  case 22 (inside the brief's own limits, and it kept them: one plain capture, rows unticked, the
+  tab's size unchanged). The card's feedback field is the only channel that reaches every step; a
+  ticket comment is read by a step only if it happens to re-read the ticket.
+- **Leftovers, filed as one Low ticket with this review:** the Plan page inspector's Record Payment
+  button (Plan-page Build) opens the card's page without `?record-payment`; the docs index has a
+  line for `card-payments-design.md` that belongs to the Plan-page Build's file; a duplicated test
+  assertion; acceptance case 18's amount; and the open question whether a payment row's category
+  opens the list as in the source.
+
+**Running:**
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): reworking after my Request changes;
+  main has moved twice under it.
+- **Plan import Build** (`p_b71911bc33cb444db359bb72047a1a75`): its box holds the platform's files;
+  design committed (`docs/plan-import-design.md`), EXF-670 and the zip reader done, the parser in
+  progress. **Its design, which I accept:** up to 2,500 rows are written in one batch (201); a
+  larger file is parsed once, cut into chunks kept as one R2 object, and each `continue` call writes
+  one chunk; the plan is created hidden with the existing deleted marker and made visible by the
+  last chunk; at most 3 D1 calls and 2 R2 calls per invocation; about 20 invocations for 20,000
+  transactions; a cancel operation and a 24-hour sweep remove leftovers; one migration
+  (`20261116101300_plan_imports.sql`, one table). Its own stated risk: the first call's CPU time
+  grows with the file and may need splitting on the real limit. No source study, as briefed.
+
+**Ticket writes:** 7 (five tickets to Done; comments on EXF-539 and EXF-636). One ticket filed
+through this review.
+
+**Backlog:** 51 open feature tickets (48 done; 2 in progress: EXF-537, 477). Gap: ten open with the
+new one (EXF-558, 560, 562, 589, 631, 657, 658, 659, 664 and the new one), six in progress
+(EXF-622, 623, 624, 616, 646, 670). Template: thirty-six open. Flow verdicts unchanged. Finished
+since each template's last review: **Build 10: the Build template review is due**; Deploy 6;
+Discover 2; Test user flow 1.
+
+**Next plan:** Deploy `D28` of `49012cd` (gated head `7e1aa13`; no migration; Export Plan's API and
+Record Payment); the Build template review with the ten Builds finished since the last one; Reconcile
+(EXF-533, High) now that the account page and the register are free; flows 2 and 4 again after the
+Deploy.
