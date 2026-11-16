@@ -30,7 +30,7 @@
 
 /* Empty state */
 /* Source (empty card, dark): strong and p are labelPrimary, strong weight 700, body padded 16 all round. */
-#panel-target > .panel-card-body {
+#panel-target.panel-card-body:has(> .target-empty) {
   padding: 16px;
 }
 .target-empty strong {
@@ -414,6 +414,9 @@
   text-align: left;
   cursor: pointer;
 }
+.behavior-option:last-child {
+  border-bottom: 0;
+}
 .behavior-option:focus-visible {
   background: var(--buttonSubtleBackground);
   outline: none;
@@ -453,7 +456,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 8px;
+  margin: 3.2px 0;
 }
 .calendar-title {
   color: var(--labelPrimary);
@@ -486,13 +489,19 @@
 }
 .calendar-days-head {
   align-items: center;
-  height: 24.8px;
+  box-sizing: border-box;
+  height: 26.8px; /* source: 24.8 labels + padding 4, between 1px rules */
+  border-top: 1px solid var(--borderSubtle);
   border-bottom: 1px solid var(--borderSubtle);
   font-weight: 600;
 }
+.calendar-days {
+  padding: 4px 0;
+  margin-bottom: 6.4px;
+}
 .calendar-day {
-  width: 31px;
-  height: 31px;
+  width: 31.4px;
+  height: 31.4px;
   padding: 0;
   border: 0;
   border-radius: 100%;

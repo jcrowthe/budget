@@ -57,27 +57,29 @@ export function TargetCalendar({
           <span key={d}>{d}</span>
         ))}
       </div>
-      {weeks.map((w) => (
-        <div key={w.map((d) => d.iso).join()} className="calendar-week">
-          {w.map((d, i) =>
-            d.iso ? (
-              <button
-                key={d.iso}
-                type="button"
-                className={`calendar-day${d.other ? " is-other" : ""}${d.iso === selected ? " is-selected" : ""}`}
-                aria-label={d.iso}
-                aria-pressed={d.iso === selected}
-                onClick={() => onPick(d.iso as string)}
-              >
-                {Number((d.iso as string).slice(8, 10))}
-              </button>
-            ) : (
-              // biome-ignore lint/suspicious/noArrayIndexKey: an empty cell
-              <span key={i} />
-            ),
-          )}
-        </div>
-      ))}
+      <div className="calendar-days">
+        {weeks.map((w) => (
+          <div key={w.map((d) => d.iso).join()} className="calendar-week">
+            {w.map((d, i) =>
+              d.iso ? (
+                <button
+                  key={d.iso}
+                  type="button"
+                  className={`calendar-day${d.other ? " is-other" : ""}${d.iso === selected ? " is-selected" : ""}`}
+                  aria-label={d.iso}
+                  aria-pressed={d.iso === selected}
+                  onClick={() => onPick(d.iso as string)}
+                >
+                  {Number((d.iso as string).slice(8, 10))}
+                </button>
+              ) : (
+                // biome-ignore lint/suspicious/noArrayIndexKey: an empty cell
+                <span key={i} />
+              ),
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
