@@ -182,6 +182,31 @@ describe("reports", () => {
     ]);
   });
 
+  it("a closed account still counts in a past month and is listed as closed (Lead 4)", async () => {
+    const { bid, chk } = await example();
+    const before = (await nw(bid, `start_month=2026-05-01&end_month=2026-11-01&${TODAY}`)).data;
+    const close = await json(
+      `${base(bid)}/accounts/${chk}/close`,
+      { method: "POST" },
+      { today: "2026-11-11" },
+    );
+    expect(close.status).toBe(200);
+    const { data } = await nw(bid, `start_month=2026-05-01&end_month=2026-11-01&${TODAY}`);
+    // Months before the closing adjustment (2026-11-11) are unchanged: Oct still holds Checking's balance.
+    expect(data.months.slice(0, 6).map((m: Json) => m.net_worth)).toEqual(
+      before.months.slice(0, 6).map((m: Json) => m.net_worth),
+    );
+    const oct = data.months[5].accounts.find((a: Json) => a.name === "D8 Checking");
+    const octBefore = before.months[5].accounts.find((a: Json) => a.name === "D8 Checking");
+    expect(oct.balance).toBe(octBefore.balance);
+    expect(oct.balance).not.toBe(0);
+    // The closed account is listed last, and the accounts read puts it in the closed group.
+    expect(data.months[5].accounts.at(-1).name).toBe("D8 Checking");
+    const list = ((await (await json(`${base(bid)}/accounts?include_closed=true`)).json()) as Json)
+      .data.accounts;
+    expect(list.find((a: Json) => a.id === chk)).toMatchObject({ closed: true, group: "closed" });
+  });
+
   it("exports the CSV", async () => {
     const { bid } = await example();
     const res = await json(`${base(bid)}/reports/net-worth/export?${TODAY}`);
