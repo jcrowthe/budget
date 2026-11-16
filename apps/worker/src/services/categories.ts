@@ -474,6 +474,12 @@ export async function updateCategory(
     const catIdx = stmts.length - 1;
     if (bringGroupBack) {
       const groupAfter = { ...group, hidden: false };
+      // Only when the category's own update of this batch applied (now is unique to it), so the group never
+      // returns with its other categories; and the group must still be what was read.
+      const groupGuard = allOf(
+        groupsRepo.holds(group.id, group.updatedAt),
+        sql`exists (select 1 from categories where id = ${before.id} and updated_at = ${now} and hidden = 0)`,
+      );
       stmts.push(
         changeLogInsertIf(
           db,
@@ -486,14 +492,9 @@ export async function updateCategory(
             before: groupToApi(group),
             after: groupToApi(groupAfter),
           },
-          whenQuery(db, groupsRepo.holds(group.id, group.updatedAt)),
+          whenQuery(db, groupGuard),
         ),
-        groupsRepo.updateIfStmt(
-          db,
-          group.id,
-          { hidden: false, updatedAt: now },
-          groupsRepo.holds(group.id, group.updatedAt),
-        ),
+        groupsRepo.updateIfStmt(db, group.id, { hidden: false, updatedAt: now }, groupGuard),
       );
     }
     const results = await db.batch(stmts as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);

@@ -733,10 +733,6 @@ button.category-name {
   padding: 6px 12px 2px;
   font-weight: 700;
 }
-.picker-group-prefix {
-  color: var(--labelSecondary);
-  font-weight: 500;
-}
 .picker-option {
   display: flex;
   justify-content: space-between;

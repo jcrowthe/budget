@@ -39,16 +39,23 @@ export interface DeletePlan {
 export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
   const { budgetId, categoryIds: ids, targetId } = p;
   const withHistory = targetId !== null;
-  // Parts of the guard. `cats` reads the categories' own deleted_at, so the statement that soft-deletes
-  // them (and the group's, after it) leaves it out.
+  // Parts of the guard.
   const hist = withHistory ? null : categoriesRepo.noHistory(budgetId, ids);
   const target = targetId ? categoriesRepo.activeInActiveGroup(budgetId, targetId) : null;
   const cats = ids.length > 0 ? categoriesRepo.allActive(ids) : null;
   const groupActive = p.group
     ? sql`exists (select 1 from category_groups where id = ${p.group.id} and deleted_at is null)`
     : null;
-  const full = allOf(hist, target, cats, groupActive);
-  const final = allOf(hist, target);
+  // The group's active categories must be exactly the listed ones: one added since the read would be orphaned.
+  const groupExact = p.group
+    ? sql`(select count(*) from categories where group_id = ${p.group.id} and deleted_at is null) = ${ids.length}`
+    : null;
+  // Nothing before the final statements changes any part of this guard, so it holds for all of them.
+  const full = allOf(hist, target, cats, groupActive, groupExact);
+  // The group goes only if its delete log row of this batch was written (so the guard held) and it is empty.
+  const groupGo = p.group
+    ? sql`exists (select 1 from change_log where entity_type = 'category_group' and entity_id = ${p.group.id} and action = 'delete' and created_at = ${p.now}) and not exists (select 1 from categories where group_id = ${p.group.id} and deleted_at is null)`
+    : null;
   const log = (entityType: string, action: LogBase["action"] = "delete"): LogBase => ({
     budgetId,
     actor: p.actor,
@@ -134,8 +141,8 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
       ),
     );
   }
-  stmts.push(categoriesRepo.softDeleteManyStmt(db, ids, p.now, final));
-  if (p.group) stmts.push(groupsRepo.softDeleteStmt(db, p.group.id, p.now, final));
+  stmts.push(categoriesRepo.softDeleteManyStmt(db, ids, p.now, full));
+  if (p.group && groupGo) stmts.push(groupsRepo.softDeleteStmt(db, p.group.id, p.now, groupGo));
   return stmts;
 }
 
@@ -266,7 +273,7 @@ async function run(
         category_ids: ids,
         group_id: group?.id ?? null,
         reassigned_to: useTarget,
-        transactions_moved: useTarget ? history.transactions : 0,
+        transactions_moved: useTarget ? (results[1]?.meta.changes ?? 0) : 0, // statement 1 is the move
         months_merged: months,
       };
     }
