@@ -1,13 +1,17 @@
+import { formatMoney } from "@budget/core/money";
 import type { Account } from "@budget/schema/accounts";
+import { paymentDisplay } from "@budget/schema/card-payments";
 import { exportFileName } from "@budget/schema/register-export";
 import {
   barActions,
+  bulkRefusalText,
   countLabel,
   deleteConfirm,
   type SelAccount,
   type SelRow,
 } from "@budget/schema/register-selection";
 import type { FlagColor } from "@budget/schema/transactions";
+import { transferCellText } from "@budget/schema/transfers";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAccounts } from "../api/accounts";
@@ -16,10 +20,12 @@ import { useScheduledBulk } from "../api/scheduledTransactions";
 import { downloadExport, useApproveReject, useBulkTransactions } from "../api/transactions";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { useCurrentPlan } from "../shell/useCurrentPlan";
+import { useShortcut } from "../shortcuts/dispatcher";
 import { Tip } from "./BarTip";
 import { BulkCategorize } from "./BulkCategorize";
 import { DeleteDialog, ExportDialog, MemoDialog } from "./BulkDialogs";
 import { FlagMenu } from "./FlagMenu";
+import { registerDate } from "./format";
 import { CategorizeIcon, CloseSmallIcon, FlagFilledIcon, MoreDotsIcon } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import { useOpenAccounts } from "./openAccounts";
@@ -73,7 +79,8 @@ export function ActionBar({
   /** One selected row: open it in edit mode with the category list open. */
   onCategorizeOne: (id: string) => void;
 }) {
-  const { selected, rows, set, clear, scheduled, scheduledRows, setScheduled } = useSelection();
+  const { selected, rows, set, clear, scheduled, scheduledRows, setScheduled, extend } =
+    useSelection();
   const { plan } = useCurrentPlan();
   const accountsQ = useAccounts(budgetId);
   const { openAccounts } = useOpenAccounts(budgetId);
@@ -99,19 +106,41 @@ export function ActionBar({
     }
     return m;
   }, [accountsQ.data]);
-  const actions = barActions(sel, (id) => accountById.get(id) ?? null, account ? "account" : "all");
+  const actions = barActions(sel, (id) => accountById.get(id) ?? null);
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  // D9: on All Accounts the one account that holds every selected row is not a target.
+  const onlyAccount = (id: string) => sel.length > 0 && sel.every((r) => r.account_id === id);
   const otherReconciled = (r: Pick<SelRow, "transfer_transaction_id">) =>
     r.transfer_transaction_id !== null &&
     byId.get(r.transfer_transaction_id)?.cleared === "reconciled";
 
+  /** D10: a row the way the register shows it, for a refusal ("<payee> on <date> (<amount>)"). */
+  const labelOf = (id: string): string | null => {
+    const r = byId.get(id);
+    if (!r) return null;
+    const side = accountsQ.data?.find((a) => a.id === r.account_id);
+    const other = r.transfer_account_id
+      ? (accountsQ.data?.find((a) => a.id === r.transfer_account_id) ?? null)
+      : null;
+    const payee =
+      (side ? paymentDisplay(side, other)?.payee : undefined) ??
+      (r.transfer_account_name ? transferCellText(r.transfer_account_name) : r.payee_name);
+    const rest = `on ${registerDate(r.date)} (${formatMoney(r.amount)})`;
+    return payee ? `${payee} ${rest}` : `The transaction ${rest}`;
+  };
+  const refusalText = (e: unknown) =>
+    e instanceof ApiError
+      ? bulkRefusalText(e.detail, labelOf)
+      : e instanceof Error
+        ? e.message
+        : "That did not work";
   const guard = async (fn: () => Promise<unknown>): Promise<boolean> => {
     setError(null);
     try {
       await fn();
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "That did not work");
+      setError(refusalText(e));
       return false;
     }
   };
@@ -193,7 +222,7 @@ export function ActionBar({
           return;
         }
       }
-      setError(e instanceof Error ? e.message : "That did not work");
+      setError(refusalText(e));
     }
   };
   const askDelete = () => {
@@ -217,6 +246,18 @@ export function ActionBar({
     });
   };
   const scheduledSelected = scheduled.size > 0;
+
+  // EXF-635: Shift+up/down grows the selection from the anchor, one row at a time.
+  useShortcut(
+    "select-multiple",
+    (e) => {
+      const cursor = extend(e.key === "ArrowDown" ? 1 : -1);
+      if (!cursor) return;
+      const el = document.querySelector(`tr[data-tx="${cursor}"],tr[data-scheduled="${cursor}"]`);
+      el?.scrollIntoView({ block: "nearest" });
+    },
+    (scheduledSelected || sel.length > 0) && !entryOpen,
+  );
 
   useRegisterKeys(
     scheduledSelected
@@ -397,7 +438,7 @@ export function ActionBar({
           moveTo={
             actions.move
               ? openAccounts
-                  .filter((a) => a.id !== account?.id)
+                  .filter((a) => (account ? a.id !== account.id : !onlyAccount(a.id)))
                   .map((a) => ({ id: a.id, name: a.name }))
               : null
           }

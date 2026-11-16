@@ -7,7 +7,7 @@ import * as categoriesRepo from "../repositories/categories";
 import type * as payeesRepo from "../repositories/payees";
 import type { TransactionRow } from "../repositories/transactions";
 import { type ResolvedPayee, resolvePayee } from "./payees";
-import { TransactionRefused } from "./transactions";
+import { refuseOwnPaymentCategory, TransactionRefused } from "./transactions";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -44,8 +44,10 @@ export async function validateLines(
         "A transaction cannot have both a category and the Ready to Assign inflow flag",
       );
     }
-    if (line.category_id && !(await categoriesRepo.findActive(db, budgetId, line.category_id))) {
-      throw unprocessable("Category not found in this plan");
+    if (line.category_id) {
+      const category = await categoriesRepo.findActive(db, budgetId, line.category_id);
+      if (!category) throw unprocessable("Category not found in this plan");
+      refuseOwnPaymentCategory(account, category);
     }
     const name = line.payee_name?.trim();
     let payee: ResolvedPayee | undefined = name ? created.get(name) : undefined;

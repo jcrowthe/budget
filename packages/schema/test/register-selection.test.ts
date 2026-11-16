@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   barActions,
+  bulkRefusalText,
   clearOp,
   countLabel,
   DELETE_TEXT,
   deleteConfirm,
+  rangeIds,
   type SelAccount,
   type SelRow,
   selectedTotal,
@@ -79,24 +81,25 @@ describe("barActions", () => {
   const imp = (over: Partial<SelRow> = {}) =>
     row({ approved: false, import_id: "i", source: "plaid", ...over });
   it("approve needs an unapproved row; reject needs every row an unapproved non-transfer import", () => {
-    expect(barActions([row()], accountOf, "all")).toMatchObject({ approve: false, reject: false });
-    expect(barActions([imp()], accountOf, "all")).toMatchObject({ approve: true, reject: true });
-    expect(barActions([imp(), row()], accountOf, "all")).toMatchObject({
+    expect(barActions([row()], accountOf)).toMatchObject({ approve: false, reject: false });
+    expect(barActions([imp()], accountOf)).toMatchObject({ approve: true, reject: true });
+    expect(barActions([imp(), row()], accountOf)).toMatchObject({
       approve: true,
       reject: false,
     });
-    expect(barActions([imp({ transfer_account_id: "s" })], accountOf, "all").reject).toBe(false);
-    expect(barActions([row({ approved: false })], accountOf, "all").reject).toBe(false);
+    expect(barActions([imp({ transfer_account_id: "s" })], accountOf).reject).toBe(false);
+    expect(barActions([row({ approved: false })], accountOf).reject).toBe(false);
   });
   it("categorize needs a row that takes a category; Make Repeating is one row; move is one account's register", () => {
     const tr = row({ transfer_account_id: "s" });
-    expect(barActions([tr], accountOf, "all").categorize).toBe(false);
-    expect(barActions([tr, row()], accountOf, "all").categorize).toBe(true);
-    expect(barActions([row()], accountOf, "all").makeRepeating).toBe(true);
-    expect(barActions([row(), row()], accountOf, "all").makeRepeating).toBe(false);
-    expect(barActions([row()], accountOf, "all").move).toBe(false);
-    expect(barActions([row()], accountOf, "account").move).toBe(true);
-    expect(barActions([row({ flag_color: "red" })], accountOf, "all").anyFlagged).toBe(true);
+    expect(barActions([tr], accountOf).categorize).toBe(false);
+    expect(barActions([tr, row()], accountOf).categorize).toBe(true);
+    expect(barActions([row()], accountOf).makeRepeating).toBe(true);
+    expect(barActions([row(), row()], accountOf).makeRepeating).toBe(false);
+    // EXF-636: Move to Account is offered on All Accounts too.
+    expect(barActions([row()], accountOf).move).toBe(true);
+    expect(barActions([row()], accountOf).move).toBe(true);
+    expect(barActions([row({ flag_color: "red" })], accountOf).anyFlagged).toBe(true);
   });
 });
 
@@ -138,5 +141,35 @@ describe("deleteConfirm", () => {
     expect(DELETE_TEXT.matchingBody).toBe(
       "Some matching transfers in other accounts have been reconciled. Deleting these transactions could bring those account's reconciliations out of balance.",
     );
+  });
+});
+
+describe("bulkRefusalText", () => {
+  const id = "0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d";
+  it("swaps the id for the row's label and capitalises the reason", () => {
+    expect(
+      bulkRefusalText(`Transaction ${id}: it is reconciled`, () => "Fee on 11/10/2026 (-$45.00)"),
+    ).toBe("Fee on 11/10/2026 (-$45.00): It is reconciled");
+  });
+  it("names an unknown id as one of the selected transactions", () => {
+    expect(bulkRefusalText(`Transaction ${id}: nope`, () => null)).toBe(
+      "1 of the selected transactions: Nope",
+    );
+  });
+  it("leaves a detail without the prefix alone", () => {
+    expect(bulkRefusalText("Something else", () => "x")).toBe("Something else");
+  });
+});
+
+describe("rangeIds", () => {
+  const order = ["a", "b", "c", "d", "e"];
+  it("is inclusive and in display order either way round", () => {
+    expect(rangeIds(order, "b", "d")).toEqual(["b", "c", "d"]);
+    expect(rangeIds(order, "d", "b")).toEqual(["b", "c", "d"]);
+    expect(rangeIds(order, "c", "c")).toEqual(["c"]);
+  });
+  it("is null when an end is not in the list", () => {
+    expect(rangeIds(order, "a", "z")).toBeNull();
+    expect(rangeIds(order, "z", "a")).toBeNull();
   });
 });

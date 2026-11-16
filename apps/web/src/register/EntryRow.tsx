@@ -1,4 +1,5 @@
 import type { Account } from "@budget/schema/accounts";
+import { paymentDisplay, transferEntryLabel } from "@budget/schema/card-payments";
 import { parseEntryDate } from "@budget/schema/date-entry";
 import type { Payee } from "@budget/schema/payees";
 import { savesAsScheduled } from "@budget/schema/recurrence";
@@ -59,6 +60,7 @@ export function EntryRow({
   lockStart,
   date,
   initialFocus,
+  prefillInflow,
   openCategory,
   startSplit,
   onClose,
@@ -79,6 +81,8 @@ export function EntryRow({
   /** The date a new row starts with (ISO); today when absent. */
   date?: string;
   initialFocus: Field;
+  /** Record Payment: the Inflow text a new row starts with. */
+  prefillInflow?: string;
   openCategory?: boolean;
   /** Open with two empty lines (the S key). */
   startSplit?: boolean;
@@ -91,7 +95,7 @@ export function EntryRow({
       ? draftFromScheduled(scheduled)
       : tx
         ? draftFromTx(tx)
-        : emptyDraft(date ?? today, account?.id ?? null);
+        : { ...emptyDraft(date ?? today, account?.id ?? null), inflowText: prefillInflow ?? "" };
     // S on a row: the old category is not carried over.
     return startSplit && !d.lines
       ? { ...d, category: { kind: "none" }, lines: [emptyLine(), emptyLine()] }
@@ -127,6 +131,19 @@ export function EntryRow({
     transferAccount ? { on_budget: transferAccount.on_budget } : null,
   );
   const noCategory = rule !== "category";
+  // D3/D4: a card's payments read as such: the payee list says "Payment from <account>", the category is fixed.
+  const pay = chosen && transferAccount ? paymentDisplay(chosen, transferAccount) : null;
+  const allAccounts = accountsQ.data ?? accounts;
+  const transferLabel = (p: Payee) => {
+    const other = allAccounts.find((a) => a.id === p.transfer_account_id);
+    return other
+      ? transferEntryLabel(chosen ?? null, other)
+      : `To/From ${p.name.replace(/^Transfer : /, "")}`;
+  };
+  const payeeShown =
+    transferAccount && pay?.cardIsSide && chosen
+      ? { id: null, name: transferEntryLabel(chosen, transferAccount) }
+      : draft.payee;
   const isSplit = draft.lines !== null;
   const patchLine = (i: number, p: Partial<LineDraft>) =>
     setDraft((d) => ({
@@ -339,7 +356,7 @@ export function EntryRow({
         <td data-field="payee">
           <PayeeField
             payees={payeesQ.data ?? []}
-            value={draft.payee}
+            value={payeeShown}
             disabled={lockStart}
             title={lockStart ? LOCK_TITLE : undefined}
             currentAccountId={account?.id ?? draft.accountId}
@@ -347,8 +364,12 @@ export function EntryRow({
             // Typing over a transfer's payee makes it a plain row again.
             onChange={(payee) => patch({ payee, transferAccountId: null })}
             onPicked={fillCategory}
-            onTransfer={(transferAccountId, name) =>
-              patch({ transferAccountId, payee: { id: null, name } })
+            transferLabel={transferLabel}
+            onTransfer={(transferAccountId, name, label) =>
+              patch({
+                transferAccountId,
+                payee: { id: null, name: label.startsWith("Payment from") ? label : name },
+              })
             }
           />
         </td>
@@ -370,6 +391,7 @@ export function EntryRow({
                     : false
               }
               onSplit={startSplitting}
+              fixedText={isScheduledEdit ? undefined : pay?.category}
               // Picking a category drops the lines.
               onChange={(category) => patch({ category, lines: null })}
             />

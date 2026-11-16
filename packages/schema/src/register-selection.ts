@@ -59,11 +59,7 @@ export function clearOp(rows: readonly Pick<SelRow, "cleared">[]): "clear" | "un
   return "unclear";
 }
 
-export function barActions(
-  rows: readonly SelRow[],
-  accountOf: (id: string) => SelAccount | null,
-  where: "account" | "all",
-) {
+export function barActions(rows: readonly SelRow[], accountOf: (id: string) => SelAccount | null) {
   const otherOf = (r: SelRow) => (r.transfer_account_id ? accountOf(r.transfer_account_id) : null);
   return {
     approve: rows.some((r) => !r.approved),
@@ -78,7 +74,7 @@ export function barActions(
     }),
     clear: clearOp(rows),
     makeRepeating: rows.length === 1,
-    move: where === "account",
+    move: true,
     anyFlagged: rows.some((r) => r.flag_color !== null),
   };
 }
@@ -115,4 +111,24 @@ export function deleteConfirm(
   if (reconciled) paragraphs.push(DELETE_TEXT.reconciledBody);
   if (matching) paragraphs.push(DELETE_TEXT.matchingBody);
   return { title: DELETE_TEXT.manyTitle(rows.length), paragraphs };
+}
+
+/**
+ * A bulk refusal for the screen: the server's `Transaction <id>: <reason>` becomes `<row label>: <Reason>`, so the
+ * id never shows. An id that is not among the rows reads "1 of the selected transactions".
+ */
+export function bulkRefusalText(detail: string, labelOf: (id: string) => string | null): string {
+  const m = /^Transaction ([0-9a-f-]{36}): (.*)$/is.exec(detail);
+  if (!m) return detail;
+  const rest = m[2] ?? "";
+  const label = labelOf(m[1] ?? "") ?? "1 of the selected transactions";
+  return `${label}: ${rest.charAt(0).toUpperCase()}${rest.slice(1)}`;
+}
+
+/** The inclusive slice of `order` between two ids (in `order`'s order), or null when either is absent. */
+export function rangeIds(order: readonly string[], from: string, to: string): string[] | null {
+  const a = order.indexOf(from);
+  const b = order.indexOf(to);
+  if (a < 0 || b < 0) return null;
+  return order.slice(Math.min(a, b), Math.max(a, b) + 1);
 }

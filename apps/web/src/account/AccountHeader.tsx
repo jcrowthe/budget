@@ -1,5 +1,6 @@
 import { formatMoney } from "@budget/core/money";
 import type { Account, AccountType } from "@budget/schema/accounts";
+import { isCredit } from "@budget/schema/card-payments";
 import type { AccountBalances } from "@budget/schema/transactions";
 import { Fragment, type ReactNode, useState } from "react";
 import { useAccountSummary, useSetStarred } from "../api/accounts";
@@ -17,6 +18,7 @@ import {
   StarFilledIcon,
   StarOutlineIcon,
 } from "./icons";
+import { PaymentBalance } from "./PaymentBalance";
 import { Tooltip } from "./Tooltip";
 import "./account-header.css";
 
@@ -184,6 +186,13 @@ export function AccountHeader({ account }: { account?: Account }) {
         working={account.balance}
       >
         <SelectedTotal />
+        {isCredit(account.type) ? (
+          <PaymentBalance
+            budgetId={account.budget_id}
+            accountId={account.id}
+            cardName={account.name}
+          />
+        ) : null}
       </BalanceRow>
       {editing ? (
         <EditAccountDialog

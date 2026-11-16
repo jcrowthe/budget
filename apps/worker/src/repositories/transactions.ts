@@ -569,10 +569,21 @@ export async function categoryNamesMany(
   db: Db,
   budgetId: string,
   ids: readonly string[],
-): Promise<Map<string, { categoryName: string; groupName: string }>> {
+): Promise<
+  Map<
+    string,
+    { categoryName: string; groupName: string; kind: string | null; accountId: string | null }
+  >
+> {
   if (ids.length === 0) return new Map();
   const rows = await db
-    .select({ id: categories.id, categoryName: categories.name, groupName: categoryGroups.name })
+    .select({
+      id: categories.id,
+      categoryName: categories.name,
+      groupName: categoryGroups.name,
+      kind: categories.kind,
+      accountId: categories.accountId,
+    })
     .from(categories)
     .innerJoin(
       categoryGroups,
@@ -585,7 +596,17 @@ export async function categoryNamesMany(
         sql`${categories.id} in (select value from json_each(${JSON.stringify(ids)}))`,
       ),
     );
-  return new Map(rows.map((r) => [r.id, { categoryName: r.categoryName, groupName: r.groupName }]));
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      {
+        categoryName: r.categoryName,
+        groupName: r.groupName,
+        kind: r.kind,
+        accountId: r.accountId,
+      },
+    ]),
+  );
 }
 
 /** The name of a category's group (deleted or not), for the change_log copy of a row. */

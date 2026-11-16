@@ -252,7 +252,9 @@ export async function bulkTransactions(
               422,
               "unprocessable_entity",
               id,
-              `${target.name} is a tracking account: its transactions take no category`,
+              lines.length > 0
+                ? `${target.name} is a tracking account, so its transactions can't be split. Make it a plain transaction first.`
+                : `${target.name} is a tracking account, so its transactions can't have a category. Remove the category first.`,
             );
           if (row.accountId === target.id) skip("unchanged");
           else await planUpdate({ account_id: target.id });

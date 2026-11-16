@@ -1,6 +1,6 @@
 import { type Payee, payeeMenu } from "@budget/schema/payees";
 import { transferPayeeLabel } from "@budget/schema/transfers";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { PlusCircleIcon } from "./icons";
 import { Option, PickerInput } from "./PickerInput";
 
@@ -23,6 +23,7 @@ export function PayeeField({
   onChange,
   onPicked,
   onTransfer,
+  transferLabel,
 }: {
   payees: Payee[];
   value: { id: string | null; name: string };
@@ -36,11 +37,17 @@ export function PayeeField({
   /** After a saved or hidden payee is chosen (to fill an empty category). */
   onPicked: (p: Payee) => void;
   /** A "To/From <account>" entry was chosen. */
-  onTransfer?: (accountId: string, name: string) => void;
+  onTransfer?: (accountId: string, name: string, label: string) => void;
+  /** The label of a transfer entry; "To/From <account>" by default, "Payment from <account>" for a card's cash sources. */
+  transferLabel?: (p: Payee) => string;
 }) {
+  const labelOf = useCallback(
+    (p: Payee) => transferLabel?.(p) ?? transferPayeeLabel(accountOfTransfer(p)),
+    [transferLabel],
+  );
   const menu = useMemo(
-    () => payeeMenu(payees, value.name, { currentAccountId, transfers }),
-    [payees, value.name, currentAccountId, transfers],
+    () => payeeMenu(payees, value.name, { currentAccountId, transfers, transferLabel: labelOf }),
+    [payees, value.name, currentAccountId, transfers, labelOf],
   );
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
@@ -71,7 +78,11 @@ export function PayeeField({
       onPick={(item) => {
         if (item.kind === "create") onChange({ id: null, name: value.name });
         else if (item.kind === "transfer") {
-          onTransfer?.(item.payee.transfer_account_id as string, item.payee.name);
+          onTransfer?.(
+            item.payee.transfer_account_id as string,
+            item.payee.name,
+            labelOf(item.payee),
+          );
         } else {
           onChange({ id: item.payee.id, name: item.payee.name });
           onPicked(item.payee);
@@ -121,7 +132,7 @@ export function PayeeField({
             ) : null}
             {menu.transfers.map((p) => {
               const i = next();
-              const label = transferPayeeLabel(accountOfTransfer(p));
+              const label = labelOf(p);
               return (
                 <Option
                   key={p.id}

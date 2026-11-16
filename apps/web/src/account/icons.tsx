@@ -56,3 +56,30 @@ export const StarFilledIcon = (p: P) => (
     <path d="m12 1 3.300 7 7.700 1-5.600 5.300 1.400 7.700-6.800-3.700-6.800 3.700 1.400-7.700L1 9l7.700-1L12 1Z" />
   </svg>
 );
+/** A filled circle with an exclamation mark (the negative Payment pill). */
+export const ExclamationCircleIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm-1 4h2v9h-2V5Zm1 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"
+    />
+  </svg>
+);
+/** The solid credit card of Record Payment: a filled card with a chip and a row of four dashes cut out (no stripe). */
+export const SolidCardIcon = (p: P) => (
+  <svg {...base} width={16} height={16} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-1.500 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-4ZM3.500 15a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-2Z"
+    />
+  </svg>
+);
+/** An outlined question ring (outer r12, inner r10) with a filled "?" inside: the Payment label's help icon. */
+export const QuestionRingIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm0 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 3.500a3.700 3.700 0 0 0-3.700 3.700h2a1.700 1.700 0 1 1 2.300 1.600c-.7.300-1.300 1-1.300 1.900v1.800h2.100v-1.200c0-.2.100-.3.300-.4A3.700 3.700 0 0 0 12 5.500Zm0 10.500a1.500 1.500 0 1 0 0 3 1.500 1.500 0 0 0 0-3Z"
+    />
+  </svg>
+);

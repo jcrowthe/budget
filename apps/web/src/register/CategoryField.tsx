@@ -24,6 +24,7 @@ export function CategoryField({
   footer = "split",
   onSplit,
   onChange,
+  fixedText,
 }: {
   month: MonthDetail | undefined;
   value: CategoryValue;
@@ -40,6 +41,8 @@ export function CategoryField({
   footer?: "split" | "none";
   onSplit?: () => void;
   onChange: (v: CategoryValue) => void;
+  /** A card payment's category ("Credit Card Payments: <card>"): shown as text, disabled, no list. */
+  fixedText?: string;
 }) {
   const groups = month?.groups ?? [];
   const shown = split ? SPLIT_TEXT : categoryLabel(value, groups);
@@ -59,13 +62,14 @@ export function CategoryField({
     <PickerInput<Row>
       label="Category"
       placeholder={placeholder}
-      text={typed ?? shown}
+      text={fixedText ?? typed ?? shown}
       onText={setTyped}
       items={items}
       initialActive={current ? 0 : typed === null ? -1 : 0}
-      disabled={disabled}
-      title={title}
-      startOpen={startOpen}
+      disabled={disabled && fixedText === undefined}
+      readOnly={fixedText !== undefined}
+      title={fixedText ?? title}
+      startOpen={startOpen && fixedText === undefined}
       width={400}
       listLabel="Categories"
       onBlurCommit={() => setTyped(null)}
