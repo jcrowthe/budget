@@ -8033,3 +8033,95 @@ merges; the Deploy of that merge with flows 7 and 8 after it.
 
 Ticket writes: 0. Review cadence: Build 6, Deploy 3 (the fourth running), Discover 2, Test user flow
 0.
+
+### 2026-11-16 · Review round 93
+
+Children used 109 of 200. Two ended: the Test user flow template review (completed) and Deploy `D25`
+(lost its box; cancelled by me; **nothing released**). Two Builds are running. Main `b84f513`, live
+`85f3cc9`, the migration `20261116101100` still pending (both read by me after the Deploy ended).
+
+**Deploy `D25`: lost to the platform, nothing released** (`p_2062440839cc42e99c02a34f2bcf78b2`,
+EXF-612; the tenth child today: six Builds, four Deploys).
+
+- 16:54Z the first step wrote its record; the gate ended as `RESULT=timeout`; at 16:57Z the next step
+  found the box's folder rebuilt (only `desktop-keeper.json` and `prompts`), and at 17:01Z rebuilt
+  again. The steps did what the brief says: "PLATFORM FILES MISSING IN THIS BOX", the listing, no
+  guess, no `release.env`, no call to live.
+- **Five help cards in four and a half minutes.** Each answer of mine started the step again and it
+  asked again. A side turn cannot cancel a child; I escalated the fifth card only to stop the loop and
+  cancelled the Thread at this review.
+- **My wording made one thing worse.** My third answer said "if your step must end with an answer,
+  repeat this same report once". The record step then used its form after all, with `phase_mode`
+  filled as `split` (the form forces one of two values), `result` `failed` and everything else
+  "unknown", and said so. **The template went on to the step that writes `release.env` after a failed
+  gate record with an unknown commit.** That step refused because of my earlier instruction. Lesson
+  for me: on a lost Deploy box, the first answer says "keep answering that you need help; never use
+  the record form, not even with a placeholder", and I escalate at the second card, not the fifth.
+- Evidence and three asks are on EXF-612 (a gate record that did not pass ends the Thread before any
+  release step; the form accepts "unknown"; a help card is not re-asked on every answer).
+- The side turn's box had no Cloudflare secrets, so I could not read live from there; I read it now.
+
+**Test user flow template review: completed** (`p_2dc6fe6219b1421ea8e00a5d096651bb`, 16 minutes). I
+approved everything with three changes to wording.
+
+- **Filed: EXF-650** (the run says what its verdict is measured against: a `source_access` input
+  with one definition of each verdict word, a `previous_run` input, the live version from the health
+  path) and **EXF-651** (the walk's standing rules: check the brief's figures first and say "DIFFERS
+  FROM THE BRIEF"; file every fault that contradicts a written rule and report the rest with a
+  reason; measure text fit at the narrow size; save results per step). Priorities at the next plan.
+- **Evidence posted** on EXF-585, 619, 581, 617, 580, 618 and 559. Nothing was left unfiled.
+- **My changes:** text shortened on purpose (an ellipsis with a tooltip) is not counted as a text-fit
+  fault, one ticket per screen; remote database reads stay allowed when they are numbers-only counts
+  or filtered to the run's ids; no ticket quotes the identity label.
+- **What it found about the ten runs:**
+  - No run opened the source app (nine found the signed-in browser's debugging port and none
+    attached); none left a test plan or a bank connection; the owner's plan was never opened.
+  - **The sidebar's identity label was printed in five runs' transcripts and is very likely in the
+    unmasked screenshots of nine. It is the service token's name, not a person's address** (the same
+    value as the change log's actor). Less sensitive, but not test data; only the last run masked it.
+  - Two early runs kept captures with the plan menu open (the plans listed then were test plans by
+    the runs' own checks); one early run printed header names with values redacted and left a
+    plan-list body in its box; two early runs purged without a prefix because the script took none
+    then.
+  - The walk's first answer was rejected by its form in ten of ten runs (about 25 of 193 minutes).
+  - About twenty faults stayed in reports and were never filed; I read reports for these already,
+    and EXF-651 makes the rule.
+  - "Parity" was defined run by run. In my reports it means "does what the tickets and my figures
+    say", not "compared with the source"; I say so at the next check-in.
+
+**Plan-page Build: manifest arrived** (`p_8baaff851d044a5ea2fcccb712be3809`; design
+`docs/card-payments-design.md`; the Implementer is writing).
+
+- **Scheduling rule:** against the carry-over's manifest it shares only `docs/README.md` and one line
+  in `apps/worker/test/mcp-timestamps.test.ts` (every tool must be listed there, so my "out of bounds"
+  for that file could not hold: my brief was wrong about it). Both are keep-both-sides files; the
+  second to merge rebases. Shared module: `packages/core/src/**`, held by this Build alone. No
+  migration, no dependency. Both Builds go on.
+- **The source study kept the limits, by its report:** stylesheets read, boxes measured, one category
+  ticked and unticked, then three; three plain captures at 1600×813 before and after, cropped;
+  nothing written into the page. Text widths were measured in a blank page of its own with the app's
+  font. The first study in a long while that stayed inside the brief.
+- **What it read in the source:** the right panel has a 300 px minimum that no media query changes at
+  1024 px; the Auto-Assign card is 352 px with nothing ticked, 304 px with one, 352 px with three.
+- **Its decisions:** the panel is 320 px at 1024×700 (at 300 the header with the card pill does not
+  fit), the grid keeps 440 px with 63 px for names and the target text shrinks first; with the
+  sidebar at 600 px the panel folds away. Payment state order: overpaid, paid off, enough, overspent
+  categories, underfunded. Month read from 8 to 9 D1 calls. One existing spec case changes because
+  EXF-624 reverses it (listed as a departure).
+
+**Carry-over of scheduled transactions and the Reflect fixes**
+(`p_65ee74c0816d452899f054187504cc58`): polish applied as I decided on EXF-626 (labels shorten, the
+"nine labels whole" assertion removed and listed as a departure); rebased onto `b84f513`; `pnpm
+check` 1,619 tests; the Reviewer approved at `924a372` with no findings (it read the token guard on
+every write and ran 70 unit tests and 22 browser tests); the Tester restated the limits and is
+running.
+
+**Ticket writes:** 2 (two comments on EXF-612).
+
+**Backlog:** 51 open feature tickets (45 done; 3 in progress). Gap: nine open, eight in progress.
+Template: thirty-six open with EXF-650 and EXF-651. Flow verdicts unchanged (9, 10, 11 `parity`).
+Finished since each template's last review: Build 6, Deploy 4 (D22 and D25 lost, D23 and D24
+shipped), Discover 2, Test user flow 0.
+
+**Next plan:** start the Deploy again in a fresh box (prefix `ZZ-TEST D26`, the same checks; the first
+answer to a lost box as written above); set EXF-650 and EXF-651's priorities.
