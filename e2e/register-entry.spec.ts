@@ -309,7 +309,10 @@ test("a saved category outflow reaches the Plan without a reload", async ({ page
   const s = await seed(request);
   await openAdd(page, s);
   await category(page).fill("d4 gro");
+  // The list loads with the month; Tab picks nothing until the match is listed.
+  await expect(option(page, "D4 Groceries")).toHaveAttribute("aria-selected", "true");
   await category(page).press("Tab");
+  await expect(category(page)).toHaveValue("D4 Register: D4 Groceries");
   await outflow(page).fill("10");
   await button(page, "Save").click();
   await expect(page.locator(".entry-body")).toHaveCount(0);
