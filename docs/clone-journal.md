@@ -7469,3 +7469,49 @@ scheduled transactions has merged.
 
 Ticket writes: 2 (two comments on EXF-573; the second corrects a count in the first that I could not
 support). Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 9.
+
+### 2026-11-16 · Review round 86
+
+Children used 102 of 200. One ended: the shell Build, merged. Three Builds are running: the credit
+engine carry-over (head `fb643e7`, base `8ec621e`) and, both regating on the new main, scheduled
+transactions (head `2e5e291`) and the Reflect fixes (head `4fb2983`). Main `85f3cc9`, live `8ec621e`.
+Journal branch merged up to main.
+
+**Shell Build merged as `85f3cc9`** (`p_d3d3715280e84394b76bb90f3dc0d418`; EXF-473 Keyboard Shortcuts
+dialog and registry, EXF-474 sidebar collapse and resize, EXF-614 the sidebar on a plan that was not
+found; about two hours, one card). The merge commit's tree equals the gated head `ddaf0ff`. The three
+tickets are Done with comments.
+- On main: `apps/web/src/shortcuts/` (registry, dispatcher, dialog, key caps, shortcut tooltip);
+  `apps/web/src/shell/sidebarState.ts` and `useSidebarState.ts`; the menu action
+  `menu-actions/keyboard-shortcuts.tsx`; specs `shortcuts`, `shortcuts-registry`, `sidebar-collapse`,
+  `sidebar-not-found`. No Worker change; 68 tools as before; no migration.
+- **Left on purpose:** only `?` and Shift+. are bound through the registry. The Plan page's and the
+  register's shortcuts still run on their own listeners; binding them through the registry is a
+  refactor for the Builds that hold those files. The dialog lists every shortcut of the source,
+  including ones whose features are not built (Undo, Reconcile, search, the date picker's keys): each
+  has its feature ticket.
+- **Not compared with the source:** the drag, the snap and the hidden balances (the source's edge is
+  never dragged), the plan menu from the rail, the menu's Keyboard Shortcuts entry. The Tester's
+  script left the source's sidebar collapsed for a moment and expanded it again.
+- Source limits otherwise held in this Build as far as the reports say (a limited permission: `?`, the
+  collapse button, hover).
+
+**Main is `85f3cc9`; live is `8ec621e`.** One merge is not live (web only, no migration).
+
+**Running:**
+- **Scheduled transactions** (`p_900d4c34d7c6414a980c2d1d87cfba26`) and **Reflect fixes**
+  (`p_7aa8691536924481bf53c457c86b24ea`): both rebased onto `85f3cc9` and in their gates. The first
+  card back is read in full and approved; the other is regated once more.
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): on base `8ec621e`; its card will
+  need a regate too.
+
+**Ticket writes:** 6 (EXF-473, EXF-474, EXF-614 to Done, each with a comment).
+
+**Backlog:** 54 open feature tickets (43 done; 4 in progress: EXF-532, 535, 497, 499). Gap: open
+EXF-558, EXF-560, EXF-562, EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630, EXF-631, EXF-635,
+EXF-636, EXF-637; in progress EXF-621, EXF-625, EXF-626. Template: thirty-four. Flow verdicts
+unchanged (flow 9's gap EXF-614 is fixed on main; rerun after the next Deploy). Finished since each
+template's last review: Build 3, Deploy 2, Discover 2, Test user flow 9.
+
+**Next plan:** no Deploy for the shell merge alone; the next merge (scheduled transactions or the
+Reflect fixes) is minutes away and one Deploy ships both. Nothing else is free to start.
