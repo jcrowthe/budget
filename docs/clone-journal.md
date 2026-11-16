@@ -6868,3 +6868,85 @@ for flows 3 and 8. Main `5ebac3c`, live `357bc4f`.
 
 Ticket writes: 1 (EXF-621 priority). Review cadence: Build 0 (review running), Deploy 0, Discover 2,
 Test user flow 7.
+
+### 2026-11-16 · Review round 80 (check-in)
+
+Children used 95 of 200. One ended (the flow test for flows 3 and 8); four are running: the register
+Build (rework rebased onto `5ebac3c`, head `43519e5`, heading to its gate), the credit engine Build
+(building), the shell Build (started) and the Build template review. Main `5ebac3c`, live `357bc4f`
+(health read by me).
+
+**Flows 3 and 8 on live `357bc4f`** (`p_3f1312fc03934e6c89f48296cbe4425f`, prefix `ZZ-TEST F78`,
+31 minutes). Cleanup: `deleted 3 remaining 0`; plans not named `ZZ-TEST`: 1. No source app, no bank
+connection, no response headers printed.
+
+- **Flow 3 (targets, snooze, Auto-Assign, next month), first run: `new_gaps`.** Every step passed on
+  its figures: three kinds of target (two set in the browser), snooze by switch and by Shift+Z,
+  plan-wide Underfunded (Ready to Assign 2,600.00 → 1,240.00), spending, the five views, December
+  (carried balances, 1,190.00 after 50.00 of cash overspending), Auto-Assign for one category in
+  December (December 790.00, and **November 840.00 with an "Assigned in Future" line of −400.00**),
+  reset, the popover's Auto tab, editing and deleting a target, MCP equal to the screen, wrong calls
+  refused, the history table. The cards did not move while amounts loaded (measured frame by frame).
+  - **One of my figures was wrong and the test said so with the rule:** a Refill target counts
+    leftover money only in the current month; in a later month it needs its full amount (EXF-511's
+    observed rule). December's Phone needs 60.00, not my 45.00, and Underfunded reads 1,360.00, not
+    1,345.00. The app is right.
+  - My other uncertain figures held: Underfunded did not add the overspent category (50.00 in step
+    3.10); the average daily spending is 45.63.
+  - **Three gaps filed, triaged now:** **EXF-622** (Medium): at 1024×700 the grid squeezes a
+    category's name behind its target text ("ZZ ..."). **EXF-623** (Medium): at 1024×700 the
+    Auto-Assign card's labels wrap and overlap and an amount runs past the card. **EXF-624** (Low):
+    the plan-wide card and the popover's Auto tab show "Underfunded $0.00" instead of hiding the
+    option (the per-category card does hide it).
+- **Flow 8 (Reflect), second run: `new_gaps`.** The tester checked every one of my figures by hand and
+  agreed with all of them. Net Worth (seven months, EXF-591 fixed: Debts `$0.00` without the loan),
+  Spending Breakdown (6,981.75; 1,396.35 a month; 45.63 a day; drill to group, category and its five
+  transactions; a filter), Spending Trends (columns, tooltips, drill, table), Income v Expense (income
+  by payee, expenses negative, net income 8,218.25), four exports equal to REST byte for byte or by
+  content, five tools equal to REST as JSON, an empty plan's states. **No figure of one plan was ever
+  painted in another** (watched with a mutation observer from document start, with the other plan's
+  requests held back three seconds).
+  - **One gap filed, triaged now: EXF-625** (Medium): at 1024×700 the Income v Expense table is 5 px
+    wider than its scroller and the Total column is clipped ("$15,000.0").
+  - **Split out by the tester and not filed; I file it now** (Low): in the same table at that width
+    the first column's labels are cut ("All Income Source", "Total All Inco...").
+  - An observation without a ticket: right after a drill in Spending Trends, the segment that lands
+    under the pointer shows no tooltip until the pointer leaves and returns.
+  - Age of Money still says "not built" on live: it is merged (`5ebac3c`) and ships with the next
+    Deploy.
+- **What the four gaps have in common:** all but one are layout at 1024 px. Builds test at 1024×700
+  but against their own specs; nobody looks at whether text fits. For the next briefs with screens:
+  "at 1024×700 no text of the new screen is cut, wrapped over its neighbour or pushed outside its box;
+  a spec measures it (scrollWidth against clientWidth) for the longest label you have".
+
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `parity_known_gaps`; 3 `new_gaps` (first run); 5
+`parity_known_gaps`; 8 `new_gaps` (figures all right; one layout gap); 9 `new_gaps` (EXF-614, in
+progress); 10 `parity`; 11 `parity`; 4, 6, 7 not run (credit cards, reconcile and file import,
+scheduled transactions are not built).
+
+**Running:**
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): rework rebased onto `5ebac3c`.
+- **Credit engine Build** (`p_34bc1879fb924226b6a197db43cfeb20`): building for 35 minutes; no commit
+  after the design yet.
+- **Shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`): at its start.
+- **Build template review** (`p_de28c2c598b74ef89e70f3a179b81b3b`): reading.
+
+**Check-in sent** (round 80). Its points: what is live; what landed since round 70 (the bank import
+proven against the Sandbox, the sync's call budget, two Reflect reports, the Plan page's views, snooze
+and Auto-Assign; Age of Money merged); the per-row reads I found by reading code (one fixed and live,
+one live and being fixed); the platform's lost files back; **the bank-screens decision, unanswered
+since round 60 and now holding eight tickets**; whether the Cloudflare account is on the Free plan;
+when a real bank can be connected; child budget 95 of 200.
+
+**Ticket writes:** 6 (four priorities, comments on EXF-622 and EXF-625). One gap ticket filed through
+this review.
+
+**Backlog:** 58 open feature tickets (39 done; 6 in progress: EXF-520, 522, 532, 535, 473, 474). Gap:
+open EXF-558, EXF-560, EXF-562, EXF-589, EXF-616, EXF-621, EXF-622, EXF-623, EXF-624, EXF-625 and the
+one filed now; in progress EXF-614, EXF-620. Template: thirty-two. Finished since each template's last
+review: Build 0, Deploy 0, Discover 2, Test user flow 8.
+
+**Next plan:** set the new ticket to Low. **A small Reflect Build is free to start:** EXF-625, the
+label ticket and EXF-621 (the Reflect files are held by nobody). The Plan-page gaps (EXF-622, EXF-623,
+EXF-624, EXF-616) wait for the credit engine merge. Register merge → Deploy `D22` → scheduled
+transactions and the API half of Export Plan.
