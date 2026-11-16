@@ -1,5 +1,6 @@
 import { CLEARED_STATUSES } from "@budget/core/account-types";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const transactions = sqliteTable(
   "transactions",
@@ -25,6 +26,13 @@ export const transactions = sqliteTable(
     transferTransactionId: text("transfer_transaction_id"),
     parentTransactionId: text("parent_transaction_id"),
     splitIndex: integer("split_index"),
+    importId: text("import_id"),
+    source: text("source", { enum: ["plaid"] }),
+    importedPayee: text("imported_payee"),
+    bankDescription: text("bank_description"),
+    importDate: text("import_date"),
+    importAmount: integer("import_amount"),
+    importPayeeName: text("import_payee_name"),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),
@@ -33,5 +41,8 @@ export const transactions = sqliteTable(
     index("transactions_payee").on(t.payeeId),
     index("transactions_transfer").on(t.transferTransactionId),
     index("transactions_parent").on(t.parentTransactionId),
+    uniqueIndex("transactions_budget_import")
+      .on(t.budgetId, t.importId)
+      .where(sql`import_id IS NOT NULL AND deleted_at IS NULL`),
   ],
 );

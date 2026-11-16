@@ -1,5 +1,5 @@
 import type { PayeeSystem } from "@budget/schema/payees";
-import { and, eq, isNull, type SQLWrapper, sql } from "drizzle-orm";
+import { and, eq, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { payees } from "../db/schema/payees";
 
@@ -122,4 +122,29 @@ export function isUniqueViolation(e: unknown): boolean {
   const msgs: string[] = [];
   for (let x: unknown = e; x instanceof Error; x = x.cause) msgs.push(x.message);
   return msgs.some((m) => m.includes("UNIQUE constraint failed: payees"));
+}
+
+/** Inserts the ordinary payee unless the plan has a live one with that name, and only while `guard` holds. */
+export function insertByNameIfMissingStmt(db: Db, row: PayeeRow, guard: SQLWrapper) {
+  const r = row;
+  return db
+    .insert(payees)
+    .select(
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.hidden ? 1 : 0}, ${r.system}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${missingByNameSql(r.budgetId, r.name)} and exists ${guard}`,
+    );
+}
+
+/** True while the plan has no live ordinary payee of that name (a condition, for `where`). */
+export function missingByNameSql(budgetId: string, name: string): SQL {
+  return sql`not exists (select 1 from payees p where p.budget_id = ${budgetId} and p.name = ${name} and p.system is null and p.deleted_at is null)`;
+}
+
+/** The same as a guard for `changeLogInsertIf`. */
+export function missingByNameGuard(budgetId: string, name: string): SQLWrapper {
+  return sql`(select 1 where ${missingByNameSql(budgetId, name)})`;
+}
+
+/** A scalar subquery for a `payee_id` value: the plan's live ordinary payee with that name. */
+export function ordinaryIdByNameSql(budgetId: string, name: string): SQL {
+  return sql`(select p.id from payees p where p.budget_id = ${budgetId} and p.name = ${name} and p.system is null and p.deleted_at is null)`;
 }

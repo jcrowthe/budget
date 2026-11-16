@@ -3,9 +3,12 @@ import { ErrorBody } from "@budget/schema/common/envelope";
 import { PLAN_SORT_COLUMNS, REGISTER_SORT_COLUMNS } from "@budget/schema/register";
 import {
   PlanTransactionListResponse,
+  TRANSACTION_NEEDS,
   TransactionCreateRequest,
+  TransactionIdsRequest,
   TransactionListResponse,
   TransactionResponse,
+  TransactionsResponse,
   TransactionUpdateRequest,
 } from "@budget/schema/transactions";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
@@ -13,10 +16,12 @@ import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import {
   addTransaction,
+  approveTransactions,
   deleteTransaction,
   getTransaction,
   listAccountTransactions,
   listPlanTransactions,
+  rejectTransactions,
   TransactionRefused,
   updateTransaction,
 } from "../services/transactions";
@@ -77,6 +82,12 @@ export default app
           since_date: IsoDate.optional(),
           sort: z.enum(REGISTER_SORT_COLUMNS).optional(),
           dir: z.enum(["asc", "desc"]).optional(),
+          needs: z
+            .enum(TRANSACTION_NEEDS)
+            .optional()
+            .describe(
+              "approval_or_category: only transactions that are unapproved or need a category",
+            ),
         }),
       },
       responses: {
@@ -91,6 +102,7 @@ export default app
         sinceDate: q.since_date,
         sort: q.sort,
         dir: q.dir,
+        needs: q.needs,
       });
       return c.json({ data }, 200);
     },
@@ -106,6 +118,12 @@ export default app
           since_date: IsoDate.optional(),
           sort: z.enum(PLAN_SORT_COLUMNS).optional(),
           dir: z.enum(["asc", "desc"]).optional(),
+          needs: z
+            .enum(TRANSACTION_NEEDS)
+            .optional()
+            .describe(
+              "approval_or_category: only transactions that are unapproved or need a category",
+            ),
         }),
       },
       responses: {
@@ -123,6 +141,7 @@ export default app
         sinceDate: q.since_date,
         sort: q.sort,
         dir: q.dir,
+        needs: q.needs,
       });
       return c.json({ data }, 200);
     },
@@ -218,6 +237,63 @@ export default app
       return refusals(c, async () => {
         const transaction = await deleteTransaction(c.env, actor, budget_id, transaction_id);
         return c.json({ data: { transaction } }, 200);
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/transactions/approve",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id") }),
+        body: {
+          content: { "application/json": { schema: TransactionIdsRequest } },
+          required: true,
+        },
+      },
+      responses: {
+        200: json(TransactionsResponse, "The transactions after approval, in the order given"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const { ids } = c.req.valid("json");
+      const actor = c.get("identity").actor;
+      return refusals(c, async () => {
+        const transactions = await approveTransactions(c.env, actor, budget_id, ids);
+        return c.json({ data: { transactions } }, 200);
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/transactions/reject",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id") }),
+        body: {
+          content: { "application/json": { schema: TransactionIdsRequest } },
+          required: true,
+        },
+      },
+      responses: {
+        200: json(
+          TransactionsResponse,
+          "The rejected transactions as they were. An approved one is refused (409 transaction_approved); a transaction that did not come from an import is refused (422 not_imported)",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const { ids } = c.req.valid("json");
+      const actor = c.get("identity").actor;
+      return refusals(c, async () => {
+        const transactions = await rejectTransactions(c.env, actor, budget_id, ids);
+        return c.json({ data: { transactions } }, 200);
       });
     },
   );

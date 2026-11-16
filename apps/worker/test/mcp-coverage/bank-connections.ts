@@ -13,6 +13,14 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "POST /bank-connections/{id}/reset": {
     excluded: "records the end of Plaid Link update mode, which runs only in a browser",
   },
+  "POST /bank-connections/{id}/sync": {
+    tool: "sync_bank_connections",
+    note: "with bank_connection_id",
+  },
+  "POST /budgets/{budget_id}/sync": {
+    tool: "sync_bank_connections",
+    note: "without bank_connection_id",
+  },
   "GET /institutions": { excluded: "serves the bank search of the browser Plaid Link flow" },
   "GET /institutions/popular": {
     excluded: "serves the bank search of the browser Plaid Link flow",

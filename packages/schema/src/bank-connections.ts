@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { BankEnvironment } from "./budgets";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { SYNC_STATUSES } from "./plaid-import";
 
 export const BankAccount = z
   .object({
@@ -30,7 +31,10 @@ export const BankConnection = z
     institution_name: z.string(),
     institution_logo: z.string().nullable(),
     nickname: z.string(),
-    status: z.string().openapi({ description: "connected (later: other statuses of the sync)" }),
+    status: z.string().openapi({
+      description:
+        "connected, delayed (the bank or Plaid did not answer), login_required (the bank needs a new sign-in), broken (the connection is lost) or not_set_up",
+    }),
     provider: z.string().openapi({ description: "Plaid" }),
     last_synced_at: z.string().nullable(),
     last_reset_at: z.string().nullable(),
@@ -69,6 +73,22 @@ export const BankConnectionDeleted = dataEnvelope(
   z.object({ deleted: z.literal(true), plaid: z.enum(["removed", "already_removed"]) }),
 ).openapi("BankConnectionDeletedResponse");
 
+export const SyncStatus = z.enum(SYNC_STATUSES);
+export const SyncResult = z
+  .object({
+    bank_connection_id: z.string(),
+    status: SyncStatus,
+    added: z.number().int().min(0).describe("Transactions imported as new"),
+    matched: z.number().int().min(0).describe("Imports matched to a transaction entered by hand"),
+    modified: z.number().int().min(0).describe("Imported transactions changed to follow the bank"),
+    removed: z.number().int().min(0).describe("Unapproved imports the bank withdrew, deleted"),
+    skipped: z.number().int().min(0).describe("Entries not imported by the import rules"),
+    has_more: z.boolean().describe("True when the bank has more to read: sync again"),
+    last_synced_at: z.string().nullable(),
+  })
+  .openapi("SyncResult");
+export const SyncResultResponse = dataEnvelope(SyncResult);
+export const PlanSyncResponse = dataEnvelope(z.object({ results: z.array(SyncResult) }));
 export const BankConnectionResponse = dataEnvelope(
   z.object({ bank_connection: BankConnection }),
 ).openapi("BankConnectionResponse");
@@ -76,6 +96,7 @@ export const BankConnectionListResponse = dataEnvelope(
   z.object({ bank_connections: z.array(BankConnection) }),
 ).openapi("BankConnectionListResponse");
 
+export type SyncResult = z.infer<typeof SyncResult>;
 export type BankAccount = z.infer<typeof BankAccount>;
 export type BankConnection = z.infer<typeof BankConnection>;
 export type BankConnectionCreate = z.infer<typeof BankConnectionCreate>;

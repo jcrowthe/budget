@@ -22,6 +22,7 @@ type Ctx = {
   category2: string;
   tx: string;
   spareTx: string;
+  importTx: string;
   conn: string;
   bankAccount: string;
   bankAccount2: string;
@@ -71,6 +72,19 @@ async function seed(): Promise<Ctx> {
     payee_name: "ZZ T",
     category_id: category,
   });
+  // A throwaway unapproved import, for reject_transactions.
+  const importTx = await mk({
+    account_id: checking,
+    date: DAY,
+    amount: -200,
+    payee_name: "ZZ I",
+    category_id: category,
+  });
+  await env.DB.prepare(
+    "update transactions set import_id = 'zz-imp-1', source = 'plaid', approved = 0 where id = ?",
+  )
+    .bind(importTx)
+    .run();
   expect(
     (await send(`${A(bid)}/${checking}/adjust-balance`, "POST", { balance: 90000 })).status,
   ).toBe(200);
@@ -116,6 +130,7 @@ async function seed(): Promise<Ctx> {
     category2,
     tx: txId,
     spareTx,
+    importTx,
     conn,
     bankAccount,
     bankAccount2,
@@ -135,6 +150,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["get_account", (c) => ({ budget_id: c.bid, account_id: c.checking })],
   ["get_account_summary", (c) => ({ budget_id: c.bid })],
   ["list_transactions", (c) => ({ budget_id: c.bid })],
+  ["list_unapproved_transactions", (c) => ({ budget_id: c.bid })],
   ["get_account_balances", (c) => ({ budget_id: c.bid, account_id: c.checking })],
   ["get_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.tx })],
   ["list_payees", (c) => ({ budget_id: c.bid })],
@@ -205,6 +221,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     }),
   ],
   ["update_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.tx, memo: "ZZ memo" })],
+  ["approve_transactions", (c) => ({ budget_id: c.bid, ids: [c.tx] })],
   [
     "create_account",
     (c) => ({ budget_id: c.bid, name: "ZZ Made", type: "checking", balance: 1000, date: DAY }),
@@ -221,9 +238,12 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     "rename_bank_connection",
     (c) => ({ budget_id: c.bid, bank_connection_id: c.conn, nickname: "ZZ Nick" }),
   ],
+  // The seeded connection has no token: the sync marks it broken and calls no bank.
+  ["sync_bank_connections", (c) => ({ budget_id: c.bid, bank_connection_id: c.conn })],
   ["close_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
   ["reopen_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
   ["delete_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.spareTx })],
+  ["reject_transactions", (c) => ({ budget_id: c.bid, ids: [c.importTx] })],
   [
     "set_category_target",
     (c) => ({
