@@ -3,7 +3,7 @@ import { monthIndex } from "@budget/schema/report-range";
 import { MAX_REPORT_MONTHS } from "@budget/schema/reports";
 import { z } from "zod";
 import { getNetWorth, getSpendingBreakdown, listReportTransactions } from "../../services/reports";
-import { DATE, Id, MONEY, MONTH } from "../tool-text";
+import { dates, Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 function checkMonths(start: string, end: string) {
@@ -89,7 +89,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "list_report_transactions",
-    description: `Which transactions make up a category's spending from June to November? Lists the counted transactions of one category, one category group, or Uncategorized over a range, newest first. ${MONEY} A transaction's amount here is signed (an outflow is negative), while get_spending_breakdown reports spending as positive. ${MONTH} ${DATE} Give exactly one of category_id, group_id or uncategorized=true. Spending counts rows of on-plan accounts in the range: split lines in their own categories (never the split parent) and transfers to tracking accounts. Transfers between two on-plan accounts, inflows to Ready to Assign and Starting Balances never count; a row with no category is Uncategorized. Returns { transactions: [{ transaction_id, subtransaction_id (set for a split line), account_id, account_name, date, payee_name, memo, amount, category_id, category_name, cleared }] }.`,
+    description: `Which transactions make up a category's spending from June to November? Lists the counted transactions of one category, one category group, or Uncategorized over a range, newest first. ${MONEY} A transaction's amount here is signed (an outflow is negative), while get_spending_breakdown reports spending as positive. ${MONTH} ${dates("date")} Give exactly one of category_id, group_id or uncategorized=true. Spending counts rows of on-plan accounts in the range: split lines in their own categories (never the split parent) and transfers to tracking accounts. Transfers between two on-plan accounts, inflows to Ready to Assign and Starting Balances never count; a row with no category is Uncategorized. Returns { transactions: [{ transaction_id, subtransaction_id (set for a split line), account_id, account_name, date, payee_name, memo, amount, category_id, category_name, cleared }] }.`,
     inputSchema: z.object({
       budget_id: Id,
       start_month: Month,

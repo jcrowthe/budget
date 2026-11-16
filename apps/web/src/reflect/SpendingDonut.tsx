@@ -52,7 +52,7 @@ export function SpendingDonut({
 
   // Source: a 1.3:1 box, the ring's outer radius 0.375 of its height, the hole 0.6 of that.
   const height = Math.min(960, Math.max(464, width / 1.3));
-  const R = Math.max(90, Math.min(0.375 * height, width / 2 - 170));
+  const R = Math.max(90, 0.375 * height);
   const r = 0.6 * R;
   const cx = width / 2;
   const cy = height / 2;

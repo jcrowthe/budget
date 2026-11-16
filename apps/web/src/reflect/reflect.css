@@ -10,6 +10,7 @@
   --reflect-assets: #383ca3; /* source --reportsNetworthAssetsBackground */
   --reflect-debts: var(--statusNegative); /* source debts #bf2e3b */
   --reflect-filter-active: #7583ff45; /* source --filterBackgroundActive */
+  --reflect-fill-secondary: #72748452; /* source --fillSecondary */
   --reflect-tab-height: 64px;
   --reflect-filter-height: 32px;
   color: var(--labelSecondary);

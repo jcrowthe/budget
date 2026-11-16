@@ -223,6 +223,7 @@ test("549-6 hover a slice and a row", async ({ page, request }) => {
     "1",
   );
   const row = listRow(page, "D8 Fun");
+  await row.scrollIntoViewIfNeeded();
   const b = await row.boundingBox();
   await page.mouse.move((b?.x ?? 0) + 40, (b?.y ?? 0) + (b?.height ?? 0) / 2);
   // --buttonSecondaryBackground

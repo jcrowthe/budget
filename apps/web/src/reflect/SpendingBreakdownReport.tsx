@@ -145,7 +145,19 @@ export function SpendingBreakdownReport({
           </div>
         </section>
       </div>
-      <SpendingList items={data.items} mode={groupBy} noCategories={noCategories} onPick={pick} />
+      <SpendingList
+        items={data.items}
+        mode={groupBy}
+        noCategories={noCategories}
+        activeId={
+          popover
+            ? "category_id" in popover.selector
+              ? popover.selector.category_id
+              : UNCATEGORIZED_ID
+            : null
+        }
+        onPick={pick}
+      />
       {popover && <TransactionPopover {...popover} onClose={() => setPopover(null)} />}
     </div>
   );
