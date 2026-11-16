@@ -119,3 +119,5 @@ running the gate or calling Cloudflare.
     itself); add `LIVE_TEST_PLANS_LOCAL_JWT=1` for the e2e server. No Access headers are sent to a local server.
 
 Live flow tests reach the clone with `scripts/access-browser.mjs`.
+
+**Plan menu entries.** The plan menu's entries are fixed in `apps/web/src/shell/planMenuEntries.ts`. An entry is enabled by adding one file `apps/web/src/menu-actions/<entry-id>.ts(x)` that exports `action: PlanMenuAction` (`{ entry, run(ctx) }` or `{ entry, Dialog }`). The shell collects it with `import.meta.glob`; never edit the shell to enable an entry. Unregistered entries are shown disabled.

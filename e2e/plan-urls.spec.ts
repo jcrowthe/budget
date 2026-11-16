@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { authHeaders, testName } from "./support/auth";
+import { mouseClick } from "./support/menu";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const now = new Date();
@@ -261,9 +262,23 @@ test("C13 root opens the last-opened plan", async ({ page, request }) => {
   await expect(page).toHaveURL(`/${x.id}/budget`);
   expect(budgets.find((p) => p.id === a.id)?.last_opened_at).not.toBeNull();
 
+  // The submenu lists the 5 most recently opened other plans: mark b opened (other workers open plans too).
+  const stamp = (
+    await (
+      await request.patch(`/api/v1/budgets/${b.id}`, {
+        headers: await authHeaders(),
+        data: { opened: true },
+      })
+    ).json()
+  ).data.budget.last_opened_at as string;
+  await page.reload();
   await side.getByRole("button").first().click();
-  await page.getByRole("menuitem", { name: /Open Plan/ }).click();
-  await page.getByRole("menuitem", { name: b.name }).click();
+  await mouseClick(page, page.getByRole("menuitem", { name: "Open Plan", exact: true }));
+  const sub = page.getByRole("menu", { name: "Plans" });
+  const ob = await page.getByRole("menuitem", { name: "Open Plan", exact: true }).boundingBox();
+  const sb = await sub.boundingBox();
+  await page.mouse.move((sb?.x ?? 0) + 20, (ob?.y ?? 0) + (ob?.height ?? 0) / 2);
+  await mouseClick(page, sub.getByRole("menuitem", { name: b.name, exact: true }));
   await expect(page).toHaveURL(`/${b.id}/budget`);
   await expect
     .poll(async () => {
@@ -271,7 +286,7 @@ test("C13 root opens the last-opened plan", async ({ page, request }) => {
         await (await request.get("/api/v1/budgets", { headers: await authHeaders() })).json()
       ).data.budgets;
       const get = (i: string) => list.find((y: { id: string }) => y.id === i)?.last_opened_at ?? "";
-      return get(b.id) > get(a.id);
+      return get(b.id) > stamp;
     })
     .toBe(true);
 });

@@ -98,3 +98,48 @@ export const BankIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 3 3 8v2h18V8l-9-5ZM5 12v6h2v-6H5Zm4 0v6h2v-6H9Zm4 0v6h2v-6h-2Zm4 0v6h2v-6h-2ZM3 19v2h18v-2H3Z" />
   </svg>
 );
+
+type IconProps = SVGProps<SVGSVGElement>;
+export const WrenchIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M20.7 5.3a5 5 0 0 1-6.6 6.2L7 18.6a2.1 2.1 0 0 1-3-3l7.1-7.1A5 5 0 0 1 17.3 2l-3 3 .7 3 3 .7 3-3-.3-.4ZM5.5 16.5a.9.9 0 1 0 1.3 1.3.9.9 0 0 0-1.3-1.3Z" />
+  </svg>
+);
+export const ArrowsCircleIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M12 4a8 8 0 0 1 7.7 6h-2.1A6 6 0 0 0 7 8.6L9 10.5H3V4.5l1.6 1.6A9.9 9.9 0 0 1 12 4Zm9 9.5v6l-1.6-1.6A10 10 0 0 1 4.3 14h2.1A6 6 0 0 0 17 15.4l-2-1.9h6Z" />
+  </svg>
+);
+export const FlagIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M5 2h2v1.2c2-1 4-.8 6 .2s4 1.2 6 .2v10c-2 1-4 .8-6-.2s-4-1.2-6-.2V22H5V2Z" />
+  </svg>
+);
+export const PaintRollerIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M6 2h12a2 2 0 0 1 2 2v1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8v2h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h-1v-3a1 1 0 0 1 1-1h8V7h-1v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+  </svg>
+);
+export const DocumentDownIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V9h5.5L13 3.5ZM11 11h2v4.2l1.6-1.6 1.4 1.4-4 4-4-4 1.4-1.4 1.6 1.6V11Z"
+    />
+  </svg>
+);
+export const LeafIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M20 3C10 3 4 8 4 14c0 1.5.4 2.8 1 3.9L3 20.4 4.6 22l2.5-2.1c1.1.7 2.4 1.1 3.9 1.1 6 0 10-6 9-18Zm-9 15c-1.3 0-2.4-.5-3.2-1.2C9 12 12 9 16 8c-3 2-5 5-5 10Z" />
+  </svg>
+);
+export const KeyboardIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm1 3v2h2V8H5Zm4 0v2h2V8H9Zm4 0v2h2V8h-2Zm4 0v2h2V8h-2ZM5 12v2h2v-2H5Zm4 0v2h2v-2H9Zm4 0v2h2v-2h-2Zm4 0v2h2v-2h-2ZM8 15.5v1.5h8v-1.5H8Z" />
+  </svg>
+);
+export const LogoutIcon = (p: IconProps) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M4 3h9a1 1 0 0 1 1 1v3h-2V5H6v14h6v-2h2v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm12.5 4.5L21 12l-4.5 4.5-1.4-1.4 2.1-2.1H9v-2h8.2l-2.1-2.1 1.4-1.4Z" />
+  </svg>
+);

@@ -1,7 +1,8 @@
 import { expect, test } from "./fixtures";
-import { testName } from "./support/auth";
+import { authHeaders, testName } from "./support/auth";
+import { mouseClick } from "./support/menu";
 
-test("create a plan, switch back, and reopen the last used plan", async ({ page }) => {
+test("create a plan, switch back, and reopen the last used plan", async ({ page, request }) => {
   const a = testName("A");
   const b = testName("B");
   await page.goto("/");
@@ -27,9 +28,23 @@ test("create a plan, switch back, and reopen the last used plan", async ({ page 
   await expect(sidebar.getByRole("button", { name: b })).toBeVisible();
   expect(page.url()).not.toBe(urlA);
 
+  // The submenu lists the 5 most recently opened other plans, and parallel workers open plans too.
+  const idA = urlA.split("/")[3];
+  await request.patch(`/api/v1/budgets/${idA}`, {
+    headers: await authHeaders(),
+    data: { opened: true },
+  });
   await sidebar.getByRole("button", { name: b }).click();
-  await page.getByRole("menuitem", { name: /Open Plan/ }).click();
-  await page.getByRole("menuitem", { name: a }).click();
+  const openPlan = page.getByRole("menuitem", { name: "Open Plan", exact: true });
+  await mouseClick(page, openPlan);
+  const rowA = page
+    .getByRole("menu", { name: "Plans" })
+    .getByRole("menuitem", { name: a, exact: true });
+  // Move along the Open Plan row into the submenu so the pointer never leaves the two menus.
+  const ob = await openPlan.boundingBox();
+  const sb = await page.getByRole("menu", { name: "Plans" }).boundingBox();
+  await page.mouse.move((sb?.x ?? 0) + 20, (ob?.y ?? 0) + (ob?.height ?? 0) / 2);
+  await mouseClick(page, rowA);
   await expect(page).toHaveURL(urlA);
   await expect(sidebar.getByRole("button", { name: a })).toBeVisible();
 
