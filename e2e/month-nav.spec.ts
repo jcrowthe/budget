@@ -253,3 +253,31 @@ test("9 note keys: Shift+Enter, Escape, outside, OK, whitespace clears", async (
     })
     .toBeNull();
 });
+
+test("10 note popover look on an empty month", async ({ page, request }) => {
+  const id = await newPlan(request);
+  await page.goto(`/${id}/budget`);
+  await expect(noteLine(page)).toHaveText("Enter a note...");
+  await noteLine(page).click();
+  const dlg = page.getByRole("dialog", { name: "Month note" });
+  const box = page.getByRole("textbox", { name: "Month note" });
+  await expect(box).toBeFocused();
+  await expect(dlg.getByRole("button", { name: "OK" })).toBeVisible();
+  const style = (prop: string) =>
+    box.evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
+  // Source (design doc, Acceptance case 10): popover 224px wide; textarea 44px,
+  // background rgb(60,62,83), border rgb(114,116,132).
+  expect((await dlg.boundingBox())?.width).toBe(224);
+  expect((await box.boundingBox())?.height).toBe(44);
+  expect(await style("background-color")).toBe("rgb(60, 62, 83)");
+  expect(await style("border-top-color")).toBe("rgb(114, 116, 132)");
+  // Source (case 10): the popover sits under the note line.
+  const line = await noteLine(page).boundingBox();
+  const pop = await dlg.boundingBox();
+  expect(pop?.y).toBeGreaterThanOrEqual((line?.y ?? 0) + (line?.height ?? 0));
+  const lineMid = (line?.x ?? 0) + (line?.width ?? 0) / 2;
+  expect(lineMid).toBeGreaterThanOrEqual(pop?.x ?? 0);
+  expect(lineMid).toBeLessThanOrEqual((pop?.x ?? 0) + (pop?.width ?? 0));
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
+});
