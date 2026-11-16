@@ -25,6 +25,20 @@ export const AssignedResult = z
 export const AssignedResultResponse =
   dataEnvelope(AssignedResult).openapi("AssignedResultResponse");
 
+export const CategoryMonth = z
+  .object({
+    leftover: Milliunits,
+    assigned: Milliunits,
+    cash_activity: Milliunits,
+    credit_activity: Milliunits,
+    available: Milliunits,
+    note: z.string().nullable(),
+  })
+  .openapi("CategoryMonth");
+
+export const CategoryMonthResponse = dataEnvelope(CategoryMonth).openapi("CategoryMonthResponse");
+
+export type CategoryMonth = z.infer<typeof CategoryMonth>;
 export type AssignedUpdate = z.infer<typeof AssignedUpdate>;
 export type MonthCategoryAmounts = z.infer<typeof MonthCategoryAmounts>;
 export type AssignedResult = z.infer<typeof AssignedResult>;

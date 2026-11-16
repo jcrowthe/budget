@@ -18,6 +18,7 @@ const cat = (
   activity: v[2],
   available: v[3],
   target: null,
+  note: null,
   ...extra,
 });
 

@@ -10,7 +10,7 @@ export const tools: McpToolDef[] = [
   {
     name: "create_category",
     description:
-      "Create a category at the top of a group. The name is trimmed and must be unique in the group (case-insensitive). Returns {category} with id, group_id, name, sort and hidden.",
+      "Create a category at the top of a group. The name is trimmed and must be unique in the group (case-insensitive). Returns {category} with id, group_id, name, sort, hidden and note.",
     inputSchema: z.object({ budget_id, group_id: z.string().min(1), name: z.string() }),
     run: async (input: { budget_id: string; group_id: string; name: string }, { env, actor }) => ({
       category: await addCategory(env, actor, input),
@@ -19,7 +19,7 @@ export const tools: McpToolDef[] = [
   {
     name: "rename_category",
     description:
-      "Rename a category. The name is trimmed and must be unique in its group. Returns {category} with id, group_id, name, sort and hidden.",
+      "Rename a category. The name is trimmed and must be unique in its group. Returns {category} with id, group_id, name, sort, hidden and note.",
     inputSchema: z.object({ budget_id, category_id, name: z.string() }),
     run: async (
       input: { budget_id: string; category_id: string; name: string },
@@ -31,10 +31,20 @@ export const tools: McpToolDef[] = [
   {
     name: "set_category_hidden",
     description:
-      "Hide or unhide a category. Hidden categories still count in Ready to Assign. Unhiding a category in a hidden group brings the group back with only that category. Returns {category} with id, group_id, name, sort and hidden.",
+      "Hide or unhide a category. Hidden categories still count in Ready to Assign. Unhiding a category in a hidden group brings the group back with only that category. Returns {category} with id, group_id, name, sort, hidden and note.",
     inputSchema: z.object({ budget_id, category_id, hidden: z.boolean() }),
     run: async (
       input: { budget_id: string; category_id: string; hidden: boolean },
+      { env, actor },
+    ) => ({ category: await updateCategory(env, actor, input) }),
+  },
+  {
+    name: "set_category_note",
+    description:
+      "Set or clear a category's note: plain text, the same in every month, at most 5000 characters. Line breaks inside are kept and the ends are trimmed; an empty or whitespace-only note, or null, clears it. Returns {category} with id, group_id, name, sort, hidden and note.",
+    inputSchema: z.object({ budget_id, category_id, note: z.string().max(5000).nullable() }),
+    run: async (
+      input: { budget_id: string; category_id: string; note: string | null },
       { env, actor },
     ) => ({ category: await updateCategory(env, actor, input) }),
   },

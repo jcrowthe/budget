@@ -25,6 +25,7 @@ export const MonthCategoryDetail = z
     available: Milliunits,
     carried: Milliunits,
     target: CategoryTargetMonth.nullable(),
+    note: z.string().nullable(),
   })
   .openapi("MonthCategoryDetail");
 
@@ -65,6 +66,18 @@ export const MonthSummary = z
     available: Milliunits,
   })
   .openapi("MonthSummary");
+
+/** Sums over a set of categories of one month; available = leftover + assigned + activity. */
+export const MonthTotals = z
+  .object({
+    leftover: Milliunits,
+    assigned: Milliunits,
+    activity: Milliunits,
+    available: Milliunits,
+  })
+  .openapi("MonthTotals");
+
+export const MonthTotalsResponse = dataEnvelope(MonthTotals).openapi("MonthTotalsResponse");
 
 export const MonthListResponse = dataEnvelope(z.object({ months: z.array(MonthSummary) })).openapi(
   "MonthListResponse",
@@ -129,6 +142,7 @@ export type RtaBreakdown = z.infer<typeof RtaBreakdown>;
 export type MonthCategoryDetail = z.infer<typeof MonthCategoryDetail>;
 export type MonthGroupDetail = z.infer<typeof MonthGroupDetail>;
 export type MonthDetail = z.infer<typeof MonthDetail>;
+export type MonthTotals = z.infer<typeof MonthTotals>;
 export type MonthSummary = z.infer<typeof MonthSummary>;
 export type MonthCategory = z.infer<typeof MonthCategory>;
 export type AssignedSet = z.infer<typeof AssignedSet>;
