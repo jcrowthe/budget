@@ -5064,3 +5064,51 @@ EXF-593 first, Reflect last. When EXF-593 has merged: Deploy at once.
 
 Ticket writes: 17 (seven to In Progress, ten comments). Review cadence: Build 0 (review started now,
 eleven Threads), Deploy 5, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 61
+
+Children used 75 of 200. Four are running, all started in plan round 61. Nothing merged, nothing deployed:
+main `6c73a00`, live `4e3eb7a`.
+
+**Ended: the first targets Build (`p_74b956498a4b4ce1bed94c516291a48f`), abandoned by my cancel** at
+07:32 UTC after 83 minutes, about 9 dollars. Its tickets stay In Progress under the carry-over. Its
+branch (`972ece4`) is intact and is what the carry-over merged.
+
+**Running, as read now:**
+- **Targets carry-over** (`p_6abff514f4ad46e8a4d902a0aacef431`), 25 minutes in, already at polish.
+  - The Clerk's merge printed what I expected (49 files, +4801/-122, clean).
+  - The Architect did not redesign and did not open the source. It wrote down the `today` rule as built
+    (a real date from 1900 to 2199 is taken as given; anything else is 422 on all four routes and both
+    tools) and added acceptance cases for my six points; head `b729b99`. It also took EXF-592's compare
+    case out, because it needed a second click on a selected name in the source, beyond the limits.
+  - The Implementer changed no code: `pnpm check` passed, the eight touched specs passed three times
+    over (213 of 213).
+  - **The Designer kept to the limits** (the test plan's Plan page, the empty card, the form's tabs, the
+    dropdown, the calendar, the switch; dark only; nothing saved; it deselected the category and deleted
+    its own scratch plan in the clone). It found nine real differences, two of them plain defects the
+    first Build could not have had checked: **the calendar's month arrows draw nothing**, and the form
+    lacks the rule under its header. The Implementer is applying them.
+- **EXF-593 with EXF-590 and EXF-587** (`p_563250b166984564b84cb2a32e722725`): designed, head `b6c7f38`,
+  design doc `docs/account-guards-design.md`. **Its manifest has arrived and I checked it against the
+  other two Builds: disjoint.** It holds the transactions, accounts and payees repositories, the
+  transactions and payees services, `mcp/tool-text.ts`, five tool files, `packages/schema/src/payees.ts`,
+  `apps/web/src/register/**`, three existing specs and two new ones, and one line in
+  `docs/conventions.md`; no shared module, no migration. `services/accounts.ts` is not in it: the guards
+  live in the repository, which is what the ticket needs.
+- **Reflect Spending Breakdown** (`p_9f66acebf3b14e939ad0a7e27b241cb2`): started at 07:55, in its plan
+  step. Its manifest is checked when it arrives.
+- **Build template review** (`p_f6248992db5940c2a4028088c5b110d1`): analysing.
+
+**Learned:** a carry-over that runs the design check is worth its child: the first Build's screens had
+never been compared, and the comparison found a control that drew nothing.
+
+**Ticket writes:** none.
+
+**Backlog:** 67 open feature tickets (28 done; 4 in progress: EXF-508, EXF-514, EXF-549, EXF-548). Gap:
+in progress EXF-593 (High), EXF-587, EXF-588, EXF-590, EXF-591, EXF-592; open EXF-558, EXF-560, EXF-562,
+EXF-589 (Low). Template: twenty-six. Flow verdicts unchanged. Finished since each template's last
+review: Build 0 (the review is running), Deploy 5, Discover 2, Test user flow 5.
+
+**Next plan:** nothing to start while main waits for EXF-593 and the three Builds hold the Plan page,
+the register and the reports. Cards: straight to Regate when the base has moved; the Deploy the moment
+EXF-593 has merged.
