@@ -1,11 +1,19 @@
 import type { ReportSlug } from "@budget/schema/reports";
 import { useEffect } from "react";
 import { Navigate, useParams } from "react-router";
-import { downloadNetWorthCsv, useReportSettings, useUpdateReportSettings } from "../api/reports";
+import {
+  downloadIncomeExpenseCsv,
+  downloadNetWorthCsv,
+  useReportSettings,
+  useUpdateReportSettings,
+} from "../api/reports";
+import { IncomeExpenseReport } from "../reflect/IncomeExpenseReport";
 import { NetWorthReport } from "../reflect/NetWorthReport";
 import { ReportFrame } from "../reflect/ReportFrame";
 import { TABS } from "../reflect/ReportTabs";
 import { SpendingBreakdownPage } from "../reflect/SpendingBreakdownPage";
+import { SpendingTrendsPage } from "../reflect/SpendingTrendsPage";
+import type { ReportState } from "../reflect/state";
 import { planPath, reflectPath } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
@@ -27,18 +35,26 @@ function ReportPage({ slug }: { slug: ReportSlug }) {
   }, [mutate, slug]);
   const title = TABS.find((t) => t.slug === slug)?.label ?? REPORTS[slug];
   if (slug === "spending-breakdown") return <SpendingBreakdownPage title={title} />;
+  if (slug === "spending-trends") return <SpendingTrendsPage title={title} />;
+  const onExport: ((s: ReportState) => Promise<void>) | undefined =
+    slug === "net-worth"
+      ? (s) => downloadNetWorthCsv(s.budgetId, s.span, s.settings.excluded_account_ids, s.today)
+      : slug === "income-expense"
+        ? (s) =>
+            downloadIncomeExpenseCsv(
+              s.budgetId,
+              s.span,
+              s.settings.excluded_category_ids,
+              s.settings.excluded_account_ids,
+              s.today,
+            )
+        : undefined;
   return (
-    <ReportFrame
-      report={slug}
-      title={title}
-      onExport={
-        slug === "net-worth"
-          ? (s) => downloadNetWorthCsv(s.budgetId, s.span, s.settings.excluded_account_ids, s.today)
-          : undefined
-      }
-    >
+    <ReportFrame report={slug} title={title} onExport={onExport}>
       {slug === "net-worth" ? (
         <NetWorthReport />
+      ) : slug === "income-expense" ? (
+        <IncomeExpenseReport />
       ) : (
         <p className="reflect-placeholder">This report is not built yet.</p>
       )}

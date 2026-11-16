@@ -24,6 +24,11 @@ export const CaretDownIcon = (p: P) => (
     <path d="M6 9h12l-6 7z" />
   </svg>
 );
+export const CaretRightIcon = (p: P) => (
+  <svg {...base} viewBox="9 6 7 12" aria-hidden="true" {...p}>
+    <path d="M9 6v12l7-6z" />
+  </svg>
+);
 export const FileTextIcon = (p: P) => (
   <svg {...base} viewBox="5 2 15 20" aria-hidden="true" {...p}>
     <path d="M6 2h8l6 6v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm7 2H7v16h12V9h-6zM9 13h8v2H9zm0 4h6v2H9z" />
