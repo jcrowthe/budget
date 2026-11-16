@@ -220,6 +220,17 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["reopen_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
   ["delete_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.spareTx })],
   [
+    "set_category_target",
+    (c) => ({
+      budget_id: c.bid,
+      category_id: c.category,
+      cadence: "monthly",
+      behavior: "set_aside",
+      amount: 100000,
+    }),
+  ],
+  ["delete_category_target", (c) => ({ budget_id: c.bid, category_id: c.category })],
+  [
     "delete_category",
     (c) => ({ budget_id: c.bid, category_id: c.category2, reassign_to: c.category }),
   ],

@@ -10,10 +10,10 @@ import {
   listPlanMonths,
   setMonthNote,
 } from "../../services/months";
-import { DATE, Id, MONEY, MONTH } from "../tool-text";
+import { dates, Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
-const TODAY = `${DATE} today decides the current month for target figures; default: the server's UTC date.`;
+const TODAY = `${dates("today")} today decides the current month for target figures; default: the server's UTC date.`;
 const MAX_MONTHS = 120; // the same limit as routes/months.ts
 const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
 
