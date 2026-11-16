@@ -1,4 +1,4 @@
-import { monthLabel } from "@budget/schema/report-range";
+import { type MonthSpan, monthLabel } from "@budget/schema/report-range";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
@@ -19,15 +19,22 @@ export function TransactionPopover({
   selector,
   x,
   y,
+  span: ownSpan,
+  excludedCategoryIds,
   onClose,
 }: {
   title: string;
   selector: ReportTransactionSelector;
+  /** The months to list; the report's own range when absent. */
+  span?: MonthSpan;
+  /** Applies to the spending selectors only. */
+  excludedCategoryIds?: string[];
   x: number;
   y: number;
   onClose: () => void;
 }) {
-  const { budgetId, span, settings } = useReportState();
+  const { budgetId, span: reportSpan, settings } = useReportState();
+  const span = ownSpan ?? reportSpan;
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -42,6 +49,7 @@ export function TransactionPopover({
     span,
     selector,
     settings.excluded_account_ids,
+    excludedCategoryIds,
   );
 
   const width = Math.min(720, vp.w - 2 * MARGIN);

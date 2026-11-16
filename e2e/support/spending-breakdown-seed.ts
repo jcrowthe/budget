@@ -1,6 +1,7 @@
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import { authHeaders } from "./auth";
-import { addAccount, newPlan } from "./reflect";
+import { mouseClick } from "./menu";
+import { addAccount, dateButton, newPlan } from "./reflect";
 
 // biome-ignore lint/suspicious/noExplicitAny: parsed response bodies
 type Json = any;
@@ -36,16 +37,20 @@ export interface SeededPlan {
 }
 
 /** The EXF-549 example (today 2026-11-15): D8 Checking, D8 Savings, D8 Car Loan (tracking liability). */
-export async function seedSpendingExample(request: APIRequestContext): Promise<SeededPlan> {
+export async function seedSpendingExample(
+  request: APIRequestContext,
+  o: { order?: string[]; earlyMonth?: string } = {},
+): Promise<SeededPlan> {
   const plan = await newPlan(request, "spending");
   const bid = plan.id;
-  const g = await group(request, bid, "D8 Group", [
-    "D8 Food",
-    "D8 Fun",
-    "D8 Utilities",
-    "D8 Loan Pmt",
-    "D8 Hidden",
-  ]);
+  const g = await group(
+    request,
+    bid,
+    "D8 Group",
+    o.order ?? ["D8 Food", "D8 Fun", "D8 Utilities", "D8 Loan Pmt", "D8 Hidden"],
+  );
+  // An on-plan cash account with a Starting Balance on `earlyMonth` (a date) moves the plan's first month back.
+  if (o.earlyMonth) await addAccount(request, bid, "D8 Wallet", "cash", 10000, o.earlyMonth);
   const sav = await addAccount(request, bid, "D8 Savings", "savings", 500000, "2026-05-15");
   const chk = await addAccount(request, bid, "D8 Checking", "checking", 2000000, "2026-06-01");
   const loan = await addAccount(
@@ -175,4 +180,115 @@ export async function clickSlice(page: Page, id: string) {
   const { x, y } = await donutPoint(page, id);
   await page.mouse.move(x, y);
   await page.mouse.click(x, y);
+}
+
+/** The plan order of the Income v Expense worked table. */
+export const IE_ORDER = ["D8 Hidden", "D8 Loan Pmt", "D8 Utilities", "D8 Fun", "D8 Food"];
+
+/** Plan T: a split with lines in two groups, and a net inflow with no category (November 2026). */
+export async function seedTrendsSplitPlan(request: APIRequestContext): Promise<SeededPlan> {
+  const plan = await newPlan(request, "trends-split");
+  const bid = plan.id;
+  const needs = await group(request, bid, "T Needs", ["T Food"]);
+  const wants = await group(request, bid, "T Wants", ["T Fun"]);
+  const chk = await addAccount(request, bid, "T Checking", "checking", 1000000, "2026-10-01");
+  const tx = (data: Record<string, unknown>) =>
+    call(request, "post", `/api/v1/budgets/${bid}/transactions`, { account_id: chk, ...data });
+  await tx({
+    date: "2026-11-04",
+    amount: -100000,
+    payee_name: "T Market",
+    subtransactions: [
+      { amount: -60000, category_id: needs.ids["T Food"] },
+      { amount: -40000, category_id: wants.ids["T Fun"] },
+    ],
+  });
+  await tx({ date: "2026-11-06", amount: 50000, payee_name: "T Refund" });
+  return { plan, ids: { ...needs.ids, ...wants.ids, chk }, groupId: needs.id };
+}
+
+/** Plan I: income by payee (a split's lines, a transfer, no payee) and a negative balance adjustment. */
+export async function seedIncomePlan(request: APIRequestContext): Promise<SeededPlan> {
+  const plan = await newPlan(request, "income");
+  const bid = plan.id;
+  const chk = await addAccount(request, bid, "I Checking", "checking", 1000000, "2026-10-01");
+  const loan = await addAccount(request, bid, "I Loan", "otherLiability", 500000, "2026-10-01");
+  const tx = (data: Record<string, unknown>) =>
+    call(request, "post", `/api/v1/budgets/${bid}/transactions`, { account_id: chk, ...data });
+  await tx({
+    date: "2026-11-02",
+    amount: 80000,
+    payee_name: "I Parent",
+    subtransactions: [
+      { amount: 50000, inflow_to_ready_to_assign: true },
+      { amount: 30000, payee_name: "I Line Payer", inflow_to_ready_to_assign: true },
+    ],
+  });
+  await tx({
+    date: "2026-11-03",
+    amount: 100000,
+    transfer_account_id: loan,
+    inflow_to_ready_to_assign: true,
+  });
+  await tx({ date: "2026-11-05", amount: 10000, inflow_to_ready_to_assign: true });
+  await call(request, "post", `/api/v1/budgets/${bid}/accounts/${chk}/adjust-balance`, {
+    balance: 1000000 + 80000 + 100000 + 10000 - 250000,
+    today: "2026-11-15",
+  });
+  return { plan, ids: { chk, loan }, groupId: "" };
+}
+
+/** Plan E: only a Starting Balance that is then adjusted down to 50.00. */
+export async function seedIncomeEmptyPlan(request: APIRequestContext): Promise<SeededPlan> {
+  const plan = await newPlan(request, "income-empty");
+  const bid = plan.id;
+  const chk = await addAccount(request, bid, "E Checking", "checking", 100000, "2026-11-01");
+  await call(request, "post", `/api/v1/budgets/${bid}/accounts/${chk}/adjust-balance`, {
+    balance: 50000,
+    today: "2026-11-15",
+  });
+  return { plan, ids: { chk }, groupId: "" };
+}
+
+/** Custom range through the date menu with the real mouse; the end stays on the current month. */
+export async function customFrom(page: Page, from: string, start: string) {
+  await mouseClick(page, dateButton(page, from));
+  await mouseClick(page, page.getByRole("menuitemradio", { name: "Custom", exact: true }));
+  await mouseClick(page, page.getByRole("button", { name: "Start Date", exact: true }));
+  await mouseClick(page, page.getByRole("button", { name: start, exact: true }));
+  await mouseClick(page, page.getByRole("button", { name: "Apply", exact: true }));
+}
+
+/** A point inside a chart segment (month `YYYY-MM-01`, series id), checked with elementFromPoint. */
+export async function segmentPoint(
+  page: Page,
+  month: string,
+  series: string,
+): Promise<{ x: number; y: number }> {
+  const seg = page.locator(`.st-seg[data-month="${month}"][data-series="${series}"]`);
+  await expect(seg).toHaveCount(1);
+  const p = await seg.evaluate((el) => {
+    el.ownerSVGElement?.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    return { x, y, hit: document.elementFromPoint(x, y) === el };
+  });
+  expect(p.hit, "the segment is the element at its aim point").toBe(true);
+  return { x: p.x, y: p.y };
+}
+
+/** Sets a stored range for a report through the API (the date menu itself is covered elsewhere). */
+export async function setRange(
+  request: APIRequestContext,
+  bid: string,
+  report: string,
+  start: string,
+  end: string,
+) {
+  const res = await request.put(`/api/v1/budgets/${bid}/report-settings/${report}`, {
+    headers: await authHeaders(),
+    data: { preset: "custom", start_month: start, end_month: end },
+  });
+  expect(res.status()).toBe(200);
 }

@@ -72,10 +72,11 @@ test("548-1 five tabs, active underline, headings", async ({ page, request }) =>
   await expect(page.getByRole("button", { name: "Export", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Previous Period", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "All Accounts", exact: true })).toHaveCount(0);
-  // The other three bodies are placeholders; Net Worth has no category filter.
-  await page.getByRole("link", { name: "Income v Expense", exact: true }).click();
   await expect(page.getByText("This report is not built yet.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Export", exact: true })).toBeDisabled();
+  // Income v Expense is built (a table with AVERAGE and TOTAL, Export on); Net Worth has no category filter.
+  await page.getByRole("link", { name: "Income v Expense", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "AVERAGE", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "All Categories", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Net Worth", exact: true }).click();
   await expect(page.getByRole("button", { name: "All Categories", exact: true })).toHaveCount(0);
@@ -321,7 +322,7 @@ for (const vp of VIEWPORTS) {
       await third;
       await expect(dialog).toHaveCount(0);
       await page.getByRole("link", { name: "Spending Trends", exact: true }).click();
-      await expect(exportBtn).toBeDisabled();
+      await expect(exportBtn).toBeEnabled();
     });
   });
 }

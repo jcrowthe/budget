@@ -1,0 +1,236 @@
+/* Spending Trends (EXF-550). Sizes and colours: docs/trends-income-spec.md section 8. */
+.reflect {
+  --st-grid: rgba(255, 255, 255, 0.1);
+  --st-info-text: #ededf5;
+}
+
+.st-card {
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.st-head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.st-caption {
+  padding-bottom: 4px;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.st-average {
+  color: var(--labelPrimary);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 36px;
+}
+.st-total {
+  color: var(--labelPrimary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.st-chart {
+  position: relative;
+}
+.st-grid {
+  stroke: var(--st-grid);
+  stroke-dasharray: 2 2;
+}
+.st-xtick {
+  /* Source: 6px ticks, 1px, --labelPrimary (Designer S2). */
+  stroke: var(--labelPrimary);
+  stroke-width: 1;
+  stroke-dasharray: none;
+}
+.st-tick {
+  fill: var(--labelSecondary);
+  font-size: 11px;
+  font-weight: 500;
+}
+.st-xlabel {
+  fill: var(--labelPrimary);
+  font-size: 11px;
+  font-weight: 500;
+}
+.st-seg {
+  stroke: none;
+  cursor: pointer;
+}
+.st-line {
+  fill: none;
+  stroke: var(--labelPrimary);
+  stroke-width: 2;
+  pointer-events: none;
+}
+.st-marker {
+  fill: var(--backgroundPrimary);
+  stroke: var(--labelPrimary);
+  stroke-width: 2;
+  pointer-events: none;
+}
+.st-hit {
+  fill: transparent;
+}
+.st-tooltip {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  max-width: 160px;
+  min-height: 64px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: var(--backgroundTertiary);
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.15),
+    0 3px 6px rgba(0, 0, 0, 0.1);
+  /* Source: bottom edge 12px above the marker centre; the arrow tip reaches it (Designer S5). */
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+  text-align: left;
+}
+.st-tooltip::after {
+  position: absolute;
+  top: calc(100% - 3px);
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-top: 15px solid var(--backgroundTertiary);
+  border-right: 15px solid transparent;
+  border-left: 15px solid transparent;
+  content: "";
+  transform: translateX(-50%);
+}
+.st-tip-name,
+.st-tip-note {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.st-tip-name {
+  color: var(--labelPrimary);
+}
+.st-tip-amount {
+  color: var(--labelPrimary);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.st-tip-note {
+  color: var(--labelSecondary);
+}
+
+.st-table-card {
+  padding: 0;
+}
+.st-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.st-table th {
+  padding: 16px 24px;
+  color: var(--labelSecondary);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+.st-table thead tr {
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.st-table tbody {
+  display: table-row-group;
+}
+.st-table tbody td {
+  padding: 8px 24px;
+  color: var(--labelSecondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.st-table tbody tr:hover td {
+  color: var(--labelPrimary);
+}
+.st-table tbody::before {
+  display: block;
+  height: 8px;
+  content: "";
+}
+.st-table .st-num {
+  padding-right: 0;
+  text-align: right;
+}
+.st-table .st-compare {
+  box-sizing: content-box;
+  width: 11rem;
+  padding-right: 24px;
+  padding-left: 16px;
+  white-space: nowrap;
+}
+.st-compare-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.st-empty {
+  padding: 40px 8px !important;
+  text-align: center;
+}
+.st-info {
+  position: relative;
+  display: inline-flex;
+  line-height: 0;
+}
+.st-info-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelTertiary);
+  cursor: help;
+}
+.st-info-tip {
+  position: absolute;
+  /* Source: centred on the icon, clamped to the window by the component (--st-tip-shift); Designer S6. */
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(calc(-50% + var(--st-tip-shift, 0px)));
+  z-index: 4;
+  box-sizing: border-box;
+  width: 288px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--inputBackground);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  color: var(--st-info-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.1s,
+    visibility 0s 0.1s;
+}
+.st-info:hover .st-info-tip,
+.st-info:focus-within .st-info-tip {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.1s 1.9s,
+    visibility 0s 1.9s;
+}
+.st-grid,
+.st-xtick,
+.st-tick,
+.st-xlabel {
+  pointer-events: none;
+}

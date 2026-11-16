@@ -1,0 +1,241 @@
+/* Income v Expense (EXF-552). Sizes and colours: docs/trends-income-spec.md section 8. */
+.reflect {
+  --ie-row-line: rgba(255, 255, 255, 0.1);
+}
+
+.ie-scroll {
+  overflow: auto;
+  padding-top: 16px;
+}
+.ie-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.ie-table th,
+.ie-table td {
+  box-sizing: border-box;
+  padding: 8px;
+  white-space: nowrap;
+}
+.ie-table th:last-child,
+.ie-table td:last-child {
+  padding-right: 16px;
+}
+.ie-table .ie-first {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+.ie-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--backgroundPrimary);
+}
+.ie-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--inputBorder);
+  background: var(--backgroundPrimary);
+  color: var(--labelPrimary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-align: right;
+  text-transform: uppercase;
+}
+.ie-table thead th.ie-first {
+  z-index: 3;
+}
+.ie-spacer td {
+  height: 16px;
+  padding: 0;
+}
+
+.ie-heading th,
+.ie-heading td {
+  height: 39px;
+  border-bottom: 1px solid var(--ie-row-line);
+  background: var(--backgroundPrimary);
+  font-size: 18px;
+  font-weight: 600;
+  text-align: left;
+}
+.ie-heading .ie-toggle {
+  line-height: 1;
+}
+.ie-heading.income th {
+  color: var(--statusPositive);
+}
+.ie-heading.expense th {
+  color: var(--labelNegative);
+}
+.ie-heading.net th {
+  color: var(--labelPrimary);
+}
+.ie-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.ie-toggle svg {
+  width: 8px;
+  height: 8px;
+  color: var(--labelPrimary);
+}
+
+.ie-group th,
+.ie-group td {
+  height: 34px;
+  border-bottom: 1px solid var(--ie-row-line);
+  background: var(--backgroundSecondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ie-group th {
+  padding-left: 32px;
+}
+.ie-group .ie-toggle {
+  gap: 8px;
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+
+.ie-item th,
+.ie-item td {
+  background: var(--backgroundPrimary);
+  border-bottom: 1px solid var(--ie-row-line);
+}
+.ie-item th {
+  padding-left: 32px;
+  border-right: 1px solid var(--borderSubtle);
+  color: var(--labelPrimary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ie-item.cat th {
+  padding-left: 48px;
+}
+.ie-table td.ie-amt {
+  padding: 0;
+  border-left: 1px solid var(--borderSubtle);
+  color: var(--labelPrimary);
+  font-size: 14px;
+  font-weight: 400;
+  text-align: right;
+}
+.ie-table td.ie-amt.ie-first-amt {
+  border-left: 0;
+}
+.ie-group td.ie-amt {
+  border-left: 0;
+}
+
+.ie-total.group th,
+.ie-total.group td {
+  height: 35px;
+}
+.ie-total.group th {
+  padding-left: 32px;
+  color: var(--labelPrimary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ie-total.group th {
+  border-right: 1px solid var(--borderSubtle);
+}
+.ie-total.group th,
+.ie-total.group td {
+  border-bottom: 1px solid var(--ie-row-line);
+}
+.ie-total.group td.ie-amt {
+  border-top: 1px solid var(--inputBorder);
+}
+.ie-total.section th,
+.ie-total.section td {
+  height: 34px;
+  background: var(--backgroundSecondary);
+}
+.ie-total.section th,
+.ie-total.section td {
+  border-bottom: 1px solid var(--ie-row-line);
+}
+.ie-table .ie-total.section td.ie-amt {
+  border-left: 0;
+}
+.ie-total.section th {
+  padding-left: 32px;
+  color: var(--labelPrimary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ie-total.group th,
+.ie-total.group td {
+  background: var(--backgroundPrimary);
+}
+
+.ie-net th,
+.ie-net td {
+  height: 38px;
+  background: var(--backgroundPrimary);
+  border: 0;
+}
+.ie-table .ie-net td.ie-amt {
+  border-left: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.ie-amt .positive {
+  color: var(--statusPositive);
+}
+.ie-amt .negative {
+  color: var(--labelNegative);
+}
+.ie-amt .zero {
+  color: var(--labelSecondary);
+}
+
+.ie-amt > .amt {
+  display: block;
+  padding: 8px;
+}
+.ie-table td.ie-amt:last-child > .amt,
+.ie-table td.ie-amt:last-child > .ie-btn {
+  padding-right: 16px;
+}
+.ie-btn {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  text-align: right;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.ie-btn:hover .amt {
+  text-decoration: underline;
+}
+.ie-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -1,5 +1,7 @@
 import type { MonthSpan, RangeFacts } from "@budget/schema/report-range";
 import {
+  type IncomeExpense,
+  IncomeExpenseResponse,
   type NetWorth,
   NetWorthResponse,
   ReportRangeResponse,
@@ -10,6 +12,8 @@ import {
   ReportTransactionsResponse,
   type SpendingBreakdown,
   SpendingBreakdownResponse,
+  type SpendingTrends,
+  SpendingTrendsResponse,
 } from "@budget/schema/reports";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
@@ -212,23 +216,31 @@ export const useSpendingBreakdown = (
 export type ReportTransactionSelector =
   | { category_id: string }
   | { group_id: string }
-  | { uncategorized: true };
+  | { uncategorized: true }
+  | { income_payee_id: string }
+  | { income: true }
+  | { expenses: true };
 
 export const useReportTransactions = (
   budgetId: string,
   span: MonthSpan,
   selector: ReportTransactionSelector,
   excludedAccts: string[],
+  excludedCats: string[] = [],
 ) =>
   useQuery({
-    queryKey: ["report-transactions", budgetId, span, selector, excludedAccts],
+    queryKey: ["report-transactions", budgetId, span, selector, excludedAccts, excludedCats],
     placeholderData: keepPreviousInPlan(budgetId),
     queryFn: async () => {
       const q = new URLSearchParams({ start_month: span.start_month, end_month: span.end_month });
       if ("category_id" in selector) q.set("category_id", selector.category_id);
       else if ("group_id" in selector) q.set("group_id", selector.group_id);
+      else if ("income_payee_id" in selector) q.set("income_payee_id", selector.income_payee_id);
+      else if ("income" in selector) q.set("income", "true");
+      else if ("expenses" in selector) q.set("expenses", "true");
       else q.set("uncategorized", "true");
       if (excludedAccts.length) q.set("excluded_account_ids", excludedAccts.join(","));
+      if (excludedCats.length) q.set("excluded_category_ids", excludedCats.join(","));
       return (
         await apiFetch(`/api/v1/budgets/${budgetId}/reports/transactions?${q}`, {
           schema: ReportTransactionsResponse,
@@ -247,4 +259,69 @@ export const downloadSpendingBreakdownZip = (
   downloadFile(
     `/api/v1/budgets/${budgetId}/reports/spending-breakdown/export?${spendingQuery(span, excludedCats, excludedAccts, today)}`,
     `budget-reflect-spending-breakdown-${today}.zip`,
+  );
+
+export const useSpendingTrends = (
+  budgetId: string,
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  groupId: string | null,
+  today: string,
+) =>
+  useQuery({
+    queryKey: ["spending-trends", budgetId, span, excludedCats, excludedAccts, groupId, today],
+    placeholderData: keepPreviousInPlan(budgetId),
+    queryFn: async (): Promise<SpendingTrends> => {
+      const q = spendingQuery(span, excludedCats, excludedAccts, today);
+      if (groupId) q.set("group_id", groupId);
+      return (
+        await apiFetch(`/api/v1/budgets/${budgetId}/reports/spending-trends?${q}`, {
+          schema: SpendingTrendsResponse,
+        })
+      ).data;
+    },
+  });
+
+export const useIncomeExpense = (
+  budgetId: string,
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  today: string,
+) =>
+  useQuery({
+    queryKey: ["income-expense", budgetId, span, excludedCats, excludedAccts, today],
+    placeholderData: keepPreviousInPlan(budgetId),
+    queryFn: async (): Promise<IncomeExpense> =>
+      (
+        await apiFetch(
+          `/api/v1/budgets/${budgetId}/reports/income-expense?${spendingQuery(span, excludedCats, excludedAccts, today)}`,
+          { schema: IncomeExpenseResponse },
+        )
+      ).data,
+  });
+
+export const downloadSpendingTrendsZip = (
+  budgetId: string,
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  today: string,
+): Promise<void> =>
+  downloadFile(
+    `/api/v1/budgets/${budgetId}/reports/spending-trends/export?${spendingQuery(span, excludedCats, excludedAccts, today)}`,
+    `budget-reflect-spending-trends-${today}.zip`,
+  );
+
+export const downloadIncomeExpenseCsv = (
+  budgetId: string,
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  today: string,
+): Promise<void> =>
+  downloadFile(
+    `/api/v1/budgets/${budgetId}/reports/income-expense/export?${spendingQuery(span, excludedCats, excludedAccts, today)}`,
+    `budget-reflect-income-expense-${today}.csv`,
   );

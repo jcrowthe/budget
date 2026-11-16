@@ -10,6 +10,15 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
     excluded:
       "a ZIP file download of two CSVs; get_spending_breakdown and list_report_transactions return the same figures",
   },
+  "GET /budgets/{budget_id}/reports/spending-trends": { tool: "get_spending_trends" },
+  "GET /budgets/{budget_id}/reports/spending-trends/export": {
+    excluded:
+      "a ZIP file download of two CSVs; get_spending_trends and list_report_transactions return the same figures",
+  },
+  "GET /budgets/{budget_id}/reports/income-expense": { tool: "get_income_expense" },
+  "GET /budgets/{budget_id}/reports/income-expense/export": {
+    excluded: "a CSV file download; get_income_expense returns the same figures",
+  },
   "GET /budgets/{budget_id}/reports/transactions": { tool: "list_report_transactions" },
   "GET /budgets/{budget_id}/reports/range": {
     excluded:

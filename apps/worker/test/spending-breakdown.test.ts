@@ -417,3 +417,14 @@ describe("the split case and transfers between on-plan accounts", () => {
     expect(trans.split("\n")).toHaveLength(14);
   });
 });
+
+describe("a closed account's spending (Lead 9)", () => {
+  it("still counts in a past month when the account is selected", async () => {
+    const { bid, chk } = await example();
+    const month = "start_month=2026-07-01&end_month=2026-07-01";
+    expect((await sb(bid, `${month}&${TODAY}`)).data.total).toBe(165000);
+    await env.DB.prepare("update accounts set closed = 1 where id = ?").bind(chk).run();
+    expect((await sb(bid, `${month}&${TODAY}`)).data.total).toBe(165000);
+    expect((await sb(bid, `${month}&${TODAY}&excluded_account_ids=${chk}`)).data.total).toBe(0);
+  });
+});
