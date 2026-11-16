@@ -4,7 +4,7 @@ import type { Payee } from "@budget/schema/payees";
 import { splitRemaining, splitRemainingColumns } from "@budget/schema/split";
 import { AmountField } from "./AmountField";
 import { CategoryField } from "./CategoryField";
-import { type LineDraft, lineAmount } from "./entryDraft";
+import { type LineDraft, lineAmount, rememberedCategory } from "./entryDraft";
 import { MinusCircleFilledIcon, PlusCircleIcon } from "./icons";
 import { PayeeField } from "./PayeeField";
 
@@ -64,9 +64,8 @@ export function SplitLines({
               transfers={false}
               onChange={(payee) => onChange(i, { payee })}
               onPicked={(p) => {
-                if (l.category.kind === "none" && p.last_category_id) {
-                  onChange(i, { category: { kind: "category", id: p.last_category_id } });
-                }
+                const c = rememberedCategory(p);
+                if (l.category.kind === "none" && c) onChange(i, { category: c });
               }}
             />
           </td>

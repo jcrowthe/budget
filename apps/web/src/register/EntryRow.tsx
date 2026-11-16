@@ -26,6 +26,7 @@ import {
   type Field,
   type LineDraft,
   lineAmount,
+  rememberedCategory,
 } from "./entryDraft";
 import { localToday } from "./format";
 import { ClearedFilledIcon, ClearedOutlineIcon } from "./icons";
@@ -96,7 +97,7 @@ export function EntryRow({
 
   const monthOf = `${(draft.lastDate || today).slice(0, 7)}-01`;
   const monthQ = useMonth(budgetId, monthOf);
-  const chosen = account ?? accounts.find((a) => a.id === draft.accountId);
+  const chosen = account ?? (accountsQ.data ?? accounts).find((a) => a.id === draft.accountId);
   const transferAccount = draft.transferAccountId
     ? (accountsQ.data ?? accounts).find((a) => a.id === draft.transferAccountId)
     : undefined;
@@ -208,9 +209,8 @@ export function EntryRow({
   };
 
   const fillCategory = (p: Payee) => {
-    if (draft.category.kind === "none" && p.last_category_id && !noCategory) {
-      patch({ category: { kind: "category", id: p.last_category_id } });
-    }
+    const c = rememberedCategory(p);
+    if (draft.category.kind === "none" && c && !noCategory) patch({ category: c });
   };
 
   const colCount = (plan ? 1 : 0) + (showCategory ? 1 : 0) + 7;
@@ -245,6 +245,7 @@ export function EntryRow({
           <td data-field="account">
             <AccountField
               accounts={accounts}
+              currentName={chosen?.name}
               value={draft.accountId}
               disabled={lockStart}
               title={lockStart ? LOCK_TITLE : undefined}

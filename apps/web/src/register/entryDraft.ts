@@ -1,11 +1,20 @@
 import { evaluateAmountEntry, formatAmountEntry, signedAmount } from "@budget/schema/amount-entry";
 import { formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
+import type { Payee } from "@budget/schema/payees";
 import type {
   SubTransactionInput,
   TransactionCreateRequest,
   TransactionDetail,
   TransactionUpdateRequest,
 } from "@budget/schema/transactions";
+
+/** The category a picked payee fills in: its latest one, or Ready to Assign, or nothing. */
+export function rememberedCategory(
+  p: Pick<Payee, "last_category_id" | "last_inflow_to_ready_to_assign">,
+): CategoryValue | null {
+  if (p.last_category_id) return { kind: "category", id: p.last_category_id };
+  return p.last_inflow_to_ready_to_assign ? { kind: "rta" } : null;
+}
 
 export type Field = "account" | "date" | "payee" | "category" | "memo" | "outflow" | "inflow";
 

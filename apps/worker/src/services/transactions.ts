@@ -151,6 +151,10 @@ export class TransactionRefused extends Error {
 
 const unprocessable = (detail: string) =>
   new TransactionRefused(422, "unprocessable_entity", detail);
+const closedAccount = (detail: string) => new TransactionRefused(422, "account_closed", detail);
+const CLOSED_NO_NEW = "This account is closed: it takes no new transactions";
+const CLOSED_NO_MOVE = "A transaction cannot be moved into a closed account";
+const CLOSED_OTHER = "The other account of a transfer is closed: it must be open";
 
 export function lineToApi(l: txRepo.LineRow): SubTransaction {
   return {
@@ -371,8 +375,7 @@ async function otherAccountOf(
   const other = await accountsRepo.findActive(db, budgetId, otherId);
   if (!other) throw unprocessable("Account not found in this plan");
   if (other.id === accountId) throw unprocessable("A transfer needs two different accounts");
-  if (requireOpen && other.closed)
-    throw unprocessable("The other account of a transfer must be open");
+  if (requireOpen && other.closed) throw closedAccount(CLOSED_OTHER);
   return other;
 }
 
@@ -446,6 +449,7 @@ export async function addTransaction(
   const db = getDb(env);
   await activePlan(db, budgetId);
   const account = await activeAccount(db, budgetId, v.account_id);
+  if (account.closed) throw closedAccount(CLOSED_NO_NEW);
   const cleared = parseCleared(v.cleared) ?? "uncleared";
   const lineInputs = v.subtransactions && v.subtransactions.length > 0 ? v.subtransactions : null;
   const transferId = v.transfer_account_id ?? null;
@@ -578,6 +582,7 @@ export async function createTransfer(
   const db = getDb(env);
   await activePlan(db, budgetId);
   const from = await activeAccount(db, budgetId, input.from_account_id);
+  if (from.closed) throw closedAccount(CLOSED_NO_NEW);
   const to = await otherAccountOf(db, budgetId, from.id, input.to_account_id);
   const cleared = parseCleared(v.cleared) ?? "uncleared";
   const now = new Date().toISOString();
@@ -802,6 +807,7 @@ async function prepare(
   const p = patch;
   const cleared = parseCleared(p.cleared);
   const account = p.account_id ? await activeAccount(db, budgetId, p.account_id) : beforeAccount;
+  if (account.id !== before.accountId && account.closed) throw closedAccount(CLOSED_NO_MOVE);
   const isTransfer = Boolean(before.transferAccountId);
   const linesIn = p.subtransactions;
   const wantsLines = (linesIn?.length ?? 0) > 0;

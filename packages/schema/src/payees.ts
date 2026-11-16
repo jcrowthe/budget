@@ -16,6 +16,8 @@ export const Payee = z
     hidden: z.boolean(),
     system: PayeeSystem.nullable(),
     last_category_id: z.string().nullable(),
+    /** True when the payee's latest transaction is an inflow to Ready to Assign (then `last_category_id` is null); always false for system payees and transfer entries. */
+    last_inflow_to_ready_to_assign: z.boolean(),
     /** Set on the "Transfer : <account>" entries, which stand for an open account of the plan. */
     transfer_account_id: z.string().nullable(),
   })

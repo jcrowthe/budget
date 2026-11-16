@@ -1,6 +1,7 @@
 import type { Account } from "@budget/schema/accounts";
 import { useCallback, useEffect, useState } from "react";
 import type { Open } from "./entryDraft";
+import { useOpenAccounts } from "./openAccounts";
 import { RegisterTable } from "./RegisterTable";
 import { RegisterToolbar } from "./RegisterToolbar";
 import "./register.css";
@@ -14,6 +15,9 @@ const isTyping = (t: EventTarget | null) => {
 /** One account's register, or (without `account`) every account's: All Accounts. */
 export function Register({ budgetId, account }: { budgetId: string; account?: Account }) {
   const [open, setOpen] = useState<Open>(null);
+  const { openAccounts, loaded } = useOpenAccounts(budgetId);
+  // A closed account, or All Accounts with no open account, takes no new transaction.
+  const closed = account ? account.closed : loaded && openAccounts.length === 0;
   const openAdd = useCallback((date?: string) => {
     setOpen({ mode: "add", key: Date.now() + Math.random(), date });
   }, []);
@@ -23,17 +27,22 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "N" || !e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented)
         return;
+      if (closed) return;
       if (isTyping(e.target) || document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       openAdd();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openAdd]);
+  }, [openAdd, closed]);
 
   return (
     <section className="register" aria-label="Register">
-      <RegisterToolbar name={account?.name ?? "All Accounts"} onAdd={() => openAdd()} />
+      <RegisterToolbar
+        name={account?.name ?? "All Accounts"}
+        onAdd={() => openAdd()}
+        closed={closed}
+      />
       <RegisterTable
         budgetId={budgetId}
         account={account}
