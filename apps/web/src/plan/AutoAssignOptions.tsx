@@ -29,7 +29,7 @@ export function AutoAssignOptions({
       <div className="auto-assign-body">
         <p className="auto-assign-empty">
           {VIEW_NO_CATEGORIES}
-          <button type="button" className="view-all" onClick={onViewAll}>
+          <button type="button" className="view-all is-ghost" onClick={onViewAll}>
             View All Categories
           </button>
         </p>

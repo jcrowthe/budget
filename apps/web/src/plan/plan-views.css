@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 15px;
+  padding: 0 15px 12px;
   background: var(--backgroundSecondary);
   border-bottom: 1px solid var(--separatorStandard);
 }
@@ -31,6 +31,7 @@
   color: #fff;
   font: inherit;
   font-size: 12px;
+  line-height: 16px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -124,15 +125,28 @@
 }
 .auto-assign-option strong {
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .auto-assign-empty {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: var(--space-2);
   margin: 0;
   color: var(--labelSecondary);
   font-size: 14px;
+  font-weight: 500;
+}
+.view-all.is-ghost {
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--buttonGhostLabel);
+  font-size: var(--font-size-sm);
+}
+.view-all.is-ghost:hover {
+  background: var(--buttonSecondaryBackground);
 }
 .auto-assign-body {
   padding: 16px;
@@ -189,4 +203,18 @@
   width: 16px;
   height: 16px;
   margin: 0 8px 0 0;
+}
+
+.view-empty p {
+  margin: 0;
+}
+.view-empty .view-all {
+  margin-right: var(--space-2);
+}
+/* The card pads its body once; the popover keeps .auto-assign-body's own padding. */
+#panel-auto-assign > .auto-assign-body {
+  padding: 0;
+}
+#panel-auto-assign {
+  padding-bottom: calc(var(--space-3) + 2px);
 }
