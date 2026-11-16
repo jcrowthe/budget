@@ -92,6 +92,7 @@ export function DeleteDialog({
             value={target}
             onChange={setTarget}
             exclude={exclude}
+            include={(c) => c.kind === null}
             label="Select category"
             autoFocus
           />

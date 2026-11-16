@@ -18,6 +18,7 @@ import {
   updateCategoryGroup,
 } from "../services/categories";
 import { deleteCategoryGroup, groupUsage } from "../services/category-delete";
+import { PaymentLocked } from "../services/credit-payments";
 
 const tags = ["Categories"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -33,7 +34,10 @@ const errors = {
   403: json(ErrorBody, "Forbidden"),
   404: json(ErrorBody, "Plan or category group not found"),
   409: json(ErrorBody, "The group has history and reassign_to is missing, or a concurrent change"),
-  422: json(ErrorBody, "Invalid request, duplicate name or invalid reassign_to"),
+  422: json(
+    ErrorBody,
+    "Invalid request, duplicate name, invalid reassign_to, or payment_group_locked / payment_category_locked (the Credit Card Payments group and its categories)",
+  ),
 };
 
 const app = new OpenAPIHono<AppEnv>({
@@ -55,6 +59,7 @@ export function categoryError(c: Context, e: unknown) {
   if (e instanceof InvalidReassignTarget) {
     return apiError(c, 422, "invalid_reassign_target", e.message);
   }
+  if (e instanceof PaymentLocked) return apiError(c, 422, e.code, e.message);
   if (e instanceof HistoryExists) return apiError(c, 409, "history_exists", e.message);
   throw e;
 }

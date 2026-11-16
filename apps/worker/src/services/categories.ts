@@ -21,6 +21,8 @@ import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
 import { allOf, type LogBase, logSelectStmt, whenQuery } from "../repositories/guards";
 
+import { PaymentLocked } from "./credit-payments";
+
 const MAX_ATTEMPTS = 5;
 
 export function groupToApi(row: groupsRepo.CategoryGroupRow): CategoryGroup {
@@ -65,6 +67,7 @@ export async function createCategoryGroup(
       sortOrder: (await groupsRepo.maxSort(db, v.budget_id)) + 1,
       hidden: v.hidden ?? false,
       collapsed: false,
+      kind: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -98,9 +101,9 @@ export async function createCategory(
   const v = CategoryCreate.parse(input);
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, v.budget_id))) throw new NotFound("Plan");
-  if (!(await groupsRepo.findActive(db, v.budget_id, v.group_id))) {
-    throw new NotFound("Category group");
-  }
+  const group = await groupsRepo.findActive(db, v.budget_id, v.group_id);
+  if (!group) throw new NotFound("Category group");
+  if (group.kind !== null) throw new PaymentLocked("payment_group_locked");
   const now = new Date().toISOString();
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const row: categoriesRepo.CategoryRow = {
@@ -114,6 +117,8 @@ export async function createCategory(
       updatedAt: now,
       deletedAt: null,
       note: null,
+      kind: null,
+      accountId: null,
     };
     const [, result] = await db.batch([
       changeLogInsertIf(
@@ -201,6 +206,7 @@ export async function addCategoryGroup(
       sortOrder: ((await groupsRepo.minSort(db, input.budget_id)) ?? 1) - 1,
       hidden: false,
       collapsed: false,
+      kind: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -241,7 +247,8 @@ export async function addCategory(
   const { name } = CategoryNew.parse({ group_id: input.group_id, name: input.name });
   const db = getDb(env);
   await requirePlan(db, input.budget_id);
-  await requireGroup(db, input.budget_id, input.group_id);
+  const target = await requireGroup(db, input.budget_id, input.group_id);
+  if (target.kind !== null) throw new PaymentLocked("payment_group_locked");
   if (await categoriesRepo.nameTaken(db, input.group_id, name)) {
     throw new NameTaken(CATEGORY_NAME_TAKEN);
   }
@@ -258,6 +265,8 @@ export async function addCategory(
       updatedAt: now,
       deletedAt: null,
       note: null,
+      kind: null,
+      accountId: null,
     };
     const guard = and(
       categoriesRepo.sortIsFirst(row.groupId, row.sortOrder),
@@ -307,6 +316,13 @@ export async function updateCategoryGroup(
   await requirePlan(db, input.budget_id);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await requireGroup(db, input.budget_id, input.group_id);
+    if (
+      before.kind !== null &&
+      ((patch.name !== undefined && patch.name !== before.name) ||
+        (patch.hidden !== undefined && patch.hidden !== before.hidden))
+    ) {
+      throw new PaymentLocked("payment_group_locked");
+    }
     if (
       patch.name !== undefined &&
       (await groupsRepo.nameTaken(db, before.budgetId, patch.name, before.id))
@@ -401,6 +417,13 @@ export async function updateCategory(
       before.budgetId,
       before.groupId,
     )) as groupsRepo.CategoryGroupRow;
+    if (
+      before.kind !== null &&
+      ((patch.name !== undefined && patch.name !== before.name) ||
+        (patch.hidden !== undefined && patch.hidden !== before.hidden))
+    ) {
+      throw new PaymentLocked("payment_category_locked");
+    }
     if (
       patch.name !== undefined &&
       (await categoriesRepo.nameTaken(db, before.groupId, patch.name, before.id))

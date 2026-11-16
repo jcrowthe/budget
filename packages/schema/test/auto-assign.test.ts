@@ -6,6 +6,7 @@ import {
   autoAssignPreview,
   autoAssignResult,
   historyFigures,
+  PAYMENT_SKIPS,
 } from "../src/auto-assign";
 import type { CategoryTargetMonth } from "../src/targets";
 
@@ -44,6 +45,7 @@ const input = (o: Partial<AutoAssignInput> = {}): AutoAssignInput => ({
   last_spent: 0,
   average_assigned: 0,
   average_spent: 0,
+  payment: false,
   ...o,
 });
 
@@ -222,5 +224,32 @@ describe("autoAssignOptions", () => {
     expect(o.find((x) => x.strategy === "average_spent")?.title).toBe(
       "Assign your historical average spent. Though you're above average in my book.",
     );
+  });
+});
+
+describe("EXF-532: credit card payment categories", () => {
+  const pay = (o: Partial<AutoAssignInput> = {}) =>
+    input({
+      payment: true,
+      assigned: 5000,
+      last_assigned: 7000,
+      last_spent: 9000,
+      average_spent: 9000,
+      ...o,
+    });
+  it("takes part in Assigned Last Month and Reset like any category", () => {
+    expect(autoAssignResult(pay(), "assigned_last_month")).toBe(7000);
+    expect(autoAssignResult(pay({ carried: 1000, activity: 500 }), "reset_available")).toBe(-1500);
+    expect(autoAssignResult(pay(), "reset_assigned")).toBe(0);
+  });
+  it("keeps Assigned under Underfunded, Reduce Overfunding, Spent Last Month and Average Spent", () => {
+    for (const s of PAYMENT_SKIPS) expect(autoAssignResult(pay(), s)).toBe(5000);
+  });
+  it("is left out of the four sums of the preview", () => {
+    const p = autoAssignPreview([pay(), input({ last_spent: 100, average_spent: 40 })]);
+    expect(p.spent_last_month).toBe(100);
+    expect(p.average_spent).toBe(40);
+    expect(p.assigned_last_month).toBe(7000);
+    expect(p.category_count).toBe(2);
   });
 });

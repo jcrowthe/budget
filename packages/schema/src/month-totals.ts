@@ -34,8 +34,8 @@ export function categoryMonth(d: MonthDetail, id: string): CategoryMonth | null 
       return {
         leftover: c.carried,
         assigned: c.assigned,
-        cash_activity: c.activity,
-        credit_activity: 0,
+        cash_activity: c.activity - c.credit_spending,
+        credit_activity: c.credit_spending,
         available: c.available,
         note: c.note,
       };

@@ -1,4 +1,4 @@
-import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { categoryGroups } from "../db/schema/category-groups";
 import { jsonBool } from "./guards";
@@ -58,7 +58,7 @@ export function insertIfSortStmt(db: Db, row: CategoryGroupRow) {
   return db
     .insert(categoryGroups)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.kind} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
     );
 }
 
@@ -103,7 +103,7 @@ export function insertIfStmt(db: Db, r: CategoryGroupRow, guard: SQL) {
   return db
     .insert(categoryGroups)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.collapsed ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.kind} where ${guard}`,
     );
 }
 
@@ -160,3 +160,22 @@ export function unhideAllGroupsStmt(db: Db, budgetId: string, now: string) {
 
 export const groupJson = (to?: boolean): SQL =>
   sql`json_object('id', id, 'budget_id', budget_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(to === undefined ? sql`hidden` : to ? sql`1` : sql`0`)}, 'collapsed', ${jsonBool(sql`collapsed`)})`;
+
+/** The plan's live Credit Card Payments group (EXF-532), or undefined while it has no credit account. */
+export async function findPaymentGroup(
+  db: Db,
+  budgetId: string,
+): Promise<CategoryGroupRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(categoryGroups)
+    .where(
+      and(
+        eq(categoryGroups.budgetId, budgetId),
+        isNotNull(categoryGroups.kind),
+        isNull(categoryGroups.deletedAt),
+      ),
+    )
+    .limit(1);
+  return row;
+}
