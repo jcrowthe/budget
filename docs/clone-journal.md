@@ -376,6 +376,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | PR #22 | merged `325ee94` (round 38) |
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | pending | running |
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | pending | running |
+| 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | pending | running |
+| 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -3150,3 +3152,47 @@ transactions files are free; the tool files are held by EXF-572 until it merges)
 EXF-572 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium), EXF-560, EXF-562
 (Low). Template: sixteen. Flow verdicts: 9 `new_gaps`, 10 `new_gaps`, 11 `parity`. Finished since each
 template's last review: Build 9, Deploy 8, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 39
+
+Children used 51 of 200. Four Builds are running: the plan-menu carry-over (EXF-571, EXF-470, EXF-454, at
+acceptance), EXF-572 (MCP coverage, reworking), and two started this round.
+
+- No ticket was filed at the last review.
+- **Started EXF-491 with EXF-492** (`p_ed90e00d9e644c1aa0719b13500b32d1`): the Ready to Assign pill
+  (breakdown, Assign Manually, Fix This) and Move and Cover from the Available pill.
+  - Surface: `POST .../months/{month}/moves` (`from`, `to`, `amount`; `"ready_to_assign"` is a valid end),
+    `POST .../months/{month}/categories/{category_id}/cover`, tools `move_money` and `cover_overspending`
+    in a new tool file.
+  - Holds: `apps/web/src/plan/**` (with `CategoryPicker.tsx`), `api/months.ts`, `api/assigned.ts`,
+    `api/categories.ts`, `api/monthCache.ts`, `services/months.ts`, the months routes and schema,
+    `assigned-edit.ts`.
+  - Every write to the cached month goes through `monthCache.ts`. The "Auto" tab is drawn disabled.
+  - It may look at the source's Plan page under the usual limits.
+- **Started EXF-517 with EXF-507** (`p_19407e1a62d54f93b69b9199878c07b6`): the add and edit row of the
+  register, and payees with the payee picker.
+  - **Nobody opens the source**: the test plan has no open account, so the tickets are the specification.
+  - Data: a `payees` table, `transactions.payee_id`, a backfill from the payee text, system payees. The
+    credit Starting Balance rule moves from payee text to the system payee; the reserved-name refusal goes.
+  - Surface: `GET .../payees`, tool `list_payees` in a new tool file; transaction create and update accept
+    `payee_id` or `payee_name`.
+  - Holds: `apps/web/src/register/**`, `api/transactions.ts`, a new `api/payees.ts`, the transactions and
+    payees Worker files, `services/accounts.ts`.
+  - Its category field is a dropdown of its own under `register/` (the other Build holds the Plan picker).
+    **Two category dropdowns will exist after both merge: a later ticket should fold them into one.**
+  - Left out or drawn disabled: transfer payees and "Payment/Transfer" (EXF-526), "Split" (EXF-524),
+    "Manage Payees" (EXF-510), the attention column (EXF-463), "Repeat" (EXF-497), creating a category
+    from the dropdown.
+  - It must not edit `mcp/tools/transactions.ts` until EXF-572 is on main.
+- **Why both now, before EXF-572 merges:** their new tools sit in new tool files, and both briefs say what
+  to do at each rebase (add a coverage file once `apps/worker/test/mcp-coverage/` exists). Waiting would
+  have left the grid and the register idle for an hour.
+- **The four manifests are disjoint by brief:** shell and menu actions; MCP tool files and coverage tests;
+  the Plan page and months files; the register, transactions and payees files. Watch at the cards:
+  `docs/README.md` and `docs/conventions.md` (keep every line), and `packages/schema/src/assigned-edit.ts`
+  (the Plan Build holds it; the transactions Build was told to add a sibling or extend without changing
+  the Assigned cell's behaviour: if both touch it, the second rebases).
+- No Deploy this round: one Deploy when the plan-menu carry-over and EXF-572 have merged (main `325ee94`,
+  live `82aac3a`, one migration pending). Flow tests after it: flow 1, and flows 9 and 10 again.
+- Ticket writes: 8 (four to In Progress, four comments).
+- Review cadence: Build 9, Deploy 8, Discover 2, Test user flow 2. Round 40's review is a check-in.
