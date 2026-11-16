@@ -165,6 +165,12 @@ for (const size of [
     await realClick(page, ok);
     await expect(box(page).locator(".rta-amount")).toHaveText("$4,245.00");
     await expect(assignedOf(page, RENT)).toHaveText("$25.00");
+    // The group subtotal moved with it (Bills holds Rent).
+    await expect(
+      page
+        .locator(".group-row", { has: page.getByText("Bills", { exact: true }) })
+        .locator(".cell-assigned"),
+    ).toHaveText("$25.00");
     await page.reload();
     await expect(box(page).locator(".rta-amount")).toHaveText("$4,245.00");
     await expect(assignedOf(page, RENT)).toHaveText("$25.00");

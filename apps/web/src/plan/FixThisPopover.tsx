@@ -112,7 +112,9 @@ export function FixThisPopover({
   );
   const [chosen, setChosen] = useState<Month>(month);
   const [cat, setCat] = useState<string | null>(null);
-  const groups = useMonth(budgetId, chosen).data?.groups ?? detail.groups;
+  // The query keeps the previous month while the chosen one loads: show nothing until it is the chosen one.
+  const chosenData = useMonth(budgetId, chosen).data;
+  const groups = chosenData?.month === chosen ? chosenData.groups : [];
   const submit = () => {
     if (cat === null) return;
     void move({ month: chosen, from: cat, to: READY_TO_ASSIGN, amount: -detail.ready_to_assign });

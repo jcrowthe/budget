@@ -26,7 +26,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "cover_overspending",
-    description: `Cover an overspent category in one plan month: moves exactly its negative Available ${MONEY} from 'from' (a category id or "ready_to_assign") into it, so its Available becomes 0. ${MONTH} Fails when the category is not overspent. ${RETURNS}`,
+    description: `Cover an overspent category in one plan month: moves exactly its negative Available from 'from' (a category id or "ready_to_assign") into it, so its Available becomes 0. ${MONEY} ${MONTH} Fails when the category is not overspent. ${RETURNS}`,
     inputSchema: z.object({ budget_id: Id, month: InputMonth, category_id: Id, from: Id }),
     run: async (
       input: { budget_id: string; month: string; category_id: string; from: string },

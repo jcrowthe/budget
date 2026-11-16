@@ -176,10 +176,23 @@ export function buildMoveBatch(
  * other category's Assigned changes. One batch; every row of the call shares one `move.id` in its change_log
  * `after` (see docs/rta-moves-design.md for how Recent Moves and Undo read it).
  */
+export class MoveStale extends Error {
+  constructor() {
+    super("The category changed since it was read");
+    this.name = "MoveStale";
+  }
+}
+
+/**
+ * `expect` ties the move to what the caller computed its amount from: when that category's Assigned is no longer
+ * `expect.assigned` (read inside the guarded loop), it throws `MoveStale` and writes nothing. A cover uses it so
+ * two concurrent covers cannot both move the same overspent amount.
+ */
 export async function moveMoney(
   env: Env,
   actor: string,
   input: MoneyMove,
+  expect?: { categoryId: string; assigned: number },
 ): Promise<{ move_id: string; cells: MonthCategory[] }> {
   const v = MoneyMove.parse(input);
   const db = getDb(env);
@@ -200,6 +213,8 @@ export async function moveMoney(
         before: (await monthCatRepo.find(db, v.budget_id, v.month, s.id))?.assigned,
       })),
     );
+    const seen = reads.find((r) => r.id === expect?.categoryId);
+    if (expect && seen && (seen.before ?? 0) !== expect.assigned) throw new MoveStale();
     const { stmts, logCount, out } = buildMoveBatch(db, actor, v, moveId, reads, now);
     const results = await db.batch(stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]]);
     const first = results[logCount];

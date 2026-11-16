@@ -5,6 +5,7 @@ import { getDb } from "../src/db/client";
 import { changeLogInsert } from "../src/history/change-log";
 import { createBudget } from "../src/services/budgets";
 import { buildMoveBatch, setAssigned } from "../src/services/months";
+import { coverAndRead } from "../src/services/moves";
 import { json } from "./helpers";
 import { apiPaths, listedToolNames, mcpRpc } from "./surface";
 
@@ -290,5 +291,22 @@ describe("moves: atomicity", () => {
     expect(cell(after, a)?.assigned).toBe(cell(before, a)?.assigned);
     expect(cell(after, b)?.assigned).toBe(0);
     expect((await logRows(bid)).length).toBe(logs);
+  });
+});
+
+describe("moves: concurrent covers", () => {
+  it("lets exactly one of two parallel covers move money", async () => {
+    const { bid, a, b } = await seed();
+    await assign(bid, a, -70000);
+    await assign(bid, b, 275000);
+    const input = { budget_id: bid, month: NOV, category_id: a, from: b };
+    const results = await Promise.allSettled([
+      coverAndRead(env, actor, input),
+      coverAndRead(env, actor, input),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const after = await readMonth(bid);
+    expect(cell(after, a)?.available).toBe(0);
+    expect(cell(after, b)?.available).toBe(205000);
   });
 });
