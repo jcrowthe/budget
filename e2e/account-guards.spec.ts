@@ -74,7 +74,10 @@ test("All Accounts: the add row and the transfer choices offer no closed account
   await expect(list.getByRole("option", { name: "ZZ-TEST Shut", exact: true })).toHaveCount(0);
   await realClick(page, list.getByRole("option", { name: "ZZ-TEST Open", exact: true }));
   const payee = page.getByRole("combobox", { name: "Payee", exact: true });
-  await payee.fill("ZZ-TEST Shut");
+  await payee.fill("ZZ-TEST");
+  await expect(
+    page.getByRole("option", { name: "To/From ZZ-TEST Third", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("option", { name: "To/From ZZ-TEST Shut", exact: true })).toHaveCount(
     0,
   );
@@ -148,4 +151,23 @@ test("All Accounts with only closed accounts: Add Transaction is disabled and Sh
   await realClick(page, page.getByRole("main").getByRole("heading").first());
   await page.keyboard.press("Shift+N");
   await expect(rows(page)).toHaveCount(0);
+});
+
+test("All Accounts: editing a closed account's row shows its name and offers no closed account", async ({
+  page,
+  request,
+}) => {
+  const s = await closedAndOpen(request);
+  await page.goto(`/${s.plan}/accounts`);
+  const row = page
+    .locator(".register-table tbody tr")
+    .filter({ hasText: "Closed Account" })
+    .first();
+  await row.getByText("Closed Account", { exact: true }).dblclick();
+  const account = page.getByRole("combobox", { name: "Account", exact: true });
+  await expect(account).toHaveValue("ZZ-TEST Shut");
+  await realClick(page, account);
+  const list = page.getByRole("listbox", { name: "Accounts", exact: true });
+  await expect(list.getByRole("option", { name: "ZZ-TEST Open", exact: true })).toBeVisible();
+  await expect(list.getByRole("option", { name: "ZZ-TEST Shut", exact: true })).toHaveCount(0);
 });

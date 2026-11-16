@@ -50,12 +50,12 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
     );
 }
 
-/** Per account: the sum of cleared (and reconciled) and of uncleared active transactions. */
 /** A row that counts in an account's balance: not deleted and not a split line. Usable in `where()` and in raw `sql`. */
 export function countsInBalance(): SQL {
   return and(isNull(transactions.deletedAt), isNull(transactions.parentTransactionId)) as SQL;
 }
 
+/** Per account: the sum of cleared (and reconciled) and of uncleared active transactions. */
 export async function balancesByAccount(
   db: Db,
   budgetId: string,
