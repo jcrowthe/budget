@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { PayeeSystem } from "./payees";
 
 // Repeats core's CLEARED_STATUSES; a Worker test asserts they are equal.
 /** True only for a real calendar date: "2026-02-30" and "2026-13-05" round-trip to a different string. */
@@ -20,6 +21,7 @@ export const Transaction = z
     budget_id: z.uuid(),
     account_id: z.uuid(),
     date: IsoDate,
+    payee_id: z.string().nullable(),
     payee_name: z.string().nullable(),
     category_id: z.uuid().nullable(),
     inflow_to_ready_to_assign: z.boolean(),
@@ -61,6 +63,7 @@ export const PlainClearedStatus = z.enum(["uncleared", "cleared"]);
 export const TransactionDetail = Transaction.extend({
   category_name: z.string().nullable(),
   category_group_name: z.string().nullable(),
+  payee_system: PayeeSystem.nullable(),
   updated_at: z.string(),
 }).openapi("TransactionDetail");
 
@@ -82,7 +85,22 @@ const requestFields = {
   account_id: z.string().min(1),
   date: requestDate,
   amount: Milliunits,
-  payee_name: z.string().max(200).nullable().optional(),
+  payee_id: z
+    .string()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe(
+      "An existing payee of the plan (from list_payees). Give payee_id or payee_name, not both.",
+    ),
+  payee_name: z
+    .string()
+    .max(200)
+    .nullable()
+    .optional()
+    .describe(
+      "Payee text; an exact (case-sensitive) match to a non-system payee of the plan, hidden ones included, is used, otherwise a new payee is created with the transaction. Null or empty clears the payee.",
+    ),
   category_id: z.string().min(1).nullable().optional(),
   inflow_to_ready_to_assign: z.boolean().optional(),
   memo: z.string().max(500).nullable().optional(),
@@ -101,6 +119,7 @@ const updateFields = z
     account_id: requestFields.account_id.optional(),
     date: requestFields.date.optional(),
     amount: requestFields.amount.optional(),
+    payee_id: requestFields.payee_id,
     payee_name: requestFields.payee_name,
     category_id: requestFields.category_id,
     inflow_to_ready_to_assign: requestFields.inflow_to_ready_to_assign,

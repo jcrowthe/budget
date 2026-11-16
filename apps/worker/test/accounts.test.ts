@@ -91,6 +91,34 @@ describe("create account", () => {
     expect((await month(bid, MONTH)).ready_to_assign).toBe(before.ready_to_assign + 250000);
   });
 
+  it("links every Starting Balance to the plan's one system payee", async () => {
+    const bid = await plan();
+    const first = (
+      (await (
+        await post(bid, { name: "A", type: "checking", balance: 1000, date: DAY })
+      ).json()) as Json
+    ).data;
+    const second = (
+      (await (
+        await post(bid, { name: "B", type: "creditCard", balance: 1000, date: DAY })
+      ).json()) as Json
+    ).data;
+    const sys = await env.DB.prepare(
+      "select id from payees where budget_id = ? and system = 'starting_balance'",
+    )
+      .bind(bid)
+      .all<{ id: string }>();
+    expect(sys.results).toHaveLength(1);
+    expect(first.starting_balance.payee_id).toBe(sys.results[0]?.id);
+    expect(second.starting_balance.payee_id).toBe(sys.results[0]?.id);
+    const logs = await env.DB.prepare(
+      "select count(*) as n from change_log where budget_id = ? and entity_type = 'payee'",
+    )
+      .bind(bid)
+      .first<{ n: number }>();
+    expect(logs?.n).toBe(1);
+  });
+
   it.each([
     ["creditCard", 150000, -150000],
     ["lineOfCredit", 5000, -5000],

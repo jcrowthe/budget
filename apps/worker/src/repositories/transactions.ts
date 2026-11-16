@@ -1,10 +1,10 @@
 import {
   ACCOUNT_TYPES,
   isOnBudget,
-  STARTING_BALANCE_PAYEE,
   startingBalanceFeedsReadyToAssign,
 } from "@budget/core/account-types";
 import type { EngineActivity } from "@budget/core/budget-engine";
+import type { PayeeSystem } from "@budget/schema/payees";
 import {
   and,
   eq,
@@ -21,6 +21,7 @@ import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
+import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 
 export type TransactionRow = typeof transactions.$inferSelect;
@@ -30,12 +31,13 @@ export function insertStmt(db: Db, row: TransactionRow) {
 }
 
 /** Inserts the row only while `guard` holds. Column order is the table's. */
-export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper) {
+export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, payeeIdSql?: SQL) {
   const r = row;
+  const payeeId = payeeIdSql ?? sql`${r.payeeId}`;
   return db
     .insert(transactions)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt} where exists ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId} where exists ${guard}`,
     );
 }
 
@@ -86,6 +88,7 @@ export async function activityByMonth(
     })
     .from(transactions)
     .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
     .where(
       and(
         eq(transactions.budgetId, budgetId),
@@ -95,7 +98,7 @@ export async function activityByMonth(
           and(
             inArray(accounts.type, UNCOUNTED_STARTING_TYPES),
             // null-safe: a payee-less row must not make the whole NOT(...) NULL and drop out of the WHERE
-            sql`coalesce(${transactions.payeeName}, '') = ${STARTING_BALANCE_PAYEE}`,
+            sql`coalesce(${payees.system}, '') = 'starting_balance'`,
             isNull(transactions.categoryId),
             eq(transactions.inflowToReadyToAssign, false),
           ) as SQLWrapper,
@@ -145,6 +148,7 @@ export async function openAccountsBalances(
 export type TransactionDetailRow = TransactionRow & {
   categoryName: string | null;
   groupName: string | null;
+  payeeSystem: PayeeSystem | null;
 };
 
 // Soft-deleted categories and groups still join, so an old row keeps its label.
@@ -154,16 +158,27 @@ const detailSelect = (db: Db) =>
       t: transactions,
       categoryName: categories.name,
       groupName: categoryGroups.name,
+      payeeName: payees.name,
+      payeeSystem: payees.system,
     })
     .from(transactions)
     .leftJoin(categories, eq(categories.id, transactions.categoryId))
-    .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId));
+    .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
+    .leftJoin(payees, eq(payees.id, transactions.payeeId));
 
 const toDetail = (r: {
   t: TransactionRow;
   categoryName: string | null;
   groupName: string | null;
-}): TransactionDetailRow => ({ ...r.t, categoryName: r.categoryName, groupName: r.groupName });
+  payeeName: string | null;
+  payeeSystem: PayeeSystem | null;
+}): TransactionDetailRow => ({
+  ...r.t,
+  payeeName: r.payeeName ?? r.t.payeeName,
+  categoryName: r.categoryName,
+  groupName: r.groupName,
+  payeeSystem: r.payeeSystem,
+});
 
 export async function findDetail(
   db: Db,
@@ -214,11 +229,14 @@ export async function listDetailForPlan(
       categoryName: categories.name,
       groupName: categoryGroups.name,
       accountName: accounts.name,
+      payeeName: payees.name,
+      payeeSystem: payees.system,
     })
     .from(transactions)
     .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))
     .leftJoin(categories, eq(categories.id, transactions.categoryId))
     .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
     .where(and(...conds));
   return rows.map((r) => ({ ...toDetail(r), accountName: r.accountName }));
 }
@@ -233,7 +251,7 @@ function holdsCondition(before: TransactionRow) {
     isNull(t.deletedAt),
     same(t.accountId, before.accountId),
     same(t.date, before.date),
-    same(t.payeeName, before.payeeName),
+    same(t.payeeId, before.payeeId),
     same(t.categoryId, before.categoryId),
     same(t.inflowToReadyToAssign, before.inflowToReadyToAssign),
     same(t.memo, before.memo),
@@ -260,6 +278,7 @@ export function updateIfHoldsStmt(
       accountId: after.accountId,
       date: after.date,
       payeeName: after.payeeName,
+      payeeId: after.payeeId,
       categoryId: after.categoryId,
       inflowToReadyToAssign: after.inflowToReadyToAssign,
       memo: after.memo,
