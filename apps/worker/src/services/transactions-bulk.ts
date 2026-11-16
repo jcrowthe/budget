@@ -337,10 +337,12 @@ export async function bulkTransactions(
     if (req.op === "clear" || req.op === "unclear") {
       // A selected row's own plan already writes it (and approves it), so the other plan's mirror write of that
       // row is dropped: it would overwrite the new state with the one read, and log the row twice.
+      // A selected row that was skipped has no plan of its own, so it keeps the other plan's write.
+      const own = new Set(planned.filter((p) => p.kind === "update").map((p) => p.id));
       for (const p of planned) {
         if (p.kind !== "update") continue;
-        p.plan.others = p.plan.others.filter((o) => o.kind === "insert" || !idSet.has(o.before.id));
-        p.plan.logs = p.plan.logs.filter((l) => l.entityId === p.id || !idSet.has(l.entityId));
+        p.plan.others = p.plan.others.filter((o) => o.kind === "insert" || !own.has(o.before.id));
+        p.plan.logs = p.plan.logs.filter((l) => l.entityId === p.id || !own.has(l.entityId));
       }
     }
 
@@ -454,7 +456,7 @@ export async function bulkTransactions(
           ? p.plan.others.flatMap((o) => (o.kind === "insert" ? [] : [o.before.id]))
           : [],
       ),
-    ).filter((id) => !idSet.has(id));
+    ).filter((id) => !changed.includes(id));
     return {
       op: req.op,
       changed,

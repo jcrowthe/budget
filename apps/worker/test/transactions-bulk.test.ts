@@ -97,6 +97,27 @@ describe("clear with both sides of a transfer selected", () => {
   }
 });
 
+describe("clear with a skipped other side selected", () => {
+  it("the skipped side is still approved, as a single clear would, with one log row", async () => {
+    const b = await plan();
+    const a1 = await account(b);
+    const a2 = await account(b);
+    const t = await tx(b, { account_id: a1, date: DAY, amount: -1000, transfer_account_id: a2 });
+    const o = t.transfer_transaction_id as string;
+    await setSql(t.id, "cleared = 'uncleared'");
+    await setSql(o, "approved = 0, cleared = 'cleared'");
+    const before = await logs(b);
+    const res = await bulkOk(b, { op: "clear", ids: [t.id, o] });
+    expect(res.changed).toEqual([t.id]);
+    expect(res.skipped).toEqual([{ id: o, reason: "unchanged" }]);
+    expect(res.others).toEqual([o]);
+    expect(await get(b, o)).toMatchObject({ approved: true, cleared: "cleared" });
+    expect((await get(b, t.id)).cleared).toBe("cleared");
+    expect(await logs(b)).toBe(before + 2);
+    expect((await changeLogOf(o)).filter((l) => l.action === "update")).toHaveLength(1);
+  });
+});
+
 describe("memo, categorize, flag", () => {
   it("sets memos; a transfer's other side follows; null clears", async () => {
     const b = await plan();
