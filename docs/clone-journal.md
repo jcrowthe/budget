@@ -5656,3 +5656,53 @@ fixes), the Plan-page Build (building its web side) and the import carry-over (i
   Plan-page Build; the plan import from a YNAB export after Reflect and the Plaid import).
 
 Ticket writes: 1 (EXF-612 priority). Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 68
+
+Children used 81 of 200. One Build ended; two are running.
+
+**Ended: the Reflect carry-over (`p_bce37969c15544d3aef56a825ebcb1d8`), merged as `e2bcd35` (PR #37)**,
+about 80 minutes, one card, about 4.50 dollars. EXF-549, EXF-548, EXF-588 and EXF-591 are Done.
+
+- I approved at its card: gate on the current base (`3a98673`), e2e 276 of 276 three times, changed
+  specs ten times, no flake, no migration. **So gates run on today's boxes.** I read `spendingRows` in
+  `repositories/reports.ts`: on-plan accounts (closed included), lines counted and parents never, no
+  on-plan transfers, no Ready to Assign inflows, no Starting Balances. Nothing out of bounds, no skip.
+- Its Reviewer found that the carry-over tasks I had asked for were written into the docs but not
+  into the code (the placeholder rule's test, the `localToday` import); both done on the second pass,
+  with a counter-check. `keepPreviousInPlan` now lives in `packages/schema/src/placeholder.ts`.
+- One gate failure on the way: its own spec measured a popover list before the month had loaded.
+- **Gap in what I asked:** my point 4 (a closed account in a past month) got an automated test for Net
+  Worth only; for Spending Breakdown it was driven by hand. The query has no closed filter, so the
+  behaviour is right; a test should come with the next Reflect Build (EXF-550 or EXF-552).
+- **Source limits:** the Tester wrote the limits out first and kept them. **The Designer overrode the
+  source tab's viewport several times** to find a breakpoint, although the brief forbade it in those
+  words, and said so itself. Evidence on EXF-573. Restating the limits works for the steps that do it;
+  the Designer does not.
+- On main: routes `reports/spending-breakdown`, its export, `reports/transactions`; tools
+  `get_spending_breakdown`, `list_report_transactions`; `packages/schema/src/spending-breakdown.ts`,
+  `zip.ts`, `reflect-format.ts`, `placeholder.ts`; the report's components in `apps/web/src/reflect/`.
+  **55 tools on main.**
+
+**Main is `e2bcd35`; live is `4e3eb7a`.** Four merges wait (transfers and splits; targets; account
+guards; Reflect), one migration. The tree of `e2bcd35` equals the gated head `a003430` (compared).
+**My condition for one more Deploy is met** (a gate passed on today's boxes): next plan. If it is
+refused again for the missing `deploy.env`, no further try until EXF-612 moves or the person answers.
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): head `d917a3c`, in review fixes ("fixed-size
+  guards for Auto-Assign batches, snooze writes guarded in one batch").
+- **Import carry-over** (`p_c81492d33faf41b1bc8a985e48688b83`): head `77afbf6`, already in review fixes
+  after 40 minutes ("payee insert guarded, Starting Balance not a match, reject in one batch").
+
+**Free now:** Reflect and the reports files. Candidates beside the two running Builds: the next reports
+(EXF-550 Spending Trends, EXF-552 Income v Expense: same files, one Build), and the plan import from a
+YNAB export (EXF-477) now that the ZIP module is on main; the latter also needs the transactions files
+the import Build holds. Decide at the plan.
+
+**Ticket writes:** 7 (four Done, three comments).
+
+**Backlog:** 62 open feature tickets (32 done; 5 in progress: EXF-500, 516, 519, 462, 463). Gap: open
+EXF-558, EXF-560, EXF-562, EXF-589 (Low); done now EXF-588, EXF-591. Template: twenty-nine (EXF-573
+and EXF-612 Urgent). Flow verdicts unchanged. Finished since each template's last review: Build 5,
+Deploy 7, Discover 2, Test user flow 5.
