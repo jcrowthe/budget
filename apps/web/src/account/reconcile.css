@@ -42,12 +42,15 @@
 }
 .reconcile-buttons {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: var(--space-2);
   margin-top: var(--space-1);
 }
 .reconcile-buttons button {
+  box-sizing: border-box;
   height: 32px;
+  margin: 0;
   min-width: 72px;
   padding: 0 var(--space-3);
   border: 0;
@@ -141,11 +144,14 @@
 }
 .reconcile-bar-buttons {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   margin-left: auto;
 }
 .reconcile-bar-buttons button {
+  box-sizing: border-box;
   height: 32px;
+  margin: 0;
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-lg);
