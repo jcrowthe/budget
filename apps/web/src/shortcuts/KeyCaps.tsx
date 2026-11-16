@@ -11,7 +11,7 @@ export function KeyCaps({
   variant: "dialog" | "tooltip";
 }) {
   return (
-    <span className={`key-caps ${variant}`}>
+    <span className={`key-caps is-${variant}`}>
       {caps.map((cap, i) =>
         typeof cap !== "string" ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: caps are a fixed list

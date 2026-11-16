@@ -33,8 +33,10 @@
 .dialog.shortcuts .dialog-head h2 {
   font-size: var(--font-size-lg);
   font-weight: 600;
+  line-height: var(--line-height);
 }
 .dialog.shortcuts .icon-button {
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,11 +52,13 @@
   padding: var(--space-3) var(--space-3) 0;
   font: 500 var(--font-size-sm) / 1.5 var(--font);
   outline: none;
+  scrollbar-color: var(--inputBackground) transparent;
 }
 .shortcuts-scroll h3 {
   margin: 0;
   font-size: var(--font-size-md);
   font-weight: 600;
+  line-height: var(--line-height);
 }
 .shortcuts-scroll ul {
   column-count: 2;
@@ -76,7 +80,7 @@
   display: flex;
   gap: var(--space-1);
 }
-.key-caps.dialog .key-cap {
+.key-caps.is-dialog .key-cap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -144,7 +148,7 @@
 .shortcut-tooltip.is-start {
   left: 0;
 }
-.key-caps.tooltip .key-cap {
+.key-caps.is-tooltip .key-cap {
   display: inline-flex;
   align-items: center;
   justify-content: center;

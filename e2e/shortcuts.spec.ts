@@ -123,3 +123,22 @@ test("A9 Shift+. collapses and leaves the plan page's own keys alone", async ({
   await expect(row(page, PHONE)).toHaveAttribute("aria-selected", "true");
   await removePlan(request, seed);
 });
+
+test("P1 dialog rows are 45 high and the key caps group has no box of its own", async ({
+  page,
+  request,
+}) => {
+  const id = await newPlan(request);
+  await page.goto(`/${id}/budget`);
+  await blankSpot(page);
+  await page.keyboard.press("?");
+  const li = dialog(page).locator("li").first();
+  // Source: each row is 45px high (padding 8 0, line-height 21), measured on the test plan's Plan page at 1600x813.
+  await expect.poll(async () => Math.round((await li.boundingBox())?.height ?? 0)).toBe(45);
+  // Source: .shortcut-keys has padding 0 and a transparent background (same measurement).
+  const caps = li.locator(".key-caps");
+  expect(await caps.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+    "rgba(0, 0, 0, 0)",
+  );
+  expect(await caps.evaluate((el) => getComputedStyle(el).paddingLeft)).toBe("0px");
+});
