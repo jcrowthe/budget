@@ -88,6 +88,7 @@ export const MoneyMove = z
     from_category_id: z.uuid().nullable(),
     to_category_id: z.uuid().nullable(),
     amount: Milliunits.positive(),
+    kind: z.enum(["move", "cover"]).optional(),
   })
   .refine((v) => v.from_category_id !== null || v.to_category_id !== null, {
     message: "Both sides cannot be Ready to Assign",

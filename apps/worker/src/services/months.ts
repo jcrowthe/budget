@@ -108,14 +108,79 @@ export async function setAssigned(
 }
 
 /**
+ * Test seam: the statements of one move. The change_log rows come first and the cell writes second, every
+ * statement guarded on all cells still holding what was read; the second write also needs the first to have
+ * changed a row, so the two sides are written together or not at all.
+ */
+export function buildMoveBatch(
+  db: Db,
+  actor: string,
+  v: MoneyMove,
+  moveId: string,
+  reads: { id: string; delta: number; before: number | undefined }[],
+  now: string,
+) {
+  const cells = reads.map((s) => ({
+    ...s,
+    cell: { budgetId: v.budget_id, month: v.month, categoryId: s.id },
+  }));
+  const out: MonthCategory[] = cells.map((s) => ({
+    month: v.month,
+    category_id: s.id,
+    assigned: (s.before ?? 0) + s.delta,
+  }));
+  const allHold = sql`${sql.join(
+    cells.map((s) => sql`exists ${monthCatRepo.holds(db, s.cell, s.before)}`),
+    sql` and `,
+  )}`;
+  const logs = cells.map((s, i) =>
+    changeLogInsertIf(
+      db,
+      {
+        budgetId: v.budget_id,
+        actor,
+        action: "update",
+        entityType: "month_category",
+        entityId: mcEntityId(s.id, v.month),
+        before: { month: v.month, category_id: s.id, assigned: s.before ?? 0 },
+        after: {
+          ...out[i],
+          move: {
+            id: moveId,
+            month: v.month,
+            from_category_id: v.from_category_id,
+            to_category_id: v.to_category_id,
+            amount: v.amount,
+            kind: v.kind ?? "move",
+          },
+        },
+      },
+      db.select({ x: sql`1` }).from(sql`(select 1)`).where(allHold),
+    ),
+  );
+  const writes = cells.map((s, i) =>
+    monthCatRepo.setIfHoldsStmt(
+      db,
+      s.cell,
+      s.before,
+      out[i]?.assigned ?? 0,
+      now,
+      i === 0 ? allHold : sql`changes() > 0`,
+    ),
+  );
+  return { stmts: [...logs, ...writes], logCount: logs.length, out };
+}
+
+/**
  * Moves `amount` of Assigned in a month from one category to another. A null side is Ready to Assign: only the
- * other category's Assigned changes. Both sides are guarded on both cells being unchanged, in one batch.
+ * other category's Assigned changes. One batch; every row of the call shares one `move.id` in its change_log
+ * `after` (see docs/rta-moves-design.md for how Recent Moves and Undo read it).
  */
 export async function moveMoney(
   env: Env,
   actor: string,
   input: MoneyMove,
-): Promise<MonthCategory[]> {
+): Promise<{ move_id: string; cells: MonthCategory[] }> {
   const v = MoneyMove.parse(input);
   const db = getDb(env);
   await requirePlan(db, v.budget_id);
@@ -126,63 +191,19 @@ export async function moveMoney(
   for (const s of sides) {
     if (!(await categoriesRepo.findActive(db, v.budget_id, s.id))) throw new NotFound("Category");
   }
+  const moveId = crypto.randomUUID();
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const now = new Date().toISOString();
     const reads = await Promise.all(
       sides.map(async (s) => ({
         ...s,
-        cell: { budgetId: v.budget_id, month: v.month, categoryId: s.id },
         before: (await monthCatRepo.find(db, v.budget_id, v.month, s.id))?.assigned,
       })),
     );
-    const out: MonthCategory[] = reads.map((s) => ({
-      month: v.month,
-      category_id: s.id,
-      assigned: (s.before ?? 0) + s.delta,
-    }));
-    // Every statement is guarded on all cells still holding what was read (the log rows run before any write).
-    const allHold = sql`${sql.join(
-      reads.map((s) => sql`exists ${monthCatRepo.holds(db, s.cell, s.before)}`),
-      sql` and `,
-    )}`;
-    const logs = reads.map((s, i) =>
-      changeLogInsertIf(
-        db,
-        {
-          budgetId: v.budget_id,
-          actor,
-          action: "update",
-          entityType: "month_category",
-          entityId: mcEntityId(s.id, v.month),
-          before: { month: v.month, category_id: s.id, assigned: s.before ?? 0 },
-          after: {
-            ...out[i],
-            move: {
-              from_category_id: v.from_category_id,
-              to_category_id: v.to_category_id,
-              amount: v.amount,
-            },
-          },
-        },
-        db.select({ x: sql`1` }).from(sql`(select 1)`).where(allHold),
-      ),
-    );
-    // The first write needs every cell to hold; the second needs the first to have changed a row, so the two
-    // sides are written together or not at all.
-    const writes = reads.map((s, i) =>
-      monthCatRepo.setIfHoldsStmt(
-        db,
-        s.cell,
-        s.before,
-        out[i]?.assigned ?? 0,
-        now,
-        i === 0 ? allHold : sql`changes() > 0`,
-      ),
-    );
-    const stmts = [...logs, ...writes];
+    const { stmts, logCount, out } = buildMoveBatch(db, actor, v, moveId, reads, now);
     const results = await db.batch(stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]]);
-    const first = results[logs.length];
-    if (first && first.meta.changes > 0) return out;
+    const first = results[logCount];
+    if (first && first.meta.changes > 0) return { move_id: moveId, cells: out };
   }
   throw new Conflict("Assigned amounts");
 }
