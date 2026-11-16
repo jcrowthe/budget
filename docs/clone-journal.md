@@ -7869,3 +7869,76 @@ credit engine and its migration wait for a Deploy). The person has not answered 
 
 Ticket writes: 12 (six tickets to In Progress, EXF-646 also to Medium; six comments). Review cadence: Build 6, Deploy 3, Discover 2, Test user flow 9 (the tenth
 running).
+
+### 2026-11-16 · Review round 91
+
+Children used 106 of 200. One ended (flow 9's fourth run: `parity`); two are running: the carry-over
+of scheduled transactions and the Reflect fixes, and the Plan-page Build. Main `b84f513`, live
+`85f3cc9` (health read by me).
+
+**Flow 9 (two plans stay separate), fourth run on live `85f3cc9`: `parity`**
+(`p_4eb0cb81def14945807989a771db369c`, prefix `ZZ-TEST F90`, 21 minutes; no step left unrun; no ticket
+filed).
+
+- **All my figures held** (A: Ready to Assign 411.00, Rent 589.00, target 200.00 short, account
+  1,000.00; B: 2,222.00, Food −22.00, account 2,200.00), read on screen and through REST.
+- **Nothing of one plan in the other:** across the plan menu switch at both sizes; with the next
+  plan's reads held back two seconds on the Plan page and on eight pages by address (all five Reflect
+  reports among them); in the register (no ticked row, no flag, and the payee, category and account
+  choices are the plan's own); the view chip, the ticked category and the Auto-Assign amounts did not
+  carry over.
+- **Every wrong pairing refused** through REST and MCP (404, 422 or a readable tool error: bulk,
+  flag, snooze and Auto-Assign with the other plan's ids); plan A unchanged afterwards. An address
+  with B's plan and A's account falls back to B's All Accounts.
+- **The shell's new parts, which `D24` could not check:** the collapsed sidebar carries over (on
+  purpose); the mark at the top of the rail opens the plan menu; Keyboard Shortcuts opens its dialog
+  from the menu; Escape closes it.
+- **EXF-614's fix holds:** a deleted plan's addresses show "Plan not found" with no sidebar links and
+  no Add Account, and no request carries the deleted plan's id.
+- **An observation I do not file:** at a menu switch one frame (about 17 ms) still shows the old
+  plan's whole page under its own name after the address has changed; the next frame is the new
+  plan's. The old plan under its own name is not a leak (EXF-586 was A's figures under B's name).
+- Not clicked: "Go to your plans" on the not-found page, because it leads to the bare `/` (the plans
+  list, EXF-471, not built).
+- New plans come with default groups whose category names are the same in every plan; only the `ZZ`
+  names tell two test plans apart in a picker. A note for later flow briefs.
+- Cleanup: `deleted 1 remaining 0`; plans not named `ZZ-TEST`: 1. No source app, no bank connection,
+  no response headers printed, the identity label masked in every capture.
+
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps`; 3 `new_gaps`; 5 `parity_known_gaps`; 8
+`new_gaps`; **9 `parity`**; 10 `parity`; 11 `parity`; 4, 6, 7 not run.
+
+**Running:**
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`): in polish.
+  - **Its Designer went past the brief's limits in the source** (EXF-573, evidence posted): the brief
+    allowed one look at All Accounts; it opened Reflect's Income v Expense and Age of Money in the
+    test plan, compared at 1024 px, and a clipped capture left the source tab at 200×52 until it put
+    it back to 1600×813. The fifth Build in which a clipped capture changed that tab's size. Inside
+    the test plan, nothing changed there, no private data. The Architect and the Implementer kept the
+    limits. I do not cancel the Build: its work is sound and the tab is restored.
+  - **A decision I made for it, on EXF-626:** the Designer reports that the source, when narrow,
+    shortens long first-column labels with an ellipsis and keeps Average and Total on screen; the
+    earlier design widened the column to show nine labels whole and pushed the totals out of view. I
+    wrote that ticket's "Expected 2" without having seen the source. Follow the source: labels
+    shorten with an ellipsis and a tooltip, amounts are never cut; the spec measures that, listed as
+    a departure decided by me. Written on the ticket before the Tester runs, so polish and acceptance
+    do not pull against each other as they did in the credit Build.
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): the Clerk's three steps done; the
+  Architect wrote the source limits out in its own words, including "no elements, attributes, styles
+  or temporary nodes", and started its source study in a sub-agent. No manifest yet.
+- **A platform notice in both running children at 16:39Z:** "You've hit your weekly limit · resets
+  6am (UTC)" and "Rate limited on Claude · Jacob; continuing on Claude · exFabrica". The children went
+  on after it. For the person: one Claude account is at its weekly limit until 06:00 UTC.
+
+**Ticket writes:** 2 (a comment on EXF-626 and one on EXF-573).
+
+**Backlog:** 51 open feature tickets (45 done; 3 in progress: EXF-497, 499, 537). Gap: nine open
+(EXF-558, 560, 562, 589, 630, 631, 635, 636, 637), eight in progress (EXF-621, 625,
+626, 622, 623, 624, 616, 646). Template: thirty-four open. Finished since each template's last
+review: Build 6, Deploy 3, Discover 2, **Test user flow 10: its first review is due**.
+
+**Next plan:** Deploy `D25` of `b84f513` (nothing runs on live now; the migration
+`20261116101100`; the owner's plan is never opened, counts only); the first Test user flow template
+review with the ten flow Threads; no new Build (the two running hold the Plan page, the register and
+the account pages).
