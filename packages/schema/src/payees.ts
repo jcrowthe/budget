@@ -16,6 +16,8 @@ export const Payee = z
     hidden: z.boolean(),
     system: PayeeSystem.nullable(),
     last_category_id: z.string().nullable(),
+    /** Set on the "Transfer : <account>" entries, which stand for an open account of the plan. */
+    transfer_account_id: z.string().nullable(),
   })
   .openapi("Payee");
 export type Payee = z.infer<typeof Payee>;
@@ -42,30 +44,58 @@ export function compareNames(
 export type PayeeMenu = {
   top: null | { kind: "create"; text: string } | { kind: "hidden"; payees: Payee[]; label: string };
   help: string | null;
+  transfersHeading: "Payments and Transfers";
+  /** The transfer entries ("Transfer : <account>"), all but the current account's. */
+  transfers: Payee[];
   heading: "Saved Payees";
   saved: Payee[];
   hint: string | null;
-  /** Index into [top, ...saved] (or into saved when top is null); -1 when nothing is highlighted. */
+  /** Index into [top?, ...transfers, ...saved]; -1 when nothing is highlighted. */
   active: number;
 };
 
+const TRANSFER_NAME_PREFIX = "Transfer : ";
+
 /** What the payee picker lists for the typed text. Pure. */
-export function payeeMenu(payees: Payee[], text: string): PayeeMenu {
+export function payeeMenu(
+  payees: Payee[],
+  text: string,
+  opts: { currentAccountId?: string | null; transfers?: boolean } = {},
+): PayeeMenu {
   const t = text.trim();
-  const visible = payees.filter((p) => !p.hidden && p.system === null).sort(compareNames);
+  const ordinary = payees.filter((p) => !p.transfer_account_id);
+  const visible = ordinary.filter((p) => !p.hidden && p.system === null).sort(compareNames);
+  const needle = t.toLowerCase();
+  const transfers =
+    opts.transfers === false
+      ? []
+      : payees
+          .filter((p) => p.transfer_account_id && p.transfer_account_id !== opts.currentAccountId)
+          .filter((p) => {
+            if (needle === "") return true;
+            const name = p.name.startsWith(TRANSFER_NAME_PREFIX)
+              ? p.name.slice(TRANSFER_NAME_PREFIX.length)
+              : p.name;
+            return (
+              p.name.toLowerCase().includes(needle) ||
+              `to/from ${name}`.toLowerCase().includes(needle)
+            );
+          })
+          .sort(compareNames);
   if (t === "") {
     return {
       top: null,
       help: null,
+      transfersHeading: "Payments and Transfers",
+      transfers,
       heading: "Saved Payees",
       saved: visible,
-      hint: visible.length === 0 ? "Start typing to add a payee." : null,
+      hint: visible.length === 0 && transfers.length === 0 ? "Start typing to add a payee." : null,
       active: -1,
     };
   }
-  const needle = t.toLowerCase();
   const saved = visible.filter((p) => p.name.toLowerCase().includes(needle));
-  const hiddenExact = payees.filter((p) => p.hidden && p.system === null && p.name === t);
+  const hiddenExact = ordinary.filter((p) => p.hidden && p.system === null && p.name === t);
   const top: PayeeMenu["top"] =
     hiddenExact.length > 0
       ? {
@@ -77,12 +107,19 @@ export function payeeMenu(payees: Payee[], text: string): PayeeMenu {
               : `${hiddenExact.length} matching payees are hidden`,
         }
       : { kind: "create", text: t };
+  // [top, ...transfers, ...saved]: the first saved match, else the first transfer, else the top item.
+  const active = saved.length > 0 ? 1 + transfers.length : transfers.length > 0 ? 1 : 0;
   return {
     top,
-    help: top.kind === "create" && saved.length === 0 ? `"${t}" will be created as a payee.` : null,
+    help:
+      top.kind === "create" && saved.length === 0 && transfers.length === 0
+        ? `"${t}" will be created as a payee.`
+        : null,
+    transfersHeading: "Payments and Transfers",
+    transfers,
     heading: "Saved Payees",
     saved,
     hint: null,
-    active: saved.length > 0 ? 1 : 0,
+    active,
   };
 }

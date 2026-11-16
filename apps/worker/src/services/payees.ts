@@ -1,7 +1,13 @@
 import { compareNames, type Payee, type PayeeSystem } from "@budget/schema/payees";
+import {
+  TRANSFER_PAYEE_PREFIX,
+  transferPayeeId,
+  transferPayeeName,
+} from "@budget/schema/transfers";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
+import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as payeesRepo from "../repositories/payees";
 import { TransactionRefused } from "./transactions";
@@ -15,6 +21,7 @@ export function payeeToApi(row: payeesRepo.PayeeRow, lastCategoryId: string | nu
     hidden: row.hidden,
     system: row.system,
     last_category_id: lastCategoryId,
+    transfer_account_id: null,
   };
 }
 
@@ -28,10 +35,19 @@ export async function listPayees(
   const rows = await payeesRepo.listForPlan(db, budgetId, {
     includeHidden: opts.includeHidden ?? false,
   });
+  // The transfer entries stand for the plan's open accounts; they are derived here, never stored.
+  const accounts = await accountsRepo.list(db, budgetId, { includeClosed: false });
+  const transfers: Payee[] = accounts.map((a) => ({
+    id: transferPayeeId(a.id),
+    name: transferPayeeName(a.name),
+    hidden: false,
+    system: null,
+    last_category_id: null,
+    transfer_account_id: a.id,
+  }));
   const needle = opts.q?.toLowerCase() ?? "";
-  return rows
+  return [...rows.map((r) => payeeToApi(r, r.lastCategoryId)), ...transfers]
     .filter((r) => needle === "" || r.name.toLowerCase().includes(needle))
-    .map((r) => payeeToApi(r, r.lastCategoryId))
     .sort(compareNames);
 }
 
@@ -62,6 +78,13 @@ export async function resolvePayee(
     );
   }
   if (hasId) {
+    if (input.payee_id?.startsWith(TRANSFER_PAYEE_PREFIX)) {
+      throw new TransactionRefused(
+        422,
+        "unprocessable_entity",
+        "Use transfer_account_id for a transfer",
+      );
+    }
     if (input.payee_id === null) return { payeeId: null, name: null, system: null };
     const p = await payeesRepo.findActive(db, budgetId, input.payee_id as string);
     if (!p)

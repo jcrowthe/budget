@@ -13,7 +13,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
     note: `without account_id; ${LIST_NOTE}`,
   },
   "GET /budgets/{budget_id}/transactions/{transaction_id}": { tool: "get_transaction" },
-  "POST /budgets/{budget_id}/transactions": { tool: "create_transaction" },
+  "POST /budgets/{budget_id}/transactions": { tool: ["create_transaction", "create_transfer"] },
   "PATCH /budgets/{budget_id}/transactions/{transaction_id}": { tool: "update_transaction" },
   "DELETE /budgets/{budget_id}/transactions/{transaction_id}": { tool: "delete_transaction" },
 };
