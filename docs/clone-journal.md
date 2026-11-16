@@ -5706,3 +5706,47 @@ the import Build holds. Decide at the plan.
 EXF-558, EXF-560, EXF-562, EXF-589 (Low); done now EXF-588, EXF-591. Template: twenty-nine (EXF-573
 and EXF-612 Urgent). Flow verdicts unchanged. Finished since each template's last review: Build 5,
 Deploy 7, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Plan round 69
+
+Children used 83 of 200. Two started now; four are running with the Plan-page Build and the import
+carry-over (both in review fixes). Main `e2bcd35`, live `4e3eb7a`. No ticket was filed at the last
+review.
+
+**Started:**
+
+1. **Deploy of main `e2bcd35`, third attempt** (`p_a6a99ac78c284ea7bef1a14072609fe8`), `gated_commit`
+   `a003430` (trees compared: identical), run prefix `ZZ-TEST D19`. Four merges, one migration (the
+   pending script, read-only, lists only `20261116100500_transfers_splits.sql`). The brief of round 67
+   plus: the Spending Breakdown figures for the same test plan (total 100,000; Food 60,000 at 60
+   percent, Fun 40,000 at 40 percent; one drill-down row of -60,000; the ZIP's two entries listed with
+   Python), 55 tools, and the report's screen checked first in the browser. It says: **if the deploy
+   step again reports `deploy.env` missing, report that line and stop.** My condition for this try was
+   met: a Build's gate passed on today's boxes. If it fails the same way, no fourth try before
+   EXF-612 moves.
+2. **Reflect: Spending Trends and Income v Expense** (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`; EXF-550,
+   EXF-552), one Build: same files, same frame, same spending query.
+   - Spending comes from `spendingRows` alone; income is written once beside it (rows sent to Ready to
+     Assign, by payee; never a Starting Balance; adjustments under their own row).
+   - Pure arithmetic reproducing both tickets' figures; the chart is the app's own SVG; the ZIP reuses
+     `zip.ts`; the Income v Expense export is one CSV without BOM.
+   - The drill-down read gains `income_payee_id`, `income=true`, `expenses=true`.
+   - Tools `get_spending_trends`, `get_income_expense`, with the sign of every figure stated.
+   - The test owed from the last Reflect Build (a closed account in Spending Breakdown).
+   - **Source limits, tightened once more for the Designer:** "never override the viewport, not even to
+     find a breakpoint and not even if you restore it: a breakpoint is read from the stylesheet's media
+     queries or written not compared", and "a polish item that cannot be compared inside these limits
+     is written as not compared; the limits are never widened to compare it".
+   - The guard about missing files is the corrected one ("do not stop because a file is missing").
+   - Holds `apps/web/src/reflect/**`, `api/reports.ts` and the reports files of the Worker and schema.
+
+**How the four fit:** disjoint files. The Reflect Build is told what the import Build adds to
+`transactions` (new columns, unapproved rows that count like any row) and that its queries need no
+condition on them. Three Builds now add calls to the timestamp test; each brief says to keep every
+entry at a rebase.
+
+**Not started:** the credit engine (after the Plan-page Build); the plan import from a YNAB export
+(after the Plaid import frees the transactions files); flow tests (after a release).
+
+Ticket writes: 4 (two to In Progress, two comments). Review cadence: Build 5, Deploy 7, Discover 2,
+Test user flow 5. **Round 70's review is a check-in.**
