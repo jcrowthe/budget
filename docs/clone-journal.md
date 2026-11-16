@@ -5208,3 +5208,75 @@ release. The plan declared in round 62 stands: the Deploy when EXF-593 merges, t
 engine after the carry-over, Auto-Assign with snooze after the carry-over.
 
 Ticket writes: 0. Review cadence: Build 0, Deploy 5, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 63
+
+Children used 75 of 200. Two Builds ended; one is running (EXF-593, in its final gate).
+
+**Ended 1: the targets carry-over (`p_6abff514f4ad46e8a4d902a0aacef431`), merged as `4da55a7` (PR #34)**,
+69 minutes, one card, about 8 dollars. EXF-508, EXF-514 and EXF-592 are Done.
+
+- I approved at its card: gate on the current base (`6c73a00`), e2e 252 of 252 three times, changed
+  specs ten times, no flake, no migration. I read the branch: nothing out of bounds, `packages/core`
+  only gained `targetBar`, no skipped test.
+- Its Reviewer found two real defects the first Build never had reviewed: **Assign added its amount
+  twice on a quick second click**, and the form stuck after saving an unchanged target. Both fixed with
+  tests that fail without the fix. Its Designer found twelve polish items in two passes (the calendar's
+  month arrows drew nothing). All six points I asked for got tests (`today` validated on four operations
+  and two tools; Assign lowers Ready to Assign by exactly its amount; no target across a plan switch;
+  the tool description; a split's lines counting toward a target; the form at 1024 wide).
+- Source: the Designer and the Tester stayed on the test plan's Plan page, in dark, left with Cancel,
+  saved nothing. One extra Escape cleared a selection there and was re-made: harmless.
+- On main: `routes/targets.ts`, `mcp/tools/targets.ts` (`set_category_target`, `delete_category_target`),
+  `packages/schema/src/target-wording.ts`, `target-form.ts`, `apps/web/src/api/targets.ts`, `api/today.ts`
+  (`localToday`), the Target card, form and calendar in `apps/web/src/plan/`, `e2e/targets-*.spec.ts`,
+  a target case in `e2e/plan-switch.spec.ts`. **52 tools on main.**
+- Left: a second copy of `localToday` in `apps/web/src/api/accounts.ts` (out of its bounds): give it to
+  the next Build that holds that file.
+
+**Ended 2: the Reflect Build (`p_9f66acebf3b14e939ad0a7e27b241cb2`), abandoned by my answer on its
+`checks_stuck` card**, 49 minutes, about 8.60 dollars. Not its fault.
+
+- Its design (`3d74855`) and code (`41f818e`, 39 files, +4381/-79) are finished and on its branch;
+  `pnpm check` passed there three times.
+- **The platform's `checks` step failed four times in 2 to 3 seconds: `/workspace/.exfab/bin/lib.sh: No
+  such file or directory`.** The Build's box had lost the platform's own files (also `request.json`, the
+  profile, and the Playwright browser, which the Implementer had to install again). The box was rebuilt
+  mid-Thread. The Implementer was sent four times to "fix" a check it could not see.
+- The card offered Retry or Abandon. A retry would have failed the same way, and every later code step
+  needs the same files. Abandon and carry over: the third carry-over today.
+- I tried the branch on the new main (`4da55a7`) in a throwaway worktree: **it merges cleanly, 39 files.**
+- Evidence added to **EXF-611** (this is very likely what parked the first targets Build too), with
+  three requests: a step that cannot find its helper files says so and restores them; no fix turn when
+  the check command never ran; the stuck card shows the step's last lines.
+- EXF-549, EXF-548, EXF-588 and EXF-591 stay In Progress; comment on EXF-549.
+- **One thing for the carry-over to check:** the Implementer said its plan-switch spec for Net Worth also
+  passes with the old placeholder put back (the page remounts on a plan change), so the spec does not
+  prove the placeholder fix by itself.
+
+**Running: EXF-593 with EXF-590 and EXF-587** (`p_563250b166984564b84cb2a32e722725`): head `0e3c71b`,
+already rebased onto `4da55a7`, in `final_gate`. Its polish added: All Accounts with no open account
+disables Add Transaction. When its card comes with base `4da55a7`: read the branch, approve, Deploy.
+
+**Main is `4da55a7`; live is `4e3eb7a`.** Two merges wait (transfers and splits; targets), one migration.
+
+**Learned:**
+- A box can be rebuilt under a running Build. The signs: the Playwright browser gone again, `request.json`
+  gone, a code step failing in seconds. When I see them in a transcript: do not wait for cards; the
+  Thread cannot finish. Carry over.
+- Carry-overs have now worked three times in 30 to 70 minutes and each time the later steps found real
+  defects. The cost is one child each: 3 of my 75.
+
+**Ticket writes:** 6 (three Done, three comments).
+
+**Backlog:** 67 open feature tickets (30 done; 2 in progress: EXF-549, EXF-548). Gap: in progress
+EXF-593 (High), EXF-587, EXF-588, EXF-590, EXF-591; open EXF-558, EXF-560, EXF-562, EXF-589 (Low); done
+now EXF-592. Template: twenty-eight. Flow verdicts unchanged. Finished since each template's last
+review: Build 2 (the carry-over, the abandoned Reflect Build), Deploy 5, Discover 2, Test user flow 5.
+
+**Next plan:** (1) the Reflect carry-over from `origin/exfab/p_9f66acebf3b14e939ad0a7e27b241cb2` (head
+`41f818e`); (2) the Plan page and `packages/core` are free now: Auto-Assign with snooze (EXF-519,
+EXF-516) on the Plan page, and decide whether the credit engine (EXF-532, EXF-535) can run beside it
+(it changes `packages/core` and reads `transactions`: by my new rule it must not run beside a Build that
+changes what a transaction row means; EXF-593 does not, it only reads); (3) the Deploy the moment
+EXF-593 merges.
