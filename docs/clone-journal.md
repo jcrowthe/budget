@@ -6105,3 +6105,49 @@ left open; flow 10 again in the same child.
 Build); scheduled transactions (after the register Build); private screens (waiting for the person).
 
 Ticket writes: 0. Review cadence: Build 7, Deploy 8, Discover 2, Test user flow 6.
+
+### 2026-11-16 · Review round 73
+
+Children used 87 of 200. One child ended: the Deploy. Three Builds are running.
+
+**Ended: the Deploy of `c9e9d1c` (`p_0d0b7a1cf82b47e8a58ef3627a6978bd`), passed.**
+**Live is https://budget.doxen.dev at `c9e9d1c`**, equal to main (I read the health endpoint myself).
+The import from Plaid and its per-run budget are live.
+
+- Gate: checks 145 s, browser run skipped (tree equal to the gated `141f5e3`). Release: the Time
+  Travel bookmark phase ran; **both migrations applied** (`20261116100800_plaid_import.sql`,
+  `20261116100900_sync_failed_at.sql`), none pending; smoke ok; 401 without credentials.
+- REST on its test plan, all pass: hand-entered rows read `approved` true, `import_id` null, `matched`
+  false; the `needs` read returns only the uncategorized row; approve of approved rows changes
+  nothing; reject answers 409 `transaction_approved`; the plan's sync answers an empty list; **0 bank
+  connections**; the connection schema carries `sync_failed_at`; working balance 482,660 as computed.
+  One expectation of mine was off and it said so plainly: `needs_attention_count` does not count the
+  Starting Balance (it goes to Ready to Assign and needs no category). Right behaviour.
+- MCP: **59 tools**, the four new ones present and agreeing with REST.
+- Browser at both sizes: the register, an added row, the Plan page and Spending Breakdown load with no
+  failed request and no console error. At 1024 its "before" read ran while the register was still
+  loading (its script; it said so and did not re-run): the add and the balances were right.
+- Cleanup: `purge 'ZZ-TEST D20'` printed `deleted 1 remaining 0`. One plan that is not a test plan.
+  No bank connection made, no call to Plaid.
+
+**My side-turn decision since the last review:** the Reflect Build's first card (two reports) got a
+**Regate**: its gate was clean (e2e 291 of 291 three times, acceptance 18 of 18, sixteen polish items)
+but ran on `9e77748` while main was `c9e9d1c`. That side turn's box was stale (it did not know
+`c9e9d1c`); I went by the journal, as my rule says. One known issue to decide at its next card: in the
+Spending Trends chart the monthly-total marker's hover area lies under the bars, so on a month with
+spending only its upper half opens the marker's tooltip. Its branch is now rebased (head `1af079d`).
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): rework at `b6af0b3`, on its way to the gate.
+- **Reflect: two reports** (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`): regating on `c9e9d1c`.
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): built (`d539ba2`), in its checks and reviews.
+
+**Ticket writes:** none.
+
+**Backlog:** 61 open feature tickets (33 done; 7 in progress). Gap: open EXF-558, EXF-560, EXF-562,
+EXF-589, EXF-614 (Low). Template: twenty-nine. Flow verdicts unchanged. Finished since each template's
+last review: Build 7, Deploy 9, Discover 2, Test user flow 6. **One more Deploy and the Deploy template
+review is due.**
+
+**Next plan:** flow 5 on live against the Plaid Sandbox, with the import (and flow 10 again). The
+cards of the three Builds may be approved again as they come: the Deploy has released.
