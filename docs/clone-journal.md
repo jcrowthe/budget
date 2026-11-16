@@ -8708,3 +8708,48 @@ useful one; child budget 115 of 200.
 **Next plan:** set the new ticket's priority; the plan import (EXF-477, High) is unblocked by the
 export's merge: read it and start its API half if it needs no file the two Builds hold; one Deploy
 when the next Build merges (the export alone is not worth a child).
+
+### 2026-11-16 · Plan round 101
+
+Children used 116 of 200. One started now; three Builds are running. Main `3b4e3f0`, live `11273cf`
+(read by me at 19:24Z). The person has not answered the round-100 check-in.
+
+- **The ticket filed at the last review exists: EXF-670** (a far-future `now` in the export); set to
+  Medium and started with the Build below.
+- **Started: the plan import, API half** (`p_b71911bc33cb444db359bb72047a1a75`, EXF-477 High, with
+  EXF-670): `POST /api/v1/budgets/import` and the tool `import_budget_export`, with `dry_run`. This
+  is the route by which the owner brings a real plan over: they download the source's export
+  themselves and give the file to the operation.
+  - **Designed for a real plan's size, which I set** (the person has not said how large theirs is,
+    nor whether the Cloudflare account is on the Free plan): up to 20,000 transactions over 8 years,
+    200 categories, 30 accounts, inside 50 D1 calls per invocation. So the import runs in steps the
+    caller drives; a half-imported plan is never visible; a failed import leaves nothing to see; the
+    file waits in R2 (`FILES`, already bound) or D1 between steps; a small file finishes in the
+    first call. A counting test imports a generated file of 20,000 transactions with no invocation
+    above 40 calls.
+  - A zip reader beside the writer (the source's export is compressed), inflating with the runtime's
+    own `DecompressionStream`; no dependency.
+  - The round trip (export, import, export: identical rows) is the main test; hand-written files in
+    the source's style as well, so the parser is not tested only against its own writer.
+  - What the app cannot hold yet is named with what the import does (plan formats, flag names,
+    loans, a card's row in its own payment category).
+  - One additive migration is allowed if the design needs it: `20261116101300_plan_imports.sql`.
+  - **No file under `apps/web/`, nobody opens the source, and no file is ever taken from it** (said
+    three ways, with the Record Payment Designer's case named). The Clerk opens the tab for the
+    preflight only. The documents are named `plan-import-*` in the brief.
+  - **Scheduling rule:** new files, plus the export's service and schema file (free since its
+    merge), `zip.ts`, and keep-both-sides lines in the budgets coverage file and the timestamp
+    test's list. It writes accounts, categories, transactions and schedules with its own repository
+    code and changes none of the services the other two Builds hold (listed out of bounds); no
+    shared module.
+- **Not started:** no Deploy for the export alone (it ships with the next merge); Reconcile
+  (EXF-533) waits for the Record Payment Build; no flow test (nothing new on live).
+- **Running besides:** the Plan-page Build (`p_8baaff851d044a5ea2fcccb712be3809`, reworking after my
+  Request changes) and the Record Payment Build (`p_ae982fa0a2334ebaae16875e1551c0d6`, second design
+  check; told on its ticket that no step opens the source again).
+- **Cards:** main moved to `3b4e3f0` under both. A card on base `11273cf` gets Regate; the Plan-page
+  Build rebases in its rework anyway.
+
+Ticket writes: 4 (EXF-477 and EXF-670 to In Progress, EXF-670's priority, a comment each). Review
+cadence: Build 9 (the tenth finished Build starts the Build template review), Deploy 6, Discover 2,
+Test user flow 1.
