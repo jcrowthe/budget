@@ -255,6 +255,10 @@ export const ReportTransactionsQuery = z
     category_id: z.string().min(1).max(64).optional(),
     group_id: z.string().min(1).max(64).optional(),
     uncategorized: z.enum(["true"]).optional(),
+    income_payee_id: z.string().min(1).max(64).optional(),
+    income: z.enum(["true"]).optional(),
+    expenses: z.enum(["true"]).optional(),
+    excluded_category_ids: IdList,
     excluded_account_ids: IdList,
   })
   .refine((v) => v.start_month <= v.end_month, {
@@ -265,10 +269,13 @@ export const ReportTransactionsQuery = z
   })
   .refine(
     (v) =>
-      [v.category_id !== undefined, v.group_id !== undefined, v.uncategorized !== undefined].filter(
-        Boolean,
+      [v.category_id, v.group_id, v.uncategorized, v.income_payee_id, v.income, v.expenses].filter(
+        (x) => x !== undefined,
       ).length === 1,
-    { message: "Give exactly one of category_id, group_id or uncategorized=true" },
+    {
+      message:
+        "Give exactly one of category_id, group_id, uncategorized=true, income_payee_id, income=true or expenses=true",
+    },
   );
 export type ReportTransactionsQuery = z.infer<typeof ReportTransactionsQuery>;
 
@@ -291,3 +298,119 @@ export type ReportTransaction = z.infer<typeof ReportTransaction>;
 export const ReportTransactionsResponse = dataEnvelope(
   z.object({ transactions: z.array(ReportTransaction) }).openapi("ReportTransactions"),
 ).openapi("ReportTransactionsResponse");
+
+/** Both months or neither, start not after end, under the month cap (shared by the two new report queries). */
+function spanRefined<
+  S extends z.ZodObject<{
+    start_month: z.ZodOptional<z.ZodString>;
+    end_month: z.ZodOptional<z.ZodString>;
+  }>,
+>(schema: S): S {
+  return schema
+    .refine((v) => (v.start_month === undefined) === (v.end_month === undefined), {
+      message: "Give both start_month and end_month, or neither",
+    })
+    .refine((v) => !v.start_month || !v.end_month || v.start_month <= v.end_month, {
+      message: "start_month must not be after end_month",
+    })
+    .refine(
+      (v) =>
+        !v.start_month ||
+        !v.end_month ||
+        monthIndex(v.end_month) - monthIndex(v.start_month) < MAX_REPORT_MONTHS,
+      { message: `At most ${MAX_REPORT_MONTHS} months` },
+    );
+}
+
+export const SpendingTrendsQuery = spanRefined(
+  z.object({
+    start_month: Month.optional(),
+    end_month: Month.optional(),
+    excluded_category_ids: IdList,
+    excluded_account_ids: IdList,
+    group_id: z.string().min(1).max(64).optional(),
+    today: Today.optional(),
+  }),
+);
+export type SpendingTrendsQuery = z.infer<typeof SpendingTrendsQuery>;
+
+export const IncomeExpenseQuery = spanRefined(
+  z.object({
+    start_month: Month.optional(),
+    end_month: Month.optional(),
+    excluded_category_ids: IdList,
+    excluded_account_ids: IdList,
+    today: Today.optional(),
+  }),
+);
+export type IncomeExpenseQuery = z.infer<typeof IncomeExpenseQuery>;
+
+export const SpendingTrendsSeries = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    amount: z.number().int(),
+    share_pct: z.number().nullable(),
+  })
+  .openapi("SpendingTrendsSeries");
+export const SpendingTrendsMonth = z
+  .object({
+    month: Month,
+    total: z.number().int(),
+    compared_to_average: z.number().int(),
+    compared_pct: z.number(),
+    series: z.array(SpendingTrendsSeries),
+  })
+  .openapi("SpendingTrendsMonth");
+export const SpendingTrends = z
+  .object({
+    start_month: Month,
+    end_month: Month,
+    group: z.object({ id: z.string(), name: z.string() }).nullable(),
+    total: z.number().int(),
+    average_monthly: z.number().int(),
+    series: z.array(z.object({ id: z.string(), name: z.string(), total: z.number().int() })),
+    months: z.array(SpendingTrendsMonth),
+  })
+  .openapi("SpendingTrends");
+export const SpendingTrendsResponse =
+  dataEnvelope(SpendingTrends).openapi("SpendingTrendsResponse");
+export type SpendingTrends = z.infer<typeof SpendingTrends>;
+
+const figures = {
+  months: z.array(z.number().int()),
+  average: z.number().int(),
+  total: z.number().int(),
+};
+export const ReportFigures = z.object(figures).openapi("ReportFigures");
+export type ReportFigures = z.infer<typeof ReportFigures>;
+export const IncomeExpensePayee = z
+  .object({ payee_id: z.string().nullable(), name: z.string(), ...figures })
+  .openapi("IncomeExpensePayee");
+export const IncomeExpenseCategory = z
+  .object({ id: z.string(), name: z.string(), hidden: z.boolean(), ...figures })
+  .openapi("IncomeExpenseCategory");
+export const IncomeExpenseGroup = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    categories: z.array(IncomeExpenseCategory),
+    total: ReportFigures,
+  })
+  .openapi("IncomeExpenseGroup");
+export const IncomeExpense = z
+  .object({
+    start_month: Month,
+    end_month: Month,
+    months: z.array(Month),
+    income: z.object({ payees: z.array(IncomeExpensePayee), total: ReportFigures }),
+    expense: z.object({
+      uncategorized: ReportFigures.nullable(),
+      groups: z.array(IncomeExpenseGroup),
+      total: ReportFigures,
+    }),
+    net_income: ReportFigures,
+  })
+  .openapi("IncomeExpense");
+export const IncomeExpenseResponse = dataEnvelope(IncomeExpense).openapi("IncomeExpenseResponse");
+export type IncomeExpense = z.infer<typeof IncomeExpense>;

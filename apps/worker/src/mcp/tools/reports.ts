@@ -2,7 +2,13 @@ import { Month } from "@budget/schema/common/dates";
 import { monthIndex } from "@budget/schema/report-range";
 import { MAX_REPORT_MONTHS } from "@budget/schema/reports";
 import { z } from "zod";
-import { getNetWorth, getSpendingBreakdown, listReportTransactions } from "../../services/reports";
+import {
+  getIncomeExpense,
+  getNetWorth,
+  getSpendingBreakdown,
+  getSpendingTrends,
+  listReportTransactions,
+} from "../../services/reports";
 import { dates, Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
@@ -12,6 +18,9 @@ function checkMonths(start: string, end: string) {
     throw new Error(`At most ${MAX_REPORT_MONTHS} months`);
   }
 }
+
+const SPEND = `Spending counts rows of on-plan accounts in the range: split lines in their own categories (never the split parent) and transfers to tracking accounts. Transfers between two on-plan accounts, inflows to Ready to Assign and Starting Balances never count; a row with no category is Uncategorized.`;
+const INCOME = `Income counts rows of on-plan accounts sent to Ready to Assign, whatever their sign, grouped by payee (a split line by its own payee, else the split's); a balance adjustment is listed as "Manual Balance Adjustment". Starting Balances and transfers are never income, and a row with no payee is listed as "(no payee)" with payee_id null.`;
 
 export const tools: McpToolDef[] = [
   {
@@ -88,8 +97,69 @@ export const tools: McpToolDef[] = [
     },
   },
   {
+    name: "get_spending_trends",
+    description: `How has my spending changed month to month? Spending per month over a range, by category group (with group_id: by that group's categories). ${MONEY} Spending figures here are positive and a net inflow is negative. ${MONTH} Both start_month and end_month are required. ${SPEND} Returns { start_month, end_month, group, total, average_monthly, series: [{ id, name, total }], months: [{ month, total, compared_to_average, compared_pct, series: [{ id, name, amount, share_pct }] }] }, with every month of the range, oldest first. average_monthly is total ÷ months in cents; compared_to_average is the month total minus it, and compared_pct is that difference as a percent of it (one decimal); share_pct is a segment's percent of the month's spending (one decimal), null for a net inflow; series are ordered largest first; the series id "uncategorized" is Uncategorized, and excluded_category_ids may hold it.`,
+    inputSchema: z.object({
+      budget_id: Id,
+      start_month: Month,
+      end_month: Month,
+      group_id: Id.optional(),
+      excluded_category_ids: z.array(Id).max(2000).optional(),
+      excluded_account_ids: z.array(Id).max(2000).optional(),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        start_month: string;
+        end_month: string;
+        group_id?: string;
+        excluded_category_ids?: string[];
+        excluded_account_ids?: string[];
+      },
+      { env },
+    ) => {
+      checkMonths(input.start_month, input.end_month);
+      return getSpendingTrends(env, input.budget_id, {
+        start_month: input.start_month,
+        end_month: input.end_month,
+        group_id: input.group_id,
+        excluded_category_ids: input.excluded_category_ids ?? [],
+        excluded_account_ids: input.excluded_account_ids ?? [],
+      });
+    },
+  },
+  {
+    name: "get_income_expense",
+    description: `What was my income and spending each month this quarter? Income by payee and expenses by category group and category, month by month, with average, total and net income. ${MONEY} Income is positive and expenses are negative; net income is income plus expenses. ${MONTH} Both start_month and end_month are required. ${INCOME} ${SPEND} Returns { start_month, end_month, months, income: { payees: [{ payee_id, name, months, average, total }], total }, expense: { uncategorized, groups: [{ id, name, categories: [{ id, name, hidden, months, average, total }], total }], total }, net_income }. Each figure set's months holds one amount per entry of months, and average is total ÷ months in cents. uncategorized is null when no row is uncategorized. Only rows with activity are listed, groups and categories in plan order. excluded_category_ids limits expenses only.`,
+    inputSchema: z.object({
+      budget_id: Id,
+      start_month: Month,
+      end_month: Month,
+      excluded_category_ids: z.array(Id).max(2000).optional(),
+      excluded_account_ids: z.array(Id).max(2000).optional(),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        start_month: string;
+        end_month: string;
+        excluded_category_ids?: string[];
+        excluded_account_ids?: string[];
+      },
+      { env },
+    ) => {
+      checkMonths(input.start_month, input.end_month);
+      return getIncomeExpense(env, input.budget_id, {
+        start_month: input.start_month,
+        end_month: input.end_month,
+        excluded_category_ids: input.excluded_category_ids ?? [],
+        excluded_account_ids: input.excluded_account_ids ?? [],
+      });
+    },
+  },
+  {
     name: "list_report_transactions",
-    description: `Which transactions make up a category's spending from June to November? Lists the counted transactions of one category, one category group, or Uncategorized over a range, newest first. ${MONEY} A transaction's amount here is signed (an outflow is negative), while get_spending_breakdown reports spending as positive. ${MONTH} ${dates("date")} Give exactly one of category_id, group_id or uncategorized=true. Spending counts rows of on-plan accounts in the range: split lines in their own categories (never the split parent) and transfers to tracking accounts. Transfers between two on-plan accounts, inflows to Ready to Assign and Starting Balances never count; a row with no category is Uncategorized. Returns { transactions: [{ transaction_id, subtransaction_id (set for a split line), account_id, account_name, date, payee_name, memo, amount, category_id, category_name, cleared }] }.`,
+    description: `Which transactions make up a category's spending from June to November? Lists the counted transactions of one category, one category group, Uncategorized, one payee's income, all income or all spending over a range, newest first. ${MONEY} A transaction's amount here is signed (an outflow is negative), while get_spending_breakdown reports spending as positive. ${MONTH} ${dates("date")} Give exactly one of category_id, group_id, uncategorized=true, income_payee_id, income=true or expenses=true. income_payee_id lists one payee's income ("none" for rows with no payee), income=true all income, expenses=true all spending; excluded_category_ids applies to the spending selectors. ${SPEND} ${INCOME} Returns { transactions: [{ transaction_id, subtransaction_id (set for a split line), account_id, account_name, date, payee_name, memo, amount, category_id, category_name, cleared }] }.`,
     inputSchema: z.object({
       budget_id: Id,
       start_month: Month,
@@ -97,6 +167,10 @@ export const tools: McpToolDef[] = [
       category_id: Id.optional(),
       group_id: Id.optional(),
       uncategorized: z.literal(true).optional(),
+      income_payee_id: Id.optional(),
+      income: z.literal(true).optional(),
+      expenses: z.literal(true).optional(),
+      excluded_category_ids: z.array(Id).max(2000).optional(),
       excluded_account_ids: z.array(Id).max(2000).optional(),
     }),
     run: async (
@@ -107,22 +181,38 @@ export const tools: McpToolDef[] = [
         category_id?: string;
         group_id?: string;
         uncategorized?: true;
+        income_payee_id?: string;
+        income?: true;
+        expenses?: true;
+        excluded_category_ids?: string[];
         excluded_account_ids?: string[];
       },
       { env },
     ) => {
       checkMonths(input.start_month, input.end_month);
-      const given = [input.category_id, input.group_id, input.uncategorized].filter(
-        (x) => x !== undefined,
-      ).length;
-      if (given !== 1)
-        throw new Error("Give exactly one of category_id, group_id or uncategorized");
+      const given = [
+        input.category_id,
+        input.group_id,
+        input.uncategorized,
+        input.income_payee_id,
+        input.income,
+        input.expenses,
+      ].filter((x) => x !== undefined).length;
+      if (given !== 1) {
+        throw new Error(
+          "Give exactly one of category_id, group_id, uncategorized, income_payee_id, income or expenses",
+        );
+      }
       return listReportTransactions(env, input.budget_id, {
         start_month: input.start_month,
         end_month: input.end_month,
         category_id: input.category_id,
         group_id: input.group_id,
         uncategorized: input.uncategorized ? "true" : undefined,
+        income_payee_id: input.income_payee_id,
+        income: input.income ? "true" : undefined,
+        expenses: input.expenses ? "true" : undefined,
+        excluded_category_ids: input.excluded_category_ids ?? [],
         excluded_account_ids: input.excluded_account_ids ?? [],
       });
     },

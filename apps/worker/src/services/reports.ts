@@ -1,4 +1,10 @@
 import { displayGroup, sidebarSections } from "@budget/core/account-types";
+import {
+  computeIncomeExpense,
+  filterIncome,
+  incomeExpenseCsv,
+  NO_PAYEE_ID,
+} from "@budget/schema/income-expense";
 import { computeNetWorth, netWorthCsv } from "@budget/schema/net-worth";
 import {
   addMonthsTo,
@@ -8,6 +14,8 @@ import {
   resolveRange,
 } from "@budget/schema/report-range";
 import type {
+  IncomeExpense,
+  IncomeExpenseQuery,
   NetWorth,
   NetWorthQuery,
   ReportRange,
@@ -16,6 +24,8 @@ import type {
   ReportTransactionsQuery,
   SpendingBreakdown,
   SpendingBreakdownQuery,
+  SpendingTrends,
+  SpendingTrendsQuery,
 } from "@budget/schema/reports";
 import {
   breakdownCsv,
@@ -25,6 +35,7 @@ import {
   type SpendingRow,
   transactionsCsv,
 } from "@budget/schema/spending-breakdown";
+import { computeTrends } from "@budget/schema/spending-trends";
 import { storeZip, utf8 } from "@budget/schema/zip";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
@@ -147,6 +158,107 @@ export async function getSpendingBreakdown(
   return computeBreakdown({ rows, span, groupBy: q.group_by, group });
 }
 
+/** Last 3 Months from "today" unless both months are given. */
+async function reportSpan(
+  db: Db,
+  budgetId: string,
+  q: { start_month?: string; end_month?: string; today?: string },
+) {
+  if (q.start_month && q.end_month) {
+    return { start_month: q.start_month, end_month: q.end_month };
+  }
+  return resolveRange("last_3_months", null, await rangeFacts(db, budgetId, q.today));
+}
+
+export async function getSpendingTrends(
+  env: Env,
+  budgetId: string,
+  q: SpendingTrendsQuery,
+): Promise<SpendingTrends> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const span = await reportSpan(db, budgetId, q);
+  let group: { id: string; name: string } | null = null;
+  if (q.group_id) {
+    const name = await repo.findCategoryOrGroup(db, budgetId, "group", q.group_id);
+    if (name === null) throw new NotFound("Category group");
+    group = { id: q.group_id, name };
+  }
+  const rows = await loadSpendingRows(db, budgetId, span, {
+    categories: q.excluded_category_ids,
+    accounts: q.excluded_account_ids,
+  });
+  return computeTrends({ rows, span, group });
+}
+
+export async function exportSpendingTrends(
+  env: Env,
+  budgetId: string,
+  q: SpendingTrendsQuery,
+): Promise<{ filename: string; bytes: Uint8Array }> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const today = q.today ?? utcToday();
+  const span = await reportSpan(db, budgetId, q);
+  const rows = await loadSpendingRows(db, budgetId, span, {
+    categories: q.excluded_category_ids,
+    accounts: q.excluded_account_ids,
+  });
+  const stem = `budget-reflect-spending-trends-${today}`;
+  const bytes = storeZip(
+    [
+      { name: `${stem}.csv`, data: utf8(breakdownCsv(rows, span)) },
+      {
+        name: `${stem}-transactions.csv`,
+        data: utf8(transactionsCsv([...rows].sort(newestFirst))),
+      },
+    ],
+    today,
+  );
+  return { filename: `${stem}.zip`, bytes };
+}
+
+async function loadIncomeRows(
+  db: Db,
+  budgetId: string,
+  span: { start_month: string; end_month: string },
+  excludedAccounts: string[],
+) {
+  const rows = await repo.incomeRows(db, budgetId, {
+    start: span.start_month,
+    endBefore: addMonthsTo(span.end_month, 1),
+  });
+  return filterIncome(rows, excludedAccounts);
+}
+
+export async function getIncomeExpense(
+  env: Env,
+  budgetId: string,
+  q: IncomeExpenseQuery,
+): Promise<IncomeExpense> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const span = await reportSpan(db, budgetId, q);
+  const spending = await loadSpendingRows(db, budgetId, span, {
+    categories: q.excluded_category_ids,
+    accounts: q.excluded_account_ids,
+  });
+  const income = await loadIncomeRows(db, budgetId, span, q.excluded_account_ids);
+  return computeIncomeExpense({ income, spending, span });
+}
+
+export async function exportIncomeExpense(
+  env: Env,
+  budgetId: string,
+  q: IncomeExpenseQuery,
+): Promise<{ filename: string; csv: string }> {
+  const data = await getIncomeExpense(env, budgetId, q);
+  return {
+    filename: `budget-reflect-income-expense-${q.today ?? utcToday()}.csv`,
+    csv: incomeExpenseCsv(data),
+  };
+}
+
 export async function listReportTransactions(
   env: Env,
   budgetId: string,
@@ -162,19 +274,49 @@ export async function listReportTransactions(
     if ((await repo.findCategoryOrGroup(db, budgetId, "group", q.group_id)) === null) {
       throw new NotFound("Category group");
     }
+  } else if (q.income_payee_id !== undefined && q.income_payee_id !== NO_PAYEE_ID) {
+    if ((await repo.findPayee(db, budgetId, q.income_payee_id)) === null) {
+      throw new NotFound("Payee");
+    }
   }
-  const rows = await loadSpendingRows(
-    db,
-    budgetId,
-    { start_month: q.start_month, end_month: q.end_month },
-    { categories: [], accounts: q.excluded_account_ids },
-  );
+  const span = { start_month: q.start_month, end_month: q.end_month };
+  if (q.income_payee_id !== undefined || q.income !== undefined) {
+    const rows = await loadIncomeRows(db, budgetId, span, q.excluded_account_ids);
+    const picked = rows.filter((r) =>
+      q.income_payee_id === undefined
+        ? true
+        : q.income_payee_id === NO_PAYEE_ID
+          ? r.payee_id === null
+          : r.payee_id === q.income_payee_id,
+    );
+    return {
+      transactions: picked.sort(newestFirst).map((r) => ({
+        transaction_id: r.transaction_id,
+        subtransaction_id: r.subtransaction_id,
+        account_id: r.account_id,
+        account_name: r.account_name,
+        date: r.date,
+        payee_name: r.payee_name,
+        memo: r.memo,
+        amount: r.amount,
+        category_id: null,
+        category_name: null,
+        cleared: r.cleared,
+      })),
+    };
+  }
+  const rows = await loadSpendingRows(db, budgetId, span, {
+    categories: q.excluded_category_ids,
+    accounts: q.excluded_account_ids,
+  });
   const picked = rows.filter((r) =>
     q.category_id !== undefined
       ? r.category_id === q.category_id
       : q.group_id !== undefined
         ? r.group_id === q.group_id
-        : r.category_id === null,
+        : q.expenses !== undefined
+          ? true
+          : r.category_id === null,
   );
   return {
     transactions: picked.sort(newestFirst).map((r) => ({

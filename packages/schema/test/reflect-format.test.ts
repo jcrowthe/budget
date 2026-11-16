@@ -3,6 +3,9 @@ import {
   cents,
   debtsMoney,
   drillAmount,
+  drillTitle,
+  longMonthLabel,
+  minusMoney,
   niceTicks,
   reportMoney,
   signedChange,
@@ -65,5 +68,18 @@ describe("niceTicks", () => {
     expect(niceTicks(0, 400)).toEqual([0, 1000]);
     expect(niceTicks(-400, 0)).toEqual([-1000, 0]);
     expect(niceTicks(0, 24049260)).toEqual([0, 10000000, 20000000, 30000000]);
+  });
+});
+
+describe("trends and income formats", () => {
+  it("minusMoney uses U+2212 only below zero cents", () => {
+    expect(minusMoney(-120000)).toBe("−$120.00");
+    expect(minusMoney(-4)).toBe("$0.00");
+    expect(minusMoney(3000000)).toBe("$3,000.00");
+  });
+  it("longMonthLabel and drillTitle", () => {
+    expect(longMonthLabel("2026-11-01")).toBe("November 2026");
+    expect(drillTitle("D8 Food", "2026-10-01")).toBe("D8 Food–OCT 2026");
+    expect(drillTitle("D8 Food", null)).toBe("D8 Food");
   });
 });

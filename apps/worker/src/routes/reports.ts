@@ -1,5 +1,7 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
 import {
+  IncomeExpenseQuery,
+  IncomeExpenseResponse,
   NetWorthQuery,
   NetWorthResponse,
   ReportRangeQuery,
@@ -8,16 +10,22 @@ import {
   ReportTransactionsResponse,
   SpendingBreakdownQuery,
   SpendingBreakdownResponse,
+  SpendingTrendsQuery,
+  SpendingTrendsResponse,
 } from "@budget/schema/reports";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import {
+  exportIncomeExpense,
   exportNetWorth,
   exportSpendingBreakdown,
+  exportSpendingTrends,
+  getIncomeExpense,
   getNetWorth,
   getReportRange,
   getSpendingBreakdown,
+  getSpendingTrends,
   listReportTransactions,
 } from "../services/reports";
 
@@ -141,6 +149,82 @@ export default app
       );
       return c.body(bytes as unknown as ArrayBuffer, 200, {
         "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/spending-trends",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: SpendingTrendsQuery },
+      responses: { 200: json(SpendingTrendsResponse, "Spending by month"), ...errors },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json({ data: await getSpendingTrends(c.env, budget_id, c.req.valid("query")) }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/spending-trends/export",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: SpendingTrendsQuery },
+      responses: {
+        200: {
+          description: "The report as a ZIP of two CSV files",
+          content: { "application/zip": { schema: z.string().openapi({ format: "binary" }) } },
+        },
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const { filename, bytes } = await exportSpendingTrends(
+        c.env,
+        budget_id,
+        c.req.valid("query"),
+      );
+      return c.body(bytes as unknown as ArrayBuffer, 200, {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/income-expense",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: IncomeExpenseQuery },
+      responses: { 200: json(IncomeExpenseResponse, "Income and expenses by month"), ...errors },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json({ data: await getIncomeExpense(c.env, budget_id, c.req.valid("query")) }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/income-expense/export",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: IncomeExpenseQuery },
+      responses: {
+        200: {
+          description: "The report as a CSV file",
+          content: { "text/csv": { schema: z.string() } },
+        },
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const { filename, csv } = await exportIncomeExpense(c.env, budget_id, c.req.valid("query"));
+      return c.body(csv, 200, {
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
       });
     },

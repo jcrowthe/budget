@@ -1,3 +1,5 @@
+import { monthLabel } from "./report-range";
+
 /** Reflect's money and axis formatting (milliunits). Pure; a zero is never printed with a minus sign (EXF-591). */
 
 /** Milliunits as whole cents, rounded half away from zero; never -0. */
@@ -23,6 +25,36 @@ export function debtsMoney(m: number): string {
 export function signedChange(m: number): string {
   const c = cents(m);
   return c > 0 ? `+${reportMoney(m)}` : c < 0 ? `−${reportMoney(-m)}` : "$0.00";
+}
+
+/** "−$120.00" (U+2212) below zero cents, else as `reportMoney`. */
+export function minusMoney(m: number): string {
+  return cents(m) < 0 ? `−${reportMoney(-m)}` : reportMoney(m);
+}
+
+const LONG_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** "2026-11-01" -> "November 2026". */
+export function longMonthLabel(month: string): string {
+  return `${LONG_MONTHS[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}`;
+}
+
+/** "D8 Food–OCT 2026" (U+2013, no spaces), or just the name when there is no month. */
+export function drillTitle(name: string, month: string | null): string {
+  return month === null ? name : `${name}–${monthLabel(month).toUpperCase()}`;
 }
 
 /** The drill-down's amount: "+$20.00", "-$150.00" (hyphen), "$0.00". */

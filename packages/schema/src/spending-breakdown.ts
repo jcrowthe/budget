@@ -68,7 +68,9 @@ export function filterRows(
 }
 
 /** Date descending, then created_at descending, then split index ascending (null first), then id. */
-export function newestFirst(a: SpendingRow, b: SpendingRow): number {
+export function newestFirst<
+  T extends Pick<SpendingRow, "date" | "created_at" | "split_index" | "id">,
+>(a: T, b: T): number {
   if (a.date !== b.date) return a.date < b.date ? 1 : -1;
   if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
   const ai = a.split_index ?? -1;
