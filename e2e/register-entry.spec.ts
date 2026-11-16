@@ -163,15 +163,16 @@ test("new payee, then the picker finds it and fills its last category", async ({
   expect(list.filter((p) => p.name === "D4 Corner Market")).toHaveLength(1);
 });
 
-test("category search and the disabled footer", async ({ page, request }) => {
+test("category search and the Split footer", async ({ page, request }) => {
   const s = await seed(request);
   await openAdd(page, s);
   await category(page).click();
   await expect(page.getByText("Inflow", { exact: true })).toBeVisible();
   await expect(option(page, "Ready to Assign")).toBeVisible();
   await expect(option(page, "D4 Groceries")).toContainText("$200.00");
-  await expect(button(page, "Payment/Transfer")).toBeDisabled();
-  await expect(button(page, "Split (Multiple Categories)")).toBeDisabled();
+  // The footer is one full-width Split button (the source has no Payment/Transfer button there).
+  await expect(button(page, "Payment/Transfer")).toHaveCount(0);
+  await expect(button(page, "Split (Multiple Categories)")).toBeEnabled();
   await category(page).fill("zzzz");
   await expect(
     page.getByText("No categories found with that name.", { exact: true }),

@@ -34,7 +34,10 @@ const param = (name: string) =>
 const errors = {
   403: json(ErrorBody, "Forbidden"),
   404: json(ErrorBody, "Plan, account or transaction not found"),
-  409: json(ErrorBody, "The transaction is reconciled, locked, or changed concurrently"),
+  409: json(
+    ErrorBody,
+    "The transaction (or the other side of its transfer) is reconciled, locked, or changed concurrently",
+  ),
   422: json(ErrorBody, "Invalid request"),
 };
 

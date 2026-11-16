@@ -7,6 +7,7 @@ const p = (name: string, over: Partial<Payee> = {}): Payee => ({
   hidden: false,
   system: null,
   last_category_id: null,
+  transfer_account_id: null,
   ...over,
 });
 
@@ -51,5 +52,32 @@ describe("payeeMenu", () => {
     expect(m.saved.map((x) => x.name)).toEqual(["D4 Corner Market"]);
     expect(m.active).toBe(1);
     expect(payeeMenu([], "x").active).toBe(0);
+  });
+});
+
+describe("payeeMenu transfers", () => {
+  const t = (name: string, account: string) =>
+    p(`Transfer : ${name}`, { id: `transfer:${account}`, transfer_account_id: account });
+  const list = [t("Savings", "a2"), t("Checking", "a1"), t("Brokerage", "a3"), p("Market")];
+
+  it("lists every transfer but the current account's, never among saved payees", () => {
+    const m = payeeMenu(list, "", { currentAccountId: "a1" });
+    expect(m.transfers.map((x) => x.name)).toEqual(["Transfer : Brokerage", "Transfer : Savings"]);
+    expect(m.saved.map((x) => x.name)).toEqual(["Market"]);
+    expect(m.transfersHeading).toBe("Payments and Transfers");
+  });
+  it("filters by the account name or the word transfer, and highlights the first transfer", () => {
+    expect(payeeMenu(list, "transfer", { currentAccountId: "a1" }).transfers).toHaveLength(2);
+    const m = payeeMenu(list, "sav", { currentAccountId: "a1" });
+    expect(m.transfers.map((x) => x.name)).toEqual(["Transfer : Savings"]);
+    expect(m.active).toBe(1);
+    expect(payeeMenu(list, "to/from sav", { currentAccountId: "a1" }).transfers).toHaveLength(1);
+  });
+  it("highlights the first saved match ahead of a transfer", () => {
+    const m = payeeMenu([...list, p("Transferware")], "transfer", { currentAccountId: "a1" });
+    expect(m.active).toBe(1 + m.transfers.length);
+  });
+  it("hides the section when transfers are off", () => {
+    expect(payeeMenu(list, "", { transfers: false }).transfers).toEqual([]);
   });
 });

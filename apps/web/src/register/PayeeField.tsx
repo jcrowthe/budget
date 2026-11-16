@@ -1,4 +1,5 @@
 import { type Payee, payeeMenu } from "@budget/schema/payees";
+import { transferPayeeLabel } from "@budget/schema/transfers";
 import { useMemo } from "react";
 import { PlusCircleIcon } from "./icons";
 import { Option, PickerInput } from "./PickerInput";
@@ -6,7 +7,10 @@ import { Option, PickerInput } from "./PickerInput";
 type Item =
   | { kind: "create"; text: string }
   | { kind: "hidden"; payee: Payee }
+  | { kind: "transfer"; payee: Payee }
   | { kind: "saved"; payee: Payee };
+
+const accountOfTransfer = (p: Payee) => p.name.replace(/^Transfer : /, "");
 
 /** The payee combobox: Saved Payees, `Create "<text>" Payee`, and the hidden-payee line (EXF-507). */
 export function PayeeField({
@@ -14,18 +18,30 @@ export function PayeeField({
   value,
   disabled,
   title,
+  currentAccountId,
+  transfers = true,
   onChange,
   onPicked,
+  onTransfer,
 }: {
   payees: Payee[];
   value: { id: string | null; name: string };
   disabled?: boolean;
   title?: string;
+  /** The register's account (or the row's chosen one): it is not offered as a transfer. */
+  currentAccountId?: string | null;
+  /** False for a split line: no "Payments and Transfers" section. */
+  transfers?: boolean;
   onChange: (v: { id: string | null; name: string }) => void;
   /** After a saved or hidden payee is chosen (to fill an empty category). */
   onPicked: (p: Payee) => void;
+  /** A "To/From <account>" entry was chosen. */
+  onTransfer?: (accountId: string, name: string) => void;
 }) {
-  const menu = useMemo(() => payeeMenu(payees, value.name), [payees, value.name]);
+  const menu = useMemo(
+    () => payeeMenu(payees, value.name, { currentAccountId, transfers }),
+    [payees, value.name, currentAccountId, transfers],
+  );
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     if (menu.top?.kind === "create") out.push({ kind: "create", text: menu.top.text });
@@ -33,11 +49,12 @@ export function PayeeField({
       const first = menu.top.payees[0];
       if (first) out.push({ kind: "hidden", payee: first });
     }
+    for (const p of menu.transfers) out.push({ kind: "transfer", payee: p });
     for (const p of menu.saved) out.push({ kind: "saved", payee: p });
     return out;
   }, [menu]);
-  // With nothing typed `active` indexes the saved list; with text it indexes [top, ...saved].
-  const initialActive = menu.top ? menu.active : -1;
+  // `active` indexes [top?, ...transfers, ...saved]; -1 with nothing typed.
+  const initialActive = menu.active;
 
   return (
     <PickerInput<Item>
@@ -53,7 +70,9 @@ export function PayeeField({
       listLabel="Payees"
       onPick={(item) => {
         if (item.kind === "create") onChange({ id: null, name: value.name });
-        else {
+        else if (item.kind === "transfer") {
+          onTransfer?.(item.payee.transfer_account_id as string, item.payee.name);
+        } else {
           onChange({ id: item.payee.id, name: item.payee.name });
           onPicked(item.payee);
         }
@@ -71,7 +90,7 @@ export function PayeeField({
       }
       header={({ active, pick, hover }) => {
         const top = items[0];
-        if (!top || top.kind === "saved") return null;
+        if (!top || top.kind === "saved" || top.kind === "transfer") return null;
         const name =
           top.kind === "create"
             ? `Create "${top.text}" Payee`
@@ -90,11 +109,31 @@ export function PayeeField({
         );
       }}
       render={({ active, pick, hover }) => {
-        let n = items[0] && items[0].kind !== "saved" ? 1 : 0;
+        let n = items[0] && (items[0].kind === "create" || items[0].kind === "hidden") ? 1 : 0;
         const next = () => n++;
         return (
           <>
             {menu.help ? <div className="entry-help">{menu.help}</div> : null}
+            {menu.transfers.length > 0 ? (
+              <div role="presentation" className="entry-heading">
+                {menu.transfersHeading}
+              </div>
+            ) : null}
+            {menu.transfers.map((p) => {
+              const i = next();
+              const label = transferPayeeLabel(accountOfTransfer(p));
+              return (
+                <Option
+                  key={p.id}
+                  active={active === i}
+                  name={label}
+                  onPick={() => pick(i)}
+                  onHover={() => hover(i)}
+                >
+                  <span>{label}</span>
+                </Option>
+              );
+            })}
             {menu.saved.length > 0 || menu.hint ? (
               <div role="presentation" className="entry-heading">
                 {menu.heading}

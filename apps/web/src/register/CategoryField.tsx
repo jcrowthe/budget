@@ -7,6 +7,8 @@ import { Option, PickerInput } from "./PickerInput";
 
 type Row = { kind: "rta" | "category"; id: string | null; name: string; amount: number };
 
+const SPLIT_TEXT = "Split (Multiple Categories)...";
+
 const tone = (amount: number) => (amount > 0 ? "positive" : amount < 0 ? "negative" : "zero");
 
 /** The register's own category dropdown (not the Plan's picker): Inflow, then every group (EXF-517). */
@@ -16,6 +18,11 @@ export function CategoryField({
   disabled,
   title,
   startOpen,
+  placeholder = "category",
+  split,
+  splitDisabled,
+  footer = "split",
+  onSplit,
   onChange,
 }: {
   month: MonthDetail | undefined;
@@ -23,10 +30,19 @@ export function CategoryField({
   disabled?: boolean;
   title?: string;
   startOpen?: boolean;
+  /** "Category not needed" when a transfer between on-plan accounts takes none. */
+  placeholder?: string;
+  /** The parent of a split: the field reads "Split (Multiple Categories)...". */
+  split?: boolean;
+  /** Why Split is unavailable (a transfer cannot be split), or false. */
+  splitDisabled?: string | false;
+  /** A split line has no footer. */
+  footer?: "split" | "none";
+  onSplit?: () => void;
   onChange: (v: CategoryValue) => void;
 }) {
   const groups = month?.groups ?? [];
-  const shown = categoryLabel(value, groups);
+  const shown = split ? SPLIT_TEXT : categoryLabel(value, groups);
   const [typed, setTyped] = useState<string | null>(null);
   const menu = useMemo(
     () => categoryMenu(groups, month?.ready_to_assign ?? 0, typed ?? ""),
@@ -42,7 +58,7 @@ export function CategoryField({
   return (
     <PickerInput<Row>
       label="Category"
-      placeholder="category"
+      placeholder={placeholder}
       text={typed ?? shown}
       onText={setTyped}
       items={items}
@@ -58,26 +74,19 @@ export function CategoryField({
         setTyped(null);
       }}
       footer={
-        <>
+        footer === "split" ? (
           <button
             type="button"
-            className="entry-footer-button"
-            disabled
-            aria-disabled="true"
-            data-ticket="EXF-526"
-          >
-            Payment/Transfer
-          </button>
-          <button
-            type="button"
-            className="entry-footer-button"
-            disabled
-            aria-disabled="true"
-            data-ticket="EXF-524"
+            className="entry-footer-button entry-split-button"
+            disabled={!!splitDisabled}
+            aria-disabled={!!splitDisabled}
+            title={splitDisabled || undefined}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onSplit?.()}
           >
             Split (Multiple Categories)
           </button>
-        </>
+        ) : undefined
       }
       render={({ active, pick, hover }) =>
         menu.empty ? (

@@ -1,6 +1,7 @@
 import { evaluateAmountEntry, formatAmountEntry, signedAmount } from "@budget/schema/amount-entry";
 import { formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
 import type {
+  SubTransactionInput,
   TransactionCreateRequest,
   TransactionDetail,
   TransactionUpdateRequest,
@@ -12,11 +13,44 @@ export type Field = "account" | "date" | "payee" | "category" | "memo" | "outflo
 export type Open =
   | null
   | { mode: "add"; key: number; date?: string }
-  | { mode: "edit"; id: string; focus: Field; openCategory?: boolean };
+  | { mode: "edit"; id: string; focus: Field; openCategory?: boolean; split?: true };
 
 export type CategoryValue = { kind: "none" } | { kind: "rta" } | { kind: "category"; id: string };
 
+/** One line of a split being edited. */
+export type LineDraft = {
+  key: number;
+  payee: { id: string | null; name: string };
+  category: CategoryValue;
+  memo: string;
+  outflowText: string;
+  inflowText: string;
+};
+
+let lineKey = 0;
+export const emptyLine = (): LineDraft => ({
+  key: ++lineKey,
+  payee: { id: null, name: "" },
+  category: { kind: "none" },
+  memo: "",
+  outflowText: "",
+  inflowText: "",
+});
+
+export const lineAmount = (l: Pick<LineDraft, "outflowText" | "inflowText">): number =>
+  signedAmount(evaluateAmountEntry(l.outflowText), evaluateAmountEntry(l.inflowText));
+
+/** The text of an amount in its column: outflow for a negative one. */
+export const amountTexts = (amount: number) => ({
+  outflowText: amount < 0 ? formatAmountEntry(-amount) : "",
+  inflowText: amount > 0 ? formatAmountEntry(amount) : "",
+});
+
 export type Draft = {
+  /** The other account of a transfer; the payee text is then "Transfer : <account>". */
+  transferAccountId: string | null;
+  /** The lines of a split; null for a plain transaction. */
+  lines: LineDraft[] | null;
   accountId: string | null;
   dateText: string;
   /** The last date that parsed, for the date keys when the text is not a date. */
@@ -31,6 +65,8 @@ export type Draft = {
 
 export function emptyDraft(date: string, accountId: string | null): Draft {
   return {
+    transferAccountId: null,
+    lines: null,
     accountId,
     dateText: formatEntryDate(date),
     lastDate: date,
@@ -45,6 +81,20 @@ export function emptyDraft(date: string, accountId: string | null): Draft {
 
 export function draftFromTx(tx: TransactionDetail): Draft {
   return {
+    transferAccountId: tx.transfer_account_id,
+    lines: tx.subtransactions.length
+      ? tx.subtransactions.map((l) => ({
+          key: ++lineKey,
+          payee: { id: l.payee_id, name: l.payee_name ?? "" },
+          category: l.category_id
+            ? { kind: "category", id: l.category_id }
+            : l.inflow_to_ready_to_assign
+              ? { kind: "rta" }
+              : { kind: "none" },
+          memo: l.memo ?? "",
+          ...amountTexts(l.amount),
+        }))
+      : null,
     accountId: tx.account_id,
     dateText: formatEntryDate(tx.date),
     lastDate: tx.date,
@@ -88,6 +138,30 @@ export function draftError(d: Draft, today: string, needAccount: boolean): Draft
   return null;
 }
 
+const linesBody = (lines: LineDraft[]): SubTransactionInput[] =>
+  lines.map((l) => {
+    const memo = l.memo.trim();
+    return {
+      amount: lineAmount(l),
+      ...(l.payee.id || l.payee.name.trim() !== "" ? payeeFields(l.payee) : {}),
+      ...(l.category.kind === "none" ? {} : categoryFields(l.category)),
+      ...(memo ? { memo } : {}),
+    };
+  });
+
+/** Compares lines by what they would send. */
+const linesSignature = (lines: LineDraft[] | null) =>
+  lines === null
+    ? null
+    : JSON.stringify(
+        lines.map((l) => [
+          lineAmount(l),
+          l.payee.id ?? l.payee.name.trim(),
+          l.category,
+          l.memo.trim(),
+        ]),
+      );
+
 export function draftToCreate(
   d: Draft,
   accountId: string,
@@ -103,8 +177,13 @@ export function draftToCreate(
     cleared: d.cleared,
     approved: true,
     ...(memo ? { memo } : {}),
-    ...("payee_id" in payee && payee.payee_id === null ? {} : payee),
-    ...(d.category.kind === "none" ? {} : categoryFields(d.category)),
+    ...(d.transferAccountId
+      ? { transfer_account_id: d.transferAccountId }
+      : "payee_id" in payee && payee.payee_id === null
+        ? {}
+        : payee),
+    ...(d.category.kind === "none" || d.lines ? {} : categoryFields(d.category)),
+    ...(d.lines ? { subtransactions: linesBody(d.lines) } : {}),
   };
 }
 
@@ -119,11 +198,17 @@ export function draftToPatch(
   const date = parseEntryDate(d.dateText, today) as string;
   if (date !== before.date) patch.date = date;
   if (d.accountId && d.accountId !== before.account_id) patch.account_id = d.accountId;
+  if (d.transferAccountId !== was.transferAccountId) {
+    // A new or different other account; leaving a transfer sends null with the row's payee.
+    patch.transfer_account_id = d.transferAccountId;
+  }
   const payeeChanged = d.payee.id
     ? d.payee.id !== before.payee_id
     : d.payee.name.trim() !== (before.payee_name ?? "");
-  if (payeeChanged) Object.assign(patch, payeeFields(d.payee));
-  if (JSON.stringify(d.category) !== JSON.stringify(was.category)) {
+  if (!d.transferAccountId && (payeeChanged || was.transferAccountId)) {
+    Object.assign(patch, payeeFields(d.payee));
+  }
+  if (!d.lines && JSON.stringify(d.category) !== JSON.stringify(was.category)) {
     Object.assign(patch, categoryFields(d.category));
   }
   if (d.memo.trim() !== (before.memo ?? ""))
@@ -131,5 +216,14 @@ export function draftToPatch(
   const amount = draftAmount(d);
   if (amount !== before.amount) patch.amount = amount;
   if (d.cleared !== was.cleared) patch.cleared = d.cleared;
+  if (
+    d.lines &&
+    (linesSignature(d.lines) !== linesSignature(was.lines) || amount !== before.amount)
+  ) {
+    patch.subtransactions = linesBody(d.lines);
+    patch.amount = amount;
+  } else if (!d.lines && was.lines) {
+    patch.subtransactions = [];
+  }
   return patch;
 }

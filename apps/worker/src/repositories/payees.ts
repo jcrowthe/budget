@@ -20,7 +20,8 @@ export async function listForPlan(
       live: sql<
         string | null
       >`(select c.id from categories c where c.id = (select t.category_id from transactions t
-        where t.payee_id = payees.id and t.deleted_at is null
+        where t.payee_id = payees.id and t.deleted_at is null and t.parent_transaction_id is null
+        and not exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null)
         order by t.date desc, t.created_at desc, t.id desc limit 1) and c.deleted_at is null)`,
     })
     .from(payees)

@@ -1,5 +1,7 @@
 :root {
   --register-row-selected: #1b1d48;
+  /* Source placeholder colour of the register inputs (getComputedStyle ::placeholder). */
+  --register-input-placeholder: #757575;
   --register-needs-category: #daac00;
   --register-needs-category-label: #362c05;
   --register-icon-muted: #727484;
@@ -282,4 +284,45 @@
 }
 .register-message button {
   margin-left: var(--space-2);
+}
+
+/* Transfers (EXF-526) and saved splits (EXF-524) */
+.transfer-payee {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.transfer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.transfer-link,
+.split-chevron {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.transfer-link {
+  width: 22px;
+  height: 22px;
+}
+.split-chevron {
+  width: 16px;
+  height: 22px;
+  margin-right: 4px;
+}
+.transfer-link:focus-visible,
+.split-chevron:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.register-table .split-line-row td {
+  color: var(--labelSecondary);
 }

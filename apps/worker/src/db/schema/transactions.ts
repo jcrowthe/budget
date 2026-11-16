@@ -21,11 +21,17 @@ export const transactions = sqliteTable(
     deletedAt: text("deleted_at"),
     updatedAt: text("updated_at").notNull(),
     payeeId: text("payee_id"),
+    transferAccountId: text("transfer_account_id"),
+    transferTransactionId: text("transfer_transaction_id"),
+    parentTransactionId: text("parent_transaction_id"),
+    splitIndex: integer("split_index"),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),
     index("transactions_account").on(t.accountId),
     index("transactions_category").on(t.categoryId),
     index("transactions_payee").on(t.payeeId),
+    index("transactions_transfer").on(t.transferTransactionId),
+    index("transactions_parent").on(t.parentTransactionId),
   ],
 );
