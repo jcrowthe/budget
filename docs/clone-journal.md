@@ -6348,3 +6348,36 @@ user flow 7.
 **Next plan:** nothing new can start beside the three Builds without touching their files; wait for
 the cards. First merge of the Plan-page or register Build → Deploy `D21` (the tenth; ships the two
 Reflect reports too), then the Deploy template review, then flows 3 and 8.
+
+### 2026-11-16 · Plan round 76
+
+Children used 89 of 200. Nothing started; three are running: the Plan-page Build (head `3219500`, at
+its gate), the register Build (head `d493aff`, before its gate) and the Age of Money Build (designed,
+being built). Main `033e011`, live `c9e9d1c`. No tickets were filed at the last review, so none to
+check.
+
+- **Why nothing new.** I went through the 50 open feature tickets for one whose files are free of all
+  three Builds:
+  - Plan, months, targets, core: held by the Plan-page Build (so no credit engine, tracking accounts,
+    account type rules, loan types, category reorder).
+  - Register, transactions, account header: held by the register Build (so no scheduled transactions,
+    search, view options, reconcile, file import, images, remembered category).
+  - Export Plan's API half (EXF-476) reads the transactions table whose rows the register Build is
+    changing (the flag column, which the export's Register file must carry): by the rule from EXF-610
+    it goes after that merge, not beside it.
+  - Sidebar and settings tickets (EXF-474, EXF-472, EXF-473) write to `packages/schema/src/ui-state.ts`,
+    which both the Plan-page and the register Build already change.
+  - Plans list page (EXF-471), Manage Payees (EXF-510), the bank screens: their source screens show
+    other plans or private data; they wait for the person's word or EXF-573.
+- **No Deploy yet** for the two Reflect reports alone: the Plan-page Build is at its gate, and a Deploy
+  in flight would hold its card.
+- **Child budget, thought through once:** 111 left. About 59 feature and 6 gap tickets at two to three
+  per Build is about 30 Builds; with a Deploy per two Builds (15), flow tests at two flows each (15) and
+  reviews (5) that is about 65. Enough, as long as Builds stay bundled and Deploys are not spent on
+  single small merges.
+- **No flow test:** flows 3 and 8 need the next Deploy; 4, 6 and 7 need features not built.
+
+Declared for the tree: Deploy `D21`, the credit engine Build (EXF-532, EXF-535), the scheduled
+transactions Build (EXF-497, EXF-499), the Deploy template review, flows 3 and 8.
+
+Ticket writes: 0. Review cadence: Build 8, Deploy 9, Discover 2, Test user flow 7.
