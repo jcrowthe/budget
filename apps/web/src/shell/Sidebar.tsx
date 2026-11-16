@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useMatch } from "react-router";
+import { NavLink, useMatch, useSearchParams } from "react-router";
 import { useAccounts } from "../api/accounts";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { AccountsIcon, CaretIcon, Logo, PlanIcon, PlusCircleIcon, ReflectIcon } from "./icons";
@@ -23,6 +23,14 @@ export function Sidebar() {
   const [menu, setMenu] = useState(false);
   const [newPlan, setNewPlan] = useState(false);
   const [addAccount, setAddAccount] = useState(false);
+  // Until Manage Bank Connections exists (EXF-460), ?add-accounts=connections opens the connections variant.
+  const [params, setParams] = useSearchParams();
+  const connectionsVariant = params.get("add-accounts") === "connections";
+  const clearConnections = () => {
+    const next = new URLSearchParams(params);
+    next.delete("add-accounts");
+    setParams(next, { replace: true });
+  };
   const accounts = useAccounts(plan?.id);
   const accountList = accounts.data ?? [];
   // Links never point at an unknown id: the open plan, else the last-opened one, else "/".
@@ -83,6 +91,13 @@ export function Sidebar() {
       </button>
       {newPlan ? <NewPlanDialog onClose={() => setNewPlan(false)} /> : null}
       {addAccount ? <AddAccountDialog onClose={() => setAddAccount(false)} /> : null}
+      {connectionsVariant ? (
+        <AddAccountDialog
+          variant="connections"
+          onBack={clearConnections}
+          onClose={clearConnections}
+        />
+      ) : null}
     </nav>
   );
 }

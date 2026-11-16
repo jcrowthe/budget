@@ -209,6 +209,8 @@ if [ "$DEPLOY_PHASE" != "gate" ]; then
   fi
 
   phase_report
+  # 9. Plaid credentials (EXF-459): pushed from the environment; never fails the release.
+  if is_dry; then echo "DRY: plaid credentials"; else bash scripts/plaid-credentials.sh || echo "WARNING: Plaid credentials were not pushed" >&2; fi
   echo "Live: https://$HOST"
   echo "DEPLOY_SHA=$DEPLOY_SHA"
 fi

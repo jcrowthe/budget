@@ -66,6 +66,20 @@ is an `env.ts` plus `wrangler.jsonc` change.
   CSS, HTML or SVG.
 - **Real data** (balances, payees, amounts) never goes into code, fixtures, screenshots or commit messages.
 
+## Plaid
+
+- Credentials are read only through `apps/worker/src/plaid/credentials.ts` (`loadPlaidCredentials`); they live
+  encrypted in `secrets` (`plaid_credentials:<environment>`), written by `PUT /api/v1/plaid/credentials`, never
+  in Worker variables. No route, tool or log returns a value.
+- Call Plaid only through `plaidFor(env, environment)` (`plaid/client.ts`). The environment comes from the plan
+  (`getBudgetEnvironment`, `budgets.bank_environment`) or from the connection (`bank_connections.environment`).
+  A sandbox connection is never used with a production plan, and the other way round.
+- Production is unreachable unless the Worker's `ENVIRONMENT` is `production`; locally and in tests only Sandbox.
+- Access tokens go through `plaid/tokens.ts` (`plaid_access_token:<connection id>` in `secrets`); never in a
+  response, log line, MCP result, HTML or `change_log`. Plaid amounts become milliunits with `plaidToMilliunits`.
+- Tests stub `fetch` (`test/plaid-stub.ts`) and use sentinel values; they never read `PLAID_PRODUCTION_SECRET`.
+  No Plaid webhook: syncing polls.
+
 ## Commands
 
 - `pnpm check` (lint, typecheck, unit + Worker tests, build)
@@ -94,10 +108,11 @@ running the gate or calling Cloudflare.
   Prints the file name of each migration not yet applied to the remote `budget-db`, one per line, nothing when
   none are pending (all of them when the database does not exist yet). Exit 0 when it can tell; 1 with a message
   on stderr when it cannot; 2 for a missing variable.
+- `bash scripts/plaid-credentials.sh`: pushes `PLAID_CLIENT_ID` with `PLAID_SANDBOX_SECRET` / `PLAID_PRODUCTION_SECRET` from the environment to the live clone (the release runs it last; a failure only warns). Prints `plaid credentials: sandbox set|skipped|failed, production set|skipped|failed`; exit 1 when an environment failed, 2 for a refused base URL or missing Access variables. Local: `PLAID_CREDENTIALS_BASE_URL=http://127.0.0.1:<port>`.
 - `bash scripts/live-test-plans.sh <command>`: manages test plans (name starts with `live.test_prefix`, `ZZ-TEST`)
   and nothing else; only calls `/api/v1/budgets`. Needs `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`.
   - `list`: `<id><TAB><name>` per test plan
-  - `create '<name>'`: prints the new id; a name without the prefix is refused (exit 2)
+  - `create '<name>'`: creates a Sandbox plan (`bank_environment: sandbox`), prints the new id; a name without the prefix is refused (exit 2)
   - `delete <id>`: re-reads the plan; prints `deleted <id>`; an unprefixed plan is refused (exit 3)
   - `purge`: prints `deleted <n> remaining <m>`; exit 0 only when `m` is 0; more than 50 matches is refused (exit 3)
   - Local testing: `LIVE_TEST_PLANS_BASE_URL=http://127.0.0.1:<port>` targets `pnpm dev` (which signs requests

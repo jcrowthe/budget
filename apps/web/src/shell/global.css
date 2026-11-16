@@ -571,6 +571,9 @@ a {
   left: 0;
 }
 .account-modal-body {
+  /* Source (dark): scrollbar-color rgb(60,62,83) transparent; #3c3e53 = --inputBackground */
+  scrollbar-color: var(--inputBackground) transparent;
+  color-scheme: dark;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -764,4 +767,234 @@ a {
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--labelSecondary);
+}
+
+/* Bank search (Add Accounts) */
+.bank-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bank-search .account-field {
+  margin-bottom: var(--space-2);
+}
+.bank-note {
+  font-style: normal;
+  display: block;
+  margin: -2px 0 var(--space-3);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--labelSecondary);
+}
+.env-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-size: 12px;
+  font-weight: 600;
+}
+.bank-search h3 {
+  margin: 0;
+  padding-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.bank-search .bank-error {
+  margin: 0 0 var(--space-2);
+}
+.popular-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.bank-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  height: 64px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--borderSubtle);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.bank-tile img {
+  max-width: 100%;
+  max-height: 40px;
+  object-fit: contain;
+}
+.bank-tile svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--labelSecondary);
+}
+/* Source: the background does not change; the image goes to opacity 0.9 on hover */
+.bank-tile:hover:not(:disabled) > * {
+  opacity: 0.9;
+}
+/* Source hover rgba(117,131,255,0.27) = --buttonSecondaryBackgroundActive */
+.account-modal .secondary.large:hover:not(:disabled) {
+  background: rgba(117, 131, 255, 0.27);
+}
+.bank-tile:disabled,
+.institution-row:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Source (dark, measured): margin 10px 0, text white 600, span padding 0 10px, lines 1px rgba(255,255,255,.1) */
+.or-divider {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.or-divider span {
+  padding: 0 10px;
+}
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.institution-list {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+.institution-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bank-logo.round {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  margin-right: var(--space-3);
+  border-radius: 50%;
+  object-fit: cover;
+}
+.bank-logo.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Source (dark, pixel samples of the fallback image): disc rgb(227,230,231), glyph about rgb(83,86,88) */
+  --bankLogoFallback: rgb(227, 230, 231);
+  --bankLogoFallbackGlyph: rgb(83, 86, 88);
+  background: var(--bankLogoFallback);
+  color: var(--bankLogoFallbackGlyph);
+}
+.bank-logo.placeholder svg {
+  width: 24px;
+  height: 24px;
+}
+.institution-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding-right: var(--space-2);
+}
+.institution-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+.institution-row:hover:not(:disabled) .institution-name {
+  color: #a3acff; /* source hover rgb(163,172,255) = --labelAction */
+}
+.institution-country {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelSecondary);
+}
+.institution-domain {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--labelTertiary);
+}
+.institution-row > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--inputBorder);
+}
+.bank-no-match {
+  margin: var(--space-3) 0 0;
+}
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--actionPrimary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.bank-connected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: var(--space-4);
+}
+.bank-connected > svg {
+  width: 64px;
+  height: 64px;
+  color: var(--statusPositive);
+}
+.bank-connected h3 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--font-size-xl);
+}
+.bank-connected > p {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+}
+.bank-connected h4 {
+  align-self: flex-start;
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.bank-connected ul {
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.bank-connected li {
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--borderSubtle);
+}
+.bank-account-main {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.bank-account-sub {
+  color: var(--labelSecondary);
+}
+.done-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
 }

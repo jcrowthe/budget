@@ -13,8 +13,11 @@ export const tools: McpToolDef[] = [
   {
     name: "create_budget",
     description: "Create a plan (budget) with the given name.",
-    inputSchema: z.object({ name: BudgetCreate.shape.name }),
-    run: async (input: { name: string }, { env, actor }) => ({
+    inputSchema: z.object({
+      name: BudgetCreate.shape.name,
+      bank_environment: BudgetCreate.shape.bank_environment,
+    }),
+    run: async (input: z.infer<typeof BudgetCreate>, { env, actor }) => ({
       budget: await createBudget(env, actor, input),
     }),
   },

@@ -67,6 +67,11 @@ describe("against the local dev server", () => {
     zzId = r.stdout.trim();
     expect(zzId).toMatch(/^[0-9a-f-]{36}$/);
     expect(await status(zzId)).toBe(200);
+    // Test plans are Sandbox plans: only Plaid's test banks, never a real bank.
+    const plan = (await (await api("GET", `/api/v1/budgets/${zzId}`)).json()) as {
+      data: { budget: { bank_environment: string } };
+    };
+    expect(plan.data.budget.bank_environment).toBe("sandbox");
   });
 
   it("c. lists only prefixed plans", () => {
