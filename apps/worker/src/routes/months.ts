@@ -9,6 +9,7 @@ import {
   MonthRangeResponse,
   MonthTotalsResponse,
 } from "@budget/schema/months";
+import { PlanView } from "@budget/schema/plan-views";
 import { Today } from "@budget/schema/targets";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
@@ -66,6 +67,10 @@ export default app
           month: Month.openapi({ param: { name: "month", in: "path" } }),
         }),
         query: z.object({
+          view: PlanView.optional().openapi({
+            description:
+              "Narrow to the categories one of the Plan page's views shows (all, overspent, underfunded, overfunded, money_available, snoozed); default all",
+          }),
           today: Today.optional().openapi({
             description:
               "The owner's local date (YYYY-MM-DD); it decides the current month for target figures. Default: the server's UTC date",
@@ -76,8 +81,8 @@ export default app
     }),
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
-      const { today } = c.req.valid("query");
-      return c.json({ data: await getPlanMonth(c.env, budget_id, month, today) }, 200);
+      const { today, view } = c.req.valid("query");
+      return c.json({ data: await getPlanMonth(c.env, budget_id, month, today, view) }, 200);
     },
   )
   .openapi(
@@ -98,6 +103,10 @@ export default app
             description:
               "Category ids separated by commas (1 to 500); default: every visible category",
           }),
+          view: PlanView.optional().openapi({
+            description:
+              "Narrow to the categories one of the Plan page's views shows (all, overspent, underfunded, overfunded, money_available, snoozed); default all",
+          }),
           today: Today.optional().openapi({
             description:
               "The owner's local date (YYYY-MM-DD); it decides the current month for target figures. Default: the server's UTC date",
@@ -111,7 +120,15 @@ export default app
     }),
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
-      const { category_ids, today } = c.req.valid("query");
+      const { category_ids, today, view } = c.req.valid("query");
+      if (category_ids !== undefined && view !== undefined) {
+        return apiError(
+          c,
+          422,
+          "unprocessable_entity",
+          "Give category_ids or view, not both",
+        ) as never;
+      }
       let ids: string[] | undefined;
       if (category_ids !== undefined) {
         const parts = category_ids.split(",").map((x) => x.trim());
@@ -120,7 +137,10 @@ export default app
           return apiError(c, 422, "unprocessable_entity", CATEGORY_IDS_MESSAGE) as never;
         }
       }
-      return c.json({ data: await getMonthSummary(c.env, budget_id, month, ids, today) }, 200);
+      return c.json(
+        { data: await getMonthSummary(c.env, budget_id, month, ids, today, view) },
+        200,
+      );
     },
   )
   .openapi(

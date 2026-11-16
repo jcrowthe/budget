@@ -1,11 +1,16 @@
 import type { Ref } from "react";
 import { money, pillTitle } from "./format";
-import { CheckCircleFillIcon, ClockCheckIcon, ClockIcon } from "./icons";
+import { CheckCircleFillIcon, ClockCheckIcon, ClockIcon, SnoozeIcon } from "./icons";
 
 export type PillTone = "zero" | "positive" | "negative" | "cautious";
-export type PillIcon = "clock" | "check" | "clockCheck" | null;
+export type PillIcon = "clock" | "check" | "clockCheck" | "snooze" | null;
 
-const ICONS = { clock: ClockIcon, check: CheckCircleFillIcon, clockCheck: ClockCheckIcon };
+const ICONS = {
+  clock: ClockIcon,
+  check: CheckCircleFillIcon,
+  clockCheck: ClockCheckIcon,
+  snooze: SnoozeIcon,
+};
 
 /**
  * A positive pill opens Move and a negative one Cover (`onOpen`); zero pills are disabled. A target gives it a

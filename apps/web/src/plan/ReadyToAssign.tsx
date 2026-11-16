@@ -1,4 +1,5 @@
 import type { Month } from "@budget/core/month";
+import type { PlanView } from "@budget/schema/plan-views";
 import { useEffect, useRef, useState } from "react";
 import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
@@ -12,7 +13,17 @@ import { RtaBreakdown } from "./RtaBreakdown";
 type Open = "breakdown" | "assign" | "fix" | null;
 
 /** The Ready to Assign box of the Plan header: three states by the sign of the month's Ready to Assign. */
-export function ReadyToAssign({ budgetId, month }: { budgetId: string; month: Month }) {
+export function ReadyToAssign({
+  budgetId,
+  month,
+  view,
+  onViewAll,
+}: {
+  budgetId: string;
+  month: Month;
+  view: PlanView;
+  onViewAll: () => void;
+}) {
   const detail = useMonth(budgetId, month).data;
   const [open, setOpen] = useState<Open>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -103,6 +114,9 @@ export function ReadyToAssign({ budgetId, month }: { budgetId: string; month: Mo
       )}
       {open === "assign" && button.current && (
         <AssignPopover
+          budgetId={budgetId}
+          view={view}
+          onViewAll={onViewAll}
           detail={detail}
           month={month}
           anchor={button.current}

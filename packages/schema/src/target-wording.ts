@@ -83,6 +83,13 @@ export const pillTitle = (available: number): string => {
   return "";
 };
 
+export const SNOOZE_LABEL = "Snooze target for this month";
+export const SNOOZE_TIP_TITLE = "Snooze Target";
+export const SNOOZE_TIP_BODY =
+  "When you snooze a Target, Budget will treat the category as if it didn't have a Target (which means the category won't show as underfunded). At the start of next month, your Target will reactivate, well-rested and in a very good mood!";
+export const SNOOZE_ONLY_CURRENT = "You can only snooze targets in the current month.";
+export const SNOOZE_KEYBOARD_TIP = "Keyboard Tip: Press shift Z to snooze a category's target";
+
 const isPeriodic = (t: CategoryTargetMonth) =>
   t.definition.cadence === "weekly" || t.definition.cadence === "monthly";
 const isBalance = (t: CategoryTargetMonth) =>
@@ -123,13 +130,20 @@ export function targetStatusText(
 
 export function targetPill(c: TargetCategory): {
   tone: "zero" | "positive" | "negative" | "cautious";
-  icon: "clock" | "check" | "clockCheck" | null;
+  icon: "clock" | "check" | "clockCheck" | "snooze" | null;
   title: string;
 } {
   const plainTone = c.available === 0 ? "zero" : c.available > 0 ? "positive" : "negative";
   const plain = { tone: plainTone, icon: null, title: pillTitle(c.available) } as const;
   const t = c.target;
-  if (!t || t.status === "eventually" || t.status === "snoozed" || c.available < 0) return plain;
+  if (t?.status === "snoozed") {
+    return {
+      tone: plainTone,
+      icon: c.available < 0 ? null : "snooze",
+      title: pillTitle(c.available),
+    };
+  }
+  if (!t || t.status === "eventually" || c.available < 0) return plain;
   const def = t.definition;
   const T = targetMoney(def.amount);
   const grey = c.available === 0;

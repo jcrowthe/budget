@@ -225,6 +225,7 @@ const cat = (id: string, name: string, available: number, hidden = false) => ({
   carried: 0,
   target: null,
   note: null,
+  target_snoozed: false,
 });
 const groups = [
   {

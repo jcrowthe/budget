@@ -1,4 +1,5 @@
 import { addMonths, type Month } from "@budget/core/month";
+import type { PlanView } from "@budget/schema/plan-views";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useMonth, useMonthRange, useSetMonthNote } from "../api/months";
 import { localCurrentMonth, usePlanMonth } from "../shell/planPaths";
@@ -26,7 +27,17 @@ function under(el: HTMLElement | null): CSSProperties {
 /**
  * The Plan header. Left: arrows, month with its picker, Today and the month note. Then the Ready to Assign box.
  */
-export function PlanHeader({ budgetId, month }: { budgetId: string; month: Month }) {
+export function PlanHeader({
+  budgetId,
+  month,
+  view,
+  onViewAll,
+}: {
+  budgetId: string;
+  month: Month;
+  view: PlanView;
+  onViewAll: () => void;
+}) {
   const current = localCurrentMonth();
   const limits = navLimits(useMonthRange(budgetId).data, current);
   const note = useMonth(budgetId, month).data?.note ?? null;
@@ -118,7 +129,7 @@ export function PlanHeader({ budgetId, month }: { budgetId: string; month: Month
         )}
       </div>
       <div className="plan-header-totals">
-        <ReadyToAssign budgetId={budgetId} month={month} />
+        <ReadyToAssign budgetId={budgetId} month={month} view={view} onViewAll={onViewAll} />
       </div>
     </header>
   );

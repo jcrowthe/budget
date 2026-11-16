@@ -1,4 +1,4 @@
-import { type ReactElement, useId, useState } from "react";
+import { type ReactElement, type ReactNode, useId, useState } from "react";
 
 type TriggerProps = {
   "aria-describedby": string | undefined;
@@ -18,7 +18,7 @@ export function PanelTooltip({
   align = "start",
   children,
 }: {
-  text: string;
+  text: ReactNode;
   align?: "start" | "end";
   children: (props: TriggerProps) => ReactElement;
 }) {

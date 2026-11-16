@@ -26,6 +26,7 @@ export const MonthCategoryDetail = z
     carried: Milliunits,
     target: CategoryTargetMonth.nullable(),
     note: z.string().nullable(),
+    target_snoozed: z.boolean(),
   })
   .openapi("MonthCategoryDetail");
 

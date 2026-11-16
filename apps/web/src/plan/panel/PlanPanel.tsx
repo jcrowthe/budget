@@ -1,7 +1,9 @@
 import type { Month } from "@budget/core/month";
-import { monthTotals } from "@budget/schema/month-totals";
+import { monthTotals, viewTotals } from "@budget/schema/month-totals";
+import type { PlanView } from "@budget/schema/plan-views";
 import { type RefObject, useRef, useState } from "react";
 import { useMonth } from "../../api/months";
+import { AutoAssignCard } from "./AutoAssignCard";
 import { CategoryInspector } from "./CategoryInspector";
 import { usePanelWidth } from "./panelWidth";
 import { ResizeHandle } from "./ResizeHandle";
@@ -18,6 +20,8 @@ export function PlanPanel({
   budgetId,
   month,
   selected,
+  view,
+  onViewAll,
   onEditCategory,
   bodyRef,
 }: {
@@ -25,12 +29,20 @@ export function PlanPanel({
   month: Month;
   /** The selected category ids that are still in the grid, in grid order. */
   selected: readonly string[];
+  /** The Plan view in use: with nothing selected the summary and Auto-Assign cover what it shows. */
+  view: PlanView;
+  onViewAll: () => void;
   onEditCategory: (id: string, anchor: HTMLElement) => void;
   bodyRef: RefObject<HTMLElement | null>;
 }) {
   const detail = useMonth(budgetId, month).data;
   const [width, setWidth] = usePanelWidth();
-  const [collapsed, setCollapsed] = useState({ summary: false, balance: false, target: false });
+  const [collapsed, setCollapsed] = useState({
+    summary: false,
+    balance: false,
+    target: false,
+    autoAssign: false,
+  });
   const panelRef = useRef<HTMLElement>(null);
   const all = detail?.groups.flatMap((g) => g.categories) ?? [];
   const one = selected.length === 1 ? all.find((c) => c.id === selected[0]) : undefined;
@@ -38,9 +50,19 @@ export function PlanPanel({
   const summary = detail && (
     <SummaryCard
       month={month}
-      totals={monthTotals(detail, selected.length > 0 ? selected : undefined)}
+      totals={selected.length > 0 ? monthTotals(detail, selected) : viewTotals(detail, view)}
       collapsed={collapsed.summary}
       onToggle={() => setCollapsed((c) => ({ ...c, summary: !c.summary }))}
+    />
+  );
+  const autoAssign = (
+    <AutoAssignCard
+      budgetId={budgetId}
+      month={month}
+      scope={selected.length > 0 ? { categoryIds: [...selected] } : { view }}
+      collapsed={collapsed.autoAssign}
+      onToggle={() => setCollapsed((c) => ({ ...c, autoAssign: !c.autoAssign }))}
+      onViewAll={onViewAll}
     />
   );
   return (
@@ -64,6 +86,7 @@ export function PlanPanel({
               collapsed={collapsed.balance}
               onToggle={() => setCollapsed((c) => ({ ...c, balance: !c.balance }))}
               onEdit={(anchor) => onEditCategory(one.id, anchor)}
+              autoAssign={autoAssign}
             />
           ) : (
             <>
@@ -74,6 +97,7 @@ export function PlanPanel({
                 </div>
               )}
               {summary}
+              {autoAssign}
             </>
           )}
         </div>

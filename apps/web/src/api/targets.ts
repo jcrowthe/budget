@@ -3,6 +3,8 @@ import {
   type TargetBody,
   TargetDeletedResponse,
   TargetResponse,
+  type TargetSnooze,
+  TargetSnoozeResponse,
 } from "@budget/schema/targets";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
@@ -50,6 +52,35 @@ export function useDeleteTarget(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (categoryId: string) => deleteTarget(budgetId, categoryId),
+    onMutate: () => beginWrite(qc, budgetId),
+    onSettled: () => endWrite(qc, budgetId),
+  });
+}
+
+export const putTargetSnooze = async (
+  budgetId: string,
+  month: string,
+  categoryId: string,
+  snoozed: boolean,
+): Promise<TargetSnooze> =>
+  (
+    await apiFetch(
+      `/api/v1/budgets/${budgetId}/months/${month}/categories/${categoryId}/target-snooze?today=${localToday()}`,
+      {
+        method: "PUT",
+        body: { snoozed },
+        idempotencyKey: crypto.randomUUID(),
+        schema: TargetSnoozeResponse,
+      },
+    )
+  ).data;
+
+/** No optimistic write: the month read that follows carries the status, the pill and the previews. */
+export function useSnoozeTarget(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { month: string; categoryId: string; snoozed: boolean }) =>
+      putTargetSnooze(budgetId, v.month, v.categoryId, v.snoozed),
     onMutate: () => beginWrite(qc, budgetId),
     onSettled: () => endWrite(qc, budgetId),
   });

@@ -6,6 +6,7 @@ type Handlers = {
   onSelectAll: () => void;
   onClear: () => void;
   onCollapseAll: (collapsed: boolean) => void;
+  onSnooze: () => void;
 };
 
 const IGNORED =
@@ -14,7 +15,7 @@ const IGNORED =
 /**
  * The Plan page's keyboard shortcuts, bound on the window while the page is mounted: ↓ ↑ move the selection,
  * Shift+↓ Shift+↑ extend it, Ctrl or ⌘ + A selects all, Ctrl or ⌘ + ↑ ↓ collapse or expand every group, Escape
- * clears. EXF-473 moves these bindings into the shortcut registry.
+ * clears, Shift+Z snoozes the selected category's target. EXF-473 moves these bindings into the shortcut registry.
  */
 export function usePlanShortcuts(h: Handlers): void {
   const ref = useRef(h);
@@ -33,6 +34,8 @@ export function usePlanShortcuts(h: Handlers): void {
         else ref.current.onStep(arrow);
       } else if (mod && !e.shiftKey && e.key.toLowerCase() === "a") {
         ref.current.onSelectAll();
+      } else if (e.shiftKey && !mod && e.key.toLowerCase() === "z") {
+        ref.current.onSnooze();
       } else if (e.key === "Escape" && !mod && !e.shiftKey) {
         ref.current.onClear();
       } else {
