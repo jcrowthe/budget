@@ -5903,3 +5903,29 @@ since each template's last review: Build 6, Deploy 8, Discover 2, Test user flow
 **Next plan:** set the new ticket's priority; when the Plan-page Build merges: Deploy (import and Plan
 page, two migrations), then flows 3 and 5 (and 10 again); the credit engine on the freed
 `packages/core`; a Build for the per-run query count beside it (the import's files are free).
+
+### 2026-11-16 · Plan round 71
+
+Children used 85 of 200. One started now; four are running with the Plan-page Build (in its final gate,
+head `2ed8b72`), the two-report Reflect Build (designed, head `c70ce8f`) and the flow tests for flows 2
+and 9. Main `9e77748`, live `e2bcd35`. The person's note at the check-in: not provided.
+
+- The ticket filed at the last review exists: **EXF-613** (bank sync: queries per run), set to High.
+- **Started the Build for EXF-613** (`p_fc9382ad6b6d49d5b8403c1b52472548`): Worker only, no source app.
+  The Architect must first state Cloudflare's limits with a source for each and derive the budget;
+  names read once per plan; a position from which the next run continues; a failed run visible on the
+  connection; nothing about what is imported may change; the counting test must fail on `9e77748`.
+  It holds the sync service, the paging, the imports and bank-connection repositories and services,
+  the Durable Object. Migration name if needed: `20261116100900_...`.
+- **No Deploy yet:** main is one merge ahead (the import). The Plan-page Build is in its final gate;
+  one Deploy ships both and saves a child. If its card is not in by the next plan, deploy the import
+  alone: flow 5 against the Sandbox is the evidence EXF-613 asks for.
+- **Not started:** the credit engine (needs `packages/core` and the months files, held by the Plan-page
+  Build until it merges); the plan import from a YNAB export (EXF-477): its files are free now, its
+  ticket is unread; read it and start it next round.
+
+**How the three Builds fit:** disjoint. EXF-613 holds the sync's files; the Plan-page Build the Plan
+page, months, targets and `packages/core/src/targets.ts`; the Reflect Build Reflect and the reports.
+
+Ticket writes: 2 (EXF-613 priority and state, one comment). Review cadence: Build 6, Deploy 8,
+Discover 2, Test user flow 5.
