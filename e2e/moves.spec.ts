@@ -106,7 +106,7 @@ test("moving to Ready to Assign raises it and lowers the source's Assigned", asy
   await moveVia(page, RENT, "Inflow: Ready to Assign", "50");
   await expect(assignedOf(page, RENT)).toHaveText("$350.00");
   await expect(rta(page)).toHaveText("$650.00");
-  expect((await plan.cat(RENT)).assigned).toBe(350000);
+  await expect.poll(async () => (await plan.cat(RENT)).assigned).toBe(350000);
 });
 
 test("moving more than Available is allowed and turns the source red", async ({ page }) => {

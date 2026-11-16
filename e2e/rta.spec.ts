@@ -174,7 +174,7 @@ for (const size of [
     await page.reload();
     await expect(box(page).locator(".rta-amount")).toHaveText("$4,245.00");
     await expect(assignedOf(page, RENT)).toHaveText("$25.00");
-    expect((await plan.cat(RENT)).assigned).toBe(25000);
+    await expect.poll(async () => (await plan.cat(RENT)).assigned).toBe(25000);
   });
 }
 
