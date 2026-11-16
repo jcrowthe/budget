@@ -123,8 +123,15 @@ export function PlanGrid({ budgetId, month }: { budgetId: string; month: Month }
       close();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        const usage = await (what === "group" ? actions.groupUsage(id) : actions.categoryUsage(id));
-        setPop(dialog(usage.transaction_count));
+        try {
+          const usage = await (what === "group"
+            ? actions.groupUsage(id)
+            : actions.categoryUsage(id));
+          setPop(dialog(usage.transaction_count));
+        } catch {
+          close();
+          setNotice(`Couldn't delete the ${what}.`);
+        }
         return;
       }
       close();

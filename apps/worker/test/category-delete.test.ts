@@ -421,6 +421,9 @@ describe("delete with reassignment", () => {
       (await mcp("get_category_group_usage", { budget_id: s.bid, group_id: unknown })).isError,
     ).toBe(true);
     expect(
+      (await mcp("get_category_group_usage", { budget_id: unknown, group_id: s.g.id })).isError,
+    ).toBe(true);
+    expect(
       (await mcp("get_category_usage", { budget_id: unknown, category_id: s.fun })).isError,
     ).toBe(true);
   });

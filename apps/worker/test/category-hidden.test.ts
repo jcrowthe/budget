@@ -147,8 +147,7 @@ describe("hide and unhide", () => {
     );
     const mine = updates.filter((l) => l.after_json?.includes('"hidden":false'));
     expect(mine.length).toBeGreaterThanOrEqual(2);
-    expect(mine.every((l) => l.actor.startsWith("mcp:") || l.actor === actor)).toBe(true);
-    expect(mine.some((l) => l.actor.startsWith("mcp:"))).toBe(true);
+    expect(mine.every((l) => l.actor.startsWith("mcp:"))).toBe(true);
     expect((await mcp("unhide_all_categories", { budget_id: crypto.randomUUID() })).isError).toBe(
       true,
     );
