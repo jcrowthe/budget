@@ -159,7 +159,7 @@ export function RegisterTable({ account }: { account: Account }) {
               );
             })}
             <th className="cell-cleared" title={CLEARED_TIP} aria-label="Cleared">
-              <ClearedFilledIcon width={14} height={14} />
+              <ClearedFilledIcon width={14} height={16} />
             </th>
           </tr>
         </thead>

@@ -11,3 +11,9 @@
 - P9 [applied] Cleared header: `--labelTertiary`, left aligned, padding-left 6.4px, icon `top: 1px`.
 - P10 [applied] Text cells padding `1.6px 1.6px 1.6px 6.4px`; OUTFLOW/INFLOW `1.6px 6.4px 1.6px 1.6px`.
 - P11 [applied] `--register-separator` and `--register-label-action` replaced by `--separatorStandard` and `--labelAction` (declared in plan/plan-grid.css, which is bundled with the app); a checked row has `cursor: text`.
+
+Second pass:
+
+- P1 [applied] Checkbox cells are `text-align: center` (padding-left `--space-2` kept), centring the 17px button in the 28px content box.
+- P2 [applied] `.cleared-button` centres its glyph (`align-items`/`justify-content: center`); the svg offset is now `top: 0.5px`.
+- P3 [applied] The cleared header icon is `width={14} height={16}`, as in the source, with `top: 3px` so the ink starts 10px below the row top.

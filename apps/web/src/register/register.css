@@ -177,7 +177,7 @@
 .register-table th.cell-check,
 .register-table td.cell-check {
   padding: 0 0 0 var(--space-2);
-  text-align: left;
+  text-align: center;
 }
 .register-table th.cell-check {
   border-right: 0;
@@ -216,7 +216,8 @@
 }
 .cleared-button {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box;
   width: 16px;
   height: 20px;
@@ -228,7 +229,7 @@
 }
 .cleared-button svg {
   position: relative;
-  top: 2px;
+  top: 0.5px;
 }
 .cleared-button.is-uncleared {
   color: var(--register-icon-muted);
@@ -247,7 +248,8 @@
 }
 .register-table th.cell-cleared svg {
   position: relative;
-  top: 1px;
+  /* The 14x16 box keeps the glyph centred; 3px puts the ink 10px below the row top (source). */
+  top: 3px;
   color: var(--labelTertiary);
 }
 .category-not-needed {
