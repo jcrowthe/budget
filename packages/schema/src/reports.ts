@@ -177,3 +177,117 @@ export const NetWorthResponse = dataEnvelope(NetWorth).openapi("NetWorthResponse
 export type NetWorth = z.infer<typeof NetWorth>;
 export type ReportSettings = z.infer<typeof ReportSettings>;
 export type ReportSettingsList = z.infer<typeof ReportSettingsList>;
+
+export const SpendingGroupBy = z.enum(["category", "group"]).openapi("SpendingGroupBy");
+export type SpendingGroupBy = z.infer<typeof SpendingGroupBy>;
+
+export const SpendingBreakdownQuery = z
+  .object({
+    start_month: Month.optional(),
+    end_month: Month.optional(),
+    excluded_category_ids: IdList,
+    excluded_account_ids: IdList,
+    group_by: SpendingGroupBy.default("category"),
+    group_id: z.string().min(1).max(64).optional(),
+    today: Today.optional(),
+  })
+  .refine((v) => (v.start_month === undefined) === (v.end_month === undefined), {
+    message: "Give both start_month and end_month, or neither",
+  })
+  .refine((v) => !v.start_month || !v.end_month || v.start_month <= v.end_month, {
+    message: "start_month must not be after end_month",
+  })
+  .refine(
+    (v) =>
+      !v.start_month ||
+      !v.end_month ||
+      monthIndex(v.end_month) - monthIndex(v.start_month) < MAX_REPORT_MONTHS,
+    { message: `At most ${MAX_REPORT_MONTHS} months` },
+  );
+export type SpendingBreakdownQuery = z.infer<typeof SpendingBreakdownQuery>;
+
+export const SpendingItem = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    group_name: z.string().nullable(),
+    total: z.number().int(),
+    share_pct: z.number().int(),
+    transaction_count: z.number().int(),
+  })
+  .openapi("SpendingItem");
+export type SpendingItem = z.infer<typeof SpendingItem>;
+export const SpendingMostFrequent = z
+  .object({ id: z.string(), name: z.string(), transaction_count: z.number().int() })
+  .openapi("SpendingMostFrequent");
+export const SpendingLargestOutflow = z
+  .object({
+    transaction_id: z.string(),
+    payee_name: z.string().nullable(),
+    amount: z.number().int(),
+  })
+  .openapi("SpendingLargestOutflow");
+export const SpendingBreakdown = z
+  .object({
+    start_month: Month,
+    end_month: Month,
+    months: z.number().int(),
+    days: z.number().int(),
+    group_by: SpendingGroupBy,
+    group: z.object({ id: z.string(), name: z.string() }).nullable(),
+    total: z.number().int(),
+    average_monthly: z.number().int(),
+    average_daily: z.number().int(),
+    most_frequent: SpendingMostFrequent.nullable(),
+    largest_outflow: SpendingLargestOutflow.nullable(),
+    items: z.array(SpendingItem),
+  })
+  .openapi("SpendingBreakdown");
+export const SpendingBreakdownResponse = dataEnvelope(SpendingBreakdown).openapi(
+  "SpendingBreakdownResponse",
+);
+export type SpendingBreakdown = z.infer<typeof SpendingBreakdown>;
+
+export const ReportTransactionsQuery = z
+  .object({
+    start_month: Month,
+    end_month: Month,
+    category_id: z.string().min(1).max(64).optional(),
+    group_id: z.string().min(1).max(64).optional(),
+    uncategorized: z.enum(["true"]).optional(),
+    excluded_account_ids: IdList,
+  })
+  .refine((v) => v.start_month <= v.end_month, {
+    message: "start_month must not be after end_month",
+  })
+  .refine((v) => monthIndex(v.end_month) - monthIndex(v.start_month) < MAX_REPORT_MONTHS, {
+    message: `At most ${MAX_REPORT_MONTHS} months`,
+  })
+  .refine(
+    (v) =>
+      [v.category_id !== undefined, v.group_id !== undefined, v.uncategorized !== undefined].filter(
+        Boolean,
+      ).length === 1,
+    { message: "Give exactly one of category_id, group_id or uncategorized=true" },
+  );
+export type ReportTransactionsQuery = z.infer<typeof ReportTransactionsQuery>;
+
+export const ReportTransaction = z
+  .object({
+    transaction_id: z.string(),
+    subtransaction_id: z.string().nullable(),
+    account_id: z.string(),
+    account_name: z.string(),
+    date: IsoDate,
+    payee_name: z.string().nullable(),
+    memo: z.string().nullable(),
+    amount: z.number().int(),
+    category_id: z.string().nullable(),
+    category_name: z.string().nullable(),
+    cleared: z.enum(["uncleared", "cleared", "reconciled"]),
+  })
+  .openapi("ReportTransaction");
+export type ReportTransaction = z.infer<typeof ReportTransaction>;
+export const ReportTransactionsResponse = dataEnvelope(
+  z.object({ transactions: z.array(ReportTransaction) }).openapi("ReportTransactions"),
+).openapi("ReportTransactionsResponse");

@@ -41,6 +41,11 @@ export function categoryItems(month: MonthDetail | undefined): FilterNode[] {
   return nodes;
 }
 
+/** Only the nodes of one group (no Uncategorized): the category filter while a group is drilled. */
+export function scopeToGroup(nodes: readonly FilterNode[], groupId: string | null): FilterNode[] {
+  return groupId ? nodes.filter((n) => n.key === groupId) : [...nodes];
+}
+
 type AccountLike = Pick<Account, "id" | "name" | "group" | "on_budget" | "closed">;
 
 export function accountSections(

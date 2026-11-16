@@ -5,6 +5,7 @@ import { downloadNetWorthCsv, useReportSettings, useUpdateReportSettings } from 
 import { NetWorthReport } from "../reflect/NetWorthReport";
 import { ReportFrame } from "../reflect/ReportFrame";
 import { TABS } from "../reflect/ReportTabs";
+import { SpendingBreakdownPage } from "../reflect/SpendingBreakdownPage";
 import { planPath, reflectPath } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
@@ -25,6 +26,7 @@ function ReportPage({ slug }: { slug: ReportSlug }) {
     mutate({ report: slug, patch: { visited: true } });
   }, [mutate, slug]);
   const title = TABS.find((t) => t.slug === slug)?.label ?? REPORTS[slug];
+  if (slug === "spending-breakdown") return <SpendingBreakdownPage title={title} />;
   return (
     <ReportFrame
       report={slug}
@@ -55,7 +57,7 @@ function ReflectPage() {
   const { budgetId = "", report } = useParams();
   if (!report) return <ReflectIndex budgetId={budgetId} />;
   if (!Object.hasOwn(REPORTS, report)) return <Navigate replace to={planPath(budgetId)} />;
-  return <ReportPage key={report} slug={report as ReportSlug} />;
+  return <ReportPage key={`${budgetId}:${report}`} slug={report as ReportSlug} />;
 }
 
 export const page = { path: "/:budgetId/reflect/:report?", element: <ReflectPage /> };

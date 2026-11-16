@@ -7,9 +7,13 @@ import {
   ReportSettingsResponse,
   type ReportSettingsUpdate,
   type ReportSlug,
+  ReportTransactionsResponse,
+  type SpendingBreakdown,
+  SpendingBreakdownResponse,
 } from "@budget/schema/reports";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
+import { keepPreviousInPlan } from "./placeholder";
 
 const settingsKey = (budgetId: string) => ["report-settings", budgetId];
 
@@ -122,7 +126,7 @@ export const useNetWorth = (
   useQuery({
     queryKey: ["net-worth", budgetId, span, excluded, today],
     enabled: !!span,
-    placeholderData: keepPreviousData,
+    placeholderData: keepPreviousInPlan(budgetId),
     queryFn: async (): Promise<NetWorth> =>
       (
         await apiFetch(
@@ -132,23 +136,115 @@ export const useNetWorth = (
       ).data,
   });
 
-export async function downloadNetWorthCsv(
+async function downloadFile(url: string, filename: string): Promise<void> {
+  const res = await fetch(url, { credentials: "same-origin" });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const href = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
+export const downloadNetWorthCsv = (
   budgetId: string,
   span: MonthSpan,
   excluded: string[],
   today: string,
-): Promise<void> {
-  const res = await fetch(
+): Promise<void> =>
+  downloadFile(
     `/api/v1/budgets/${budgetId}/reports/net-worth/export?${netWorthQuery(span, excluded, today)}`,
-    { credentials: "same-origin" },
+    `budget-reflect-net-worth-${today}.csv`,
   );
-  if (!res.ok) throw new Error(`Export failed (${res.status})`);
-  const url = URL.createObjectURL(await res.blob());
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `budget-reflect-net-worth-${today}.csv`;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+function spendingQuery(
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  today: string,
+): URLSearchParams {
+  const q = new URLSearchParams({
+    start_month: span.start_month,
+    end_month: span.end_month,
+    today,
+  });
+  if (excludedCats.length) q.set("excluded_category_ids", excludedCats.join(","));
+  if (excludedAccts.length) q.set("excluded_account_ids", excludedAccts.join(","));
+  return q;
 }
+
+export const useSpendingBreakdown = (
+  budgetId: string,
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  groupBy: "category" | "group",
+  groupId: string | null,
+  today: string,
+) =>
+  useQuery({
+    queryKey: [
+      "spending-breakdown",
+      budgetId,
+      span,
+      excludedCats,
+      excludedAccts,
+      groupBy,
+      groupId,
+      today,
+    ],
+    placeholderData: keepPreviousInPlan(budgetId),
+    queryFn: async (): Promise<SpendingBreakdown> => {
+      const q = spendingQuery(span, excludedCats, excludedAccts, today);
+      q.set("group_by", groupBy);
+      if (groupId) q.set("group_id", groupId);
+      return (
+        await apiFetch(`/api/v1/budgets/${budgetId}/reports/spending-breakdown?${q}`, {
+          schema: SpendingBreakdownResponse,
+        })
+      ).data;
+    },
+  });
+
+export type ReportTransactionSelector =
+  | { category_id: string }
+  | { group_id: string }
+  | { uncategorized: true };
+
+export const useReportTransactions = (
+  budgetId: string,
+  span: MonthSpan,
+  selector: ReportTransactionSelector,
+  excludedAccts: string[],
+) =>
+  useQuery({
+    queryKey: ["report-transactions", budgetId, span, selector, excludedAccts],
+    placeholderData: keepPreviousInPlan(budgetId),
+    queryFn: async () => {
+      const q = new URLSearchParams({ start_month: span.start_month, end_month: span.end_month });
+      if ("category_id" in selector) q.set("category_id", selector.category_id);
+      else if ("group_id" in selector) q.set("group_id", selector.group_id);
+      else q.set("uncategorized", "true");
+      if (excludedAccts.length) q.set("excluded_account_ids", excludedAccts.join(","));
+      return (
+        await apiFetch(`/api/v1/budgets/${budgetId}/reports/transactions?${q}`, {
+          schema: ReportTransactionsResponse,
+        })
+      ).data.transactions;
+    },
+  });
+
+export const downloadSpendingBreakdownZip = (
+  budgetId: string,
+  span: MonthSpan,
+  excludedCats: string[],
+  excludedAccts: string[],
+  today: string,
+): Promise<void> =>
+  downloadFile(
+    `/api/v1/budgets/${budgetId}/reports/spending-breakdown/export?${spendingQuery(span, excludedCats, excludedAccts, today)}`,
+    `budget-reflect-spending-breakdown-${today}.zip`,
+  );
