@@ -6185,3 +6185,53 @@ transactions (their files are held); no Deploy (main equals live).
 43): start that review after it, with the ten Threads, three of which never ran.
 
 Ticket writes: 0. Review cadence: Build 7, Deploy 9, Discover 2, Test user flow 6.
+
+### 2026-11-16 · Review round 74
+
+Children used 88 of 200. One Build ended; three children are running (the Plan-page Build, the register
+Build, the flow tests for flows 5 and 10).
+
+**Ended: the Reflect Build for two reports (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`), merged as `033e011`
+(PR #40)**, about 2 hours 10 minutes, two cards (Regate for a moved base, Approve). EXF-550 and EXF-552
+are Done.
+
+- I approved after reading the branch: gate on `c9e9d1c`, e2e 291 of 291 three times; `spendingRows`
+  untouched and the only source of expenses; `incomeRows` as I specified; nothing out of bounds, no
+  skip. Acceptance 18 of 18; sixteen polish items.
+- Its Reviewer found four small things, fixed: a click on a short bar segment was swallowed by the
+  marker's hover circle; the "(no payee)" row took a payee's name; the empty state when a purchase
+  and its refund cancel; a redundant condition.
+- **One known issue, accepted and filed now as a Low gap:** after that fix the marker's hover circle
+  lies under the bars, so on a month with spending only its upper half opens the marker's tooltip.
+- **Source limits:** the Tester wrote the limits out and kept them (two tab clicks, two captures). The
+  Designer did not resize the source on purpose this time, but **a clipped screenshot that timed out
+  left the source tab at 1340 pixels wide**, as in the Plan-page Build an hour earlier; it noticed,
+  restored 1600×813 and said so. So "take unclipped captures and crop afterwards" in my briefs is not
+  what the Designer's tool does by default. For the next briefs: "capture with the browser's own
+  full-page screenshot call and no clip; a clipped capture changes the tab's size".
+- On main: routes `reports/spending-trends`, `reports/income-expense` and their exports; tools
+  `get_spending_trends`, `get_income_expense`; `packages/schema/src/spending-trends.ts`,
+  `income-expense.ts`; `apps/web/src/reflect/TrendsChart.tsx`, `TrendsTable.tsx`,
+  `IncomeExpenseReport.tsx`. **61 tools on main.**
+- A side note from its Tester: the source's test plan now shows a balance adjustment of -261.11 in
+  Income v Expense. Some earlier child's visit to the test plan left it (an account there was adjusted
+  or closed at some point). It is the test plan, where changes are allowed; nothing to do.
+
+**Main is `033e011`; live is `c9e9d1c`.** One merge is not live (the two Reflect reports; no migration).
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): head `8ee91a6` (its rework, rebased), on its
+  way to the gate; its next card will need a look at the height-keeping change and the layout spec.
+- **Register Build** (`p_7bb9ae1dcb8e4106b60f405a6002857e`): head `d1d05fa`, polish applied.
+- **Flows 5 and 10** (`p_1a06c903df354fd0ad9f020e918dccac`): running against the Sandbox.
+
+**Ticket writes:** 4 (two Done, two comments). One gap ticket filed through this review.
+
+**Backlog:** 59 open feature tickets (35 done; 5 in progress: EXF-500, 516, 519, 520, 522). Gap: open
+EXF-558, EXF-560, EXF-562, EXF-589, EXF-614 (Low) and the one filed now. Template: twenty-nine. Flow
+verdicts unchanged. Finished since each template's last review: Build 8, Deploy 9, Discover 2, Test
+user flow 6.
+
+**Next plan:** no Deploy for one small merge; wait for the Plan-page Build or the register Build and
+ship them together (that Deploy is the tenth, and the Deploy template review follows). With Reflect
+free again: Age of Money (EXF-553) is the last report; read its ticket and decide.
