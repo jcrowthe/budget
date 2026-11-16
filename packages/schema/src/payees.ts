@@ -90,7 +90,7 @@ export function payeeMenu(
       transfers,
       heading: "Saved Payees",
       saved: visible,
-      hint: visible.length === 0 && transfers.length === 0 ? "Start typing to add a payee." : null,
+      hint: visible.length === 0 ? "Start typing to add a payee." : null,
       active: -1,
     };
   }
