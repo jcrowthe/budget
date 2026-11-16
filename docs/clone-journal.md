@@ -5380,3 +5380,17 @@ EXF-562, EXF-589 (Low). Template: twenty-eight. Flow verdicts unchanged. Finishe
 template's last review: Build 2, Deploy 5, Discover 2, Test user flow 5.
 
 **Next plan:** nothing to start unless EXF-593 has merged: then the Deploy and EXF-462.
+
+### 2026-11-16 · Plan round 65
+
+Children used 77 of 200. Three Builds are running: EXF-593 with EXF-590 and EXF-587 (in its second gate
+fix, head `0e3c71b` on origin), the Reflect carry-over (planning, head `96ebe97`) and the Plan-page
+Build for views, snooze and Auto-Assign (starting). Main `4da55a7`, live `4e3eb7a`. No ticket was filed
+at the last review.
+
+**Started nothing.** The three Builds hold the register with the transactions, accounts and payees
+files, Reflect with the reports files, and the Plan page with the months and targets files and
+`packages/core`. The plan declared in round 64 stands: the Deploy and EXF-462 when EXF-593 merges; the
+credit engine after the Plan-page Build.
+
+Ticket writes: 0. Review cadence: Build 2, Deploy 5, Discover 2, Test user flow 5.
