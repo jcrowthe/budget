@@ -40,7 +40,7 @@ export const LockIcon = (p: P) => (
 );
 export const PencilIcon = (p: P) => (
   <svg {...base} width={16} height={16} aria-hidden="true" {...p}>
-    <path d="M16.500 2.500 21.500 7.500 8 21H3v-5L16.500 2.500Zm0 2.800L5 16.800V19h2.200L18.700 7.500l-2.200-2.200Z" />
+    <path d="M17.500 0 24 6.500 7.500 23H0v-7.500L17.500 0Z" />
   </svg>
 );
 export const StarOutlineIcon = (p: P) => (

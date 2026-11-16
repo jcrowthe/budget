@@ -14,14 +14,15 @@
 .acct-head-top {
   box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  min-height: 83.2px;
   padding: var(--space-3);
 }
 .acct-head-top.is-all {
   min-height: 60.8px;
-  align-items: center;
+}
+.acct-head-top.is-all h1 {
+  padding-right: calc(var(--space-3) + var(--space-2));
 }
 .acct-head-left {
   min-width: 0;
@@ -30,6 +31,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  padding-right: calc(var(--space-3) + var(--space-2));
 }
 .acct-head h1 {
   margin: 0;
@@ -60,7 +62,7 @@
   color: var(--labelSecondary);
   font-size: 12px;
   font-weight: 500;
-  line-height: 16px;
+  line-height: calc(12px * var(--line-height));
 }
 .acct-info-item {
   display: inline-flex;
@@ -82,6 +84,7 @@
   font: inherit;
   font-size: 16px;
   font-weight: 500;
+  transition: background-color 0.15s;
 }
 .acct-edit {
   display: inline-flex;
@@ -171,7 +174,7 @@
   color: var(--account-tooltip-label);
   font-size: 12px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: normal;
   text-align: left;
   pointer-events: none;
 }
@@ -194,12 +197,16 @@
 }
 .acct-tooltip .acct-tip-label {
   margin-right: var(--space-2);
+  font-size: 12px;
   font-weight: 500;
+  line-height: calc(12px * var(--line-height));
+}
+.acct-tooltip kbd + kbd {
+  margin-left: var(--space-1);
 }
 .acct-tooltip kbd {
   display: inline-block;
   min-width: 20px;
-  margin-left: var(--space-1);
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
   background: var(--buttonSubtleBackground);
