@@ -59,13 +59,17 @@ async function hoverIntoSubmenu(page: Page, planName: string) {
 async function expectSubmenuReachable(page: Page, request: APIRequestContext, aName?: string) {
   const { a, b } = await twoPlans(page, request, aName);
   await hoverIntoSubmenu(page, b.name);
-  const m = await menu(page).boundingBox();
   const s = await sub(page).boundingBox();
   const vp = page.viewportSize();
   expect(s?.x).toBeGreaterThanOrEqual(8);
   expect((s?.x ?? 0) + (s?.width ?? 0)).toBeLessThanOrEqual((vp?.width ?? 0) - 8 + 0.5);
   expect((s?.y ?? 0) + (s?.height ?? 0)).toBeLessThanOrEqual(vp?.height ?? 0);
-  if (aName === undefined) expect(s?.x).toBeGreaterThanOrEqual((m?.x ?? 0) + (m?.width ?? 0) - 1);
+  // Source (Designer, 1440\u00d7900): the submenu starts at the Open Plan row's right edge and row top.
+  const row = await item(page, "Open Plan").boundingBox();
+  if (aName === undefined) {
+    expect(s?.x).toBeCloseTo((row?.x ?? 0) + (row?.width ?? 0), 0);
+    expect(s?.y).toBeCloseTo(row?.y ?? 0, 0);
+  }
   // The sidebar never scrolls sideways.
   const sc = await side(page).evaluate((el) => [el.scrollWidth, el.clientWidth, el.scrollLeft]);
   expect(sc[0]).toBe(sc[1]);
