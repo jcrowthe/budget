@@ -47,7 +47,10 @@ async function hoverMonth(page: Page, month: string, dx = 0, dy = 0) {
   const x = c.x + dx;
   const y = c.y + dy;
   const hit = await page.evaluate(
-    ([px, py]) => document.elementFromPoint(px, py)?.getAttribute("data-month") ?? null,
+    ([px, py]) => {
+      const el = document.elementFromPoint(px, py);
+      return el?.matches("rect.aom-hover") ? el.getAttribute("data-month") : null;
+    },
     [x, y],
   );
   expect(hit).toBe(month);
@@ -104,7 +107,7 @@ test("553-2 553-3 the chart, its labels and the tooltip", async ({ page, request
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(page.url()).toBe(url);
 
-  for (const dy of [0, 6, -25]) {
+  for (const dy of [0, 6, -40]) {
     await page.mouse.move(oct.x, oct.y);
     await hoverMonth(page, "2026-11-01", 0, dy);
     await expect(tooltip(page).locator("div")).toHaveText(["Nov 2026", "122 days"]);
@@ -126,7 +129,7 @@ test("553-7 a plan switch never shows the first plan's value", async ({ page, re
   const { plan: x } = await seedSpendingExample(request);
   const y = await newPlan(request, "aom-y");
   const chk = await addAccount(request, y.id, "Y Checking", "checking", 500000, "2026-11-01");
-  await addTx(request, y.id, chk, "2026-11-02", -10000);
+  for (const d of ["02", "03", "04"]) await addTx(request, y.id, chk, `2026-11-${d}`, -10000);
   await openAge(page, x.id);
   await expect(page.getByTestId("aom-current")).toHaveText("122 days");
   let release: () => void = () => {};
