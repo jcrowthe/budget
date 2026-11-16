@@ -41,6 +41,17 @@ async function twoPlans(page: Page, request: APIRequestContext, aName?: string) 
   const a = await newPlan(request, aName);
   const b = await newPlan(request);
   await markOpened(request, a.id);
+  // The suite runs in parallel against one database: other specs open plans too, which would push A out of
+  // the five most recent. Show this test only its own two plans (real data, filtered).
+  await page.route("**/api/v1/budgets", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.data.budgets = body.data.budgets.filter(
+      (x: { id: string }) => x.id === a.id || x.id === b.id,
+    );
+    return route.fulfill({ response: res, json: body });
+  });
   await page.goto(`/${b.id}/budget`);
   await expect(planButton(page, b.name)).toBeVisible();
   return { a, b };
@@ -297,6 +308,7 @@ test.describe("1440×900", () => {
     await page.keyboard.press("ArrowRight");
     const first = sub(page).getByRole("menuitem").first();
     const href = await first.getAttribute("href");
+    await expect(first).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(href ?? "");
   });
