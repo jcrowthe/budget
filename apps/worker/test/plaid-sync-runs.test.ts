@@ -135,7 +135,8 @@ describe("sync runs (EXF-462)", () => {
     stubBank();
     const { plan, conn, account } = await world1();
     feed.pages = [{ added: many(40, "ZZ-F") }];
-    await expect(runSync(failingBatchEnv(2), conn)).rejects.toThrow("simulated");
+    // EXF-613: batches 1 and 2 are the run's reads (context, the unit's rows); 3 and 4 are write batches.
+    await expect(runSync(failingBatchEnv(4), conn)).rejects.toThrow("simulated");
     expect((await connRow(conn)).sync_cursor).toBeNull();
     const partial = (await imports(account)).length;
     expect(partial).toBeGreaterThan(0);
