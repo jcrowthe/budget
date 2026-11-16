@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 5 (last reviewed in round 24, fourteen Threads), Deploy 7, Test user flow 1,
+Review counters (finished children since that template's last review): Build 5 (last reviewed in round 24, fourteen Threads), Deploy 8, Test user flow 1,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -370,7 +370,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
 | 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | completed (9 minutes): flow 9 `new_gaps` (EXF-571), flow 11 `parity` |
 | 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | running |
-| 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | running |
+| 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | live `82aac3a` |
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -2771,3 +2771,52 @@ what I sent back), the account-pages Build (EXF-484, 534, 570; pull request #19)
   of 10; 8 after this one).
 - Review cadence: Build 5, Deploy 7, Discover 2, Test user flow 1.
 - Ticket writes this round: 5.
+
+### 2026-11-16 · Review round 34
+
+Children used 45 of 200. Three Builds are running: the categories Build (pull request #17, on my requested
+changes), the account-pages Build (pull request #19) and the plan-menu Build (started last round). No card
+is waiting.
+
+**Ended: the Deploy `p_35445feed3ef4e338886f6265c7210d1`, passed. Live: https://budget.doxen.dev at
+`DEPLOY_SHA` `82aac3a`** (the register and Plaid Link). Seven minutes; e2e skipped (tree equals the gated
+head); both migrations applied, none pending; smoke ok.
+
+- All nine checks passed.
+- **Plaid credentials are now stored on live:** `GET /api/v1/plaid/credentials` shows `sandbox` and
+  `production` configured, each with a time and no value. The release summary did not carry the script's
+  one status line, so the verifier could not quote it; the endpoint is the proof. (For the Deploy template
+  review: output printed after the script's last `PHASE_SECONDS` line does not reach the summary.)
+- Through the live Worker, Plaid Sandbox answers: popular test banks, search for "plat", and a link token
+  for a sandbox test plan. No bank connection was created on live.
+- The transactions API on live: Starting Balance 500000 / 0 / 500000; after an outflow of 17.34, 500000 /
+  -17340 / 482660; cleared, 482660 / 0 / 482660; the category's activity -17340; after delete, back to the
+  start.
+- MCP lists thirteen tools.
+- Web: the register and the bank search (with its Sandbox mark, results and no-match text) work; no console
+  errors. Sorting could only be checked by `aria-sort` with one row.
+- **Plans that are not test plans: 0**, counted with `GET /api/v1/budgets` filtered on the prefix; the
+  unfiltered total was also 0 after cleanup. Consistent with my own check in round 32.
+- The platform's recorder again printed a migration's file name as `[masked:input_secret]` (this time
+  `20261116002832_budgets_bank_environment.sql`, earlier the targets and ui-state ones). Harmless; for the
+  Deploy template review.
+
+**What is live now:** plans and URLs; the Plan grid with default categories, edit Assigned, month
+navigation and notes; accounts with Add Unlinked Account and sidebar groups; the account page with the
+register (read, sort, cleared toggle; no entry by hand yet); the bank search with Plaid Link for sandbox
+plans; 13 MCP tools. Not live: categories create, rename, delete, hide (in rework), the account header and
+All Accounts (in a Build), the plan menu fix (in a Build).
+
+**For the next plan:** flow 10 (REST and MCP: create a transaction and read a month with the service
+token; through MCP, categorize a transaction and assign money; both visible in the interface and in the
+history with the right actor) can run now. There is no history route yet: the flow test may read
+`change_log` on the live database with `wrangler d1 execute --remote` and `SELECT` only (the profile's
+`live.never_run` allows that), limited to its test plan's rows. Flow 5 (link a bank) needs EXF-461 at
+least. Flows 1 and 2 after the categories Build ships.
+
+**Ticket writes:** none this review.
+
+**Backlog:** 84 open feature tickets (10 done; 5 in progress: EXF-494, 495, 484, 534, 470), all triaged.
+Gap: EXF-570 and EXF-571 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium),
+EXF-560, EXF-562 (Low). Template: fifteen. Flow verdicts: 9 `new_gaps`, 11 `parity`. Finished since each
+template's last review: Build 5, Deploy 8, Discover 2, Test user flow 1.
