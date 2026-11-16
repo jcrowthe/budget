@@ -1,7 +1,9 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { bankAccounts } from "../db/schema/bank-accounts";
 import { bankConnections } from "../db/schema/bank-connections";
+import { secrets } from "../db/schema/secrets";
+import { accessTokenSecretName } from "../plaid/tokens";
 
 export type BankConnectionRow = typeof bankConnections.$inferSelect;
 export type BankAccountRow = typeof bankAccounts.$inferSelect;
@@ -73,10 +75,59 @@ export function updateConnectionStmt(
   return db.update(bankConnections).set(set).where(eq(bankConnections.id, id));
 }
 
-export function deleteAccountsStmt(db: Db, connectionId: string) {
-  return db.delete(bankAccounts).where(eq(bankAccounts.bankConnectionId, connectionId));
+export function deleteAccountsStmt(db: Db, connectionId: string, guard?: SQLWrapper) {
+  return db
+    .delete(bankAccounts)
+    .where(
+      and(
+        eq(bankAccounts.bankConnectionId, connectionId),
+        guard ? sql`exists ${guard}` : undefined,
+      ),
+    );
 }
 
-export function deleteConnectionStmt(db: Db, id: string) {
-  return db.delete(bankConnections).where(eq(bankConnections.id, id));
+export function deleteConnectionStmt(db: Db, id: string, guard?: SQLWrapper) {
+  return db
+    .delete(bankConnections)
+    .where(and(eq(bankConnections.id, id), guard ? sql`exists ${guard}` : undefined));
+}
+
+/** `SELECT 1` that holds while the connection exists and `condition` (no link made since the read) holds. */
+export function removalHolds(db: Db, id: string, condition: SQLWrapper) {
+  return db
+    .select({ one: sql`1` })
+    .from(bankConnections)
+    .where(and(eq(bankConnections.id, id), sql`${condition}`));
+}
+
+/** Deletes the connection's stored token once the connection row is gone (so a lost guard keeps it). */
+export function deleteTokenWhenGoneStmt(db: Db, connectionId: string) {
+  return db
+    .delete(secrets)
+    .where(
+      and(
+        eq(secrets.name, accessTokenSecretName(connectionId)),
+        sql`not exists (select 1 from ${bankConnections} where ${bankConnections.id} = ${connectionId})`,
+      ),
+    );
+}
+
+/** The bank account when its connection is of `environment`; another environment's is not found. */
+export async function findBankAccountInEnvironment(
+  db: Db,
+  environment: "production" | "sandbox",
+  bankAccountId: string,
+): Promise<BankAccountRow | undefined> {
+  const [r] = await db
+    .select({ a: bankAccounts })
+    .from(bankAccounts)
+    .innerJoin(bankConnections, eq(bankConnections.id, bankAccounts.bankConnectionId))
+    .where(and(eq(bankAccounts.id, bankAccountId), eq(bankConnections.environment, environment)))
+    .limit(1);
+  return r?.a;
+}
+
+export async function findBankAccountById(db: Db, id: string): Promise<BankAccountRow | undefined> {
+  const [r] = await db.select().from(bankAccounts).where(eq(bankAccounts.id, id)).limit(1);
+  return r;
 }

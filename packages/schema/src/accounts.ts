@@ -44,6 +44,16 @@ export const Account = z
     cleared_balance: Milliunits,
     uncleared_balance: Milliunits,
     balance: Milliunits,
+    bank_account_id: z.uuid().nullable().openapi({
+      description: "The bank account this account is linked to; null when it is not linked",
+    }),
+    linked: z
+      .boolean()
+      .openapi({ description: "True when the account is linked to a bank account" }),
+    import_start_date: IsoDate.nullable().openapi({
+      description:
+        "The first date a bank import may bring in (YYYY-MM-DD); null when the account is not linked",
+    }),
   })
   .openapi("Account");
 
@@ -57,14 +67,17 @@ export const AccountCreate = z
   })
   .openapi("AccountCreate");
 
+export const PlanDate = IsoDate.regex(
+  /^(19|20|21)\d{2}-/,
+  "Year must be between 1900 and 2199",
+).refine(isCalendarDate, "date must be a real calendar date");
+
 export const AccountCreateRequest = z
   .object({
     name: z.string().trim().min(1, "Name is required").max(100),
     type: AccountType,
     balance: Milliunits,
-    date: IsoDate.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199")
-      .refine(isCalendarDate, "date must be a real calendar date")
-      .optional(),
+    date: PlanDate.optional(),
   })
   .openapi("AccountCreateRequest");
 
@@ -76,6 +89,40 @@ export const accountUpdateShape = accountUpdateFields.shape;
 export const AccountUpdateRequest = accountUpdateFields
   .refine((o) => Object.keys(o).length > 0, "Nothing to update")
   .openapi("AccountUpdateRequest");
+
+export const AccountLinkOverride = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(100).optional(),
+    type: AccountType.optional(),
+  })
+  .strict();
+
+export const accountsFromBankFields = {
+  bank_account_ids: z.array(z.string().min(1)).min(1).max(50),
+  overrides: z.record(z.string(), AccountLinkOverride).optional(),
+  today: PlanDate.optional(),
+};
+
+export const AccountsFromBankRequest = z
+  .object(accountsFromBankFields)
+  .strict()
+  .refine((o) => new Set(o.bank_account_ids).size === o.bank_account_ids.length, {
+    message: "bank_account_ids must not repeat",
+  })
+  .refine((o) => Object.keys(o.overrides ?? {}).every((k) => o.bank_account_ids.includes(k)), {
+    message: "every override key must be one of bank_account_ids",
+  })
+  .openapi("AccountsFromBankRequest");
+
+export const accountLinkFields = {
+  bank_account_id: z.string().min(1),
+  today: PlanDate.optional(),
+};
+
+export const AccountLinkRequest = z
+  .object(accountLinkFields)
+  .strict()
+  .openapi("AccountLinkRequest");
 
 export const AccountSummaryResponse = dataEnvelope(z.object({ balances: AccountBalances })).openapi(
   "AccountSummaryResponse",
@@ -91,9 +138,15 @@ export const AccountCreateResponse = dataEnvelope(
   z.object({ account: Account, starting_balance: Transaction }),
 ).openapi("AccountCreateResponse");
 
+export const AccountsFromBankResponse = dataEnvelope(
+  z.object({ created: z.array(z.object({ account: Account, starting_balance: Transaction })) }),
+).openapi("AccountsFromBankResponse");
+
 export type AccountType = z.infer<typeof AccountType>;
 export type AccountGroup = z.infer<typeof AccountGroup>;
 export type Account = z.infer<typeof Account>;
 export type AccountCreate = z.infer<typeof AccountCreate>;
 export type AccountCreateRequest = z.input<typeof AccountCreateRequest>;
 export type AccountUpdateRequest = z.input<typeof AccountUpdateRequest>;
+export type AccountsFromBankRequest = z.input<typeof AccountsFromBankRequest>;
+export type AccountLinkRequest = z.input<typeof AccountLinkRequest>;
