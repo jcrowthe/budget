@@ -210,6 +210,17 @@
   width: var(--col-activity, 5.25rem);
   min-width: 0;
 }
+/* Polish P3: a target text with no room wraps to a hidden second line instead of being cut to a sliver (source's
+   .budget-table-cell-edit-category-label: flex-flow wrap, max-height 1.25rem, overflow hidden). The clip margin keeps
+   the name button's focus ring whole. */
+.plan-body[data-narrow] .name-line {
+  flex-wrap: wrap;
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+.plan-body[data-narrow] .status-label {
+  min-width: 4.5rem;
+}
 /* The outer margins and the header paddings give way too: the name column gets every pixel left. */
 .plan-body[data-narrow] .cell-margin:first-child,
 .plan-body[data-narrow] .cell-margin:last-child {
@@ -893,7 +904,8 @@ button.category-name {
 .payment-help {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  /* source (stylesheet): the icon's margin-right is .125rem */
+  gap: 2px;
   padding: 0;
   border: 0;
   background: none;

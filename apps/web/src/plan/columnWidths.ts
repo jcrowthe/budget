@@ -20,7 +20,7 @@ const PILL_PADDING = 14;
 const PILL_ICON = 19;
 // A group row's Available cell: 6px of padding and, in the payment group, the PAYMENT button (icon, label).
 const GROUP_PADDING = 6;
-const PAYMENT_BUTTON = 84;
+const PAYMENT_BUTTON = 76;
 // Tabular digits and a font that may not be loaded yet: a little room.
 const SLACK = 4;
 

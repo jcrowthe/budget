@@ -232,10 +232,13 @@ test("21. a name keeps its first word, the target text gives way, the pill stays
     const n = r.locator(".category-name");
     const m = await n.evaluate((el) => {
       const text = el.firstChild as Text;
-      const word = (text.textContent ?? "").split(" ")[0] ?? "";
+      // The first word after a leading emoji (a default category's name starts with one); source: the same names.
+      const full = text.textContent ?? "";
+      const lead = full.match(/^\p{Extended_Pictographic}\uFE0F?\s*/u)?.[0].length ?? 0;
+      const word = full.slice(lead).split(" ")[0] ?? "";
       const range = document.createRange();
-      range.setStart(text, 0);
-      range.setEnd(text, word.length);
+      range.setStart(text, lead);
+      range.setEnd(text, lead + word.length);
       const cs = getComputedStyle(el);
       return {
         name: text.textContent,
@@ -252,7 +255,10 @@ test("21. a name keeps its first word, the target text gives way, the pill stays
     if ((await label.count()) > 0) {
       withTarget++;
       const [nb, lb] = await Promise.all([n.boundingBox(), label.boundingBox()]);
-      expect((lb?.x ?? 0) + 0.5).toBeGreaterThanOrEqual((nb?.x ?? 0) + (nb?.width ?? 0));
+      // Beside the name, or wrapped to the (clipped) second line under it (polish P3): never over it.
+      const beside = (lb?.x ?? 0) + 0.5 >= (nb?.x ?? 0) + (nb?.width ?? 0);
+      const below = (lb?.y ?? 0) + 0.5 >= (nb?.y ?? 0) + (nb?.height ?? 0);
+      expect(beside || below, `${m.name}: label over the name`).toBe(true);
       await expect(label).toHaveAttribute("title", /.+/);
     }
     for (const sel of [".available-pill", ".assigned-box", ".cell-activity"]) {
