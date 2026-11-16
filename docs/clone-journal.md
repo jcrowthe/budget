@@ -8306,3 +8306,53 @@ two migrations; the credit checks of `D25` and a scheduled-transactions and Refl
 three new tickets' priorities; Export Plan (EXF-476) can start now that the scheduled table is on
 main and the register files are free, and so can the register follow-ups (EXF-635, 636, 637, 630),
 if their files do not overlap.
+
+### 2026-11-16 · Plan round 97
+
+Children used 112 of 200. Two started now; three are running. Main `11273cf`, live `85f3cc9` with two
+migrations pending (read by me at 17:39Z). The person has not answered the check-in.
+
+- **The three tickets filed at the last review exist:** EXF-657 (the action bar's other actions on
+  scheduled rows; Low), EXF-658 (due entry from the Plan page; Medium), EXF-659 (a deleted
+  category's schedules; Medium).
+- **Started: Deploy `D27` of `11273cf`** (`p_da285c51c54146728f2d86505c4b842e`; prefix `ZZ-TEST D27`;
+  gated head `7219e1d`, tree equal to main's). One Deploy for both merges, as planned: the
+  carry-over's gate ran at 17:30Z in a box that kept its files.
+  - The credit checks of `D25` and `D26` unchanged, in a plan with one more category for the new
+    part.
+  - **Scheduled transactions, with my figures (by hand; "DIFFERS FROM THE BRIEF" if wrong):** a
+    monthly one ten days ahead (nothing real; checking still 875.00); Enter Now (a real row dated
+    today, approved; next date a month after the scheduled date; checking 835.00); a weekly one
+    dated today (a real row today, the series a week on; checking 825.00; the category −50.00, cash
+    overspent; next month's Ready to Assign 825.00); a one-off dated today refused; `enter-due`
+    with nothing due; the tool's list equal to REST; 75 tools expected.
+  - Web: the pills and inspector as before; the register's Scheduled section and its bar (Enter Now
+    not pressed); opening the account page enters nothing; Income v Expense at 1024×700 (no amount
+    cut, labels shortened with a tooltip).
+  - Counts before anything is created: 2 payment groups, 2 payment categories, none in a live plan,
+    0 schedules.
+  - The lost-box rules of `D26`'s brief, plus: a gate that itself reports `RESULT=refused` is
+    recorded as it is. No operation on scheduled transactions without the test plan's id, and no
+    `today` other than the real date.
+- **Started: the Record Payment Build** (`p_ae982fa0a2334ebaae16875e1551c0d6`): EXF-539 (the card
+  page's Payment pill and Record Payment, `POST .../accounts/{card}/payments`, the tool
+  `pay_credit_card`) with the register leftovers EXF-635 (shift+click range), EXF-636 (Move to
+  Account on All Accounts), EXF-637 (a refusal starting with an internal id) and EXF-630.
+  - **Decided:** no engine change and no migration: a payment stays the credit side of a transfer,
+    and "Payment: ..." with the category "Credit Card Payments: <card>" is a display rule. The page
+    opens the payment row on `?record-payment`; the inspector's button (Plan-page Build) gets the
+    parameter afterwards.
+  - **Scheduling rule:** against the Plan-page Build it shares only one line in the timestamp test's
+    list and `docs/README.md` (keep both sides); it touches no shared module and nothing under
+    `apps/web/src/plan/`, `packages/core` or the months services (all named out of bounds).
+  - Source: All Accounts of the test plan only; ticking, shift+click, opening More and hovering Move
+    to Account are allowed; no menu item is clicked. The card screens are "not compared".
+- **Not started:** Export Plan (EXF-476) and Reconcile (EXF-533, High): Reconcile needs the account
+  page and the register, which the Build above holds; Export could run beside both, and I hold it one
+  round to see whether boxes keep their files before a fourth child is exposed.
+- **Running besides:** the Plan-page Build (`p_8baaff851d044a5ea2fcccb712be3809`).
+- **Cards while `D27` is in flight:** before answering one I read live; a merge is approved only
+  after the release is done.
+
+Ticket writes: 13 (three priorities; five tickets to In Progress; five comments). Review cadence:
+Build 7, Deploy 5 (the sixth running), Discover 2, Test user flow 0.
