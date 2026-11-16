@@ -8608,3 +8608,24 @@ Build 8, Deploy 6, Discover 2, Test user flow 1.
 
 **Next plan:** nothing to start (Reconcile waits for the Record Payment Build; main and live are
 equal). The review of round 100 is a check-in.
+
+### 2026-11-16 · Plan round 100
+
+Children used 115 of 200. Nothing started; three Builds are running (the Plan page, in review;
+Record Payment, implementing; Export Plan, at its design). Main and live `11273cf` (read by me at
+18:26Z). No tickets were filed at the last review. The person has not answered the check-in.
+
+- **Why nothing new:** Reconcile (EXF-533, High) needs the account page and the register, held by
+  the Record Payment Build; every other unblocked ticket needs the Plan page, the register, the
+  account pages or a shared module one of the three Builds holds, or waits on the person's word
+  (the bank screens, the plan menu's dialogs). Main and live are equal, so no Deploy; nothing new is
+  live since the last flow test.
+- **Cards:** nothing is releasing and no flow test is on live. The Plan-page Build's card comes
+  first; if its gate ran on `11273cf` and its gated head is the PR head, I approve after reading the
+  branch; the other two then meet a moved base at their own cards and get Regate.
+- **The review of this round is the round-100 check-in.**
+
+Declared for the tree, unchanged: Reconcile after the Record Payment Build; one Deploy for the next
+merges and flow 4 again; the plan import (EXF-477) after Export Plan.
+
+Ticket writes: 0. Review cadence: Build 8, Deploy 6, Discover 2, Test user flow 1.
