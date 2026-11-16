@@ -8576,3 +8576,35 @@ has not answered the check-in.
 
 Ticket writes: 2 (EXF-664's priority; a comment on EXF-476). Review cadence: Build 8, Deploy 6,
 Discover 2, Test user flow 1.
+
+### 2026-11-16 · Review round 99
+
+Children used 115 of 200. Nothing new ended: this review follows the end of the Export Plan Build I
+cancelled (recorded at review 98; it shows as abandoned). Three Builds are running. Main and live
+`11273cf` (read by me at 18:25Z).
+
+- **Export Plan Build, second start** (`p_ea174a98047041e79c4230242206bd6c`): the Clerk's three
+  steps done, and **its box holds the platform's files** (`bin` with `lib.sh`, `source_check.sh`,
+  `dev_server.sh`, `profile.cjs`; `request.json`; the profile files). The listing I asked for in the
+  Clerk's first answer shows it at a glance; I keep that line in every Build brief.
+- **Record Payment Build: manifest arrived** (`p_ae982fa0a2334ebaae16875e1551c0d6`).
+  - **Scheduling rule: five of its new files have the same names as new files of the Plan-page
+    Build** (`docs/card-payments-design.md`, `-spec.md`, `-polish.md`, `e2e/card-payments.spec.ts`,
+    `apps/worker/test/card-payments.test.ts`); I compared the two branches: the two docs already
+    exist on both with different content. Two Builds about "card payments" chose the same names; my
+    briefs did not give either a name. Not a reason to cancel: nothing else overlaps (the timestamp
+    test's list and `docs/README.md` are keep-both-sides). **I told it on EXF-539 to rename its five
+    files to `record-payment-*` now**, before the Plan-page Build merges and its rebase conflicts.
+    From now on a Build brief names its design file when another running Build is in the same area.
+  - Otherwise as expected: no shared module, no migration, nothing under `apps/web/src/plan/`. It
+    also changes the scheduled-transactions service and repository (a card's own payment category is
+    refused for schedules too), which nobody else holds.
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): in review; branch head `bd2ff81`.
+
+**Ticket writes:** 1 (the rename instruction on EXF-539).
+
+**Backlog, flow verdicts:** unchanged from review 98. Finished since each template's last review:
+Build 8, Deploy 6, Discover 2, Test user flow 1.
+
+**Next plan:** nothing to start (Reconcile waits for the Record Payment Build; main and live are
+equal). The review of round 100 is a check-in.
