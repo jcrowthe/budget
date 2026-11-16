@@ -392,7 +392,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | PR #30 | merged `74f1041` (round 53), 45 minutes, one card |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
 | 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
-| 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | running |
+| 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | live `74f1041` (14 minutes) |
 | 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -4479,3 +4479,45 @@ ran on an older base; EXF-526 with EXF-524, e2e specs written) and two children 
   targets screens for the Plan-page Build.
 - Ticket writes: 4 (two to In Progress, two comments).
 - Review cadence: Build 7, Deploy 2, Discover 2, Test user flow 4.
+
+### 2026-11-16 · Review round 54
+
+Children used 67 of 200. Three Builds are running: the Plan-page Build (EXF-498, 523, 521, 586; head
+`17749ec`, a spec for the panel's measured values), EXF-526 with EXF-524 (polish applied, head `a589915`),
+EXF-486 with EXF-488 (with its Architect).
+
+**Ended: the Deploy of main `74f1041`** (`p_440603eb108042738ca17f4ef6e712ba`), 14 minutes (a tool timeout
+killed its first browser run; it reset its test plan's settings and ran both sizes again from clean).
+**Live: https://budget.doxen.dev at `74f1041`.**
+
+- Both migrations applied (`100200` report settings, `100600` account links); none pending. Smoke ok.
+- Net Worth through REST: assets 12,500.00, debts -5,000.00, net worth 7,500.00, as computed by hand; with
+  the tracking accounts excluded 2,500.00 and 0; the CSV and the all-dates range right.
+- **43 MCP tools**, with `get_net_worth`, `link_account`, `unlink_account`, `create_accounts_from_bank`.
+- The Reflect screens worked with a real mouse at both sizes; the CSV downloaded as
+  `budget-reflect-net-worth-2026-11-16.csv`; no page errors.
+- The prefixed purge left nothing; one plan that is not a test plan.
+- Two things it raised:
+  - **Sign of a liability's balance at creation:** `balance` 5000000 for an `otherLiability` is stored as
+    -5,000.00 (owed), and -5000000 is stored as +5,000.00 and counts as an asset. That is the source's
+    rule ("a positive balance is money owed") but an API caller can get it wrong: `create_account`'s
+    description must say it. Belongs to EXF-547 (balance sign at entry); add it there when that ticket is
+    built, or to EXF-587's pass over tool descriptions.
+  - Linking a cash account with a made-up bank account id answers 404 before the cash refusal is reached:
+    the order of checks, not a defect; the 422 is covered by the Build's own test.
+
+**Running Builds:** nothing new in manifests. The transfers and splits Build is past its polish; the
+Plan-page Build is adding a spec of measured values, so its gate has not been re-run yet.
+
+**Main and live are both `74f1041`.**
+
+**Ticket writes:** none.
+
+**Backlog:** 76 open feature tickets (21 done; 7 in progress: EXF-498, 523, 521, 526, 524, 486, 488). Gap:
+EXF-587, EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress EXF-586 (High).
+Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 9 and 10 `new_gaps`, 11 `parity`.
+Finished since each template's last review: Build 7, Deploy 3, Discover 2, Test user flow 4.
+
+**Next plan:** a flow test on live with its own prefix: flow 8 as far as built (Net Worth) and flow 5 as
+far as built (connect a Sandbox bank on a test plan, add its accounts through MCP, unlink, remove the
+connection). Flow 9 again waits for EXF-586 on live.
