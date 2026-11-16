@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 10 (**review due**), Test user flow 2,
+Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 0 (sent for review in round 43, ten Threads), Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -383,6 +383,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
 | 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | live `41bee46` (6 minutes) |
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
+| 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | running |
+| 2026-11-16 | 43 | Improve templates, review of Deploy, ten Threads (`p_d5c887068b264f6a9d70d9f9ec940ebc`) | n/a | n/a | running |
+| 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -3614,3 +3617,41 @@ next turn for any Designer line.
 EXF-560, EXF-562 (Low), EXF-574 (Low, in progress), one new filed now. Template: twenty. Flow verdicts: 9
 `new_gaps` (fix live now), 10 `new_gaps` (fix live), 11 `parity`: run 9 and 10 again, and 1. Finished since
 each template's last review: Build 1, Deploy 10 (due), Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 43
+
+Children used 59 of 200. Seven are running: four Builds from earlier rounds (EXF-491 with EXF-492;
+EXF-517 with EXF-507; EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574) and three children
+started now.
+
+- The ticket filed at the last review exists: **EXF-579** (purge only one run's test plans), set to Medium.
+- **Started the flow tests on live `41bee46`** (`p_b3b54aec56044df2a755ef5d984061f4`), one child, three flows:
+  - Flow 9 again (previous run `p_943f...`, gap EXF-571): switching plans through the menu with a real
+    mouse at two window sizes; the plan button's text after each load (the 6-character oddity).
+  - Flow 10 again (previous run `p_e823...`, gap EXF-572): the short form of the writes, every tool added
+    since, the coverage table (33 tools) and the descriptions.
+  - Flow 1, first run: New Plan from the menu, a group and categories (create, rename, hide, unhide,
+    delete), an account, assigning to zero with arithmetic, over-assigning, reload, next month.
+  - Rules: one real plan is on live; only rows starting with `ZZ-TEST` in the submenu; no screenshot with
+    the submenu open; no source app at all (flow 1 there would create a plan in the owner's account).
+  - It is alone on live: no Deploy is running.
+- **Started the Deploy template review** (`p_d5c887068b264f6a9d70d9f9ec940ebc`), all ten Deploys. Points:
+  the count of plans and its method; the summary missing the script's last line; masked migration names;
+  short commit ids; the browser install every time; the purge of every test plan; which live rules belong
+  in the template now that live holds real data.
+- **Started EXF-579 with EXF-569** (`p_cd848105b4374ae2afe041183b489568`): the purge by prefix, and the flaky
+  "reopen the last used plan" spec made deterministic without touching `playwright.config.ts`.
+  - It holds `scripts/live-test-plans.sh` with its test, `e2e/plans.spec.ts`, `e2e/support/**`,
+    `docs/conventions.md`. No file under `apps/web/`, `apps/worker/` or `packages/`.
+  - **It may never call the live app.** Acceptance shortened to five full runs and a repeat run.
+  - EXF-558 (also e2e infrastructure, but it edits `playwright.config.ts`) still waits for a moment alone.
+- **The bank-connection Build is on course** (transcript read): Worker only; five routes scoped by the
+  plan's environment; migration `20261116100300_bank_connections_reset.sql`; removal completes when Plaid
+  says the Item is gone, answers 502 and removes nothing on another Plaid failure; `deleteSecretStmt`
+  added to the shared `secrets` module; tools `get_bank_connection`, `rename_bank_connection`,
+  `remove_bank_connection`. Its Architect and Implementer did not open the source.
+- **Scheduling rule:** six Builds' manifests are disjoint by brief (Plan page; register and transactions;
+  Reflect; bank connections Worker and `mcp-coverage.test.ts`; scripts and `plans.spec.ts`). Shared docs
+  only: `docs/README.md`, `docs/conventions.md`.
+- Ticket writes: 5 (EXF-579 priority; EXF-579 and EXF-569 to In Progress with comments).
+- Review cadence: Build 1, Deploy 0 (review running), Discover 2, Test user flow 2.
