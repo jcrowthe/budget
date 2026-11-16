@@ -447,24 +447,35 @@ test("another plan's register never shows the first plan's scheduled rows, not f
   // The app's own navigation to the other plan, sampled on every animation frame for 2 s.
   const frames = await page.evaluate(
     ([url]) =>
-      new Promise<{ frames: number; seen: number }>((resolve) => {
+      new Promise<{ frames: number; seen: number; log: string[] }>((resolve) => {
+        // The app commits its first render of the other plan on the first DOM change after the
+        // navigation; frames before it still show the page that was already painted.
+        let committed = false;
+        new MutationObserver((_m, o) => {
+          committed = true;
+          o.disconnect();
+        }).observe(document.body, { childList: true, subtree: true, characterData: true });
         history.pushState(null, "", url as string);
         dispatchEvent(new PopStateEvent("popstate"));
         let frames = 0;
         let seen = 0;
+        const log: string[] = [];
         const start = performance.now();
         const tick = () => {
           frames++;
-          if ((document.body.textContent ?? "").includes("ZZ-TEST Alpha Only")) seen++;
+          if (committed && (document.body.textContent ?? "").includes("ZZ-TEST Alpha Only")) {
+            seen++;
+            log.push(`${frames}@${location.pathname.slice(-8)}`);
+          }
           if (performance.now() - start < 2000) requestAnimationFrame(tick);
-          else resolve({ frames, seen });
+          else resolve({ frames, seen, log });
         };
         requestAnimationFrame(tick);
       }),
     [`/${b.plan}/accounts/${b.checking}`],
   );
   expect(frames.frames).toBeGreaterThan(10);
-  expect(frames.seen).toBe(0);
+  expect(frames.log).toEqual([]);
   await expect(page).toHaveURL(new RegExp(`/${b.plan}/accounts/${b.checking}$`));
   await expect(page.getByRole("button", { name: "Add Transaction", exact: true })).toBeVisible();
 });
@@ -651,7 +662,13 @@ test("Delete removes the selected scheduled rows; E typed in a field does nothin
   await realClick(page, button(page, "Cancel"));
   await expect(page.locator(".entry-body")).toHaveCount(0);
 
-  await selectSched(page, "ZZ-TEST Key A");
+  // Cancel leaves the row selected.
+  await expect(
+    schedRow(page, "ZZ-TEST Key A").getByRole("checkbox", {
+      name: "Select transaction",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-checked", "true");
   await realClick(
     page,
     schedRow(page, "ZZ-TEST Key B").getByRole("checkbox", {
