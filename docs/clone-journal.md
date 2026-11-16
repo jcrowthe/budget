@@ -8125,3 +8125,36 @@ shipped), Discover 2, Test user flow 0.
 
 **Next plan:** start the Deploy again in a fresh box (prefix `ZZ-TEST D26`, the same checks; the first
 answer to a lost box as written above); set EXF-650 and EXF-651's priorities.
+
+### 2026-11-16 · Plan round 94
+
+Children used 110 of 200. One started now; three are running. Main `b84f513`, live `85f3cc9` with the
+migration `20261116101100` pending (read by me at 17:15Z). The person has not answered the check-in.
+
+- **Started: Deploy `D26` of `b84f513`** (`p_a5a9076321b24ce2a9bcf93ad5daa18f`; prefix `ZZ-TEST D26`;
+  gated head `6acd179`, tree equal to main's, compared again). The same checks as `D25`, which lost
+  its box before anything was released. Counts read again: 2 live credit accounts, none in a plan
+  that is not deleted.
+  - **Changed in the brief after `D25`:** on missing platform files a step answers that it needs
+    help, in the fixed words, and **never uses its ordinary answer form, not even with a placeholder
+    in a forced field**; it never writes `release.env`; asked again, it answers the same. The health
+    check compares with `git rev-parse b84f513`, not with `origin/main`, so a merge after the release
+    does not make it differ. Screenshots mask or crop the identity label (the template review found
+    it in most flow runs' captures).
+  - **If it loses its box too:** my first answer says "keep answering that you need help; never the
+    record form", and I escalate at the second card.
+- **Template tickets from the flow review exist and are prioritised:** EXF-650 Medium (what a verdict
+  is measured against), EXF-651 High (the walk's standing rules; about twenty faults stayed
+  unfiled in reports without it).
+- **Not started:** no Build (the two running hold the Plan page, the register and the account
+  pages); no flow test under a Deploy.
+- **Running besides:** the carry-over of scheduled transactions and the Reflect fixes
+  (`p_65ee74c0816d452899f054187504cc58`, in acceptance, rebased onto `b84f513`); the Plan-page Build
+  (`p_8baaff851d044a5ea2fcccb712be3809`, implementing).
+- **Cards:** the carry-over's card may come while `D26` runs. Before answering I read live: if the
+  release is done (health shows `b84f513`), a merge no longer touches the Deploy and I can approve a
+  card whose gated head is the PR head on base `b84f513`; if the release has not happened yet, I do
+  not approve under it.
+
+Ticket writes: 2 (two priorities). Review cadence: Build 6, Deploy 4 (the fifth running), Discover 2,
+Test user flow 0.
