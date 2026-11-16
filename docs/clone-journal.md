@@ -7467,4 +7467,5 @@ one more follows, a Deploy ships them; the register follow-up Build (EXF-635, 63
 scheduled rows' bulk actions, and moving the "enter what is due" trigger into the shell) starts when
 scheduled transactions has merged.
 
-Ticket writes: 1 (comment on EXF-573). Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 9.
+Ticket writes: 2 (two comments on EXF-573; the second corrects a count in the first that I could not
+support). Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 9.
