@@ -230,11 +230,18 @@ test("two note saves in a row land in order even when the first is slow", async 
   await openPlan(page, s);
   await select(page, RENT);
   let first = true;
+  let release: () => void = () => {};
+  const firstDone = new Promise<void>((r) => {
+    release = r;
+  });
   await page.route(`**/api/v1/budgets/${s.id}/categories/${s.cat[RENT]}`, async (route) => {
     if (route.request().method() !== "PATCH") return route.fallback();
     if (first) {
       first = false;
       await new Promise((r) => setTimeout(r, 1500));
+      await route.continue().catch(() => {});
+      release();
+      return;
     }
     await route.continue().catch(() => {});
   });
@@ -245,6 +252,8 @@ test("two note saves in a row land in order even when the first is slow", async 
   };
   await save("first");
   await save("second");
+  // The held first save has now reached the server: only then can a lost-write race show.
+  await firstDone;
   await expect.poll(() => noteOf(request), { timeout: 10000 }).toBe("second");
   await expect(panel(page).locator(".note-display")).toHaveText("second");
   await page.waitForTimeout(500);
