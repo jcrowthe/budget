@@ -1,16 +1,29 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
-// biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are (EXF-498 adds keyboard selection)
+// biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are; the keys are the page's (shortcuts.ts)
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
 import { amountClass, barSegments, money, statusLabel } from "./format";
-import { CheckIcon, ChevronDownIcon, ChevronRightSmallIcon, PlusCircleFillIcon } from "./icons";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightSmallIcon,
+  PlusCircleFillIcon,
+  SubtractIcon,
+} from "./icons";
 import { ProgressBar } from "./ProgressBar";
 
-/** Local visual state only: EXF-498 gives checkboxes their meaning. */
-export function Checkbox({ label }: { label: string }) {
-  const [checked, setChecked] = useState(false);
+/** A checkbox of the selection: checked, unchecked or "mixed" (some of the rows below it). */
+export function Checkbox({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean | "mixed";
+  onChange: () => void;
+}) {
   return (
     <button
       type="button"
@@ -18,9 +31,12 @@ export function Checkbox({ label }: { label: string }) {
       aria-checked={checked}
       aria-label={label}
       className="checkbox"
-      onClick={() => setChecked((c) => !c)}
+      onClick={onChange}
     >
-      <span className="checkbox-box">{checked && <CheckIcon />}</span>
+      <span className="checkbox-box">
+        {checked === true && <CheckIcon />}
+        {checked === "mixed" && <SubtractIcon />}
+      </span>
     </button>
   );
 }
@@ -32,16 +48,31 @@ export function GroupRow({
   onEditName,
   onAddCategory,
   addOpen,
+  checked,
+  onCheck,
 }: {
   g: MonthGroupDetail;
+  checked: boolean | "mixed";
+  onCheck: () => void;
   collapsed: boolean;
   onToggle: () => void;
   onEditName: (anchor: HTMLElement) => void;
   onAddCategory: (anchor: HTMLElement) => void;
   addOpen: boolean;
 }) {
+  const nameRef = useRef<HTMLButtonElement>(null);
   return (
-    <div className="grid-row group-row" role="row" aria-level={1} aria-expanded={!collapsed}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: a right-click opens the edit popover; the name button does the same by keyboard
+    <div
+      className="grid-row group-row"
+      role="row"
+      aria-level={1}
+      aria-expanded={!collapsed}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (nameRef.current) onEditName(nameRef.current);
+      }}
+    >
       <div className="cell-margin" />
       <div className="cell-collapse">
         <button
@@ -54,11 +85,12 @@ export function GroupRow({
         </button>
       </div>
       <div className="cell-checkbox">
-        <Checkbox label={g.name} />
+        <Checkbox label={g.name} checked={checked} onChange={onCheck} />
       </div>
       <div className="cell-name" role="rowheader">
         <button
           type="button"
+          ref={nameRef}
           className="group-name"
           title={g.name}
           onClick={(e) => onEditName(e.currentTarget)}
@@ -100,10 +132,16 @@ export function CategoryRow({
   onCommit,
   focusRequest,
   onFocusDone,
-  onEditName,
+  onSelect,
   onPill,
+  selected,
+  onContextMenu,
 }: {
   c: MonthCategoryDetail;
+  selected: boolean;
+  onSelect: (how: "only" | "toggle") => void;
+  /** Right-click: the row's edit popover, anchored at the name. */
+  onContextMenu: (anchor: HTMLElement) => void;
   bars: boolean;
   editing: boolean;
   onOpen: () => void;
@@ -111,7 +149,6 @@ export function CategoryRow({
   onCommit: (after: number) => Promise<void>;
   focusRequest: FocusTarget | null;
   onFocusDone: () => void;
-  onEditName: (anchor: HTMLElement) => void;
   onPill: (anchor: HTMLElement) => void;
 }) {
   const label = bars ? statusLabel(c) : null;
@@ -128,28 +165,30 @@ export function CategoryRow({
     }
   }, [focusRequest, c.available, onFocusDone]);
   return (
-    <div className="grid-row category-row" role="row" aria-level={2}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: a right-click opens the edit popover; the inspector's pencil does the same by keyboard
+    <div
+      className={`grid-row category-row${selected ? " is-selected" : ""}`}
+      role="row"
+      aria-level={2}
+      aria-selected={selected}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (nameRef.current) onContextMenu(nameRef.current);
+      }}
+    >
       <div className="cell-margin" />
       <div className="cell-collapse" />
       <div className="cell-checkbox">
-        <Checkbox label={c.name} />
+        <Checkbox label={c.name} checked={selected} onChange={() => onSelect("toggle")} />
       </div>
-      <div
-        className="cell-name"
-        role="rowheader"
-        onContextMenu={(e) => {
-          e.preventDefault();
-          if (nameRef.current) onEditName(nameRef.current);
-        }}
-      >
+      <div className="cell-name" role="rowheader">
         <div className="name-line">
-          {/* EXF-498: open the popover only when the row is already selected (the first click selects). */}
           <button
             type="button"
             ref={nameRef}
             className="category-name"
-            title={c.name}
-            onClick={(e) => onEditName(e.currentTarget)}
+            title={c.note ? `${c.name}\n${c.note}` : c.name}
+            onClick={() => onSelect("only")}
           >
             {c.name}
           </button>

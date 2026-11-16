@@ -6,10 +6,10 @@ import {
   CategoryUsageResponse,
 } from "@budget/schema/categories";
 import type { MonthDetail } from "@budget/schema/months";
-import { type QueryClient, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { apiFetch } from "./client";
-import { beginWrite, endWrite } from "./monthCache";
+import { beginWrite, endWrite, inOrder } from "./monthCache";
 
 const base = (b: string) => `/api/v1/budgets/${b}` as const;
 const write = { idempotencyKey: undefined as string | undefined };
@@ -59,6 +59,16 @@ export const updateCategory = async (
     await apiFetch(`${base(b)}/categories/${id}`, {
       method: "PATCH",
       body: patch,
+      schema: CategoryResponse,
+      ...key(),
+    })
+  ).data.category;
+
+export const setCategoryNote = async (b: string, id: string, note: string | null) =>
+  (
+    await apiFetch(`${base(b)}/categories/${id}`, {
+      method: "PATCH",
+      body: { note },
       schema: CategoryResponse,
       ...key(),
     })
@@ -169,4 +179,47 @@ export async function setGroupsCollapsed(
   } finally {
     endWrite(qc, budgetId);
   }
+}
+
+/** The note as the server stores it: trimmed at both ends, empty means none. */
+export const normalizeNote = (note: string): string | null => note.trim() || null;
+
+function withCategoryNote(d: MonthDetail, id: string, note: string | null): MonthDetail {
+  return {
+    ...d,
+    groups: d.groups.map((g) => ({
+      ...g,
+      categories: g.categories.map((c) => (c.id === id ? { ...c, note } : c)),
+    })),
+  };
+}
+
+/**
+ * Saves a category's note. The category id travels in the variables, so a change of selection during the save
+ * cannot retarget it. The cached months change at once (through the one write rule of monthCache.ts); a failure
+ * puts `before` back only where the value written is still there.
+ */
+export function useSetCategoryNote(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { categoryId: string; before: string | null; note: string }) =>
+      // One after another: an absolute write must not be overtaken by a later save of the same note.
+      inOrder(budgetId, () => setCategoryNote(budgetId, v.categoryId, normalizeNote(v.note))),
+    onMutate: async (v) => {
+      await beginWrite(qc, budgetId);
+      const value = normalizeNote(v.note);
+      qc.setQueriesData<MonthDetail>(
+        { queryKey: ["month", budgetId] },
+        (d) => d && withCategoryNote(d, v.categoryId, value),
+      );
+    },
+    onError: (_e, v) => {
+      const value = normalizeNote(v.note);
+      qc.setQueriesData<MonthDetail>({ queryKey: ["month", budgetId] }, (d) => {
+        const cur = d?.groups.flatMap((g) => g.categories).find((c) => c.id === v.categoryId)?.note;
+        return d && cur === value ? withCategoryNote(d, v.categoryId, v.before) : d;
+      });
+    },
+    onSettled: () => endWrite(qc, budgetId),
+  });
 }

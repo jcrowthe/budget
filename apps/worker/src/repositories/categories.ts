@@ -64,7 +64,7 @@ export function insertIfSortStmt(db: Db, row: CategoryRow) {
   return db
     .insert(categories)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note} where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
     );
 }
 
@@ -108,14 +108,14 @@ export function insertIfStmt(db: Db, r: CategoryRow, guard: SQL) {
   return db
     .insert(categories)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note} where ${guard}`,
     );
 }
 
 export function updateIfStmt(
   db: Db,
   id: string,
-  set: Partial<Pick<CategoryRow, "name" | "hidden" | "updatedAt">>,
+  set: Partial<Pick<CategoryRow, "name" | "hidden" | "note" | "updatedAt">>,
   guard: SQL,
 ) {
   return db
@@ -215,9 +215,9 @@ export function softDeleteManyStmt(db: Db, ids: readonly string[], now: string, 
 
 /** The `select` a category-change log row is built from (its columns are those of `categories`). */
 export const categoryJson = (): SQL =>
-  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(sql`hidden`)})`;
+  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(sql`hidden`)}, 'note', note)`;
 export const categoryJsonHidden = (to: boolean): SQL =>
-  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(to ? sql`1` : sql`0`)})`;
+  sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(to ? sql`1` : sql`0`)}, 'note', note)`;
 
 /** A category group's or category's history (R5): active transactions and months with a non-zero assigned. */
 export async function historyOf(

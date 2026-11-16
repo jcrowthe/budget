@@ -7,11 +7,18 @@ import {
   MonthNoteResponse,
   MonthNoteUpdate,
   MonthRangeResponse,
+  MonthTotalsResponse,
 } from "@budget/schema/months";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
-import { getMonthRange, getPlanMonth, listPlanMonths, setMonthNote } from "../services/months";
+import {
+  getMonthRange,
+  getMonthSummary,
+  getPlanMonth,
+  listPlanMonths,
+  setMonthNote,
+} from "../services/months";
 
 const tags = ["Months"];
 const MAX_MONTHS = 120;
@@ -38,6 +45,9 @@ const app = new OpenAPIHono<AppEnv>({
   },
 });
 
+const MAX_CATEGORY_IDS = 500;
+const CATEGORY_IDS_MESSAGE = "category_ids must list category ids separated by commas";
+
 const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
 
 export default app
@@ -60,6 +70,45 @@ export default app
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
       return c.json({ data: await getPlanMonth(c.env, budget_id, month) }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/months/{month}/summary",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: z
+            .string()
+            .min(1)
+            .openapi({ param: { name: "budget_id", in: "path" } }),
+          month: InputMonth.openapi({ param: { name: "month", in: "path" } }),
+        }),
+        query: z.object({
+          category_ids: z.string().optional().openapi({
+            description:
+              "Category ids separated by commas (1 to 500); default: every visible category",
+          }),
+        }),
+      },
+      responses: {
+        200: json(MonthTotalsResponse, "Totals of the month over the categories"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, month } = c.req.valid("param");
+      const { category_ids } = c.req.valid("query");
+      let ids: string[] | undefined;
+      if (category_ids !== undefined) {
+        const parts = category_ids.split(",").map((x) => x.trim());
+        ids = [...new Set(parts)];
+        if (parts.some((x) => x === "") || ids.length > MAX_CATEGORY_IDS) {
+          return apiError(c, 422, "unprocessable_entity", CATEGORY_IDS_MESSAGE) as never;
+        }
+      }
+      return c.json({ data: await getMonthSummary(c.env, budget_id, month, ids) }, 200);
     },
   )
   .openapi(

@@ -105,7 +105,7 @@ test("add a category at the top of its group; a duplicate is refused", async ({ 
 
 test("rename a category and a group, with the messages", async ({ page }) => {
   await open(page);
-  await page.locator(".category-name", { hasText: RENT }).click();
+  await page.locator(".category-name", { hasText: RENT }).click({ button: "right" });
   const pop = popover(page, "Edit Category");
   const field = pop.getByPlaceholder("Enter category name");
   await expect(field).toHaveValue(RENT);
@@ -143,7 +143,7 @@ test("delete an unused category or group at once, logged with the actor", async 
   request,
 }) => {
   await open(page);
-  await page.locator(".category-name", { hasText: UTILITIES }).click();
+  await page.locator(".category-name", { hasText: UTILITIES }).click({ button: "right" });
   await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   await expect(popover(page, "Edit Category")).toHaveCount(0);
   await expect(page.locator(".category-name", { hasText: UTILITIES })).toHaveCount(0);
@@ -173,7 +173,7 @@ test("delete a category with history: pick a target, Ready to Assign holds", asy
   await assign(request, ENTERTAINMENT, 20000);
   const before = (await month(request)).ready_to_assign;
   await open(page);
-  await page.locator(".category-name", { hasText: ENTERTAINMENT }).click();
+  await page.locator(".category-name", { hasText: ENTERTAINMENT }).click({ button: "right" });
   await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Category" });
   await expect(dialog.getByText("you'll need to reassign your past activity")).toBeVisible();
@@ -198,7 +198,7 @@ test("delete a category with history: pick a target, Ready to Assign holds", asy
 test("Escape closes the picker list first, then the dialog", async ({ page, request }) => {
   await assign(request, ENTERTAINMENT, 1000);
   await open(page);
-  await page.locator(".category-name", { hasText: ENTERTAINMENT }).click();
+  await page.locator(".category-name", { hasText: ENTERTAINMENT }).click({ button: "right" });
   await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Category" });
   await expect(page.getByRole("listbox", { name: "Plan Categories" })).toBeVisible();

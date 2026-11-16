@@ -72,6 +72,7 @@ export function defaultCategoryStmts(
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
+        note: null,
       };
       stmts.push(
         categoriesRepo.insertIfSortStmt(db, cat),

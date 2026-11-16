@@ -5,8 +5,9 @@ import {
   LinkTokenResponse,
 } from "@budget/schema/bank-connections";
 import { InstitutionListResponse } from "@budget/schema/institutions";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
+import { keepPreviousInPlan } from "./placeholder";
 
 const q = (budgetId: string) => `budget_id=${encodeURIComponent(budgetId)}`;
 
@@ -70,6 +71,6 @@ export const useInstitutionSearch = (budgetId: string, query: string) =>
     queryKey: ["institutions", "search", budgetId, query],
     queryFn: () => searchInstitutions(budgetId, query),
     enabled: !!budgetId && query !== "",
-    placeholderData: keepPreviousData,
+    placeholderData: keepPreviousInPlan(budgetId),
     retry: false,
   });

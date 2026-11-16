@@ -42,6 +42,7 @@ export function categoryToApi(row: categoriesRepo.CategoryRow): Category {
     name: row.name,
     sort: row.sortOrder,
     hidden: row.hidden,
+    note: row.note ?? null,
   };
 }
 
@@ -112,6 +113,7 @@ export async function createCategory(
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
+      note: null,
     };
     const [, result] = await db.batch([
       changeLogInsertIf(
@@ -255,6 +257,7 @@ export async function addCategory(
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
+      note: null,
     };
     const guard = and(
       categoriesRepo.sortIsFirst(row.groupId, row.sortOrder),
@@ -388,7 +391,7 @@ export async function updateCategory(
   actor: string,
   input: { budget_id: string; category_id: string } & CategoryUpdate,
 ): Promise<Category> {
-  const patch = CategoryUpdate.parse({ name: input.name, hidden: input.hidden });
+  const patch = CategoryUpdate.parse({ name: input.name, hidden: input.hidden, note: input.note });
   const db = getDb(env);
   await requirePlan(db, input.budget_id);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -408,9 +411,15 @@ export async function updateCategory(
       ...before,
       name: patch.name ?? before.name,
       hidden: patch.hidden ?? before.hidden,
+      note: patch.note === undefined ? before.note : patch.note?.trim() || null,
     };
     const bringGroupBack = patch.hidden === false && group.hidden;
-    if (after.name === before.name && after.hidden === before.hidden && !bringGroupBack) {
+    if (
+      after.name === before.name &&
+      after.hidden === before.hidden &&
+      after.note === before.note &&
+      !bringGroupBack
+    ) {
       return categoryToApi(before);
     }
     const now = new Date().toISOString();
@@ -446,7 +455,11 @@ export async function updateCategory(
         categoriesRepo.flipInGroupStmt(db, group.id, true, now, catGuard, before.id),
       );
     }
-    if (after.name !== before.name || after.hidden !== before.hidden) {
+    if (
+      after.name !== before.name ||
+      after.hidden !== before.hidden ||
+      after.note !== before.note
+    ) {
       stmts.push(
         changeLogInsertIf(
           db,
@@ -467,7 +480,7 @@ export async function updateCategory(
       categoriesRepo.updateIfStmt(
         db,
         before.id,
-        { name: after.name, hidden: after.hidden, updatedAt: now },
+        { name: after.name, hidden: after.hidden, note: after.note, updatedAt: now },
         catGuard,
       ),
     );
