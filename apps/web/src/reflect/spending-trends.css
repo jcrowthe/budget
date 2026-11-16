@@ -73,6 +73,7 @@
   stroke: var(--labelPrimary);
   stroke-width: 2;
   pointer-events: visiblePainted;
+  cursor: pointer; /* source: circle.bb-circle cursor pointer */
 }
 .st-hit {
   fill: transparent;

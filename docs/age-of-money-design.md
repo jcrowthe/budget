@@ -219,8 +219,8 @@ In `TrendsChart.tsx`:
 - a click on a segment beside or below the dot reaches the segment directly, as before;
 - the larger `circle.st-hit` (r=10, transparent) stays **under** the bars, unchanged, so a month with no spending
   behaves as it does today (615-3);
-- nothing else changes: no figure, no tooltip text, no style besides `pointer-events` and `cursor` (unchanged:
-  default).
+- nothing else changes: no figure, no tooltip text, no style besides `pointer-events` and `cursor`. The marker's cursor is
+  `pointer`, as the source's circle (measured by the Designer; corrected from "unchanged: default").
 
 ## Downstream effects
 

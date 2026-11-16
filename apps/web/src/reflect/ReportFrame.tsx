@@ -69,7 +69,7 @@ export function ReportFrame({
   return (
     <div className="reflect">
       <ReportTabs />
-      <div className="reflect-head">
+      <div className={`reflect-head${isAge ? " reflect-head--age" : ""}`}>
         <h1>{heading ?? title}</h1>
         {!isAge && (
           <button

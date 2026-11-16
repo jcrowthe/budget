@@ -53,6 +53,11 @@
   margin: 24px 0 12px;
   padding: 0 var(--space-4);
 }
+/* Age of Money has no actions: the head is the title's line box (source: .reflect-page-header-group, margin 24px 0 16px). */
+.reflect-head--age {
+  height: auto;
+  margin-bottom: var(--space-3);
+}
 .reflect-head h1 {
   margin: 0;
   color: var(--labelPrimary);
