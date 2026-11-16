@@ -82,3 +82,13 @@ describe("payeeMenu transfers", () => {
     expect(payeeMenu(list, "", { transfers: false }).transfers).toEqual([]);
   });
 });
+
+describe("payeeMenu transferLabel", () => {
+  const t = p("Transfer : Checking", { transfer_account_id: "chk" });
+  it("matches the typed text against the label shown, and still against To/From", () => {
+    const label = (x: Payee) => `Payment from ${x.name.replace("Transfer : ", "")}`;
+    expect(payeeMenu([t], "payment fr", { transferLabel: label }).transfers).toHaveLength(1);
+    expect(payeeMenu([t], "to/from", { transferLabel: label }).transfers).toHaveLength(1);
+    expect(payeeMenu([t], "payment fr").transfers).toHaveLength(0);
+  });
+});

@@ -83,7 +83,7 @@ export function ScheduledSection({
       // The state is only remembered while storage works.
     }
   }, [collapsed]);
-  const { scheduled, setScheduled, toggleScheduled, setScheduledRows } = useSelection();
+  const { scheduled, setScheduled, pick, setScheduledRows } = useSelection();
   useEffect(() => setScheduledRows(rows), [rows, setScheduledRows]);
   // Ids that left the list (entered, deleted, another plan) drop out of the selection.
   useEffect(() => {
@@ -103,14 +103,19 @@ export function ScheduledSection({
   const editRow = editAt >= 0 ? rows[editAt] : undefined;
 
   const openEdit = (s: ScheduledTransaction, field: Field) => {
-    setScheduled([s.id]);
+    pick("scheduled", s.id, "only");
     onOpen({ mode: "editScheduled", id: s.id, focus: field });
   };
   const onRowClick = (e: React.MouseEvent, s: ScheduledTransaction) => {
     if (isControl(e)) return;
+    if (e.shiftKey) {
+      pick("scheduled", s.id, "rangeOnly");
+      if (open) onCloseEntry();
+      return;
+    }
     if (scheduled.has(s.id) && scheduled.size === 1) openEdit(s, fieldOf(e));
     else {
-      setScheduled([s.id]);
+      pick("scheduled", s.id, "only");
       if (open) onCloseEntry();
     }
   };
@@ -125,12 +130,19 @@ export function ScheduledSection({
           data-scheduled={s.id}
           className={`scheduled-row${checked ? " is-checked" : ""}`}
           onClick={(e) => onRowClick(e, s)}
+          onMouseDown={(e) => {
+            if (e.shiftKey) e.preventDefault();
+          }}
           onDoubleClick={(e) => {
             if (!isControl(e)) openEdit(s, fieldOf(e));
           }}
         >
           <td className="cell-check">
-            <Box state={checked} label="Select transaction" onClick={() => toggleScheduled(s.id)} />
+            <Box
+              state={checked}
+              label="Select transaction"
+              onClick={(e) => pick("scheduled", s.id, e.shiftKey ? "rangeAdd" : "toggle")}
+            />
           </td>
           <td className="cell-flag">
             {s.flag_color ? <FlagFilledIcon className={`flag-${s.flag_color}`} /> : null}

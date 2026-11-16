@@ -27,7 +27,7 @@ export type Field = "account" | "date" | "payee" | "category" | "memo" | "outflo
 /** What the register has open: nothing, a new row, or one row being edited. */
 export type Open =
   | null
-  | { mode: "add"; key: number; date?: string }
+  | { mode: "add"; key: number; date?: string; payment?: { inflow: number | null } }
   | { mode: "edit"; id: string; focus: Field; openCategory?: boolean; split?: true }
   | { mode: "editScheduled"; id: string; focus: Field };
 

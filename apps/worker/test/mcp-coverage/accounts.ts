@@ -15,4 +15,5 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "POST /budgets/{budget_id}/accounts/from-bank": { tool: "create_accounts_from_bank" },
   "POST /budgets/{budget_id}/accounts/{account_id}/link": { tool: "link_account" },
   "DELETE /budgets/{budget_id}/accounts/{account_id}/link": { tool: "unlink_account" },
+  "POST /budgets/{budget_id}/accounts/{account_id}/payments": { tool: "pay_credit_card" },
 };

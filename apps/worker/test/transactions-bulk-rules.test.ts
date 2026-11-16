@@ -82,7 +82,10 @@ describe("refusals change nothing", () => {
       "unprocessable_entity",
       r.id,
     );
-    expect(detail).toContain("is a tracking account: its transactions take no category");
+    // EXF-637: the reason reads as a sentence.
+    expect(detail).toContain(
+      "is a tracking account, so its transactions can't have a category. Remove the category first.",
+    );
   });
 
   it("move: a reconciled categorized row to a tracking account is skipped, not refused", async () => {
