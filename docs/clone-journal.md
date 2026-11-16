@@ -7587,3 +7587,46 @@ merged, three lost or abandoned), Deploy 2, Discover 2, Test user flow 9.
 **Next plan:** the carry-over Build for scheduled transactions and the Reflect fixes together (test
 the double merge in a throwaway worktree first). A Deploy for the shell merge alone is now worth it:
 the next merge is an hour away again.
+
+### 2026-11-16 · Plan round 88
+
+Children used 104 of 200. Two started now; three are running with the credit engine carry-over
+(acceptance passed, heading to its gate). Main `85f3cc9`, live `8ec621e`. No tickets were filed at the
+last review.
+
+- **Started: Deploy `D24`** (`p_4affb69b408a437eb02d78c0cb79af44`; `expect_commit` `85f3cc9`, gated head
+  `ddaf0ff`, trees identical). One web-only merge, no migration (the pending script prints nothing; the
+  brief says it must stay empty).
+  - Checks on a test plan at both sizes: the Keyboard Shortcuts dialog by `?` (and `?` typed into a
+    field opening nothing); collapse to the rail, **the rail there from the first paint after a
+    reload**, Shift+. ; dragging the edge to 400, 200 and 100 px; the register's and the Plan page's
+    own keys still working beside the new listener; a 600 px sidebar in a 1024 px window (a report,
+    not a pass or fail); a deleted plan's address with the requests it makes; 68 tools unchanged.
+  - **The plan menu is not opened at all** (its Open Plan list would show the owner's plan), so the
+    menu's Keyboard Shortcuts entry and the menu from the rail stay unchecked on live; said so in the
+    brief. The verifier is told never to print the sidebar's identity label or whole-page text.
+  - Every agent step lists `/workspace/.exfab` first and stops with "PLATFORM FILES MISSING IN THIS
+    BOX" if its files are gone.
+  - **Timing:** the credit carry-over's gate is 20 minutes or more away and a Deploy takes about ten,
+    so its card should not arrive while the Deploy is in flight. If it does, the card has no "wait":
+    I regate it rather than move main under the Deploy.
+- **Started: one carry-over Build for both lost Builds** (`p_65ee74c0816d452899f054187504cc58`;
+  EXF-497, EXF-499, EXF-625, EXF-626, EXF-621). I merged both branches onto `85f3cc9` in a throwaway
+  worktree first: clean, 52 files, 6,173 insertions, 158 deletions; `docs/README.md` keeps every line
+  by its merge rule. The Clerk merges with exact commands and stops if a head is not `2e5e291` or
+  `4fb2983`.
+  - Nothing new is built: the Architect adds a short "Carry-over" section and one manifest; the
+    Implementer runs the checks; the Designer looks at the clone once and adds no polish unless the
+    merge broke something; review and acceptance run on the merged whole; then the gate.
+  - **Source:** a limited permission, not a ban (a ban was ignored in the Reflect Build): one look at
+    the test plan's All Accounts register and at most one plain capture; no click, no key, no setting
+    changed "even to put it back", no other page.
+  - New line after today: if the browser or the platform's files are missing, reinstall the browser,
+    say at once what was missing with a listing, and do not re-run checks that pass.
+  - Its files are disjoint from the credit carry-over's (register, scheduled files and Reflect against
+    the engine, months, categories and the Plan page).
+- **Not started:** the register follow-up (after this carry-over merges); Export Plan's API half and
+  the Plan page's card rows (after the credit engine merges); flow tests (after the Deploy: flow 9 to
+  confirm EXF-614).
+
+Ticket writes: 1 (comment on EXF-625). Review cadence: Build 5, Deploy 2, Discover 2, Test user flow 9.
