@@ -122,7 +122,7 @@ export function TargetCard({
 
   if (draft) {
     return (
-      <PanelCard id="panel-target" title="Target">
+      <PanelCard id="panel-target" title="Target" ruled>
         <TargetForm
           draft={draft}
           onDraft={(f) => setDraft((d) => d && f(d))}

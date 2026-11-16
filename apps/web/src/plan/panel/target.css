@@ -19,10 +19,26 @@
   margin-left: 8px;
 }
 
+/* Form card: static header 54 high over a rule, body padded 16 (source: header padding 16, line-height 21, border-bottom 1px). */
+.panel-card-ruled-title {
+  padding: 16px;
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.panel-card-ruled-body {
+  padding: 16px;
+}
+
 /* Empty state */
+/* Source (empty card, dark): strong and p are labelPrimary, strong weight 700, body padded 16 all round. */
+#panel-target > .panel-card-body {
+  padding: 16px;
+}
 .target-empty strong {
-  color: var(--labelSecondary);
-  font-weight: 600;
+  color: var(--labelPrimary);
+  font-weight: 700;
+}
+.target-empty p {
+  color: var(--labelPrimary);
 }
 .target-empty p {
   margin: 14px 0;
@@ -96,6 +112,10 @@
 .target-message.is-positive {
   background: var(--calloutPositiveBackground);
 }
+.target-create:hover,
+.target-edit:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
 .target-assign {
   flex: none;
   height: 28px;
@@ -145,6 +165,9 @@
   font-weight: 400;
   cursor: pointer;
 }
+.target-tab:hover {
+  color: var(--labelPrimary);
+}
 .target-tab[aria-selected="true"] {
   background: var(--backgroundTertiary);
   color: var(--labelPrimary);
@@ -193,8 +216,16 @@
 }
 .target-field-icon {
   display: flex;
-  padding: 0 10px;
-  color: var(--labelSecondary);
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--labelTertiary);
+  cursor: pointer;
 }
 .target-select,
 .target-dropdown {
@@ -209,7 +240,24 @@
   font-weight: 500;
 }
 .target-select {
+  appearance: none;
   padding: 4px 24px 4px 8px;
+}
+/* The caret the source draws on the wrapper: a 6px down triangle in inputBorder, 8px from the right. */
+.select-wrap {
+  position: relative;
+  display: block;
+}
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  margin-top: -3px;
+  border-top: 6px solid var(--inputBorder);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  pointer-events: none;
 }
 .target-select:focus,
 .target-dropdown:focus-visible {
@@ -221,7 +269,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 8px 0 8px;
-  font-weight: 400;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
@@ -230,15 +278,21 @@
   margin-left: 8px;
   color: var(--inputBorder);
 }
+.target-dropdown[aria-expanded="true"] {
+  border-color: var(--buttonPrimaryBackground);
+}
+.target-dropdown[aria-expanded="true"] svg {
+  color: var(--buttonPrimaryBackground);
+}
 .target-pair {
   display: flex;
   gap: 8px;
 }
-.target-pair .target-select {
+.target-pair .select-wrap {
   flex: 1;
   min-width: 0;
 }
-.target-pair .year-select {
+.target-pair .year-wrap {
   flex: none;
   width: 107px;
 }
@@ -303,8 +357,21 @@
 .target-delete {
   color: var(--labelNegative);
 }
+.target-delete svg {
+  margin-right: 4px; /* gap 4 + 4 = the source's 8 */
+}
+.target-delete:hover:not(:disabled) {
+  background: var(--buttonDestructiveBackground);
+  color: var(--rtaButtonNegativeHover);
+}
 .target-cancel {
-  color: var(--actionPrimary);
+  color: var(--buttonGhostLabel);
+}
+.target-cancel:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackground);
+}
+.target-save:hover:not(:disabled) {
+  background: var(--buttonPrimaryBackgroundActive);
 }
 .target-save {
   padding: 6px 16px;
@@ -330,6 +397,8 @@
 .behavior-options {
   display: flex;
   flex-direction: column;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height);
 }
 .behavior-option {
   display: flex;
@@ -345,7 +414,6 @@
   text-align: left;
   cursor: pointer;
 }
-.behavior-option:hover,
 .behavior-option:focus-visible {
   background: var(--buttonSubtleBackground);
   outline: none;
@@ -362,6 +430,7 @@
   color: var(--actionPrimary);
 }
 .behavior-use {
+  margin-bottom: 8px; /* with the option's gap 4: the source's 12 */
   font-style: normal;
   font-weight: 500;
 }
@@ -374,7 +443,7 @@
   font-weight: 500;
 }
 .behavior-tagline {
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .target-calendar {
@@ -385,29 +454,40 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--borderSubtle);
 }
 .calendar-title {
   color: var(--labelPrimary);
   font-size: 16px;
   font-weight: 600;
+  line-height: 19.2px;
+}
+.target-calendar {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height);
 }
 .calendar-nav {
   display: flex;
-  padding: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--actionPrimary);
+  color: var(--buttonGhostLabel);
   cursor: pointer;
 }
 .calendar-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   justify-items: center;
-  margin-top: 4px;
 }
 .calendar-days-head {
-  margin-top: 8px;
+  align-items: center;
+  height: 24.8px;
+  border-bottom: 1px solid var(--borderSubtle);
   font-weight: 600;
 }
 .calendar-day {

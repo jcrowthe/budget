@@ -40,7 +40,7 @@ export function TargetCalendar({
           aria-label="Previous month"
           onClick={() => setFirst(addMonths(first, -1))}
         >
-          <ChevronLeftIcon />
+          <ChevronLeftIcon width={16} height={16} />
         </button>
         <span className="calendar-title">{monthTitle(first)}</span>
         <button
@@ -49,7 +49,7 @@ export function TargetCalendar({
           aria-label="Next month"
           onClick={() => setFirst(addMonths(first, 1))}
         >
-          <ChevronRightIcon />
+          <ChevronRightIcon width={16} height={16} />
         </button>
       </div>
       <div className="calendar-week calendar-days-head" aria-hidden="true">

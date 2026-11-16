@@ -40,9 +40,15 @@ export function TargetDateField({
         onChange={(e) => onChange(e.target.value)}
         onClick={() => setOpen(true)}
       />
-      <span className="target-field-icon" aria-hidden="true">
+      <button
+        type="button"
+        className="target-field-icon"
+        aria-label="Open calendar"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+      >
         <CalendarIcon width={12} height={12} />
-      </span>
+      </button>
       {open && box.current && (
         <Popover
           anchor={box.current}

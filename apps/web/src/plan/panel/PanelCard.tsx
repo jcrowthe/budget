@@ -12,6 +12,7 @@ export function PanelCard({
   onToggle,
   right,
   icon,
+  ruled = false,
   children,
 }: {
   id: string;
@@ -21,8 +22,20 @@ export function PanelCard({
   right?: ReactNode;
   /** Beside the title (the Target card's donut). */
   icon?: ReactNode;
+  /** A static header over a rule and a body padded 16 all round (the Target form). */
+  ruled?: boolean;
   children: ReactNode;
 }) {
+  if (!onToggle && ruled) {
+    return (
+      <section className="panel-card">
+        <h2 className="panel-card-title panel-card-ruled-title">{title}</h2>
+        <div id={id} className="panel-card-ruled-body">
+          {children}
+        </div>
+      </section>
+    );
+  }
   if (!onToggle) {
     return (
       <section className="panel-card">

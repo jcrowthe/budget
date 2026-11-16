@@ -194,39 +194,43 @@ export function TargetForm({
       {tab === "weekly" &&
         field(
           "Every",
-          <select
-            className="target-select"
-            aria-label="Select Day of Week"
-            disabled={busy}
-            value={draft.dayOfWeek}
-            onChange={(e) => set({ dayOfWeek: Number(e.target.value) })}
-          >
-            {WEEKDAYS.map((w, i) => (
-              <option key={w} value={i}>
-                {w}
-              </option>
-            ))}
-          </select>,
+          <span className="select-wrap">
+            <select
+              className="target-select"
+              aria-label="Select Day of Week"
+              disabled={busy}
+              value={draft.dayOfWeek}
+              onChange={(e) => set({ dayOfWeek: Number(e.target.value) })}
+            >
+              {WEEKDAYS.map((w, i) => (
+                <option key={w} value={i}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          </span>,
           "weekday",
         )}
       {tab === "monthly" &&
         field(
           "By",
-          <select
-            className="target-select"
-            aria-label="Select Day of Month"
-            disabled={busy}
-            value={draft.dayOfMonth ?? ""}
-            onChange={(e) =>
-              set({ dayOfMonth: e.target.value === "" ? null : Number(e.target.value) })
-            }
-          >
-            {dayOfMonthOptions().map((o) => (
-              <option key={o.label} value={o.value ?? ""}>
-                {o.label}
-              </option>
-            ))}
-          </select>,
+          <span className="select-wrap">
+            <select
+              className="target-select"
+              aria-label="Select Day of Month"
+              disabled={busy}
+              value={draft.dayOfMonth ?? ""}
+              onChange={(e) =>
+                set({ dayOfMonth: e.target.value === "" ? null : Number(e.target.value) })
+              }
+            >
+              {dayOfMonthOptions().map((o) => (
+                <option key={o.label} value={o.value ?? ""}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </span>,
           "day",
         )}
       {tab === "yearly" &&
@@ -271,32 +275,36 @@ export function TargetForm({
             field(
               "Every",
               <div className="target-pair">
-                <select
-                  className="target-select"
-                  aria-label="Select Interval"
-                  disabled={busy}
-                  value={draft.every}
-                  onChange={(e) => set({ every: Number(e.target.value) })}
-                >
-                  {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="target-select"
-                  aria-label="Select Unit of Time"
-                  disabled={busy}
-                  value={draft.unit}
-                  onChange={(e) => set({ unit: e.target.value as "month" | "year" })}
-                >
-                  {unitOptions(draft.every).map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <span className="select-wrap">
+                  <select
+                    className="target-select"
+                    aria-label="Select Interval"
+                    disabled={busy}
+                    value={draft.every}
+                    onChange={(e) => set({ every: Number(e.target.value) })}
+                  >
+                    {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+                <span className="select-wrap">
+                  <select
+                    className="target-select"
+                    aria-label="Select Unit of Time"
+                    disabled={busy}
+                    value={draft.unit}
+                    onChange={(e) => set({ unit: e.target.value as "month" | "year" })}
+                  >
+                    {unitOptions(draft.every).map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </div>,
               "every",
             )}
@@ -316,32 +324,36 @@ export function TargetForm({
             field(
               "Due on",
               <div className="target-pair">
-                <select
-                  className="target-select month-select"
-                  aria-label="Select Month"
-                  disabled={busy}
-                  value={draft.dueMonth}
-                  onChange={(e) => set({ dueMonth: Number(e.target.value) })}
-                >
-                  {MONTH_NAMES.map((m, i) => (
-                    <option key={m} value={i}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="target-select year-select"
-                  aria-label="Select Year"
-                  disabled={busy}
-                  value={draft.dueYear}
-                  onChange={(e) => set({ dueYear: Number(e.target.value) })}
-                >
-                  {yearOptions(today).map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                <span className="select-wrap">
+                  <select
+                    className="target-select month-select"
+                    aria-label="Select Month"
+                    disabled={busy}
+                    value={draft.dueMonth}
+                    onChange={(e) => set({ dueMonth: Number(e.target.value) })}
+                  >
+                    {MONTH_NAMES.map((m, i) => (
+                      <option key={m} value={i}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+                <span className="select-wrap year-wrap">
+                  <select
+                    className="target-select year-select"
+                    aria-label="Select Year"
+                    disabled={busy}
+                    value={draft.dueYear}
+                    onChange={(e) => set({ dueYear: Number(e.target.value) })}
+                  >
+                    {yearOptions(today).map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </div>,
               "dueon",
             )}
