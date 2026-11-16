@@ -5637,3 +5637,22 @@ refused without running), Discover 2, Test user flow 5.
 
 **Next plan:** set the new ticket Urgent; start nothing new unless a gate has passed on the new boxes;
 then one more Deploy.
+
+### 2026-11-16 · Plan round 68
+
+Children used 81 of 200. Three Builds are running: the Reflect carry-over (in its checks after review
+fixes), the Plan-page Build (building its web side) and the import carry-over (in its plan step). Main
+`3a98673`, live `4e3eb7a`.
+
+- The ticket filed at the last review exists: **EXF-612** (a file an agent step writes under
+  `/workspace/.exfab/` is gone for the next code step, so every Deploy is refused). Set to **Urgent**.
+- **Started nothing.** No third Deploy yet: the two failures were the platform's, a third try costs a
+  child, and nothing tells me the boxes have changed since 09:23. The Reflect carry-over is the probe:
+  its code steps (checks) run, and its final gate comes within the half hour. **When a gate has passed
+  on today's boxes, or at round 70 at the latest, one more Deploy.**
+- No other Build can start: the three hold Reflect, the Plan page with `packages/core`, and the
+  register's Worker files.
+- The plan declared in round 67 stands (flows 2, 3 and 9 after a release; the credit engine after the
+  Plan-page Build; the plan import from a YNAB export after Reflect and the Plaid import).
+
+Ticket writes: 1 (EXF-612 priority). Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 5.
