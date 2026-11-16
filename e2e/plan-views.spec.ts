@@ -81,11 +81,17 @@ for (const size of SIZES) {
       expect(totals).toEqual(["$0.00", "−$10.00", "−$10.00", "$0.00", "−$5.00", "−$5.00"]);
       // Covering one category (Reset Available Amount on it) leaves "1 Overspent"; covering both removes it.
       await realClick(page, page.getByRole("checkbox", { name: RENT, exact: true }));
-      await realClick(page, option(autoCard(page), "Reset Available Amount"));
+      const resetRent = option(autoCard(page), "Reset Available Amount");
+      // Disabled while the preview loads or the month is read again: a click then does nothing.
+      await expect(resetRent).toBeEnabled();
+      await realClick(page, resetRent);
       await expect(chip(page, "1 Overspent")).toBeVisible();
       await expect(page.locator(".category-row")).toHaveCount(1);
       await realClick(page, page.getByRole("checkbox", { name: GROCERIES, exact: true }));
-      await realClick(page, option(autoCard(page), "Reset Available Amount"));
+      const resetGroceries = option(autoCard(page), "Reset Available Amount");
+      // Disabled while the preview loads or the month is read again: a click then does nothing.
+      await expect(resetGroceries).toBeEnabled();
+      await realClick(page, resetGroceries);
       await expect(page.getByText("Overspent")).toHaveCount(0);
       await expect(chip(page, "All")).toHaveAttribute("aria-pressed", "true");
       await expect(page.locator(".category-row").first()).toBeVisible();
