@@ -128,6 +128,20 @@ for (const size of SIZES) {
       await expect(line("Credit Spending")).toHaveText("−$40.00");
     });
 
+    test("EXF-535 AC20: the Available Balance card lists the same four lines in order", async ({
+      page,
+    }) => {
+      await open(page, s);
+      await realClick(page, box(page, CASH));
+      // Source order, read live on the test plan (design doc, Acceptance 20).
+      await expect(panel(page).locator(".panel-row .panel-row-label")).toHaveText([
+        "Cash Left Over From Last Month",
+        "Assigned This Month",
+        "Cash Spending",
+        "Credit Spending",
+      ]);
+    });
+
     test("EXF-532: the Credit Card Payments group and its rows cannot be edited", async ({
       page,
     }) => {
