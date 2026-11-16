@@ -271,8 +271,19 @@ test("C13 root opens the last-opened plan", async ({ page, request }) => {
       })
     ).json()
   ).data.budget.last_opened_at as string;
-  await page.reload();
-  await side.getByRole("button").first().click();
+  // Parallel specs open plans too: show this test only its own two plans, and start from A.
+  await page.route("**/api/v1/budgets", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.data.budgets = body.data.budgets.filter(
+      (y: { id: string }) => y.id === a.id || y.id === b.id,
+    );
+    return route.fulfill({ response: res, json: body });
+  });
+  await page.goto(`/${a.id}/budget`);
+  await expect(side.getByRole("button", { name: a.name })).toBeVisible();
+  await side.getByRole("button", { name: a.name }).click();
   await mouseClick(page, page.getByRole("menuitem", { name: "Open Plan", exact: true }));
   const sub = page.getByRole("menu", { name: "Plans" });
   const ob = await page.getByRole("menuitem", { name: "Open Plan", exact: true }).boundingBox();
