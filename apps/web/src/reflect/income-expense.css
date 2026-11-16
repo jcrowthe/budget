@@ -67,8 +67,14 @@
   font-weight: 600;
   text-align: left;
 }
+/* Source (.income-expense-h1 button): line-height 1.2 (21.6px), text x 316, caret x 302 (margin-left 2px). */
 .ie-heading .ie-toggle {
-  line-height: 1;
+  gap: 6px;
+  line-height: 1.2;
+  vertical-align: top;
+}
+.ie-heading .ie-toggle svg {
+  margin-left: 2px;
 }
 .ie-heading.income th {
   color: var(--statusPositive);

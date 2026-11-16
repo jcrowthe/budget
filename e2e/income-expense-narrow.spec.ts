@@ -165,7 +165,8 @@ test("626 first-column labels are whole or end in an ellipsis with a tooltip, at
   expect(m.labels.length).toBeGreaterThan(8);
   for (const l of m.labels) {
     expect(!l.shortened || l.ellipsis, `${l.text} is cut without an ellipsis`).toBe(true);
-    expect(l.title, `${l.text} has its text as a tooltip`).toBe(l.text);
+    // A tooltip only where the label is shortened (the source shows none on whole labels).
+    expect(l.title, `${l.text} tooltip`).toBe(l.shortened ? l.text : null);
   }
   for (const name of [
     "All Income Sources",

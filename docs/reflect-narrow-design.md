@@ -72,8 +72,8 @@ formula):
 The table's width is set to `first + n·other` px. In "scrolls", at scroll 0 and at the end the box's right edge is
 the boundary between two cells; in between, cells slide under the sticky first column as they do today.
 
-Labels: every labelled first-column cell gets `title` = its full label (a native tooltip; always present, so it is
-there whenever a label is shortened). The label text inside `button.ie-toggle` moves into a
+Labels: a first-column cell whose label is shortened gets `title` = its full label (a native tooltip), set after
+layout and removed again when the label is whole, so whole labels show no tooltip, as in the source (Designer P2). The label text inside `button.ie-toggle` moves into a
 `span.ie-label` that can shrink and ends in an ellipsis; the caret never shrinks. Accessible names do not change
 (`rowheader` and `button` names are still the label text).
 
@@ -99,7 +99,7 @@ Lead. No survey spec is committed.
 ## What changes
 
 - `IncomeExpenseReport.tsx`: `Table` measures `firstNeed`/`amountNeed` after render and computes widths with a
-  local pure function; `title` on first-column label cells; `span.ie-label` inside the toggle buttons.
+  local pure function; `title` only on shortened label cells; `span.ie-label` inside the toggle buttons.
 - `income-expense.css`: `.ie-toggle { max-width: 100% }`, `.ie-label` ellipsis rules, `.ie-toggle svg { flex-shrink: 0 }`.
 - `AgeOfMoneyChart.tsx`: hover rect geometry.
 - `age-of-money.css`: no change expected (listed in case the Implementer must adjust pointer rules).
@@ -153,7 +153,7 @@ its `button.ie-btn`, else its `span.amt`. "Shortened" = label element `scrollWid
 2. **(626) Labels at 1024×700 and 1440×900.** Same plan and page.
    - At 1024×700, for every first-column cell with a label (all `tbody th.ie-first` except those holding only
      `.ie-sr` text): not shortened, or its label element's computed `text-overflow` is `ellipsis` and
-     `overflow-x` is `hidden`; and the cell's `title` equals its label text.
+     `overflow-x` is `hidden`; and the cell's `title` equals its label text when the label is shortened, and is absent when it is not.
    - At 1024×700 `All Income Sources`, `Total All Income Sources`, `Total Income`, `Total Expenses`, `Net Income`,
      `N Employer`, `N Side Work`, `N Home`, `N Daily` are not shortened.
    - Resize to 1440×900 and wait for the widths to settle (two equal reads of the TOTAL header's x): no label is
