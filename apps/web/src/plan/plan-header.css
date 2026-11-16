@@ -8,6 +8,13 @@
   --backgroundSecondaryElevated: #292b3d;
   --buttonPrimaryBackgroundActive: #7583ff;
   --buttonSecondaryBackgroundActive: rgba(117, 131, 255, 0.27);
+  --calloutPositiveProminentBackground: #346011;
+  --calloutNegativeProminentBackground: #6a1020;
+  --rtaButtonPositive: #508316;
+  --rtaButtonPositiveHover: #77ba21;
+  --rtaButtonNegative: #bf2e3b;
+  --rtaButtonNegativeHover: #ce5e66;
+  --helpboxBackground: rgba(117, 131, 255, 0.2);
 }
 
 .plan-header {
@@ -263,4 +270,223 @@
 }
 .month-note-ok:focus-visible {
   outline-width: 2px;
+}
+
+/* Ready to Assign box (EXF-491). Source: 226x62 at zero, padding 8/16/12, radius 8, amount 21px/700, label 14px/500. */
+.rta-wrap {
+  position: relative;
+}
+.rta-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  min-height: 62px;
+  padding: 8px 16px 12px;
+  border-radius: 8px;
+  color: #fff;
+}
+.rta-box.is-positive {
+  background: var(--calloutPositiveProminentBackground);
+}
+.rta-box.is-zero {
+  background: var(--inputBackground);
+  color: var(--labelTertiary);
+}
+.rta-box.is-negative {
+  background: var(--calloutNegativeProminentBackground);
+}
+.rta-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rta-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 25.2px;
+}
+.rta-label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16.8px;
+}
+.rta-info {
+  opacity: 0;
+}
+.rta-summary:hover .rta-info,
+.rta-summary:focus-visible .rta-info,
+.rta-box.is-negative .rta-info {
+  opacity: 1;
+}
+.rta-button {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  margin-left: 40px;
+  padding: 4px 16px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.rta-button svg {
+  width: 8px;
+  height: 8px;
+  margin-left: 0.7rem;
+}
+.rta-button.is-positive {
+  background: var(--rtaButtonPositive);
+}
+.rta-button.is-positive:hover {
+  background: var(--rtaButtonPositiveHover);
+}
+.rta-button.is-negative {
+  background: var(--rtaButtonNegative);
+}
+.rta-button.is-negative:hover {
+  background: var(--rtaButtonNegativeHover);
+}
+.rta-check {
+  width: 30px;
+  height: 34px;
+  margin-left: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9b9caa;
+  opacity: 0.8;
+  cursor: default;
+}
+.rta-notice {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--calloutNegativeProminentBackground);
+  color: #fff;
+  font-size: var(--font-size-sm);
+}
+.rta-box button:focus-visible {
+  outline: auto 1px #fff;
+  outline-offset: 2px;
+}
+
+/* Breakdown popover. Source: #1F2038, radius 6.4, padding 16px 0, card #292B3D radius 8 padding 24. */
+.popover.rta-breakdown {
+  padding: 16px 0;
+  background: var(--backgroundPrimaryElevated);
+}
+.rta-breakdown .popover-arrow {
+  fill: var(--backgroundPrimaryElevated);
+}
+.rta-breakdown-title {
+  margin: 0 24px 12px;
+  color: var(--labelSecondary);
+  font-size: 16px;
+  font-weight: 500;
+}
+.rta-card {
+  margin: 0 16px;
+  padding: 24px;
+  border-radius: 8px;
+  background: var(--backgroundSecondaryElevated);
+}
+.rta-block-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.rta-block-header.is-plus {
+  color: #77ba21;
+}
+.rta-block-header.is-minus {
+  color: var(--labelSecondary);
+}
+.rta-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0 0 32px;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-md);
+}
+.rta-rule {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--separatorStandard);
+}
+.rta-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 600;
+}
+.rta-total.is-positive {
+  color: #77ba21;
+}
+.rta-total.is-negative {
+  color: var(--labelNegative);
+}
+.rta-message {
+  margin: 8px 0 0;
+  color: var(--labelSecondary);
+}
+.rta-help {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 16px 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--helpboxBackground);
+  color: var(--labelPrimary);
+}
+.rta-help svg {
+  flex: none;
+  color: #545bfe;
+}
+
+/* Assign popover tabs. Source: the active tab is #A3ACFF with a 2px border. */
+.assign-tabs {
+  display: flex;
+  margin: -4px 0 12px;
+  border-bottom: 1px solid var(--borderSubtle, var(--separatorStandard));
+}
+.assign-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--labelSecondary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.assign-tab.is-selected {
+  border-bottom-color: var(--actionPrimaryActive);
+  color: var(--actionPrimaryActive);
+}
+.assign-tab:disabled {
+  color: var(--labelTertiary);
+  opacity: 0.5;
+  cursor: default;
 }

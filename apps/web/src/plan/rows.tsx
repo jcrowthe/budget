@@ -101,6 +101,7 @@ export function CategoryRow({
   focusRequest,
   onFocusDone,
   onEditName,
+  onPill,
 }: {
   c: MonthCategoryDetail;
   bars: boolean;
@@ -111,6 +112,7 @@ export function CategoryRow({
   focusRequest: FocusTarget | null;
   onFocusDone: () => void;
   onEditName: (anchor: HTMLElement) => void;
+  onPill: (anchor: HTMLElement) => void;
 }) {
   const label = bars ? statusLabel(c) : null;
   const nameRef = useRef<HTMLButtonElement>(null);
@@ -169,7 +171,7 @@ export function CategoryRow({
         <span className={amountClass(c.activity)}>{money(c.activity)}</span>
       </div>
       <div className="cell-available" role="cell">
-        <AvailablePill ref={pillRef} amount={c.available} />
+        <AvailablePill ref={pillRef} amount={c.available} onOpen={onPill} />
       </div>
       <div className="cell-margin" />
     </div>
