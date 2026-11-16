@@ -372,6 +372,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | PR #19 | running |
 | 2026-11-16 | 34 | Deploy of main `82aac3a` (`p_35445feed3ef4e338886f6265c7210d1`) | EXF-513, 459 | n/a | live `82aac3a` |
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | pending | running |
+| 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2820,3 +2821,32 @@ least. Flows 1 and 2 after the categories Build ships.
 Gap: EXF-570 and EXF-571 (High, in progress), EXF-454 (Low, in progress), EXF-558 (High), EXF-569 (Medium),
 EXF-560, EXF-562 (Low). Template: fifteen. Flow verdicts: 9 `new_gaps`, 11 `parity`. Finished since each
 template's last review: Build 5, Deploy 8, Discover 2, Test user flow 1.
+
+### 2026-11-16 · Plan round 35
+
+Children used 46 of 200. Four are running: the categories Build (pull request #17), the account-pages Build
+(pull request #19), the plan-menu Build, and the flow test started now.
+
+- No ticket was filed at the last review.
+- **Started the flow test of flow 10** (`p_e823d6accfd94427bec7eda412fe3037`) on live `82aac3a`: with the
+  service token through REST (account, transaction, assign, an idempotent retry, error shapes), through MCP
+  (create a transaction without a category, categorize it, assign, balances, a tool error), then the
+  interface shows the same numbers, and the history holds a row per change with `service:` or
+  `mcp:service:` as actor. The history is read with `wrangler d1 execute --remote` and `SELECT` only,
+  limited to its own plan (there is no history route yet).
+  - **Part E, for the person's "API first, MCP critical" requirement:** a table of every REST operation and
+    its MCP tool, with one combined gap ticket for REST operations that have no tool (plan rename and
+    delete, the months limits read and whatever else it finds), and a second section for tool descriptions
+    that omit units or formats. Expected to have no tool by design: health, the OpenAPI document, `/me`,
+    the Plaid credentials and link-token routes, creating a bank connection, institution search, `ui-state`.
+  - I ran it alone rather than wait to batch it with flows 1 and 2: the API and MCP are what the person
+    called critical, and gaps there are cheapest to fix before more resources are added.
+  - A slip in my text: step 13 has a half-corrected sentence about the balances ("$1,000,000... no: read
+    them as $1,000.00"). The numbers that follow are right; watch that the tester was not thrown by it.
+- **No new Build:** the three running Builds hold the grid and categories files, the account pages with the
+  accounts and transactions files, and the shell.
+- **No Deploy:** main `82aac3a` is live.
+- The template-ticket sweep and the Deploy template review: when ten Deploys have finished (8 now), start
+  both in one round.
+- Review cadence: Build 5, Deploy 8, Discover 2, Test user flow 1.
+- Ticket writes this round: none.
