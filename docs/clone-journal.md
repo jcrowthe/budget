@@ -5591,3 +5591,49 @@ my old guard; carry it over, do not look further.
 
 Ticket writes: 1 (a comment on EXF-462). Review cadence: Build 4, Deploy 6, Discover 2, Test user
 flow 5.
+
+### 2026-11-16 · Review round 67
+
+Children used 81 of 200. One child ended: the second Deploy, refused in 72 seconds. Three Builds are
+running. Main `3a98673`, **live still `4e3eb7a`** (health read again: unchanged).
+
+**Ended: the Deploy of `3a98673`, second attempt (`p_3e2eeca31173462c8bb9ef7b3bcc1676`), failed.
+Nothing shipped.**
+- Its intake step wrote `/workspace/.exfab/deploy.env` and read it back (transcript seq 1 and 2, 09:22:21).
+  Seventeen seconds later the deploy code step said `DEPLOY_REFUSED: /workspace/.exfab/deploy.env is
+  missing: the Intake step writes it` (seq 8). The next agent step could read the code step's
+  `summary.txt` in the same directory, but found no `profile.txt`.
+- So **a file an agent step writes under `/workspace/.exfab/` is not there for the code step that
+  follows.** This is the same thing as the vanished `request.json` in the Builds (round 66), and it is
+  not my brief and not the app.
+- **What I think happened, from the evidence only:** the platform's box layout changed between about
+  07:45 and 08:30 UTC today. Before it, `.exfab` held `profile.md` and agent-written files stayed (the
+  Deploy at 06:54 worked; a Clerk's `request.json` was still there at 07:44). After it, `.exfab` holds
+  `profile.json` and `preflight.md`, the first Reflect Build's `bin/lib.sh` was gone under a script
+  that still wanted it, and agent-written files do not persist. Builds started after the change have
+  so far run their plan, build, polish and review steps normally (they do not depend on a file an
+  agent wrote there); whether their gates work I will know when the Reflect carry-over reaches its
+  gate. **The Deploy template does depend on such a file, so no Deploy can run until this is fixed.**
+- I do not restart it blindly: each try costs a child. One more try is worth it after a Build's gate
+  has shown the boxes work again, or at the latest before the check-in at round 70.
+
+**Consequences:**
+- Main stays three merges ahead of live (transfers and splits, targets, account guards), and will get
+  further ahead (Reflect, the Plan-page Build, the import). No flow test until a release.
+- **The owner's live app is safe**: nothing was half-released; both failed Deploys stopped before the
+  gate or at it.
+- Filing an Urgent template ticket now, since this is a defect of the Deploy template on the present
+  boxes and the ticket is the channel for that. The check-in at round 70 must lead with it.
+
+**Running:** the Reflect carry-over (in review fixes after 37 minutes), the Plan-page Build (building
+its web side, 35 minutes in), the import carry-over (at intake).
+
+**Ticket writes:** none (one ticket filed through this review).
+
+**Backlog:** 64 open feature tickets (30 done; 7 in progress). Gap: in progress EXF-588, EXF-591; open
+EXF-558, EXF-560, EXF-562, EXF-589 (Low). Template: twenty-eight, plus the one filed now. Flow
+verdicts unchanged. Finished since each template's last review: Build 4, Deploy 7 (two cancelled or
+refused without running), Discover 2, Test user flow 5.
+
+**Next plan:** set the new ticket Urgent; start nothing new unless a gate has passed on the new boxes;
+then one more Deploy.
