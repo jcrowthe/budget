@@ -16,3 +16,13 @@ scoped to `apps/web/src/reflect/**`; nothing in the shell or `global.css` change
 - P11 [applied] Line width 1, marker r 5, x labels white with a 6px tick, dashed baseline, zero line `--borderSubtle`, all-zero zero line at mid-height, chart height 320 (plot 300, axis 20, overflow visible).
 - P12 [applied] Table as flex rows (Month flex 1, Net Worth content width, Monthly Change 11rem, 16px gap), header and body paddings, empty state 40px; info icon 12px. The elements stay `table/tr/td` so specs are unchanged.
 - P13 [applied] Popover uses global tokens only (fixes the undefined `--reflect-pill`), centred with an up-arrow 15px below the button, new search field, rows, footer and links.
+
+## Second pass
+
+- Q1 [applied] The pill's button rules are scoped to its own controls (`.date-pill > .date-arrow`, `.date-pill .date-label`), so the Custom selects and menu items keep their own border, background and colour.
+- Q2 [applied] The `#7583ff45` hover applies only to the pill's arrows and label and the filter buttons; menu items use `--menuHover`; a Custom select keeps its background and its border turns `--buttonPrimaryBackground`.
+- Q3 [applied] Wrap margins dropped; separators are inside the arrows at their inner edges (left arrow 31px, padding 10/0/10/10; right arrow 32px); label radius 0.
+- Q4 [applied] Month grid 240px; months block margin 4.8px 10px.
+- Q5 [applied] Icon viewBoxes cropped to the glyph bounds (caret, both chevrons, calendar, Export document) and rendered at the measured sizes. In the Custom selects the CSS box stays 8×9 and the caret fits inside it.
+- Q6 [applied] x label text 7px below the baseline; the plot starts 17px in when there are no y ticks.
+- Q7 [applied] Popover search input height 32px; `.reflect-btn` line-height 19.2px.

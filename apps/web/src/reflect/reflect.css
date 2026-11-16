@@ -104,7 +104,8 @@
   border-radius: var(--radius-lg);
   background: var(--menuHover);
 }
-.date-pill button,
+.date-pill > .date-arrow,
+.date-pill .date-label,
 .filter-button {
   display: inline-flex;
   align-items: center;
@@ -116,23 +117,41 @@
   font-weight: 500;
   cursor: pointer;
 }
-.date-pill button:hover:not(:disabled),
+.date-pill > .date-arrow:hover:not(:disabled),
+.date-pill .date-label:hover,
 .filter-button:hover {
   background: var(--reflect-filter-active);
 }
 .date-arrow {
+  position: relative;
   box-sizing: border-box;
-  justify-content: center;
-  width: 32px;
   color: var(--buttonSecondaryLabel);
 }
 .date-arrow:first-child {
+  justify-content: flex-start;
+  width: 31px;
   padding: 10px 0 10px 10px;
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 .date-arrow:last-child {
+  justify-content: flex-end;
+  width: 32px;
   padding: 10px 10px 10px 0;
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+.date-arrow::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  width: 1px;
+  height: 16px;
+  background: var(--borderSubtle);
+}
+.date-arrow:first-child::after {
+  right: 0;
+}
+.date-arrow:last-child::after {
+  left: 0;
 }
 .date-arrow:disabled {
   color: var(--inputBorder);
@@ -141,32 +160,13 @@
 .date-label-wrap {
   position: relative;
   display: flex;
-  margin: 0 8px;
 }
 .date-pill .date-label {
-  position: relative;
   padding: 9px 12px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
 }
 .date-label svg {
-  width: 12px;
-  height: 12px;
   margin-right: 8px;
-}
-.date-label::before,
-.date-label::after {
-  content: "";
-  position: absolute;
-  top: 8px;
-  width: 1px;
-  height: 16px;
-  background: var(--borderSubtle);
-}
-.date-label::before {
-  left: -8px;
-}
-.date-label::after {
-  right: -8px;
 }
 .filter-button {
   margin-right: 8px;
@@ -192,7 +192,8 @@
   line-height: 12px;
   text-align: center;
 }
-.date-pill button:focus-visible,
+.date-pill > .date-arrow:focus-visible,
+.date-pill .date-label:focus-visible,
 .filter-button:focus-visible {
   outline: 2px solid var(--actionPrimary);
 }
@@ -283,8 +284,9 @@
   height: 9px;
   color: var(--inputBorder);
 }
+.custom-select:hover,
 .custom-select[aria-expanded="true"] {
-  border-color: var(--actionPrimary);
+  border-color: var(--buttonPrimaryBackground);
 }
 .custom-footer {
   display: flex;
@@ -300,7 +302,7 @@
   left: 0;
   z-index: 2;
   box-sizing: border-box;
-  width: 208px;
+  width: 240px;
   border-radius: var(--radius-lg);
   background: var(--backgroundTertiary);
   box-shadow: var(--shadowMenu);
@@ -347,7 +349,7 @@
 .month-grid-months {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  padding: 4px 6px 6px;
+  margin: 4.8px 10px;
 }
 .month-grid-months button {
   height: 40.7px;
@@ -384,6 +386,7 @@
   height: auto;
   margin: 0;
   padding: 6px var(--space-3);
+  line-height: 19.2px;
   border: 0;
   border-radius: var(--radius-lg);
   color: var(--buttonSecondaryLabel);
@@ -425,6 +428,7 @@
 .filter-search input {
   box-sizing: border-box;
   width: 100%;
+  height: 32px;
   padding: 4px 32px;
   border: 1px solid var(--buttonPrimaryBackground);
   border-radius: var(--radius-xs);

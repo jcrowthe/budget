@@ -32,7 +32,7 @@ export function FilterButton({
       >
         {count !== null && <span className="count-pill">{count}</span>}
         <span>{text}</span>
-        <CaretDownIcon width={8} height={8} />
+        <CaretDownIcon width={8} height={5.3} />
       </button>
       {open && children({ anchorRef: ref, close: () => setOpen(false) })}
     </>

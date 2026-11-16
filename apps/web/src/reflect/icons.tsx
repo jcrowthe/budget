@@ -5,27 +5,27 @@ const base = { viewBox: "0 0 24 24", fill: "currentColor" } as const;
 type P = SVGProps<SVGSVGElement>;
 
 export const CalendarIcon = (p: P) => (
-  <svg {...base} aria-hidden="true" {...p}>
+  <svg {...base} viewBox="3 2 18 19" aria-hidden="true" {...p}>
     <path d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3zM5 10v9h14v-9zm0-4v2h14V6z" />
   </svg>
 );
 export const ChevronLeftIcon = (p: P) => (
-  <svg {...base} aria-hidden="true" {...p}>
+  <svg {...base} viewBox="6.2 4 9.4 16" aria-hidden="true" {...p}>
     <path d="M15.6 5.4 9 12l6.6 6.6L14.2 20l-8-8 8-8z" />
   </svg>
 );
 export const ChevronRightIcon = (p: P) => (
-  <svg {...base} aria-hidden="true" {...p}>
+  <svg {...base} viewBox="8.4 4 9.4 16" aria-hidden="true" {...p}>
     <path d="M8.4 5.4 15 12l-6.6 6.6L9.8 20l8-8-8-8z" />
   </svg>
 );
 export const CaretDownIcon = (p: P) => (
-  <svg {...base} aria-hidden="true" {...p}>
+  <svg {...base} viewBox="6 9 12 7" aria-hidden="true" {...p}>
     <path d="M6 9h12l-6 7z" />
   </svg>
 );
 export const FileTextIcon = (p: P) => (
-  <svg {...base} aria-hidden="true" {...p}>
+  <svg {...base} viewBox="5 2 15 20" aria-hidden="true" {...p}>
     <path d="M6 2h8l6 6v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm7 2H7v16h12V9h-6zM9 13h8v2H9zm0 4h6v2H9z" />
   </svg>
 );

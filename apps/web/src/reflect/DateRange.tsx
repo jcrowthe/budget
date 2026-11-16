@@ -53,7 +53,7 @@ function CustomPanel({ onClose }: { onClose: () => void }) {
           onClick={() => setGrid(grid === which ? null : which)}
         >
           <span>{rangeLabel({ start_month: value, end_month: value })}</span>
-          <CaretDownIcon width={8} height={8} />
+          <CaretDownIcon width={8} height={5.3} />
         </button>
         {grid === which && (
           <MonthGrid
@@ -113,7 +113,7 @@ export function DateRange() {
           disabled={!canShift(span, -1, facts)}
           onClick={() => shift(-1)}
         >
-          <ChevronLeftIcon width={12} height={12} />
+          <ChevronLeftIcon width={7.1} height={12} />
         </button>
         <span className="date-label-wrap">
           <button
@@ -149,7 +149,7 @@ export function DateRange() {
           disabled={!canShift(span, 1, facts)}
           onClick={() => shift(1)}
         >
-          <ChevronRightIcon width={12} height={12} />
+          <ChevronRightIcon width={7.1} height={12} />
         </button>
       </div>
     </div>

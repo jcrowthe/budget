@@ -46,11 +46,13 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
   // All zero: the zero line sits at mid-height (source).
   const min = ticks.length ? Math.min(lo, ticks[0] as number) : -1000;
   const max = ticks.length ? Math.max(hi, ticks[ticks.length - 1] as number) : 1000;
-  const plotW = width - PAD.left - PAD.right;
+  // No y ticks (all zero): the plot starts 17px into the card (source).
+  const left = ticks.length ? PAD.left : 17;
+  const plotW = width - left - PAD.right;
   const plotH = HEIGHT - PAD.top - PAD.bottom;
   const y = (v: number) => PAD.top + plotH - ((v - min) / (max - min || 1)) * plotH;
   const col = plotW / Math.max(1, months.length);
-  const cx = (i: number) => PAD.left + col * (i + 0.5);
+  const cx = (i: number) => left + col * (i + 0.5);
   const bw = Math.min(col * 0.4, 40);
   const zero = y(0);
   const line = months.map((m, i) => `${i ? "L" : "M"}${cx(i)},${y(m.net_worth)}`).join(" ");
@@ -61,7 +63,7 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
       <svg width={width} height={HEIGHT} role="img" aria-label="Net worth by month">
         {ticks.map((t) => (
           <g key={t}>
-            <line className="nw-grid" x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} />
+            <line className="nw-grid" x1={left} x2={width - PAD.right} y1={y(t)} y2={y(t)} />
             <text
               className="nw-tick"
               x={PAD.left - 8}
@@ -73,10 +75,10 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
             </text>
           </g>
         ))}
-        <line className="nw-zero" x1={PAD.left} x2={width - PAD.right} y1={zero} y2={zero} />
+        <line className="nw-zero" x1={left} x2={width - PAD.right} y1={zero} y2={zero} />
         <line
           className="nw-baseline"
-          x1={PAD.left}
+          x1={left}
           x2={width - PAD.right}
           y1={PAD.top + plotH}
           y2={PAD.top + plotH}
@@ -107,7 +109,7 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
             <text
               className="nw-tick nw-xlabel"
               x={cx(i)}
-              y={PAD.top + plotH + 13}
+              y={PAD.top + plotH + 7}
               textAnchor="middle"
               dominantBaseline="hanging"
             >
@@ -125,7 +127,7 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
             key={m.month}
             className="nw-hover"
             data-month={m.month}
-            x={PAD.left + col * i}
+            x={left + col * i}
             y={PAD.top}
             width={col}
             height={plotH}
