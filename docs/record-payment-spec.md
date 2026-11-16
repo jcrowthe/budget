@@ -1,6 +1,6 @@
 # Card payments and register leftovers: implementation spec (EXF-539, EXF-635, EXF-636, EXF-637, EXF-630)
 
-Design, decisions D1–D10 and the acceptance cases are in [card-payments-design.md](card-payments-design.md).
+Design, decisions D1–D10 and the acceptance cases are in [record-payment-design.md](record-payment-design.md).
 **The source is not opened by the Implementer.**
 
 ## Hard limits
@@ -47,7 +47,7 @@ export const NOTHING_TO_PAY_TEXT = (card: string) =>
   `${card}'s payment category has nothing available to pay; send an amount`;
 ```
 
-**Test:** `packages/schema/test/card-payments.test.ts`:
+**Test:** `packages/schema/test/record-payment.test.ts`:
 - every branch of `paymentDisplay`: cash↔card both sides, card↔card null, card↔tracking null, cash↔cash null;
 - `transferEntryLabel`;
 - `paymentTone` at −1, 0 and 1;
@@ -128,7 +128,7 @@ Steps, in order:
 
 ## T4. Worker tests for payments
 
-**`apps/worker/test/card-payments.test.ts` (new):** design cases 1–3, everything through REST except the MCP lines.
+**`apps/worker/test/record-payment.test.ts` (new):** design cases 1–3, everything through REST except the MCP lines.
 - Seed with `bulk-helpers` `plan()` and `account(bid, "creditCard", 0)`.
 - Assign through `PATCH …/months/2026-11-01/categories/{id}` (read the existing route for its body).
 - Read figures from `GET …/months/2026-11-01` (`paymentCategoryOf`) and `GET …/accounts/{id}`.
@@ -322,7 +322,7 @@ Change nothing else. **Verify:** every existing Worker test passes unchanged.
 - **`e2e/support/card-seed.ts`:** `seedCard(request, opts?)` makes the plan (`testName`), Checking, Savings, a
   tracking account, Visa (creditCard 0), an optional LOC and a second card, assigns Groceries 335000, and adds a
   Visa Groceries −335000 row dated 2026-11-10. It returns the ids.
-- **`e2e/card-payments.spec.ts`:** design cases 5–11 and 21 (card header and toolbar). Settings:
+- **`e2e/record-payment.spec.ts`:** design cases 5–11 and 21 (card header and toolbar). Settings:
   `page.clock.setFixedTime(new Date("2026-11-16T12:00:00"))`, exact names, `realClick`, and `expect.poll` on the
   API after each save.
 - **`e2e/register-range.spec.ts`:** design cases 12–16, including the 1024×700 runs and the Move submenu's
@@ -331,13 +331,13 @@ Change nothing else. **Verify:** every existing Worker test passes unchanged.
 
 ## T14. Docs
 
-- Add one line for the design to `docs/README.md`. `docs/card-payments-polish.md` is the Designer's.
+- Add one line for the design to `docs/README.md`. `docs/record-payment-polish.md` is the Designer's.
 - Build notes go at the end of the design doc: measured call counts, the toolbar threshold, and departures.
 
 ## Verification
 
 - `pnpm check`.
-- `pnpm e2e e2e/card-payments.spec.ts e2e/register-range.spec.ts e2e/register-bulk.spec.ts e2e/scheduled-transactions.spec.ts e2e/register.spec.ts e2e/register-entry.spec.ts e2e/all-accounts.spec.ts e2e/transfers.spec.ts e2e/payee-picker.spec.ts`.
+- `pnpm e2e e2e/record-payment.spec.ts e2e/register-range.spec.ts e2e/register-bulk.spec.ts e2e/scheduled-transactions.spec.ts e2e/register.spec.ts e2e/register-entry.spec.ts e2e/all-accounts.spec.ts e2e/transfers.spec.ts e2e/payee-picker.spec.ts`.
 - Report:
   - the call figures from T6;
   - the T2 and T6 "failing first" lines;

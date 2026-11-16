@@ -8,7 +8,7 @@ One Build, five tickets, all in the account page, the register and the transacti
 - **EXF-637:** a bulk refusal names the row, never its id.
 - **EXF-630:** three leftovers in the transactions service and its counting test.
 
-No engine change, no migration, no shared module. Tasks and signatures: [card-payments-spec.md](card-payments-spec.md).
+No engine change, no migration, no shared module. Tasks and signatures: [record-payment-spec.md](record-payment-spec.md).
 
 ## Source
 
@@ -170,7 +170,7 @@ These assertions change because the tickets require it; they are listed as depar
 - `register-selection.test.ts`: `move` is true on "all".
 
 `mcp-timestamps.test.ts` gets one line: `pay_credit_card` in `NOT_CALLED` (the seed has no credit card). Its result
-has `create_transfer`'s shape, and `card-payments.test.ts` checks its timestamps and description. At a rebase, keep
+has `create_transfer`'s shape, and `record-payment.test.ts` checks its timestamps and description. At a rebase, keep
 the other Build's line too.
 
 ## Out of scope
@@ -290,7 +290,7 @@ assigned 335000 in Nov. Worker amounts are in milliunits.
 
 ## Manifest
 
-touches: [packages/schema/src/card-payments.ts, packages/schema/src/register-selection.ts, packages/schema/src/payees.ts, packages/schema/test/card-payments.test.ts, packages/schema/test/register-selection.test.ts, packages/schema/test/payees.test.ts, apps/worker/src/services/card-payments.ts, apps/worker/src/routes/card-payments.ts, apps/worker/src/mcp/tools/card-payments.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/transactions-bulk.ts, apps/worker/src/services/transaction-splits.ts, apps/worker/src/services/scheduled-transactions.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/test/card-payments.test.ts, apps/worker/test/own-payment-category.test.ts, apps/worker/test/bulk-call-count.test.ts, apps/worker/test/bulk-helpers.ts, apps/worker/test/transactions-bulk-rules.test.ts, apps/worker/test/mcp-coverage/accounts.ts, apps/worker/test/mcp-timestamps.test.ts, apps/web/src/account/**, apps/web/src/register/**, e2e/card-payments.spec.ts, e2e/register-range.spec.ts, e2e/register-bulk.spec.ts, e2e/support/card-seed.ts, docs/card-payments-design.md, docs/card-payments-spec.md, docs/card-payments-polish.md, docs/README.md]
+touches: [packages/schema/src/card-payments.ts, packages/schema/src/register-selection.ts, packages/schema/src/payees.ts, packages/schema/test/record-payment.test.ts, packages/schema/test/register-selection.test.ts, packages/schema/test/payees.test.ts, apps/worker/src/services/card-payments.ts, apps/worker/src/routes/card-payments.ts, apps/worker/src/mcp/tools/card-payments.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/transactions-bulk.ts, apps/worker/src/services/transaction-splits.ts, apps/worker/src/services/scheduled-transactions.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/test/record-payment.test.ts, apps/worker/test/own-payment-category.test.ts, apps/worker/test/bulk-call-count.test.ts, apps/worker/test/bulk-helpers.ts, apps/worker/test/transactions-bulk-rules.test.ts, apps/worker/test/mcp-coverage/accounts.ts, apps/worker/test/mcp-timestamps.test.ts, apps/web/src/account/**, apps/web/src/register/**, e2e/record-payment.spec.ts, e2e/register-range.spec.ts, e2e/register-bulk.spec.ts, e2e/support/card-seed.ts, docs/record-payment-design.md, docs/record-payment-spec.md, docs/record-payment-polish.md, docs/README.md]
 shared: []
 migrations: 0
 
