@@ -14,9 +14,12 @@ export const REGISTER_SORT_COLUMNS = [
   "inflow",
 ] as const;
 export type RegisterSortColumn = (typeof REGISTER_SORT_COLUMNS)[number];
+/** The plan-wide list (All Accounts) also sorts by account name. */
+export const PLAN_SORT_COLUMNS = ["account", ...REGISTER_SORT_COLUMNS] as const;
+export type PlanSortColumn = (typeof PLAN_SORT_COLUMNS)[number];
 export type SortDir = "asc" | "desc";
 
-type SortableTx = Pick<
+type SortableTx = { account_name?: string } & Pick<
   TransactionDetail,
   | "id"
   | "date"
@@ -60,8 +63,10 @@ export function categoryCell(
 
 const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
 
-function key(tx: SortableTx, column: RegisterSortColumn): string | number {
+function key(tx: SortableTx, column: PlanSortColumn): string | number {
   switch (column) {
+    case "account":
+      return tx.account_name ?? "";
     case "date":
       return tx.date;
     case "payee":
@@ -88,7 +93,7 @@ function compareKeys(a: string | number, b: string | number): number {
  */
 export function sortTransactions<T extends SortableTx>(
   rows: readonly T[],
-  column: RegisterSortColumn,
+  column: PlanSortColumn,
   dir: SortDir,
 ): T[] {
   const sign = dir === "asc" ? 1 : -1;

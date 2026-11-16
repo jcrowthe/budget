@@ -1,8 +1,14 @@
 import { CREDIT_ACCOUNT_TYPES, STARTING_BALANCE_PAYEE } from "@budget/core/account-types";
-import { type RegisterSortColumn, type SortDir, sortTransactions } from "@budget/schema/register";
+import {
+  type PlanSortColumn,
+  type RegisterSortColumn,
+  type SortDir,
+  sortTransactions,
+} from "@budget/schema/register";
 import {
   type AccountBalances,
   PlainClearedStatus,
+  type PlanTransaction,
   type Transaction,
   TransactionCreate,
   TransactionCreateRequest,
@@ -49,6 +55,7 @@ export async function createTransaction(
   if (v.category_id && !(await categoriesRepo.findActive(db, v.budget_id, v.category_id))) {
     throw new NotFound("Category");
   }
+  const now = new Date().toISOString();
   const row: txRepo.TransactionRow = {
     id: crypto.randomUUID(),
     budgetId: v.budget_id,
@@ -61,8 +68,9 @@ export async function createTransaction(
     amount: v.amount,
     cleared: v.cleared,
     approved: v.approved,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     deletedAt: null,
+    updatedAt: now,
   };
   await db.batch([
     txRepo.insertStmt(db, row),
@@ -96,15 +104,12 @@ export class TransactionRefused extends Error {
 const unprocessable = (detail: string) =>
   new TransactionRefused(422, "unprocessable_entity", detail);
 
-export function transactionDetailToApi(
-  row: txRepo.TransactionDetailRow,
-  updatedAt: string,
-): TransactionDetail {
+export function transactionDetailToApi(row: txRepo.TransactionDetailRow): TransactionDetail {
   return {
     ...transactionToApi(row),
     category_name: row.categoryName,
     category_group_name: row.groupName,
-    updated_at: updatedAt,
+    updated_at: row.updatedAt,
   };
 }
 
@@ -132,8 +137,7 @@ async function activeAccount(db: Db, budgetId: string, accountId: string) {
 async function detailOf(db: Db, budgetId: string, id: string): Promise<TransactionDetail> {
   const row = await txRepo.findDetail(db, budgetId, id);
   if (!row) throw new NotFound("Transaction");
-  const at = (await txRepo.lastChangedAt(db, budgetId, id)).get(id);
-  return transactionDetailToApi(row, at && at > row.createdAt ? at : row.createdAt);
+  return transactionDetailToApi(row);
 }
 
 async function balancesOf(db: Db, budgetId: string, accountId: string): Promise<AccountBalances> {
@@ -164,18 +168,32 @@ export async function listAccountTransactions(
   const db = getDb(env);
   await activePlan(db, budgetId);
   await activeAccount(db, budgetId, accountId);
-  const [rows, changed, balances] = await Promise.all([
+  const [rows, balances] = await Promise.all([
     txRepo.listDetailForAccount(db, budgetId, accountId, opts.sinceDate),
-    txRepo.lastChangedAt(db, budgetId),
     balancesOf(db, budgetId, accountId),
   ]);
-  const detail = rows.map((r) => {
-    const at = changed.get(r.id);
-    return transactionDetailToApi(r, at && at > r.createdAt ? at : r.createdAt);
-  });
+  const detail = rows.map(transactionDetailToApi);
   return {
     transactions: sortTransactions(detail, opts.sort ?? "date", opts.dir ?? "desc"),
     balances,
+  };
+}
+
+export async function listPlanTransactions(
+  env: Env,
+  budgetId: string,
+  opts: { sinceDate?: string; sort?: PlanSortColumn; dir?: SortDir } = {},
+): Promise<{ transactions: PlanTransaction[]; balances: AccountBalances }> {
+  const db = getDb(env);
+  await activePlan(db, budgetId);
+  const [rows, open] = await Promise.all([
+    txRepo.listDetailForPlan(db, budgetId, opts.sinceDate),
+    txRepo.openAccountsBalances(db, budgetId),
+  ]);
+  const detail = rows.map((r) => ({ ...transactionDetailToApi(r), account_name: r.accountName }));
+  return {
+    transactions: sortTransactions(detail, opts.sort ?? "date", opts.dir ?? "desc"),
+    balances: { ...open, working: open.cleared + open.uncleared },
   };
 }
 
@@ -257,6 +275,7 @@ export async function addTransaction(
   await activePlan(db, budgetId);
   const account = await activeAccount(db, budgetId, v.account_id);
   const cleared = parseCleared(v.cleared) ?? "uncleared";
+  const now = new Date().toISOString();
   const row: txRepo.TransactionRow = {
     id: crypto.randomUUID(),
     budgetId,
@@ -269,8 +288,9 @@ export async function addTransaction(
     amount: v.amount,
     cleared,
     approved: v.approved ?? true,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     deletedAt: null,
+    updatedAt: now,
   };
   await validate(db, budgetId, row, account);
   const cat = row.categoryId ? await categoriesRepo.findActive(db, budgetId, row.categoryId) : null;
@@ -319,15 +339,15 @@ async function mutate(
       before: logShape(before),
       after: kind === "delete" ? null : prepared.afterLog,
     } as const;
-    const deletedAt = new Date().toISOString();
+    const now = new Date().toISOString();
     const stmt =
       kind === "delete"
-        ? txRepo.softDeleteIfHoldsStmt(db, before, deletedAt)
-        : txRepo.updateIfHoldsStmt(db, before, prepared.after);
+        ? txRepo.softDeleteIfHoldsStmt(db, before, now)
+        : txRepo.updateIfHoldsStmt(db, before, prepared.after, now);
     const [, w] = await db.batch([changeLogInsertIf(db, log, txRepo.holds(db, before)), stmt]);
     if ((w.meta.changes ?? 0) > 0) {
       if (kind === "delete") {
-        return transactionDetailToApi(before, deletedAt);
+        return transactionDetailToApi({ ...before, updatedAt: now });
       }
       return detailOf(db, budgetId, id);
     }

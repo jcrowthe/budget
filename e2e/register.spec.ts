@@ -106,9 +106,7 @@ test("cleared toggle moves the balances without a reload", async ({ page, reques
   const s = await seed(request);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   const balance = (label: string) =>
-    page
-      .locator(".account-balance", { has: page.getByText(label, { exact: true }) })
-      .locator(".amount");
+    page.locator(`[data-balance="${label.split(" ")[0]?.toLowerCase()}"] .acct-amount`);
   await expect(balance("Cleared Balance")).toHaveText("$500.00");
   await expect(balance("Uncleared Balance")).toHaveText("-$20.00");
   const row = rows(page).filter({ hasText: "ZZ Alpha" });

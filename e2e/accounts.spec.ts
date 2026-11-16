@@ -114,7 +114,7 @@ test("checking, credit, asset, liability, zero", async ({ page, request }) => {
   await expect(page).toHaveTitle(`ZZ-TEST D3 Checking | ${planName} | Budget`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("ZZ-TEST D3 Checking");
   await expect(page.getByText("Checking", { exact: true })).toBeVisible();
-  await expect(page.locator(".account-balances")).toContainText("$250.00");
+  await expect(page.locator(".acct-balances")).toContainText("$250.00");
   await expect(sidebar.getByText("CASH", { exact: true })).toBeVisible();
   await expect(sidebar.locator(".nav-account-row .name")).toHaveText([
     "ZZ-TEST Second",
@@ -138,7 +138,7 @@ test("checking, credit, asset, liability, zero", async ({ page, request }) => {
 
   await add(page, "ZZ-TEST Zero", "Savings", "0");
   await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.locator(".account-balances")).toContainText("$0.00");
+  await expect(page.locator(".acct-balances")).toContainText("$0.00");
 });
 
 test("duplicate name, Add Another, history", async ({ page, request }) => {

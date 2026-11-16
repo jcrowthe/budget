@@ -1,5 +1,5 @@
 import {
-  type TransactionDetail,
+  PlanTransactionListResponse,
   TransactionListResponse,
   TransactionResponse,
   type TransactionUpdateRequest,
@@ -7,7 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 
-type TransactionList = (typeof TransactionListResponse)["_output"]["data"];
+type Listed = { transactions: { id: string; cleared: string }[] };
 
 export const listTransactions = async (budgetId: string, accountId: string) =>
   (
@@ -15,6 +15,13 @@ export const listTransactions = async (budgetId: string, accountId: string) =>
       `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}/transactions`,
       { schema: TransactionListResponse },
     )
+  ).data;
+
+export const listPlanTransactions = async (budgetId: string) =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/transactions`, {
+      schema: PlanTransactionListResponse,
+    })
   ).data;
 
 export const updateTransaction = async (
@@ -31,28 +38,37 @@ export const updateTransaction = async (
     })
   ).data.transaction;
 
-export const useAccountTransactions = (budgetId: string, accountId: string) =>
+export const useAccountTransactions = (budgetId: string, accountId: string, enabled = true) =>
   useQuery({
     queryKey: ["transactions", budgetId, accountId],
     queryFn: () => listTransactions(budgetId, accountId),
     retry: false,
+    enabled,
+  });
+
+/** Every account's rows (All Accounts); the balances there are summed over the open accounts. */
+export const usePlanTransactions = (budgetId: string, enabled = true) =>
+  useQuery({
+    queryKey: ["transactions", budgetId, "all"],
+    queryFn: () => listPlanTransactions(budgetId),
+    retry: false,
+    enabled,
   });
 
 /** Toggles a row between uncleared and cleared; the balances (page, sidebar) refetch when it settles. */
-export function useSetCleared(budgetId: string, accountId: string) {
+export function useSetCleared(budgetId: string, key: readonly unknown[]) {
   const qc = useQueryClient();
-  const key = ["transactions", budgetId, accountId];
   return useMutation({
     mutationFn: (v: { id: string; cleared: "uncleared" | "cleared" }) =>
       updateTransaction(budgetId, v.id, { cleared: v.cleared }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<TransactionList>(key);
+      const previous = qc.getQueryData<Listed>(key);
       if (previous) {
-        qc.setQueryData<TransactionList>(key, {
+        qc.setQueryData<Listed>(key, {
           ...previous,
-          transactions: previous.transactions.map(
-            (t): TransactionDetail => (t.id === v.id ? { ...t, cleared: v.cleared } : t),
+          transactions: previous.transactions.map((t) =>
+            t.id === v.id ? { ...t, cleared: v.cleared } : t,
           ),
         });
       }

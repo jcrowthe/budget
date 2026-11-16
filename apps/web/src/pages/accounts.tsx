@@ -1,12 +1,15 @@
-import { PageHeader } from "../shell/PageHeader";
+import { useParams } from "react-router";
+import { AllAccountsHeader } from "../account/AccountHeader";
+import { Register } from "../register/Register";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
 function AccountsPage() {
+  const { budgetId = "" } = useParams();
   usePageTitle("All Accounts");
   return (
     <>
-      <PageHeader variant="accounts" title="All Accounts" />
-      <div className="page-body" />
+      <AllAccountsHeader budgetId={budgetId} />
+      <Register budgetId={budgetId} />
     </>
   );
 }

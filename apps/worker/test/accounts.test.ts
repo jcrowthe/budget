@@ -7,7 +7,7 @@ import * as accountsRepo from "../src/repositories/accounts";
 import { addUnlinkedAccount, createAccount, NameTaken } from "../src/services/accounts";
 import { createBudget } from "../src/services/budgets";
 import { json } from "./helpers";
-import { apiPaths, listedToolNames, mcpRpc } from "./surface";
+import { apiDocument, apiPaths, listedToolNames, mcpRpc } from "./surface";
 
 // biome-ignore lint/suspicious/noExplicitAny: parsed response bodies in tests
 type Json = any;
@@ -41,10 +41,13 @@ describe("accounts surface", () => {
       expect.arrayContaining([
         "/api/v1/budgets/{budget_id}/accounts",
         "/api/v1/budgets/{budget_id}/accounts/{account_id}",
+        "/api/v1/budgets/{budget_id}/account-summary",
       ]),
     );
+    const paths = (await apiDocument()).paths as Record<string, Record<string, unknown>>;
+    expect(paths["/api/v1/budgets/{budget_id}/accounts/{account_id}"]).toHaveProperty("patch");
     expect(await listedToolNames()).toEqual(
-      expect.arrayContaining(["list_accounts", "create_account"]),
+      expect.arrayContaining(["list_accounts", "create_account", "get_account", "update_account"]),
     );
   });
 });

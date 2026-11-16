@@ -21,7 +21,6 @@ import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
-import { changeLog } from "../db/schema/change-log";
 import { transactions } from "../db/schema/transactions";
 
 export type TransactionRow = typeof transactions.$inferSelect;
@@ -36,7 +35,7 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper) {
   return db
     .insert(transactions)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt} where exists ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt} where exists ${guard}`,
     );
 }
 
@@ -120,6 +119,29 @@ export async function activityByMonth(
   }));
 }
 
+/** Cleared and uncleared sums over every open, non-deleted account of the plan. */
+export async function openAccountsBalances(
+  db: Db,
+  budgetId: string,
+): Promise<{ cleared: number; uncleared: number }> {
+  const [r] = await db
+    .select({
+      cleared: sql<number>`coalesce(sum(case when ${transactions.cleared} = 'uncleared' then 0 else ${transactions.amount} end), 0)`,
+      uncleared: sql<number>`coalesce(sum(case when ${transactions.cleared} = 'uncleared' then ${transactions.amount} else 0 end), 0)`,
+    })
+    .from(transactions)
+    .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        isNull(transactions.deletedAt),
+        isNull(accounts.deletedAt),
+        eq(accounts.closed, false),
+      ),
+    );
+  return { cleared: r?.cleared ?? 0, uncleared: r?.uncleared ?? 0 };
+}
+
 export type TransactionDetailRow = TransactionRow & {
   categoryName: string | null;
   groupName: string | null;
@@ -176,20 +198,29 @@ export async function listDetailForAccount(
   return (await detailSelect(db).where(and(...conds))).map(toDetail);
 }
 
-/** Newest change_log time per transaction id (of one id when given). One grouped query: no IN list. */
-export async function lastChangedAt(
+export type PlanDetailRow = TransactionDetailRow & { accountName: string };
+
+/** Non-deleted transactions of every non-deleted account (closed included) dated `sinceDate` or later. */
+export async function listDetailForPlan(
   db: Db,
   budgetId: string,
-  id?: string,
-): Promise<Map<string, string>> {
-  const conds = [eq(changeLog.budgetId, budgetId), eq(changeLog.entityType, "transaction")];
-  if (id) conds.push(eq(changeLog.entityId, id));
+  sinceDate?: string,
+): Promise<PlanDetailRow[]> {
+  const conds = [eq(transactions.budgetId, budgetId), isNull(transactions.deletedAt)];
+  if (sinceDate) conds.push(gte(transactions.date, sinceDate));
   const rows = await db
-    .select({ id: changeLog.entityId, at: sql<string>`max(${changeLog.createdAt})` })
-    .from(changeLog)
-    .where(and(...conds))
-    .groupBy(changeLog.entityId);
-  return new Map(rows.map((r) => [r.id, r.at]));
+    .select({
+      t: transactions,
+      categoryName: categories.name,
+      groupName: categoryGroups.name,
+      accountName: accounts.name,
+    })
+    .from(transactions)
+    .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))
+    .leftJoin(categories, eq(categories.id, transactions.categoryId))
+    .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
+    .where(and(...conds));
+  return rows.map((r) => ({ ...toDetail(r), accountName: r.accountName }));
 }
 
 const same = (col: SQLWrapper, v: string | number | boolean | null) =>
@@ -217,7 +248,12 @@ export function holds(db: Db, before: TransactionRow) {
   return db.select({ x: sql`1` }).from(transactions).where(holdsCondition(before));
 }
 
-export function updateIfHoldsStmt(db: Db, before: TransactionRow, after: TransactionRow) {
+export function updateIfHoldsStmt(
+  db: Db,
+  before: TransactionRow,
+  after: TransactionRow,
+  updatedAt: string,
+) {
   return db
     .update(transactions)
     .set({
@@ -230,12 +266,16 @@ export function updateIfHoldsStmt(db: Db, before: TransactionRow, after: Transac
       amount: after.amount,
       cleared: after.cleared,
       approved: after.approved,
+      updatedAt,
     })
     .where(holdsCondition(before));
 }
 
-export function softDeleteIfHoldsStmt(db: Db, before: TransactionRow, deletedAt: string) {
-  return db.update(transactions).set({ deletedAt }).where(holdsCondition(before));
+export function softDeleteIfHoldsStmt(db: Db, before: TransactionRow, at: string) {
+  return db
+    .update(transactions)
+    .set({ deletedAt: at, updatedAt: at })
+    .where(holdsCondition(before));
 }
 
 /** The name of a category's group (deleted or not), for the change_log copy of a row. */
