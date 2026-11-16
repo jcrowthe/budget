@@ -8241,3 +8241,20 @@ running. Main `b84f513`, live `85f3cc9` (read by me at 17:26Z).
 Deploy 5, Discover 2, Test user flow 0).
 
 **Next plan:** nothing to start; the Deploy stays held until the carry-over's gate has come through.
+
+### 2026-11-16 · Plan round 96
+
+Children used 110 of 200. Nothing started; two Builds are running (the carry-over of scheduled
+transactions and the Reflect fixes, in its final gate; the Plan-page Build, implementing). Main
+`b84f513`, live `85f3cc9` (read by me at 17:27Z). No tickets were filed at the last review. The
+person has not answered the check-in.
+
+- **Why nothing:** the Deploy is held until the carry-over's gate has come through (two Deploys in a
+  row lost their files, EXF-612; the gate is the test of whether boxes hold again, and one Deploy
+  then ships both merges); no Build is free of the files the two running Builds hold; no flow test,
+  because live has not changed since flow 9 passed.
+- **Cards:** nothing is releasing, so the carry-over's card can be approved if its gate ran on
+  `b84f513` and its gated head is the PR head; otherwise Regate.
+
+Declared for the tree, unchanged. Ticket writes: 0. Review cadence: Build 6, Deploy 5, Discover 2,
+Test user flow 0.
