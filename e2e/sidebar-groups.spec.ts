@@ -49,6 +49,9 @@ function fx(p: Record<string, unknown>) {
     cleared_balance: 0,
     uncleared_balance: 0,
     balance: 0,
+    bank_account_id: null,
+    linked: false,
+    import_start_date: null,
     ...p,
   };
 }

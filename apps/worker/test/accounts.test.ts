@@ -365,6 +365,8 @@ describe("atomicity", () => {
       sortOrder: 1,
       createdAt: new Date().toISOString(),
       deletedAt: null,
+      bankAccountId: null,
+      importStartDate: null,
     };
     const [res] = await db.batch([
       accountsRepo.insertIfStmt(db, row, accountsRepo.newAccountGuard(db, bid, 1, row.name)),

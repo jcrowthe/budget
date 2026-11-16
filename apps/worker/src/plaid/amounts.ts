@@ -15,3 +15,10 @@ export function plaidToMilliunits(n: number | null | undefined): number | null {
   assertMilliunits(out);
   return out;
 }
+
+/** A bank account's balance (milliunits, Plaid's sign) as the plan stores it: credit and loan balances are owed, so negative. null → 0; never -0. */
+export function bankBalanceToPlan(plaidType: string, milli: number | null): number {
+  if (milli === null || milli === 0) return 0;
+  const t = plaidType.toLowerCase();
+  return t === "credit" || t === "loan" ? -milli : milli;
+}

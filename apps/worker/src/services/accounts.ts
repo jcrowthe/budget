@@ -11,6 +11,7 @@ import {
   AccountCreate,
   AccountCreateRequest,
   type AccountCreateRequest as AccountCreateRequestInput,
+  type AccountType,
   AccountUpdateRequest,
   type AccountUpdateRequest as AccountUpdateRequestInput,
 } from "@budget/schema/accounts";
@@ -20,6 +21,7 @@ import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
+import * as bankRepo from "../repositories/bank-connections";
 import * as budgetsRepo from "../repositories/budgets";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
@@ -30,6 +32,18 @@ const MAX_ATTEMPTS = 5;
 export class NameTaken extends Error {
   constructor() {
     super("This account name already exists.");
+  }
+}
+
+/** A link rule failed; the route answers with this status and code. */
+export class LinkRefused extends Error {
+  constructor(
+    readonly status: 409 | 422,
+    readonly code: string,
+    detail: string,
+  ) {
+    super(detail);
+    this.name = "LinkRefused";
   }
 }
 
@@ -60,6 +74,9 @@ export function accountToApi(
     cleared_balance: b.cleared,
     uncleared_balance: b.uncleared,
     balance: b.cleared + b.uncleared,
+    bank_account_id: row.bankAccountId,
+    linked: row.bankAccountId !== null,
+    import_start_date: row.importStartDate,
   };
 }
 
@@ -85,6 +102,8 @@ export async function createAccount(
       sortOrder: (await accountsRepo.maxSort(db, v.budget_id)) + 1,
       createdAt: new Date().toISOString(),
       deletedAt: null,
+      bankAccountId: null,
+      importStartDate: null,
     };
     // Log first, both guarded on "this sort_order is still the next free one": a lost race writes neither.
     const [, result] = await db.batch([
@@ -204,22 +223,52 @@ export async function addUnlinkedAccount(
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   if (await accountsRepo.nameTaken(db, budgetId, v.name)) throw new NameTaken();
-  const amount = startingBalanceAmount(v.type, v.balance);
+  return insertAccountWithStartingBalance(env, actor, budgetId, {
+    name: v.name,
+    type: v.type,
+    amount: startingBalanceAmount(v.type, v.balance),
+    date: v.date ?? opts.today ?? new Date().toISOString().slice(0, 10),
+    bankAccountId: null,
+    importStartDate: null,
+  });
+}
+
+/**
+ * The guarded create behind Add Account and "add from bank": the account, the system payee when missing
+ * and the Starting Balance, each with its change_log row, in one batch.
+ */
+export async function insertAccountWithStartingBalance(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  spec: {
+    name: string;
+    type: AccountType;
+    amount: number;
+    date: string;
+    bankAccountId: string | null;
+    importStartDate: string | null;
+  },
+): Promise<{ account: Account; starting_balance: Transaction }> {
+  const db = getDb(env);
+  const { amount } = spec;
   const existingSystem = await payeesRepo.findSystem(db, budgetId, "starting_balance");
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const now = new Date().toISOString();
     const row: accountsRepo.AccountRow = {
       id: crypto.randomUUID(),
       budgetId,
-      name: v.name,
-      type: v.type,
-      onBudget: isOnBudget(v.type),
+      name: spec.name,
+      type: spec.type,
+      onBudget: isOnBudget(spec.type),
       note: null,
       starred: false,
       closed: false,
       sortOrder: (await accountsRepo.maxSort(db, budgetId)) + 1,
       createdAt: now,
       deletedAt: null,
+      bankAccountId: spec.bankAccountId,
+      importStartDate: spec.importStartDate,
     };
     const sys: payeesRepo.PayeeRow = existingSystem ?? {
       id: crypto.randomUUID(),
@@ -235,11 +284,11 @@ export async function addUnlinkedAccount(
       id: crypto.randomUUID(),
       budgetId,
       accountId: row.id,
-      date: v.date ?? opts.today ?? now.slice(0, 10),
+      date: spec.date,
       payeeId: sys.id,
       payeeName: STARTING_BALANCE_PAYEE,
       categoryId: null,
-      inflowToReadyToAssign: startingBalanceFeedsReadyToAssign(v.type),
+      inflowToReadyToAssign: startingBalanceFeedsReadyToAssign(spec.type),
       memo: null,
       amount,
       cleared: "cleared",
@@ -249,7 +298,13 @@ export async function addUnlinkedAccount(
       updatedAt: now,
     };
     const account = accountToApi(row, { cleared: amount, uncleared: 0 });
-    const g1 = accountsRepo.newAccountGuard(db, budgetId, row.sortOrder, row.name);
+    const g1 = accountsRepo.newAccountGuard(
+      db,
+      budgetId,
+      row.sortOrder,
+      row.name,
+      spec.bankAccountId,
+    );
     const g2 = accountsRepo.existsStmt(db, row.id);
     const [, result] = await db.batch([
       changeLogInsertIf(
@@ -306,7 +361,20 @@ export async function addUnlinkedAccount(
         starting_balance: transactionToApi({ ...tx, payeeId: linked?.id ?? null }),
       };
     }
-    if (await accountsRepo.nameTaken(db, budgetId, v.name)) throw new NameTaken();
+    if (await accountsRepo.nameTaken(db, budgetId, spec.name)) throw new NameTaken();
+    if (spec.bankAccountId !== null) {
+      const holder = await accountsRepo.findByBankAccount(db, budgetId, spec.bankAccountId);
+      if (holder) {
+        throw new LinkRefused(
+          409,
+          "bank_account_already_linked",
+          `This bank account is already linked to the account "${holder.name}" in this plan`,
+        );
+      }
+      if (!(await bankRepo.findBankAccountById(db, spec.bankAccountId))) {
+        throw new NotFound("Bank account");
+      }
+    }
   }
   throw new Conflict("Account order");
 }

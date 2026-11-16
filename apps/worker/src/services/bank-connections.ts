@@ -12,18 +12,16 @@ import {
   plaidFor,
 } from "../plaid/client";
 import type { PlaidInstitution } from "../plaid/institutions";
-import {
-  deleteAccessToken,
-  deleteAccessTokenStmt,
-  getAccessToken,
-  storeAccessToken,
-} from "../plaid/tokens";
+import { deleteAccessToken, getAccessToken, storeAccessToken } from "../plaid/tokens";
+import * as accountsRepo from "../repositories/accounts";
 import * as repo from "../repositories/bank-connections";
+import { unlinkForConnectionStmts } from "./account-links";
 import { getBudgetEnvironment } from "./budgets";
 
 export function toApi(
   row: repo.BankConnectionRow,
   accounts: repo.BankAccountRow[],
+  links: Map<string, string> = new Map(),
 ): BankConnection {
   return {
     id: row.id,
@@ -48,14 +46,21 @@ export function toApi(
       current_balance: a.currentBalance,
       available_balance: a.availableBalance,
       balance_updated_at: a.balanceUpdatedAt,
-      linked_account_id: null,
+      linked_account_id: links.get(a.id) ?? null,
     })),
   };
 }
 
 export async function listBankConnections(env: Env, budgetId: string): Promise<BankConnection[]> {
   const e = await getBudgetEnvironment(env, budgetId);
-  return (await repo.listByEnvironment(getDb(env), e)).map((r) => toApi(r.row, r.accounts));
+  const db = getDb(env);
+  const found = await repo.listByEnvironment(db, e);
+  const links = await accountsRepo.linksForPlan(
+    db,
+    budgetId,
+    found.flatMap((r) => r.accounts.map((a) => a.id)),
+  );
+  return found.map((r) => toApi(r.row, r.accounts, links));
 }
 
 export async function createLinkToken(env: Env, budgetId: string) {
@@ -195,6 +200,8 @@ export class BankConnectionRefused extends Error {
   }
 }
 
+const MAX_REMOVE_ATTEMPTS = 5;
+
 export const RESET_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /** When Reset is available again, or null when it is available now. */
@@ -212,13 +219,21 @@ async function scoped(env: Env, budgetId: string, id: string) {
   return found;
 }
 
+async function linksOf(env: Env, budgetId: string, accounts: repo.BankAccountRow[]) {
+  return accountsRepo.linksForPlan(
+    getDb(env),
+    budgetId,
+    accounts.map((a) => a.id),
+  );
+}
+
 export async function getBankConnection(
   env: Env,
   budgetId: string,
   id: string,
 ): Promise<BankConnection> {
   const { row, accounts } = await scoped(env, budgetId, id);
-  return toApi(row, accounts);
+  return toApi(row, accounts, await linksOf(env, budgetId, accounts));
 }
 
 export async function renameBankConnection(
@@ -227,9 +242,10 @@ export async function renameBankConnection(
   input: { budget_id: string; id: string; nickname: string },
 ): Promise<BankConnection> {
   const { row, accounts } = await scoped(env, input.budget_id, input.id);
+  const links = await linksOf(env, input.budget_id, accounts);
   const trimmed = input.nickname.trim();
   const nickname = trimmed === "" ? row.institutionName.slice(0, 100) : trimmed;
-  const before = toApi(row, accounts);
+  const before = toApi(row, accounts, links);
   if (nickname === row.nickname) return before;
   const db = getDb(env);
   const now = new Date().toISOString();
@@ -243,7 +259,7 @@ export async function renameBankConnection(
         entityType: "bank_connection",
         entityId: row.id,
         before,
-        after: toApi({ ...row, nickname, updatedAt: now }, accounts),
+        after: toApi({ ...row, nickname, updatedAt: now }, accounts, links),
       },
       repo.connectionExists(db, row.id),
     ),
@@ -287,6 +303,7 @@ export async function finishReset(
   id: string,
 ): Promise<BankConnection> {
   const { row, accounts } = await scoped(env, budgetId, id);
+  const links = await linksOf(env, budgetId, accounts);
   const db = getDb(env);
   const now = new Date().toISOString();
   await db.batch([
@@ -298,8 +315,12 @@ export async function finishReset(
         action: "update",
         entityType: "bank_connection",
         entityId: row.id,
-        before: toApi(row, accounts),
-        after: toApi({ ...row, status: "connected", lastResetAt: now, updatedAt: now }, accounts),
+        before: toApi(row, accounts, links),
+        after: toApi(
+          { ...row, status: "connected", lastResetAt: now, updatedAt: now },
+          accounts,
+          links,
+        ),
       },
       repo.connectionExists(db, row.id),
     ),
@@ -343,24 +364,33 @@ export async function removeBankConnection(
     }
   }
   const db = getDb(env);
-  await db.batch([
-    changeLogInsertIf(
-      db,
-      {
-        budgetId: null,
-        actor,
-        action: "delete",
-        entityType: "bank_connection",
-        entityId: row.id,
-        before: toApi(row, accounts),
-        after: null,
-      },
-      repo.connectionExists(db, row.id),
-    ),
-    // EXF-461: unlink every plan account linked to this connection here, in this same batch.
-    repo.deleteAccountsStmt(db, row.id),
-    repo.deleteConnectionStmt(db, row.id),
-    deleteAccessTokenStmt(db, row.id),
-  ]);
-  return { deleted: true, plaid };
+  for (let attempt = 0; attempt < MAX_REMOVE_ATTEMPTS; attempt++) {
+    // Read the links as late as possible. The connection's log row and deletes come after the unlinks and
+    // hold only while no account is linked to the connection, so a link made or changed since the read
+    // loses the batch (and the next attempt unlinks and logs it).
+    const unlinks = await unlinkForConnectionStmts(db, actor, row.id);
+    const holds = repo.removalHolds(db, row.id, accountsRepo.noLinksToConnection(row.id));
+    const statements = [
+      ...unlinks,
+      changeLogInsertIf(
+        db,
+        {
+          budgetId: null,
+          actor,
+          action: "delete",
+          entityType: "bank_connection",
+          entityId: row.id,
+          before: toApi(row, accounts, await linksOf(env, budgetId, accounts)),
+          after: null,
+        },
+        holds,
+      ),
+      repo.deleteAccountsStmt(db, row.id, holds),
+      repo.deleteConnectionStmt(db, row.id, holds),
+      repo.deleteTokenWhenGoneStmt(db, row.id),
+    ];
+    await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
+    if ((await repo.connectionExists(db, row.id)).length === 0) return { deleted: true, plaid };
+  }
+  throw new Conflict("Bank connection");
 }

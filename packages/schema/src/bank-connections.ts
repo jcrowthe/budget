@@ -16,7 +16,7 @@ export const BankAccount = z
     balance_updated_at: z.string().nullable(),
     linked_account_id: z.uuid().nullable().openapi({
       description:
-        "The plan account linked to this bank account in the given plan; null until linking exists (EXF-461)",
+        "The account of the plan named by budget_id that is linked to this bank account; null when none",
     }),
   })
   .openapi("BankAccount");

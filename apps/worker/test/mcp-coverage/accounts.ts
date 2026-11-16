@@ -6,4 +6,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/accounts/{account_id}": { tool: "get_account" },
   "PATCH /budgets/{budget_id}/accounts/{account_id}": { tool: "update_account" },
   "GET /budgets/{budget_id}/account-summary": { tool: "get_account_summary" },
+  "POST /budgets/{budget_id}/accounts/from-bank": { tool: "create_accounts_from_bank" },
+  "POST /budgets/{budget_id}/accounts/{account_id}/link": { tool: "link_account" },
+  "DELETE /budgets/{budget_id}/accounts/{account_id}/link": { tool: "unlink_account" },
 };
