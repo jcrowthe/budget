@@ -393,7 +393,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
 | 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
 | 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | live `74f1041` (14 minutes) |
-| 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
+| 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | PR #32 | merged `4e3eb7a` (round 58), 75 minutes, one card |
 | 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | completed (21 minutes): flow 8 `new_gaps` (EXF-591), flow 5 `parity_known_gaps` |
 | 2026-11-16 | 56 | Build feature, EXF-508, EXF-514, EXF-592 targets form and display (`p_74b956498a4b4ce1bed94c516291a48f`) | EXF-508, 514, 592 | pending | running |
 | 2026-11-16 | 57 | Deploy of main `113ced4` (`p_e549c296232b4f06be26ddeb660f709a`) | EXF-498, 523, 521, 586 | n/a | live `113ced4` (8 minutes) |
@@ -4761,3 +4761,50 @@ and EXF-592 (designing). **Nothing started this round.**
   The transfers Build has waited longest and unblocks the most (import, spending reports, credit engine):
   if both cards are in hand at once, approve it first.
 - Review cadence: Build 8, Deploy 4, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 58
+
+Children used 70 of 200. Two Builds are running: EXF-526 with EXF-524 (its rework: the Net Worth query;
+now a spec fix, head `6254490`) and EXF-508 with EXF-514 and EXF-592 (designed, head `45b19a6`).
+
+**Ended: the account-editing Build, merged as `4e3eb7a` (PR #32)**, 75 minutes and one card. EXF-486 and
+EXF-488 are Done.
+
+- I approved at its card after reading the branch: gate on the current base, e2e 226 of 226 three times.
+  Its steps kept to the source limits (the Edit Account dialog of a closed account, left with Escape).
+- On main: `apps/web/src/account/EditAccountDialog.tsx`, `CloseAccountDialog.tsx`; the pencils in the
+  header and the sidebar; `PATCH .../accounts/{id}` with `name` and `note`; `adjust-balance`, `close`,
+  `reopen`, `DELETE`; `can_delete`; tools `adjust_account_balance`, `close_account`, `reopen_account`,
+  `delete_account`; system payee `manual_adjustment`; test helpers `apps/worker/test/account-helpers.ts`,
+  `e2e/support/account-edit-seed.ts`.
+- **Two things it leaves, filed now as one High gap ticket:**
+  1. **Its balance guard will be wrong once splits are on main.** `repositories/accounts.ts` has its own
+     condition "the account's active transactions sum to this amount", used when a balance is adjusted or
+     an account is closed. A split is a parent row plus line rows; the guard would count it twice and
+     refuse to adjust or close any account that has a split. Neither Build could fix it alone: the column
+     that marks a line row is only on the other branch. **My brief caused the duplication** ("statements
+     you need on the transactions table go in the accounts repository").
+  2. "Add Transaction" stays enabled on a closed account's page and the Worker accepts a new transaction
+     on a closed account: both need files the transfers and splits Build holds.
+- **Do not deploy transfers and splits together with account editing until that ticket has merged.**
+  Account editing alone (main now) is safe to deploy: no splits exist on main yet.
+- **Rule for briefs, second case this hour:** two Builds that both touch what a row of `transactions`
+  means cannot be made right separately. Either run them one after the other, or give the second one to
+  merge a named step: "at your last rebase, find every query over `transactions` on main and make it
+  agree with your rows".
+
+**The accounts files and the shell are free.**
+
+**The transfers and splits Build** is in its rework; its next gate will run on a main that has moved
+twice. If its card shows the old base: straight to Regate. When it merges: start the follow-up at once.
+
+**Main is `4e3eb7a`; live is `113ced4`**, one merge behind (account editing, no migration). Deploy it now:
+it is safe alone, and it must not wait to be bundled with transfers and splits.
+
+**Ticket writes:** 4 (two Done, two comments).
+
+**Backlog:** 70 open feature tickets (26 done; 4 in progress: EXF-526, 524, 508, 514). Gap: one new High
+filed now; EXF-587, EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589, EXF-591 (Low); in
+progress EXF-592. Template: twenty-six. Flow verdicts unchanged. Finished since each template's last
+review: Build 9, Deploy 4, Discover 2, Test user flow 5. **One more Build and the Build template review
+is due.**
