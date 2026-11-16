@@ -185,14 +185,28 @@ describe("REST and MCP give the same rows", () => {
       memo: t.memo,
     });
     expect(pick(adj.adjustment)).toEqual(pick(ra));
-    const shape = (rows: Json[]) => rows.map((r) => `${r.action} ${r.entity_type}`);
-    const la = await logs(a.id);
-    const lb = await logs(b.id);
-    expect(shape(lb.filter((r) => r.entity_type === "account"))).toEqual(
-      shape(la.filter((r) => r.entity_type === "account")),
-    );
-    expect(lb.find((r) => r.action === "update")?.actor).toBe(MCP);
-    expect(la.find((r) => r.action === "update")?.actor).toBe(USER);
+    // Every change_log row of the account and of its adjustment, after the account's creation.
+    const rowsOf = async (acc: string, adjId: string) =>
+      (
+        await env.DB.prepare(
+          "select actor, action, entity_type, before_json, after_json from change_log where entity_id in (?, ?) and not (action = 'create' and entity_type = 'account') order by rowid",
+        )
+          .bind(acc, adjId)
+          .all<Json>()
+      ).results;
+    const keys = (j: string | null) => (j ? Object.keys(JSON.parse(j)).sort() : null);
+    const shape = (rows: Json[]) =>
+      rows.map((r) => [r.action, r.entity_type, keys(r.before_json), keys(r.after_json)]);
+    const la = await rowsOf(a.id, ra.id);
+    const lb = await rowsOf(b.id, adj.adjustment.id);
+    expect(la.map((r) => `${r.action} ${r.entity_type}`)).toEqual([
+      "update account",
+      "create transaction",
+      "update account",
+    ]);
+    expect(shape(lb)).toEqual(shape(la));
+    expect(lb.every((r) => r.actor === MCP)).toBe(true);
+    expect(la.every((r) => r.actor === USER)).toBe(true);
     const again = toolData(
       await tool("adjust_account_balance", { budget_id: bid, account_id: b.id, balance: 5000 }),
     );

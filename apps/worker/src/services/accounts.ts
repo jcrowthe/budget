@@ -381,21 +381,9 @@ export async function adjustBalance(
       uncleared: facts.uncleared,
       canDelete: false,
     });
+    const txExists = accountsRepo.transactionExistsStmt(db, tx.id);
     const results = await db.batch([
       ...stmts,
-      changeLogInsertIf(
-        db,
-        {
-          budgetId,
-          actor,
-          action: "update",
-          entityType: "account",
-          entityId: accountId,
-          before: accountToApi(before, facts),
-          after,
-        },
-        guard,
-      ),
       txRepo.insertIfStmt(db, tx, guard, payeesRepo.systemIdSql(budgetId, "manual_adjustment")),
       changeLogInsertIf(
         db,
@@ -408,10 +396,23 @@ export async function adjustBalance(
           before: null,
           after: transactionToApi(tx),
         },
-        accountsRepo.transactionExistsStmt(db, tx.id),
+        txExists,
+      ),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "update",
+          entityType: "account",
+          entityId: accountId,
+          before: accountToApi(before, facts),
+          after,
+        },
+        txExists,
       ),
     ] as unknown as [BatchItem, ...BatchItem[]]);
-    if (results[stmts.length + 1]?.meta.changes > 0) {
+    if ((results[stmts.length]?.meta.changes ?? 0) > 0) {
       return { account: after, adjustment: await readAdjustment(db, budgetId, tx) };
     }
   }
@@ -478,21 +479,22 @@ export async function closeAccount(
       adjusting && tx
         ? sql`${accountsRepo.accountSumIs(accountId, 0)} and exists ${accountsRepo.transactionExistsStmt(db, tx.id)}`
         : accountsRepo.accountSumIs(accountId, 0);
+    const accountLog = changeLogInsertIf(
+      db,
+      {
+        budgetId,
+        actor,
+        action: "update",
+        entityType: "account",
+        entityId: accountId,
+        before: accountToApi(before, facts),
+        after: { ...after, adjustment_id: adjusting && tx ? tx.id : null },
+      },
+      // With an adjustment, the row is logged only once it has been inserted under `guard`.
+      adjusting && tx ? accountsRepo.transactionExistsStmt(db, tx.id) : guard,
+    );
     const results = await db.batch([
       ...(adjusting ? stmts : []),
-      changeLogInsertIf(
-        db,
-        {
-          budgetId,
-          actor,
-          action: "update",
-          entityType: "account",
-          entityId: accountId,
-          before: accountToApi(before, facts),
-          after: { ...after, adjustment_id: adjusting && tx ? tx.id : null },
-        },
-        guard,
-      ),
       ...(adjusting && tx
         ? [
             txRepo.insertIfStmt(
@@ -516,6 +518,7 @@ export async function closeAccount(
             ),
           ]
         : []),
+      accountLog,
       accountsRepo.closeIfStmt(db, before, closeGuard),
     ] as unknown as [BatchItem, ...BatchItem[]]);
     if ((results[results.length - 1]?.meta.changes ?? 0) > 0) {
@@ -613,7 +616,13 @@ export async function deleteAccount(
             accountsRepo.noOtherTransactions(accountId, startingId),
           ),
         ),
-        accountsRepo.softDeleteStartingBalanceStmt(db, startingId, accountId, at),
+        accountsRepo.softDeleteStartingBalanceStmt(
+          db,
+          before,
+          startingId,
+          at,
+          accountsRepo.noOtherTransactions(accountId, startingId),
+        ),
       );
     }
     stmts.push(

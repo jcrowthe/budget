@@ -1,5 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import { getDb } from "../src/db/client";
+import * as accountsRepo from "../src/repositories/accounts";
 import { A, account, data, logs, plan, rta, send, tool, txs } from "./account-helpers";
 import { json } from "./helpers";
 import { SENTINEL, seedSandboxCredentials, stubPlaid } from "./plaid-stub";
@@ -152,6 +154,14 @@ describe("linked accounts", () => {
               balances: { current: 10, available: null },
             },
             {
+              account_id: "acc-ln",
+              name: "ZZ Loan",
+              mask: "0002",
+              type: "loan",
+              subtype: "student",
+              balances: { current: null, available: null },
+            },
+            {
               account_id: "acc-b",
               name: "ZZ B",
               mask: "0001",
@@ -180,11 +190,17 @@ describe("linked accounts", () => {
       ),
     );
     const c = conn.bank_connection ?? conn;
-    const [ba, bb] = c.accounts as Json[];
+    const byName = (n: string) => (c.accounts as Json[]).find((q) => q.name === n) as Json;
+    const [ba, bb, bl] = [byName("ZZ A"), byName("ZZ B"), byName("ZZ Loan")];
     const made = await data(
-      await send(`${A(bid)}/from-bank`, "POST", { bank_account_ids: [ba.id, bb.id] }),
+      await send(`${A(bid)}/from-bank`, "POST", { bank_account_ids: [ba.id, bb.id, bl.id] }),
     );
-    const [x, y] = made.created.map((m: Json) => m.account);
+    const [x, y, loan] = made.created.map((m: Json) => m.account);
+    // A from-bank loan's adjustment takes no category and does not feed Ready to Assign.
+    const adj = await data(
+      await send(`${A(bid)}/${loan.id}/adjust-balance`, "POST", { balance: -5000 }),
+    );
+    expect(adj.adjustment).toMatchObject({ amount: -5000, inflow_to_ready_to_assign: false });
     const linkedOf = async (bank: string) =>
       (
         await data(await json(`/api/v1/bank-connections/${c.id}?budget_id=${bid}`))
@@ -199,5 +215,31 @@ describe("linked accounts", () => {
     const del = await send(`${A(bid)}/${y.id}`, "DELETE");
     expect(del.status).toBe(200);
     expect(await linkedOf(bb.id)).toBeNull();
+  });
+});
+
+describe("delete with a stale read", () => {
+  it("keeps the Starting Balance when another write lands between the read and the batch", async () => {
+    const bid = await plan();
+    const a = await account(bid, "checking", 250000);
+    const db = getDb(env);
+    const before = await accountsRepo.findActive(db, bid, a.id);
+    const startingId = (await accountsRepo.transactionFacts(db, bid, a.id)).get(a.id)?.startingId;
+    if (!before || !startingId) throw new Error("setup");
+    await send(`${A(bid)}/${a.id}/adjust-balance`, "POST", { balance: 1000 });
+    await db.batch([
+      accountsRepo.softDeleteStartingBalanceStmt(
+        db,
+        before,
+        startingId,
+        new Date().toISOString(),
+        accountsRepo.noOtherTransactions(a.id, startingId),
+      ),
+    ]);
+    const row = await env.DB.prepare("select deleted_at from transactions where id = ?")
+      .bind(startingId)
+      .first<{ deleted_at: string | null }>();
+    expect(row?.deleted_at).toBeNull();
+    expect((await get(bid, a.id).then(data)).account.balance).toBe(1000);
   });
 });

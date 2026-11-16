@@ -1,4 +1,3 @@
-import type { Account } from "@budget/schema/accounts";
 import { type ComponentType, useRef, useState } from "react";
 import { NavLink, useMatch, useSearchParams } from "react-router";
 import { EditAccountDialog } from "../account/EditAccountDialog";
@@ -40,6 +39,7 @@ export function Sidebar() {
   };
   const accounts = useAccounts(plan?.id);
   const accountList = accounts.data ?? [];
+  const editing = accountList.find((a) => a.id === editingId);
   // Links never point at an unknown id: the open plan, else the last-opened one, else "/".
   // While the plan list loads, keep the id from the URL so an early click cannot jump to another plan.
   const target = plan?.id ?? (isLoading ? budgetId : undefined) ?? pickLastOpened(plans)?.id;
@@ -120,10 +120,10 @@ export function Sidebar() {
       {dialog ? (
         <dialog.Dialog budgetId={plan?.id ?? null} onClose={() => setDialog(null)} />
       ) : null}
-      {plan && editingId && accountList.find((a) => a.id === editingId) ? (
+      {plan && editing ? (
         <EditAccountDialog
           budgetId={plan.id}
-          account={accountList.find((a) => a.id === editingId) as Account}
+          account={editing}
           onClose={() => setEditingId(null)}
         />
       ) : null}

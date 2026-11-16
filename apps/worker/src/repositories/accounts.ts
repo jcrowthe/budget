@@ -242,16 +242,26 @@ export function reopenIfStmt(db: Db, before: AccountRow) {
   return db.update(accounts).set({ closed: false }).where(holdsCondition(before));
 }
 
-/** Soft-deletes a Starting Balance transaction of the account (the one write to `transactions` kept here). */
-export function softDeleteStartingBalanceStmt(db: Db, txId: string, accountId: string, at: string) {
+/**
+ * Soft-deletes a Starting Balance transaction of the account (the one write to `transactions` kept here),
+ * only while the account still holds as read and `extra` does, like the change_log row it goes with.
+ */
+export function softDeleteStartingBalanceStmt(
+  db: Db,
+  before: AccountRow,
+  txId: string,
+  at: string,
+  extra: SQL,
+) {
   return db
     .update(transactions)
     .set({ deletedAt: at, updatedAt: at })
     .where(
       and(
         eq(transactions.id, txId),
-        eq(transactions.accountId, accountId),
+        eq(transactions.accountId, before.id),
         isNull(transactions.deletedAt),
+        sql`exists ${accountHolds(db, before, extra)}`,
       ),
     );
 }
