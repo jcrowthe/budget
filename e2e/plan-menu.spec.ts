@@ -94,6 +94,11 @@ async function expectSubmenuReachable(page: Page, request: APIRequestContext, aN
   await expect(planButton(page, a.name)).toBeVisible();
 }
 
+// Route callbacks still fetching when a test ends would otherwise surface as an error outside any test.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test.describe("1440×900", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 

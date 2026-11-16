@@ -229,6 +229,11 @@ test("C12 unknown or deleted plan shows not found", async ({ page, request }) =>
   }
 });
 
+// Route callbacks still fetching when a test ends would otherwise surface as an error outside any test.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test("C13 root opens the last-opened plan", async ({ page, request }) => {
   const a = await newPlan(request, "A");
   const b = await newPlan(request, "B");
