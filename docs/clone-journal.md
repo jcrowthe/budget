@@ -7360,3 +7360,18 @@ last review: Build 2, Deploy 2, Discover 2, Test user flow 8; the next template-
 about round 114.
 
 **Next plan:** nothing free to start; wait for the cards (the shell Build first) and the flow test.
+
+### 2026-11-16 · Plan round 85
+
+Children used 102 of 200. Nothing started; five are running: the shell Build (in polish, on base
+`8ec621e`), the credit engine carry-over, scheduled transactions (designed), the Reflect fixes
+(planned) and the flow test for flow 2 on live. Main and live `8ec621e`. No tickets were filed at the
+last review.
+
+- **Why nothing new:** unchanged from plan 83. The four Builds hold the shell, the Plan page with the
+  engine, the register with the transactions files, and Reflect; every unblocked ticket needs one of
+  them. Main and live are equal, so there is nothing to deploy, and one flow test is already on live.
+- **Cards can be approved** (no Deploy in flight). The shell Build is nearest.
+
+Ticket writes: 0. Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 8 (the ninth is
+running).
