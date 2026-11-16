@@ -6448,3 +6448,58 @@ template's last review: Build 9, Deploy 9, Discover 2, Test user flow 7.
 Reflect reports); approve no Build card while it is in flight. The credit engine Build (EXF-532,
 EXF-535): `packages/core` and the months files are free; check its manifest estimate against the
 register and Age of Money Builds first. After the Deploy: the Deploy template review, flows 3 and 8.
+
+### 2026-11-16 · Plan round 77
+
+Children used 91 of 200. Two started now; four are running with the register Build (fixing review
+findings) and the Age of Money Build (polish applied). Main `357bc4f`, live `c9e9d1c`.
+
+- The ticket filed at the last review exists: **EXF-616** (the Auto-Assign card's height in the states
+  the source differs in), set to Low. It goes with a later Plan Build.
+- **Started: Deploy `D21`** (`p_dc763853fd914adfb4b6fe1852320767`; `expect_commit` `357bc4f`, gated
+  head `e555934`, trees identical). Ships two merges: the two Reflect reports and the Plan page's view
+  chips, snooze and Auto-Assign.
+  - One migration pending, `20261116100700_target_snoozes.sql`. Its number is lower than two already
+    applied on live; the brief says that is expected and to stop and quote if the tool objects.
+  - Checks: target, preview, snooze on and off, Auto-Assign Underfunded with the figures I expect
+    (Ready to Assign 500000 → 400000); what a snoozed target does to the Underfunded preview and what
+    Income v Expense lists for a Starting Balance are asked as "report what you read", not asserted,
+    because I do not know them; 64 tools; in the browser the chips, the panel's height while the
+    preview loads (two measured numbers), the snooze switch, the two report tabs.
+  - **It is the tenth Deploy since the Deploy template's review**: the review starts when it ends.
+  - **While it runs I approve no Build card** (main must not move under it).
+- **Started: the credit engine** (`p_34bc1879fb924226b6a197db43cfeb20`; EXF-532 with EXF-535, both
+  High; they block EXF-537, EXF-539, EXF-538 and the plan import EXF-477). `packages/core` and the
+  months files are free since the Plan-page merge.
+  - **Manifest check against the two running Builds.** The register Build holds the transactions
+    repository, where the engine's activity read (`activityByMonth`) lives. The engine needs that read
+    per credit account. Rather than wait, the brief has the credit Build write its read in a new
+    repository file and leave the transactions repository alone; it also adds no rule about which
+    category a row may take (that would be the transactions service), and the engine's rules cover
+    every case instead. The register Build changes no meaning of a row (a flag column and bulk actions
+    that go through the single-row rules), so the rule from EXF-610 is kept. Age of Money holds only
+    reports and Reflect files: disjoint.
+  - **My decisions where discovery saw nothing** (each to be written "not compared"): two cards in one
+    overspent category split the credit part in proportion, largest remainder; a transfer between a
+    cash account and a card is the payment; a transfer between two cards moves the amount between
+    their payment categories; an uncategorized card row funds nothing; renaming the account renames
+    the payment category, closing keeps it; the group is first and refuses rename, delete, hide and
+    move; a target on a payment category is refused until EXF-538; Auto-Assign leaves payment
+    categories out of the target and spending options.
+  - **The live database may already hold credit accounts** (the owner's plan): the migration
+    (`20261116101100_credit_payment_categories.sql`) creates the group and the payment categories for
+    existing cards, with a test that arranges "before".
+  - A property test I derived first: at each month's end, on-plan cash balances = Ready to Assign +
+    every Available + that month's credit parts (with Uncategorized and later-month assignments
+    accounted for). The Architect derives the exact form and tests it over random plans.
+  - Acceptance rests on replaying EXF-535's eleven steps and EXF-532's examples A, B and C through the
+    API, to the milliunit.
+  - **Source:** the Plan page of the test plan only, to look and to read style rules; nothing is
+    created there, so the yellow pill, the mixed state and the inspector messages are built from the
+    ticket and marked not compared.
+  - Not in it: the PAYMENT header and payment inspector (EXF-537), Record Payment (EXF-539).
+- **Not started:** scheduled transactions (after the register Build); flows 3 and 8 and the Deploy
+  template review (after the Deploy).
+
+Ticket writes: 5 (EXF-616 priority; EXF-532 and EXF-535 to In Progress, each with a comment). Review
+cadence: Build 9, Deploy 9 (the tenth is running), Discover 2, Test user flow 7.
