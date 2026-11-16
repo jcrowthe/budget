@@ -4,6 +4,7 @@ import type { AccountBalances } from "@budget/schema/transactions";
 import { Fragment, type ReactNode, useState } from "react";
 import { useAccountSummary, useSetStarred } from "../api/accounts";
 import { ClearedFilledIcon, ClearedOutlineIcon } from "../register/icons";
+import { SelectedTotal } from "../register/selection";
 import { ACCOUNT_BADGE, ACCOUNT_TYPE_LABEL } from "../shell/accountTypeLabels";
 import { EditAccountDialog } from "./EditAccountDialog";
 import {
@@ -41,7 +42,12 @@ const BLOCKS = [
 const OPS = ["+", "="];
 
 /** Cleared + Uncleared = Working. Empty amounts while loading, so the row keeps its height. */
-export function BalanceRow({ cleared, uncleared, working }: Partial<AccountBalances>) {
+export function BalanceRow({
+  cleared,
+  uncleared,
+  working,
+  children,
+}: Partial<AccountBalances> & { children?: ReactNode }) {
   const values = { cleared, uncleared, working };
   return (
     // biome-ignore lint/a11y/useSemanticElements: a fieldset would add form semantics and its own box
@@ -72,6 +78,7 @@ export function BalanceRow({ cleared, uncleared, working }: Partial<AccountBalan
           </Fragment>
         );
       })}
+      {children ? <div className="acct-balances-right">{children}</div> : null}
     </div>
   );
 }
@@ -175,7 +182,9 @@ export function AccountHeader({ account }: { account?: Account }) {
         cleared={account.cleared_balance}
         uncleared={account.uncleared_balance}
         working={account.balance}
-      />
+      >
+        <SelectedTotal />
+      </BalanceRow>
       {editing ? (
         <EditAccountDialog
           budgetId={account.budget_id}
@@ -196,7 +205,9 @@ export function AllAccountsHeader({ budgetId }: { budgetId: string }) {
         <h1>All Accounts</h1>
       </div>
       <hr className="acct-rule" />
-      <BalanceRow cleared={data?.cleared} uncleared={data?.uncleared} working={data?.working} />
+      <BalanceRow cleared={data?.cleared} uncleared={data?.uncleared} working={data?.working}>
+        <SelectedTotal />
+      </BalanceRow>
     </header>
   );
 }

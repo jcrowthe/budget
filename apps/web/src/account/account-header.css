@@ -7,6 +7,8 @@
   --account-tooltip-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   --account-secondary-hover: rgba(117, 131, 255, 0.27);
   --account-tooltip-delay: 1.9s;
+  /* The action bar's shortcut tooltip bubble, measured on the source's Flag button tooltip. */
+  --account-tooltip-shortcut-bg: #3c3e53;
 }
 .acct-head {
   background: var(--backgroundSecondary);
@@ -215,4 +217,59 @@
   font-weight: 500;
   line-height: 20px;
   text-align: center;
+}
+
+/* The Selected Total sits at the right end of the strip (source: .accounts-header-balances-right, margin-left auto). */
+.acct-balances-right {
+  display: flex;
+  margin-left: auto;
+}
+
+.acct-tooltip.is-above {
+  top: auto;
+  bottom: calc(100% + 0.75rem);
+}
+.acct-tooltip.is-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.acct-tooltip:has(.acct-tip-shortcut) {
+  max-width: none;
+  border-radius: 6px;
+  background: var(--account-tooltip-shortcut-bg);
+  font-weight: 500;
+  line-height: 14.4px;
+  white-space: nowrap;
+}
+.acct-tip-shortcut,
+.acct-tip-keys {
+  display: inline-flex;
+  align-items: center;
+}
+.acct-tip-shortcut {
+  gap: 8px;
+}
+.acct-tip-keys {
+  gap: 4px;
+}
+.acct-tooltip .acct-tip-keys kbd + kbd {
+  margin-left: 0;
+}
+.acct-tooltip .acct-tip-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+}
+.acct-tooltip .acct-tip-key.is-then {
+  background: transparent;
 }

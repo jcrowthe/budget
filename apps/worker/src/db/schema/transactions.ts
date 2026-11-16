@@ -1,4 +1,5 @@
 import { CLEARED_STATUSES } from "@budget/core/account-types";
+import { FLAG_COLORS } from "@budget/schema/transactions";
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
@@ -33,6 +34,7 @@ export const transactions = sqliteTable(
     importDate: text("import_date"),
     importAmount: integer("import_amount"),
     importPayeeName: text("import_payee_name"),
+    flagColor: text("flag_color", { enum: FLAG_COLORS }),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),

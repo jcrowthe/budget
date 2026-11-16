@@ -1,8 +1,12 @@
 import {
+  type FlagColor,
   PlanTransactionListResponse,
+  type TransactionBulkRequest,
+  TransactionBulkResponse,
   type TransactionCreateRequest,
   TransactionListResponse,
   TransactionResponse,
+  TransactionsResponse,
   type TransactionUpdateRequest,
 } from "@budget/schema/transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -102,4 +106,96 @@ export function useSetCleared(budgetId: string, key: readonly unknown[]) {
     },
     onSettled: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });
+}
+
+const invalidatePlan = (qc: ReturnType<typeof useQueryClient>, budgetId: string) =>
+  qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) });
+
+export const bulkTransactions = async (budgetId: string, body: TransactionBulkRequest) =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/transactions/bulk`, {
+      method: "POST",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: TransactionBulkResponse,
+    })
+  ).data;
+
+/** One bulk op; every query of the plan refetches before the promise settles (so a selection can move to new rows). */
+export function useBulkTransactions(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: TransactionBulkRequest) => bulkTransactions(budgetId, body),
+    onSuccess: () => invalidatePlan(qc, budgetId),
+  });
+}
+
+const idsCall = (budgetId: string, action: "approve" | "reject", ids: string[]) =>
+  apiFetch(`/api/v1/budgets/${budgetId}/transactions/${action}`, {
+    method: "POST",
+    body: { ids },
+    idempotencyKey: crypto.randomUUID(),
+    schema: TransactionsResponse,
+  });
+
+export const approveTransactions = (budgetId: string, ids: string[]) =>
+  idsCall(budgetId, "approve", ids);
+export const rejectTransactions = (budgetId: string, ids: string[]) =>
+  idsCall(budgetId, "reject", ids);
+
+/** Approve or reject a selection of imported rows. */
+export function useApproveReject(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { action: "approve" | "reject"; ids: string[] }) =>
+      idsCall(budgetId, v.action, v.ids),
+    onSuccess: () => invalidatePlan(qc, budgetId),
+  });
+}
+
+/** Sets or clears one row's flag; the row changes at once and the plan refetches when it settles. */
+export function useSetFlag(budgetId: string, key: readonly unknown[]) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; color: FlagColor | null }) =>
+      updateTransaction(budgetId, v.id, { flag_color: v.color }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ transactions: { id: string }[] }>(key);
+      if (previous) {
+        qc.setQueryData(key, {
+          ...previous,
+          transactions: previous.transactions.map((t) =>
+            t.id === v.id ? { ...t, flag_color: v.color } : t,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => invalidatePlan(qc, budgetId),
+  });
+}
+
+/** Downloads the CSV of the selected rows under `fileName`. */
+export async function downloadExport(
+  budgetId: string,
+  ids: readonly string[],
+  fileName: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/v1/budgets/${budgetId}/transactions/export?ids=${ids.map(encodeURIComponent).join(",")}`,
+    { credentials: "same-origin" },
+  );
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const href = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = fileName;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
 }

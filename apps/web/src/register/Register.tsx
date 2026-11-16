@@ -1,9 +1,11 @@
 import type { Account } from "@budget/schema/accounts";
 import { useCallback, useEffect, useState } from "react";
+import { ActionBar } from "./ActionBar";
 import type { Open } from "./entryDraft";
 import { useOpenAccounts } from "./openAccounts";
 import { RegisterTable } from "./RegisterTable";
 import { RegisterToolbar } from "./RegisterToolbar";
+import { useSelection } from "./selection";
 import "./register.css";
 import "./entry.css";
 
@@ -15,6 +17,7 @@ const isTyping = (t: EventTarget | null) => {
 /** One account's register, or (without `account`) every account's: All Accounts. */
 export function Register({ budgetId, account }: { budgetId: string; account?: Account }) {
   const [open, setOpen] = useState<Open>(null);
+  const { selected } = useSelection();
   const { openAccounts, loaded } = useOpenAccounts(budgetId);
   // A closed account, or All Accounts with no open account, takes no new transaction.
   const closed = account ? account.closed : loaded && openAccounts.length === 0;
@@ -37,7 +40,10 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
   }, [openAdd, closed]);
 
   return (
-    <section className="register" aria-label="Register">
+    <section
+      className={`register${selected.size > 0 ? " has-actionbar" : ""}`}
+      aria-label="Register"
+    >
       <RegisterToolbar
         name={account?.name ?? "All Accounts"}
         onAdd={() => openAdd()}
@@ -50,6 +56,14 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
         onOpen={setOpen}
         onCloseEntry={() => setOpen(null)}
         onSaved={(next, date) => (next === "again" ? openAdd(date) : setOpen(null))}
+      />
+      <ActionBar
+        budgetId={budgetId}
+        account={account}
+        entryOpen={open !== null}
+        onCategorizeOne={(id) =>
+          setOpen({ mode: "edit", id, focus: "category", openCategory: true })
+        }
       />
     </section>
   );
