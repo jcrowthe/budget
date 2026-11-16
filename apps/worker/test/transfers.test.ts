@@ -212,6 +212,47 @@ describe("creating a pair", () => {
   });
 });
 
+describe("re-link and closed accounts", () => {
+  it("a re-link logs one update, one delete and one create, and every created id exists", async () => {
+    const bid = await plan();
+    const a = await account(bid);
+    const b = await account(bid);
+    const c = await account(bid);
+    const { tx, other } = await pair(bid, a, b);
+    const before = (await logs(bid)).length;
+    const res = await patch(bid, tx.id, { transfer_account_id: c });
+    expect(res.status).toBe(200);
+    const fresh = (await logs(bid)).slice(before);
+    const newId = (await data(res)).transaction.transfer_transaction_id as string;
+    expect(fresh.map((l) => [l.action, l.entity_id]).sort()).toEqual(
+      [
+        ["update", tx.id],
+        ["delete", other.id],
+        ["create", newId],
+      ].sort(),
+    );
+    for (const l of fresh.filter((x) => x.action === "create")) {
+      expect((await json(`/api/v1/budgets/${bid}/transactions/${l.entity_id}`)).status).toBe(200);
+    }
+    expect((await json(`/api/v1/budgets/${bid}/transactions/${other.id}`)).status).toBe(404);
+  });
+
+  it("an existing transfer stays editable after the other account closes", async () => {
+    const bid = await plan();
+    const a = await account(bid);
+    const b = await account(bid);
+    const { tx } = await pair(bid, a, b);
+    await env.DB.prepare("update accounts set closed = 1 where id = ?").bind(b).run();
+    expect((await patch(bid, tx.id, { cleared: "cleared", memo: "still" })).status).toBe(200);
+    expect((await read(bid, tx.transfer_transaction_id)).memo).toBe("still");
+    // a new link to a closed account is still refused
+    const c = await account(bid);
+    expect((await patch(bid, tx.id, { transfer_account_id: b })).status).toBe(200);
+    await env.DB.prepare("update accounts set closed = 1 where id = ?").bind(c).run();
+    expect((await patch(bid, tx.id, { transfer_account_id: c })).status).toBe(422);
+  });
+});
+
 describe("editing a pair", () => {
   it("mirrors amount, date and memo from either side, never cleared or approved", async () => {
     const bid = await plan();

@@ -366,11 +366,13 @@ async function otherAccountOf(
   budgetId: string,
   accountId: string,
   otherId: string,
+  requireOpen = true,
 ): Promise<accountsRepo.AccountRow> {
   const other = await accountsRepo.findActive(db, budgetId, otherId);
   if (!other) throw unprocessable("Account not found in this plan");
   if (other.id === accountId) throw unprocessable("A transfer needs two different accounts");
-  if (other.closed) throw unprocessable("The other account of a transfer must be open");
+  if (requireOpen && other.closed)
+    throw unprocessable("The other account of a transfer must be open");
   return other;
 }
 
@@ -917,7 +919,8 @@ async function prepare(
 
   let otherAccount: accountsRepo.AccountRow | undefined;
   if (transferAfterId) {
-    otherAccount = await otherAccountOf(db, budgetId, account.id, transferAfterId);
+    // An existing transfer may point at an account closed since: only a new or changed link needs it open.
+    otherAccount = await otherAccountOf(db, budgetId, account.id, transferAfterId, becomesTransfer);
     after.payeeId = null;
     after.payeeName = transferPayeeName(otherAccount.name);
     after.transferAccountId = otherAccount.id;
@@ -943,6 +946,18 @@ async function prepare(
       }
     } else {
       // A plain row becomes a transfer, or a transfer points at another account: a new other side.
+      // The insert comes first and the old side's delete last, so the row's own guard can rest on the
+      // delete (which does not invalidate the others' guards before it runs).
+      const side = newOtherSide(after, otherAccount.id, account.name, now);
+      after.transferTransactionId = side.id;
+      plan.others.push({ kind: "insert", row: side });
+      plan.logs.push({
+        action: "create",
+        entityType: "transaction",
+        entityId: side.id,
+        before: null,
+        after: logShape({ ...side, categoryName: null, groupName: null }),
+      });
       if (otherBefore) {
         refuseOtherReconciled(otherBefore);
         plan.others.push({ kind: "delete", before: otherBefore, row: otherBefore });
@@ -954,16 +969,6 @@ async function prepare(
           after: null,
         });
       }
-      const side = newOtherSide(after, otherAccount.id, account.name, now);
-      after.transferTransactionId = side.id;
-      plan.others.push({ kind: "insert", row: side });
-      plan.logs.push({
-        action: "create",
-        entityType: "transaction",
-        entityId: side.id,
-        before: null,
-        after: logShape({ ...side, categoryName: null, groupName: null }),
-      });
     }
   } else if (otherBefore) {
     // Back to a plain transaction: the other side goes.

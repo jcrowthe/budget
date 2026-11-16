@@ -3,7 +3,7 @@ import type { Payee } from "@budget/schema/payees";
 import { autoDistribute, splitSum } from "@budget/schema/split";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { transferCategoryRule } from "@budget/schema/transfers";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAccounts } from "../api/accounts";
 import { useMonth } from "../api/months";
 import { usePayees } from "../api/payees";
@@ -393,15 +393,13 @@ export function EntryRow({
         </td>
       </tr>
       {unbalanced && (
-        <Fragment>
-          <SplitDialog
-            total={unbalanced.total}
-            sum={unbalanced.sum}
-            onAutoDistribute={autoDistributeLines}
-            onUpdateTotal={updateTotal}
-            onAdjust={() => setUnbalanced(null)}
-          />
-        </Fragment>
+        <SplitDialog
+          total={unbalanced.total}
+          sum={unbalanced.sum}
+          onAutoDistribute={autoDistributeLines}
+          onUpdateTotal={updateTotal}
+          onAdjust={() => setUnbalanced(null)}
+        />
       )}
     </tbody>
   );
