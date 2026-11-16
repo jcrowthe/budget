@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 10 (last reviewed in round 24, fourteen Threads; **review due**), Deploy 8, Test user flow 2,
+Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 8, Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -378,6 +378,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | PR #23 | merged `70c71a2` (round 39) |
 | 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | pending | running |
 | 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
+| 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | running |
+| 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | running |
+| 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -3267,3 +3270,51 @@ one migration pending.
 one new Low filed now; EXF-572 done. Template: sixteen, EXF-573 Urgent. Flow verdicts: 9 `new_gaps`,
 10 `new_gaps`, 11 `parity`. Finished since each template's last review: **Build 10 (review due, start it in
 the round 40 plan)**, Deploy 8, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 40
+
+Children used 54 of 200. Six are running: three Builds from earlier rounds (the plan-menu carry-over at the
+gate; EXF-491 with EXF-492; EXF-517 with EXF-507) and three children started now.
+
+- The ticket filed at the last review exists: **EXF-574** (coverage test rejects an empty tool list; design
+  doc up to date), set to Low. It can ride with any Build that edits `mcp-coverage.test.ts`.
+- **Started the Deploy of main `70c71a2`** (`p_1569dfe9b3fd4313ad8828bf37c9da61`), `gated_commit` `ed91c16`
+  (trees equal). It ships three merges: the account pages with `updated_at` (one migration), categories,
+  and MCP coverage.
+  - Checks: `updated_at` on transactions; star, account summary and the plan-wide list; the category
+    operations through REST; every tool name and the count; the category popovers with a real mouse.
+  - I did not wait for the plan menu: three merges had been unshipped for over an hour, and flow 10 needs
+    this release.
+  - **I gave short commit ids this time** (earlier Deploys got the full 40 characters). It was still
+    running after several minutes, so it was not refused at the start; check its report.
+- **Started the Build template review** (`p_8757e1731449410893235e6be0b6c82a`): the ten Builds ended since
+  round 24 plus the running plan-menu carry-over as evidence. First question: why the Lead's limits on the
+  source do not bind the Designer (EXF-573) and how the template can enforce a ban. Also: carry-over as an
+  input, several tickets natively, specs that fail only in the full parallel suite, the stall after a
+  Request changes, "unplanned" files that a card asked for. It is told not to open any `*-source.png` of
+  the two plan-menu Threads.
+- **Started EXF-548 with EXF-551** (`p_8c426567ca264a7785a853ed5d415955`): the Reflect frame and Net Worth.
+  - **Why this one:** every other ready ticket needs the shell, the Plan page or the register, which the
+    three running Builds hold. Reflect is its own page, its own Worker files and its own table.
+  - In: tabs, header, date range, account and category filters, per-report settings (exclusions), Export
+    dialog, the Net Worth report with CSV, tool `get_net_worth`.
+  - Out: the drill-down popover and `reports/transactions` (with EXF-549); the four other report bodies
+    ("This report is not built yet."). EXF-548 stays open after the merge.
+  - Rules: no new dependency (own SVG chart); pure arithmetic under `packages/schema/src/`, nothing under
+    `packages/core/src/`; migration named `20261116100200_...`; the browser's `today` decides the current
+    month; existing e2e specs untouched (the "last visited tab" rule is dropped if it breaks one).
+  - **Source: limited, not forbidden.** A ban did not hold twice, so this brief gives the Designer one
+    place it may look (the Reflect pages of the test plan, cropped captures) and names what it may never
+    touch (the plan button, the plan menu, Open Plan, any other plan), and asks each step to state for
+    itself what it opened. Read its Designer's transcript before the card.
+- **The four Builds' manifests are disjoint by brief:** shell and menu actions; the Plan page and months
+  files; the register, transactions and payees files; the Reflect page and reports files. Three of them add
+  a migration or docs lines: payees `20261116100100`, report settings `20261116100200`.
+- **Not started:** flow tests (flow 1 and flow 10 again) wait for the Deploy to be live: next round. Flow 9
+  again waits for the plan menu on live. EXF-460 with EXF-461 wait for the plan-menu merge. Splits,
+  transfers and the credit engine wait for the transactions Build.
+- **At the plan-menu card: approve or abandon, never Request changes** (a rework runs its Designer again).
+- Ticket writes: 5 (EXF-574 priority; EXF-548 and EXF-551 to In Progress with comments).
+- Review cadence: Build 0 (review running), Deploy 8, Discover 2, Test user flow 2. **This round's review
+  is the check-in**: tell the person about both source incidents and the stored captures, and ask again
+  about sign-in, the Plaid dashboard settings and the child limit.
