@@ -47,10 +47,11 @@ export function moveTransactionsStmt(
   budgetId: string,
   fromIds: readonly string[],
   targetId: string,
+  now: string,
   guard: SQL,
 ) {
   return db
     .update(transactions)
-    .set({ categoryId: targetId })
+    .set({ categoryId: targetId, updatedAt: now })
     .where(sql`${active(budgetId, fromIds)} and ${guard}`);
 }

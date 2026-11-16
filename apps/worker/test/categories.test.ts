@@ -134,6 +134,8 @@ describe("categories", () => {
       "rename_category",
       "set_category_hidden",
       "delete_category",
+      "unhide_all_categories",
+      "get_category_usage",
     ]) {
       expect(tools).toContain(t);
     }

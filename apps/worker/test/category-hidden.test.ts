@@ -118,6 +118,42 @@ describe("hide and unhide", () => {
     );
   });
 
+  it("MCP unhide_all_categories equals the REST unhide_all and logs an mcp actor", async () => {
+    const hideSome = async () => {
+      const bid = await plan();
+      const m = await month(bid, NOV);
+      const wants = group(m, "Wants");
+      const bills = group(m, "Bills");
+      await send("PATCH", api(bid, `/categories/${bills.categories[0]?.id}`), { hidden: true });
+      await send("PATCH", api(bid, `/category_groups/${wants.id}`), { hidden: true });
+      return { bid, wantsId: wants.id, catId: bills.categories[0]?.id };
+    };
+    const a = await hideSome();
+    const b = await hideSome();
+    const rest = ((await (await send("POST", api(a.bid, "/categories/unhide_all"))).json()) as Json)
+      .data;
+    const viaMcp = await mcp("unhide_all_categories", { budget_id: b.bid });
+    expect(viaMcp.isError).toBeFalsy();
+    expect(rest.unhidden).toEqual({ group_ids: [a.wantsId], category_ids: [a.catId] });
+    expect(viaMcp.structuredContent).toEqual({
+      unhidden: { group_ids: [b.wantsId], category_ids: [b.catId] },
+    });
+    const after = await month(b.bid, NOV);
+    expect(after.groups.every((g) => !g.hidden && g.categories.every((c) => !c.hidden))).toBe(true);
+    const updates = (await logs(b.bid)).filter(
+      (l) =>
+        l.action === "update" &&
+        (l.entity_type === "category" || l.entity_type === "category_group"),
+    );
+    const mine = updates.filter((l) => l.after_json?.includes('"hidden":false'));
+    expect(mine.length).toBeGreaterThanOrEqual(2);
+    expect(mine.every((l) => l.actor.startsWith("mcp:") || l.actor === actor)).toBe(true);
+    expect(mine.some((l) => l.actor.startsWith("mcp:"))).toBe(true);
+    expect((await mcp("unhide_all_categories", { budget_id: crypto.randomUUID() })).isError).toBe(
+      true,
+    );
+  });
+
   it("set_category_hidden over MCP equals the PATCH", async () => {
     const bid = await plan();
     const m = await month(bid, NOV);

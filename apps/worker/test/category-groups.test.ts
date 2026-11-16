@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { tools as categoryTools } from "../src/mcp/tools/categories";
+import { tools as groupTools } from "../src/mcp/tools/category-groups";
 import { actor, api, group, type Json, logs, mcp, month, plan, send } from "./category-helpers";
 import { apiPaths, listedToolNames } from "./surface";
 
@@ -106,8 +108,26 @@ describe("category groups", () => {
       "rename_category_group",
       "set_category_group_hidden",
       "delete_category_group",
+      "get_category_group_usage",
     ]) {
       expect(tools).toContain(t);
+    }
+  });
+});
+
+describe("category tools share one contract", () => {
+  it("validate budget_id the same way and say what they return", () => {
+    const all = [...categoryTools, ...groupTools];
+    expect(all).toHaveLength(11);
+    for (const t of all) {
+      const shape = (
+        t.inputSchema as unknown as {
+          shape: Record<string, { safeParse(v: unknown): { success: boolean } }>;
+        }
+      ).shape;
+      expect(shape.budget_id?.safeParse("").success, t.name).toBe(false);
+      expect(shape.budget_id?.safeParse("x").success, t.name).toBe(true);
+      expect(t.description, t.name).toContain("Returns");
     }
   });
 });

@@ -74,7 +74,7 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
   if (targetId) {
     stmts.push(
       reassignRepo.logMovesStmt(db, log("transaction", "update"), budgetId, ids, targetId, full),
-      reassignRepo.moveTransactionsStmt(db, budgetId, ids, targetId, full),
+      reassignRepo.moveTransactionsStmt(db, budgetId, ids, targetId, p.now, full),
       monthCatsRepo.logMergeStmt(
         db,
         log("month_category", "update"),

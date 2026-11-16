@@ -203,6 +203,36 @@ describe("delete with reassignment", () => {
     ).toHaveLength(1);
   });
 
+  it("moved transactions take the delete's time as updated_at; others keep theirs", async () => {
+    const s = await seed();
+    const moved = await s.tx("2026-10-12", -1000, s.fun);
+    const inTarget = await s.tx("2026-10-13", -2000, s.target);
+    const gone = await s.tx("2026-10-14", -3000, s.fun);
+    expect((await send("DELETE", api(s.bid, `/transactions/${gone.id}`))).status).toBe(200);
+    const read = async () => {
+      const { results } = await env.DB.prepare(
+        "select id, created_at, updated_at from transactions where budget_id = ?",
+      )
+        .bind(s.bid)
+        .all<{ id: string; created_at: string; updated_at: string }>();
+      return new Map(results.map((r) => [r.id, r]));
+    };
+    const before = await read();
+    await new Promise((r) => setTimeout(r, 5));
+    expect((await s.del(s.fun, s.target)).status).toBe(200);
+    const after = await read();
+    const fun = await env.DB.prepare("select deleted_at from categories where id = ?")
+      .bind(s.fun)
+      .first<{ deleted_at: string }>();
+    expect(after.get(moved.id)?.updated_at).toBe(fun?.deleted_at);
+    expect(after.get(moved.id)?.updated_at).not.toBe(before.get(moved.id)?.updated_at);
+    expect((after.get(moved.id)?.updated_at ?? "") > (after.get(moved.id)?.created_at ?? "")).toBe(
+      true,
+    );
+    expect(after.get(inTarget.id)?.updated_at).toBe(before.get(inTarget.id)?.updated_at);
+    expect(after.get(gone.id)?.updated_at).toBe(before.get(gone.id)?.updated_at);
+  });
+
   it("with no overspending to cancel, Ready to Assign is unchanged in every month", async () => {
     const s = await seed();
     await s.tx("2026-09-02", 500000, null, true);
@@ -366,6 +396,33 @@ describe("delete with reassignment", () => {
     expect(gone.structuredContent.deleted.group_id).toBe(bills.id);
     const rows = (await logs(s.bid)).filter((l) => l.actor.startsWith("mcp:"));
     expect(rows.length).toBeGreaterThan(3);
+  });
+
+  it("MCP usage tools equal the REST usage reads", async () => {
+    const s = await seed();
+    await s.assign(s.fun, OCT, 1000);
+    await s.tx("2026-10-12", -1000, s.fun);
+    const restCat = (
+      (await (await send("GET", api(s.bid, `/categories/${s.fun}/usage`))).json()) as Json
+    ).data.usage;
+    const viaCat = await mcp("get_category_usage", { budget_id: s.bid, category_id: s.fun });
+    expect(viaCat.structuredContent.usage).toEqual(restCat);
+    expect(restCat.has_history).toBe(true);
+    const restGroup = (
+      (await (await send("GET", api(s.bid, `/category_groups/${s.g.id}/usage`))).json()) as Json
+    ).data.usage;
+    const viaGroup = await mcp("get_category_group_usage", { budget_id: s.bid, group_id: s.g.id });
+    expect(viaGroup.structuredContent.usage).toEqual(restGroup);
+    const unknown = crypto.randomUUID();
+    expect(
+      (await mcp("get_category_usage", { budget_id: s.bid, category_id: unknown })).isError,
+    ).toBe(true);
+    expect(
+      (await mcp("get_category_group_usage", { budget_id: s.bid, group_id: unknown })).isError,
+    ).toBe(true);
+    expect(
+      (await mcp("get_category_usage", { budget_id: unknown, category_id: s.fun })).isError,
+    ).toBe(true);
   });
 
   it("lists the paths", async () => {
