@@ -238,6 +238,7 @@
   border-radius: 6px;
   background: var(--account-tooltip-shortcut-bg);
   font-weight: 500;
+  line-height: 14.4px;
   white-space: nowrap;
 }
 .acct-tip-shortcut,
@@ -251,7 +252,10 @@
 .acct-tip-keys {
   gap: 4px;
 }
-.acct-tip-key {
+.acct-tooltip .acct-tip-keys kbd + kbd {
+  margin-left: 0;
+}
+.acct-tooltip .acct-tip-key {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -264,4 +268,8 @@
   font: inherit;
   font-size: 14px;
   font-weight: 500;
+  line-height: normal;
+}
+.acct-tooltip .acct-tip-key.is-then {
+  background: transparent;
 }

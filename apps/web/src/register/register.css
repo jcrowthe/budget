@@ -13,7 +13,7 @@
   --register-actionbar-hover: rgba(255, 255, 255, 0.15);
   --register-menu-bg: #1f2038;
   --register-menu-hover: #292b3d;
-  --register-keycap-bg: rgba(114, 116, 132, 0.18);
+  --register-keycap-bg: rgba(114, 116, 132, 0.24);
   --register-menu-disabled: #9b9caa;
   /* Disabled entry icon: the source's --inputBorderSubtle, measured on the disabled Match entry of the More menu. */
   --register-icon-disabled: #56596c;
@@ -595,10 +595,6 @@
   display: inline-flex;
   color: var(--labelTertiary);
 }
-.bulk-chevron svg {
-  width: 12px;
-  height: 12px;
-}
 .bulk-item-label {
   flex: 1;
 }
@@ -616,8 +612,13 @@
   padding: 0 4px;
   border-radius: 4px;
   background: var(--register-keycap-bg);
-  color: var(--register-icon-muted);
+  color: var(--labelSecondary);
   font: inherit;
+}
+/* Disabled entries' key caps: rgba(114,116,132,.18) and #727484, measured on Match and Unmatch. */
+.bulk-item[aria-disabled="true"] kbd {
+  background: rgba(114, 116, 132, 0.18);
+  color: var(--register-icon-muted);
 }
 .bulk-item:not([aria-disabled="true"]):hover kbd {
   color: var(--labelPrimary);
@@ -727,4 +728,10 @@
   opacity: 1;
   background: var(--menuHover);
   color: var(--labelTertiary);
+}
+/* Memo dialog body: 14px/500 with a 21px line, measured in the source's Memo dialog. */
+.bulk-dialog .form-body {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 21px;
 }

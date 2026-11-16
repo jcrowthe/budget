@@ -82,7 +82,7 @@ function Tip({
             ))}
             {then ? (
               <>
-                <span>then</span>
+                <kbd className="acct-tip-key is-then">then</kbd>
                 <Key k={then} />
               </>
             ) : null}

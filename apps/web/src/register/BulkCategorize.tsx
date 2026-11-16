@@ -1,8 +1,8 @@
 import { categoryMenu } from "@budget/schema/register";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMonth } from "../api/months";
 import { localToday } from "../api/today";
-import { CaretRightIcon } from "./icons";
+import { MenuChevronRightIcon } from "./icons";
 import { Popover } from "./Popover";
 
 /**
@@ -27,7 +27,7 @@ export function BulkCategorize({
     [month],
   );
   const [active, setActive] = useState<string | null>(null);
-  const rowBtn = useRef<HTMLButtonElement | null>(null);
+  const [rowEl, setRowEl] = useState<HTMLButtonElement | null>(null);
   const activeGroup = menu.groups.find((g) => g.name === active);
   return (
     <Popover anchor={anchor} placement="above" width={232} label="Categories" onClose={onClose}>
@@ -35,26 +35,31 @@ export function BulkCategorize({
         {menu.groups.map((g) => (
           <li key={g.name}>
             <button
-              ref={g.name === active ? rowBtn : undefined}
               type="button"
               role="menuitem"
               className={`bulk-item${g.name === active ? " is-active" : ""}`}
               aria-haspopup="menu"
               aria-expanded={g.name === active}
-              onMouseEnter={() => setActive(g.name)}
-              onClick={() => setActive(g.name)}
+              onMouseEnter={(e) => {
+                setActive(g.name);
+                setRowEl(e.currentTarget);
+              }}
+              onClick={(e) => {
+                setActive(g.name);
+                setRowEl(e.currentTarget);
+              }}
             >
               <span className="bulk-item-label">{g.name}</span>
               <span className="bulk-chevron" aria-hidden="true">
-                <CaretRightIcon />
+                <MenuChevronRightIcon />
               </span>
             </button>
           </li>
         ))}
       </ul>
-      {activeGroup && rowBtn.current ? (
+      {activeGroup && rowEl ? (
         <Popover
-          anchor={rowBtn.current}
+          anchor={rowEl}
           placement="right"
           dx={-5}
           width={256}
