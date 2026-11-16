@@ -109,7 +109,7 @@ test("cleared toggle moves the balances without a reload", async ({ page, reques
   const balance = (label: string) =>
     page.locator(`[data-balance="${label.split(" ")[0]?.toLowerCase()}"] .acct-amount`);
   await expect(balance("Cleared Balance")).toHaveText("$500.00");
-  await expect(balance("Uncleared Balance")).toHaveText("-$20.00");
+  await expect(balance("Uncleared Balance")).toHaveText("−$20.00");
   const row = rows(page).filter({ hasText: "ZZ Alpha" });
   await row.getByRole("button", { name: "This transaction is uncleared" }).click();
   await expect(row.getByRole("button", { name: "This transaction is cleared" })).toBeVisible();
@@ -121,7 +121,7 @@ test("cleared toggle moves the balances without a reload", async ({ page, reques
   ).toContainText("$480.00");
   await row.getByRole("button", { name: "This transaction is cleared" }).click();
   await expect(balance("Cleared Balance")).toHaveText("$500.00");
-  await expect(balance("Uncleared Balance")).toHaveText("-$20.00");
+  await expect(balance("Uncleared Balance")).toHaveText("−$20.00");
   await expect(balance("Working Balance")).toHaveText("$480.00");
 });
 

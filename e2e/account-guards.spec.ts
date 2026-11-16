@@ -125,7 +125,7 @@ test("an account with a split is adjusted in Edit Account and closed with Adjust
   await realClick(page, dbutton(page, "Close Account"));
   const d = dialog(page, "Close Account");
   await expect(
-    d.getByText("An adjustment transaction will be created for -$95.00.", { exact: false }),
+    d.getByText("An adjustment transaction will be created for −$95.00.", { exact: false }),
   ).toBeVisible();
   await realClick(page, d.getByRole("button", { name: "Adjust Balance & Close", exact: true }));
   await expect(page.getByRole("dialog")).toHaveCount(0);

@@ -150,12 +150,12 @@ for (const vp of VIEWPORTS) {
       const dialog = page.getByRole("dialog", { name: "D8 Food", exact: true });
       const rows = dialog.locator("tbody tr");
       const expected = [
-        ["D8 Checking", "11/03/2026", "D8 Grocer", "", "-$55.00"],
+        ["D8 Checking", "11/03/2026", "D8 Grocer", "", "−$55.00"],
         ["D8 Checking", "10/21/2026", "D8 Grocer", "refund", "+$20.00"],
-        ["D8 Checking", "10/09/2026", "D8 Grocer", "", "-$150.00"],
-        ["D8 Checking", "09/12/2026", "D8 Grocer", "", "-$99.99"],
-        ["D8 Checking", "08/05/2026", "D8 Grocer", "", "-$80.50"],
-        ["D8 Checking", "07/10/2026", "D8 Grocer", "weekly shop", "-$120.00"],
+        ["D8 Checking", "10/09/2026", "D8 Grocer", "", "−$150.00"],
+        ["D8 Checking", "09/12/2026", "D8 Grocer", "", "−$99.99"],
+        ["D8 Checking", "08/05/2026", "D8 Grocer", "", "−$80.50"],
+        ["D8 Checking", "07/10/2026", "D8 Grocer", "weekly shop", "−$120.00"],
       ];
       const inWindow = async () => {
         const b = await dialog.boundingBox();
@@ -323,17 +323,17 @@ test("549-9, 549-10 the split case, and no transfer between on-plan accounts", a
   const food = page.getByRole("dialog", { name: "S Food", exact: true });
   await expect(food.locator("tbody tr")).toHaveCount(3);
   expect(await cells(food)).toEqual([
-    ["S Checking", "11/08/2026", "S Shop", "", "-$15.00"],
-    ["S Checking", "11/06/2026", "S Shop", "line memo", "-$20.00"],
-    ["S Checking", "11/04/2026", "S Market", "", "-$60.00"],
+    ["S Checking", "11/08/2026", "S Shop", "", "−$15.00"],
+    ["S Checking", "11/06/2026", "S Shop", "line memo", "−$20.00"],
+    ["S Checking", "11/04/2026", "S Market", "", "−$60.00"],
   ]);
   await realClick(page, food.getByRole("button", { name: "Close", exact: true }));
   await realClick(page, listRow(page, "Uncategorized"));
   const unc = page.getByRole("dialog", { name: "Uncategorized", exact: true });
   await expect(unc.locator("tbody tr")).toHaveCount(2);
   expect(await cells(unc)).toEqual([
-    ["S Checking", "11/09/2026", "Transfer : S Loan", "", "-$55.00"],
-    ["S Checking", "11/06/2026", "S Line Payee", "", "-$10.00"],
+    ["S Checking", "11/09/2026", "Transfer : S Loan", "", "−$55.00"],
+    ["S Checking", "11/06/2026", "S Line Payee", "", "−$10.00"],
   ]);
   await realClick(page, unc.getByRole("button", { name: "Close", exact: true }));
   await clickSlice(page, "uncategorized");

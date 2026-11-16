@@ -11,8 +11,12 @@ import {
   AccountSummaryResponse,
   type AccountUpdateRequest,
 } from "@budget/schema/accounts";
+import {
+  type ReconcileRequest as ReconcileRequestInput,
+  ReconcileResponse,
+} from "@budget/schema/reconcile";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "./client";
+import { ApiError, apiFetch } from "./client";
 
 export const listAccounts = async (budgetId: string, opts: { includeClosed: boolean }) =>
   (
@@ -102,6 +106,20 @@ export const deleteAccount = async (budgetId: string, accountId: string) =>
     })
   ).data;
 
+export const reconcileAccount = async (
+  budgetId: string,
+  accountId: string,
+  body: ReconcileRequestInput,
+) =>
+  (
+    await apiFetch(`${accountUrl(budgetId, accountId)}/reconcile`, {
+      method: "POST",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: ReconcileResponse,
+    })
+  ).data;
+
 export const getAccountSummary = async (budgetId: string) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/account-summary`, {
@@ -169,6 +187,18 @@ export function useCloseAccount(budgetId: string, accountId: string) {
   return useMutation({
     mutationFn: (body: AccountCloseRequest) => closeAccount(budgetId, accountId, body),
     onSuccess: invalidate,
+  });
+}
+
+/** Refetches the plan's queries on success and when the cleared balance changed under the request (409). */
+export function useReconcileAccount(budgetId: string, accountId: string) {
+  const invalidate = useInvalidatePlan(budgetId);
+  return useMutation({
+    mutationFn: (body: ReconcileRequestInput) => reconcileAccount(budgetId, accountId, body),
+    onSuccess: invalidate,
+    onError: (e) => {
+      if (e instanceof ApiError && e.errorName === "reconcile_changed") invalidate();
+    },
   });
 }
 

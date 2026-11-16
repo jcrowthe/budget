@@ -814,6 +814,20 @@ export function planWrites(
   return { payees, logs, rest, self };
 }
 
+const RECONCILED_DETAIL =
+  "This transaction is reconciled: send confirm_reconciled true to change its amount, date, account or cleared state";
+
+/** True when the patch changes a field that a reconciled transaction keeps unless the change is confirmed. */
+function changesLocked(before: txRepo.TransactionDetailRow, p: TransactionUpdateRequest): boolean {
+  return (
+    (p.amount !== undefined && p.amount !== before.amount) ||
+    (p.date !== undefined && p.date !== before.date) ||
+    (p.account_id !== undefined && p.account_id !== before.accountId) ||
+    (p.cleared !== undefined && p.cleared !== before.cleared) ||
+    (p.transfer_account_id !== undefined && p.transfer_account_id !== before.transferAccountId)
+  );
+}
+
 async function mutate(
   env: Env,
   actor: string,
@@ -827,12 +841,17 @@ async function mutate(
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await txRepo.findDetail(db, budgetId, id);
     if (!before) throw new NotFound("Transaction");
-    if (before.cleared === "reconciled") {
-      throw new TransactionRefused(409, "transaction_reconciled", "This transaction is reconciled");
+    if (
+      before.cleared === "reconciled" &&
+      (kind === "delete" || (patch && changesLocked(before, patch) && !patch.confirm_reconciled))
+    ) {
+      throw new TransactionRefused(409, "transaction_reconciled", RECONCILED_DETAIL);
     }
     const beforeAccount = await activeAccount(db, budgetId, before.accountId);
     const now = new Date().toISOString();
-    const plan = await prepare(db, budgetId, before, beforeAccount, kind, patch, now);
+    const plan = await prepare(db, budgetId, before, beforeAccount, kind, patch, now, {
+      singleUpdate: true,
+    });
     // Every statement runs only while the rows read above are unchanged; the row's own write comes last and
     // only succeeds when the other side's write did, so a lost race changes nothing and is retried.
     const guards = [
@@ -887,7 +906,7 @@ export async function prepare(
   kind: "update" | "delete",
   patch: TransactionUpdateRequest | undefined,
   now: string,
-  opts: { allowReconciled?: boolean; reads?: Reads } = {},
+  opts: { allowReconciled?: boolean; singleUpdate?: boolean; reads?: Reads } = {},
 ): Promise<Plan> {
   const reads = opts.reads;
   const namesFor = async (id: string | null | undefined) => {
@@ -939,6 +958,11 @@ export async function prepare(
   }
 
   const p = patch;
+  // A single update (D4): the other side of a transfer keeps its lock only when a locked field changes unconfirmed.
+  const refuseOther = (other: txRepo.TransactionDetailRow) => {
+    if (opts.singleUpdate && !(changesLocked(before, p) && !p.confirm_reconciled)) return;
+    refuseOtherReconciled(other);
+  };
   const cleared = parseCleared(p.cleared);
   const readAccount = async (id: string) => {
     if (!reads) return activeAccount(db, budgetId, id);
@@ -1089,7 +1113,7 @@ export async function prepare(
       const next = mirror(after, otherBefore);
       applyTransferRule(next, otherAccount, account, false);
       if (!sameSide(next, otherBefore)) {
-        refuseOtherReconciled(otherBefore);
+        refuseOther(otherBefore);
         plan.others.push({ kind: "update", before: otherBefore, row: next });
         plan.logs.push({
           action: "update",
@@ -1114,7 +1138,7 @@ export async function prepare(
         after: logShape({ ...side, categoryName: null, groupName: null }),
       });
       if (otherBefore) {
-        refuseOtherReconciled(otherBefore);
+        refuseOther(otherBefore);
         plan.others.push({ kind: "delete", before: otherBefore, row: otherBefore });
         plan.logs.push({
           action: "delete",
@@ -1127,7 +1151,7 @@ export async function prepare(
     }
   } else if (otherBefore) {
     // Back to a plain transaction: the other side goes.
-    refuseOtherReconciled(otherBefore);
+    refuseOther(otherBefore);
     plan.others.push({ kind: "delete", before: otherBefore, row: otherBefore });
     plan.logs.push({
       action: "delete",

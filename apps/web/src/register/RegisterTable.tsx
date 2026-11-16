@@ -206,10 +206,6 @@ export function RegisterTable({
       if (open) onCloseEntry();
       return;
     }
-    if (tx.cleared === "reconciled") {
-      pick("real", tx.id, "only");
-      return;
-    }
     if (selected.has(tx.id) && selected.size > 1) {
       // Several are selected: a click on one of them selects only that row.
       pick("real", tx.id, "only");
@@ -245,7 +241,7 @@ export function RegisterTable({
       onClick: (e: React.MouseEvent) => onRowClick(e, tx),
       onMouseDown: noShiftSelect,
       onDoubleClick: (e: React.MouseEvent) => {
-        if (isControl(e) || tx.cleared === "reconciled") return;
+        if (isControl(e)) return;
         openEdit(tx, fieldOf(e));
       },
     };
@@ -323,8 +319,6 @@ export function RegisterTable({
                 cell.text
               ) : cell.kind === "notNeeded" ? (
                 <span className="category-not-needed">Category not needed</span>
-              ) : tx.cleared === "reconciled" ? (
-                <span className="needs-category">This needs a category</span>
               ) : (
                 <button
                   type="button"

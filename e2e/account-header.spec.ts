@@ -69,7 +69,7 @@ test("the worked example, and a cleared toggle without a reload", async ({ page,
   await tx(request, s.plan, s.account, -250000, "uncleared");
   await page.goto(`/${s.plan}/accounts/${s.account}`);
   await expect(amount(page, "cleared")).toHaveText("$562.50");
-  await expect(amount(page, "uncleared")).toHaveText("-$250.00");
+  await expect(amount(page, "uncleared")).toHaveText("−$250.00");
   await expect(amount(page, "working")).toHaveText("$312.50");
   await expect(amount(page, "cleared")).toHaveCSS("color", GREEN);
   await expect(amount(page, "working")).toHaveCSS("color", GREEN);

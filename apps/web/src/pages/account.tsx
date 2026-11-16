@@ -1,5 +1,6 @@
 import { Navigate, useParams } from "react-router";
 import { AccountHeader } from "../account/AccountHeader";
+import { ReconcileProvider } from "../account/ReconcileContext";
 import { useAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { useEnterDueOnOpen } from "../api/scheduledTransactions";
@@ -19,8 +20,14 @@ function AccountPage() {
   }
   return (
     <SelectionProvider key={`${budgetId}:${accountId}`}>
-      <AccountHeader account={account} />
-      {account && <Register key={account.id} budgetId={budgetId} account={account} />}
+      {account ? (
+        <ReconcileProvider key={account.id} account={account}>
+          <AccountHeader account={account} />
+          <Register key={account.id} budgetId={budgetId} account={account} />
+        </ReconcileProvider>
+      ) : (
+        <AccountHeader account={account} />
+      )}
     </SelectionProvider>
   );
 }
