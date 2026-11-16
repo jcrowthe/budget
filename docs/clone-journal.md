@@ -9178,3 +9178,30 @@ answered the round-100 check-in.
 
 Ticket writes: 2 (EXF-537, EXF-477). Review cadence: Build 3, Deploy 7, Discover 2, Test user flow
 2.
+
+### 2026-11-16 · Review round 105
+
+Children used 123 of 200. Nothing new ended: this review follows the two abandoned Builds' ends,
+recorded at review 104. Four are running. Main and live `49012cd` (read by me at 23:41Z).
+
+- **Build template review** (`p_dd5c621340c8478aab2076a69de29eb8`): running again after showing as
+  parked; it is writing what I approved. Filed so far: **EXF-682** (a note from the Lead reaches
+  every later step of a running Build) and **EXF-683** ("the acceptance case contradicts the source"
+  as a Designer finding that comes to the Lead). Two more tickets and eleven comments to come;
+  priorities when all four exist.
+- **Plan-page carry-over** (`p_27170c2d7ee8476b927e1819efee5d26`): the Clerk's four steps done in a
+  healthy box (the listing shows `bin`, `profile.md`, `request.json`); the merge was a clean
+  fast-forward to `c0cf241`, 55 files, 3,084 insertions, 120 deletions, as expected.
+- **Plan import carry-over** (`p_51a143af64a84fd4bef3df56774f8506`): its Clerk has started.
+- **Reconcile carry-over** (`p_a270cac61bad4df890e73afd054985a3`): the Architect confirmed the design
+  against main and changed one pointer; the Implementer has committed the Worker side (the column,
+  the reconcile service, route and tool, the confirmation rule for reconciled rows, the worked
+  example; all Worker and schema tests pass) and is on the web part (the minus-sign formatter, the
+  button, popover, Difference dialog, bar, lock). Twenty minutes in.
+
+**Ticket writes:** 0. **Backlog and flow verdicts:** unchanged from review 104, plus two template
+tickets filed by the review (thirty-eight open). Finished since each template's last review: Build
+3, Deploy 7, Discover 2, Test user flow 2.
+
+**Next plan:** nothing to start (three Builds hold the Plan page, the account page and register, and
+the import; main and live are equal).
