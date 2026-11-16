@@ -378,3 +378,10 @@ Call `useEnterDueOnOpen(budgetId)` in `pages/account.tsx` and `pages/accounts.ts
 - `pnpm check`.
 - `pnpm e2e e2e/scheduled-transactions.spec.ts e2e/register.spec.ts e2e/register-entry.spec.ts e2e/register-bulk.spec.ts e2e/all-accounts.spec.ts --repeat-each=2`.
 - Report the counting test's line, and confirm `git diff --stat origin/main` touches no file of note 10.
+
+## Carry-over (this Build)
+
+The code is written and accepted; see the design's "Carry-over". Run `pnpm check` and the spec list there once, with
+no `--repeat-each`. Change code only for a failure caused by the merge or for a Reviewer or Tester finding; never edit
+`apps/web/src/shortcuts/**`, `apps/web/src/shell/**`, `e2e/support/real-click.ts` or a file of the Lead's
+out-of-bounds list. Report counts per command and `git diff --name-only origin/main...HEAD` against the manifest.

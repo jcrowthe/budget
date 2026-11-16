@@ -320,8 +320,34 @@ no open account). "Today" is fixed with `page.clock.setFixedTime` and sent as `t
     - `Delete` removes the selection.
     - `E` while typing in the memo field does nothing.
 
+## Carry-over
+
+This Build (`p_65ee74c0816d452899f054187504cc58`, base main `85f3cc9`) lands two finished, accepted Threads unchanged:
+`origin/exfab/p_900d4c34d7c6414a980c2d1d87cfba26` at `2e5e291` (this design, EXF-497/499) and
+`origin/exfab/p_7aa8691536924481bf53c457c86b24ea` at `4fb2983` (`reflect-narrow-design.md`, EXF-625/626/621; its
+acceptance cases stay there). Neither design changes.
+
+- **What the merge needed:** nothing. The first merge was a fast-forward to `2e5e291`; the second (`d4102a6`) merged
+  with no conflict. Diff against main: 52 files, +6,173 / −158. The only file both sides touch is `docs/README.md`
+  (`merge=union`, all three lines kept). The one addition here: the index line for `reflect-narrow-polish.md`, which
+  the Reflect branch never added.
+- **Fit with main and each other (read on `d4102a6`):** no file in `paths.shared_modules` changes (routes and MCP tools
+  are picked up by the `import.meta.glob` in `app.ts` and `mcp/server.ts`); one migration, `20261116101200`, after
+  main's last (`20261116101000`); no file of the Lead's out-of-bounds list or of `paths.always_overlap` changes.
+- **The shell merge under both:** the dispatcher in `apps/web/src/shortcuts/dispatcher.ts` listens on `window`, acts
+  only for bound ids (`open-help`, `toggle-sidebar`), ignores fields and open modals, and calls `preventDefault` only
+  for a match; the register's keys (`useRegisterKeys.ts`) listen on `document`, which runs first. No register key is
+  bound in the registry, so `E`, Delete, `C` and the rest reach the register as before. The Reflect narrow cases run at
+  the default sidebar width (fresh `localStorage` per spec). Both are confirmed by running the specs, not by this read.
+- **Run once, nothing else:** `pnpm check`; `pnpm e2e e2e/scheduled-transactions.spec.ts e2e/register.spec.ts
+  e2e/register-entry.spec.ts e2e/register-bulk.spec.ts e2e/register-flags.spec.ts e2e/all-accounts.spec.ts
+  e2e/income-expense-narrow.spec.ts e2e/age-of-money.spec.ts e2e/income-expense.spec.ts e2e/shortcuts.spec.ts`.
+  Code changes only for a merge-caused failure or a Reviewer/Tester finding. The source app is not opened for either.
+
 ## Manifest
 
-touches: [apps/worker/migrations/20261116101200_scheduled_transactions.sql, apps/worker/src/db/schema/scheduled-transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/src/services/scheduled-transactions.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/plaid-sync.ts, apps/worker/src/routes/scheduled-transactions.ts, apps/worker/src/mcp/tools/scheduled-transactions.ts, apps/worker/src/scheduled.ts, apps/worker/test/scheduled-transactions*.test.ts, apps/worker/test/scheduled-helpers.ts, apps/worker/test/mcp-coverage/scheduled-transactions.ts, apps/worker/test/mcp-timestamps.test.ts, packages/schema/src/recurrence.ts, packages/schema/src/scheduled-transactions.ts, packages/schema/test/recurrence.test.ts, packages/schema/test/scheduled-transactions.test.ts, apps/web/src/api/scheduledTransactions.ts, apps/web/src/register/**, apps/web/src/pages/account.tsx, apps/web/src/pages/accounts.tsx, e2e/scheduled-transactions*.spec.ts, e2e/support/scheduled-seed.ts, e2e/register*.spec.ts, docs/scheduled-transactions-design.md, docs/scheduled-transactions-spec.md, docs/README.md]
+Union of this design's and `reflect-narrow-design.md`'s manifests, for the whole carry-over Build.
+
+touches: [apps/worker/migrations/20261116101200_scheduled_transactions.sql, apps/worker/src/db/schema/scheduled-transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/src/services/scheduled-transactions.ts, apps/worker/src/services/transactions.ts, apps/worker/src/services/plaid-sync.ts, apps/worker/src/routes/scheduled-transactions.ts, apps/worker/src/mcp/tools/scheduled-transactions.ts, apps/worker/src/scheduled.ts, apps/worker/test/scheduled-transactions*.test.ts, apps/worker/test/scheduled-helpers.ts, apps/worker/test/mcp-coverage/scheduled-transactions.ts, apps/worker/test/mcp-timestamps.test.ts, packages/schema/src/recurrence.ts, packages/schema/src/scheduled-transactions.ts, packages/schema/test/recurrence.test.ts, packages/schema/test/scheduled-transactions.test.ts, apps/web/src/api/scheduledTransactions.ts, apps/web/src/register/**, apps/web/src/pages/account.tsx, apps/web/src/pages/accounts.tsx, apps/web/src/reflect/IncomeExpenseReport.tsx, apps/web/src/reflect/AgeOfMoneyChart.tsx, apps/web/src/reflect/*.css, e2e/scheduled-transactions*.spec.ts, e2e/support/scheduled-seed.ts, e2e/register*.spec.ts, e2e/income-expense-narrow.spec.ts, e2e/age-of-money.spec.ts, docs/scheduled-transactions-design.md, docs/scheduled-transactions-spec.md, docs/scheduled-transactions-polish.md, docs/reflect-narrow-design.md, docs/reflect-narrow-spec.md, docs/reflect-narrow-polish.md, docs/age-of-money-design.md, docs/README.md]
 shared: []
 migrations: 1
