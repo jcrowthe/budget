@@ -7028,3 +7028,82 @@ changes); the Plan-page gaps EXF-622, 623, 624, 616 (after the credit engine); t
 Ticket writes: 10 (EXF-626 priority and state; EXF-625, 621, 497, 499 to In Progress; comments on
 EXF-625, 497, 499, 532). Review cadence: Build 2 since the review (the register Build and the
 abandoned credit Build), Deploy 0, Discover 2, Test user flow 8.
+
+### 2026-11-16 · Review round 81
+
+Children used 99 of 200. Since review 80 four children ended: the register Build (merged), the first
+credit engine Build (abandoned by me), the Build template review, and now Deploy `D22` (cancelled by
+me; nothing shipped). Four are running: the shell Build, the credit engine carry-over, scheduled
+transactions and the Reflect fixes. Main `8ec621e`, **live still `357bc4f`** (health read by me; the
+pending script still lists `20261116101000_transaction_flags.sql`).
+
+**Deploy `D22` lost its box and shipped nothing** (`p_dcdf16fb4bdc45e58b02a72506cae2cd`).
+- 14:03: its intake recorder wrote `deploy.env` and read it back. 14:07: the recorder after the gate
+  found `/workspace/.exfab/` holding only `desktop-keeper.json` and `prompts/`: the gate's summary and
+  even that `deploy.env` were gone. It refused to guess the gate's values and asked me for help.
+- I answered: record nothing, release nothing; a release must not rest on values somebody typed in.
+  Then I cancelled the Thread at this review so that a new Deploy can start.
+- **This is EXF-612 in a new direction** (a code step's output missing for the next agent step; the
+  Deploy review an hour ago had concluded only agent-to-code hand-offs break). Evidence posted there.
+- **Seven children have now been lost to this fault today** (four Builds, three Deploys). It is the
+  largest single cost of this clone, and it is outside what I can fix.
+
+**Register Build merged as `8ec621e`** (`p_7bb9ae1dcb8e4106b60f405a6002857e`; three cards: Regate for a
+moved base, Request changes for per-row reads, Approve). EXF-520, EXF-522 and EXF-620 are Done with
+comments. What it put on main: selection, the action bar with Selected Total, ten bulk actions through
+the single-edit rules, flags (`transactions.flag_color`, migration `20261116101000`), a register
+export, tools `bulk_update_transactions`, `delete_transactions`, `flag_transactions` (**68 tools on
+main**), the UI state key `hide_register_export_dialog`, the conventions section "Services: D1 calls",
+and `apps/worker/test/bulk-call-count.test.ts`. Three small leftovers accepted at the merge are filed
+now as one Low ticket.
+
+**First credit engine Build: ended by my Abandon at its `checks_stuck` card**
+(`p_34bc1879fb924226b6a197db43cfeb20`). Its work is on its branch (`a8ed5b7`) and the carry-over
+(`p_d256d73e55104993a05ccac960529443`) has merged it (head `f3d393c` on base `8ec621e`).
+
+**Build template review** (`p_de28c2c598b74ef89e70f3a179b81b3b`): all twelve proposals approved and
+carried out. Priorities set now:
+- **EXF-627** (High): a request's database calls do not grow with its rows (profile limits, a counting
+  helper, a Reviewer line, an Architect acceptance case).
+- **EXF-628** (Medium): a departure from an acceptance case blocks review; a test for a finding is run
+  against the old code; what must be kept of the Reviewer.
+- **EXF-629** (Medium): out-of-bounds files as an input every step sees; standing rules into the
+  template and the conventions.
+- Evidence on EXF-612, 611, 575, 564, 573, 576, 563 and 457.
+- **What I take from it for my own work:**
+  - **Designers went outside the named place in six of seven Builds** and none restated the limits.
+    Every case was inside the source's test plan (by the tab's address); the transcripts show nothing
+    saved, though nothing re-read the rows to prove it. The cases: All Accounts opened and a row left
+    ticked (the guards Build); attributes written into the source page (targets); a deliberate width
+    change and a click on the sidebar's Plan link (Reflect carry-over); the page's markup read
+    (two reports); the source tab found by address instead of by its stored id (Plan page); clicks in
+    the Categorize menu (register). **No private data, but the limits are not holding for this one
+    step**, and a brief cannot fix it: EXF-573 stays Urgent. My new briefs add "write nothing into the
+    page", "leave no row ticked", "plain capture, size before and after".
+  - In a healthy box `request.json` is still there at the Tester: my line that it is "normally gone"
+    was wrong and is out of the briefs since plan 81.
+  - "Complete, do not redesign; only fix" in my carry-over briefs made two Implementers skip new cases
+    the Architect had added. The credit carry-over's brief says instead that anything the Architect
+    adds is new work to build and test.
+  - Gates repeated only because the base moved cost about 37 minutes in ten Builds: less than I
+    thought. The expensive cycle was the layout defect hidden behind "flakes" (about 110 minutes).
+
+**Running:**
+- **Shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`): designed (`51f2885`), building; on base
+  `5ebac3c`, so its card will need a regate.
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): branch merged, head `f3d393c`.
+- **Scheduled transactions** (`p_900d4c34d7c6414a980c2d1d87cfba26`) and **Reflect fixes**
+  (`p_7aa8691536924481bf53c457c86b24ea`): at their start.
+
+**Ticket writes:** 11 (EXF-520, 522, 620 to Done; comments on EXF-520, 620 and two on EXF-612, the
+second correcting my count in the first; three priorities). One gap ticket filed through this review.
+
+**Backlog:** 56 open feature tickets (41 done; 6 in progress: EXF-532, 535, 473, 474, 497, 499). Gap:
+open EXF-558, EXF-560, EXF-562, EXF-589, EXF-616, EXF-622, EXF-623, EXF-624 and the one filed now; in
+progress EXF-614, EXF-621, EXF-625, EXF-626. Template: thirty-five (EXF-573 and EXF-612 Urgent). Flow
+verdicts unchanged. Finished since each template's last review: Build 2, Deploy 1, Discover 2, Test
+user flow 8.
+
+**Next plan:** a new Deploy for `8ec621e` (prefix `ZZ-TEST D23`; the same brief; it is child 100).
+The template-ticket sweep, now that the three new tickets have priorities. No Build card is approved
+while the Deploy runs.
