@@ -147,8 +147,7 @@ Read-only: no `change_log` row, no `Idempotency-Key`. Coverage: `"GET /budgets/{
 loaded input. Every join of rows to lines, accounts and categories is a `Map` lookup; the sort is one
 `Array.prototype.sort`. A counting test asserts 15 for a small plan and for 1,000 transactions over 24 months.
 
-Largest plan tested and handler time (filled in by the Implementer from the counting test's log line):
-_N transactions, M months, C categories: T ms locally_.
+Largest plan tested (`plan-export-calls.test.ts`, in the Worker test pool, local D1): 1,080 transactions (1,000 plain, 10 splits of three lines, 20 transfer pairs), 24 months, 51 categories, 4 accounts: 15 calls, handler 97 ms, zip 210,524 bytes. Fixture F (the small plan) also makes 15.
 
 ## Downstream effects
 
