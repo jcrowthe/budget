@@ -24,7 +24,7 @@ What the source shows (details and sizes in the notes):
   categories indented 16px, indigo checkboxes; footer links Select All / Select None, buttons Cancel / Done.
   **Account popover** (12): same, "Search All Accounts", bold section rows with their own checkbox.
 - **Net Worth, empty** (16–19): one card with the summary (Net Worth `$0.00` 28px; ■ Assets `$0.00`, ■ Debts
-  `-$0.00`, Change in Net Worth **$0.00** grey `0.0%`) and the chart (zero line, tick `11/26`, hollow white
+  `$0.00` (the source shows `-$0.00`; EXF-591 overrides it), Change in Net Worth **$0.00** grey `0.0%`) and the chart (zero line, tick `11/26`, hollow white
   point; hover tooltip Debts / Assets / Net Worth); a second card with the table header and "No information to
   show".
 - Not visible in the test plan: non-empty figures, bars, y ticks, rows; enabled grid months; the Hidden tag;
@@ -162,10 +162,10 @@ Coverage lines:
   first) downloads the file and closes; Cancel and ✕ download nothing and save nothing. When the flag is true
   Export downloads at once. The download is `budget-reflect-net-worth-<local today>.csv`.
 - Net Worth body (layout as capture 16): summary card with Net Worth (big), ■ Assets, ■ Debts (`-$` + absolute
-  value, so `-$0.00` at zero, as in the source), Change in Net Worth (`+$18,799.26` `↑ 3,759.9%` green; `−$55.00`
+  value; `$0.00` at zero, EXF-591), Change in Net Worth (`+$18,799.26` `↑ 3,759.9%` green; `−$55.00`
   `↓ 0.3%` red; `$0.00` `0.0%` grey; no percent when null). Chart in the same card: per month a red Debts bar
   (height |debts|) left of centre and a blue Assets bar right, a white net-worth line with hollow markers, a zero
-  line, 5 whole-dollar y ticks (`$20,000`, `-$5,000`), x labels `MM/YY`; hovering a month's column shows the
+  line, at most 5 whole-dollar y ticks, never a step under $1 (4 for the example data: `$0`…`$30,000`; EXF-588), x labels `MM/YY`; hovering a month's column shows the
   tooltip `Sep 2026` / ● Debts `$5,000.00` / ● Assets `$21,054.26` / ▬ Net Worth `$16,054.26`; clicks do
   nothing. Table card: Month · Net Worth · Monthly Change (ⓘ, tooltip "This column highlights how much your net
   worth has changed month over month."), newest first, `Nov 2026`, `$19,299.26` / `-$216,819.97`, changes
@@ -240,7 +240,7 @@ tab, current theme (dark) and window, no other page; nothing there may be change
     `$16,054.26`. A click on the chart changes nothing. Five Debts and Assets bars for Jul–Nov, x labels
     `07/26`…`11/26`. Compare: source Net Worth tooltip look (capture 17), empty state only.
 14. (551-5) Untick Tracking Accounts, Done: button `2 Selected Accounts`; Nov Net Worth and Assets `$13,549.26`
-    (Checking 12,849.26 + Savings 700.00), Debts `-$0.00`; every row and the chart exclude House and Car Loan
+    (Checking 12,849.26 + Savings 700.00), Debts `$0.00` (EXF-591); every row and the chart exclude House and Car Loan
     (Jun `$2,500.00`).
 15. (551-6) Export with All Dates: the file is exactly the ticket's CSV: header `"Account","May 2026",…,"Nov
     2026"`, rows Checking, Savings, House, Car Loan in sidebar order (Checking `0.00,2000.00,4835.00,7729.50,
@@ -250,7 +250,7 @@ tab, current theme (dark) and window, no other page; nothing there may be change
     `net_worth` 19299260; MCP `get_net_worth` with the same months returns an equal object.
 17. (551-9) Browser in `Pacific/Auckland`, clock 2026-11-30T19:00Z (Dec 1 local): This Month reads `Dec 2026`;
     the request carries `today=2026-12-01`.
-18. Empty plan (no accounts): Net Worth shows `$0.00`, `-$0.00`, `$0.00 0.0%`, an x tick for the current month,
+18. Empty plan (no accounts): Net Worth shows `$0.00`, `$0.00` (EXF-591), `$0.00 0.0%`, an x tick for the current month,
     "No information to show". Compare: source Net Worth tab as it is (capture 16).
 
 ## Manifest

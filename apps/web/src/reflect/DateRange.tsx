@@ -6,7 +6,8 @@ import {
   rangeLabel,
   shiftSpan,
 } from "@budget/schema/report-range";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDismiss } from "../plan/useDismiss";
 import { CalendarIcon, CaretDownIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "./icons";
 import { MonthGrid } from "./MonthGrid";
@@ -93,7 +94,6 @@ export function DateRange() {
   const { span, facts, settings, update } = useReportState();
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
@@ -104,7 +104,7 @@ export function DateRange() {
     update({ preset: "custom", start_month: s.start_month, end_month: s.end_month });
   };
   return (
-    <div className="date-range" ref={wrap}>
+    <div className="date-range">
       <div className="date-pill">
         <button
           type="button"
@@ -129,7 +129,6 @@ export function DateRange() {
           </button>
           {open && (
             <DateMenu
-              wrap={wrap}
               trigger={trigger}
               close={close}
               custom={custom}
@@ -156,8 +155,9 @@ export function DateRange() {
   );
 }
 
+const MENU_WIDTH = 240;
+
 function DateMenu({
-  wrap,
   trigger,
   close,
   custom,
@@ -165,7 +165,6 @@ function DateMenu({
   preset,
   onPreset,
 }: {
-  wrap: React.RefObject<HTMLDivElement | null>;
   trigger: React.RefObject<HTMLButtonElement | null>;
   close: () => void;
   custom: boolean;
@@ -173,9 +172,40 @@ function DateMenu({
   preset: RangePreset;
   onPreset: (p: Exclude<RangePreset, "custom">) => void;
 }) {
-  useDismiss(wrap, close, trigger);
-  return (
-    <div className="date-menu" role="menu" aria-label="Date range">
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; arrow: number } | null>(null);
+  useDismiss(ref, close, trigger);
+  // Centred on the label button, 15px under it (the source's anchoring), kept 8px inside the window.
+  useLayoutEffect(() => {
+    const place = () => {
+      const r = trigger.current?.getBoundingClientRect();
+      if (!r) return;
+      const centre = r.left + r.width / 2;
+      const left = Math.max(
+        8,
+        Math.min(centre - MENU_WIDTH / 2, window.innerWidth - MENU_WIDTH - 8),
+      );
+      setPos({ left, top: r.bottom + 15, arrow: centre - left - 15 });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [trigger]);
+  return createPortal(
+    <div
+      ref={ref}
+      className="date-menu"
+      role="menu"
+      aria-label="Date range"
+      style={
+        {
+          left: pos?.left ?? 0,
+          top: pos?.top ?? 0,
+          visibility: pos ? "visible" : "hidden",
+          "--arrow-left": `${pos?.arrow ?? 105}px`,
+        } as React.CSSProperties
+      }
+    >
       {PRESETS.map((p) => (
         <button
           key={p.id}
@@ -201,6 +231,7 @@ function DateMenu({
         {(custom || preset === "custom") && <CheckIcon width={16} height={16} />}
       </button>
       {custom && <CustomPanel onClose={close} />}
-    </div>
+    </div>,
+    document.body,
   );
 }

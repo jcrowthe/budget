@@ -146,6 +146,11 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["get_month_range", (c) => ({ budget_id: c.bid })],
   ["get_month_category", (c) => ({ budget_id: c.bid, month: MONTH, category_id: c.category })],
   ["get_net_worth", (c) => ({ budget_id: c.bid })],
+  ["get_spending_breakdown", (c) => ({ budget_id: c.bid, start_month: MONTH, end_month: MONTH })],
+  [
+    "list_report_transactions",
+    (c) => ({ budget_id: c.bid, start_month: MONTH, end_month: MONTH, category_id: c.category }),
+  ],
   ["get_category_usage", (c) => ({ budget_id: c.bid, category_id: c.category })],
   ["get_category_group_usage", (c) => ({ budget_id: c.bid, group_id: c.group })],
   ["create_category_group", (c) => ({ budget_id: c.bid, name: "ZZ Group" })],

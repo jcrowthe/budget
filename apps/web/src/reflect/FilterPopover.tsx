@@ -99,7 +99,8 @@ export function FilterPopover({
       for (const id of ids) on ? n.add(id) : n.delete(id);
       return n;
     });
-  const maxList = pos ? Math.max(120, window.innerHeight - pos.top - 150) : 290;
+  // The list scrolls inside the popover: 304px at most (the source's), less when the window leaves less room.
+  const maxList = pos ? Math.min(304, Math.max(120, window.innerHeight - pos.top - 150)) : 290;
 
   return createPortal(
     <div

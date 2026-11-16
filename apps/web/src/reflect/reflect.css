@@ -1,6 +1,8 @@
 /* Colours with no token. Source computed values from the Reflect pages of the test plan (dark theme). */
 .reflect,
-.filter-popover {
+.filter-popover,
+.date-menu,
+.sb-popover {
   --labelAction: #a3acff; /* source --labelAction */
   --labelActionDisabled: #383ca3; /* source --labelActionDisabled */
 }
@@ -8,6 +10,7 @@
   --reflect-assets: #383ca3; /* source --reportsNetworthAssetsBackground */
   --reflect-debts: var(--statusNegative); /* source debts #bf2e3b */
   --reflect-filter-active: #7583ff45; /* source --filterBackgroundActive */
+  --reflect-fill-secondary: #72748452; /* source --fillSecondary */
   --reflect-tab-height: 64px;
   --reflect-filter-height: 32px;
   color: var(--labelSecondary);
@@ -199,17 +202,15 @@
 }
 
 .date-menu {
-  position: absolute;
-  top: calc(100% + 15px);
-  left: 50%;
-  z-index: var(--z-menu);
+  /* A portal: fixed, above the sidebar like the filter popovers; left and top are set from the label's box. */
+  position: fixed;
+  z-index: 40;
   box-sizing: border-box;
   width: 240px;
   padding: 8px 4px;
   border-radius: var(--radius-lg);
   background: var(--backgroundTertiary);
   box-shadow: var(--shadowMenu);
-  transform: translateX(-50%);
 }
 .date-menu::before,
 .filter-arrow {
@@ -222,7 +223,7 @@
   clip-path: polygon(0 100%, 50% 0, 100% 100%);
 }
 .date-menu::before {
-  left: calc(50% - 15px);
+  left: var(--arrow-left, 105px);
 }
 .date-item {
   display: flex;
@@ -439,7 +440,7 @@
   outline: none;
 }
 .filter-list {
-  overflow-y: auto;
+  overflow-y: scroll;
   padding: 0 4px;
 }
 .filter-row {

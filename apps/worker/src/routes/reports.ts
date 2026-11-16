@@ -4,11 +4,22 @@ import {
   NetWorthResponse,
   ReportRangeQuery,
   ReportRangeResponse,
+  ReportTransactionsQuery,
+  ReportTransactionsResponse,
+  SpendingBreakdownQuery,
+  SpendingBreakdownResponse,
 } from "@budget/schema/reports";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
-import { exportNetWorth, getNetWorth, getReportRange } from "../services/reports";
+import {
+  exportNetWorth,
+  exportSpendingBreakdown,
+  getNetWorth,
+  getReportRange,
+  getSpendingBreakdown,
+  listReportTransactions,
+} from "../services/reports";
 
 const tags = ["Reports"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -86,5 +97,70 @@ export default app
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
       });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/spending-breakdown",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: SpendingBreakdownQuery },
+      responses: {
+        200: json(SpendingBreakdownResponse, "Spending by category or group"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json(
+        { data: await getSpendingBreakdown(c.env, budget_id, c.req.valid("query")) },
+        200,
+      );
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/spending-breakdown/export",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: SpendingBreakdownQuery },
+      responses: {
+        200: {
+          description: "The report as a ZIP of two CSV files",
+          content: { "application/zip": { schema: z.string().openapi({ format: "binary" }) } },
+        },
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const { filename, bytes } = await exportSpendingBreakdown(
+        c.env,
+        budget_id,
+        c.req.valid("query"),
+      );
+      return c.body(bytes as unknown as ArrayBuffer, 200, {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/transactions",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: ReportTransactionsQuery },
+      responses: {
+        200: json(ReportTransactionsResponse, "The transactions behind a report figure"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json(
+        { data: await listReportTransactions(c.env, budget_id, c.req.valid("query")) },
+        200,
+      );
     },
   );
