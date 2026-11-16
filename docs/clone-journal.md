@@ -8258,3 +8258,51 @@ person has not answered the check-in.
 
 Declared for the tree, unchanged. Ticket writes: 0. Review cadence: Build 6, Deploy 5, Discover 2,
 Test user flow 0.
+
+### 2026-11-16 · Review round 96
+
+Children used 110 of 200. One ended: **the carry-over of scheduled transactions and the Reflect
+fixes merged as `11273cf`** (`p_65ee74c0816d452899f054187504cc58`, PR 49). One Build is running (the
+Plan page). Main `11273cf`, live `85f3cc9`; two migrations are pending on live (`20261116101100`
+credit, `20261116101200` scheduled; read by me after merging main into this branch).
+
+**The merge** (EXF-497, 499, 625, 626, 621 are Done).
+- I approved its card at gated head `7219e1d` on base `b84f513`, which was main; nothing was
+  releasing. Gate: check passed, 415 of 415 browser tests three times, changed specs ten times 360 of
+  360, no flakes. Main's tree equals the gated head's (compared now).
+- **What I read before approving:** 52 files, none out of bounds, no shared module, no skipped test,
+  no capture in the tree; the migration is one new table with three indexes; enter-due is one read
+  and one batch for up to 100 schedules, bulk a set read and one batch, with a counting test at 10
+  and 100 rows; every write guarded by the schedule's write token, with race tests; the daily job
+  enters the day before (UTC) inside a try/catch and takes three calls off the sync's budget (41 in
+  all, tested).
+- **Acceptance:** 4 pass, 19 partial (green real-mouse specs; nothing compared, because the source
+  test plan has no scheduled transaction and no open account), 0 fail. The review found nothing.
+- **The Reflect table follows the source now** (my decision on EXF-626): labels shorten with an
+  ellipsis and a tooltip, the amount columns stay on screen.
+- **Three things left out, filed with this review:** the action bar's other actions on scheduled
+  rows are drawn disabled; due schedules are entered only when an account page opens or by the 03:00
+  UTC job, not from the Plan page; a deleted category's schedules keep no category.
+- **This was the second carry-over of this work to get through**, after its first Thread's box was
+  lost at the gate. Its own gate ran at 17:30Z in a box that kept its files.
+
+**The platform, as far as I can see it:** the gate above ran fine at 17:30Z, twelve minutes after
+`D26` lost a file within a minute. So boxes are not failing every time; I cannot tell more.
+
+**Running: the Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): implementing the web side
+since 17:14Z; no new message. Main has moved under it by one merge that shares only `docs/README.md`
+and the timestamp test's list with it.
+
+**Ticket writes:** 8 (five tickets to Done; comments on EXF-497, 499 and 626). Three tickets filed
+through this review.
+
+**Backlog:** 51 open feature tickets (47 done; 1 in progress: EXF-537). Gap: twelve open with the
+three new ones (EXF-558, 560, 562, 589, 630, 631, 635, 636, 637 and the three), five in progress
+(EXF-622, 623, 624, 616, 646). Template: thirty-six open. Flow verdicts unchanged. Finished since
+each template's last review: Build 7, Deploy 5, Discover 2, Test user flow 0.
+
+**Next plan:** one Deploy of `11273cf` for both merges (prefix `ZZ-TEST D27`; gated head `7219e1d`;
+two migrations; the credit checks of `D25` and a scheduled-transactions and Reflect part); set the
+three new tickets' priorities; Export Plan (EXF-476) can start now that the scheduled table is on
+main and the register files are free, and so can the register follow-ups (EXF-635, 636, 637, 630),
+if their files do not overlap.
