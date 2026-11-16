@@ -10,18 +10,20 @@ import {
 import type { FlagColor } from "@budget/schema/transactions";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Tooltip } from "../account/Tooltip";
 import { useAccounts } from "../api/accounts";
 import { ApiError } from "../api/client";
+import { useScheduledBulk } from "../api/scheduledTransactions";
 import { downloadExport, useApproveReject, useBulkTransactions } from "../api/transactions";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { useCurrentPlan } from "../shell/useCurrentPlan";
+import { Tip } from "./BarTip";
 import { BulkCategorize } from "./BulkCategorize";
 import { DeleteDialog, ExportDialog, MemoDialog } from "./BulkDialogs";
 import { FlagMenu } from "./FlagMenu";
 import { CategorizeIcon, CloseSmallIcon, FlagFilledIcon, MoreDotsIcon } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import { useOpenAccounts } from "./openAccounts";
+import { ScheduledBar } from "./ScheduledBar";
 import { useSelection } from "./selection";
 import { useRegisterKeys } from "./useRegisterKeys";
 
@@ -55,46 +57,6 @@ function useRegisterBox() {
   return box;
 }
 
-const Key = ({ k }: { k: string }) => <kbd className="acct-tip-key">{k}</kbd>;
-/** The shortcut tooltip of a bar button: the description, then its key caps. */
-function Tip({
-  text,
-  keys,
-  then,
-  children,
-}: {
-  text: string;
-  keys: string[];
-  then?: string;
-  children: Parameters<typeof Tooltip>[0]["children"];
-}) {
-  return (
-    <Tooltip
-      placement="above"
-      align="center"
-      delayed={false}
-      content={
-        <span className="acct-tip-shortcut">
-          <span>{text}</span>
-          <span className="acct-tip-keys">
-            {keys.map((k) => (
-              <Key key={k} k={k} />
-            ))}
-            {then ? (
-              <>
-                <kbd className="acct-tip-key is-then">then</kbd>
-                <Key k={then} />
-              </>
-            ) : null}
-          </span>
-        </span>
-      }
-    >
-      {children}
-    </Tooltip>
-  );
-}
-
 /**
  * The floating action bar of the selection, its menus and dialogs, and the register's keys. It is always mounted
  * (the keys need it) and draws the bar only while rows are selected.
@@ -111,7 +73,7 @@ export function ActionBar({
   /** One selected row: open it in edit mode with the category list open. */
   onCategorizeOne: (id: string) => void;
 }) {
-  const { selected, rows, set, clear } = useSelection();
+  const { selected, rows, set, clear, scheduled, scheduledRows, setScheduled } = useSelection();
   const { plan } = useCurrentPlan();
   const accountsQ = useAccounts(budgetId);
   const { openAccounts } = useOpenAccounts(budgetId);
@@ -119,6 +81,7 @@ export function ActionBar({
   const saveUi = useSaveUiState(budgetId);
   const bulk = useBulkTransactions(budgetId);
   const review = useApproveReject(budgetId);
+  const scheduledBulk = useScheduledBulk(budgetId);
   const box = useRegisterBox();
   const [menu, setMenu] = useState<null | "more" | "flag" | "categorize">(null);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -240,29 +203,69 @@ export function ActionBar({
     else void sendDelete(false);
   };
 
-  useRegisterKeys({
-    hasSelection: sel.length > 0,
-    entryOpen,
-    selectAll: () => set(rows.map((r) => r.id)),
-    clearSelection: () => {
-      setError(null);
+  // Scheduled rows: Enter Now and Delete in one request each; nothing is confirmed.
+  const schedIds = scheduledRows.filter((r) => scheduled.has(r.id)).map((r) => r.id);
+  const doScheduled = (op: "enter_now" | "delete") => {
+    if (schedIds.length === 0) return;
+    void guard(async () => {
+      await scheduledBulk.mutateAsync({ op, ids: schedIds });
       clear();
-    },
-    clear: actions.clear === "clear" ? doClear : actions.clear === "unclear" ? doClear : undefined,
-    categorize: actions.categorize ? doCategorize : undefined,
-    approve: actions.approve ? doApprove : undefined,
-    reject: actions.reject ? doReject : undefined,
-    duplicate: doDuplicate,
-    flag: () => {
-      close();
-      setMenu("flag");
-    },
-    del: askDelete,
-  });
+    });
+  };
+  const scheduledSelected = scheduled.size > 0;
+
+  useRegisterKeys(
+    scheduledSelected
+      ? {
+          hasSelection: true,
+          entryOpen,
+          selectAll: () => setScheduled(scheduledRows.map((r) => r.id)),
+          clearSelection: () => {
+            setError(null);
+            clear();
+          },
+          enterNow: () => doScheduled("enter_now"),
+          del: () => doScheduled("delete"),
+        }
+      : {
+          hasSelection: sel.length > 0,
+          entryOpen,
+          selectAll: () => set(rows.map((r) => r.id)),
+          clearSelection: () => {
+            setError(null);
+            clear();
+          },
+          clear:
+            actions.clear === "clear" ? doClear : actions.clear === "unclear" ? doClear : undefined,
+          categorize: actions.categorize ? doCategorize : undefined,
+          approve: actions.approve ? doApprove : undefined,
+          reject: actions.reject ? doReject : undefined,
+          duplicate: doDuplicate,
+          flag: () => {
+            close();
+            setMenu("flag");
+          },
+          del: askDelete,
+        },
+  );
 
   const showBar = sel.length > 0;
   return (
     <>
+      {scheduledSelected && box ? (
+        <ScheduledBar
+          box={box}
+          count={scheduled.size}
+          error={error}
+          busy={scheduledBulk.isPending}
+          onDeselect={() => {
+            setError(null);
+            clear();
+          }}
+          onEnter={() => doScheduled("enter_now")}
+          onDelete={() => doScheduled("delete")}
+        />
+      ) : null}
       {showBar && box
         ? createPortal(
             <div

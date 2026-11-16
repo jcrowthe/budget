@@ -35,6 +35,7 @@ import {
   TransferIcon,
 } from "./icons";
 import { useOpenAccounts } from "./openAccounts";
+import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
 import { useSelection } from "./selection";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
@@ -119,6 +120,7 @@ export function RegisterTable({
   );
   const colCount = columns.length + 3;
   const data = q.data;
+  const scheduledRows = useScheduledRows(budgetId, account?.id, sort);
   const rows = useMemo(
     () => (data ? sortTransactions<Row>(data.transactions, sort.column, sort.dir) : []),
     [data, sort],
@@ -448,7 +450,22 @@ export function RegisterTable({
             onSaved={onSaved}
           />
         )}
-        {q.isPending || (q.isError && !data) || (rows.length === 0 && !open) ? (
+        <ScheduledSection
+          budgetId={budgetId}
+          account={account}
+          plan={plan}
+          showCategory={showCategory}
+          colCount={colCount}
+          rows={scheduledRows}
+          open={open}
+          onOpen={onOpen}
+          onCloseEntry={onCloseEntry}
+          onSaved={onSaved}
+          accounts={openAccounts}
+        />
+        {q.isPending ||
+        (q.isError && !data) ||
+        (rows.length === 0 && scheduledRows.length === 0 && !open) ? (
           <tbody>
             <tr>
               {q.isPending ? (
