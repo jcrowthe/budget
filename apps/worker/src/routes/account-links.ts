@@ -9,7 +9,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import { createAccountsFromBank, linkAccount, unlinkAccount } from "../services/account-links";
-import { LinkRefused, NameTaken } from "../services/accounts";
+import { LinkRefused } from "../services/accounts";
 
 const tags = ["Accounts"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -77,7 +77,6 @@ export default app
         return c.json({ data }, 201);
       } catch (e) {
         if (e instanceof LinkRefused) return apiError(c, e.status, e.code, e.message) as never;
-        if (e instanceof NameTaken) return apiError(c, 409, "name_taken", e.message) as never;
         throw e;
       }
     },

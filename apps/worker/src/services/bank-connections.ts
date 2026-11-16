@@ -12,12 +12,7 @@ import {
   plaidFor,
 } from "../plaid/client";
 import type { PlaidInstitution } from "../plaid/institutions";
-import {
-  deleteAccessToken,
-  deleteAccessTokenStmt,
-  getAccessToken,
-  storeAccessToken,
-} from "../plaid/tokens";
+import { deleteAccessToken, getAccessToken, storeAccessToken } from "../plaid/tokens";
 import * as accountsRepo from "../repositories/accounts";
 import * as repo from "../repositories/bank-connections";
 import { unlinkForConnectionStmts } from "./account-links";
@@ -205,6 +200,8 @@ export class BankConnectionRefused extends Error {
   }
 }
 
+const MAX_REMOVE_ATTEMPTS = 5;
+
 export const RESET_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /** When Reset is available again, or null when it is available now. */
@@ -367,24 +364,31 @@ export async function removeBankConnection(
     }
   }
   const db = getDb(env);
-  await db.batch([
-    changeLogInsertIf(
-      db,
-      {
-        budgetId: null,
-        actor,
-        action: "delete",
-        entityType: "bank_connection",
-        entityId: row.id,
-        before: toApi(row, accounts, await linksOf(env, budgetId, accounts)),
-        after: null,
-      },
-      repo.connectionExists(db, row.id),
-    ),
-    ...(await unlinkForConnectionStmts(db, actor, row.id)),
-    repo.deleteAccountsStmt(db, row.id),
-    repo.deleteConnectionStmt(db, row.id),
-    deleteAccessTokenStmt(db, row.id),
-  ]);
-  return { deleted: true, plaid };
+  for (let attempt = 0; attempt < MAX_REMOVE_ATTEMPTS; attempt++) {
+    // Read the links as late as possible. The deletes hold only while no account outside this read is
+    // linked, so a link made since loses the batch (and the next attempt unlinks and logs it).
+    const unlink = await unlinkForConnectionStmts(db, actor, row.id);
+    const holds = repo.removalHolds(db, row.id, accountsRepo.noOtherLinks(row.id, unlink.ids));
+    await db.batch([
+      changeLogInsertIf(
+        db,
+        {
+          budgetId: null,
+          actor,
+          action: "delete",
+          entityType: "bank_connection",
+          entityId: row.id,
+          before: toApi(row, accounts, await linksOf(env, budgetId, accounts)),
+          after: null,
+        },
+        holds,
+      ),
+      ...unlink.stmts,
+      repo.deleteAccountsStmt(db, row.id, holds),
+      repo.deleteConnectionStmt(db, row.id, holds),
+      repo.deleteTokenWhenGoneStmt(db, row.id),
+    ]);
+    if ((await repo.connectionExists(db, row.id)).length === 0) return { deleted: true, plaid };
+  }
+  throw new Conflict("Bank connection");
 }

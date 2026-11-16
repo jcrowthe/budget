@@ -48,6 +48,16 @@ export function minusDays(date: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** The bank account's name, or (when Plaid's is blank) its type and mask, so the name is never empty. */
+function defaultName(bank: bankRepo.BankAccountRow): string {
+  const name = bank.name.trim().slice(0, 100);
+  if (name !== "") return name;
+  return (
+    `${bank.subtype ?? bank.type}${bank.mask ? ` ${bank.mask}` : ""}`.trim().slice(0, 100) ||
+    "Account"
+  );
+}
+
 const utcToday = () => new Date().toISOString().slice(0, 10);
 
 const notLinkable = (what: string) =>
@@ -82,7 +92,7 @@ export async function createAccountsFromBank(
     const o = v.overrides?.[id];
     plans.push({
       bank,
-      name: o?.name ?? bank.name.trim().slice(0, 100),
+      name: o?.name ?? defaultName(bank),
       type: o?.type ?? planAccountType(bank.type, bank.subtype),
     });
   }
@@ -217,12 +227,16 @@ export async function unlinkAccount(
   throw new Conflict("Account");
 }
 
-/** The statements that unlink every account linked to the connection; they go into the removal's batch. */
+/**
+ * The statements that unlink every account linked to the connection; they go into the removal's batch.
+ * `ids` are the accounts read: the unlink touches only those, and the caller guards the deletes with
+ * `accountsRepo.noOtherLinks(db, connectionId, ids)`, so a link made since the read loses the batch.
+ */
 export async function unlinkForConnectionStmts(
   db: Db,
   actor: string,
   connectionId: string,
-): Promise<BatchItem[]> {
+): Promise<{ stmts: BatchItem[]; ids: string[] }> {
   const rows = await accountsRepo.linkedToConnection(db, connectionId);
   const stmts: BatchItem[] = [];
   for (const row of rows) {
@@ -243,6 +257,7 @@ export async function unlinkForConnectionStmts(
       ),
     );
   }
-  stmts.push(accountsRepo.unlinkByConnectionStmt(db, connectionId));
-  return stmts;
+  const ids = rows.map((r) => r.id);
+  stmts.push(accountsRepo.unlinkByConnectionStmt(db, connectionId, ids));
+  return { stmts, ids };
 }

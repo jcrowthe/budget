@@ -1,7 +1,14 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import { getDb } from "../src/db/client";
 import { bankBalanceToPlan } from "../src/plaid/amounts";
-import { minusDays, planAccountType } from "../src/services/account-links";
+import * as accountsRepo from "../src/repositories/accounts";
+import * as bankRepo from "../src/repositories/bank-connections";
+import {
+  minusDays,
+  planAccountType,
+  unlinkForConnectionStmts,
+} from "../src/services/account-links";
 import { createTransaction } from "../src/services/transactions";
 import { json } from "./helpers";
 import {
@@ -353,6 +360,64 @@ describe("account links", () => {
       expect(await txCount(a)).toBe(1);
       expect((await logs(p, "account")).filter((r) => r.action === "update")).toHaveLength(1);
     }
+  });
+
+  it("9b: a link made between the read and the removal batch is not lost unlogged", async () => {
+    const { plan, conn, bank } = await world();
+    const a1 = (
+      (await data(
+        await fromBank(plan, { bank_account_ids: [bank["ZZ Checking"]], today: T }),
+      )) as Json
+    ).created[0].account.id as string;
+    const a2 = await manual(plan, "ZZ Late");
+    const db = getDb(env);
+    const unlink = await unlinkForConnectionStmts(db, REST_ACTOR, conn.id);
+    // a link commits after the read and before the batch
+    expect((await link(plan, a2, { bank_account_id: bank["ZZ Savings"], today: T })).status).toBe(
+      200,
+    );
+    const holds = bankRepo.removalHolds(
+      db,
+      conn.id,
+      accountsRepo.noOtherLinks(conn.id, unlink.ids),
+    );
+    await db.batch([
+      ...unlink.stmts,
+      bankRepo.deleteAccountsStmt(db, conn.id, holds),
+      bankRepo.deleteConnectionStmt(db, conn.id, holds),
+    ] as unknown as Parameters<typeof db.batch>[0]);
+    // the stale batch removed nothing and did not clear the late link
+    expect(await count("select count(*) n from bank_connections where id = ?", conn.id)).toBe(1);
+    expect(
+      await count("select count(*) n from bank_accounts where bank_connection_id = ?", conn.id),
+    ).toBe(4);
+    expect((await getAcc(plan, a2)).linked).toBe(true);
+    expect((await getAcc(plan, a1)).linked).toBe(false);
+    // the real removal retries from a fresh read and logs every unlink
+    const ok = await json(`/api/v1/bank-connections/${conn.id}?budget_id=${plan}`, {
+      method: "DELETE",
+    });
+    expect(ok.status).toBe(200);
+    expect((await getAcc(plan, a2)).linked).toBe(false);
+    const updates = (await logs(plan, "account")).filter((r) => r.action === "update");
+    // a1 unlinked once; a2 linked once and unlinked once
+    expect(updates).toHaveLength(3);
+    expect(
+      await count(
+        "select count(*) n from accounts where budget_id = ? and bank_account_id is not null",
+        plan,
+      ),
+    ).toBe(0);
+  });
+
+  it("a blank Plaid name gets a non-empty default", async () => {
+    const { plan, bank } = await world();
+    await env.DB.prepare("update bank_accounts set name = '   ', mask = '1234' where id = ?")
+      .bind(bank["ZZ Savings"])
+      .run();
+    const res = await fromBank(plan, { bank_account_ids: [bank["ZZ Savings"]], today: T });
+    expect(res.status).toBe(201);
+    expect((await data(res)).created[0].account.name).toBe("savings 1234");
   });
 
   it("10: another environment's bank account is not found; unlink always works", async () => {

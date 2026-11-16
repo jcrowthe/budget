@@ -255,9 +255,27 @@ export async function linkedToConnection(db: Db, connectionId: string): Promise<
     );
 }
 
-export function unlinkByConnectionStmt(db: Db, connectionId: string) {
+/** Unlinks exactly the accounts read earlier (`ids`), so a link made since is not cleared unlogged. */
+export function unlinkByConnectionStmt(db: Db, connectionId: string, ids: string[]) {
   return db
     .update(accounts)
     .set({ bankAccountId: null, importStartDate: null })
-    .where(sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`);
+    .where(
+      and(
+        inArray(accounts.id, ids.length === 0 ? [""] : ids),
+        sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`,
+      ),
+    );
+}
+
+/** A condition that holds while no active account outside `ids` is linked to the connection's bank accounts. */
+export function noOtherLinks(connectionId: string, ids: string[]) {
+  const outside =
+    ids.length === 0
+      ? sql``
+      : sql` and ${accounts.id} not in (${sql.join(
+          ids.map((i) => sql`${i}`),
+          sql`, `,
+        )})`;
+  return sql`not exists (select 1 from ${accounts} where ${accounts.deletedAt} is null and ${accounts.bankAccountId} in (${ofConnection(connectionId)})${outside})`;
 }
