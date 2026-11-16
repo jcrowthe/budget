@@ -394,6 +394,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
 | 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | live `74f1041` (14 minutes) |
 | 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
+| 2026-11-16 | 55 | Test user flow, flow 8 and flow 5 as far as built (`p_2dd7fe181bcc4d478325a3cef0c35e32`) | flows 8, 5 | n/a | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4521,3 +4522,27 @@ Finished since each template's last review: Build 7, Deploy 3, Discover 2, Test 
 **Next plan:** a flow test on live with its own prefix: flow 8 as far as built (Net Worth) and flow 5 as
 far as built (connect a Sandbox bank on a test plan, add its accounts through MCP, unlink, remove the
 connection). Flow 9 again waits for EXF-586 on live.
+
+### 2026-11-16 · Plan round 55
+
+Children used 68 of 200. Four are running: three Builds from earlier rounds (the Plan-page Build; EXF-526
+with EXF-524; EXF-486 with EXF-488) and the flow test started now.
+
+- No ticket was filed at the last review. The person's note at the check-in: not provided.
+- **Started the flow tests on live `74f1041`** (`p_2dd7fe181bcc4d478325a3cef0c35e32`), one child, run prefix
+  `ZZ-TEST F55`:
+  - **Flow 8, first run, as far as built (Net Worth only):** the example data of EXF-551 entered through
+    the API (four accounts, Starting Balances moved to May and June, about twenty transactions), then the
+    header, the month table with every monthly change, the chart tooltip, presets, arrows and Custom, the
+    accounts filter with reload, the CSV line by line, and the tool `get_net_worth`.
+  - **Flow 5, first run, as far as built:** connect Plaid's public Sandbox bank through the app's Add
+    Account screen (Plaid Link in a headless browser may not be drivable: then `blocked`, with where it
+    stopped); through MCP list the connection, add two of its accounts, refuse a second add, unlink and
+    link again, refuse a cash account, rename the connection; **and remove the connection at the end,
+    whatever happens**, proving it is gone.
+  - First time a child may create a bank connection on live: only on its own Sandbox test plan, only
+    through the app, never with a Plaid secret, and never left behind.
+  - No source app at all.
+- Main and live are both `74f1041`: nothing to deploy.
+- No new Build: the Plan page, the transactions files, the accounts files and the shell are all held.
+- Review cadence: Build 7, Deploy 3, Discover 2, Test user flow 4.
