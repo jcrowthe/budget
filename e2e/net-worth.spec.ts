@@ -92,9 +92,9 @@ test("551-4 tooltip and chart", async ({ page, request }) => {
   await page.locator('rect[data-month="2026-09-01"]').hover();
   const tip = page.getByRole("tooltip");
   await expect(tip).toContainText("Sep 2026");
-  await expect(tip).toContainText("Debts $5,000.00");
-  await expect(tip).toContainText("Assets $21,054.26");
-  await expect(tip).toContainText("Net Worth $16,054.26");
+  await expect(tip).toContainText(/Debts\s*\$5,000\.00/);
+  await expect(tip).toContainText(/Assets\s*\$21,054\.26/);
+  await expect(tip).toContainText(/Net Worth\s*\$16,054\.26/);
   const before = await total(page).textContent();
   await page.locator('rect[data-month="2026-09-01"]').click();
   await expect(total(page)).toHaveText(before ?? "");

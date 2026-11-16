@@ -19,41 +19,43 @@ export function NetWorthReport() {
     <>
       <section className="nw-card" aria-label="Net Worth summary">
         <div className="nw-summary">
-          <div>
-            <div className="nw-caption">Net Worth</div>
-            <div className="nw-big" data-testid="nw-total">
-              {money(data.net_worth)}
-            </div>
+          <div className="nw-caption">Net Worth</div>
+          <div className="nw-big" data-testid="nw-total">
+            {money(data.net_worth)}
           </div>
-          <div className="nw-stat">
-            <div className="nw-caption">
-              <span className="legend-square assets" />
-              Assets
-            </div>
-            <div className="nw-amount" data-testid="nw-assets">
-              {money(data.assets)}
-            </div>
-          </div>
-          <div className="nw-stat">
-            <div className="nw-caption">
-              <span className="legend-square debts" />
-              Debts
-            </div>
-            <div className="nw-amount" data-testid="nw-debts">
-              {debtsMoney(data.debts)}
-            </div>
-          </div>
-          <div className="nw-stat">
-            <div className="nw-caption">Change in Net Worth</div>
-            <div className={`nw-amount ${cls}`} data-testid="nw-change">
-              {signedChange(data.change)}
-            </div>
-            {data.change_pct !== null && (
-              <div className={`nw-pct ${cls}`} data-testid="nw-change-pct">
-                {arrow}
-                {percent(Math.abs(data.change_pct))}
+          <div className="nw-stats">
+            <div className="nw-stat">
+              <div className="nw-caption">
+                <span className="legend-square assets" />
+                Assets
               </div>
-            )}
+              <div className="nw-amount" data-testid="nw-assets">
+                {money(data.assets)}
+              </div>
+            </div>
+            <div className="nw-stat">
+              <div className="nw-caption">
+                <span className="legend-square debts" />
+                Debts
+              </div>
+              <div className="nw-amount" data-testid="nw-debts">
+                {debtsMoney(data.debts)}
+              </div>
+            </div>
+            <div className="nw-stat">
+              <div className="nw-caption">Change in Net Worth</div>
+              <div className="nw-change-row">
+                <span className={`nw-amount ${cls}`} data-testid="nw-change">
+                  {signedChange(data.change)}
+                </span>
+                {data.change_pct !== null && (
+                  <span className={`nw-pct ${cls}`} data-testid="nw-change-pct">
+                    {arrow}
+                    {percent(Math.abs(data.change_pct))}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         <NetWorthChart data={data} />
@@ -79,7 +81,7 @@ export function NetWorthReport() {
                     onFocus={() => setTip(true)}
                     onBlur={() => setTip(false)}
                   >
-                    <InfoIcon width={14} height={14} />
+                    <InfoIcon width={12} height={12} />
                   </button>
                   {tip && (
                     <span id="nw-change-tip" role="tooltip" className="info-tooltip">

@@ -44,24 +44,26 @@ function CustomPanel({ onClose }: { onClose: () => void }) {
   const field = (which: "start" | "end", label: string, value: string) => (
     <div className="custom-field">
       <span className="custom-label">{label}</span>
-      <button
-        type="button"
-        className="custom-select"
-        aria-label={label}
-        aria-expanded={grid === which}
-        onClick={() => setGrid(grid === which ? null : which)}
-      >
-        <span>{rangeLabel({ start_month: value, end_month: value })}</span>
-        <CaretDownIcon width={16} height={16} />
-      </button>
-      {grid === which && (
-        <MonthGrid
-          value={value}
-          first={facts.first_month}
-          current={facts.current_month}
-          onPick={(m) => pick(which, m)}
-        />
-      )}
+      <div className="custom-select-wrap">
+        <button
+          type="button"
+          className="custom-select"
+          aria-label={label}
+          aria-expanded={grid === which}
+          onClick={() => setGrid(grid === which ? null : which)}
+        >
+          <span>{rangeLabel({ start_month: value, end_month: value })}</span>
+          <CaretDownIcon width={8} height={8} />
+        </button>
+        {grid === which && (
+          <MonthGrid
+            value={value}
+            first={facts.first_month}
+            current={facts.current_month}
+            onPick={(m) => pick(which, m)}
+          />
+        )}
+      </div>
     </div>
   );
   return (
@@ -111,19 +113,35 @@ export function DateRange() {
           disabled={!canShift(span, -1, facts)}
           onClick={() => shift(-1)}
         >
-          <ChevronLeftIcon width={16} height={16} />
+          <ChevronLeftIcon width={12} height={12} />
         </button>
-        <button
-          ref={trigger}
-          type="button"
-          className="date-label"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => (open ? close() : setOpen(true))}
-        >
-          <CalendarIcon width={16} height={16} />
-          <span>{rangeLabel(span)}</span>
-        </button>
+        <span className="date-label-wrap">
+          <button
+            ref={trigger}
+            type="button"
+            className="date-label"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            onClick={() => (open ? close() : setOpen(true))}
+          >
+            <CalendarIcon width={12} height={12} />
+            <span>{rangeLabel(span)}</span>
+          </button>
+          {open && (
+            <DateMenu
+              wrap={wrap}
+              trigger={trigger}
+              close={close}
+              custom={custom}
+              setCustom={setCustom}
+              preset={settings.preset}
+              onPreset={(p) => {
+                update({ preset: p });
+                close();
+              }}
+            />
+          )}
+        </span>
         <button
           type="button"
           className="date-arrow"
@@ -131,23 +149,9 @@ export function DateRange() {
           disabled={!canShift(span, 1, facts)}
           onClick={() => shift(1)}
         >
-          <ChevronRightIcon width={16} height={16} />
+          <ChevronRightIcon width={12} height={12} />
         </button>
       </div>
-      {open && (
-        <DateMenu
-          wrap={wrap}
-          trigger={trigger}
-          close={close}
-          custom={custom}
-          setCustom={setCustom}
-          preset={settings.preset}
-          onPreset={(p) => {
-            update({ preset: p });
-            close();
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -177,24 +181,24 @@ function DateMenu({
           key={p.id}
           type="button"
           role="menuitemradio"
-          aria-checked={preset === p.id}
+          aria-checked={!custom && preset === p.id}
           className="date-item"
           onClick={() => onPreset(p.id)}
         >
           <span>{p.label}</span>
-          {preset === p.id && <CheckIcon width={16} height={16} />}
+          {!custom && preset === p.id && <CheckIcon width={16} height={16} />}
         </button>
       ))}
       <hr className="menu-separator" />
       <button
         type="button"
         role="menuitemradio"
-        aria-checked={preset === "custom"}
+        aria-checked={custom || preset === "custom"}
         className="date-item"
         onClick={() => setCustom(true)}
       >
         <span>Custom</span>
-        {preset === "custom" && <CheckIcon width={16} height={16} />}
+        {(custom || preset === "custom") && <CheckIcon width={16} height={16} />}
       </button>
       {custom && <CustomPanel onClose={close} />}
     </div>

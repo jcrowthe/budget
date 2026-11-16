@@ -61,7 +61,12 @@ export function FilterPopover({
   const ref = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(() => new Set(selected));
   const [query, setQuery] = useState("");
-  const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    arrow: number;
+  } | null>(null);
   useDismiss(ref, onClose, anchorRef);
 
   useLayoutEffect(() => {
@@ -69,8 +74,17 @@ export function FilterPopover({
       const r = anchorRef.current?.getBoundingClientRect();
       if (!r) return;
       const width = Math.min(WIDTH, window.innerWidth - 2 * MARGIN);
-      const left = Math.max(MARGIN, Math.min(r.left, window.innerWidth - width - MARGIN));
-      setPos({ left, top: r.bottom + 6, width });
+      const centre = r.left + r.width / 2;
+      const left = Math.max(
+        MARGIN,
+        Math.min(centre - width / 2, window.innerWidth - width - MARGIN),
+      );
+      setPos({
+        left,
+        top: r.bottom + 15,
+        width,
+        arrow: Math.max(12, Math.min(centre - left - 15, width - 42)),
+      });
     };
     place();
     window.addEventListener("resize", place);
@@ -100,6 +114,7 @@ export function FilterPopover({
         visibility: pos ? "visible" : "hidden",
       }}
     >
+      <span className="filter-arrow" aria-hidden="true" style={{ left: pos?.arrow ?? 0 }} />
       <div className="filter-search">
         <SearchIcon width={16} height={16} />
         <input

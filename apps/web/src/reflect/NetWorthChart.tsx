@@ -3,8 +3,9 @@ import type { NetWorth } from "@budget/schema/reports";
 import { useEffect, useRef, useState } from "react";
 import { money, tickMoney } from "./format";
 
-const HEIGHT = 300;
-const PAD = { left: 72, right: 16, top: 16, bottom: 28 };
+// 300px plot plus a 20px axis (source: computed layout of the Net Worth chart).
+const HEIGHT = 320;
+const PAD = { left: 72, right: 16, top: 0, bottom: 20 };
 
 /** Whole-dollar-friendly ticks (milliunits) covering [min, max]; none when everything is zero. */
 export function niceTicks(min: number, max: number, count = 5): number[] {
@@ -39,8 +40,9 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
   const lo = Math.min(0, ...nws);
   const hi = Math.max(0, ...months.map((m) => Math.max(m.assets, -m.debts)), ...nws);
   const ticks = niceTicks(lo, hi);
-  const min = ticks.length ? Math.min(lo, ticks[0] as number) : 0;
-  const max = ticks.length ? Math.max(hi, ticks[ticks.length - 1] as number) : 1;
+  // All zero: the zero line sits at mid-height (source).
+  const min = ticks.length ? Math.min(lo, ticks[0] as number) : -1000;
+  const max = ticks.length ? Math.max(hi, ticks[ticks.length - 1] as number) : 1000;
   const plotW = width - PAD.left - PAD.right;
   const plotH = HEIGHT - PAD.top - PAD.bottom;
   const y = (v: number) => PAD.top + plotH - ((v - min) / (max - min || 1)) * plotH;
@@ -69,6 +71,13 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
           </g>
         ))}
         <line className="nw-zero" x1={PAD.left} x2={width - PAD.right} y1={zero} y2={zero} />
+        <line
+          className="nw-baseline"
+          x1={PAD.left}
+          x2={width - PAD.right}
+          y1={PAD.top + plotH}
+          y2={PAD.top + plotH}
+        />
         {months.map((m, i) => (
           <g key={m.month}>
             <rect
@@ -85,14 +94,27 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
               y={zero - (y(0) - y(m.assets))}
               height={Math.max(0, y(0) - y(m.assets))}
             />
-            <text className="nw-tick" x={cx(i)} y={HEIGHT - 8} textAnchor="middle">
+            <line
+              className="nw-xtick"
+              x1={cx(i)}
+              x2={cx(i)}
+              y1={PAD.top + plotH}
+              y2={PAD.top + plotH + 6}
+            />
+            <text
+              className="nw-tick nw-xlabel"
+              x={cx(i)}
+              y={PAD.top + plotH + 13}
+              textAnchor="middle"
+              dominantBaseline="hanging"
+            >
               {shortMonthLabel(m.month)}
             </text>
           </g>
         ))}
         <path className="nw-line" d={line} fill="none" />
         {months.map((m, i) => (
-          <circle key={m.month} className="nw-marker" cx={cx(i)} cy={y(m.net_worth)} r={4} />
+          <circle key={m.month} className="nw-marker" cx={cx(i)} cy={y(m.net_worth)} r={5} />
         ))}
         {months.map((m, i) => (
           // biome-ignore lint/a11y/noStaticElementInteractions: pointer-only hover; the table below carries the same figures
@@ -114,22 +136,24 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
         <div
           className="nw-tooltip"
           role="tooltip"
-          style={{
-            left: Math.min(cx(hover) + 12, width - 180),
-            top: PAD.top,
-          }}
+          style={{ left: cx(hover), bottom: HEIGHT - y(h.net_worth) }}
         >
           <div className="nw-tip-month">{monthLabel(h.month)}</div>
-          <div>
-            <span className="swatch debts">●</span> Debts{" "}
-            <strong>{money(Math.abs(h.debts))}</strong>
+          <div className="nw-tip-label">
+            <span className="swatch debts" />
+            Debts
           </div>
-          <div>
-            <span className="swatch assets">●</span> Assets <strong>{money(h.assets)}</strong>
+          <div className="nw-tip-value">{money(Math.abs(h.debts))}</div>
+          <div className="nw-tip-label">
+            <span className="swatch assets" />
+            Assets
           </div>
-          <div>
-            <span className="swatch line">▬</span> Net Worth <strong>{money(h.net_worth)}</strong>
+          <div className="nw-tip-value">{money(h.assets)}</div>
+          <div className="nw-tip-label">
+            <span className="swatch line" />
+            Net Worth
           </div>
+          <div className="nw-tip-value">{money(h.net_worth)}</div>
         </div>
       )}
     </div>
