@@ -82,6 +82,8 @@ is an `env.ts` plus `wrangler.jsonc` change.
   `Idempotency-Key`.
 - **Branding**: the app is "Budget" with its own icon. Never use the source app's name, logo or art in code,
   CSS, HTML or SVG.
+- **Placeholders**: a query never shows another plan's data as a placeholder. Use `keepPreviousInPlan(budgetId)` from
+  `apps/web/src/api/placeholder.ts`, never `keepPreviousData`.
 - **Real data** (balances, payees, amounts) never goes into code, fixtures, screenshots or commit messages.
 
 ## Plaid
