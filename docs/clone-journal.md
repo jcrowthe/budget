@@ -6823,3 +6823,48 @@ now. Template: thirty-two. Flow verdicts unchanged. **Finished since each templa
 **Next plan:** start the Build template review with those ten. Round 80 is a check-in: lead with the
 bank-screens decision (still unanswered), the per-row reads found and being fixed, EXF-612 back, and
 what is live.
+
+### 2026-11-16 · Plan round 80
+
+Children used 95 of 200. One started now; five are running with the register Build (rework committed,
+head `29084dc`), the credit engine Build (building), the shell Build (at its start) and the flow test
+for flows 3 and 8. Main `5ebac3c`, live `357bc4f`.
+
+- The ticket filed at the last review exists: **EXF-621** (Age of Money's hover columns over the
+  "Current" value), set to Low. It rides with the next Reflect Build.
+- **Started: the Build template review** (`p_de28c2c598b74ef89e70f3a179b81b3b`; Improve templates, mode
+  review, the ten Builds ended since the review of round 62, listed at the last review). What I asked
+  for, in order:
+  1. **Per-row database reads**: three cases in a day (the bank sync, approve and reject, the
+     register's bulk service), none caught by a Build's own Architect, Reviewer, tests or gate, because
+     the local database does not enforce Cloudflare's limit. Where should the template catch it: the
+     design stating calls per handler, the Reviewer's checklist, a counting helper, the gate?
+  2. The platform losing its own files (EXF-612, EXF-611): what the boxes held; a card that says so;
+     a retry in a fresh box; the preflight's trace on the card.
+  3. Carry-overs (EXF-575): three in this batch, all worked; what they cost.
+  4. Gates repeated only because the base moved (EXF-564): how many hours in these ten.
+  5. Source limits (EXF-573): the Designer's captures resizing the source tab in four Builds, theme
+     changes, one Designer outside the named place; what in the Designer's own instructions causes it.
+  6. A flake that was a defect (the Plan-page Build), and a card that names a flake without its
+     failing assertion.
+  7. A step changing the test instead of the code (Age of Money, caught by the Reviewer).
+  8. "Run the new test once against the code before the fix": who does it.
+  9. What to keep: Reviewers and Architects finding real defects and correcting me.
+  10. My 15,000 to 33,000 character briefs: what could be inputs or template text.
+  11. Where the Plan-page Build's four hours went.
+  With the standing line: "Post evidence for an existing ticket with comment_ticket or in your report;
+  never file stand-in tickets."
+- **Not started:**
+  - No Build: scheduled transactions and the API half of Export Plan wait for the register merge; the
+    private screens wait for the person.
+  - No Deploy: Age of Money ships with the register Build.
+  - **The template-ticket sweep** ("about every 30 rounds") has never run and is due. Thirty-two
+    template tickets are open and this review will add some; I start the sweep after it has filed
+    them, so it sweeps the whole set once.
+- **This is round 80: the review is a check-in.** For the report: what is live (`357bc4f`); the
+  bank-screens decision, still unanswered and now holding EXF-460, 461, 463's screens, 510, 476's
+  dialog, 477's dialog, 480 and 471; the per-row reads found before they could bite on live; EXF-612
+  back; child budget 95 of 200 with about 58 feature tickets open.
+
+Ticket writes: 1 (EXF-621 priority). Review cadence: Build 0 (review running), Deploy 0, Discover 2,
+Test user flow 7.
