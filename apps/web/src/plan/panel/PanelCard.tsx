@@ -11,6 +11,7 @@ export function PanelCard({
   collapsed = false,
   onToggle,
   right,
+  icon,
   children,
 }: {
   id: string;
@@ -18,6 +19,8 @@ export function PanelCard({
   collapsed?: boolean;
   onToggle?: () => void;
   right?: ReactNode;
+  /** Beside the title (the Target card's donut). */
+  icon?: ReactNode;
   children: ReactNode;
 }) {
   if (!onToggle) {
@@ -40,6 +43,7 @@ export function PanelCard({
         onClick={onToggle}
       >
         <h2 className="panel-card-title">{title}</h2>
+        {icon}
         {collapsed ? <CardChevronRightIcon /> : <CardChevronDownIcon />}
         {right && <span className="card-roll-up-right">{right}</span>}
       </button>

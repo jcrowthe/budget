@@ -34,8 +34,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "delete_category_target",
-    description:
-      "Delete a category's target; its assigned amounts and balance are unchanged. Returns { deleted }: the target as it was.",
+    description: `Delete a category's target; its assigned amounts and balance are unchanged. ${MONEY} Returns { deleted }: the target as it was, with its amount.`,
     inputSchema: z.object({ budget_id: Id, category_id: Id }),
     run: async (input: { budget_id: string; category_id: string }, { env, actor }) => {
       if (!isId(input.budget_id)) throw new NotFound("Plan");

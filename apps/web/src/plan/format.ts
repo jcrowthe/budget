@@ -1,6 +1,10 @@
 import { formatMoney, type Milliunits } from "@budget/core/money";
 import type { Month } from "@budget/core/month";
+import { targetBar } from "@budget/core/targets";
 import type { MonthCategoryDetail } from "@budget/schema/months";
+import { pillTitle } from "@budget/schema/target-wording";
+
+export { pillTitle };
 
 /** Plan currency formats arrive with EXF-468; until then dollars, with a real minus sign (U+2212). */
 export const money = (m: Milliunits): string => formatMoney(m).replace("-", "−");
@@ -27,7 +31,9 @@ export function statusLabel(c: MonthCategoryDetail): string | null {
   return `Spent ${money(spent)} of ${money(funded)}`;
 }
 
-export type Segment = { kind: "spent" | "funded" | "overspent"; pct: number };
+export type Segment = { kind: "spent" | "funded" | "cautious" | "overspent"; pct: number };
+/** One section of the progress bar: its share of the bar and the parts that fill it (shares of the section). */
+export type Section = { pct: number; parts: Segment[]; fill: number };
 
 const clamp = (n: number) => Math.min(100, Math.max(0, n));
 
@@ -52,14 +58,37 @@ export function barSegments(c: MonthCategoryDetail): Segment[] {
   return segs.map((s) => ({ ...s, pct: clamp(s.pct) })).filter((s) => s.pct > 0);
 }
 
-export const pillTitle = (available: number): string => {
-  if (available > 0) {
-    return `${money(available)} Available to plan your spending—or click to move it to another category!`;
-  }
-  if (available < 0) {
-    return `${money(available)} A green category is a happy category. Make this category happy by adding funds from surplus categories.`;
-  }
-  return "";
+/** The bar of a category without a target: one section, whose parts are its spent and funded shares. */
+export const plainSections = (c: MonthCategoryDetail): Section[] => {
+  const parts = barSegments(c);
+  return [{ pct: 100, parts, fill: parts.reduce((n, p) => n + p.pct, 0) }];
 };
+
+/**
+ * The bar of a category with a target: sections sized as the engine's `targetBar` gives them (the leftover,
+ * then what is needed, or one section per week), the fill spread over them left to right; inside the fill the
+ * first `spent` milliunits are the spent stripes, the rest yellow while underfunded and green otherwise.
+ */
+export function targetSections(c: MonthCategoryDetail): Section[] {
+  const t = c.target;
+  if (!t) return plainSections(c);
+  const { sections, fill } = targetBar(t, c.carried);
+  const sizes = sections.length > 0 ? sections : [1];
+  const total = sizes.reduce((n, s) => n + s, 0);
+  let left = sections.length > 0 ? Math.min(fill, total) : 0;
+  let spent = Math.min(c.activity < 0 ? -c.activity : 0, left);
+  const rest = t.status === "underfunded" ? "cautious" : "funded";
+  return sizes.map((size) => {
+    const taken = Math.min(left, size);
+    left -= taken;
+    const sp = Math.min(spent, taken);
+    spent -= sp;
+    const parts: Segment[] = [
+      { kind: "spent" as const, pct: (sp / size) * 100 },
+      { kind: rest as "cautious" | "funded", pct: ((taken - sp) / size) * 100 },
+    ].filter((p) => p.pct > 0);
+    return { pct: (size / total) * 100, parts, fill: (taken / size) * 100 };
+  });
+}
 
 export const amountClass = (n: number): string => (n === 0 ? "amount zero" : "amount");

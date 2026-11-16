@@ -1,20 +1,29 @@
+import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
+import { targetPill } from "@budget/schema/target-wording";
 import { AvailablePill } from "../AvailablePill";
 import { money, signed } from "../format";
 import { PencilIcon } from "../icons";
 import { NotesCard } from "./NotesCard";
 import { PanelCard } from "./PanelCard";
 import { PanelTooltip } from "./PanelTooltip";
+import { TargetCard } from "./TargetCard";
 
-/** One selected category: its name and pencil, the Available Balance card and the Notes card. */
+/** One selected category: its name and pencil, the Available Balance, Target and Notes cards. */
 export function CategoryInspector({
   budgetId,
+  month,
   category: c,
   collapsed,
   onToggle,
+  targetCollapsed,
+  onToggleTarget,
   onEdit,
 }: {
   budgetId: string;
+  month: Month;
+  targetCollapsed: boolean;
+  onToggleTarget: () => void;
   category: MonthCategoryDetail;
   collapsed: boolean;
   onToggle: () => void;
@@ -27,6 +36,7 @@ export function CategoryInspector({
     ["Cash Spending", signed(c.activity)],
     ["Credit Spending", signed(0)],
   ];
+  const pill = c.target ? targetPill(c) : null;
   return (
     <>
       <div className="panel-heading">
@@ -52,7 +62,7 @@ export function CategoryInspector({
         title="Available Balance"
         collapsed={collapsed}
         onToggle={onToggle}
-        right={<AvailablePill amount={c.available} display />}
+        right={<AvailablePill amount={c.available} display tone={pill?.tone} icon={pill?.icon} />}
       >
         {rows.map(([label, value]) => (
           <div key={label} className="panel-row">
@@ -63,7 +73,15 @@ export function CategoryInspector({
           </div>
         ))}
       </PanelCard>
-      {/* Target (EXF-508, EXF-514) and Auto-Assign (EXF-519) go here. */}
+      <TargetCard
+        key={c.id}
+        budgetId={budgetId}
+        month={month}
+        category={c}
+        collapsed={targetCollapsed}
+        onToggle={onToggleTarget}
+      />
+      {/* Auto-Assign (EXF-519) goes here. */}
       <NotesCard budgetId={budgetId} categoryId={c.id} note={c.note} />
     </>
   );

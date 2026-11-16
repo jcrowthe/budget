@@ -492,6 +492,17 @@ button.category-name {
 .available-pill.positive:hover:not(:disabled) {
   background: var(--categoryBalancePositiveHover);
 }
+.available-pill.cautious {
+  background: var(--statusCautious);
+  color: var(--categoryBalanceCautiousLabel);
+}
+.available-pill .pill-icon {
+  flex: none;
+  margin: -1px 4px 0 0;
+}
+.status-label strong {
+  font-weight: 700;
+}
 .available-pill.negative {
   background: var(--statusNegative);
   color: var(--categoryBalanceNegativeLabel);
@@ -509,7 +520,15 @@ button.category-name {
 }
 .progress-track {
   display: flex;
+  gap: 2px;
   height: 4px;
+}
+/* One section per slice of the target's bar (the leftover, what is needed, each week); a lone section is the whole bar. */
+.progress-section {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 100%;
   overflow: hidden;
   border-radius: 16px;
   background: var(--inputBackground);
@@ -520,6 +539,9 @@ button.category-name {
 }
 .progress-segment[data-kind="funded"] {
   background: var(--statusPositive);
+}
+.progress-segment[data-kind="cautious"] {
+  background: var(--statusCautious);
 }
 .progress-segment[data-kind="spent"] {
   background: repeating-linear-gradient(

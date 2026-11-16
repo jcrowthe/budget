@@ -30,7 +30,7 @@ export function PlanPanel({
 }) {
   const detail = useMonth(budgetId, month).data;
   const [width, setWidth] = usePanelWidth();
-  const [collapsed, setCollapsed] = useState({ summary: false, balance: false });
+  const [collapsed, setCollapsed] = useState({ summary: false, balance: false, target: false });
   const panelRef = useRef<HTMLElement>(null);
   const all = detail?.groups.flatMap((g) => g.categories) ?? [];
   const one = selected.length === 1 ? all.find((c) => c.id === selected[0]) : undefined;
@@ -57,7 +57,10 @@ export function PlanPanel({
           {one ? (
             <CategoryInspector
               budgetId={budgetId}
+              month={month}
               category={one}
+              targetCollapsed={collapsed.target}
+              onToggleTarget={() => setCollapsed((c) => ({ ...c, target: !c.target }))}
               collapsed={collapsed.balance}
               onToggle={() => setCollapsed((c) => ({ ...c, balance: !c.balance }))}
               onEdit={(anchor) => onEditCategory(one.id, anchor)}
