@@ -109,7 +109,6 @@ test("keys typed in a field leave the selection alone", async ({ page }) => {
   await page.locator(".category-name", { hasText: RENT }).click();
   await page.getByRole("button", { name: "Edit category: " + RENT }).click();
   await page.getByPlaceholder("Enter category name").press("Escape");
-  await page.locator(".category-name", { hasText: RENT }).click();
   await row(page, RENT).locator(".assigned-box").click();
   const input = row(page, RENT).locator("input");
   await input.press("Control+a");
@@ -118,7 +117,6 @@ test("keys typed in a field leave the selection alone", async ({ page }) => {
   await input.press("Escape");
   await checked(page, RENT);
   // The note field is a field too: Escape, ArrowDown and Ctrl+A leave the selection and the inspector alone.
-  await page.locator(".category-name", { hasText: RENT }).click();
   await realClick(page, panel(page).locator(".note-display"));
   const note = panel(page).getByRole("textbox", { name: "Note" });
   await note.pressSequentially("abc");
@@ -193,4 +191,54 @@ test("the pencil opens the edit popover", async ({ page }) => {
   await page.locator(".category-name", { hasText: RENT }).click();
   await realClick(page, panel(page).getByRole("button", { name: `Edit category: ${RENT}` }));
   await expect(page.getByRole("dialog", { name: "Edit Category", exact: true })).toBeVisible();
+});
+
+test("a click on the name of the one selected category opens its edit popover (EXF-592)", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.locator(".category-name", { hasText: RENT }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // A second click, with the real mouse, on the name of the one selected category.
+  await realClick(page, row(page, RENT).locator(".category-name"));
+  const pop = page.getByRole("dialog", { name: "Edit Category", exact: true });
+  await expect(pop).toBeVisible();
+  await expect(pop.getByPlaceholder("Enter category name")).toHaveValue(RENT);
+  await pop.getByRole("button", { name: "Cancel" }).click();
+  await expect(pop).toHaveCount(0);
+  await checked(page, RENT);
+  // The name of another category selects that one and opens nothing.
+  await realClick(page, row(page, UTILITIES).locator(".category-name"));
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await checked(page, UTILITIES);
+  await unchecked(page, RENT);
+});
+
+test("with several selected, a name click selects only that category and opens nothing", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.locator(".category-name", { hasText: RENT }).click();
+  await realClick(page, box(page, PHONE));
+  await expect(panel(page).getByRole("heading", { name: "2 Categories Selected" })).toBeVisible();
+  await realClick(page, row(page, RENT).locator(".category-name"));
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await checked(page, RENT);
+  await unchecked(page, PHONE);
+  await expect(panel(page).getByRole("heading", { level: 1, name: RENT })).toBeVisible();
+});
+
+test("selecting a row does not open its Assigned field, so the arrows and Escape stay shortcuts (EXF-592, deliberate)", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.locator(".category-name", { hasText: RENT }).click();
+  await expect(row(page, RENT).locator("input")).toHaveCount(0);
+  await page.keyboard.press("ArrowDown");
+  await checked(page, PHONE);
+  await expect(row(page, PHONE).locator("input")).toHaveCount(0);
+  await page.keyboard.press("Control+a");
+  await expect(panel(page).getByRole("heading", { name: "11 Categories Selected" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel(page).getByText("Categories Selected")).toHaveCount(0);
 });

@@ -1,0 +1,519 @@
+/* The Target card (EXF-508, EXF-514). Sizes and colours measured on the source's form at 1600x813, dark theme
+   (docs/targets-ui-design.md, "Source"): card padding 16, tabs 32 high on a 2px track, inputs 32 high radius 4. */
+:root {
+  --statusCautious: #daac00;
+  --categoryBalanceCautiousLabel: #0c0d22;
+  --calloutCautiousBackground: rgba(218, 172, 0, 0.2);
+  --calloutPositiveBackground: rgba(119, 186, 33, 0.2);
+  --switchOffTrack: rgba(114, 116, 132, 0.2);
+  --segmentedTrack: rgba(114, 116, 132, 0.32);
+  --calloutBadgeBackground: #292c6c;
+  --popupBackground: #1f2038;
+}
+
+.card-roll-up .target-ring-icon {
+  margin-left: 8px;
+  color: var(--labelSecondary);
+}
+.card-roll-up .target-ring-icon + svg {
+  margin-left: 8px;
+}
+
+/* Form card: static header 54 high over a rule, body padded 16 (source: header padding 16, line-height 21, border-bottom 1px). */
+.panel-card-ruled-title {
+  padding: 16px;
+  border-bottom: 1px solid var(--borderSubtle);
+}
+.panel-card-ruled-body {
+  padding: 16px;
+}
+
+/* Empty state */
+/* Source (empty card, dark): strong and p are labelPrimary, strong weight 700, body padded 16 all round. */
+#panel-target.panel-card-body:has(> .target-empty) {
+  padding: 16px;
+}
+.target-empty strong {
+  color: var(--labelPrimary);
+  font-weight: 700;
+}
+.target-empty p {
+  color: var(--labelPrimary);
+}
+.target-empty p {
+  margin: 14px 0;
+}
+.target-create,
+.target-edit {
+  height: 32px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* View */
+.target-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.target-heading {
+  margin: 0;
+  color: var(--labelHeading);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.target-subheading {
+  margin: 4px 0 0;
+}
+.target-donut {
+  flex: none;
+}
+.target-donut circle {
+  fill: none;
+  stroke-width: 8;
+}
+.donut-track {
+  stroke: var(--inputBackground);
+}
+.target-donut.is-cautious .donut-fill {
+  stroke: var(--statusCautious);
+}
+.target-donut.is-positive .donut-fill {
+  stroke: var(--statusPositive);
+}
+.donut-text {
+  fill: var(--labelPrimary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.target-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--labelPrimary);
+}
+.target-message.is-cautious {
+  background: var(--calloutCautiousBackground);
+}
+.target-message.is-positive {
+  background: var(--calloutPositiveBackground);
+}
+.target-create:hover,
+.target-edit:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.target-assign {
+  flex: none;
+  height: 28px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.target-breakdown {
+  margin-bottom: 16px;
+}
+.target-breakdown .panel-row {
+  margin-bottom: 8px;
+}
+.target-breakdown hr {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--borderSubtle);
+}
+
+/* Form */
+.target-form {
+  margin: 0;
+}
+.target-tabs {
+  display: flex;
+  box-sizing: border-box;
+  height: 32px;
+  margin-bottom: 16px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--segmentedTrack);
+}
+.target-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--labelSecondary);
+  font: inherit;
+  font-weight: 400;
+  cursor: pointer;
+}
+.target-tab:hover {
+  color: var(--labelPrimary);
+}
+.target-tab[aria-selected="true"] {
+  background: var(--backgroundTertiary);
+  color: var(--labelPrimary);
+  outline: 1px solid var(--borderSubtle);
+}
+.target-block {
+  margin: 0 0 16px;
+}
+.target-block dt {
+  margin-bottom: 4px;
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.target-block dd {
+  margin: 0;
+}
+.target-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 32px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 4px;
+  background: var(--inputBackground);
+}
+.target-field:focus-within {
+  border-color: var(--buttonPrimaryBackground);
+}
+.target-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 3px 0 8px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+}
+.target-amount .calculator-button {
+  opacity: 1;
+  width: 22px;
+  height: 30px;
+}
+.target-field-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--labelTertiary);
+  cursor: pointer;
+}
+.target-select,
+.target-dropdown {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 4px;
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+}
+.target-select {
+  appearance: none;
+  padding: 4px 24px 4px 8px;
+}
+/* The caret the source draws on the wrapper: a 6px down triangle in inputBorder, 8px from the right. */
+.select-wrap {
+  position: relative;
+  display: block;
+}
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  margin-top: -3px;
+  border-top: 6px solid var(--inputBorder);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  pointer-events: none;
+}
+.target-select:focus,
+.target-dropdown:focus-visible {
+  border-color: var(--buttonPrimaryBackground);
+  outline: none;
+}
+.target-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 8px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.target-dropdown svg {
+  flex: none;
+  margin-left: 8px;
+  color: var(--inputBorder);
+}
+.target-dropdown[aria-expanded="true"] {
+  border-color: var(--buttonPrimaryBackground);
+}
+.target-dropdown[aria-expanded="true"] svg {
+  color: var(--buttonPrimaryBackground);
+}
+.target-pair {
+  display: flex;
+  gap: 8px;
+}
+.target-pair .select-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.target-pair .year-wrap {
+  flex: none;
+  width: 107px;
+}
+.target-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.switch-track {
+  fill: var(--switchOffTrack);
+}
+.target-switch[aria-checked="true"] .switch-track {
+  fill: var(--buttonPrimaryBackground);
+}
+.switch-knob {
+  fill: var(--labelPrimary);
+}
+.target-error {
+  margin: -8px 0 16px;
+  color: var(--labelNegative);
+}
+.target-form [aria-invalid="true"] {
+  border-color: var(--labelNegative);
+}
+.target-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 16px;
+}
+.target-actions-end {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.target-delete,
+.target-cancel,
+.target-save {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.target-delete {
+  color: var(--labelNegative);
+}
+.target-delete svg {
+  margin-right: 4px; /* gap 4 + 4 = the source's 8 */
+}
+.target-delete:hover:not(:disabled) {
+  background: var(--buttonDestructiveBackground);
+  color: var(--rtaButtonNegativeHover);
+}
+.target-cancel {
+  color: var(--buttonGhostLabel);
+}
+.target-cancel:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackground);
+}
+.target-save:hover:not(:disabled) {
+  background: var(--buttonPrimaryBackgroundActive);
+}
+.target-save {
+  padding: 6px 16px;
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.target-form button:disabled,
+.target-form select:disabled,
+.target-form input:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Popups: the behaviour options and the calendar, above their field */
+.popover.target-popup {
+  padding: 0;
+  background: var(--popupBackground);
+  color: var(--labelSecondary);
+}
+.target-popup .popover-arrow {
+  fill: var(--popupBackground);
+}
+.behavior-options {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height);
+}
+.behavior-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px;
+  border: 0;
+  border-bottom: 1px solid var(--borderSubtle);
+  background: transparent;
+  color: var(--labelSecondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.behavior-option:last-child {
+  border-bottom: 0;
+}
+.behavior-option:focus-visible {
+  background: var(--buttonSubtleBackground);
+  outline: none;
+}
+.behavior-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--labelPrimary);
+  font-size: 16px;
+  font-weight: 600;
+}
+.behavior-option.is-selected .behavior-title {
+  color: var(--actionPrimary);
+}
+.behavior-use {
+  margin-bottom: 8px; /* with the option's gap 4: the source's 12 */
+  font-style: normal;
+  font-weight: 500;
+}
+.behavior-badge {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--calloutBadgeBackground);
+  color: var(--labelPrimary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.behavior-tagline {
+  font-weight: 500;
+}
+
+.target-calendar {
+  padding: 16px;
+}
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 3.2px 0;
+}
+.calendar-title {
+  color: var(--labelPrimary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 19.2px;
+}
+.target-calendar {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: var(--line-height);
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--buttonGhostLabel);
+  cursor: pointer;
+}
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+}
+.calendar-days-head {
+  align-items: center;
+  box-sizing: border-box;
+  height: 26.8px; /* source: 24.8 labels + padding 4, between 1px rules */
+  border-top: 1px solid var(--borderSubtle);
+  border-bottom: 1px solid var(--borderSubtle);
+  font-weight: 600;
+}
+.calendar-days {
+  padding: 4px 0;
+  margin-bottom: 6.4px;
+}
+.calendar-day {
+  width: 31.4px;
+  height: 31.4px;
+  padding: 0;
+  border: 0;
+  border-radius: 100%;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  cursor: pointer;
+}
+.calendar-day.is-other {
+  color: var(--labelTertiary);
+}
+.calendar-day.is-selected {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}

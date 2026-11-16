@@ -6,7 +6,7 @@ import { CalculatorIcon } from "./icons";
 export type CloseHow = "enter" | "escape" | "tab" | "shiftTab" | "next" | "prev" | "blur";
 
 /** Inert for now: the calculator popover is not built, and the icon must never take focus. */
-const Calculator = () => (
+export const Calculator = () => (
   <button
     type="button"
     className="calculator-button"

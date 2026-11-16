@@ -279,3 +279,32 @@ export function computeTargetMonth(
     period_due_date: periodDue,
   };
 }
+
+export interface TargetBar {
+  /** Section sizes, left to right; the progress bar is split in proportion to them. Empty: nothing is needed. */
+  sections: Milliunits[];
+  /** How much of the bar (the sum of the sections) is filled, never negative. */
+  fill: Milliunits;
+}
+
+/**
+ * What the grid row's progress bar shows for a target: its sections (the leftover, then what is needed this
+ * month; weekly targets one section per week) and how much of them is filled.
+ */
+export function targetBar(t: TargetMonth, leftover: Milliunits): TargetBar {
+  const def = t.definition;
+  const periodic = def.cadence === "weekly" || def.cadence === "monthly";
+  if (!periodic || t.status === "complete") {
+    return { sections: [def.amount], fill: pos(t.funded) };
+  }
+  const refill = def.behavior === "refill";
+  const sections: Milliunits[] = [];
+  if (!refill && leftover > 0) sections.push(leftover);
+  if (def.cadence === "weekly") {
+    const weeks = def.amount > 0 ? Math.round(t.needed_this_month / def.amount) : 0;
+    for (let i = 0; i < weeks; i++) sections.push(def.amount);
+  } else if (t.needed_this_month > 0) {
+    sections.push(t.needed_this_month);
+  }
+  return { sections, fill: refill ? pos(t.funded) : pos(leftover + t.funded) };
+}

@@ -9,6 +9,7 @@ import {
   MonthRangeResponse,
   MonthTotalsResponse,
 } from "@budget/schema/months";
+import { Today } from "@budget/schema/targets";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
@@ -64,12 +65,19 @@ export default app
             .openapi({ param: { name: "budget_id", in: "path" } }),
           month: Month.openapi({ param: { name: "month", in: "path" } }),
         }),
+        query: z.object({
+          today: Today.optional().openapi({
+            description:
+              "The owner's local date (YYYY-MM-DD); it decides the current month for target figures. Default: the server's UTC date",
+          }),
+        }),
       },
       responses: { 200: json(MonthDetailResponse, "The month read model"), ...errors },
     }),
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
-      return c.json({ data: await getPlanMonth(c.env, budget_id, month) }, 200);
+      const { today } = c.req.valid("query");
+      return c.json({ data: await getPlanMonth(c.env, budget_id, month, today) }, 200);
     },
   )
   .openapi(
@@ -90,6 +98,10 @@ export default app
             description:
               "Category ids separated by commas (1 to 500); default: every visible category",
           }),
+          today: Today.optional().openapi({
+            description:
+              "The owner's local date (YYYY-MM-DD); it decides the current month for target figures. Default: the server's UTC date",
+          }),
         }),
       },
       responses: {
@@ -99,7 +111,7 @@ export default app
     }),
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
-      const { category_ids } = c.req.valid("query");
+      const { category_ids, today } = c.req.valid("query");
       let ids: string[] | undefined;
       if (category_ids !== undefined) {
         const parts = category_ids.split(",").map((x) => x.trim());
@@ -108,7 +120,7 @@ export default app
           return apiError(c, 422, "unprocessable_entity", CATEGORY_IDS_MESSAGE) as never;
         }
       }
-      return c.json({ data: await getMonthSummary(c.env, budget_id, month, ids) }, 200);
+      return c.json({ data: await getMonthSummary(c.env, budget_id, month, ids, today) }, 200);
     },
   )
   .openapi(

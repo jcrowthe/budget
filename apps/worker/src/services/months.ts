@@ -320,8 +320,9 @@ export async function getMonthSummary(
   budgetId: string,
   month: Month,
   categoryIds?: string[],
+  today: string = todayUtc(),
 ): Promise<MonthTotals> {
-  const detail = await getPlanMonth(env, budgetId, month);
+  const detail = await getPlanMonth(env, budgetId, month, today);
   if (categoryIds) {
     const known = new Set(detail.groups.flatMap((g) => g.categories.map((c) => c.id)));
     if (categoryIds.some((id) => !known.has(id))) throw new NotFound("Category");

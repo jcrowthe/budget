@@ -21,6 +21,7 @@ export function Popover({
   scrim,
   alignTo,
   gap = ARROW_H,
+  placement = "below",
   children,
 }: {
   anchor: HTMLElement;
@@ -34,23 +35,42 @@ export function Popover({
   /** Centre horizontally on this element instead of the anchor (the vertical placement still follows the anchor). */
   alignTo?: HTMLElement;
   gap?: number;
+  /** "above": the box sits over the anchor with a down-arrow (a dropdown or calendar); flips below when there is no room. */
+  placement?: "below" | "above";
   children: ReactNode;
 }) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   // Measured at render, so the first paint is already in place and the input can take focus on mount.
   const box = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
   const place = () => {
     const r = anchor.getBoundingClientRect();
-    const h = box.current?.offsetHeight ?? 0;
-    // Below the anchor; above it when the box would run off the bottom of the window.
-    const above = r.bottom + gap + h > window.innerHeight - MARGIN && r.top - gap - h >= MARGIN;
+    // The natural height: the content's own, even while a max-height is squeezing it.
+    const h = box.current
+      ? box.current.offsetHeight +
+        (inner.current ? inner.current.scrollHeight - inner.current.clientHeight : 0)
+      : 0;
+    const spaceAbove = r.top - gap - MARGIN;
+    const spaceBelow = window.innerHeight - r.bottom - gap - MARGIN;
+    let above: boolean;
+    let maxHeight: number | null = null;
+    if (placement === "above") {
+      // Over the anchor; below it when only there it fits; scrolled inside the roomier side when neither fits.
+      above = h <= spaceAbove || (h > spaceBelow && spaceAbove >= spaceBelow);
+      if (h > (above ? spaceAbove : spaceBelow))
+        maxHeight = Math.max(0, above ? spaceAbove : spaceBelow);
+    } else {
+      // Below the anchor; above it when the box would run off the bottom of the window.
+      above = r.bottom + gap + h > window.innerHeight - MARGIN && r.top - gap - h >= MARGIN;
+    }
+    const shown = maxHeight === null ? h : maxHeight;
     const a = alignTo?.getBoundingClientRect() ?? r;
     const centre = a.left + a.width / 2;
     const w = Math.min(width, window.innerWidth - 2 * MARGIN);
     const left = Math.max(MARGIN, Math.min(centre - w / 2, window.innerWidth - w - MARGIN));
     const arrow = Math.max(8, Math.min(centre - left - ARROW_W / 2, w - ARROW_W - 8));
-    return { left, top: above ? r.top - gap - h : r.bottom + gap, arrow, above };
+    return { left, top: above ? r.top - gap - shown : r.bottom + gap, arrow, above, maxHeight };
   };
   const [pos, setPos] = useState(place);
 
@@ -64,7 +84,7 @@ export function Popover({
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [anchor, width, gap, alignTo]);
+  }, [anchor, width, gap, alignTo, placement]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -131,7 +151,15 @@ export function Popover({
         >
           <path d="M0 15 15 0 30 15Z" />
         </svg>
-        {children}
+        <div
+          ref={inner}
+          className="popover-scroll"
+          style={
+            pos.maxHeight === null ? undefined : { maxHeight: pos.maxHeight, overflowY: "auto" }
+          }
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body,
