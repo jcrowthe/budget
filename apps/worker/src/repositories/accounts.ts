@@ -97,6 +97,24 @@ export function insertIfStmt(db: Db, row: AccountRow, guard: SQLWrapper) {
     );
 }
 
+/** A `SELECT 1` that holds while the account is active with the `starred` and `closed` values of `before`. */
+export function starHolds(db: Db, before: AccountRow) {
+  return db.select({ x: sql`1` }).from(accounts).where(starCondition(before));
+}
+
+function starCondition(before: AccountRow) {
+  return and(
+    eq(accounts.id, before.id),
+    isNull(accounts.deletedAt),
+    eq(accounts.starred, before.starred),
+    eq(accounts.closed, before.closed),
+  );
+}
+
+export function setStarredIfStmt(db: Db, before: AccountRow, starred: boolean) {
+  return db.update(accounts).set({ starred }).where(starCondition(before));
+}
+
 /** `SELECT 1` that holds once the account row exists. */
 export function existsStmt(db: Db, id: string) {
   return db.select({ x: sql`1` }).from(accounts).where(eq(accounts.id, id));

@@ -1,0 +1,218 @@
+/* The account page and All Accounts header. Values measured on the source at 1600x813 (see docs/account-header-design.md). */
+:root {
+  --account-star-off: #727484;
+  --account-star-on: #f8d655;
+  --account-rule: rgba(255, 255, 255, 0.1);
+  --account-tooltip-label: #ededf5;
+  --account-tooltip-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  --account-secondary-hover: rgba(117, 131, 255, 0.27);
+  --account-tooltip-delay: 1.9s;
+}
+.acct-head {
+  background: var(--backgroundSecondary);
+}
+.acct-head-top {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+}
+.acct-head-top.is-all {
+  min-height: 60.8px;
+}
+.acct-head-top.is-all h1 {
+  padding-right: calc(var(--space-3) + var(--space-2));
+}
+.acct-head-left {
+  min-width: 0;
+}
+.acct-title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-right: calc(var(--space-3) + var(--space-2));
+}
+.acct-head h1 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 28.8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-star {
+  display: inline-flex;
+  flex: none;
+  margin-left: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--account-star-off);
+  cursor: pointer;
+}
+.acct-star.is-on {
+  color: var(--account-star-on);
+}
+.acct-info {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: calc(12px * var(--line-height));
+}
+.acct-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.acct-actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+.acct-edit,
+.acct-reconcile {
+  box-sizing: border-box;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+.acct-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  padding: 6px 16px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.acct-edit:hover {
+  background: var(--account-secondary-hover);
+}
+.acct-reconcile {
+  padding: 0 var(--space-3);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.acct-reconcile:hover {
+  background: var(--actionPrimary);
+}
+.acct-star:focus-visible,
+.acct-edit:focus-visible,
+.acct-reconcile:focus-visible,
+.acct-balance:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+.acct-rule {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--account-rule);
+}
+.acct-balances {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding: var(--space-3);
+}
+.acct-balance {
+  display: flex;
+  flex-direction: column;
+}
+.acct-amount {
+  min-height: 24px;
+  color: var(--statusPositive);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 21.6px;
+}
+.acct-amount.is-negative {
+  color: var(--labelPrimary);
+}
+.acct-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.acct-op {
+  padding: 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 600;
+}
+.acct-tip-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.acct-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 20;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 288px;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--inputBackground);
+  box-shadow: var(--account-tooltip-shadow);
+  color: var(--account-tooltip-label);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  text-align: left;
+  pointer-events: none;
+}
+.acct-tooltip.is-start {
+  left: 0;
+}
+.acct-tooltip.is-end {
+  right: 0;
+}
+.acct-tooltip.is-delayed {
+  animation: acct-tip-in 0.2s var(--account-tooltip-delay) both;
+}
+@keyframes acct-tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.acct-tooltip .acct-tip-label {
+  margin-right: var(--space-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: calc(12px * var(--line-height));
+}
+.acct-tooltip kbd + kbd {
+  margin-left: var(--space-1);
+}
+.acct-tooltip kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--buttonSubtleBackground);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+}

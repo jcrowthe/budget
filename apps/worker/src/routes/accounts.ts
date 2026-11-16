@@ -3,17 +3,22 @@ import {
   AccountCreateResponse,
   AccountListResponse,
   AccountResponse,
+  AccountSummaryResponse,
+  AccountUpdateRequest,
 } from "@budget/schema/accounts";
 import { ErrorBody } from "@budget/schema/common/envelope";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import {
+  AccountRefused,
   addUnlinkedAccount,
   getAccount,
+  getAccountSummary,
   listAccounts,
   NameTaken,
   UnsupportedAccountType,
+  updateAccount,
 } from "../services/accounts";
 
 const tags = ["Accounts"];
@@ -84,6 +89,65 @@ export default app
     async (c) => {
       const { budget_id, account_id } = c.req.valid("param");
       return c.json({ data: { account: await getAccount(c.env, budget_id, account_id) } }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "patch",
+      path: "/budgets/{budget_id}/accounts/{account_id}",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: budgetParam,
+          account_id: z
+            .string()
+            .min(1)
+            .openapi({ param: { name: "account_id", in: "path" } }),
+        }),
+        body: { content: { "application/json": { schema: AccountUpdateRequest } }, required: true },
+      },
+      responses: {
+        200: json(AccountResponse, "The account after the change"),
+        409: json(ErrorBody, "The account changed concurrently"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, account_id } = c.req.valid("param");
+      try {
+        const account = await updateAccount(
+          c.env,
+          c.get("identity").actor,
+          budget_id,
+          account_id,
+          c.req.valid("json"),
+        );
+        return c.json({ data: { account } }, 200);
+      } catch (e) {
+        if (e instanceof AccountRefused) {
+          return apiError(c, e.status, e.code, e.message) as never;
+        }
+        throw e;
+      }
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/account-summary",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }) },
+      responses: {
+        200: json(
+          AccountSummaryResponse,
+          "Cleared, uncleared and working totals of every open account",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json({ data: { balances: await getAccountSummary(c.env, budget_id) } }, 200);
     },
   )
   .openapi(

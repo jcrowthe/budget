@@ -1,13 +1,14 @@
 import type { Account } from "@budget/schema/accounts";
 import {
   categoryCell,
-  type RegisterSortColumn,
+  type PlanSortColumn,
   type SortDir,
   sortTransactions,
 } from "@budget/schema/register";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { useMemo, useState } from "react";
-import { useAccountTransactions, useSetCleared } from "../api/transactions";
+import { useAccounts } from "../api/accounts";
+import { useAccountTransactions, usePlanTransactions, useSetCleared } from "../api/transactions";
 import { registerDate, registerMoney } from "./format";
 import {
   CaretDownIcon,
@@ -21,7 +22,13 @@ import {
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
 
-const HEADERS: { column: RegisterSortColumn; label: string; numeric?: boolean }[] = [
+type Row = TransactionDetail & { account_name?: string };
+
+type Header = { column: PlanSortColumn; label: string; numeric?: boolean };
+
+const ACCOUNT_HEADER: Header = { column: "account", label: "ACCOUNT" };
+
+const HEADERS: Header[] = [
   { column: "date", label: "DATE" },
   { column: "payee", label: "PAYEE" },
   { column: "category", label: "CATEGORY" },
@@ -56,7 +63,7 @@ function Box({
   );
 }
 
-function ClearedCell({ tx, onToggle }: { tx: TransactionDetail; onToggle: () => void }) {
+function ClearedCell({ tx, onToggle }: { tx: Row; onToggle: () => void }) {
   const reconciled = tx.cleared === "reconciled";
   return (
     <button
@@ -78,24 +85,38 @@ function ClearedCell({ tx, onToggle }: { tx: TransactionDetail; onToggle: () => 
   );
 }
 
-export function RegisterTable({ account }: { account: Account }) {
-  const q = useAccountTransactions(account.budget_id, account.id);
-  const setCleared = useSetCleared(account.budget_id, account.id);
-  const [sort, setSort] = useState<{ column: RegisterSortColumn; dir: SortDir }>({
+/** One account's rows, or (without `account`) every account's rows with an ACCOUNT column. */
+export function RegisterTable({ budgetId, account }: { budgetId: string; account?: Account }) {
+  const plan = !account;
+  const accountQ = useAccountTransactions(budgetId, account?.id ?? "", !plan);
+  const planQ = usePlanTransactions(budgetId, plan);
+  const q = plan ? planQ : accountQ;
+  const accountsQ = useAccounts(plan ? budgetId : undefined);
+  const byId = useMemo(
+    () => new Map((accountsQ.data ?? []).map((a) => [a.id, a])),
+    [accountsQ.data],
+  );
+  const setCleared = useSetCleared(
+    budgetId,
+    plan ? ["transactions", budgetId, "all"] : ["transactions", budgetId, account.id],
+  );
+  const [sort, setSort] = useState<{ column: PlanSortColumn; dir: SortDir }>({
     column: "date",
     dir: "desc",
   });
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const showCategory = account.on_budget;
-  const columns = HEADERS.filter((h) => showCategory || h.column !== "category");
+  const showCategory = plan || account.on_budget;
+  const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
+    (h) => showCategory || h.column !== "category",
+  );
   const colCount = columns.length + 2;
   const data = q.data;
   const rows = useMemo(
-    () => (data ? sortTransactions(data.transactions, sort.column, sort.dir) : []),
+    () => (data ? sortTransactions<Row>(data.transactions, sort.column, sort.dir) : []),
     [data, sort],
   );
 
-  const clickHeader = (column: RegisterSortColumn) =>
+  const clickHeader = (column: PlanSortColumn) =>
     setSort((s) =>
       s.column === column
         ? { column, dir: s.dir === "desc" ? "asc" : "desc" }
@@ -116,11 +137,12 @@ export function RegisterTable({ account }: { account: Account }) {
     <div className="register-scroll">
       <table
         className={`register-table${showCategory ? "" : " no-category"}`}
-        aria-label={`${account.name} transactions`}
+        aria-label={`${account?.name ?? "All Accounts"} transactions`}
         aria-busy={q.isPending}
       >
         <colgroup>
           <col className="col-check" />
+          {plan && <col className="col-account" />}
           <col className="col-date" />
           <col className="col-payee" />
           {showCategory && <col className="col-category" />}
@@ -187,7 +209,10 @@ export function RegisterTable({ account }: { account: Account }) {
             </tr>
           ) : (
             rows.map((tx) => {
-              const cell = categoryCell(tx, account);
+              const cell = categoryCell(
+                tx,
+                account ?? byId.get(tx.account_id) ?? { type: "checking", on_budget: true },
+              );
               const checked = selected.has(tx.id);
               return (
                 <tr key={tx.id} className={checked ? "is-checked" : undefined}>
@@ -198,6 +223,7 @@ export function RegisterTable({ account }: { account: Account }) {
                       onClick={() => toggleRow(tx.id)}
                     />
                   </td>
+                  {plan && <td title={tx.account_name}>{tx.account_name}</td>}
                   <td>{registerDate(tx.date)}</td>
                   <td title={tx.payee_name ?? undefined}>{tx.payee_name}</td>
                   {showCategory && (

@@ -68,6 +68,11 @@ export const AccountBalances = z
   .object({ cleared: Milliunits, uncleared: Milliunits, working: Milliunits })
   .openapi("AccountBalances");
 
+/** A row of the plan-wide list: the detail plus the name of its account. */
+export const PlanTransaction = TransactionDetail.extend({ account_name: z.string() }).openapi(
+  "PlanTransaction",
+);
+
 const requestDate = IsoDate.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199").refine(
   isCalendarDate,
   { message: "date must be a real calendar date" },
@@ -117,6 +122,11 @@ export const TransactionListResponse = dataEnvelope(
   z.object({ transactions: z.array(TransactionDetail), balances: AccountBalances }),
 );
 
+export const PlanTransactionListResponse = dataEnvelope(
+  z.object({ transactions: z.array(PlanTransaction), balances: AccountBalances }),
+);
+
+export type PlanTransaction = z.infer<typeof PlanTransaction>;
 export type TransactionDetail = z.infer<typeof TransactionDetail>;
 export type AccountBalances = z.infer<typeof AccountBalances>;
 export type TransactionCreateRequest = z.input<typeof TransactionCreateRequest>;

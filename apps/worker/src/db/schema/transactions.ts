@@ -19,6 +19,7 @@ export const transactions = sqliteTable(
     approved: integer("approved", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),
     deletedAt: text("deleted_at"),
+    updatedAt: text("updated_at").notNull(),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),

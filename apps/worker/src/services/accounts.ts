@@ -11,8 +11,10 @@ import {
   AccountCreate,
   AccountCreateRequest,
   type AccountCreateRequest as AccountCreateRequestInput,
+  AccountUpdateRequest,
+  type AccountUpdateRequest as AccountUpdateRequestInput,
 } from "@budget/schema/accounts";
-import type { Transaction } from "@budget/schema/transactions";
+import type { AccountBalances, Transaction } from "@budget/schema/transactions";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
@@ -128,6 +130,63 @@ export async function getAccount(env: Env, budgetId: string, accountId: string):
   return accountToApi(row, balances.get(accountId));
 }
 
+/** A rule of the account routes failed; the route answers 422 with this message. */
+export class AccountRefused extends Error {
+  status = 422 as const;
+  code = "unprocessable_entity";
+}
+
+/** Sets `starred`. A closed account cannot be starred. One history row per real change. */
+export async function updateAccount(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  accountId: string,
+  input: AccountUpdateRequestInput,
+): Promise<Account> {
+  const patch = AccountUpdateRequest.parse(input);
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = await accountsRepo.findActive(db, budgetId, accountId);
+    if (!before) throw new NotFound("Account");
+    if (patch.starred === true && before.closed) {
+      throw new AccountRefused("A closed account cannot be starred");
+    }
+    const balances = (await txRepo.balancesByAccount(db, budgetId, accountId)).get(accountId);
+    if (patch.starred === undefined || patch.starred === before.starred) {
+      return accountToApi(before, balances);
+    }
+    const after = { ...before, starred: patch.starred };
+    const [, result] = await db.batch([
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "update",
+          entityType: "account",
+          entityId: accountId,
+          before: accountToApi(before, balances),
+          after: accountToApi(after, balances),
+        },
+        accountsRepo.starHolds(db, before),
+      ),
+      accountsRepo.setStarredIfStmt(db, before, patch.starred),
+    ]);
+    if (result.meta.changes > 0) return accountToApi(after, balances);
+  }
+  throw new Conflict("Account");
+}
+
+/** The three totals over every open account: the one function behind the summary and All Accounts. */
+export async function getAccountSummary(env: Env, budgetId: string): Promise<AccountBalances> {
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const b = await txRepo.openAccountsBalances(db, budgetId);
+  return { ...b, working: b.cleared + b.uncleared };
+}
+
 /**
  * Creates an unlinked account and its Starting Balance transaction in one batch. The guards make the name
  * check and the sort order hold inside the write, so two simultaneous creates with one name leave one account.
@@ -174,6 +233,7 @@ export async function addUnlinkedAccount(
       approved: true,
       createdAt: now,
       deletedAt: null,
+      updatedAt: now,
     };
     const account = accountToApi(row, { cleared: amount, uncleared: 0 });
     const g1 = accountsRepo.newAccountGuard(db, budgetId, row.sortOrder, row.name);

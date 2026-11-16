@@ -13,7 +13,7 @@ import { createBudget } from "../src/services/budgets";
 import { setAssigned } from "../src/services/months";
 import { createTransaction } from "../src/services/transactions";
 import { json } from "./helpers";
-import { apiPaths, listedToolNames, mcpRpc } from "./surface";
+import { apiDocument, apiPaths, listedToolNames, mcpRpc } from "./surface";
 
 // biome-ignore lint/suspicious/noExplicitAny: parsed response bodies in tests
 type Json = any;
@@ -79,6 +79,8 @@ describe("surface", () => {
         "/api/v1/budgets/{budget_id}/transactions/{transaction_id}",
       ]),
     );
+    const paths = (await apiDocument()).paths as Record<string, Record<string, unknown>>;
+    expect(paths["/api/v1/budgets/{budget_id}/transactions"]).toHaveProperty("get");
     expect(await listedToolNames()).toEqual(
       expect.arrayContaining([
         "list_transactions",
@@ -401,7 +403,7 @@ describe("guards", () => {
         },
         txRepo.holds(db, stale),
       ),
-      txRepo.updateIfHoldsStmt(db, stale, { ...stale, amount: -3000 }),
+      txRepo.updateIfHoldsStmt(db, stale, { ...stale, amount: -3000 }, new Date().toISOString()),
     ]);
     expect(w.meta.changes).toBe(0);
     expect(await count("change_log", bid)).toBe(log);

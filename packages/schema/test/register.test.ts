@@ -148,3 +148,18 @@ describe("categoryCell", () => {
     ).toEqual({ kind: "needsCategory" });
   });
 });
+
+describe("sorting by account", () => {
+  const withAccount = (account_name: string, over: Partial<TransactionDetail> = {}) => ({
+    ...tx(over),
+    account_name,
+  });
+  it("orders by account name, ties by newest date then amount", () => {
+    const a = withAccount("ZZ Beta", { date: "2026-11-01", amount: -5 });
+    const b = withAccount("ZZ Alpha", { date: "2026-11-02", amount: -5 });
+    const c = withAccount("ZZ Alpha", { date: "2026-11-09", amount: 7 });
+    const d = withAccount("ZZ Alpha", { date: "2026-11-09", amount: -7 });
+    expect(sortTransactions([a, b, c, d], "account", "asc")).toEqual([d, c, b, a]);
+    expect(sortTransactions([a, b, c, d], "account", "desc")).toEqual([a, d, c, b]);
+  });
+});

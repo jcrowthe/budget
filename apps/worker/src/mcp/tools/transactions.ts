@@ -10,6 +10,7 @@ import {
   deleteTransaction,
   getAccountBalances,
   listAccountTransactions,
+  listPlanTransactions,
   updateTransaction,
 } from "../../services/transactions";
 import type { McpToolDef } from "../types";
@@ -28,12 +29,18 @@ type Update = z.input<typeof TransactionUpdateRequest>;
 export const tools: McpToolDef[] = [
   {
     name: "list_transactions",
-    description: `List an account's transactions (newest first, same-date by amount ascending) with its balances {cleared, uncleared, working}. ${money} since_date (YYYY-MM-DD) limits the rows, not the balances. Each row has category_name and category_group_name.`,
-    inputSchema: z.object({ budget_id: id, account_id: id, since_date: IsoDate.optional() }),
-    run: async (input: { budget_id: string; account_id: string; since_date?: string }, { env }) =>
-      listAccountTransactions(env, input.budget_id, input.account_id, {
-        sinceDate: input.since_date,
-      }),
+    description: `List an account's transactions (newest first, same-date by amount ascending) with its balances {cleared, uncleared, working}. ${money} since_date (YYYY-MM-DD) limits the rows, not the balances. Each row has category_name and category_group_name. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts.`,
+    inputSchema: z.object({
+      budget_id: id,
+      account_id: id.optional(),
+      since_date: IsoDate.optional(),
+    }),
+    run: async (input: { budget_id: string; account_id?: string; since_date?: string }, { env }) =>
+      input.account_id
+        ? listAccountTransactions(env, input.budget_id, input.account_id, {
+            sinceDate: input.since_date,
+          })
+        : listPlanTransactions(env, input.budget_id, { sinceDate: input.since_date }),
   },
   {
     name: "get_account_balances",
