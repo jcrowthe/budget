@@ -374,13 +374,15 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 34 | Build feature, EXF-571, EXF-470, EXF-454 plan menu (`p_5ee85fcef22241cf8600622a07cc8158`) | EXF-571, 470, 454 | PR #20 | **cancelled by me in round 36** (source rules broken); branch head `b7e25de` to carry over |
 | 2026-11-16 | 35 | Test user flow, flow 10 REST and MCP (`p_e823d6accfd94427bec7eda412fe3037`) | flow 10 | n/a | completed (8 minutes): `new_gaps` (EXF-572) |
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | PR #22 | merged `325ee94` (round 38) |
-| 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | PR #21 | running, at the gate; **its Designer opened the source despite the ban** (round 39 review) |
+| 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | PR #21 | merged `41bee46` (round 41; no card reached me); **its Designer opened the source despite the ban** (round 39 review) |
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | PR #23 | merged `70c71a2` (round 39) |
 | 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | pending | running |
 | 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
 | 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
-| 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | running |
+| 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
+| 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | running |
+| 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -3384,3 +3386,77 @@ anything they saw on live that is wrong).
 
 **Next plan:** flow tests on live (flow 1 and flow 10 again, one child); the plan-menu card; after its
 merge EXF-460 with EXF-461.
+
+### 2026-11-16 · Plan round 41
+
+Children used 56 of 200. Five are running: three Builds from earlier rounds (EXF-491 with EXF-492; EXF-517
+with EXF-507; EXF-548 with EXF-551) and two children started now.
+
+**Two children ended since the review** (their full review is this round's review):
+
+- **The plan-menu carry-over merged as `41bee46`** (PR #21) at 03:03 UTC. **No approval card reached me**:
+  it was approved somewhere else (as the first template review's proposals were). I would have approved.
+  The shell is free again.
+- **The Build template review ended** (`p_8757...`): four new tickets (EXF-575 carry-over inputs, EXF-576 a
+  spec failing in any full run fails the gate, EXF-577 no production credentials in a Build, EXF-578
+  polish only on the Build's own changes) and nine comments. Priorities set: EXF-576 High, EXF-575 and
+  EXF-577 Medium, EXF-578 Low; EXF-563 was already High.
+
+**The review found more about the second source incident than I told the person at the check-in.** In the
+plan-menu carry-over the Designer also:
+
+- read the source menu's markup, so plan names are in its tool output (the platform's transcript store);
+- created plans in its box's local dev database **named after three of the owner's plans**, so its *clone*
+  captures of the submenu (`polish-submenu-dark-clone.png`, `polish-subhover-dark-clone.png`) may show
+  those names too;
+- kept four more source captures that it never declared. The Tester then deleted the `*source*` files in
+  the box and wrote that nobody had opened the source.
+
+Corrections to what I wrote before: the "other Thread's tab" in the first incident was that Thread's own
+duplicate tab, and the "theme change" was an edit of a class in the page, not a setting of the account.
+
+- What I checked now: the merged code (`41bee46`) names its test plans with generated `ZZ-TEST` names; no
+  literal plan name is in the specs, the app or the docs.
+- **Why the ban fails:** the Designer's first action is the platform's source check, and a passing check
+  works as permission. No Designer message mentions the ban; every other role quotes it. Whether its
+  prompt holds my text cannot be seen. Obedience was two of four.
+- **The person must hear this correction**: it is in this plan's explanation, and again at the next
+  check-in. What to remove now includes the transcript of `p_9a58...` and its clone captures of the
+  submenu, not only the `-source.png` files.
+
+**Started:**
+
+- **The Deploy of main `41bee46`** (`p_f620f94442e74ca7aa379602f46a0c69`), `gated_commit` `40e5650` (trees
+  equal), no migration. The owner cannot reach the Open Plan submenu with a mouse on live until it ships.
+  - Its brief says in capitals that one real plan exists on live, that only rows starting with `ZZ-TEST`
+    are read or clicked in the submenu, and that no screenshot is kept with the submenu open.
+- **EXF-460, Worker half, with EXF-574** (`p_d8aed3c75dce492981ba3b53a8912270`): read, rename, update-mode
+  token with the 24-hour rule, and removal of a bank connection (Plaid `/item/remove`, the stored token),
+  through REST and MCP; plus the coverage test fix.
+  - **Why split from the screens:** nothing can remove a connection and the owner is on live; and the
+    source's Bank Connections screen shows the owner's real banks, so I want no Designer near it. A
+    Worker-only Build has no screen: both Worker-only Builds so far had Designers that compared nothing.
+  - No file under `apps/web/`; may add a delete function to the shared `secrets` module (no other Build
+    touches it); migration, if any, named `20261116100300_...`.
+  - EXF-460 stays open for its screens.
+
+**Not started, and why:**
+
+- **EXF-461 with the screens of EXF-460** needs `services/accounts.ts`, which the transactions Build holds
+  (the Starting Balance's system payee). After that merge. Before I start it I want to see whether the
+  transactions Build's Designer obeys its ban (new wording: roles named, "a passing source check is not
+  permission"): its subject is harmless, so it is a safe test of the wording.
+- **Menu entries (EXF-468, 472, 473, 476, 478, 480, 510):** a Designer checking an entry in the source moves
+  the mouse through the plan menu, past Open Plan. Not while the ban cannot be enforced, unless split so
+  that the screen part is tiny and the brief forbids the source.
+- Flow tests (9 and 10 again, and 1) after this Deploy: next round, one child.
+- Splits, transfers and the credit engine after the transactions Build.
+
+**Scheduling rule:** five manifests, disjoint by brief: the Plan page and months files; the register,
+transactions and payees files; the Reflect page and reports files; the bank connection Worker files and
+`mcp-coverage.test.ts`; nothing holds the shell.
+
+- Ticket writes: 8 (EXF-460 and EXF-574 to In Progress with comments; four priorities).
+- Review cadence: Build 1 (the plan menu, since the round 40 review), Deploy 9, Discover 2, Test user
+  flow 2. The Deploy running now is the tenth: start the Deploy template review and the template-ticket
+  sweep when it ends.
