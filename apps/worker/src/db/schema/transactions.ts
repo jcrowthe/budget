@@ -20,10 +20,12 @@ export const transactions = sqliteTable(
     createdAt: text("created_at").notNull(),
     deletedAt: text("deleted_at"),
     updatedAt: text("updated_at").notNull(),
+    payeeId: text("payee_id"),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),
     index("transactions_account").on(t.accountId),
     index("transactions_category").on(t.categoryId),
+    index("transactions_payee").on(t.payeeId),
   ],
 );

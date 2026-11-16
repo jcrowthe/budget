@@ -334,7 +334,18 @@ describe("refusals", () => {
     const other = await account(bid);
     const cat = await groceries(bid);
     const sb = (await list(bid, credit)).transactions[0];
-    for (const body of [{ payee_name: "Other" }, { category_id: cat }, { account_id: other }]) {
+    const ordinary = (
+      (await (
+        await post(bid, { account_id: other, date: DAY, amount: 0, payee_name: "ZZ Other" })
+      ).json()) as Json
+    ).data.transaction.payee_id;
+    for (const body of [
+      { payee_name: "Other" },
+      { payee_id: ordinary },
+      { payee_id: null },
+      { category_id: cat },
+      { account_id: other },
+    ]) {
       const res = await patch(bid, sb.id, body);
       expect(res.status).toBe(409);
       expect(await errName(res)).toBe("starting_balance_locked");
@@ -348,7 +359,13 @@ describe("refusals", () => {
       amount: -1,
       payee_name: "Starting Balance",
     });
-    expect(res.status).toBe(422);
+    // A typed "Starting Balance" is an ordinary payee, distinct from the system one.
+    expect(res.status).toBe(201);
+    const typed = ((await res.json()) as Json).data.transaction;
+    expect(typed.payee_system).toBeNull();
+    expect(typed.payee_id).not.toBe(sb.payee_id);
+    const month = (await (await json(`/api/v1/budgets/${bid}/months/${MONTH}`)).json()) as Json;
+    expect(month.data.uncategorized.activity).toBe(-1);
   });
 
   it("404s and moving between accounts", async () => {

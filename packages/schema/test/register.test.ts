@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { categoryCell, sortTransactions } from "../src/register";
+import type { MonthGroupDetail } from "../src/months";
+import { categoryCell, categoryLabel, categoryMenu, sortTransactions } from "../src/register";
 import type { TransactionDetail } from "../src/transactions";
 
 let n = 0;
@@ -20,13 +21,20 @@ function tx(over: Partial<TransactionDetail>): TransactionDetail {
     created_at: `2026-11-10T00:00:00.${String(n).padStart(3, "0")}Z`,
     category_name: null,
     category_group_name: null,
+    payee_id: null,
+    payee_system: null,
     updated_at: "x",
     ...over,
   };
 }
 
 const rows = () => [
-  tx({ payee_name: "Starting Balance", amount: 500000, inflow_to_ready_to_assign: true }),
+  tx({
+    payee_name: "Starting Balance",
+    payee_system: "starting_balance",
+    amount: 500000,
+    inflow_to_ready_to_assign: true,
+  }),
   tx({
     payee_name: "ZZ Alpha",
     amount: -25000,
@@ -138,7 +146,10 @@ describe("categoryCell", () => {
       kind: "notNeeded",
     });
     expect(
-      categoryCell(tx({ payee_name: "Starting Balance" }), { type: "creditCard", on_budget: true }),
+      categoryCell(tx({ payee_name: "Starting Balance", payee_system: "starting_balance" }), {
+        type: "creditCard",
+        on_budget: true,
+      }),
     ).toEqual({ kind: "notNeeded" });
   });
   it("needs a category otherwise", () => {
@@ -161,5 +172,99 @@ describe("sorting by account", () => {
     const d = withAccount("ZZ Alpha", { date: "2026-11-09", amount: -7 });
     expect(sortTransactions([a, b, c, d], "account", "asc")).toEqual([d, c, b, a]);
     expect(sortTransactions([a, b, c, d], "account", "desc")).toEqual([a, d, c, b]);
+  });
+});
+
+describe("credit rows named Starting Balance", () => {
+  it("need a category unless the payee is the system payee", () => {
+    expect(
+      categoryCell(tx({ payee_name: "Starting Balance", payee_system: null }), {
+        type: "creditCard",
+        on_budget: true,
+      }),
+    ).toEqual({ kind: "needsCategory" });
+  });
+});
+
+const cat = (id: string, name: string, available: number, hidden = false) => ({
+  id,
+  name,
+  sort: 0,
+  hidden,
+  assigned: 0,
+  activity: 0,
+  available,
+  carried: 0,
+  target: null,
+});
+const groups = [
+  {
+    id: "g1",
+    name: "D4 Register",
+    sort: 0,
+    hidden: false,
+    collapsed: false,
+    assigned: 0,
+    activity: 0,
+    available: 0,
+    categories: [cat("c1", "D4 Groceries", 190000), cat("c2", "D4 Fuel", 5000, true)],
+  },
+  {
+    id: "g2",
+    name: "Other",
+    sort: 1,
+    hidden: true,
+    collapsed: false,
+    assigned: 0,
+    activity: 0,
+    available: 0,
+    categories: [cat("c3", "Misc", 0)],
+  },
+  {
+    id: "g3",
+    name: "Empty",
+    sort: 2,
+    hidden: false,
+    collapsed: false,
+    assigned: 0,
+    activity: 0,
+    available: 0,
+    categories: [],
+  },
+] satisfies MonthGroupDetail[];
+
+describe("categoryMenu", () => {
+  it("lists Inflow first, then every group with categories, hidden included", () => {
+    const m = categoryMenu(groups, 42000, "");
+    expect(m.groups.map((g) => g.name)).toEqual(["Inflow", "D4 Register", "Other"]);
+    expect(m.flat.map((r) => r.name)).toEqual([
+      "Ready to Assign",
+      "D4 Groceries",
+      "D4 Fuel",
+      "Misc",
+    ]);
+    expect(m.flat[0]?.amount).toBe(42000);
+  });
+  it("matches category names, case-insensitively", () => {
+    expect(categoryMenu(groups, 0, "d4 gro").flat.map((r) => r.name)).toEqual(["D4 Groceries"]);
+  });
+  it("a matching group lists all its categories", () => {
+    expect(categoryMenu(groups, 0, "d4 reg").flat.map((r) => r.name)).toEqual([
+      "D4 Groceries",
+      "D4 Fuel",
+    ]);
+    expect(categoryMenu(groups, 0, "inflow").flat.map((r) => r.name)).toEqual(["Ready to Assign"]);
+  });
+  it("is empty with no match", () => {
+    expect(categoryMenu(groups, 0, "zzzz").empty).toBe(true);
+  });
+});
+
+describe("categoryLabel", () => {
+  it("shows Group: Category", () => {
+    expect(categoryLabel({ kind: "category", id: "c1" }, groups)).toBe("D4 Register: D4 Groceries");
+    expect(categoryLabel({ kind: "rta" }, groups)).toBe("Inflow: Ready to Assign");
+    expect(categoryLabel({ kind: "none" }, groups)).toBe("");
+    expect(categoryLabel({ kind: "category", id: "zz" }, groups)).toBe("");
   });
 });

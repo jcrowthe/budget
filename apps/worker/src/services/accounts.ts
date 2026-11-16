@@ -21,6 +21,7 @@ import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
+import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { transactionToApi } from "./transactions";
 
@@ -204,6 +205,7 @@ export async function addUnlinkedAccount(
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   if (await accountsRepo.nameTaken(db, budgetId, v.name)) throw new NameTaken();
   const amount = startingBalanceAmount(v.type, v.balance);
+  const existingSystem = await payeesRepo.findSystem(db, budgetId, "starting_balance");
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const now = new Date().toISOString();
     const row: accountsRepo.AccountRow = {
@@ -219,11 +221,22 @@ export async function addUnlinkedAccount(
       createdAt: now,
       deletedAt: null,
     };
+    const sys: payeesRepo.PayeeRow = existingSystem ?? {
+      id: crypto.randomUUID(),
+      budgetId,
+      name: STARTING_BALANCE_PAYEE,
+      hidden: false,
+      system: "starting_balance",
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
     const tx: txRepo.TransactionRow = {
       id: crypto.randomUUID(),
       budgetId,
       accountId: row.id,
       date: v.date ?? opts.today ?? now.slice(0, 10),
+      payeeId: sys.id,
       payeeName: STARTING_BALANCE_PAYEE,
       categoryId: null,
       inflowToReadyToAssign: startingBalanceFeedsReadyToAssign(v.type),
@@ -253,7 +266,25 @@ export async function addUnlinkedAccount(
         g1,
       ),
       accountsRepo.insertIfStmt(db, row, g1),
-      txRepo.insertIfStmt(db, tx, g2),
+      ...(existingSystem
+        ? []
+        : [
+            payeesRepo.insertSystemIfMissingStmt(db, sys),
+            changeLogInsertIf(
+              db,
+              {
+                budgetId,
+                actor,
+                action: "create",
+                entityType: "payee",
+                entityId: sys.id,
+                before: null,
+                after: { id: sys.id, name: sys.name, hidden: false, system: sys.system },
+              },
+              payeesRepo.existsStmt(db, sys.id),
+            ),
+          ]),
+      txRepo.insertIfStmt(db, tx, g2, payeesRepo.systemIdSql(budgetId, "starting_balance")),
       changeLogInsertIf(
         db,
         {
@@ -268,7 +299,13 @@ export async function addUnlinkedAccount(
         g2,
       ),
     ]);
-    if (result.meta.changes > 0) return { account, starting_balance: transactionToApi(tx) };
+    if (result.meta.changes > 0) {
+      const linked = await payeesRepo.findSystem(db, budgetId, "starting_balance");
+      return {
+        account,
+        starting_balance: transactionToApi({ ...tx, payeeId: linked?.id ?? null }),
+      };
+    }
     if (await accountsRepo.nameTaken(db, budgetId, v.name)) throw new NameTaken();
   }
   throw new Conflict("Account order");
