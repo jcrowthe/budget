@@ -5750,3 +5750,63 @@ entry at a rebase.
 
 Ticket writes: 4 (two to In Progress, two comments). Review cadence: Build 5, Deploy 7, Discover 2,
 Test user flow 5. **Round 70's review is a check-in.**
+
+### 2026-11-16 · Review round 69
+
+Children used 83 of 200. One child ended: the Deploy, and this time it shipped. Three Builds are running.
+
+**Ended: the Deploy of `e2bcd35`, third attempt (`p_a6a99ac78c284ea7bef1a14072609fe8`), passed.**
+**Live is https://budget.doxen.dev at `e2bcd35`**, equal to main (I read the health endpoint myself).
+
+- Gate: checks 124 s, browser run skipped (tree equal to the gated `a003430`). Release 31 s: the D1 Time
+  Travel bookmark was taken (the verifier was not given its value), **migration
+  `20261116100500_transfers_splits.sql` applied, none pending**, smoke ok. Health and `/mcp` without
+  credentials: 401.
+- **Every figure I worked out by hand matched**, in order, on one test plan: Ready to Assign 1,000,000;
+  after the transfer 1,000,000; after the split 1,000,000 with the account at 700,000 and Net Worth
+  900,000; after `adjust-balance` on the account holding a split 1,050,000; after closing 850,000, then
+  422 `account_closed` twice; after assigning 810,000 with the target's 60,000 to go (status
+  `underfunded`) and `today=nope` refused; after the inflow 1,060,000 with the payee's flag set;
+  Spending Breakdown total 100,000 with 60 and 40 percent, one drill-down row, a ZIP with the two CSVs.
+- MCP: **55 tools**, as expected; `create_transfer` to a closed account gives a readable error.
+- Browser, real mouse, at 1440 and 1024: the Spending Breakdown report with its popover and Groups
+  toggle; a transfer and a split entered in the register (a split that does not add up opens the
+  "Something Doesn't Add Up" dialog); the closed account's disabled Add Transaction; the payee filling
+  "Inflow: Ready to Assign"; Edit Account on an account with splits; the Target card, whose Assign
+  button moved Assigned to $100.00 and Ready to Assign down by $60.00 with no reload. No failed
+  request, no console error. Its first browser scripts had faults of their own; it re-ran and said
+  which run each statement came from, as asked.
+- Two things it noted, both fine: the transfer create answers with one transaction (the side asked
+  for) that points at the other; and on a category that is both overspent and has a target the grid
+  row shows the overspent text, not the target's.
+- Cleanup: `purge 'ZZ-TEST D19'` printed `deleted 1 remaining 0`. One plan that is not a test plan.
+  No Plaid call.
+
+**So the Deploy fault of rounds 66 and 67 is not constant.** Evidence added to EXF-612, which stays
+Urgent: nobody has said what changed, and `request.json` still vanishes in Builds.
+
+**What is live now that was not at the last check-in:** transfers between accounts, split
+transactions, targets (create, edit, delete, display, Assign), the account balance fixes and closed
+accounts refusing new transactions, the payee remembering Ready to Assign, timestamp formats in tool
+descriptions, and the Reflect Spending Breakdown report with drill-down and export.
+
+**Running:**
+- **Plan-page Build** (`p_3b70b79de2c54d278a92cb5686f8ed74`): head `6662c05`, in polish.
+- **Import carry-over** (`p_c81492d33faf41b1bc8a985e48688b83`): head `7f94354`. Its review loop ran out
+  after three rounds, each with a real and narrower defect in how a sync creates a payee, each fixed.
+  At its card I chose Proceed after reading the last fix myself (a fresh id for every payee insert,
+  the history row under the same id and guard, the transaction's history copy from the same name
+  lookup). **At its approval card: read the whole sync again; ask the Tester's result on whether the
+  new race test fails on the old code.**
+- **Reflect Build for two reports** (`p_e02811d8e6bd45bdbfe5e34e4cbd6c0d`): started, planning.
+
+**Ticket writes:** 1 (the comment on EXF-612).
+
+**Backlog:** 62 open feature tickets (32 done; 7 in progress: EXF-500, 516, 519, 462, 463, 550, 552).
+Gap: open EXF-558, EXF-560, EXF-562, EXF-589 (Low). Template: twenty-nine (EXF-573 and EXF-612
+Urgent). Flow verdicts are now stale for 1, 2, 8 and 9 (new features live). Finished since each
+template's last review: Build 5, Deploy 8 (three of them never ran), Discover 2, Test user flow 5.
+
+**Next plan:** flow tests on live `e2bcd35`: flow 2 in full (transfers, splits, closed accounts), flow 3
+as far as built (targets; Auto-Assign is not live yet), flow 8 (Spending Breakdown), flow 9 again.
+**Round 70's review is a check-in.**
