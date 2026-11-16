@@ -161,7 +161,13 @@ export function EditAccountDialog({
       >
         <div className="dialog-head">
           <h2>Edit Account</h2>
-          <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+          >
             <CloseIcon />
           </button>
         </div>

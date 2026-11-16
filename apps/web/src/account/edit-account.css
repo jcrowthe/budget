@@ -1,26 +1,44 @@
 /* Edit Account and Close Account: the dialog box itself is `.dialog.form` (shell/global.css). */
 .edit-account .form-body h3 {
-  margin: 0 0 var(--space-3);
-  font-size: var(--font-size-lg);
+  margin: 0 0 11.8px;
+  padding-bottom: var(--space-1);
+  font-size: var(--font-size-md);
   font-weight: 600;
+  line-height: var(--line-height);
 }
-.edit-account .field {
+.dialog.form.edit-account .dialog-head .icon-button {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.dialog.form.edit-account .dialog-head .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.dialog.form.edit-account .field {
   display: block;
   box-sizing: border-box;
   width: 100%;
-  margin-bottom: var(--space-3);
+  margin-bottom: 15px;
   border: 1px solid var(--inputBorder);
   background: var(--inputBackground);
   color: var(--labelPrimary);
   font-family: inherit;
   font-weight: 500;
 }
-.edit-account textarea.field {
+.dialog.form.edit-account input.field {
+  margin-top: var(--space-2);
+}
+.dialog.form.edit-account textarea.field {
+  height: auto;
   min-height: 32px;
   resize: vertical;
-  line-height: 1.4;
+  line-height: var(--line-height);
 }
-.edit-account textarea.field:focus {
+.dialog.form.edit-account textarea.field:focus {
   border-color: var(--actionPrimary);
 }
 .edit-account hr {
@@ -34,7 +52,7 @@
   font-size: var(--font-size-sm);
 }
 .edit-account .error-bar {
-  margin: calc(-1 * var(--space-3)) 0 var(--space-3);
+  margin: -15px 0 var(--space-3);
   padding: 4px 8px;
   border-radius: 0 0 4px 4px;
   background: var(--statusNegative);

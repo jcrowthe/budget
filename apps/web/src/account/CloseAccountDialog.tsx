@@ -37,7 +37,13 @@ export function CloseAccountDialog({
       >
         <div className="dialog-head">
           <h2>Close Account</h2>
-          <button type="button" className="icon-button" aria-label="Close" onClick={onCancel}>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close"
+            title="Close"
+            onClick={onCancel}
+          >
             <CloseIcon />
           </button>
         </div>
