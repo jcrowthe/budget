@@ -392,6 +392,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | PR #30 | merged `74f1041` (round 53), 45 minutes, one card |
 | 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
 | 2026-11-16 | 51 | Test user flow, flow 1 again and flow 2 as far as built (`p_01e3392182944b22b75a9e0234f7aa17`) | flows 1, 2 | n/a | completed (14 minutes): flow 1 `parity_known_gaps`, flow 2 `new_gaps` (EXF-590) |
+| 2026-11-16 | 54 | Deploy of main `74f1041` (`p_440603eb108042738ca17f4ef6e712ba`) | EXF-548 (frame), 551, 461 (Worker) | n/a | running |
+| 2026-11-16 | 54 | Build feature, EXF-486 and EXF-488 edit, close, reopen, delete an account (`p_5847cffd67c1400f9cdba4c83a59afa1`) | EXF-486, 488 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4437,3 +4439,43 @@ Build: the from-bank tool is the first step to live bank data.
 EXF-588, EXF-590 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress EXF-586 (High). Template:
 twenty-six. Flow verdicts: 1 `parity_known_gaps`, 2 `new_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished
 since each template's last review: Build 7, Deploy 2, Discover 2, Test user flow 4.
+
+### 2026-11-16 · Plan round 54
+
+Children used 67 of 200. Four are running: two Builds from earlier rounds (the Plan-page Build, whose gate
+ran on an older base; EXF-526 with EXF-524, e2e specs written) and two children started now.
+
+- No ticket was filed at the last review. The person's note at the check-in: not provided.
+- **Started the Deploy of main `74f1041`** (`p_440603eb108042738ca17f4ef6e712ba`), `gated_commit` `23ffc1d`
+  (trees equal), run prefix `ZZ-TEST D14`. It ships Reflect with Net Worth and the Worker half of linked
+  accounts. Two migrations pending: `100200` (sorts before an applied one) and `100600`.
+  - Checks: Net Worth figures through REST with four accounts (assets 12,500.00, debts -5,000.00), the
+    account filter, the CSV, report settings; the account-link fields and refusals (no connection is
+    created); 43 tools expected; the Reflect screens with a real mouse at two sizes.
+  - I did not wait for the Plan-page Build: it still needs a regate, and the from-bank tool is the first
+    step towards live bank data.
+- **Started EXF-486 with EXF-488** (`p_5847cffd67c1400f9cdba4c83a59afa1`): the Edit Account dialog (name,
+  notes, balance adjustment through the system payee `manual_adjustment`) and close, reopen and delete.
+  - **Why this one:** the accounts files and the shell are free; the other ready work needs the Plan page
+    or the transactions files.
+  - Surface: `PATCH .../accounts/{id}` takes `name` and `note`; `adjust-balance`, `close`, `reopen`,
+    `DELETE`; tools `adjust_account_balance`, `close_account`, `reopen_account`, `delete_account`;
+    `can_delete` on reads; the owner's date as `today`.
+  - Decisions: an empty balance field is refused (the source zeroes the account); closing or deleting a
+    linked account unlinks it in the same batch; the dialog's Bank Connection and Loan Details sections
+    are not drawn.
+  - It holds the shell (the only Build doing so) and the accounts files. It may call, not edit, the
+    transactions and payees files (the transfers and splits Build is changing them: fix calls at rebase).
+  - Source: limited. One place (the Edit Account dialog of a closed account of the test plan); look, hover,
+    Cancel. Never Save, Re-open or Delete; never the dialog's Bank Connection section, Link Account, Bank
+    Connections, Add Account, the plan menu or another plan.
+- **Scheduling rule, three Builds:** the Plan page with months and categories; transactions, payees and the
+  register; accounts and the shell. Disjoint by brief.
+- **Now that a connection can be removed, a flow test may connect a Sandbox bank on a test plan** (Plaid
+  Link in the browser with Plaid's public Sandbox test login), add its accounts through MCP, and must
+  remove the connection before it ends. Plan it for the flow test after the next Deploy (flow 5 as far as
+  built), with flows 8 and 9.
+- Not started: EXF-462 (import) with EXF-587 and EXF-590 wait for the transfers and splits Build; the
+  targets screens for the Plan-page Build.
+- Ticket writes: 4 (two to In Progress, two comments).
+- Review cadence: Build 7, Deploy 2, Discover 2, Test user flow 4.
