@@ -50,7 +50,8 @@ app.openapi(
     try {
       out = await exportPlan(c.env, budget_id, c.req.valid("query"));
     } catch (e) {
-      if (e instanceof ExportNowOutOfRange) return apiError(c, 422, "unprocessable_entity", e.message);
+      if (e instanceof ExportNowOutOfRange)
+        return apiError(c, 422, "unprocessable_entity", e.message);
       throw e;
     }
     const { fileName, bytes } = out;
