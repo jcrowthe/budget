@@ -7270,3 +7270,34 @@ Discover 2, Test user flow 8.
 **Next plan:** with nothing in flight on live, a flow test: flow 2 again (the register's selection,
 bulk actions, flags and export are new there) together with flow 1 as a regression. Cards may be
 approved again (no Deploy running).
+
+### 2026-11-16 · Plan round 84
+
+Children used 102 of 200. One started now; five are running with the shell Build, the credit engine
+carry-over, scheduled transactions and the Reflect fixes. (The template-ticket sweep has ended; its
+report is for the next review.) Main `8ec621e`, live `8ec621e`.
+
+- The ticket filed at the last review exists: **EXF-631** (three leftovers in the repository), set to
+  Low.
+- **Started: flow 2, third run, on live** (`p_e031b218fd5b42bf981f4d1bfa178a3b`; prefix `ZZ-TEST F84`).
+  The Deploy's check proved the bulk API; this run walks what a person does: ticking rows, the header
+  checkbox, ctrl+A, shift+click, the Selected Total; Categorize, flags (menu and shift+F), `C`, Memo,
+  Move to Account (and a refused move into a tracking account), Duplicate, Delete of a plain row, a
+  transfer and a split; the export from a selection; what is drawn disabled; Approve for an
+  unapproved row; that typing in a field is not a command; All Accounts; another plan never showing
+  this plan's selection; a measured look at 1024×700; REST and MCP against the screen; the history
+  table.
+  - The setup is seeded through REST so that every balance after each step is known: 802.66 at the
+    start, then 797.66, 827.66, 787.66, 827.66, 1,027.66, 1,127.66, 1,120.66, 1,127.66; Cleared 900.00
+    and Uncleared −102.34 after clearing four rows; Hobbies −170.00 then −130.00; Dining −82.34 then
+    −22.34. As before: "DIFFERS FROM THE BRIEF" with the tester's own arithmetic if one of mine is
+    wrong.
+  - New in the brief: a separate fault noticed beside a gap is filed as its own ticket by the tester
+    (the last run left one in the report for me to file).
+  - No source app, no bank connection, no response headers.
+- **Not started:** no Build (the four running hold every free ticket's files); no Deploy (main and
+  live are equal). Flow 8 is rerun after the Reflect fixes are live, flow 7 after scheduled
+  transactions, flow 4 after the credit engine and its screens.
+
+Ticket writes: 1 (EXF-631 priority). Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 8
+(the ninth is running).
