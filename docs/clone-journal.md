@@ -3849,3 +3849,20 @@ EXF-460 goes back to Backlog with a comment: its Worker half is on main, its scr
 EXF-558 and EXF-586 (High), EXF-587 (Medium), EXF-560, EXF-562 (Low); in progress EXF-569, EXF-579; done
 now also EXF-574. Template: twenty-six. Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`,
 11 `parity`. Finished since each template's last review: Build 2, Deploy 0, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Plan round 46
+
+Children used 59 of 200. Four Builds are running, all from earlier rounds: EXF-491 with EXF-492 and
+EXF-517 with EXF-507 (both at their gates), EXF-548 with EXF-551 (polish applied), EXF-579 with EXF-569
+(built). **Nothing started this round.**
+
+- No ticket was filed at the last review.
+- **No Deploy yet.** Main `3007076` is one Worker-only merge ahead of live `41bee46` (bank connection read,
+  rename, reset, remove). No connection exists on live, so nothing waits for it; two Builds are at their
+  gates, and one Deploy will ship them together.
+- **Nothing new can start.** The bank-connection files are free again, but what needs them also needs files
+  the transactions Build holds: EXF-461 (`services/accounts.ts`), EXF-462 (the transactions repository),
+  EXF-587 (the transactions tool file).
+- The Reflect branch still has `placeholderData: keepPreviousData` in `api/reports.ts` line 117: ask for the
+  plan-scoped placeholder at its card (EXF-586's rule), unless the query key change already makes it safe.
+- Review cadence: Build 2, Deploy 0, Discover 2, Test user flow 3.
