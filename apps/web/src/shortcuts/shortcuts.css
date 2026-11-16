@@ -71,7 +71,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--borderSubtle);
   break-inside: avoid;

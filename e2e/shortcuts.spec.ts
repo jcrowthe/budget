@@ -141,4 +141,8 @@ test("P1 dialog rows are 45 high and the key caps group has no box of its own", 
     "rgba(0, 0, 0, 0)",
   );
   expect(await caps.evaluate((el) => getComputedStyle(el).paddingLeft)).toBe("0px");
+  // Source: "Navigate the date picker" is 45 high, as the other rows (li has no gap; same measurement). Only
+  // "Move to previous transaction field" wraps (59 high) in both.
+  const nav = dialog(page).locator("li").filter({ hasText: "Navigate the date picker" });
+  expect(Math.round((await nav.boundingBox())?.height ?? 0)).toBe(45);
 });
