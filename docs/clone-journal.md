@@ -6151,3 +6151,37 @@ review is due.**
 
 **Next plan:** flow 5 on live against the Plaid Sandbox, with the import (and flow 10 again). The
 cards of the three Builds may be approved again as they come: the Deploy has released.
+
+### 2026-11-16 · Plan round 74
+
+Children used 88 of 200. One started now; four are running with the Plan-page Build (rework on its way
+to the gate), the two-report Reflect Build (regating on `c9e9d1c`) and the register Build (in checks
+and reviews). Main and live are both `c9e9d1c`. No ticket was filed at the last review.
+
+**Started: flow tests on live `c9e9d1c`** (`p_1a06c903df354fd0ad9f020e918dccac`), one child, run prefix
+`ZZ-TEST F74`:
+- **Flow 5, second run, with the import** (previous `p_2dd7fe181bcc4d478325a3cef0c35e32`,
+  `parity_known_gaps`): connect First Platypus Bank through Add Account and Plaid's own window; link
+  the checking account through the API **with `today` set 60 days back**, because the import skips
+  everything before an account's start date and the Sandbox's transactions lie in the past (with
+  today's date nearly all would be skipped and the test would prove nothing); sync and keep a table
+  of every sync call (duration, counts, `has_more`): the evidence EXF-613 left open; check signs,
+  no doubled `import_id`, balance arithmetic; a second sync adds nothing; approve, reject, delete and
+  sync again; a second account linked later must not disturb the first; **matching in a second plan**
+  (a hand entry 3 days before an import matches, one 12 days before does not); no token text in any
+  answer; remove the connection whatever happens.
+  - It syncs only the connection it made, uses no Plaid secret and never calls Plaid itself.
+  - If a sync fails it stops syncing, reads the connection's status and `sync_failed_at`, and files
+    the failure as its own ticket with the table.
+- **Flow 10, third run** (previous `p_b3b54aec56044df2a755ef5d984061f4`, `new_gaps`, EXF-587 fixed):
+  59 tools; every REST operation has a tool or a recorded reason; descriptions and timestamps; the
+  same answers through REST and MCP for transfers, splits, targets, the two reports, account
+  adjustments, closed accounts, payees; readable errors; history actors.
+
+**Not started:** flows 3 and 8 (their Builds are not live); the credit engine and scheduled
+transactions (their files are held); no Deploy (main equals live).
+
+**The Deploy that ships the next merges will be the tenth since the Deploy template's review** (round
+43): start that review after it, with the ten Threads, three of which never ran.
+
+Ticket writes: 0. Review cadence: Build 7, Deploy 9, Discover 2, Test user flow 6.
