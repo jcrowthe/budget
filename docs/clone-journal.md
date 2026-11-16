@@ -6080,3 +6080,28 @@ Discover 2, Test user flow 6.
 
 **Next plan:** Deploy `c9e9d1c` now (the import with its budget: this is the release flow 5 needs), then
 flow 5 against the Sandbox.
+
+### 2026-11-16 · Plan round 73
+
+Children used 87 of 200. One started now; four are running with the Plan-page Build (in its rework), the
+two-report Reflect Build (polish) and the register Build (built). Main `c9e9d1c`, live `e2bcd35`. No
+ticket was filed at the last review.
+
+**Started: the Deploy of main `c9e9d1c`** (`p_0d0b7a1cf82b47e8a58ef3627a6978bd`), `gated_commit` `141f5e3`
+(trees compared: identical), run prefix `ZZ-TEST D20`. Two merges (the import; its per-run budget), two
+additive migrations (`100800`, `100900`; the pending script lists exactly these).
+- It makes no bank connection and no call to Plaid. Checks without a bank: the new fields on hand-entered
+  rows (`approved` true, no `import_id`), the `needs` read, approve as a no-op, reject answering 409,
+  the plan's sync returning an empty list, the two counts on the account, 59 tools, a working balance
+  of 482,660 after my two outflows, and the register, Plan page and Spending Breakdown still loading.
+- It stops after the gate if main has moved. **Main can only move by my approval: I approve no Build's
+  card until this Deploy has released.**
+
+**Next plan, when it is live: flow 5 against the Sandbox** (connect through Add Account, link through
+the API, sync, count entries and runs, approve, reject, re-sync, remove), which is the evidence EXF-613
+left open; flow 10 again in the same child.
+
+**Not started:** the credit engine (needs `packages/core` and the months files: after the Plan-page
+Build); scheduled transactions (after the register Build); private screens (waiting for the person).
+
+Ticket writes: 0. Review cadence: Build 7, Deploy 8, Discover 2, Test user flow 6.
