@@ -71,7 +71,6 @@ export function CategoryInspector({
         onToggle={onToggle}
         right={<AvailablePill amount={c.available} display tone={pill?.tone} icon={pill?.icon} />}
       >
-        <OverspentMessage c={c} />
         {rows.map(([label, value]) => (
           <div key={label} className="panel-row">
             <span className="panel-row-label">{label}</span>
@@ -80,6 +79,7 @@ export function CategoryInspector({
             </span>
           </div>
         ))}
+        <OverspentMessage c={c} />
       </PanelCard>
       {!payment && (
         <TargetCard

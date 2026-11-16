@@ -7,7 +7,10 @@
   /* EXF-535, from the source's stylesheet (dark theme): the overspending message boxes. */
   --calloutNegativeSubtleBackground: #4c0814;
   --calloutWarningSubtleBackground: #362c05;
-  --calloutSubtleLabel: #fff;
+  --calloutNegativeLabel: #fff;
+  --calloutWarningSubtleBackgroundLabel: #fff;
+  --calloutNegativeSubtleBackgroundEmphasis: #912333;
+  --calloutWarningSubtleBackgroundEmphasis: #a38100;
 }
 
 /* The grid keeps its 562px minimum: the panel is at most 60% of the body and at most what is left of it. */
@@ -268,22 +271,36 @@
   color: var(--categoryBalanceNegativeLabel);
 }
 
-/* EXF-535: the message of an overspent category, the first thing in the Available Balance card. */
+/* EXF-535: the message of an overspent category, after the rows of the Available Balance card. Measured on the
+   source's .impact-message (dark): centred, radius 8px, line-height 1.2, padding 16px, 8px under the rows;
+   the amount is a chip (weight 600, padding 0 4px, radius 4px). */
 .inspector-message {
   box-sizing: border-box;
-  margin-bottom: 16px;
+  margin-top: var(--space-2);
   padding: 16px;
-  border-radius: 0.5em;
-  line-height: 1.5;
-  color: var(--calloutSubtleLabel);
+  border-radius: 0.5rem;
+  line-height: 1.2;
+  text-align: center;
   cursor: default;
 }
+/* .inspector-message.negative also beats reflect.css's global .negative colour */
 .inspector-message.negative {
   background: var(--calloutNegativeSubtleBackground);
+  color: var(--calloutNegativeLabel);
 }
 .inspector-message.cautious {
   background: var(--calloutWarningSubtleBackground);
+  color: var(--calloutWarningSubtleBackgroundLabel);
 }
 .inspector-message strong {
-  font-weight: 700;
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+.inspector-message.negative strong {
+  background: var(--calloutNegativeSubtleBackgroundEmphasis);
+}
+.inspector-message.cautious strong {
+  background: var(--calloutWarningSubtleBackgroundEmphasis);
 }

@@ -106,13 +106,42 @@ export function overspentPill(
     : { tone: "negative", icon: null };
 }
 
-/** The pill look of a category: the overspending state first, else its target's, else the plain pill (null). */
-export function categoryPill(c: MonthCategoryDetail): {
+/** The titles of a credit card payment category's pill (the source's tooltip.budget.positivePayment / negativePayment). */
+export const paymentPillTitle = (available: number): string => {
+  if (available > 0) {
+    return `You have ${money(available)} set aside for payment. (Want to send more? Add money to Assigned.)`;
+  }
+  if (available < 0) {
+    return "Red in your payment? Assign more (and cover overspending) to get back to green!";
+  }
+  return "";
+};
+
+/** The title of a credit-overspent pill (the source's tooltip.budget.creditOverspent); the amount is the credit part. */
+export const creditOverspentTitle = (credit: number): string =>
+  `You've overspent this category by ${money(credit)} with credit. Cover this overspending to avoid creating debt!`;
+
+type CategoryPill = {
   tone: "zero" | "positive" | "negative" | "cautious";
   icon: "clock" | "check" | "clockCheck" | "snooze" | "card" | null;
   title: string;
-} | null {
+};
+
+/** The pill look of a category: the overspending state first, else its target's, else the plain pill (null). */
+export function categoryPill(c: MonthCategoryDetail): CategoryPill | null {
   const over = overspentPill(c);
-  if (over) return { ...over, title: pillTitle(c.available) };
-  return c.target ? targetPill(c) : null;
+  let pill: CategoryPill | null = null;
+  if (over) {
+    const title =
+      over.icon === "card" && c.overspent
+        ? creditOverspentTitle(c.overspent.credit)
+        : pillTitle(c.available);
+    pill = { ...over, title };
+  } else if (c.target) pill = targetPill(c);
+  if (c.kind === "credit_card_payment") {
+    const tone =
+      pill?.tone ?? (c.available === 0 ? "zero" : c.available > 0 ? "positive" : "negative");
+    return { tone, icon: pill?.icon ?? null, title: paymentPillTitle(c.available) };
+  }
+  return pill;
 }

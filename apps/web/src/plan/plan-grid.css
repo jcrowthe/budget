@@ -9,6 +9,8 @@
   --categoryBalanceZeroLabel: #9b9caa;
   --categoryBalancePositiveLabel: #0c0d22;
   --categoryBalancePositiveHover: #508316;
+  --categoryBalanceWarningBackground: #f6c91d;
+  --categoryBalanceWarningBackgroundActive: #daac00;
   --categoryBalanceNegativeLabel: #fff;
   --categoryBalanceNegativeHover: #912333;
   --budgetBarFundedSpending: #346011;
@@ -165,8 +167,6 @@
   padding: 0 2px 0 6px;
 }
 .cell-available {
-  /* EXF-535: the widest pill (the card icon and "−$1,200.00") must not run out of its column at 1024px */
-  min-width: 7.5rem;
   padding: 0;
   display: flex;
   justify-content: flex-end;
@@ -482,6 +482,14 @@ button.category-name {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  /* 1024px: the pill shrinks in its column and clips, as the source's does (measured: 84.3px cell) */
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.available-pill .pill-amount {
+  min-width: 0;
+  overflow: hidden;
 }
 .available-pill.zero {
   background: var(--inputBackground);
@@ -495,8 +503,11 @@ button.category-name {
   background: var(--categoryBalancePositiveHover);
 }
 .available-pill.cautious {
-  background: var(--statusCautious);
+  background: var(--categoryBalanceWarningBackground);
   color: var(--categoryBalanceCautiousLabel);
+}
+.available-pill.cautious:hover:not(:disabled) {
+  background: var(--categoryBalanceWarningBackgroundActive);
 }
 .available-pill .pill-icon {
   flex: none;
@@ -505,7 +516,8 @@ button.category-name {
 /* EXF-535: the credit-overspent pill keeps the label colour for its card icon, with the source's .35rem gap. */
 .available-pill.credit .pill-icon {
   fill: currentColor;
-  margin: -1px 0.35rem 0 0;
+  /* source: the icon is 13x13, margin auto .35rem auto auto */
+  margin: auto 0.35rem auto 0;
 }
 .status-label strong {
   font-weight: 700;

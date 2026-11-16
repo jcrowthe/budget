@@ -48,8 +48,15 @@ export function AvailablePill({
   const cls = `available-pill ${kind}${icon === "card" ? " credit" : ""}`;
   const content = (
     <>
-      {Icon && <Icon className="pill-icon" width={14} height={14} data-icon={icon} />}
-      {money(amount)}
+      {Icon && (
+        <Icon
+          className="pill-icon"
+          width={icon === "card" ? 13 : 14}
+          height={icon === "card" ? 13 : 14}
+          data-icon={icon}
+        />
+      )}
+      <span className="pill-amount">{money(amount)}</span>
     </>
   );
   if (display) {
