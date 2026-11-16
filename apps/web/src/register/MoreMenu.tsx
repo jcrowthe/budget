@@ -127,20 +127,7 @@ export function MoreMenu({
               ],
             ]
           : []),
-        [
-          {
-            label: "Match",
-            icon: <LinkIcon />,
-            keys: ["M"],
-            disabled: { ticket: "EXF-464", title: MATCH_TITLE },
-          },
-          {
-            label: "Unmatch",
-            icon: <LinkBrokenIcon />,
-            keys: ["shift", "U"],
-            disabled: { ticket: "EXF-464" },
-          },
-        ],
+        matchGroup,
         [
           {
             label: "Duplicate",

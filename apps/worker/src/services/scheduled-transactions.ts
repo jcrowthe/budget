@@ -237,7 +237,7 @@ export async function createScheduled(
       budgetId,
       accountId: account.id,
       dateFirst: v.date_first,
-      dateNext: place.kind === "schedule" ? place.dateNext : place.dateNext,
+      dateNext: place.dateNext,
       frequency: v.frequency,
       amount: v.amount,
       payeeId: payee?.payeeId ?? null,
