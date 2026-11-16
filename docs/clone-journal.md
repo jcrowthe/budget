@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 4 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
+Review counters (finished children since that template's last review): Build 4 (last reviewed in round 24, fourteen Threads), Deploy 7, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -367,7 +367,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
 | 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
 | 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | pending | running |
-| 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | running |
+| 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
+| 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | running |
+| 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -2484,3 +2486,49 @@ numbers, risks, next steps, and four things only the person can do.
 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562 (Low), plus the one filed now. Template: fifteen.
 Finished since each template's last review: Build 4, Deploy 6 (7 when the running one ends), Discover 2,
 Test user flow 0.
+
+### 2026-11-16 · Plan round 31
+
+Children used 43 of 200. Four are running: the Builds for EXF-494 with EXF-495 (categories) and EXF-459
+(Plaid Link) from earlier rounds, and two started now.
+
+- The gap ticket filed at the last review exists: **EXF-570** (stored `updated_at`). Set to High and
+  started at once (below).
+- **The Deploy of `0de1856` ended, passed: live at `DEPLOY_SHA` `0de1856`.** Every check passed (Assigned
+  through the API and in the grid, the month note and limits read, `group` and `ui-state`, seven MCP tools,
+  the header and the sidebar in a browser, cleanup).
+- **The live clone now holds 1 plan that is not a test plan.** The person has signed in and created a plan:
+  sign-in works. From now on the live app holds their data. Consequences, in every brief that touches live:
+  - never open the bare `/` (it opens the plan opened last, perhaps theirs, and stamps it as opened);
+  - never list all plans through the API (use `scripts/live-test-plans.sh list`);
+  - mask non-test rows in any screenshot of the plan menu;
+  - never write another plan's name or id anywhere.
+  If their plan was created before the grid went live it has no categories until the categories Build
+  ships (existing plans were not backfilled). I do not look: it is their plan. The categories Build lets
+  them add groups themselves; mention it at the next contact.
+- **Test user flow inputs, learned from another clone's Threads:** the template takes one input, `flow`, a
+  free text that describes the flow or flows to walk; its report starts with `Verdict:` and has one row per
+  flow. So several flows fit in one child.
+- **Started the first flow test** (`p_943f5578ff6e4b7db6ffdab96fd95d00`): flows 9 (two plans keep their
+  data apart) and 11 (the Access lock), clone only. Flow 11 exists only in the clone; flow 9's source side
+  would need the source's plan list, which is forbidden, so it is not walked there. One child for two flows,
+  also as the first trial of this template on this profile (if a profile key is missing it must name all of
+  them). The live rules above are in its text.
+- **Started one Build for EXF-484, EXF-534 and EXF-570** (`p_24b188914bc64377afad573abac5152d`): the account
+  header with the star (`PATCH accounts {starred}`, an accounts summary, tools `get_account` and
+  `update_account`), the All Accounts register (plan-wide transactions list, ACCOUNT column), and
+  `transactions.updated_at` as a column with a backfill. It holds the account pages, the register, the
+  transactions files and the accounts service, repository, route and tool. Out of bounds: the shell and the
+  budgets files and scripts (EXF-459), the grid and the categories files (EXF-494, EXF-495), core.
+  - It must make `repositories/category-reassign.ts` (from the categories Build) set `updated_at` if that
+    file is on main when it rebases; otherwise it reports that, and I have it fixed in the next Build there.
+  - Disjoint from the two running Builds: the categories Build's manifest has no transactions or accounts
+    file; EXF-459 was told to stay out of the account page, register and transactions files (its manifest
+    has not arrived; check it against this one when it does: `services/accounts.ts` and `api/accounts.ts`
+    are the places to look).
+- **No Deploy now:** main `2fcde22` is one merge ahead of live (the register). One Deploy when the
+  categories Build merges; then flows 1, 2 and 10.
+- EXF-517 with EXF-507 (inline transactions, payee picker) waits for both this Build (same files) and the
+  categories Build (the shared category picker).
+- Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 0.
+- Ticket writes this round: 5.
