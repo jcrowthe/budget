@@ -146,6 +146,32 @@ export async function createTransaction(
 
 const MAX_ATTEMPTS = 5;
 
+/** A plain transaction from a schedule: its insert and its create log row, both written only while `guard` holds. */
+export function enteredTransactionWrites(
+  db: Db,
+  actor: string,
+  row: txRepo.TransactionRow,
+  names: { categoryName: string | null; groupName: string | null },
+  guard: SQLWrapper,
+): unknown[] {
+  return [
+    txRepo.insertIfStmt(db, row, guard),
+    changeLogInsertIf(
+      db,
+      {
+        budgetId: row.budgetId,
+        actor,
+        action: "create",
+        entityType: "transaction",
+        entityId: row.id,
+        before: null,
+        after: logShape({ ...row, ...names }),
+      },
+      guard,
+    ),
+  ];
+}
+
 /** A rule of the register routes failed; the route answers `status` with `code` and this message. */
 export class TransactionRefused extends Error {
   constructor(
