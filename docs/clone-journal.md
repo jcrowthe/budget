@@ -5810,3 +5810,37 @@ template's last review: Build 5, Deploy 8 (three of them never ran), Discover 2,
 **Next plan:** flow tests on live `e2bcd35`: flow 2 in full (transfers, splits, closed accounts), flow 3
 as far as built (targets; Auto-Assign is not live yet), flow 8 (Spending Breakdown), flow 9 again.
 **Round 70's review is a check-in.**
+
+### 2026-11-16 · Plan round 70
+
+Children used 84 of 200. One started now; four are running with the Plan-page Build (in polish), the
+import carry-over (at acceptance) and the two-report Reflect Build (planning). Main and live are both
+`e2bcd35`. No ticket was filed at the last review.
+
+**Started: flow tests on live `e2bcd35`** (`p_eabc968ad4f743d1834cb9c99a7e924e`), one child, run prefix
+`ZZ-TEST F70`:
+- **Flow 2, second run, now in full** (previous `p_01e3392182944b22b75a9e0234f7aa17`, `new_gaps`,
+  its gap EXF-590 fixed and live): outflow with arithmetic; the inflow whose payee now brings Ready to
+  Assign back; a split with a remainder refused and then saved; a transfer between on-plan accounts
+  (Ready to Assign unchanged); a transfer to a tracking account with a category; editing and deleting
+  a transfer; overspend and cover; a closed account; All Accounts; the API and MCP against the screen.
+  Figures worked out by hand and checked twice: Working 982.66, 1,232.66, 1,132.66, 932.66, 902.66,
+  952.66, 1,102.66; Dining activity -77.34 and Available -27.34; Hobbies 252.66 after the cover. The
+  brief says its own arithmetic decides if mine is off.
+- **Flow 9, third run** (previous `p_b3b54aec56044df2a755ef5d984061f4`, `new_gaps`, its gap EXF-586
+  fixed and live): two plans that differ in everything visible; switching through the submenu
+  (only its own rows; no capture with the menu open); the moment of the switch with the next read
+  held back 2 seconds, in the Plan page, the registers and both Reflect reports; wrong pairings by
+  address, API and MCP; pickers; deleting one plan leaves the other.
+- No source app at all. One numbers-only count of plans at the end.
+
+**Not started, and why:**
+- **Flow 3** (targets and Auto-Assign) and **flow 8** (Reflect): each would need a second run within
+  the hour, when the Plan-page Build and the Reflect Build go live. One run each, after that release.
+- **Flow 5** with the import: after the import is live.
+- No new Build: the three running hold the Plan page with `packages/core`, the register's Worker
+  files, and Reflect.
+- No Deploy: main equals live.
+
+Ticket writes: 0. Review cadence: Build 5, Deploy 8, Discover 2, Test user flow 5. **This round's
+review is a check-in.**
