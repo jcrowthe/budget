@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 9, Test user flow 2,
+Review counters (finished children since that template's last review): Build 0 (reviewed in round 24, fourteen Threads, and sent for review in round 40, eleven Threads), Deploy 10 (**review due**), Test user flow 2,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -381,7 +381,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
-| 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | released, live `41bee46`; its verifier still running at the round 42 plan |
+| 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | live `41bee46` (6 minutes) |
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -3570,3 +3570,47 @@ no duplicate.
 
 - Ticket writes: none.
 - Review cadence: Build 1, Deploy 9 (the tenth is ending), Discover 2, Test user flow 2.
+
+### 2026-11-16 · Review round 42
+
+Children used 56 of 200. Four Builds are running: EXF-491 with EXF-492 (polish applied, PR #24), EXF-517
+with EXF-507 (polish applied, PR #25), EXF-548 with EXF-551 (designed), the Worker half of EXF-460 with
+EXF-574 (no commit yet).
+
+**Ended: the Deploy of main `41bee46`** (`p_f620f94442e74ca7aa379602f46a0c69`), six minutes.
+**Live: https://budget.doxen.dev at `41bee46`.** No migration. Smoke ok.
+
+- Health, `/api/v1/me` (only `kind` and `name`; refused without credentials) and 33 MCP tools: pass.
+- The plan menu with a real mouse at 1440 by 900 and 1024 by 700: the menu opens, nothing is clipped, the
+  Open Plan submenu opens beside its row, test plan B's row is the topmost element and opens plan B; New
+  Plan opens its dialog; disabled entries do nothing; the favicon answers 200. **EXF-571 is fixed on live.**
+- It kept one screenshot, with the submenu closed, and read no row that was not a test plan.
+- One plan that is not a test plan, counted with numbers only: the person's.
+- Its remark that the menu is "not outside the sidebar geometrically" is as designed: the menu sits over
+  the sidebar and is outside its scroll box in the page's structure, which is what stops the clipping.
+- **One oddity to look at in flow 9:** on the first load of test plan A the plan button's text was 6
+  characters and did not start with `ZZ-TEST`; after switching to B the name was right. Six characters
+  fits the app's own name shown while the plan loads (the person's plan name has 4 characters, so it was
+  not that). If the button can stay on the placeholder after loading, that is a gap.
+- Not done: it did not run `scripts/migrations-pending.sh` itself (it read the summaries); the
+  `plaid credentials:` line is again not in the summaries.
+
+**Ten Deploys have finished since the template was last reviewed (never): start its review next plan.**
+Points for its notes: the release summary lacks the `plaid credentials:` line; the recorder masks
+migration file names as `[masked:input_secret]`; short commit ids work as inputs; verifiers install the
+Playwright browser every time (about a minute); the verifier's purge deletes every test plan on live, so a
+Deploy and a flow test cannot share the live app; one verifier miscounted plans in round 31 until asked to
+state its method.
+
+**Filing one ticket:** `scripts/live-test-plans.sh purge` should be able to delete only one run's plans
+(by a name prefix), so a Deploy's verifier and a flow test can use live at the same time.
+
+**Running Builds:** no new manifest. The bank-connection branch still equals main. Read its transcript
+next turn for any Designer line.
+
+**Ticket writes:** none.
+
+**Backlog:** 78 open feature tickets (16 done; 7 in progress). Gap: EXF-558 (High), EXF-569 (Medium),
+EXF-560, EXF-562 (Low), EXF-574 (Low, in progress), one new filed now. Template: twenty. Flow verdicts: 9
+`new_gaps` (fix live now), 10 `new_gaps` (fix live), 11 `parity`: run 9 and 10 again, and 1. Finished since
+each template's last review: Build 1, Deploy 10 (due), Discover 2, Test user flow 2.
