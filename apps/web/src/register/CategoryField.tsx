@@ -1,6 +1,6 @@
-import { formatMoney } from "@budget/core/money";
 import type { MonthDetail } from "@budget/schema/months";
 import { categoryLabel, categoryMenu } from "@budget/schema/register";
+import { screenMoney } from "@budget/schema/screen-money";
 import { useMemo, useState } from "react";
 import type { CategoryValue } from "./entryDraft";
 import { Option, PickerInput } from "./PickerInput";
@@ -108,7 +108,7 @@ export function CategoryField({
                 onHover={() => hover(idx)}
               >
                 <span className="entry-option-name">{r.name}</span>
-                <span className={`entry-available ${tone(r.amount)}`}>{formatMoney(r.amount)}</span>
+                <span className={`entry-available ${tone(r.amount)}`}>{screenMoney(r.amount)}</span>
               </Option>
             );
             return (

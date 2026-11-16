@@ -8,10 +8,15 @@ import {
   type ScheduledTransaction,
 } from "@budget/schema/scheduled-transactions";
 import { autoDistribute, splitSum } from "@budget/schema/split";
-import type { TransactionDetail } from "@budget/schema/transactions";
+import type {
+  TransactionCreateRequest,
+  TransactionDetail,
+  TransactionUpdateRequest,
+} from "@budget/schema/transactions";
 import { transferCategoryRule } from "@budget/schema/transfers";
 import { useEffect, useRef, useState } from "react";
 import { useAccounts } from "../api/accounts";
+import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
 import { usePayees } from "../api/payees";
 import { useCreateScheduled, useUpdateScheduled } from "../api/scheduledTransactions";
@@ -19,6 +24,7 @@ import { useSaveTransaction } from "../api/transactions";
 import { AccountField } from "./AccountField";
 import { AmountField } from "./AmountField";
 import { Box } from "./Box";
+import { ReconciledSaveDialog } from "./BulkDialogs";
 import { CategoryField } from "./CategoryField";
 import { DateField } from "./DateField";
 import {
@@ -38,9 +44,10 @@ import {
   type LineDraft,
   lineAmount,
   rememberedCategory,
+  touchesLocked,
 } from "./entryDraft";
 import { localToday } from "./format";
-import { ClearedFilledIcon, ClearedOutlineIcon } from "./icons";
+import { ClearedFilledIcon, ClearedOutlineIcon, LockIcon } from "./icons";
 import { PayeeField } from "./PayeeField";
 import { SplitDialog } from "./SplitDialog";
 import { SplitLines } from "./SplitLines";
@@ -48,6 +55,12 @@ import { SplitLines } from "./SplitLines";
 const LOCK_TITLE = "A credit account's Starting Balance keeps its payee and category.";
 
 /** The inline add and edit row (EXF-517): the fields, then Cancel, Save and Save and add another. */
+type PendingSave = {
+  next: "close" | "again";
+  body: TransactionCreateRequest | TransactionUpdateRequest;
+  iso: string;
+};
+
 export function EntryRow({
   budgetId,
   mode,
@@ -107,6 +120,7 @@ export function EntryRow({
     sum: number;
     next: "close" | "again";
   } | null>(null);
+  const [askReconciled, setAskReconciled] = useState<PendingSave | null>(null);
   const [lineFocus, setLineFocus] = useState<{ line: number; n: number } | null>(null);
   const accountsQ = useAccounts(budgetId);
   const rows = useRef<HTMLTableSectionElement>(null);
@@ -262,12 +276,30 @@ export function EntryRow({
       return;
     }
     const iso = (body as { date?: string }).date ?? d.lastDate;
+    // A reconciled row asks before an amount, date or account change is saved (EXF-533).
+    if (mode === "edit" && tx?.cleared === "reconciled" && touchesLocked(body)) {
+      setAskReconciled({ next, body, iso });
+      return;
+    }
+    send({ next, body, iso }, false);
+  };
+  const send = (p: PendingSave, confirmed: boolean) => {
     saving.current = true;
     save.mutate(
-      { id: mode === "edit" ? tx?.id : undefined, body },
       {
-        onSuccess: () => onSaved(next, iso),
-        onError: (e) => setMessage(`Couldn't save the transaction. ${e.message}`),
+        id: mode === "edit" ? tx?.id : undefined,
+        body: confirmed ? { ...p.body, confirm_reconciled: true } : p.body,
+      },
+      {
+        onSuccess: () => onSaved(p.next, p.iso),
+        onError: (e) => {
+          // A transfer's reconciled other side answers 409 the same way: ask, then resend confirmed.
+          if (!confirmed && e instanceof ApiError && e.errorName === "transaction_reconciled") {
+            setAskReconciled(p);
+            return;
+          }
+          setMessage(`Couldn't save the transaction. ${e.message}`);
+        },
         onSettled: () => {
           saving.current = false;
         },
@@ -428,7 +460,18 @@ export function EntryRow({
           />
         </td>
         <td className="cell-cleared">
-          {isScheduledEdit ? null : (
+          {isScheduledEdit ? null : draft.cleared === "reconciled" ? (
+            <button
+              type="button"
+              className="cleared-button is-reconciled"
+              aria-label="This transaction is reconciled"
+              title="This transaction is reconciled"
+              tabIndex={-1}
+              disabled
+            >
+              <LockIcon />
+            </button>
+          ) : (
             <button
               type="button"
               className={`cleared-button is-${draft.cleared}`}
@@ -486,6 +529,16 @@ export function EntryRow({
           </div>
         </td>
       </tr>
+      {askReconciled && (
+        <ReconciledSaveDialog
+          onCancel={() => setAskReconciled(null)}
+          onSave={() => {
+            const p = askReconciled;
+            setAskReconciled(null);
+            send(p, true);
+          }}
+        />
+      )}
       {unbalanced && (
         <SplitDialog
           total={unbalanced.total}

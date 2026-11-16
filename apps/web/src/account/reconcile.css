@@ -1,0 +1,168 @@
+/* Reconcile (EXF-533): the popover under the header button, the Difference modal's figure and the bar's text. Tokens only. */
+.reconcile-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.reconcile-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundTertiary);
+  box-shadow: var(--account-tooltip-shadow);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+.reconcile-note {
+  margin: 0;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.reconcile-amount {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.reconcile-error {
+  margin: 0;
+  color: var(--statusNegative, var(--labelPrimary));
+  font-size: 12px;
+}
+.reconcile-buttons {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.reconcile-buttons button {
+  height: 32px;
+  min-width: 72px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.reconcile-buttons .secondary {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.reconcile-buttons .primary {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.reconcile-buttons button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.reconcile-popover label {
+  text-align: left;
+}
+.reconcile-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--buttonPrimaryBackground);
+  border-radius: var(--radius-xs);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+}
+.reconcile-input:focus {
+  outline: none;
+}
+.reconcile-popover.is-done {
+  align-items: center;
+  padding: var(--space-4) var(--space-3);
+}
+.reconcile-art {
+  color: var(--statusPositive);
+}
+.reconcile-done-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+.reconcile-big {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+.reconcile-big-label {
+  margin: 0 0 var(--space-2);
+  color: var(--labelSecondary);
+  text-align: center;
+}
+.acct-reconcile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The reconcile bar (register/ReconcileBar.tsx). */
+.reconcile-bar {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundTertiary);
+  color: var(--labelPrimary);
+}
+.reconcile-text {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.reconcile-bar-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+}
+.reconcile-bar-buttons {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.reconcile-bar-buttons button {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.reconcile-bar-buttons .secondary {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.reconcile-bar-buttons .primary {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.reconcile-bar-buttons button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
