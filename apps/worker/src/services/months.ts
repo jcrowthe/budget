@@ -4,13 +4,14 @@ import {
   computeMonths,
   type EngineInput,
 } from "@budget/core/budget-engine";
-import { addMonths, type Month } from "@budget/core/month";
+import { addMonths, type Month, toMonth } from "@budget/core/month";
 import {
   AssignedSet,
   MoneyMove,
   type MonthCategory,
   type MonthDetail,
   MonthNoteSet,
+  type MonthRange,
   type MonthSummary,
 } from "@budget/schema/months";
 import { sql } from "drizzle-orm";
@@ -22,6 +23,7 @@ import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
 import * as monthCatRepo from "../repositories/month-categories";
+import * as monthRangeRepo from "../repositories/month-range";
 import * as monthsRepo from "../repositories/months";
 import * as targetsRepo from "../repositories/targets";
 import * as txRepo from "../repositories/transactions";
@@ -191,6 +193,7 @@ export async function setMonthNote(
   input: MonthNoteSet,
 ): Promise<{ month: string; note: string | null }> {
   const v = MonthNoteSet.parse(input);
+  const note = v.note?.trim() || null;
   const db = getDb(env);
   await requirePlan(db, v.budget_id);
   const before = await monthsRepo.find(db, v.budget_id, v.month);
@@ -198,7 +201,7 @@ export async function setMonthNote(
     monthsRepo.upsertNoteStmt(db, {
       budgetId: v.budget_id,
       month: v.month,
-      note: v.note,
+      note,
       updatedAt: new Date().toISOString(),
     }),
     changeLogInsert(db, {
@@ -208,10 +211,10 @@ export async function setMonthNote(
       entityType: "month",
       entityId: v.month,
       before: { month: v.month, note: before?.note ?? null },
-      after: { month: v.month, note: v.note },
+      after: { month: v.month, note },
     }),
   ]);
-  return { month: v.month, note: v.note };
+  return { month: v.month, note };
 }
 
 async function loadInput(
@@ -263,4 +266,15 @@ export async function listPlanMonths(
   const db = getDb(env);
   await requirePlan(db, budgetId);
   return computeMonths(await loadInput(db, budgetId, addMonths(to, 1)), from, to);
+}
+
+/** Facts for the navigation limits; the browser applies "today" (the person's local month). */
+export async function getMonthRange(env: Env, budgetId: string): Promise<MonthRange> {
+  const db = getDb(env);
+  const plan = await budgetsRepo.findActive(db, budgetId);
+  if (!plan) throw new NotFound("Plan");
+  const f = await monthRangeRepo.monthFacts(db, budgetId);
+  const candidates = [toMonth(plan.createdAt), f.firstAssigned, f.firstNote, f.firstTransaction];
+  const first = candidates.filter((m): m is string => m !== null).sort()[0] as string;
+  return { first_month: first, last_assigned_month: f.lastAssigned };
 }
