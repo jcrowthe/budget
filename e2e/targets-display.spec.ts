@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import {
   assign,
+  getMonth,
   openPlan,
   PHONE,
   panel,
@@ -105,6 +106,32 @@ test("Assign meets the target, then spending shows in the status", async ({ page
   await spend(request, s, RENT, 30000);
   await page.reload();
   await expect(status(page, RENT)).toHaveText("Funded. Spent $30.00 of $100.00");
+});
+
+test("Assign lowers Ready to Assign by exactly the 60.00 it moves, with no reload", async ({
+  page,
+  request,
+}) => {
+  await putTarget(request, s, RENT, MONTHLY10, today);
+  await assign(request, s, RENT, 40000);
+  const before = (await getMonth(request, s.id, TODAY)).ready_to_assign;
+  await openPlan(page, s);
+  await select(page, RENT);
+  const rta = page.locator(".rta-amount");
+  await expect(rta).toHaveText(money(before));
+  await realClick(page, card(page).getByRole("button", { name: "Assign", exact: true }));
+  // Design doc, Acceptance case 19 (point 2): Ready to Assign drops by exactly 60.00 (the To Go figure).
+  await expect(rta).toHaveText(money(before - 60000));
+  const inspector = panel(page).locator(".panel-card", { has: page.locator("#panel-balance") });
+  await expect(inspector.locator(".panel-row", { hasText: "Assigned This Month" })).toHaveText(
+    "Assigned This Month+$100.00",
+  );
+  await expect(row(page, RENT).locator(".assigned-box .amount")).toHaveText("$100.00");
+  await expect(pill(page, RENT)).toHaveText("$100.00");
+  await expect(inspector.locator(".available-pill")).toHaveText("$100.00");
+  await expect
+    .poll(async () => (await getMonth(request, s.id, TODAY)).ready_to_assign)
+    .toBe(before - 60000);
 });
 
 test("a second click on Assign while the month is read again adds nothing", async ({
