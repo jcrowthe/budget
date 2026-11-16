@@ -7,6 +7,26 @@
   --register-icon-muted: #727484;
   --register-entry-row: var(--register-row-selected);
   --register-label-action: #a3acff;
+  /* The action bar and its menus (source: All Accounts register, dark theme, 1600x813). */
+  --register-actionbar-bg: #383ca3;
+  --register-actionbar-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.15);
+  --register-actionbar-hover: rgba(255, 255, 255, 0.15);
+  --register-menu-bg: #1f2038;
+  --register-menu-hover: #292b3d;
+  --register-keycap-bg: rgba(114, 116, 132, 0.24);
+  --register-menu-disabled: #9b9caa;
+  --register-flag-red: #ff453a;
+  --register-flag-orange: #ff9f0a;
+  --register-flag-yellow: #ffd60a;
+  --register-flag-green: #32d74b;
+  --register-flag-blue: #64d2ff;
+  --register-flag-purple: #bf5af2;
+  --register-flag-red-pill: rgba(255, 59, 48, 0.3);
+  --register-flag-orange-pill: rgba(255, 149, 0, 0.3);
+  --register-flag-yellow-pill: rgba(255, 204, 0, 0.3);
+  --register-flag-green-pill: rgba(52, 199, 89, 0.3);
+  --register-flag-blue-pill: rgba(90, 200, 250, 0.3);
+  --register-flag-purple-pill: rgba(175, 82, 222, 0.3);
 }
 
 .register {
@@ -325,4 +345,340 @@
 }
 .register-table .split-line-row td {
   color: var(--labelSecondary);
+}
+
+/* Flags (EXF-522): a 42px column after the checkbox. */
+.register-table .col-flag {
+  width: 42px;
+}
+.register-table th.cell-flag {
+  padding: 0 0 0 var(--space-2);
+  border-left: 1px solid var(--separatorStandard);
+  color: var(--register-icon-muted);
+}
+.register-table th.cell-flag svg {
+  position: relative;
+  top: 2px;
+}
+.register-table td.cell-flag {
+  padding: 0 6.4px 0 0;
+  overflow: visible;
+  text-align: center;
+}
+.flag-cell-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 36px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: var(--register-icon-muted);
+  vertical-align: middle;
+  cursor: pointer;
+}
+.flag-cell-button:hover {
+  color: var(--register-menu-disabled);
+}
+.flag-cell-button.is-red {
+  background: var(--register-flag-red-pill);
+}
+.flag-cell-button.is-orange {
+  background: var(--register-flag-orange-pill);
+}
+.flag-cell-button.is-yellow {
+  background: var(--register-flag-yellow-pill);
+}
+.flag-cell-button.is-green {
+  background: var(--register-flag-green-pill);
+}
+.flag-cell-button.is-blue {
+  background: var(--register-flag-blue-pill);
+}
+.flag-cell-button.is-purple {
+  background: var(--register-flag-purple-pill);
+}
+.flag-red {
+  color: var(--register-flag-red);
+}
+.flag-orange {
+  color: var(--register-flag-orange);
+}
+.flag-yellow {
+  color: var(--register-flag-yellow);
+}
+.flag-green {
+  color: var(--register-flag-green);
+}
+.flag-blue {
+  color: var(--register-flag-blue);
+}
+.flag-purple {
+  color: var(--register-flag-purple);
+}
+
+/* The last row scrolls clear of the bar (source: the bar covers it; here it does not). */
+.register.has-actionbar {
+  padding-bottom: 112px;
+}
+
+/* The action bar: fixed, centred over the register, 48px above the window's bottom. */
+.register-action-bar-container {
+  position: fixed;
+  bottom: 48px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.register-action-bar-inner {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  max-width: calc(100% - 48px);
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--register-actionbar-bg);
+  box-shadow: var(--register-actionbar-shadow);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  pointer-events: auto;
+  animation: register-bar-in 0.2s;
+}
+@keyframes register-bar-in {
+  from {
+    transform: translateY(3rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.action-bar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.action-bar-button:hover,
+.action-bar-button:active {
+  background: var(--register-actionbar-hover);
+}
+.action-bar-uncheck {
+  margin-right: 4px;
+}
+.register-action-bar-inner hr {
+  width: 1px;
+  height: 16px;
+  margin: 0 8px;
+  border: 0;
+  background: var(--register-icon-muted);
+}
+.register-action-bar-error {
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  pointer-events: auto;
+}
+
+/* Menus opened from the bar and from a flag cell. */
+.bulk-popover {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+}
+.bulk-popover-body {
+  box-sizing: border-box;
+  max-height: calc(100vh - 8.125rem);
+  padding: 1px;
+  overflow-y: auto;
+  border-radius: 6.4px;
+  background: var(--register-menu-bg);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.bulk-popover-arrow {
+  position: absolute;
+  top: -15px;
+  fill: var(--register-menu-bg);
+}
+.bulk-popover-arrow.is-down {
+  top: auto;
+  bottom: -15px;
+  transform: rotate(180deg);
+}
+.bulk-list {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  text-align: left;
+}
+.bulk-list hr {
+  height: 1px;
+  margin: 4px 12px;
+  border: 0;
+  background: var(--borderSubtle);
+}
+.bulk-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 32px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bulk-item:hover {
+  background: var(--register-menu-hover);
+}
+.bulk-item[aria-disabled="true"] {
+  color: var(--register-menu-disabled);
+  cursor: default;
+}
+.bulk-item[aria-disabled="true"]:hover {
+  background: transparent;
+}
+.bulk-item-icon {
+  display: inline-flex;
+  margin-right: 11px;
+}
+.bulk-item-label {
+  flex: 1;
+}
+.bulk-keys {
+  display: inline-flex;
+  gap: 4px;
+}
+.bulk-popover kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--register-keycap-bg);
+  color: var(--labelSecondary);
+  font: inherit;
+}
+.bulk-move {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.bulk-empty {
+  padding: 8px 12px;
+  color: var(--register-menu-disabled);
+}
+.flags-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flags-list li {
+  display: flex;
+  justify-content: space-between;
+  margin: 16px 12px;
+}
+.flags-list kbd {
+  min-height: 24px;
+  background: var(--register-menu-hover);
+}
+.flag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--separatorStandard);
+  border-radius: 24px;
+  background: transparent;
+  color: var(--labelSecondary);
+  font: inherit;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+.flag-pill:hover {
+  background: var(--register-menu-hover);
+}
+.bulk-popover .flags-footer {
+  display: flex;
+  margin: 16px 12px;
+}
+.bulk-popover hr {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--borderSubtle);
+}
+.edit-flags {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  font: inherit;
+  font-weight: 600;
+}
+.edit-flags[aria-disabled="true"] {
+  color: var(--register-menu-disabled);
+  cursor: default;
+}
+
+/* Dialogs of the bar. */
+.bulk-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--buttonPrimaryBackground);
+  border-radius: var(--radius-xs);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 400;
+}
+.bulk-input:focus {
+  outline: none;
+}
+.bulk-dialog-text {
+  margin: 0 0 var(--space-2);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+.dialog.form .bulk-dialog-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 auto 0 0;
+  font-weight: 500;
 }

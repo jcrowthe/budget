@@ -1,16 +1,17 @@
 import { useParams } from "react-router";
 import { AllAccountsHeader } from "../account/AccountHeader";
 import { Register } from "../register/Register";
+import { SelectionProvider } from "../register/selection";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
 function AccountsPage() {
   const { budgetId = "" } = useParams();
   usePageTitle("All Accounts");
   return (
-    <>
+    <SelectionProvider key={`${budgetId}:all`}>
       <AllAccountsHeader budgetId={budgetId} />
       <Register budgetId={budgetId} />
-    </>
+    </SelectionProvider>
   );
 }
 

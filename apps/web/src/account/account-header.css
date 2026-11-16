@@ -216,3 +216,9 @@
   line-height: 20px;
   text-align: center;
 }
+
+/* The Selected Total sits at the right end of the strip (source: .accounts-header-balances-right, margin-left auto). */
+.acct-balances-right {
+  display: flex;
+  margin-left: auto;
+}

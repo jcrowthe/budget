@@ -283,10 +283,10 @@ test("edit: select, open, change, balances follow; Escape restores", async ({ pa
   const sidebar = page.getByRole("navigation", { name: "Sidebar" });
   await expect(sidebar.getByRole("link", { name: /ZZ Checking/ })).toContainText("$2,482.66");
   // One click selects only that row; the second opens it.
-  await row().locator("td").nth(2).click();
+  await row().locator("td").nth(3).click();
   await expect(row().getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".entry-body")).toHaveCount(0);
-  await row().locator("td").nth(2).click();
+  await row().locator("td").nth(3).click();
   await expect(page.locator(".entry-body")).toHaveCount(1);
   await page.keyboard.press("Escape");
   await expect(row()).toContainText("$17.34");

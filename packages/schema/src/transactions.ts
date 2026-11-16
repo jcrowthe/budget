@@ -15,6 +15,18 @@ export const ClearedStatus = z
   .enum(["uncleared", "cleared", "reconciled"])
   .openapi("ClearedStatus");
 
+export const FLAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple"] as const;
+export const FlagColor = z.enum(FLAG_COLORS).openapi("FlagColor");
+export type FlagColor = z.infer<typeof FlagColor>;
+export const FLAG_NAMES: Record<FlagColor, string> = {
+  red: "Red",
+  orange: "Orange",
+  yellow: "Yellow",
+  green: "Green",
+  blue: "Blue",
+  purple: "Purple",
+};
+
 export const Transaction = z
   .object({
     id: z.uuid(),
@@ -45,6 +57,10 @@ export const Transaction = z
     }),
     matched: z.boolean().openapi({
       description: "True when an imported transaction was matched to one entered by hand",
+    }),
+    flag_color: FlagColor.nullable().openapi({
+      description:
+        "The row's flag: red, orange, yellow, green, blue or purple; null when not flagged",
     }),
   })
   .openapi("Transaction");
@@ -190,6 +206,7 @@ const updateFields = z
     approved: requestFields.approved,
     transfer_account_id: requestFields.transfer_account_id,
     subtransactions: requestFields.subtransactions,
+    flag_color: FlagColor.nullable().optional(),
   })
   .strict();
 
@@ -203,16 +220,109 @@ export const TransactionUpdateRequest = updateFields
 /** `needs` filter of the transaction lists. */
 export const TRANSACTION_NEEDS = ["approval_or_category"] as const;
 
+export const TransactionIds = z
+  .array(z.string().min(1))
+  .min(1)
+  .max(100)
+  .describe("Transaction ids (1 to 100); a repeated id counts once");
+
 export const TransactionIdsRequest = z
-  .object({
-    ids: z
-      .array(z.string().min(1))
-      .min(1)
-      .max(100)
-      .describe("Transaction ids (1 to 100); a repeated id counts once"),
-  })
+  .object({ ids: TransactionIds })
   .strict()
   .openapi("TransactionIdsRequest");
+
+export const BULK_OPS = [
+  "clear",
+  "unclear",
+  "categorize",
+  "memo",
+  "move",
+  "duplicate",
+  "delete",
+  "flag",
+] as const;
+
+export const BulkSkipReason = z
+  .enum([
+    "reconciled",
+    "unchanged",
+    "split",
+    "tracking_account",
+    "category_not_needed",
+    "starting_balance",
+  ])
+  .openapi("BulkSkipReason");
+
+export const TransactionBulkRequest = z
+  .discriminatedUnion("op", [
+    z.object({ op: z.literal("clear"), ids: TransactionIds }).strict(),
+    z.object({ op: z.literal("unclear"), ids: TransactionIds }).strict(),
+    z.object({ op: z.literal("duplicate"), ids: TransactionIds }).strict(),
+    z
+      .object({
+        op: z.literal("delete"),
+        ids: TransactionIds,
+        confirm_reconciled: z
+          .boolean()
+          .optional()
+          .describe("Must be true to delete a reconciled row, or a row whose other side is"),
+      })
+      .strict(),
+    z
+      .object({
+        op: z.literal("categorize"),
+        ids: TransactionIds,
+        value: z
+          .string()
+          .min(1)
+          .describe('A category id, or "ready_to_assign" for Inflow: Ready to Assign'),
+      })
+      .strict(),
+    z
+      .object({
+        op: z.literal("memo"),
+        ids: TransactionIds,
+        value: z.string().max(500).nullable().describe("The new memo; null or empty clears it"),
+      })
+      .strict(),
+    z
+      .object({
+        op: z.literal("move"),
+        ids: TransactionIds,
+        value: z.string().min(1).describe("The id of the account to move the rows to"),
+      })
+      .strict(),
+    z
+      .object({
+        op: z.literal("flag"),
+        ids: TransactionIds,
+        value: FlagColor.nullable().describe("The flag colour, or null to clear the flag"),
+      })
+      .strict(),
+  ])
+  .openapi("TransactionBulkRequest");
+export type TransactionBulkRequest = z.input<typeof TransactionBulkRequest>;
+
+export const TransactionBulkResult = z
+  .object({
+    op: z.enum(BULK_OPS),
+    changed: z.array(z.string()).describe("The requested ids that changed, in the order given"),
+    skipped: z
+      .array(z.object({ id: z.string(), reason: BulkSkipReason }))
+      .describe("The requested ids left alone, with the reason"),
+    others: z
+      .array(z.string())
+      .describe("Other sides of transfers that changed with the requested rows"),
+    copies: z
+      .array(z.object({ id: z.string(), copy_id: z.string() }))
+      .describe("For duplicate: each source id and its copy"),
+    transactions: z
+      .array(TransactionDetail)
+      .describe("The rows after the change (the copies for duplicate, as they were for delete)"),
+  })
+  .openapi("TransactionBulkResult");
+export type TransactionBulkResult = z.infer<typeof TransactionBulkResult>;
+export const TransactionBulkResponse = dataEnvelope(TransactionBulkResult);
 
 export const TransactionResponse = dataEnvelope(z.object({ transaction: TransactionDetail }));
 export const TransactionListResponse = dataEnvelope(

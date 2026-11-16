@@ -38,7 +38,8 @@ type LinkCols =
   | "bankDescription"
   | "importDate"
   | "importAmount"
-  | "importPayeeName";
+  | "importPayeeName"
+  | "flagColor";
 /** The link columns are optional so a plain row can be built without them (they insert as null). */
 export type TransactionRow = Omit<Sel, LinkCols> & Partial<Pick<Sel, LinkCols>>;
 
@@ -53,7 +54,7 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
   return db
     .insert(transactions)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId}, ${r.transferAccountId ?? null}, ${r.transferTransactionId ?? null}, ${r.parentTransactionId ?? null}, ${r.splitIndex ?? null}, ${r.importId ?? null}, ${r.source ?? null}, ${r.importedPayee ?? null}, ${r.bankDescription ?? null}, ${r.importDate ?? null}, ${r.importAmount ?? null}, ${r.importPayeeName ?? null} where exists ${guard}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId}, ${r.transferAccountId ?? null}, ${r.transferTransactionId ?? null}, ${r.parentTransactionId ?? null}, ${r.splitIndex ?? null}, ${r.importId ?? null}, ${r.source ?? null}, ${r.importedPayee ?? null}, ${r.bankDescription ?? null}, ${r.importDate ?? null}, ${r.importAmount ?? null}, ${r.importPayeeName ?? null}, ${r.flagColor ?? null} where exists ${guard}`,
     );
 }
 
@@ -274,6 +275,24 @@ export async function findDetail(
   return row ? toDetail(row) : undefined;
 }
 
+/** Several rows at once (a missing or deleted id is absent from the map); one JSON parameter keeps it under D1's bound-parameter limit. */
+export async function findDetailMany(
+  db: Db,
+  budgetId: string,
+  ids: readonly string[],
+): Promise<Map<string, TransactionDetailRow>> {
+  if (ids.length === 0) return new Map();
+  const rows = await detailSelect(db).where(
+    and(
+      sql`${transactions.id} in (select value from json_each(${JSON.stringify(ids)}))`,
+      eq(transactions.budgetId, budgetId),
+      isNull(transactions.deletedAt),
+      isNull(transactions.parentTransactionId),
+    ),
+  );
+  return new Map(rows.map((r) => [r.t.id, toDetail(r)]));
+}
+
 /** The account's non-deleted transactions dated `sinceDate` or later, in no particular order. */
 export async function listDetailForAccount(
   db: Db,
@@ -367,6 +386,18 @@ export function allHold(guards: SQLWrapper[]): SQLWrapper {
   )})`;
 }
 
+/**
+ * Holds while every `{id, updatedAt}` still matches a live row (ids deduplicated first).
+ * The snapshot rides one JSON parameter, so it stays under D1's bound-parameter limit.
+ */
+export function unchangedSince(db: Db, snap: readonly { id: string; updatedAt: string }[]) {
+  const uniq = [...new Map(snap.map((s) => [s.id, s.updatedAt])).entries()].map(([id, u]) => ({
+    id,
+    u,
+  }));
+  return sql`(select 1 where (select count(*) from transactions t, json_each(${JSON.stringify(uniq)}) j where t.id = json_extract(j.value,'$.id') and t.updated_at = json_extract(j.value,'$.u') and t.deleted_at is null) = ${uniq.length})`;
+}
+
 /** A `SELECT 1` that holds when the row was written at `at` (its `updated_at`). */
 export function writtenAt(db: Db, id: string, at: string) {
   return db
@@ -404,6 +435,7 @@ export type TxSet = Partial<
     | "importDate"
     | "importAmount"
     | "importPayeeName"
+    | "flagColor"
   >
 > & { payeeId?: string | null | SQL };
 
@@ -435,6 +467,10 @@ export function updateIfHoldsStmt(
       amount: after.amount,
       cleared: after.cleared,
       approved: after.approved,
+      // Only a write that changes the flag sets it, so an edit never overwrites a concurrent flag.
+      ...((after.flagColor ?? null) !== (before.flagColor ?? null)
+        ? { flagColor: after.flagColor ?? null }
+        : {}),
       updatedAt,
     },
     holds(db, before),
@@ -503,7 +539,9 @@ export async function listLines(
   if (filter.accountId) conds.push(eq(transactions.accountId, filter.accountId));
   if (filter.parentId) conds.push(eq(transactions.parentTransactionId, filter.parentId));
   if (filter.parentIds)
-    conds.push(inArray(transactions.parentTransactionId, [...filter.parentIds]));
+    conds.push(
+      sql`${transactions.parentTransactionId} in (select value from json_each(${JSON.stringify(filter.parentIds)}))`,
+    );
   if (filter.sinceDate) conds.push(gte(transactions.date, filter.sinceDate));
   const rows = await db
     .select({

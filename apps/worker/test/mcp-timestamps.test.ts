@@ -22,6 +22,7 @@ type Ctx = {
   category2: string;
   tx: string;
   spareTx: string;
+  bulkTx: string;
   importTx: string;
   conn: string;
   bankAccount: string;
@@ -70,6 +71,14 @@ async function seed(): Promise<Ctx> {
     date: DAY,
     amount: -100,
     payee_name: "ZZ T",
+    category_id: category,
+  });
+  // A throwaway row for delete_transactions, and the rows the bulk tools change.
+  const bulkTx = await mk({
+    account_id: checking,
+    date: DAY,
+    amount: -300,
+    payee_name: "ZZ B",
     category_id: category,
   });
   // A throwaway unapproved import, for reject_transactions.
@@ -130,6 +139,7 @@ async function seed(): Promise<Ctx> {
     category2,
     tx: txId,
     spareTx,
+    bulkTx,
     importTx,
     conn,
     bankAccount,
@@ -225,6 +235,11 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ],
   ["update_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.tx, memo: "ZZ memo" })],
   ["approve_transactions", (c) => ({ budget_id: c.bid, ids: [c.tx] })],
+  ["flag_transactions", (c) => ({ budget_id: c.bid, ids: [c.tx], color: "red" })],
+  [
+    "bulk_update_transactions",
+    (c) => ({ budget_id: c.bid, ids: [c.tx], op: "memo", value: "ZZ bulk" }),
+  ],
   [
     "create_account",
     (c) => ({ budget_id: c.bid, name: "ZZ Made", type: "checking", balance: 1000, date: DAY }),
@@ -247,6 +262,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["reopen_account", (c) => ({ budget_id: c.bid, account_id: c.spare })],
   ["delete_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.spareTx })],
   ["reject_transactions", (c) => ({ budget_id: c.bid, ids: [c.importTx] })],
+  ["delete_transactions", (c) => ({ budget_id: c.bid, ids: [c.bulkTx] })],
   [
     "set_category_target",
     (c) => ({

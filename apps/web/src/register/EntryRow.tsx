@@ -213,7 +213,7 @@ export function EntryRow({
     if (draft.category.kind === "none" && c && !noCategory) patch({ category: c });
   };
 
-  const colCount = (plan ? 1 : 0) + (showCategory ? 1 : 0) + 7;
+  const colCount = (plan ? 1 : 0) + (showCategory ? 1 : 0) + 8;
   const parentAmount = draftAmount(draft);
 
   const autoDistributeLines = () => {
@@ -241,6 +241,7 @@ export function EntryRow({
         <td className="cell-check">
           <Box state label="Select transaction" tabIndex={-1} onClick={() => {}} />
         </td>
+        <td className="cell-flag" />
         {plan && (
           <td data-field="account">
             <AccountField
@@ -356,7 +357,7 @@ export function EntryRow({
           total={parentAmount}
           payees={payeesQ.data ?? []}
           month={monthQ.data}
-          lead={1 + (plan ? 1 : 0)}
+          lead={2 + (plan ? 1 : 0)}
           showCategory={showCategory}
           onChange={patchLine}
           onRemove={removeLine}

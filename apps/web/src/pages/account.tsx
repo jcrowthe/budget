@@ -3,6 +3,7 @@ import { AccountHeader } from "../account/AccountHeader";
 import { useAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { Register } from "../register/Register";
+import { SelectionProvider } from "../register/selection";
 import { accountsPath } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
@@ -15,10 +16,10 @@ function AccountPage() {
     return <Navigate replace to={accountsPath(budgetId)} />;
   }
   return (
-    <>
+    <SelectionProvider key={`${budgetId}:${accountId}`}>
       <AccountHeader account={account} />
       {account && <Register key={account.id} budgetId={budgetId} account={account} />}
-    </>
+    </SelectionProvider>
   );
 }
 
