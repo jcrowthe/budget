@@ -9,6 +9,7 @@ import type { MonthDetail } from "@budget/schema/months";
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { apiFetch } from "./client";
+import { beginWrite, endWrite } from "./monthCache";
 
 const base = (b: string) => `/api/v1/budgets/${b}` as const;
 const write = { idempotencyKey: undefined as string | undefined };
@@ -105,9 +106,12 @@ export function useCategoryActions(budgetId: string) {
     const done =
       <A extends unknown[], R>(fn: (b: string, ...a: A) => Promise<R>) =>
       async (...a: A): Promise<R> => {
-        const r = await fn(budgetId, ...a);
-        await qc.invalidateQueries({ queryKey: ["month", budgetId] });
-        return r;
+        await beginWrite(qc, budgetId);
+        try {
+          return await fn(budgetId, ...a);
+        } finally {
+          endWrite(qc, budgetId);
+        }
       };
     return {
       createGroup: done(createGroup),
@@ -139,8 +143,7 @@ const queues = new Map<string, Promise<unknown>>();
 
 /**
  * Collapses or expands groups: the cached months change at once, one PATCH per changed group is sent (in
- * order), and a group whose PATCH fails goes back. It does not refetch, so it cannot overwrite a pending
- * Assigned edit.
+ * order), and a group whose PATCH fails goes back. The months are refetched when no write is pending.
  */
 export async function setGroupsCollapsed(
   qc: QueryClient,
@@ -149,6 +152,7 @@ export async function setGroupsCollapsed(
   collapsed: boolean,
 ): Promise<void> {
   if (ids.length === 0) return;
+  await beginWrite(qc, budgetId);
   setCollapsedInCache(qc, budgetId, ids, collapsed);
   const tail = (queues.get(budgetId) ?? Promise.resolve()).then(() =>
     Promise.all(
@@ -160,5 +164,9 @@ export async function setGroupsCollapsed(
     ),
   );
   queues.set(budgetId, tail);
-  await tail;
+  try {
+    await tail;
+  } finally {
+    endWrite(qc, budgetId);
+  }
 }

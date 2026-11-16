@@ -279,3 +279,39 @@ async function collapsedNames(request: Req): Promise<string[]> {
   const d = (await res.json()).data as { groups: { name: string; collapsed: boolean }[] };
   return d.groups.filter((g) => g.collapsed).map((g) => g.name);
 }
+
+test("a month fetch started before a collapse cannot reopen the group or undo an Assigned value", async ({
+  page,
+}) => {
+  await open(page);
+  // The refetch that follows the Assigned commit is held: it carries the old `collapsed: false` and returns
+  // only after the group is collapsed.
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => {
+    release = r;
+  });
+  let armed = false;
+  let holding = false;
+  await page.route("**/api/v1/budgets/*/months/*", async (route) => {
+    if (route.request().method() !== "GET" || !armed) return route.continue();
+    armed = false;
+    holding = true;
+    const real = await route.fetch();
+    await held;
+    await route.fulfill({ response: real }).catch(() => {});
+  });
+  armed = true;
+  const cell = catRow(page, RENT).locator(".assigned-box .amount");
+  await cell.click();
+  await page.keyboard.type("12");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => holding).toBe(true);
+  await page.getByRole("button", { name: "Collapse Bills categories" }).click();
+  await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
+  release();
+  await page.waitForTimeout(500);
+  await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
+  await expect(groupRow(page, "Bills").locator(".num").first()).toHaveText("$12.00");
+  await page.getByRole("button", { name: "Expand Bills categories" }).click();
+  await expect(catRow(page, RENT).locator(".assigned-box .amount")).toHaveText("$12.00");
+});

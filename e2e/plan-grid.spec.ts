@@ -163,11 +163,22 @@ test("Uncategorized Transactions appears only with uncategorized activity", asyn
 });
 
 test("collapse: one group, all, and the shortcuts", async ({ page }) => {
-  await stub(page, fixtureF(ISO));
-  // The stubbed plan has no real groups: the saves are answered here. The reload survives on real data in
-  // categories.spec.ts.
-  await page.route("**/api/v1/budgets/*/category_groups/*", (route) =>
-    route.fulfill({
+  // The stubbed plan has no real groups, so the server is played here: PATCH saves a group's collapsed flag and
+  // the month GET (refetched after the saves) serves it. The reload survives on real data in categories.spec.ts.
+  const saved = new Map<string, boolean>();
+  await page.route("**/api/v1/budgets/*/months/*", (route) => {
+    const body = fixtureF(ISO);
+    for (const g of body.data.groups) g.collapsed = saved.get(g.id) ?? false;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
+  });
+  await page.route("**/api/v1/budgets/*/category_groups/*", (route) => {
+    const id = route.request().url().split("/").pop() ?? "";
+    saved.set(id, route.request().postDataJSON().collapsed);
+    return route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
@@ -178,12 +189,12 @@ test("collapse: one group, all, and the shortcuts", async ({ page }) => {
             name: "x",
             sort: 0,
             hidden: false,
-            collapsed: true,
+            collapsed: saved.get(id),
           },
         },
       }),
-    }),
-  );
+    });
+  });
   await open(page);
   await page.getByRole("button", { name: "Collapse Bills categories" }).click();
   await expect(cats(page)).toHaveCount(2);
