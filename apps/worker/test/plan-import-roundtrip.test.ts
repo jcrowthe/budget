@@ -28,9 +28,78 @@ describe("criterion 7: export, import, export", () => {
   it("gives identical Plan and Register files (single call)", async () => {
     const f = await buildF();
     const first = await exportOf(f.bid);
+    // The first export holds what the round trip has to carry (EXF-477 criterion 7): a card with its payment
+    // category, a split, a transfer, a scheduled row, a hidden category, a flag, a reconciled row, money
+    // assigned in a month after `now`.
+    const firstPlan = text(readZip(first.bytes)[0]?.data as Uint8Array);
+    const firstRegister = text(readZip(first.bytes)[1]?.data as Uint8Array);
+    expect(firstPlan).toContain(
+      '"Oct 2026","Credit Card Payments: Sample Visa","Credit Card Payments","Sample Visa"',
+    );
+    expect(firstRegister).toContain('"Sample Visa","","10/15/2026","Card Shop"');
+    expect(firstRegister).toContain('"Split (1/2) food"');
+    expect(firstRegister).toContain('"Split (2/2) "');
+    expect(firstRegister).toContain('"Transfer : Rainy Day"');
+    expect(firstRegister).toContain('"Transfer : Main Checking"');
+    expect(firstRegister).toContain(
+      '"Main Checking","","12/01/2026","Landlord","Bills: Rent","Bills","Rent","monthly",$900.00,$0.00,"Uncleared"',
+    );
+    expect(firstPlan).toContain('"Hidden Categories: Old Hobby"');
+    expect(firstPlan).toContain('"Hidden Categories: Hobby"');
+    expect(firstRegister).toMatch(
+      /"Main Checking","Red","10\/14\/2026","Corner Shop".*"Split \(1\/2\) food"/,
+    );
+    expect(firstRegister).toMatch(
+      /"Main Checking","Red","10\/14\/2026","Corner Shop".*"Split \(2\/2\) "/,
+    );
+    expect(firstRegister).toMatch(/"Transfer : Rainy Day".*"Reconciled"/);
+    expect(firstRegister).toMatch(/"Transfer : Main Checking".*"Reconciled"/);
+    expect(firstPlan).toContain(
+      '"Dec 2026","Everyday: Groceries 🛒","Everyday","Groceries 🛒",$50.00,$0.00,$180.00',
+    );
     const res = await postImport(importForm([{ name: first.name, data: first.bytes }]));
     const data = await body(res, 201);
     expect(data.state).toBe("done");
+    // And the new plan's rows in D1 hold them.
+    const nb = data.budget_id as string;
+    const one = async (sql: string) => ((await q(sql, nb))[0] as Json).n as number;
+    const card = (await q(
+      "select id from accounts where budget_id = ? and type = 'creditCard'",
+      nb,
+    )) as Json[];
+    expect(card).toHaveLength(1);
+    expect(
+      await one(
+        `select count(*) n from categories where budget_id = ? and kind = 'credit_card_payment' and account_id = '${card[0]?.id}'`,
+      ),
+    ).toBe(1);
+    const parents = (await q(
+      "select parent_transaction_id p, count(*) n from transactions where budget_id = ? and parent_transaction_id is not null and deleted_at is null group by 1",
+      nb,
+    )) as Json[];
+    expect(parents.map((r) => r.n)).toEqual([2]);
+    expect(
+      await one(
+        "select count(*) n from transactions where budget_id = ? and transfer_transaction_id is not null",
+      ),
+    ).toBe(2);
+    expect(await one("select count(*) n from scheduled_transactions where budget_id = ?")).toBe(1);
+    expect(
+      await one("select count(*) n from categories where budget_id = ? and hidden = 1"),
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      await one("select count(*) n from transactions where budget_id = ? and flag_color = 'red'"),
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      await one(
+        "select count(*) n from transactions where budget_id = ? and cleared = 'reconciled'",
+      ),
+    ).toBe(2);
+    expect(
+      await one(
+        "select count(*) n from month_categories where budget_id = ? and month = '2026-12-01'",
+      ),
+    ).toBeGreaterThanOrEqual(1);
     const second = await exportOf(data.budget_id);
     const a = readZip(first.bytes);
     const b = readZip(second.bytes);
