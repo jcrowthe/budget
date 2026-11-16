@@ -7668,3 +7668,57 @@ tickets were filed at the last review.
   first if both are waiting, since it has been open longest).
 
 Ticket writes: 0. Review cadence: Build 5, Deploy 2, Discover 2, Test user flow 9.
+
+### 2026-11-16 · Review round 89
+
+Children used 104 of 200. One ended: **Deploy `D24`, shipped**. Two Builds are running: the credit
+engine carry-over (head `6acd179`, in or near its gate) and the carry-over of scheduled transactions
+and the Reflect fixes (head `da18d2e`: carry-over section and one manifest committed). Main `85f3cc9`,
+**live `85f3cc9`**: nothing merged is waiting.
+
+**Deploy `D24` shipped `85f3cc9`** (`p_4affb69b408a437eb02d78c0cb79af44`, 11 minutes) to
+https://budget.doxen.dev. I read the health endpoint myself (`deploy_sha` `85f3cc9…`); no migration
+pending.
+- The box was whole (its listing shows every hand-off file). Gate: check passed, e2e skipped because
+  the tree equals the gated head `ddaf0ff`. Release: Time Travel bookmark, no migration, smoke ok.
+- **Now live, checked at both sizes on a test plan:** the Keyboard Shortcuts dialog by `?` with its
+  four sections (and `?` typed into a field opens nothing); the sidebar collapsing to a 56 px rail,
+  the rail there at the sidebar's first render after a reload, Shift+. ; dragging the edge to 400 px
+  (kept after a reload), 200 px (balances hidden) and 100 px (collapses; expanding gives 260 px); the
+  register's `c` and the Plan page's arrow keys still working beside the new key listener; a deleted
+  plan's address with "No Plan Open" and no actions.
+- **One of my expectations was wrong, reported as "DIFFERS FROM THE BRIEF":** I expected a 404 for the
+  deleted plan and then no more requests with its id. The app makes no request with that id at all: it
+  decides "not found" from the list of plans. Better than I asked for.
+- **My check of the first paint was badly specified:** at `DOMContentLoaded` the app has not rendered
+  yet, so there was no sidebar to measure. The verifier watched for the sidebar's first appearance
+  instead: 56 px then and two seconds later.
+- **A report, not a gap:** with the sidebar dragged to its 600 px maximum in a 1024 px window the main
+  area is 424 px wide; the page does not scroll sideways and every control can be clicked, but the
+  Plan grid's category names are cut ("ZZ F…") and its right-hand columns run past the edge. That is
+  the narrow-grid behaviour of EXF-622, made worse by a width the person chose; I add it to EXF-622
+  when its Build is briefed.
+- Not checked on live, as briefed: the plan menu's Keyboard Shortcuts entry and the menu from the rail
+  (the menu is not opened there).
+- The verifier's first browser runs failed on its own script (no browser installed, a wrong key
+  press, a wrong locator); it said which run each statement comes from.
+- Cleanup: `deleted 1 remaining 0`; plans not named `ZZ-TEST`: 1. The owner's plan was not opened.
+
+**Running:**
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): its last commit fixes an
+  existing sidebar spec that matched the new Credit Card Payments group by a loose name; a gate fix,
+  so it is in its gate.
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`): both branches merged; the Architect's carry-over section is
+  committed.
+
+**Ticket writes:** 1 (comment on EXF-614).
+
+**Backlog:** 54 open feature tickets (43 done; 4 in progress). Gap: thirteen open, three in progress.
+Template: thirty-four. Flow verdicts unchanged. Finished since each template's last review: Build 5,
+Deploy 3 (one cancelled, two shipped), Discover 2, Test user flow 9.
+
+**Next plan:** flow 9 on live `85f3cc9` (third... its fourth run): the fix of EXF-614 on a deleted
+plan's four addresses, and the shell's new parts with two test plans (the plan menu under the usual
+rule: only its own `ZZ-TEST` rows, no capture with the menu open). It is the tenth flow test; the
+first review of the Test user flow template follows it.
