@@ -2897,3 +2897,23 @@ progress), EXF-572 (High), EXF-558 (High), EXF-569 (Medium), EXF-454 (Low, in pr
 (Low). Template: fifteen. **Flow verdicts: 9 `new_gaps` (EXF-571), 10 `new_gaps` (EXF-572), 11 `parity`;
 the other eight not run yet.** Finished since each template's last review: Build 5, Deploy 8, Discover 2,
 Test user flow 2.
+
+### 2026-11-16 · Plan round 36
+
+Children used 46 of 200. Three Builds are running, started in rounds 28 to 34: the categories Build
+(EXF-494, EXF-495; pull request #17, second pass), the account-pages Build (EXF-484, 534, 570; pull request
+#19) and the plan-menu Build (EXF-571, 470, 454). Nothing started this round.
+
+- No ticket was filed by me at the last review. EXF-572 (MCP tools missing, from flow 10) is High and linked
+  behind EXF-484.
+- **Why nothing new:** the three Builds hold the grid and categories files, the account pages with the
+  accounts and transactions files, and the shell. Every ready ticket needs one of them:
+  - EXF-572 needs the accounts and transactions tool files (account-pages Build);
+  - EXF-491 with EXF-492 need the category picker (categories Build);
+  - EXF-517 with EXF-507 need both;
+  - EXF-460 with EXF-461 need the shell (plan-menu Build) and the accounts files.
+- No Deploy: main `82aac3a` is live. No flow test: flows 1 and 2 wait for the categories Build to ship;
+  flows 9 and 10 are re-run after their gap tickets (EXF-571, EXF-572) are fixed and deployed.
+- The template-ticket sweep and the Deploy template review wait for the tenth Deploy (8 so far); one round
+  for both.
+- Review cadence: Build 5, Deploy 8, Discover 2, Test user flow 2.
