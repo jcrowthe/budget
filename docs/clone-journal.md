@@ -381,7 +381,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
 | 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
-| 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | running |
+| 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | released, live `41bee46`; its verifier still running at the round 42 plan |
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | pending | running |
 
 ### 2026-11-15 · Plan round 1
@@ -3528,3 +3528,45 @@ EXF-558 (High), EXF-569 (Medium), EXF-560, EXF-562 (Low), EXF-574 (Low, in progr
 561, 570, 571, 572. Template: twenty (EXF-573 Urgent; EXF-563 and EXF-576 High). Flow verdicts: 9
 `new_gaps` (fix merged, not live), 10 `new_gaps` (fix live), 11 `parity`. Finished since each template's
 last review: Build 1, Deploy 9, Discover 2, Test user flow 2.
+
+### 2026-11-16 · Plan round 42
+
+Children used 56 of 200. Five are running, all from earlier rounds: four Builds (EXF-491 with EXF-492;
+EXF-517 with EXF-507; EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574) and the Deploy of
+`41bee46`. **Nothing started this round.**
+
+- No ticket was filed at the last review.
+- **Live is `41bee46`**: the Deploy's release passed (no migration, smoke ok, e2e skipped because the tree
+  equals the gated `40e5650`). Its verifier is still checking the plan menu on live.
+- **Why no flow test now:** the verifier ends with `live-test-plans.sh purge`, which deletes every
+  `ZZ-TEST` plan, also a flow tester's. Start the flow tests (9 and 10 again, and 1) when it has ended.
+  **Rule: never run a Deploy's verifier and a flow test on live at the same time**, until the purge only
+  deletes its own plans (worth a small ticket: purge by a run prefix).
+- **Why no new Build:** the shell is free, but every ready ticket that needs it also needs
+  `services/accounts.ts` (held by the transactions Build) or has a source counterpart that shows private
+  data. EXF-558 and EXF-569 need a moment with no other Build running.
+- The bank-connection Build's branch has no file under `apps/web/` (it has no commit yet).
+
+**Decision on the screens that sit next to private data, without waiting for the person.** I said I would
+ask. I do not need to: the choice that protects their data needs no consent, and a question could hold up
+the rounds while they are away. So, until EXF-573 is fixed or the person says otherwise:
+
+- **Not built:** the Manage Bank Connections modal and its detail view (EXF-460's screens), "Link Account"
+  from the account edit dialog (it lists connections), and the plan-menu entries (EXF-468, 472, 473, 476,
+  478, 480, 510).
+- **Built, so live bank data is not blocked:**
+  1. removing, renaming and resetting a connection through REST and MCP (running now);
+  2. EXF-461's "add as new account" step after Plaid Link, in the existing Add Account flow, with the link,
+     unlink and from-bank operations in REST and MCP. The source shows that step only after a bank is
+     connected there, which no agent can do by accident;
+  3. the sync (EXF-462), Worker only, then the import screens in the register (their counterpart is the
+     test plan's register).
+- The person can choose otherwise at any time: allow one Designer to see their connections list, and the
+  screens can be built at once. Put this in the next check-in, and in this plan's explanation.
+
+**Next round:** the flow tests; the Deploy template review (ten Deploys finished once this one ends). No
+template-ticket sweep for now: the Build review read all sixteen template tickets in round 40 and found
+no duplicate.
+
+- Ticket writes: none.
+- Review cadence: Build 1, Deploy 9 (the tenth is ending), Discover 2, Test user flow 2.
