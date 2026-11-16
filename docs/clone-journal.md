@@ -380,7 +380,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | PR #25 | merged `3a3a977` (round 49), about 2 hours 5 minutes, four cards |
 | 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
-| 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | pending | running |
+| 2026-11-16 | 40 | Build feature, EXF-548 and EXF-551 Reflect frame and Net Worth (`p_8c426567ca264a7785a853ed5d415955`) | EXF-548, 551 | PR #27 | merged `df5afbe` (round 51), about 2 hours 5 minutes, four cards |
 | 2026-11-16 | 41 | Deploy of main `41bee46` (`p_f620f94442e74ca7aa379602f46a0c69`) | EXF-571, 470, 454 | n/a | live `41bee46` (6 minutes) |
 | 2026-11-16 | 41 | Build feature, EXF-460 Worker half and EXF-574 (`p_d8aed3c75dce492981ba3b53a8912270`) | EXF-460, 574 | PR #26 | merged `3007076` (round 45), 35 minutes |
 | 2026-11-16 | 43 | Test user flow, flows 9 and 10 again and flow 1 (`p_b3b54aec56044df2a755ef5d984061f4`) | flows 9, 10, 1 | n/a | completed (17 minutes): flow 9 `new_gaps` (EXF-586), flow 10 `new_gaps` (EXF-587), flow 1 `parity_known_gaps` |
@@ -4290,3 +4290,45 @@ started now.
   the splitter a full range": review fixes); EXF-461 Worker `d86b3a8` ("guard connection removal against
   links made since the read": a review fix of the kind I want); transfers and splits `3c8f12e` (design).
 - Review cadence: Build 6 (with Reflect), Deploy 2, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 51
+
+Children used 65 of 200. Four are running: the Plan-page Build (EXF-498, 523, 521, 586; review fixes), the
+Worker half of EXF-461 (PR #30 open), EXF-526 with EXF-524 (designed), and the flow tests for flows 1 and 2.
+
+**Ended since the last review: the Reflect Build, merged as `df5afbe` (PR #27)**, a little over two hours
+and four cards (Refresh, Regate, Regate, Approve). EXF-551 is Done. EXF-548 is back in Backlog with a
+comment: its frame is on main, its drill-down popover comes with EXF-549.
+
+- On main: `apps/web/src/reflect/**` (frame, date range, filter popovers, export dialog, Net Worth with
+  its SVG chart), `apps/web/src/api/reports.ts`, `pages/reflect.tsx` (last visited tab); `report_settings`
+  table (migration `20261116100200_report_settings.sql`); `routes/reports.ts`, `report-settings.ts` and
+  their services and repositories; tool `get_net_worth`; pure `packages/schema/src/report-range.ts` and
+  `net-worth.ts`; `e2e/support/reflect.ts`.
+- 20 polish items applied over two rounds. Its steps kept to the source limits.
+- Follow-ups are in EXF-588 (with EXF-549).
+- **Two Builds in a row took about two hours and four cards, half of it waiting on gates after main
+  moved.** The real fix is the template's; mine is ordering: approve in the order the gates finish, go
+  straight to Regate, and avoid starting a gate while a larger Build's gate is running if I can.
+
+**Manifests of the two Builds started in round 50 arrived; scheduling rule checked:**
+
+- EXF-461 Worker: migration `20261116100600_account_links.sql`; accounts and bank-connection schema,
+  repositories and services; new `services/account-links.ts` and `routes/account-links.ts`; tools for
+  accounts and bank connections; `plaid/amounts.ts`. No web file.
+- Transfers and splits: migration `20261116100500_transfers_splits.sql`; transactions and payees files;
+  new `services/transaction-pairs.ts`, `transaction-splits.ts`, `packages/schema/src/transfers.ts`,
+  `split.ts`; `apps/web/src/register/**`; specs `transfers` and `splits`.
+- The Plan-page Build: the Plan page, months, categories.
+- **Disjoint.** Shared docs only (`docs/README.md`).
+
+**Main is `df5afbe`; live is `3a3a977`**, one merge behind (Reflect, one migration). Deploy when the
+Plan-page Build has merged.
+
+**Ticket writes:** 4 (EXF-551 Done; EXF-548 to Backlog; two comments).
+
+**Backlog:** 75 open feature tickets (21 done; 6 in progress: EXF-498, 523, 521, 461, 526, 524). Gap:
+EXF-587, EXF-588 (Medium), EXF-558, EXF-560, EXF-562, EXF-589 (Low); in progress EXF-586 (High).
+Template: twenty-six. Flow verdicts: 1 `parity_known_gaps` (running again), 9 and 10 `new_gaps`,
+11 `parity`, 2 running. Finished since each template's last review: Build 6, Deploy 2, Discover 2, Test
+user flow 3.
