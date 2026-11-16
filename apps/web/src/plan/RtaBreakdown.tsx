@@ -23,10 +23,12 @@ function Line({ text, amount }: { text: string; amount: number }) {
 export function RtaBreakdown({
   detail,
   anchor,
+  alignTo,
   onClose,
 }: {
   detail: MonthDetail;
   anchor: HTMLElement;
+  alignTo?: HTMLElement;
   onClose: () => void;
 }) {
   const b = detail.rta_breakdown;
@@ -43,6 +45,7 @@ export function RtaBreakdown({
       gap={8}
       dismissOnOutside
       scrim
+      alignTo={alignTo}
       label="Ready to Assign Breakdown"
       className="rta-breakdown"
       onClose={onClose}

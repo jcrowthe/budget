@@ -19,6 +19,7 @@ export function Popover({
   className,
   dismissOnOutside,
   scrim,
+  alignTo,
   gap = ARROW_H,
   children,
 }: {
@@ -30,6 +31,8 @@ export function Popover({
   dismissOnOutside?: boolean;
   /** A dimmed overlay (the Ready to Assign breakdown); others keep it transparent. */
   scrim?: boolean;
+  /** Centre horizontally on this element instead of the anchor (the vertical placement still follows the anchor). */
+  alignTo?: HTMLElement;
   gap?: number;
   children: ReactNode;
 }) {
@@ -42,7 +45,8 @@ export function Popover({
     const h = box.current?.offsetHeight ?? 0;
     // Below the anchor; above it when the box would run off the bottom of the window.
     const above = r.bottom + gap + h > window.innerHeight - MARGIN && r.top - gap - h >= MARGIN;
-    const centre = r.left + r.width / 2;
+    const a = alignTo?.getBoundingClientRect() ?? r;
+    const centre = a.left + a.width / 2;
     const w = Math.min(width, window.innerWidth - 2 * MARGIN);
     const left = Math.max(MARGIN, Math.min(centre - w / 2, window.innerWidth - w - MARGIN));
     const arrow = Math.max(8, Math.min(centre - left - ARROW_W / 2, w - ARROW_W - 8));
@@ -60,7 +64,7 @@ export function Popover({
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [anchor, width, gap]);
+  }, [anchor, width, gap, alignTo]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

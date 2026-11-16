@@ -94,7 +94,12 @@ export function ReadyToAssign({ budgetId, month }: { budgetId: string; month: Mo
         </div>
       )}
       {open === "breakdown" && box.current && (
-        <RtaBreakdown detail={detail} anchor={box.current} onClose={close} />
+        <RtaBreakdown
+          detail={detail}
+          anchor={box.current}
+          alignTo={summary.current ?? undefined}
+          onClose={close}
+        />
       )}
       {open === "assign" && button.current && (
         <AssignPopover

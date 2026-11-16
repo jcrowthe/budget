@@ -256,7 +256,7 @@ with `page.mouse`. Category names below (Rent, Groceries, Fun) stand for any def
    rgb(106,16,32), a "Fix This" button rgb(191,46,59). Set that Assigned to 100.00 in the cell. → Without a
    reload the box turns grey, "All Money Assigned".
 4. **Breakdown, zero** (compare live: as case 2, click the amount). → A 540px popover "Ready to Assign
-   Breakdown" centred under the box with an arrow; "+$0.00" (green) and "+$0.00" rows with no detail lines;
+   Breakdown" centred under the amount and label, 8px below the box with an arrow; "+$0.00" (green) and "+$0.00" rows with no detail lines;
    "Total Ready to Assign" "= $0.00"; "Nice work! Every dollar has a job."; the help sentence with no link.
    Escape closes it; reopened, an outside click closes it.
 5. **Breakdown, positive and future.** Balance 1,000.00; assign 200.00 in M and 50.00 in M+1; view M. →
