@@ -64,6 +64,8 @@ export function EntryRow({
   );
   const [message, setMessage] = useState<string | null>(null);
   const rows = useRef<HTMLTableSectionElement>(null);
+  // Set synchronously, so two key events in one tick cannot both start a save.
+  const saving = useRef(false);
   const payeesQ = usePayees(budgetId);
   const save = useSaveTransaction(budgetId);
   const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
@@ -83,6 +85,7 @@ export function EntryRow({
   }, []);
 
   const submit = (next: "close" | "again") => {
+    if (saving.current) return;
     const err = draftError(draft, today, plan);
     if (err) {
       setMessage(err.message);
@@ -100,11 +103,15 @@ export function EntryRow({
       return;
     }
     const iso = (body as { date?: string }).date ?? draft.lastDate;
+    saving.current = true;
     save.mutate(
       { id: mode === "edit" ? tx?.id : undefined, body },
       {
         onSuccess: () => onSaved(next, iso),
         onError: (e) => setMessage(`Couldn't save the transaction. ${e.message}`),
+        onSettled: () => {
+          saving.current = false;
+        },
       },
     );
   };

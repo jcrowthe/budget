@@ -458,3 +458,18 @@ test.describe("a real mouse reaches every list", () => {
     await expect(payee(page)).toHaveValue("ZZ Row 0");
   });
 });
+
+test("Enter pressed twice while a save is in flight saves one row", async ({ page, request }) => {
+  const s = await seed(request);
+  await openAdd(page, s);
+  await page.route("**/api/v1/budgets/*/transactions", async (route) => {
+    if (route.request().method() === "POST") await new Promise((r) => setTimeout(r, 800));
+    await route.continue();
+  });
+  await memo(page).fill("dup");
+  await memo(page).press("Enter");
+  await memo(page).press("Enter");
+  await expect(rows(page).filter({ hasText: "dup" })).toHaveCount(1);
+  await page.waitForTimeout(1200);
+  expect((await txs(request, s.plan, s.checking)).filter((t) => t.memo === "dup")).toHaveLength(1);
+});

@@ -21,7 +21,8 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
   // Shift+N adds a transaction unless the user is typing or a dialog is open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "N" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      if (e.key !== "N" || !e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented)
+        return;
       if (isTyping(e.target) || document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       openAdd();

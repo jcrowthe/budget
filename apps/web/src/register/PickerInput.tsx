@@ -10,8 +10,8 @@ export type PickerRender = {
 
 /**
  * A text field with a list under it (payee, category, account). Keys: ArrowUp/ArrowDown move the highlight;
- * Enter picks it only after the user typed or moved (otherwise Enter saves the row); Tab picks it when text
- * was typed. Options take `mousedown` without moving focus out of the field.
+ * Enter picks it only after the user typed or moved (otherwise Enter saves the row); Tab picks it once the user typed or moved.
+ * Options take `mousedown` without moving focus out of the field.
  */
 export function PickerInput<T>({
   label,
@@ -91,7 +91,7 @@ export function PickerInput<T>({
         pick(active);
       }
     } else if (e.key === "Tab") {
-      if (open && moved && text.trim() !== "" && items[active] !== undefined) pick(active);
+      if (open && moved && items[active] !== undefined) pick(active);
     }
   };
 

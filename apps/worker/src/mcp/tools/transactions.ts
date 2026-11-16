@@ -24,7 +24,7 @@ type Update = z.input<typeof TransactionUpdateRequest>;
 export const tools: McpToolDef[] = [
   {
     name: "list_transactions",
-    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} ${DATE} since_date limits the rows, not the balances. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_name, category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign and updated_at.`,
+    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} ${DATE} since_date limits the rows, not the balances. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign and updated_at.`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id.optional(),
@@ -46,7 +46,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_transaction",
-    description: `Read one transaction of a plan. ${MONEY} ${DATE} Returns { transaction } with id, account_id, date, payee_name, category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign and updated_at. A deleted transaction, or one of another plan, is a tool error (not found).`,
+    description: `Read one transaction of a plan. ${MONEY} ${DATE} Returns { transaction } with id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign and updated_at. A deleted transaction, or one of another plan, is a tool error (not found).`,
     inputSchema: z.object({ budget_id: Id, transaction_id: Id }),
     run: async (input: { budget_id: string; transaction_id: string }, { env }) => ({
       transaction: await getTransaction(env, input.budget_id, input.transaction_id),

@@ -71,7 +71,7 @@ const payeeLog = (p: payeesRepo.PayeeRow) => ({
   system: p.system,
 });
 
-/** Minimal create; the register tickets extend it. */
+/** Minimal create (an internal helper for tests): no register rules, but payees keep the race retry. */
 export async function createTransaction(
   env: Env,
   actor: string,
@@ -85,41 +85,49 @@ export async function createTransaction(
   if (v.category_id && !(await categoriesRepo.findActive(db, v.budget_id, v.category_id))) {
     throw new NotFound("Category");
   }
-  const payee = await resolvePayee(db, v.budget_id, { payee_name: v.payee_name ?? null });
-  const now = new Date().toISOString();
-  const row: txRepo.TransactionRow = {
-    id: crypto.randomUUID(),
-    budgetId: v.budget_id,
-    accountId: v.account_id,
-    date: v.date,
-    payeeId: payee?.payeeId ?? null,
-    payeeName: payee?.name ?? null,
-    categoryId: v.category_id ?? null,
-    inflowToReadyToAssign: v.inflow_to_ready_to_assign,
-    memo: v.memo ?? null,
-    amount: v.amount,
-    cleared: v.cleared,
-    approved: v.approved,
-    createdAt: now,
-    deletedAt: null,
-    updatedAt: now,
-  };
-  await db.batch(
-    stmts([
-      ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
-      txRepo.insertStmt(db, row),
-      changeLogInsert(db, {
-        budgetId: row.budgetId,
-        actor,
-        action: "create",
-        entityType: "transaction",
-        entityId: row.id,
-        before: null,
-        after: transactionToApi(row),
-      }),
-    ]),
-  );
-  return transactionToApi(row);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const payee = await resolvePayee(db, v.budget_id, { payee_name: v.payee_name ?? null });
+    const now = new Date().toISOString();
+    const row: txRepo.TransactionRow = {
+      id: crypto.randomUUID(),
+      budgetId: v.budget_id,
+      accountId: v.account_id,
+      date: v.date,
+      payeeId: payee?.payeeId ?? null,
+      payeeName: payee?.name ?? null,
+      categoryId: v.category_id ?? null,
+      inflowToReadyToAssign: v.inflow_to_ready_to_assign,
+      memo: v.memo ?? null,
+      amount: v.amount,
+      cleared: v.cleared,
+      approved: v.approved,
+      createdAt: now,
+      deletedAt: null,
+      updatedAt: now,
+    };
+    try {
+      await db.batch(
+        stmts([
+          ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
+          txRepo.insertStmt(db, row),
+          changeLogInsert(db, {
+            budgetId: row.budgetId,
+            actor,
+            action: "create",
+            entityType: "transaction",
+            entityId: row.id,
+            before: null,
+            after: transactionToApi(row),
+          }),
+        ]),
+      );
+    } catch (e) {
+      if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      throw e;
+    }
+    return transactionToApi(row);
+  }
+  throw new Conflict("Payee");
 }
 
 const MAX_ATTEMPTS = 5;
