@@ -93,7 +93,7 @@ export function TrendsChart({
                 showTip(
                   [monthLabel(m.month), minusMoney(m.total), "Total Spending"],
                   cx(i),
-                  y(m.total) - 5,
+                  y(m.total),
                 )
               }
               onMouseLeave={() => setTip(null)}

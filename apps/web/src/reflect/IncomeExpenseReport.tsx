@@ -1,7 +1,7 @@
 import { drillTitle, minusMoney } from "@budget/schema/reflect-format";
 import { type MonthSpan, monthLabel } from "@budget/schema/report-range";
 import type { IncomeExpense, ReportFigures } from "@budget/schema/reports";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type ReportTransactionSelector, useIncomeExpense } from "../api/reports";
 import { changeClass } from "./format";
 import { CaretDownIcon, CaretRightIcon } from "./icons";
@@ -131,6 +131,21 @@ function Table({
 }) {
   const c = data.months.length;
   const units = c + 5;
+  // Chrome drops a px+% calc() on a <col> in a fixed table: measure the box and set px widths (Designer I1).
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    setWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  const base = 96 + 64 * (c + 2);
+  const spare = Math.max(0, width - base);
+  const firstW = 96 + (3 / units) * spare;
+  const otherW = 64 + (1 / units) * spare;
   const empty = <td colSpan={c + 2} />;
   const cells = (
     label: string,
@@ -225,16 +240,13 @@ function Table({
 
   const { income, expense } = data;
   return (
-    <div className="ie-scroll">
-      <table className="ie-table" style={{ minWidth: 96 + 64 * (c + 2) }}>
+    <div className="ie-scroll" ref={box}>
+      <table className="ie-table" style={{ minWidth: base }}>
         <colgroup>
           {/* Source: flex 3 0 96px for the first column, flex 1 0 64px for the others (Designer I1). */}
-          <col style={{ width: `calc(96px + ${3 / units} * (100% - ${96 + 64 * (c + 2)}px))` }} />
+          <col style={{ width: firstW }} />
           {[...data.months, "average", "total"].map((k) => (
-            <col
-              key={k}
-              style={{ width: `calc(64px + ${1 / units} * (100% - ${96 + 64 * (c + 2)}px))` }}
-            />
+            <col key={k} style={{ width: otherW }} />
           ))}
         </colgroup>
         <thead>

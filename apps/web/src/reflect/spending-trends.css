@@ -96,7 +96,7 @@
 }
 .st-tooltip::after {
   position: absolute;
-  top: 100%;
+  top: calc(100% - 3px);
   left: 50%;
   width: 0;
   height: 0;
@@ -186,6 +186,8 @@
 }
 .st-info-btn {
   display: inline-flex;
+  align-items: center;
+  height: 16px;
   padding: 0;
   border: 0;
   background: transparent;
