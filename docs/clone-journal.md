@@ -365,8 +365,8 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
 | 2026-11-15 | 24 | Build feature, EXF-513 register and transactions API (`p_9a3d48df2d5d492e8f3ead6099fb9a6e`) | EXF-513 | PR #16 | merged `2fcde22` (round 30) |
 | 2026-11-15 | 24 | Build feature, EXF-483 sidebar account groups (`p_786e77ad3c2c46a1a202ebf11409fdb1`) | EXF-483 | PR #14 | merged `5c4802e` (round 28) |
-| 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | pending | running |
-| 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | pending | running |
+| 2026-11-15 | 28 | Build feature, EXF-494 and EXF-495 categories: create, rename, delete, hide (`p_4f6bdb700cf54bec9c138cdfb3649b02`) | EXF-494, EXF-495 | PR #17 | running |
+| 2026-11-16 | 29 | Build feature, EXF-459 Plaid Link and bank connections (`p_3f31601a41c146cfafb7c84cc556af19`) | EXF-459 | PR #18 | running |
 | 2026-11-16 | 30 | Deploy of main `0de1856` (`p_a1da6c560bc5490c9e8e5b0b06f37c25`) | EXF-489, 483, 493 | n/a | live `0de1856` |
 | 2026-11-16 | 31 | Test user flow, flows 9 and 11 (`p_943f5578ff6e4b7db6ffdab96fd95d00`) | flows 9, 11 | n/a | running |
 | 2026-11-16 | 31 | Build feature, EXF-484, EXF-534, EXF-570 account pages and updated_at (`p_24b188914bc64377afad573abac5152d`) | EXF-484, 534, 570 | pending | running |
@@ -2532,3 +2532,37 @@ Children used 43 of 200. Four are running: the Builds for EXF-494 with EXF-495 (
   categories Build (the shared category picker).
 - Review cadence: Build 4, Deploy 7, Discover 2, Test user flow 0.
 - Ticket writes this round: 5.
+
+### 2026-11-16 · Review round 31
+
+Children used 43 of 200. Four are running: the categories Build (pull request #17, second polish round),
+the Plaid Link Build (pull request #18, implementing), the account-pages Build (EXF-484, 534, 570; just
+started) and the first flow test (flows 9 and 11; at its second step, so its profile step passed).
+
+**Ended since the last review: the Deploy `p_a1da6c560bc5490c9e8e5b0b06f37c25`**, passed, live at
+`0de1856`. Recorded in the round 31 plan, with the finding that the live clone now holds one plan of the
+person.
+
+**EXF-459's manifest arrived.** It is large and as scoped: migrations `*_budgets_bank_environment.sql` and
+`*_bank_connections.sql`; a new `apps/worker/src/plaid/**`; tables, repository, services (`bank-connections`,
+`institutions`, `plaid-credentials`), routes and schemas for them; the budgets table, repository, service,
+route, schema and tool (for `bank_environment`); `list_bank_connections`; shell `AddAccountDialog.tsx`, new
+`BankSearch.tsx`, `BankConnected.tsx`, `plaidLink.ts`, `Sidebar.tsx`, `global.css`, `icons.tsx`;
+`pages/plaid-oauth.tsx`; `scripts/plaid-credentials.sh`, `scripts/deploy.sh`, `scripts/live-test-plans.sh`
+and tests for both scripts; `docs/conventions.md`. No `middleware/` file, no secrets module change, no
+always-overlap file.
+
+**Checked against the other two Builds: disjoint.** It has no accounts or transactions file and nothing
+under the account pages or the register (the account-pages Build), and nothing under `apps/web/src/plan/`
+or the categories files (the categories Build). `docs/README.md` is shared by all, as always.
+
+**The flow-test template works on this profile** as far as its profile step: no `blocked` on a missing key.
+
+Nothing is off course. No card is waiting.
+
+**Ticket writes:** none this review.
+
+**Backlog:** 85 open feature tickets (9 done; 5 in progress: EXF-494, 495, 459, 484, 534), all triaged.
+Gap: EXF-570 (High, in progress), EXF-558 (High), EXF-569 (Medium), EXF-454, EXF-560, EXF-562 (Low).
+Template: fifteen. Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user
+flow 0.
