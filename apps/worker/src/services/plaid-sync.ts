@@ -166,7 +166,7 @@ export async function runSync(
   if (pages) {
     const { upserts, removed } = netChanges(pages.pages);
     const recovery = row.syncErrorSince !== null;
-    const payeesOf = new Map<string, Map<string, { lastCategoryId: string | null }>>();
+    const payeesOf = new Map<string, PayeeMap>();
     const planPayees = async (budgetId: string) => {
       let p = payeesOf.get(budgetId);
       if (!p) {
@@ -174,7 +174,7 @@ export async function runSync(
         p = new Map(
           list
             .filter((x) => x.system === null)
-            .map((x) => [x.name, { lastCategoryId: x.lastCategoryId }]),
+            .map((x) => [x.name, { id: x.id, lastCategoryId: x.lastCategoryId }]),
         );
         payeesOf.set(budgetId, p);
       }
@@ -236,7 +236,7 @@ export async function runSync(
       for (const { txn } of mine) {
         const have = existing.get(txn.transaction_id);
         if (have) {
-          const g = await followBank(db, budgetId, have, txn, now);
+          const g = await followBank(db, budgetId, payees, have, txn, now);
           if (g) groups.push(g);
           continue;
         }
@@ -344,8 +344,12 @@ export async function runSync(
           ...bankValues,
           source: "plaid",
         };
-        if (payeeName) addPayee(db, g, budgetId, payeeName, now, guard);
-        const names = await txRepoNames(db, budgetId, cat.categoryId);
+        let payeeId: string | null = null;
+        if (payeeName) {
+          payeeId = addPayee(db, g, budgetId, payeeName, now, guard, payees.get(payeeName)?.id);
+          if (!payees.has(payeeName)) payees.set(payeeName, { id: payeeId, lastCategoryId: null });
+        }
+        const names = await namesOf(db, budgetId, cat.categoryId);
         g.add(
           changeLogInsertIf(
             db,
@@ -356,7 +360,7 @@ export async function runSync(
               entityType: "transaction",
               entityId: newRow.id,
               before: null,
-              after: logShape({ ...newRow, ...names }),
+              after: logShape({ ...newRow, payeeId, ...names }),
             },
             guard,
           ),
@@ -505,11 +509,9 @@ function importValues(txn: PlaidTxn, amount: number, payeeName: string | null) {
   };
 }
 
-async function txRepoNames(db: Db, budgetId: string, categoryId: string | null) {
-  return namesOf(db, budgetId, categoryId);
-}
-
 /** A group of statements with the kind of change each one counts, when it changes a row. */
+type PayeeMap = Map<string, { id: string; lastCategoryId: string | null }>;
+
 class Group {
   stmts: unknown[] = [];
   kinds: (Kind | "")[] = [];
@@ -527,9 +529,10 @@ function addPayee(
   name: string,
   now: string,
   guard: SQLWrapper,
-) {
+  knownId: string | undefined,
+): string {
   const p: payeesRepo.PayeeRow = {
-    id: crypto.randomUUID(),
+    id: knownId ?? crypto.randomUUID(),
     budgetId,
     name,
     hidden: false,
@@ -553,7 +556,8 @@ function addPayee(
       txRepo.allHold([guard, payeesRepo.missingByNameGuard(budgetId, name)]),
     ),
   );
-  g.add(payeesRepo.insertByNameIfMissingStmt(db, p));
+  g.add(payeesRepo.insertByNameIfMissingStmt(db, p, guard));
+  return p.id;
 }
 
 /**
@@ -564,6 +568,7 @@ function addPayee(
 async function followBank(
   db: Db,
   budgetId: string,
+  payees: PayeeMap,
   have: Row,
   txn: PlaidTxn,
   now: string,
@@ -599,13 +604,18 @@ async function followBank(
     categoryName: before?.categoryName ?? null,
     groupName: before?.groupName ?? null,
   };
+  const g = new Group();
+  const newPayeeId = newPayee
+    ? addPayee(db, g, budgetId, newPayee, now, guard, payees.get(newPayee)?.id)
+    : null;
+  if (newPayee && newPayeeId && !payees.has(newPayee)) {
+    payees.set(newPayee, { id: newPayeeId, lastCategoryId: null });
+  }
   const merged = {
     ...have,
     ...set,
-    payeeId: newPayee ? null : set.payeeId === null ? null : have.payeeId,
+    payeeId: newPayee ? newPayeeId : set.payeeId === null ? null : have.payeeId,
   } as Row;
-  const g = new Group();
-  if (newPayee) addPayee(db, g, budgetId, newPayee, now, guard);
   g.add(
     changeLogInsertIf(
       db,

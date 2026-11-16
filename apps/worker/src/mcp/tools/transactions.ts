@@ -62,7 +62,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "reject_transactions",
-    description: `Reject 1 to 100 imported transactions that are not approved yet: each is deleted and the bank's entry is never imported again (a later sync does not bring it back). Only an unapproved import can be rejected: an approved transaction is a tool error (transaction_approved) and so is one that did not come from the bank (not_imported); an unknown id is a tool error; on any error nothing is rejected. ${MONEY} Returns { transactions }: the rejected transactions as they were, in the order given, each as get_transaction returns it. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
+    description: `Reject 1 to 100 imported transactions that are not approved yet: each is deleted and the bank's entry is never imported again (a later sync does not bring it back). Only an unapproved import can be rejected: an approved transaction is a tool error (transaction_approved) and so is one that did not come from the bank (not_imported); an unknown id is a tool error; every id is checked before anything is written, so these errors reject nothing (only a transaction changed by someone else during the write itself can fail the call after others were rejected: list again). ${MONEY} Returns { transactions }: the rejected transactions as they were, in the order given, each as get_transaction returns it. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({ budget_id: Id, ids: z.array(Id).min(1).max(100) }),
     run: async (input: { budget_id: string; ids: string[] }, { env, actor }) => ({
       transactions: await rejectTransactions(env, actor, input.budget_id, input.ids),

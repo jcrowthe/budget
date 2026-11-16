@@ -135,6 +135,8 @@ export async function matchCandidates(
         isNull(transactions.parentTransactionId),
         isNull(transactions.importId),
         isNull(transactions.source),
+        // never the Starting Balance: it is not a purchase the bank can repeat
+        sql`coalesce((select p.system from payees p where p.id = ${transactions.payeeId}), '') <> 'starting_balance'`,
         sql`${transactions.date} between ${from} and ${to}`,
       ),
     );

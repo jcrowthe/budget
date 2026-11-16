@@ -1252,7 +1252,8 @@ export async function rejectTransactions(
       ]);
       details.push(transactionDetailToApi(row, lines));
     }
-    const results = await runGroups(db, groups, 120);
+    // One batch for every row, so the window between the checks and the writes is as small as it can be.
+    const results = await runGroups(db, groups, Number.MAX_SAFE_INTEGER);
     pending = [];
     for (const [i, row] of rows.entries()) {
       const r = results[i] ?? [];

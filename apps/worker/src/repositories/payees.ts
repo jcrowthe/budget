@@ -124,13 +124,13 @@ export function isUniqueViolation(e: unknown): boolean {
   return msgs.some((m) => m.includes("UNIQUE constraint failed: payees"));
 }
 
-/** Inserts the ordinary payee unless the plan already has a live one with that name. */
-export function insertByNameIfMissingStmt(db: Db, row: PayeeRow) {
+/** Inserts the ordinary payee unless the plan has a live one with that name, and only while `guard` holds. */
+export function insertByNameIfMissingStmt(db: Db, row: PayeeRow, guard: SQLWrapper) {
   const r = row;
   return db
     .insert(payees)
     .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.hidden ? 1 : 0}, ${r.system}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${missingByNameSql(r.budgetId, r.name)}`,
+      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.hidden ? 1 : 0}, ${r.system}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${missingByNameSql(r.budgetId, r.name)} and exists ${guard}`,
     );
 }
 

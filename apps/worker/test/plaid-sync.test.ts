@@ -390,6 +390,19 @@ describe("bank import (EXF-462)", () => {
     const r = await syncOne(plan, conn);
     expect(r).toMatchObject({ matched: 1, added: 0 });
     const m1 = (await rows(account)).find((x) => x.import_id === "ZZ-M") as Json;
+    // the bank's name was not needed: no payee of that name, no payee change_log row
+    expect(
+      await count(
+        "select count(*) n from payees where budget_id = ? and name = 'ZZ Bank Name'",
+        plan,
+      ),
+    ).toBe(0);
+    expect(
+      await count(
+        "select count(*) n from change_log where budget_id = ? and entity_type = 'payee' and actor = 'service:plaid'",
+        plan,
+      ),
+    ).toBe(0);
     expect(m1).toMatchObject({
       payee_name: "ZZ Hand",
       memo: "ZZ memo",
@@ -445,6 +458,18 @@ describe("bank import (EXF-462)", () => {
     await syncOne(plan, conn);
     const close = (await rows(account)).find((x) => x.import_id === "ZZ-CLOSE") as Json;
     expect(close.payee_name).toBe("ZZ Near");
+  });
+
+  it("462-13: a deposit equal to the Starting Balance is imported, not merged into it", async () => {
+    stubBank();
+    const { plan, conn, account } = await world1();
+    feed.pages = [
+      { added: [plaidTxn({ transaction_id: "ZZ-SB", amount: -1250.5, date: "2026-03-12" })] },
+    ];
+    const r = await syncOne(plan, conn);
+    expect(r).toMatchObject({ added: 1, matched: 0 });
+    const sb = (await rows(account)).find((x) => x.payee_name === "Starting Balance") as Json;
+    expect(sb.import_id).toBeNull();
   });
 
   it("462-14: unlinked and closed accounts get balances only; no linked account costs one call", async () => {

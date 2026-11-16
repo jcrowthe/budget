@@ -71,7 +71,7 @@ is an `env.ts` plus `wrangler.jsonc` change.
   `Milliunits` from `@budget/schema/common/money`.
 - **Dates** are ISO 8601. A **month** is its first day (`2026-11-01`): `@budget/core/month`.
 - **Actor**: every mutation records who did it in `change_log`: `user:<email>`, `service:<token name>`, or
-  `mcp:<actor>` for MCP calls.
+  `mcp:<actor>` for MCP calls; `service:plaid` for the writes of a bank sync.
 - **Access only**: the Access middleware runs before everything, assets included. No public path, no webhook,
   no `workers.dev` URL. Secrets go through `src/secrets` only and are never returned or logged. The Worker also pins identity: an
   Access user token must carry `ACCESS_ALLOWED_EMAIL` (case-insensitive; empty refuses all), a service token
