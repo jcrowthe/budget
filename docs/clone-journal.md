@@ -4896,3 +4896,48 @@ progress EXF-592. Template: twenty-six. Flow verdicts unchanged (1 `parity_known
 5 `parity_known_gaps`, 8 `new_gaps`, 9 `new_gaps` with its gap fixed and a rerun owed, 10 `new_gaps`,
 11 `parity`). Finished since each template's last review: Build 9, Deploy 5, Discover 2, Test user
 flow 5. **Round 60's review is a check-in.**
+
+### 2026-11-16 · Plan round 60
+
+Children used 71 of 200. Two are open, both Builds from earlier rounds: transfers and splits (EXF-526,
+EXF-524; rebased onto `4e3eb7a`, head `d987185`, in `final_gate`, no card open) and targets (EXF-508,
+EXF-514, EXF-592; **still parked, `infra_failed` at the `checks` step, one card open that has not reached
+me**). Main and live are both `4e3eb7a`. No ticket was filed at the last review.
+
+**Started nothing, and why.** I went through the open tickets against the files the two Builds hold
+(the register, transactions, payees and the reports repository; the Plan page, months, targets and
+`packages/core/src/targets.ts`, a shared module):
+- EXF-593 (High) needs the column that only the transfers branch has. It starts when that merges.
+- Reflect (EXF-549) and the two exports/imports of a plan (EXF-476, EXF-477) read transactions and must
+  know splits and transfers: after the merge.
+- The credit engine (EXF-532, EXF-535), account type rules (EXF-546, EXF-547) and loans (EXF-482, EXF-540)
+  change `packages/core/src/**`: one shared-module change at a time, and the targets Build holds it.
+- Scheduled transactions, flags, search, the action bar, reconcile (EXF-497, 522, 528, 520, 533): the
+  register, held by transfers.
+- Plan-page tickets (EXF-500, 505, 506, 509, 516, 519, 525, 527, 560, 562): held by targets.
+- EXF-558 changes `playwright.config.ts` (always overlaps): only when nothing else runs.
+- EXF-490 (reorder accounts, Low) would take the accounts repository that EXF-593 needs within the hour.
+- The private screens stay closed (EXF-460 and EXF-461 screens, plan-menu entries) until the person
+  answers or EXF-573 is fixed.
+- No flow test now: flows 2 and 9 run after the next release (transfers, splits and EXF-593), so each
+  costs one child, not two.
+
+**Child budget, counted for the check-in:** 129 children left; 70 feature and 9 gap tickets open. At two
+to three tickets a Build that is about 32 Builds, 16 Deploys, 30 flow runs and 8 reviews: about 86. It
+fits, with little slack, so I keep grouping tickets and do not spend children on reruns that a later
+release would make stale. (The plan's text names a limit of 1000; the platform's live counter says 200,
+and that is the one I quote.)
+
+**Next, in order:**
+1. Transfers card: approve when the gate is on `4e3eb7a` and its head is the gated head. Then EXF-526 and
+   EXF-524 Done, and at once the EXF-593 Build (with EXF-590 and EXF-587) and, beside it, the Reflect
+   Build (EXF-549, EXF-588, EXF-591). **No Deploy of main between that merge and the EXF-593 merge.**
+2. Build template review: due when transfers ends (the tenth Build since round 40).
+3. Targets: answer its card with a retry when it comes. If the next review still shows it parked with no
+   card, start an ordinary carry-over Build that takes branch
+   `origin/exfab/p_74b956498a4b4ce1bed94c516291a48f` (head `972ece4`) to merge. Not the template's resume
+   inputs: they are broken (round 4).
+4. Deploy after EXF-593 merges; flows 2 and 9; then EXF-462.
+
+Ticket writes: 0. Review cadence: Build 9, Deploy 5, Discover 2, Test user flow 5. **This round's review
+is a check-in.**
