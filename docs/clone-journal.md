@@ -7202,3 +7202,71 @@ Plan-page gaps (EXF-537 with EXF-622, 623, 624, 616), both after the credit engi
 again after `D23`; the next Deploy after the next merges.
 
 Ticket writes: 0. Review cadence: Build 2, Deploy 1, Discover 2, Test user flow 8.
+
+### 2026-11-16 · Review round 83
+
+Children used 101 of 200. One ended: **Deploy `D23`, shipped**. Five are running: the shell Build, the
+credit engine carry-over, scheduled transactions (designed), the Reflect fixes (designed) and the
+template-ticket sweep (carrying out what I approved). Main `8ec621e`, **live `8ec621e`**: nothing
+merged is waiting.
+
+**Deploy `D23` shipped `8ec621e`** (`p_596994876dd74d549f308074a946366c`, 9 minutes) to
+https://budget.doxen.dev. I read the health endpoint myself (`deploy_sha` `8ec621e…`) and the pending
+script prints nothing.
+
+- **The box was whole this time.** The verifier's listing of `/workspace/.exfab` shows `deploy.env`,
+  `summary.txt`, `profile.txt`, `deploy.out`, `release.env` and the step scripts. So the loss that
+  ended `D22` ten minutes earlier is per box, as before. The listing is the first record of what a
+  healthy Deploy box holds.
+- Gate: check passed (161 s), e2e skipped because the tree equals the gated head `43519e5`. Release:
+  the Time Travel bookmark ran first; `20261116101000_transaction_flags.sql` applied; smoke ok.
+- **EXF-620 proven on live:** 60 unapproved rows approved in **one call**, 200 in 582 ms. Each bulk
+  action over 60 rows in one call, 200 in 300 to 550 ms. A request with 101 ids answers 422 and
+  changes nothing. (Comment on EXF-620.)
+- Every figure I derived matched: balances 440000, 450000 and −10000, 445000, 465000; the export's 36
+  rows; Age of Money `current_days` 0; 68 tools. The verifier wrote "nothing differs".
+- One limitation it named itself: its script cut the bulk answers, so the `changed` and `skipped`
+  counts were not read; it proved each action by reading the rows back instead.
+- In the browser at both sizes: the action bar with "2 Transactions" and Selected Total −$2.00, the
+  flag menu (green set and read back), the More menu with Match, Unmatch and Make Repeating disabled,
+  Duplicate; **at 1024×700 no text of the bar or its menus is cut** (measured); Age of Money shows
+  "Current 0 days" and its chart. No console error, no failed request.
+- A copy made by Duplicate keeps the memo and the category and carries no flag.
+- Cleanup: the plan was deleted by id and the prefixed purge then printed `deleted 0 remaining 0`;
+  plans not named `ZZ-TEST`: 1. The owner's plan was not opened. No response headers were printed.
+
+**Now live for the first time:** Age of Money (all five Reflect reports), selecting rows in the
+register, the action bar and bulk actions, flags, the register export, approve and reject with a fixed
+number of database calls; 68 tools.
+
+**The template-ticket sweep's card, answered in a side turn: approve all** (seventeen comments, one
+closure: EXF-455 as superseded; no new ticket). It is still posting them; its report and my priority
+changes are for the next review. What it gave me beyond tidying:
+- one ordered list of all 35 tickets by what each fault has cost this clone, grouped by what has to
+  change; it is the hand-over document for whoever maintains the templates;
+- one code step proposed three times, one run prefix and two profile keys proposed twice, each now
+  with one owner;
+- priority proposals I accept and will set: EXF-611 to Urgent and EXF-582 to High (the mitigations
+  within reach for the lost boxes), EXF-578 up, EXF-457, EXF-554, EXF-565 and EXF-568 down;
+- app work it noticed: a test still skipped on main and a retry patched into a spec without
+  confirming its cause; the Plaid credentials script. I checked all three on main and file one Low
+  ticket now.
+
+**Running:**
+- **Credit engine carry-over** (`p_d256d73e55104993a05ccac960529443`): on the carry-over tasks.
+- **Shell Build** (`p_d3d3715280e84394b76bb90f3dc0d418`): implemented (`de012f7`), base `5ebac3c`.
+- **Scheduled transactions** (`p_900d4c34d7c6414a980c2d1d87cfba26`): design committed (`423ea8c`); I
+  read its manifest at the next review.
+- **Reflect fixes** (`p_7aa8691536924481bf53c457c86b24ea`): plan committed (`3e0f6ca`).
+
+**Ticket writes:** 1 (comment on EXF-620). One gap ticket filed through this review.
+
+**Backlog:** 56 open feature tickets (41 done; 6 in progress). Gap: open EXF-558, EXF-560, EXF-562,
+EXF-589, EXF-616, EXF-622, EXF-623, EXF-624, EXF-630 and the one filed now; in progress EXF-614,
+EXF-621, EXF-625, EXF-626. Template: thirty-five, thirty-four once EXF-455 is closed. Flow verdicts
+unchanged. Finished since each template's last review: Build 2, Deploy 2 (one cancelled, one shipped),
+Discover 2, Test user flow 8.
+
+**Next plan:** with nothing in flight on live, a flow test: flow 2 again (the register's selection,
+bulk actions, flags and export are new there) together with flow 1 as a regression. Cards may be
+approved again (no Deploy running).
