@@ -1,7 +1,11 @@
 import {
   type Account,
+  type AccountAdjustBalanceRequest,
+  AccountAdjustmentResponse,
+  type AccountCloseRequest,
   type AccountCreateRequest,
   AccountCreateResponse,
+  AccountDeleteResponse,
   AccountListResponse,
   AccountResponse,
   AccountSummaryResponse,
@@ -49,6 +53,55 @@ export const updateAccount = async (
     })
   ).data.account;
 
+const accountUrl = (budgetId: string, accountId: string) =>
+  `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}` as const;
+
+export const adjustAccountBalance = async (
+  budgetId: string,
+  accountId: string,
+  body: AccountAdjustBalanceRequest,
+) =>
+  (
+    await apiFetch(`${accountUrl(budgetId, accountId)}/adjust-balance`, {
+      method: "POST",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: AccountAdjustmentResponse,
+    })
+  ).data;
+
+export const closeAccount = async (
+  budgetId: string,
+  accountId: string,
+  body: AccountCloseRequest,
+) =>
+  (
+    await apiFetch(`${accountUrl(budgetId, accountId)}/close`, {
+      method: "POST",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: AccountAdjustmentResponse,
+    })
+  ).data;
+
+export const reopenAccount = async (budgetId: string, accountId: string): Promise<Account> =>
+  (
+    await apiFetch(`${accountUrl(budgetId, accountId)}/reopen`, {
+      method: "POST",
+      idempotencyKey: crypto.randomUUID(),
+      schema: AccountResponse,
+    })
+  ).data.account;
+
+export const deleteAccount = async (budgetId: string, accountId: string) =>
+  (
+    await apiFetch(accountUrl(budgetId, accountId), {
+      method: "DELETE",
+      idempotencyKey: crypto.randomUUID(),
+      schema: AccountDeleteResponse,
+    })
+  ).data;
+
 export const getAccountSummary = async (budgetId: string) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/account-summary`, {
@@ -85,6 +138,60 @@ export function useCreateAccount(budgetId: string) {
     mutationFn: (input: AccountCreateRequest) => createAccount(budgetId, input),
     // Every query of this plan (accounts, months, ...) may have changed: refetch whichever key it uses.
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
+  });
+}
+
+/** Every query of the plan (accounts, months, register, ...) may have changed: refetch whichever key it uses. */
+function useInvalidatePlan(budgetId: string) {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) });
+}
+
+export function useUpdateAccount(budgetId: string, accountId: string) {
+  const invalidate = useInvalidatePlan(budgetId);
+  return useMutation({
+    mutationFn: (patch: AccountUpdateRequest) => updateAccount(budgetId, accountId, patch),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAdjustBalance(budgetId: string, accountId: string) {
+  const invalidate = useInvalidatePlan(budgetId);
+  return useMutation({
+    mutationFn: (body: AccountAdjustBalanceRequest) =>
+      adjustAccountBalance(budgetId, accountId, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCloseAccount(budgetId: string, accountId: string) {
+  const invalidate = useInvalidatePlan(budgetId);
+  return useMutation({
+    mutationFn: (body: AccountCloseRequest) => closeAccount(budgetId, accountId, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useReopenAccount(budgetId: string, accountId: string) {
+  const invalidate = useInvalidatePlan(budgetId);
+  return useMutation({
+    mutationFn: () => reopenAccount(budgetId, accountId),
+    onSuccess: invalidate,
+  });
+}
+
+/** The deleted account's own query is not refetched (it would 404 while the page still shows it). */
+export function useDeleteAccount(budgetId: string, accountId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => deleteAccount(budgetId, accountId),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey.includes(budgetId) &&
+          !(q.queryKey[0] === "accounts" && q.queryKey[2] === accountId),
+      });
+    },
   });
 }
 

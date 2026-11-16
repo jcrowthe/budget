@@ -27,6 +27,8 @@
   --overlay: rgba(0, 0, 0, 0.33);
   --buttonSecondaryBackground: rgba(117, 131, 255, 0.2);
   --buttonSecondaryLabel: #f1f1ff;
+  --buttonGhostLabel: #a3acff;
+  --buttonSecondaryBackgroundHover: rgba(117, 131, 255, 0.27);
 
   --sidebar-width: 260px;
   --nav-row: 40px;
