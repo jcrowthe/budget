@@ -226,12 +226,15 @@ function Table({
   const { income, expense } = data;
   return (
     <div className="ie-scroll">
-      <table className="ie-table" style={{ minWidth: 64 * units }}>
+      <table className="ie-table" style={{ minWidth: 96 + 64 * (c + 2) }}>
         <colgroup>
-          <col style={{ width: `${300 / units}%` }} />
-          {Array.from({ length: c + 2 }, (_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: fixed columns
-            <col key={i} style={{ width: `${100 / units}%` }} />
+          {/* Source: flex 3 0 96px for the first column, flex 1 0 64px for the others (Designer I1). */}
+          <col style={{ width: `calc(96px + ${3 / units} * (100% - ${96 + 64 * (c + 2)}px))` }} />
+          {[...data.months, "average", "total"].map((k) => (
+            <col
+              key={k}
+              style={{ width: `calc(64px + ${1 / units} * (100% - ${96 + 64 * (c + 2)}px))` }}
+            />
           ))}
         </colgroup>
         <thead>
@@ -249,6 +252,7 @@ function Table({
           </tr>
         </thead>
         <tbody>
+          {spacer}
           {heading("income", "Income", "income")}
           {!collapsed.has("income") && (
             <>

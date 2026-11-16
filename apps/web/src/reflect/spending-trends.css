@@ -43,7 +43,10 @@
   stroke-dasharray: 2 2;
 }
 .st-xtick {
-  stroke: var(--st-grid);
+  /* Source: 6px ticks, 1px, --labelPrimary (Designer S2). */
+  stroke: var(--labelPrimary);
+  stroke-width: 1;
+  stroke-dasharray: none;
 }
 .st-tick {
   fill: var(--labelSecondary);
@@ -86,9 +89,10 @@
   box-shadow:
     0 10px 20px rgba(0, 0, 0, 0.15),
     0 3px 6px rgba(0, 0, 0, 0.1);
+  /* Source: bottom edge 12px above the marker centre; the arrow tip reaches it (Designer S5). */
   transform: translate(-50%, calc(-100% - 12px));
   pointer-events: none;
-  text-align: center;
+  text-align: left;
 }
 .st-tooltip::after {
   position: absolute;
@@ -96,9 +100,9 @@
   left: 50%;
   width: 0;
   height: 0;
-  border-top: 8px solid var(--backgroundTertiary);
-  border-right: 8px solid transparent;
-  border-left: 8px solid transparent;
+  border-top: 15px solid var(--backgroundTertiary);
+  border-right: 15px solid transparent;
+  border-left: 15px solid transparent;
   content: "";
   transform: translateX(-50%);
 }
@@ -106,7 +110,7 @@
 .st-tip-note {
   font-size: 14px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 1.2;
 }
 .st-tip-name {
   color: var(--labelPrimary);
@@ -115,7 +119,7 @@
   color: var(--labelPrimary);
   font-size: 16px;
   font-weight: 900;
-  line-height: 24px;
+  line-height: 1.2;
 }
 .st-tip-note {
   color: var(--labelSecondary);
@@ -156,14 +160,20 @@
   content: "";
 }
 .st-table .st-num {
+  padding-right: 0;
   text-align: right;
 }
 .st-table .st-compare {
+  box-sizing: content-box;
   width: 11rem;
+  padding-right: 24px;
+  padding-left: 16px;
   white-space: nowrap;
 }
-.st-compare-label {
-  vertical-align: middle;
+.st-compare-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .st-empty {
   padding: 40px 8px !important;
@@ -171,9 +181,8 @@
 }
 .st-info {
   position: relative;
-  display: inline-block;
-  margin-left: 8px;
-  vertical-align: middle;
+  display: inline-flex;
+  line-height: 0;
 }
 .st-info-btn {
   display: inline-flex;
@@ -185,8 +194,10 @@
 }
 .st-info-tip {
   position: absolute;
-  right: -8px;
+  /* Source: centred on the icon, clamped to the window by the component (--st-tip-shift); Designer S6. */
+  left: 50%;
   bottom: calc(100% + 8px);
+  transform: translateX(calc(-50% + var(--st-tip-shift, 0px)));
   z-index: 4;
   box-sizing: border-box;
   width: 288px;
@@ -197,7 +208,7 @@
   color: var(--st-info-text);
   font-size: 12px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: normal;
   text-align: left;
   white-space: normal;
   opacity: 0;

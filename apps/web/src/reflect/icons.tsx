@@ -49,6 +49,12 @@ export const InfoIcon = (p: P) => (
     <path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 7h2v6h-2zm0-3h2v2h-2z" />
   </svg>
 );
+/** A filled circle with a knocked-out "i" (the Compared to Average hint). */
+export const InfoFillIcon = (p: P) => (
+  <svg {...base} viewBox="2 2 20 20" aria-hidden="true" {...p}>
+    <path fillRule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1 8v7h2v-7zm0-3v2h2V7z" />
+  </svg>
+);
 export const SearchIcon = (p: P) => (
   <svg {...base} aria-hidden="true" {...p}>
     <path d="M10 3a7 7 0 0 1 5.600 11.200l5.100 5.100-1.400 1.400-5.100-5.100A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" />

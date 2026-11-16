@@ -43,7 +43,7 @@
   z-index: 2;
   border-bottom: 1px solid var(--inputBorder);
   background: var(--backgroundPrimary);
-  color: var(--labelSecondary);
+  color: var(--labelPrimary);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.6px;
@@ -58,13 +58,17 @@
   padding: 0;
 }
 
-.ie-heading th {
+.ie-heading th,
+.ie-heading td {
   height: 39px;
   border-bottom: 1px solid var(--ie-row-line);
   background: var(--backgroundPrimary);
   font-size: 18px;
   font-weight: 600;
   text-align: left;
+}
+.ie-heading .ie-toggle {
+  line-height: 1;
 }
 .ie-heading.income th {
   color: var(--statusPositive);
@@ -95,6 +99,7 @@
 .ie-group th,
 .ie-group td {
   height: 34px;
+  border-bottom: 1px solid var(--ie-row-line);
   background: var(--backgroundSecondary);
   font-size: 14px;
   font-weight: 600;
@@ -124,6 +129,7 @@
   padding-left: 48px;
 }
 .ie-table td.ie-amt {
+  padding: 0;
   border-left: 1px solid var(--borderSubtle);
   color: var(--labelPrimary);
   font-size: 14px;
@@ -147,6 +153,13 @@
   font-size: 14px;
   font-weight: 600;
 }
+.ie-total.group th {
+  border-right: 1px solid var(--borderSubtle);
+}
+.ie-total.group th,
+.ie-total.group td {
+  border-bottom: 1px solid var(--ie-row-line);
+}
 .ie-total.group td.ie-amt {
   border-top: 1px solid var(--inputBorder);
 }
@@ -155,8 +168,15 @@
   height: 34px;
   background: var(--backgroundSecondary);
 }
+.ie-total.section th,
+.ie-total.section td {
+  border-bottom: 1px solid var(--ie-row-line);
+}
+.ie-table .ie-total.section td.ie-amt {
+  border-left: 0;
+}
 .ie-total.section th {
-  padding-left: 16px;
+  padding-left: 32px;
   color: var(--labelPrimary);
   font-size: 14px;
   font-weight: 600;
@@ -172,7 +192,8 @@
   background: var(--backgroundPrimary);
   border: 0;
 }
-.ie-net td.ie-amt {
+.ie-table .ie-net td.ie-amt {
+  border-left: 0;
   font-size: 16px;
   font-weight: 600;
 }
@@ -186,8 +207,21 @@
   color: var(--labelSecondary);
 }
 
+.ie-amt > .amt {
+  display: block;
+  padding: 8px;
+}
+.ie-table td.ie-amt:last-child > .amt,
+.ie-table td.ie-amt:last-child > .ie-btn {
+  padding-right: 16px;
+}
 .ie-btn {
-  padding: 0;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  text-align: right;
   border: 0;
   background: transparent;
   color: inherit;

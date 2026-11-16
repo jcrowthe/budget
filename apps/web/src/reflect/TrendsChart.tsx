@@ -48,7 +48,8 @@ export function TrendsChart({
   // All zero: the zero line sits at mid-height (source: the empty chart).
   const min = ticks.length ? Math.min(lo, ticks[0] as number) : -1000;
   const max = ticks.length ? Math.max(hi, ticks[ticks.length - 1] as number) : 1000;
-  const left = ticks.length ? 72 : 21;
+  // No y ticks: the plot starts 31px in (source, Designer S1).
+  const left = ticks.length ? 72 : 31;
   const plotW = width - left - RIGHT;
   const y = (v: number) => PLOT_TOP + PLOT_H - ((v - min) / (max - min || 1)) * PLOT_H;
   const col = plotW / Math.max(1, months.length);
