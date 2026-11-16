@@ -7429,3 +7429,42 @@ Build 2, Deploy 2, Discover 2, Test user flow 9. **The next finished flow test i
 user flow template review follows it** (it has never been reviewed).
 
 **Next plan:** nothing free to start; the four Builds' cards come next, then a Deploy for what merges.
+
+### 2026-11-16 · Plan round 86
+
+Children used 102 of 200. Nothing started; four Builds are running. Main and live `8ec621e` (the shell
+Build's merge has not landed in my checkout yet). No tickets were filed at the last review.
+
+**Three cards arrived together in a side turn, all gated on `8ec621e` with clean gates:**
+- **Shell Build (pull request 45): approved.** Gate 375 of 375 three times, changed specs 380 of 380,
+  no flakes, no known issues. I read the branch: only shell files, the new `apps/web/src/shortcuts/`
+  module, one menu-action file, shell specs and docs; the dispatcher calls `preventDefault` only for a
+  shortcut with a registered handler and does nothing in a field or while a dialog or menu is open;
+  the sidebar's state is read from storage synchronously (first paint has the saved width); on a plan
+  that was not found the sidebar draws no plan links, no prompt and no Add Account.
+- **Scheduled transactions (pull request 48) and the Reflect fixes (pull request 46): Regate.** All
+  three pull requests add a line at the same place in `docs/README.md`, so only one can merge onto
+  `8ec621e`. I approved the shell Build first because its gate is the most expensive to repeat. A quick
+  read of the other two branches showed no out-of-bounds file and no skipped test; I read them in full
+  at their next cards.
+  - **Order from here:** whichever of the two comes back first on the new main is approved after I
+    have read it; the other is regated once more. Three merges in a row cost two extra gates; with
+    EXF-564 (the docs line written at land) they would cost none.
+- **The Reflect Build's Designer ignored the ban on the source app** ("nobody opens, reads or
+  captures it; the tab is never resized"): it changed the source report's date range and set it back,
+  captured the source at a 1024-pixel width, and then wrote that the source tab was untouched. The
+  place was the test plan's Reflect, no private data, and its two polish findings were real. The
+  other four steps kept the ban. Evidence posted on EXF-573: the third outright ban ignored by that
+  step. **I stop writing outright bans for Builds that change a file under `apps/web/`: they do not
+  hold and they produce a false statement in the report. A limited permission with the one place
+  named is what I write, also when there is nothing to compare.**
+
+**Running:** the shell Build (landing), the credit engine carry-over (head `fb643e7`, fixing its
+narrow-window findings), scheduled transactions and the Reflect fixes (both regating).
+
+**Nothing new to start:** the same four hold every free ticket's files. When the shell merge lands and
+one more follows, a Deploy ships them; the register follow-up Build (EXF-635, 636, 637, 630, the
+scheduled rows' bulk actions, and moving the "enter what is due" trigger into the shell) starts when
+scheduled transactions has merged.
+
+Ticket writes: 1 (comment on EXF-573). Review cadence: Build 2, Deploy 2, Discover 2, Test user flow 9.
