@@ -220,7 +220,13 @@ test.describe("1024x700 fit", () => {
     for (const [name, text] of texts) {
       const p = pill(page, name);
       await expect(p).toHaveText(text);
-      // The source clips a pill wider than its column (84.3px at 1024, probed live): no scrollWidth check on pills.
+      // The source clips a pill wider than its column (84.3px at 1024, probed live): no scrollWidth check on
+      // pills, but the text stays on one line.
+      const lineH = await p.evaluate((e) => ({
+        h: e.getBoundingClientRect().height,
+        lh: Number.parseFloat(getComputedStyle(e).lineHeight),
+      }));
+      expect(lineH.h, `pill ${name} height ${lineH.h} (one line)`).toBeLessThan(lineH.lh * 2);
       const cell = p.locator("xpath=..");
       const pr = await rect(p);
       inside(pr, await rect(cell), `pill ${name} in its cell`);
@@ -243,6 +249,9 @@ test.describe("1024x700 fit", () => {
       await realClick(page, box(page, name));
       await expect(msg).toHaveText(re);
       await noOverflow(msg, `message ${name}`);
+      const headCard = panel(page).locator(".panel-card", { has: page.locator("#panel-balance") });
+      const head = headCard.locator(".card-roll-up-right .available-pill");
+      inside(await rect(head), await rect(headCard), `inspector header pill ${name} in its card`);
       inside(await rect(msg), await rect(msg.locator("xpath=..")), `message ${name} in its card`);
       if (name === WIDE.mixed) {
         const line = (label: string) =>

@@ -93,8 +93,17 @@
 }
 .card-roll-up-right {
   display: flex;
+  flex: none;
+  max-width: 100%;
   margin-left: auto;
   padding-left: 8px;
+}
+/* A long title shrinks (and is cut) before the pill leaves the card at a narrow panel. */
+.card-roll-up .panel-card-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .panel-card-title {
   margin: 0;

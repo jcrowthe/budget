@@ -486,6 +486,7 @@ button.category-name {
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
 }
 .available-pill .pill-amount {
   min-width: 0;
