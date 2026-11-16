@@ -471,7 +471,7 @@ export function RegisterTable({
             plan={plan}
             showCategory={showCategory}
             date={open.date}
-            initialFocus={open.payment ? "payee" : plan ? "account" : "date"}
+            initialFocus={plan ? "account" : "date"}
             prefillInflow={open.payment ? paymentPrefill(open.payment.inflow) : undefined}
             onClose={onCloseEntry}
             onSaved={onSaved}

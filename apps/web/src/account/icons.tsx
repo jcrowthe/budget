@@ -56,8 +56,21 @@ export const StarFilledIcon = (p: P) => (
     <path d="m12 1 3.300 7 7.700 1-5.600 5.300 1.400 7.700-6.800-3.700-6.800 3.700 1.400-7.700L1 9l7.700-1L12 1Z" />
   </svg>
 );
-export const InfoIcon = (p: P) => (
+/** A filled circle with an exclamation mark (the negative Payment pill). */
+export const ExclamationCircleIcon = (p: P) => (
   <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
-    <path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 7h2v6h-2zm0-3h2v2h-2z" />
+    <path
+      fillRule="evenodd"
+      d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm-1 4h2v9h-2V5Zm1 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"
+    />
+  </svg>
+);
+/** The solid credit card of Record Payment: a filled card with a cut-out stripe and chip. */
+export const SolidCardIcon = (p: P) => (
+  <svg {...base} width={16} height={16} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M3 3h18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-1 6v2h20V9H2Zm1 6v2h3v-2H3Z"
+    />
   </svg>
 );

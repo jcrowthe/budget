@@ -226,24 +226,32 @@
   text-align: center;
 }
 
-/* The Payment pill (EXF-539): the payment category's Available this month. */
+/* The Payment pill (EXF-539). Source (measured, dark, 1600px): .header-currency-label span.currency padding
+   0.205rem 0.5rem 0.125rem, font-size 0.88rem, line-height 1.2; pill row 27.75px tall; Payment label line-height 14.4px;
+   .accounts-header-payment margin-right 1rem (the right edge sits at 1568px of 1600). */
 .acct-payment {
-  margin-left: var(--space-4);
+  margin: 0 1rem 0 0;
   min-width: 0;
 }
-.acct-selected-total + .acct-payment {
-  margin-left: 1rem;
+.acct-payment-row {
+  display: flex;
+  align-items: flex-start;
+  height: 27.75px;
 }
 .acct-payment-pill {
-  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   box-sizing: border-box;
-  min-height: 24px;
-  padding: 4px 7px 2px;
+  padding: 0.205rem 0.5rem 0.125rem;
   border-radius: 1000px;
-  font-size: 14px;
+  font-size: 0.88rem;
   font-weight: 500;
-  line-height: 16px;
+  line-height: var(--line-height);
   white-space: nowrap;
+}
+.acct-payment-pill:empty {
+  min-height: 22.16px;
 }
 .acct-payment-pill.is-zero {
   background: var(--account-payment-zero-bg);
@@ -259,11 +267,13 @@
 }
 .acct-payment .acct-label {
   white-space: nowrap;
+  line-height: calc(12px * var(--line-height));
 }
 
 /* The Selected Total sits at the right end of the strip (source: .accounts-header-balances-right, margin-left auto). */
 .acct-balances-right {
   display: flex;
+  align-items: center;
   margin-left: auto;
 }
 
@@ -314,4 +324,9 @@
 }
 .acct-tooltip .acct-tip-key.is-then {
   background: transparent;
+}
+
+/* Source: the Selected Total carries margin-right 1rem when the Payment block follows it. */
+.acct-selected-total:not(:last-child) {
+  margin-right: 1rem;
 }

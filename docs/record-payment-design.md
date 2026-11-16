@@ -50,7 +50,7 @@ The Architect's:
 - **D1. Pill colour.** The pill shows the card's payment category Available for the current local month. It is
   grey (`is-zero`) at exactly 0, green (`is-positive`) above 0 and red (`is-negative`) below 0. The colours are
   the Plan grid's, repeated as `account-header.css` variables because `plan/**` is held elsewhere.
-- **D2. Prefill.** Record Payment opens a new row dated today, focus on Payee, payee and category empty. Inflow is
+- **D2. Prefill.** Record Payment opens a new row dated today, focus on Date (polish P5), payee and category empty. Inflow is
   set to the Available **only when it is above 0**. At 0 or below it stays empty: there is nothing to pay, and a
   negative would be an outflow. The button is disabled until the month has loaded or failed.
 - **D3. Display rule** (`paymentDisplay`, pure). It applies to a transfer row where both accounts are on-plan and

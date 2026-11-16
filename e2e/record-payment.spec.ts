@@ -52,7 +52,8 @@ test("the card header: badge, three balances and the Payment pill; a line of cre
 
   await payCard(request, s.plan, s.visa, s.checking, 50000);
   await page.reload();
-  await expect(pill(page)).toHaveText("-$50.00");
+  // Source (measured live): the negative pill reads with U+2212 and a leading exclamation icon.
+  await expect(pill(page)).toHaveText("\u2212$50.00");
   await expect(pill(page)).toHaveClass(/is-negative/);
 
   await open(page, s.plan, s.loc as string);
@@ -80,7 +81,8 @@ test("the toolbar: Record Payment on a card only; the new row is dated today wit
   ]);
   await expect(button(page, "Record Payment")).toBeEnabled();
   await realClick(page, button(page, "Record Payment"));
-  await expect(payee(page)).toBeFocused();
+  // Source (polish P5): the new payment row focuses Date, like Add Transaction; payee stays empty.
+  await expect(date(page)).toBeFocused();
   await expect(payee(page)).toHaveValue("");
   await expect(date(page)).toHaveValue("11/16/2026");
   await expect(inflow(page)).toHaveValue("335.00");
@@ -121,7 +123,9 @@ test("Payment from, the fixed category, saving, and both sides' display (539 AC3
     list.getByRole("option", { name: "Payment from ZZ-TEST Checking", exact: true }),
   );
   await expect(category(page)).toHaveValue("Credit Card Payments: ZZ-TEST Visa");
-  await expect(category(page)).toBeDisabled();
+  // Source (polish P6): the field looks like an enabled one; here it is read-only, with no list (design D4).
+  await expect(category(page)).toHaveAttribute("readonly", "");
+  await expect(category(page)).toBeEnabled();
   await inflow(page).fill("200.00");
   await realClick(page, button(page, "Save"));
   await expect
@@ -169,7 +173,8 @@ test("Payment from, the fixed category, saving, and both sides' display (539 AC3
   );
   await inflow(page).fill("185.00");
   await realClick(page, button(page, "Save"));
-  await expect(pill(page)).toHaveText("-$50.00");
+  // Source (measured live): the negative pill reads with U+2212 and a leading exclamation icon.
+  await expect(pill(page)).toHaveText("\u2212$50.00");
   await expect(pill(page)).toHaveClass(/is-negative/);
   await expect(working(page)).toHaveText("$50.00");
 });
@@ -243,7 +248,7 @@ test("1024x700: a long card name, balances near -12,345.67 and two rows ticked f
   await payCard(request, s.plan, s.visa, s.checking, 12345670);
   await page.setViewportSize({ width: 1024, height: 700 });
   await open(page, s.plan, s.visa);
-  await expect(pill(page)).toHaveText("-$12,345.67");
+  await expect(pill(page)).toHaveText("\u2212$12,345.67");
   const boxes = page.locator(".register-table tbody tr[data-tx]");
   await realClick(
     page,
@@ -277,6 +282,19 @@ test("1024x700: a long card name, balances near -12,345.67 and two rows ticked f
   for (const b of await toolbar.getByRole("button").all()) {
     expect(await within(toolbar, b)).toBe(true);
   }
+  // Source (polish P7): at this width Record Payment, Undo and Redo sit in the More button; the search stays 192px.
+  await expect(button(page, "Record Payment")).toHaveCount(0);
+  await expect(button(page, "File Import")).toBeVisible();
+  expect(
+    await page.locator(".search-box input").evaluate((e) => e.getBoundingClientRect().width),
+  ).toBe(192);
+  await realClick(page, toolbar.getByRole("button", { name: "More", exact: true }));
+  await expect(
+    page
+      .getByRole("menu", { name: "More toolbar actions" })
+      .getByRole("button", { name: "Record Payment" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   for (const label of await toolbar.locator(".toolbar-label:visible").all()) {
     expect(await label.evaluate((e) => e.getBoundingClientRect().height <= 24)).toBe(true);
   }

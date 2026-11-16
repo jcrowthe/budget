@@ -66,7 +66,8 @@ export function CategoryField({
       onText={setTyped}
       items={items}
       initialActive={current ? 0 : typed === null ? -1 : 0}
-      disabled={disabled || fixedText !== undefined}
+      disabled={disabled && fixedText === undefined}
+      readOnly={fixedText !== undefined}
       title={fixedText ?? title}
       startOpen={startOpen && fixedText === undefined}
       width={400}

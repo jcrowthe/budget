@@ -23,6 +23,7 @@ export function PickerInput<T>({
   onPick,
   onBlurCommit,
   disabled,
+  readOnly,
   title,
   startOpen,
   width,
@@ -40,6 +41,8 @@ export function PickerInput<T>({
   onPick: (item: T) => void;
   onBlurCommit?: () => void;
   disabled?: boolean;
+  /** Shown like an enabled field (full opacity, text cursor) but not editable and with no list. */
+  readOnly?: boolean;
   title?: string;
   startOpen?: boolean;
   width: number;
@@ -110,13 +113,15 @@ export function PickerInput<T>({
         aria-haspopup="listbox"
         value={text}
         disabled={disabled}
+        readOnly={readOnly}
         title={title}
         onFocus={() => {
+          if (readOnly) return;
           setOpen(true);
           setMoved(false);
           setActive(initialActive);
         }}
-        onClick={() => setOpen(true)}
+        onClick={() => !readOnly && setOpen(true)}
         onChange={(e) => {
           onText(e.target.value);
           setOpen(true);
