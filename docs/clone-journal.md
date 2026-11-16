@@ -8414,3 +8414,54 @@ review: Build 7, Deploy 6 (D22, D25, D26 lost; D23, D24, D27 shipped), Discover 
 **Next plan:** flow tests on live `11273cf`: flow 4 (credit card, first run), flow 7 (recurring,
 first run; its payee-rule half is not built) and flow 8 (Reflect, third run, for EXF-625 and
 EXF-626); Export Plan (EXF-476) now that boxes hold.
+
+### 2026-11-16 · Plan round 98
+
+Children used 114 of 200. Two started now; four are running. Main and live `11273cf`. No tickets were
+filed at the last review. The person has not answered the check-in.
+
+- **Started: flows 4, 7 and 8 on live `11273cf`** (`p_988d22eb85a649248b1d7c66673dd767`; prefix
+  `ZZ-TEST F98`; one child, three flows). No source app; the plan menu is not opened.
+  - **Flow 4 (credit card), first run,** walked in the browser with my figures by hand: 300.00 and
+    50.00 assigned; 120.00 on the card in a funded category (payment category 120.00); 80.00 in a
+    50.00 category (yellow pill −30.00, payment 170.00); 20.00 of cash in the same category (my
+    reading of the rule: all 50.00 is credit overspending, payment 150.00, next month's Ready to
+    Assign untouched); cover 50.00 (payment 200.00, equal to the debt); next month; pay 200.00
+    (payment 0.00); pay 30.00 more (payment −30.00, red; next month 1,620.00); a refund of 20.00
+    (payment −50.00, card +50.00, next month 1,600.00); the locks on screen and through REST; the
+    tool equal to the screen.
+  - **Flow 7 (recurring), first run:** a monthly series ten days ahead; a memo-only edit; Enter Now
+    by button and by `E`; a weekly series dated today; an ordinary row with Repeat Never; a one-off
+    for tomorrow; delete from More; twice a month through REST with four enters (12/05, 12/20,
+    01/05, 01/20); nothing entered that is not due; balances 600.00, 575.00, 570.00, 560.00, 556.00;
+    the category's Activity −444.00. Its payee-rule half is not built and not walked.
+  - **Flow 8, third run, short:** the Income v Expense table at 1024×700 (amounts whole, labels
+    shortened with a tooltip), Age of Money's hover, text fit on the other reports.
+  - **New in the brief, from the template review (EXF-650, EXF-651), ahead of the template:** check
+    my arithmetic before step 1; file what contradicts a written rule and report the rest with a
+    reason; measure text fit at 1024×700 on every screen; save results per step; say that the
+    verdict is against the tickets and the brief, not the source. The known gaps are listed so they
+    are not filed twice.
+- **Started: the Export Plan Build, API half** (`p_3e4f9289ea4140718e15e4d430ed18f5`, EXF-476):
+  `GET .../export` and the tool `export_budget`, the two files byte for byte as the ticket says.
+  - **No file under `apps/web/` and no source app at all:** the dialog lives in the plan menu, whose
+    list of plans nobody may see; that half stays parked on the person's word. With no screen the
+    Designer has nothing to compare.
+  - The zip is written by hand (no dependency; `package.json` is always-overlap); the formatter takes
+    a plan format as a parameter and the service passes one default until EXF-468 and EXF-480 exist;
+    the file names' stamp comes from a parameter; the D1 calls do not grow with the plan (a counting
+    test with 1,000 transactions over 24 months).
+  - **Scheduling rule:** new files only, plus one line each in the budgets coverage file and the
+    timestamp test's list (keep both sides) and `docs/README.md`. It reads the months and
+    transactions services the other two Builds change and changes none of them (named out of
+    bounds).
+- **Running besides:** the Plan-page Build (`p_8baaff851d044a5ea2fcccb712be3809`, in polish) and the
+  Record Payment Build (`p_ae982fa0a2334ebaae16875e1551c0d6`, at its design).
+- **Not started:** Reconcile (EXF-533, High) needs the account page and the register, held by the
+  Record Payment Build. No Deploy: main and live are equal.
+- **Cards:** a flow test is running on live, so **a Build may merge (a merge does not change live)
+  but no Deploy starts until the flow test ends.** Three Builds will reach their cards on one base:
+  approve the first whose gate ran on main, Regate the others only when their turn comes.
+
+Ticket writes: 2 (EXF-476 to In Progress with a comment). Review cadence: Build 7, Deploy 6,
+Discover 2, Test user flow 0 (one running).
