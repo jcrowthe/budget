@@ -22,7 +22,21 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
    `createRoute` (paths relative to `/api/v1`). The route is the OpenAPI entry: it appears in
    `/api/v1/openapi.json` automatically. Read `c.get("identity").actor` and pass it to the service.
 7. **MCP tool** `apps/worker/src/mcp/tools/widgets.ts`: `export const tools: McpToolDef[]`, calling the same
-   service with the `actor` the server passes in (it is `mcp:<identity actor>`).
+   service with the `actor` the server passes in (it is `mcp:<identity actor>`). **Every REST operation has
+   its tool**, returning the operation's `data` object; add one line for it in
+   the resource's own coverage file `apps/worker/test/mcp-coverage/<resource>.ts`
+   (`"METHOD /path": { tool: "name" }`; `tool` may be a list when several tools split one operation), or,
+   when an agent must not or cannot use it (secrets, a browser-only flow, interface state, plumbing), an
+   `{ excluded: "reason" }` line. A tool with no single REST operation goes in that file's
+   `toolsWithoutOperation` with its reason. A new resource adds its own coverage file next to its tests
+   and never edits another resource's file; an operation added to an existing resource goes in that
+   resource's file. The test collects the folder with `import.meta.glob` and fails when two files claim
+   one operation. `mcp-coverage.test.ts` fails on a missing line or a missing tool. **Descriptions** (checked
+   by `mcp-descriptions.test.ts`): say what the tool returns (`Returns { object }` and its main fields);
+   with money in or out, use `MONEY` from `mcp/tool-text.ts` (integer milliunits, 1000 = one currency
+   unit, negative is an outflow); with a month input, `MONTH` (`YYYY-MM-01`); with a date input, `DATE`
+   (`YYYY-MM-DD`). Ids are `Id` (a non-empty string the service resolves; unknown ids are tool errors).
+   Offer in an enum only the values the service accepts.
 8. **Web API module** `apps/web/src/api/widgets.ts`: functions and hooks over `apiFetch` with the schemas from
    step 3. The web app calls only `/api/v1`; there is no private endpoint for the UI.
 9. **Page** `apps/web/src/pages/widgets.tsx`: `export const page = { path, element }`. Use
@@ -36,6 +50,8 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
     `apps/worker/test/openapi.test.ts`, `apps/worker/test/mcp.test.ts` or `e2e/mcp.spec.ts`: they derive the
     route and tool lists from the globs (every route file contributes a path, every tool file exports a
     tool, no two tools share a name, `tools/list` matches the tool files), so a new resource adds files only.
+    The MCP coverage and description tests need no edit for a new resource: add the coverage
+    file of step 7.
 
 ## Shared modules: one Build at a time
 
