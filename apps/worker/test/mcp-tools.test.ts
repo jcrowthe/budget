@@ -122,6 +122,11 @@ describe("mcp-tools", () => {
     const rows = await logRows(bid, "update");
     expect(rows.length).toBeGreaterThanOrEqual(2);
     expect(rows.every((r) => r.actor === `mcp:${actor}`)).toBe(true);
+    const before = (await logRows(bid, "update")).length;
+    const empty = await mcp("update_budget", { budget_id: bid });
+    expect(empty.isError).toBe(true);
+    expect(errorText(empty)).toMatch(/nothing to update/i);
+    expect((await logRows(bid, "update")).length).toBe(before);
     const props = Object.keys((await toolSchemas()).update_budget.inputSchema.properties).sort();
     expect(props).toEqual(["bank_environment", "budget_id", "name"]);
   });

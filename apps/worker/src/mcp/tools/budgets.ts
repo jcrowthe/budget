@@ -53,6 +53,9 @@ export const tools: McpToolDef[] = [
       { env, actor },
     ) => {
       const { budget_id, ...rest } = input;
+      if (rest.name === undefined && rest.bank_environment === undefined) {
+        throw new Error("Nothing to update: give name or bank_environment");
+      }
       return { budget: await updateBudget(env, actor, budget_id, rest) };
     },
   },

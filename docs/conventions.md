@@ -45,8 +45,9 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
     flow). Name test data `ZZ-TEST <random>`; no spec may assume an empty database. Never edit
     `apps/worker/test/openapi.test.ts`, `apps/worker/test/mcp.test.ts` or `e2e/mcp.spec.ts`: they derive the
     route and tool lists from the globs (every route file contributes a path, every tool file exports a
-    tool, no two tools share a name, `tools/list` matches the tool files), so a new resource adds files only. The MCP coverage and description tests need no edit for a new resource:
-    add the mapping line of step 7.
+    tool, no two tools share a name, `tools/list` matches the tool files), so a new resource adds files only.
+    The MCP coverage and description tests need no edit for a new resource: add the mapping line of
+    step 7.
 
 ## Shared modules: one Build at a time
 
