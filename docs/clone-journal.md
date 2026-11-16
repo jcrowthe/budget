@@ -9129,3 +9129,52 @@ Build 3 (all three lost to boxes), Deploy 7, Discover 2, Test user flow 2.
 the plan import (head `0b970a0`). Their manifests overlap only in keep-both-sides lines and the
 export's call-count test (the Plan-page branch changes its figure from 15 to 16; the import branch
 changes the same file for EXF-670): **the import carry-over is told to expect that conflict.**
+
+### 2026-11-16 · Plan round 105
+
+Children used 123 of 200. Two started now; four are running, with the Build template review still
+shown as parked. Main and live `49012cd` (read by me at 23:38Z). No tickets were filed through the
+last review (the flow test filed its three itself; they are prioritised). The person has not
+answered the round-100 check-in.
+
+- **Started: the Plan-page carry-over** (`p_27170c2d7ee8476b927e1819efee5d26`; EXF-537, 622, 623,
+  624, 616, 646). Its Clerk merges `origin/exfab/p_8baaff851d044a5ea2fcccb712be3809` (head
+  `c0cf241`; I tried the merge on main `49012cd` in a throwaway worktree: clean, 55 files, 3,084
+  insertions, 120 deletions).
+  - What is left to do on it: a re-review of the last commit (the two fixes for the Reviewer's
+    findings), acceptance with the Tester looking at every state in the clone at both sizes, three
+    full browser runs without a failure, the gate.
+  - **Nobody opens the source**: the earlier steps' readings of what the source can show are in the
+    polish list; the clone is compared with those recorded values.
+  - Small things added: the export design's call count (16 since this Build adds a query to the
+    month reads), the stale 440 px line, what a name gets with a 15 px scrollbar, and **EXF-674's
+    first item** (the inspector's Record Payment button passes `?record-payment`).
+- **Started: the plan import carry-over** (`p_51a143af64a84fd4bef3df56774f8506`; EXF-477's API half
+  with EXF-670). Its Clerk merges `origin/exfab/p_b71911bc33cb444db359bb72047a1a75` (head `0b970a0`;
+  tried on main: clean, 35 files, 6,496 insertions, 15 deletions).
+  - What the first Implementer said it had not done is the carry-over's work: each acceptance
+    criterion with its named test, the round trip with every kind of row, the 20,000-transaction
+    file's figures, a repeated and a simultaneous `continue`.
+  - **Added by me after reading the design:** the plan is hidden with the same marker as a deleted
+    plan, so a test must show that cancel and the 24-hour sweep never remove a plan the owner
+    deleted, and that a half-done import is skipped by the plan list, reads by id, MCP, the daily
+    job and the bank sync.
+  - No screen, no source, no file from the source.
+- **The two together:** each merges cleanly onto main alone; merged one after the other they conflict
+  in two test files (`mcp-timestamps.test.ts`: keep both; `plan-export-calls.test.ts`: the Plan page
+  changes the export's count to 16, the import changes the same file for EXF-670). **Both briefs
+  name the conflict and how to resolve it**, so whichever merges second is not surprised. Against
+  the Reconcile carry-over each shares only `docs/README.md` and keep-both-sides lines. No shared
+  module in the import or Reconcile; `packages/core` is the Plan page's alone.
+- **Both briefs carry the lines learned today:** on missing platform files say so and go on
+  committing, never "blocked"; commit often; the Tester looks at the clone; a spec that fails in a
+  full run is read, not called a flake.
+- **Not started:** no Deploy and no flow test (main and live are equal).
+- **Risk I accept:** three long Builds are now in one rate-limit window that opened at 23:01Z. If the
+  limit hits before they reach their gates, each costs another carry-over. The alternative, running
+  them one after another, takes three windows; their work is safe on their branches either way.
+- **Cards:** I answer at once (boxes are lost while a card waits). A clean card on main: approve, the
+  others then rebase. A checks or gate card with no log: Abandon and carry over, never Retry.
+
+Ticket writes: 2 (EXF-537, EXF-477). Review cadence: Build 3, Deploy 7, Discover 2, Test user flow
+2.
