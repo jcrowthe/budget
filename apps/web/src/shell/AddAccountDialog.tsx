@@ -1,17 +1,20 @@
 import type { AccountType } from "@budget/core/account-types";
 import type { Account } from "@budget/schema/accounts";
 import { parseAmountInput } from "@budget/schema/amount-input";
-import { useState } from "react";
+import type { BankConnection } from "@budget/schema/bank-connections";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { localToday, useCreateAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { AccountTypePicker } from "./AccountTypePicker";
 import { ACCOUNT_TYPE_LABEL } from "./accountTypeLabels";
+import { BankConnected } from "./BankConnected";
+import { BankSearch } from "./BankSearch";
 import { CaretRightIcon, CheckCircleIcon, ChevronLeftIcon, CloseIcon } from "./icons";
 import { accountPath } from "./planPaths";
 import { useCurrentPlan } from "./useCurrentPlan";
 
-type Screen = "start" | "form" | "types" | "success";
+type Screen = "start" | "form" | "types" | "success" | "connected";
 type Errors = { name?: string; balance?: string; other?: string };
 
 const TITLES: Record<Screen, string> = {
@@ -19,10 +22,23 @@ const TITLES: Record<Screen, string> = {
   form: "Add Unlinked Account",
   types: "Select Account Type",
   success: "Add Unlinked Account",
+  connected: "Add Accounts",
 };
 
-export function AddAccountDialog({ onClose }: { onClose: () => void }) {
-  const { budgetId = "" } = useCurrentPlan();
+/**
+ * "Add Accounts". `variant="connections"` is the one opened from Manage Bank Connections (EXF-460):
+ * a Back arrow on the start screen, no "or" divider and no unlinked button.
+ */
+export function AddAccountDialog({
+  onClose,
+  variant = "sidebar",
+  onBack,
+}: {
+  onClose: () => void;
+  variant?: "sidebar" | "connections";
+  onBack?: () => void;
+}) {
+  const { budgetId = "", plan } = useCurrentPlan();
   const navigate = useNavigate();
   const create = useCreateAccount(budgetId);
   const [screen, setScreen] = useState<Screen>("start");
@@ -31,9 +47,12 @@ export function AddAccountDialog({ onClose }: { onClose: () => void }) {
   const [balance, setBalance] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [created, setCreated] = useState<Account | null>(null);
+  const [connection, setConnection] = useState<BankConnection | null>(null);
+  const linkOpen = useRef(false);
 
   const title = TITLES[screen];
-  const canGoBack = screen === "form" || screen === "types";
+  const canGoBack =
+    screen === "form" || screen === "types" || (screen === "start" && variant === "connections");
   const canSubmit = !!name.trim() && !!type && balance !== "" && !create.isPending;
 
   function closeDialog() {
@@ -42,8 +61,20 @@ export function AddAccountDialog({ onClose }: { onClose: () => void }) {
   }
 
   function back() {
-    setScreen(screen === "types" ? "form" : "start");
+    if (screen === "start") (onBack ?? onClose)();
+    else setScreen(screen === "types" ? "form" : "start");
   }
+
+  // Escape closes the modal, except while Plaid Link is open.
+  const closeRef = useRef(closeDialog);
+  closeRef.current = closeDialog;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !linkOpen.current) closeRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   function reset() {
     setName("");
@@ -96,10 +127,21 @@ export function AddAccountDialog({ onClose }: { onClose: () => void }) {
         </div>
         <div className="account-modal-body">
           {screen === "start" ? (
-            <button type="button" className="secondary large" onClick={() => setScreen("form")}>
-              Add an Unlinked Account
-            </button>
+            <BankSearch
+              budgetId={budgetId}
+              sandbox={plan?.bank_environment === "sandbox"}
+              variant={variant}
+              onUnlinked={() => setScreen("form")}
+              onConnected={(c) => {
+                setConnection(c);
+                setScreen("connected");
+              }}
+              onLinkingChange={(v) => {
+                linkOpen.current = v;
+              }}
+            />
           ) : null}
+          {screen === "connected" && connection ? <BankConnected connection={connection} /> : null}
           {screen === "form" ? (
             <>
               <p className="intro">
@@ -167,6 +209,13 @@ export function AddAccountDialog({ onClose }: { onClose: () => void }) {
           <div className="account-modal-footer">
             <button type="button" className="primary large" disabled={!canSubmit} onClick={submit}>
               Next
+            </button>
+          </div>
+        ) : null}
+        {screen === "connected" ? (
+          <div className="account-modal-footer">
+            <button type="button" className="primary large" onClick={onClose}>
+              Done
             </button>
           </div>
         ) : null}

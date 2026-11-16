@@ -1,4 +1,4 @@
-import type { Budget, BudgetCreate, BudgetUpdate } from "@budget/schema/budgets";
+import type { BankEnvironment, Budget, BudgetCreate, BudgetUpdate } from "@budget/schema/budgets";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
@@ -13,6 +13,7 @@ export function toApi(row: repo.BudgetRow): Budget {
     created_at: row.createdAt,
     last_modified_on: row.updatedAt,
     last_opened_at: row.lastOpenedAt ?? null,
+    bank_environment: row.bankEnvironment,
   };
 }
 
@@ -31,6 +32,10 @@ export function buildCreateBatch(db: Db, row: repo.BudgetRow, log: ChangeLogEntr
   return [repo.insertStmt(db, row), changeLogInsert(db, log)] as const;
 }
 
+export async function getBudgetEnvironment(env: Env, budgetId: string): Promise<BankEnvironment> {
+  return (await getBudget(env, budgetId)).bank_environment;
+}
+
 export async function createBudget(env: Env, actor: string, input: BudgetCreate): Promise<Budget> {
   const db = getDb(env);
   const now = new Date().toISOString();
@@ -41,6 +46,7 @@ export async function createBudget(env: Env, actor: string, input: BudgetCreate)
     updatedAt: now,
     deletedAt: null,
     lastOpenedAt: null,
+    bankEnvironment: input.bank_environment ?? "production",
   };
   const batch = buildCreateBatch(db, row, {
     budgetId: row.id,
@@ -77,7 +83,7 @@ export async function updateBudget(
   if (!before) throw new NotFound("Plan");
   const now = new Date().toISOString();
   // Opening a plan is not a change: no change_log, no last_modified_on bump (EXF-475).
-  if (patch.opened === true && patch.name === undefined) {
+  if (patch.opened === true && patch.name === undefined && patch.bank_environment === undefined) {
     const res = await repo.markOpenedStmt(db, id, now);
     if (res.meta.changes === 0) throw new NotFound("Plan");
     return toApi({ ...before, lastOpenedAt: now });
@@ -86,6 +92,7 @@ export async function updateBudget(
   const after = {
     ...before,
     ...(patch.name === undefined ? {} : { name: patch.name }),
+    ...(patch.bank_environment === undefined ? {} : { bankEnvironment: patch.bank_environment }),
     ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
     updatedAt: now,
   };
@@ -108,6 +115,9 @@ export async function updateBudget(
       before,
       {
         ...(patch.name === undefined ? {} : { name: patch.name }),
+        ...(patch.bank_environment === undefined
+          ? {}
+          : { bankEnvironment: patch.bank_environment }),
         ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
       },
       now,
