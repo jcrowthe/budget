@@ -333,6 +333,26 @@ Coverage: three lines in `apps/worker/test/mcp-coverage/reports.ts`, worded as i
   (EXF-591).
 - Add one line to `docs/README.md` for this design.
 
+## 6. Carry-over tasks (merged onto main `4da55a7`; design "Carry-over")
+
+- **6a. `localToday`.** In `apps/web/src/reflect/ReportFrame.tsx`, import `localToday` from `../api/today`, not
+  `../api/accounts`. Change nothing in `api/accounts.ts` or `api/today.ts`. Verify: `grep -rn "api/accounts"
+  apps/web/src/reflect` prints nothing.
+- **6b. The placeholder option under test.**
+  - New `packages/schema/src/placeholder.ts`: export `keepPreviousInPlan<T>(budgetId: string): (prev: T | undefined,
+    prevQuery?: { queryKey: readonly unknown[] }) => T | undefined`, the body and doc comment moved unchanged from
+    `apps/web/src/api/placeholder.ts`.
+  - `apps/web/src/api/placeholder.ts` becomes `export { keepPreviousInPlan } from "@budget/schema/placeholder";` with
+    a one-line comment. Every caller (`api/reports.ts`, `api/months.ts`, `api/bank-connections.ts`) keeps its import
+    untouched.
+  - New `packages/schema/test/placeholder.test.ts`: design case 17. Assert with `toBeUndefined()` and `toBe(prev)`.
+    Do not import TanStack in `packages/schema`, which has no such dependency.
+  - Add one line to the top comment of `e2e/reflect-followups.spec.ts`: the 588-1 cases prove the outcome. The
+    page's remount (`key={budgetId:report}`) protects it first, and the option is unit-tested in
+    `packages/schema/test/placeholder.test.ts`.
+  - Verify: `pnpm vitest run packages/schema/test/placeholder.test.ts` passes. Temporarily return `prev` without the
+    plan check: it fails. Put the body back.
+
 ## Verify before handing over
 - `pnpm check` is green.
 - `pnpm e2e e2e/spending-breakdown.spec.ts e2e/reflect-followups.spec.ts e2e/reflect-frame.spec.ts

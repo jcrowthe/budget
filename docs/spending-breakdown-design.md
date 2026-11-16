@@ -270,6 +270,23 @@ Spending Trends and Income v Expense reuse `reports/transactions`, `TransactionP
 `income_payee_id`; the other three report bodies (unchanged); the positive-inflows card; flags; the light theme; Share
 Your Progress. `monthlySums` is unchanged unless the other Build's balance condition is on main at rebase.
 
+## Carry-over (2026-11-16, merged onto main `4da55a7`)
+
+The design is unchanged; it was merged from `41f818e` onto main, which gained only targets on the Plan page. Two
+points changed:
+- **`localToday`.** `ReportFrame.tsx` imports it from `../api/today` (main's home for it), not `../api/accounts`.
+  The behaviour is the same.
+- **What protects a plan change (Lead, point 1).** `ReflectPage` keys the report by `${budgetId}:${report}`, so a
+  change of plan remounts it with fresh query observers. A new observer has no previous data, so **the remount is
+  the first guard**. That is why the 588-1 specs (case 12) also pass with the old `keepPreviousData`: they prove the
+  outcome, not the option. **`keepPreviousInPlan` is the second guard**, for any plan-scoped query whose observer
+  survives a plan change. No route in the app changes plan without that remount, so no browser spec can fail on the
+  option alone.
+  - The option gets a unit test instead. Its pure body moves to `packages/schema/src/placeholder.ts`, the same
+    pattern as `reflect-format.ts`, and `apps/web/src/api/placeholder.ts` re-exports it unchanged for every caller.
+  - Case 17 covers it. The same option serves `useNetWorth`, `useSpendingBreakdown` and `useReportTransactions`.
+- `monthlySums` stays as it is: the other Build's balance condition is not on main.
+
 ## Acceptance
 
 Defaults:
@@ -337,9 +354,17 @@ Defaults:
     - Compare: source captures 03, 06, 11.
 16. (591) Example, untick D8 Car Loan → Done: Debts `$0.00`, the Nov tooltip Debts `$0.00`, no `-$0.00` on the page.
     With the loan: `-$4,750.00`. An empty plan: Debts `$0.00`.
+17. (588-1, Lead 1) Unit, `packages/schema/test/placeholder.test.ts`, calling `keepPreviousInPlan("Y")` directly:
+    - with previous data and a previous key `["net-worth", "X", …]` it returns `undefined`;
+    - with a previous key `["spending-breakdown", "Y", …]` and `["report-transactions", "Y", …]` it returns the
+      previous data;
+    - with no previous query it returns `undefined`.
+    - Counter-check: TanStack's `keepPreviousData` is `(prev) => prev`, which returns the previous data in the first
+      sub-case. A body that keeps across plans fails this test.
+    - `grep -rn keepPreviousData apps/web/src/api/reports.ts` prints nothing.
 
 ## Manifest
 
-touches: [packages/schema/src/reports.ts, packages/schema/src/spending-breakdown.ts, packages/schema/src/zip.ts, packages/schema/src/reflect-format.ts, packages/schema/test/spending-breakdown.test.ts, packages/schema/test/zip.test.ts, packages/schema/test/reflect-format.test.ts, apps/worker/src/repositories/reports.ts, apps/worker/src/services/reports.ts, apps/worker/src/routes/reports.ts, apps/worker/src/mcp/tools/reports.ts, apps/worker/test/spending-breakdown.test.ts, apps/worker/test/mcp-coverage/reports.ts, apps/web/src/reflect/**, apps/web/src/pages/reflect.tsx, apps/web/src/api/reports.ts, e2e/reflect-frame.spec.ts, e2e/net-worth.spec.ts, e2e/spending-breakdown.spec.ts, e2e/reflect-followups.spec.ts, e2e/support/spending-breakdown-seed.ts, docs/spending-breakdown-*.md, docs/reflect-design.md, docs/README.md]
+touches: [packages/schema/src/reports.ts, packages/schema/src/spending-breakdown.ts, packages/schema/src/zip.ts, packages/schema/src/reflect-format.ts, packages/schema/test/spending-breakdown.test.ts, packages/schema/test/zip.test.ts, packages/schema/test/reflect-format.test.ts, packages/schema/src/placeholder.ts, packages/schema/test/placeholder.test.ts, apps/web/src/api/placeholder.ts, apps/worker/src/repositories/reports.ts, apps/worker/src/services/reports.ts, apps/worker/src/routes/reports.ts, apps/worker/src/mcp/tools/reports.ts, apps/worker/test/spending-breakdown.test.ts, apps/worker/test/mcp-coverage/reports.ts, apps/web/src/reflect/**, apps/web/src/pages/reflect.tsx, apps/web/src/api/reports.ts, e2e/reflect-frame.spec.ts, e2e/net-worth.spec.ts, e2e/spending-breakdown.spec.ts, e2e/reflect-followups.spec.ts, e2e/support/spending-breakdown-seed.ts, docs/spending-breakdown-*.md, docs/reflect-design.md, docs/README.md]
 shared: []
 migrations: 0
