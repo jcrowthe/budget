@@ -90,3 +90,25 @@ export const CalculatorIcon = (p: P) => (
     />
   </svg>
 );
+/** Two opposed arrows: the other side of a transfer. */
+export const TransferIcon = (p: P) => (
+  <svg {...base} width={14} height={14} aria-hidden="true" {...p}>
+    <path
+      d="M17 3l5 5-5 5V9.500H3v-3h14V3Zm-10 8v3.500h14v3H7V22l-5-5 5-5v-1Z"
+      transform="translate(0 -.5)"
+    />
+  </svg>
+);
+export const MinusCircleFilledIcon = (p: P) => (
+  <svg {...base} width={12} height={12} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24ZM6 10.800h12v2.400H6v-2.400Z"
+    />
+  </svg>
+);
+export const ChevronRightIcon = (p: P) => (
+  <svg {...base} width={8} height={8} aria-hidden="true" {...p}>
+    <path d="M7 2v20l12-10z" />
+  </svg>
+);

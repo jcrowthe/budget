@@ -8,9 +8,12 @@ import {
   sortTransactions,
 } from "@budget/schema/register";
 import type { TransactionDetail } from "@budget/schema/transactions";
-import { useMemo, useState } from "react";
+import { transferCellText } from "@budget/schema/transfers";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { useAccounts } from "../api/accounts";
 import { useAccountTransactions, usePlanTransactions, useSetCleared } from "../api/transactions";
+import { accountPath } from "../shell/planPaths";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
@@ -18,9 +21,11 @@ import { registerDate, registerMoney } from "./format";
 import {
   CaretDownIcon,
   CaretUpIcon,
+  ChevronRightIcon,
   ClearedFilledIcon,
   ClearedOutlineIcon,
   LockIcon,
+  TransferIcon,
 } from "./icons";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
@@ -82,7 +87,7 @@ export function RegisterTable({
   const accountQ = useAccountTransactions(budgetId, account?.id ?? "", !plan);
   const planQ = usePlanTransactions(budgetId, plan);
   const q = plan ? planQ : accountQ;
-  const accountsQ = useAccounts(plan ? budgetId : undefined);
+  const accountsQ = useAccounts(budgetId);
   const byId = useMemo(
     () => new Map((accountsQ.data ?? []).map((a) => [a.id, a])),
     [accountsQ.data],
@@ -102,7 +107,10 @@ export function RegisterTable({
         .flatMap((s) => s.rows),
     [accountsQ.data],
   );
+  const navigate = useNavigate();
+  const location = useLocation();
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const showCategory = plan || account.on_budget;
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
     (h) => showCategory || h.column !== "category",
@@ -142,6 +150,41 @@ export function RegisterTable({
     setSelected(new Set([tx.id]));
     onOpen({ mode: "edit", id: tx.id, focus: field, openCategory });
   };
+
+  // The ⇆ icon opens the other account's register with the paired row selected and in view.
+  const wanted = (location.state as { select?: string } | null)?.select;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per visit, when the rows are there
+  useEffect(() => {
+    if (!wanted || rows.length === 0 || !rows.some((r) => r.id === wanted)) return;
+    setSelected(new Set([wanted]));
+    document.querySelector(`tr[data-tx="${wanted}"]`)?.scrollIntoView({ block: "center" });
+  }, [wanted, location.key, rows.length > 0]);
+
+  // S turns the selected saved row into a split (or opens a split).
+  const splittable = (tx: Row) =>
+    accountOf(tx).on_budget &&
+    tx.cleared !== "reconciled" &&
+    !tx.transfer_account_id &&
+    !isLockedStart(tx);
+  const only = selected.size === 1 ? rows.find((r) => selected.has(r.id)) : undefined;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the handler reads the current rows and selection
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "s" && e.key !== "S") return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented || open) return;
+      const el = e.target instanceof HTMLElement ? e.target : null;
+      if (el && (el.closest("input,textarea,select,button") !== null || el.isContentEditable)) {
+        return;
+      }
+      if (document.querySelector('[aria-modal="true"]')) return;
+      if (!only || !splittable(only)) return;
+      e.preventDefault();
+      setSelected(new Set([only.id]));
+      onOpen({ mode: "edit", id: only.id, focus: "category", split: true });
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [only, open, accountsQ.data]);
   const fieldOf = (e: React.MouseEvent): Field =>
     ((e.target as HTMLElement).closest<HTMLElement>("td[data-field]")?.dataset.field as Field) ??
     "date";
@@ -160,72 +203,161 @@ export function RegisterTable({
     }
   };
 
+  const toggleCollapsed = (id: string) =>
+    setCollapsed((c) => {
+      const n = new Set(c);
+      if (!n.delete(id)) n.add(id);
+      return n;
+    });
+
   const dataRow = (tx: Row) => {
-    const cell = categoryCell(tx, accountOf(tx));
+    const transferAccount = tx.transfer_account_id ? byId.get(tx.transfer_account_id) : undefined;
+    const cell = categoryCell(tx, accountOf(tx), transferAccount ?? null);
     const checked = selected.has(tx.id);
+    const lines = tx.subtransactions;
+    const expanded = !collapsed.has(tx.id);
+    const rowProps = {
+      onClick: (e: React.MouseEvent) => onRowClick(e, tx),
+      onDoubleClick: (e: React.MouseEvent) => {
+        if (isControl(e) || tx.cleared === "reconciled") return;
+        openEdit(tx, fieldOf(e));
+      },
+    };
     return (
-      // biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes
-      <tr
-        key={tx.id}
-        className={checked ? "is-checked" : undefined}
-        onClick={(e) => onRowClick(e, tx)}
-        onDoubleClick={(e) => {
-          if (isControl(e) || tx.cleared === "reconciled") return;
-          openEdit(tx, fieldOf(e));
-        }}
-      >
-        <td className="cell-check">
-          <Box state={checked} label="Select transaction" onClick={() => toggleRow(tx.id)} />
-        </td>
-        {plan && (
-          <td data-field="account" title={tx.account_name}>
-            {tx.account_name}
+      <Fragment key={tx.id}>
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes */}
+        <tr data-tx={tx.id} className={checked ? "is-checked" : undefined} {...rowProps}>
+          <td className="cell-check">
+            <Box state={checked} label="Select transaction" onClick={() => toggleRow(tx.id)} />
           </td>
-        )}
-        <td data-field="date">{registerDate(tx.date)}</td>
-        <td data-field="payee" title={tx.payee_name ?? undefined}>
-          {tx.payee_name}
-        </td>
-        {showCategory && (
-          <td data-field="category" title={cell.kind === "text" ? cell.text : undefined}>
-            {cell.kind === "text" ? (
-              cell.text
-            ) : cell.kind === "notNeeded" ? (
-              <span className="category-not-needed">Category not needed</span>
-            ) : tx.cleared === "reconciled" ? (
-              <span className="needs-category">This needs a category</span>
-            ) : (
-              <button
-                type="button"
-                className="needs-category"
-                onClick={() => openEdit(tx, "category", true)}
-              >
-                This needs a category
-              </button>
-            )}
+          {plan && (
+            <td data-field="account" title={tx.account_name}>
+              {tx.account_name}
+            </td>
+          )}
+          <td data-field="date">{registerDate(tx.date)}</td>
+          {tx.transfer_account_id && tx.transfer_account_name ? (
+            <td data-field="payee" title={tx.payee_name ?? undefined}>
+              <span className="transfer-payee">
+                <span className="transfer-name">{transferCellText(tx.transfer_account_name)}</span>
+                <button
+                  type="button"
+                  className="transfer-link"
+                  title="Click to jump to the other side of this transfer"
+                  aria-label="Click to jump to the other side of this transfer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(accountPath(budgetId, tx.transfer_account_id as string), {
+                      state: { select: tx.transfer_transaction_id },
+                    });
+                  }}
+                >
+                  <TransferIcon />
+                </button>
+              </span>
+            </td>
+          ) : (
+            <td data-field="payee" title={tx.payee_name ?? undefined}>
+              {tx.payee_name}
+            </td>
+          )}
+          {showCategory && (
+            <td data-field="category" title={cell.kind === "text" ? cell.text : undefined}>
+              {cell.kind === "split" ? (
+                <span className="split-parent">
+                  <button
+                    type="button"
+                    className="split-chevron"
+                    aria-label={expanded ? "Collapse split" : "Expand split"}
+                    aria-expanded={expanded}
+                    onClick={() => toggleCollapsed(tx.id)}
+                  >
+                    {expanded ? <CaretDownIcon /> : <ChevronRightIcon />}
+                  </button>
+                  Split (Multiple Categories)...
+                </span>
+              ) : cell.kind === "text" ? (
+                cell.text
+              ) : cell.kind === "notNeeded" ? (
+                <span className="category-not-needed">Category not needed</span>
+              ) : tx.cleared === "reconciled" ? (
+                <span className="needs-category">This needs a category</span>
+              ) : (
+                <button
+                  type="button"
+                  className="needs-category"
+                  onClick={() => openEdit(tx, "category", true)}
+                >
+                  This needs a category
+                </button>
+              )}
+            </td>
+          )}
+          <td data-field="memo" title={tx.memo ?? undefined}>
+            {tx.memo}
           </td>
-        )}
-        <td data-field="memo" title={tx.memo ?? undefined}>
-          {tx.memo}
-        </td>
-        <td data-field="outflow" className="num">
-          {tx.amount < 0 ? registerMoney(tx.amount) : null}
-        </td>
-        <td data-field="inflow" className="num">
-          {tx.amount > 0 ? registerMoney(tx.amount) : null}
-        </td>
-        <td className="cell-cleared">
-          <ClearedCell
-            tx={tx}
-            onToggle={() =>
-              setCleared.mutate({
-                id: tx.id,
-                cleared: tx.cleared === "cleared" ? "uncleared" : "cleared",
-              })
-            }
-          />
-        </td>
-      </tr>
+          <td data-field="outflow" className="num">
+            {tx.amount < 0 ? registerMoney(tx.amount) : null}
+          </td>
+          <td data-field="inflow" className="num">
+            {tx.amount > 0 ? registerMoney(tx.amount) : null}
+          </td>
+          <td className="cell-cleared">
+            <ClearedCell
+              tx={tx}
+              onToggle={() =>
+                setCleared.mutate({
+                  id: tx.id,
+                  cleared: tx.cleared === "cleared" ? "uncleared" : "cleared",
+                })
+              }
+            />
+          </td>
+        </tr>
+        {lines.length > 0 &&
+          expanded &&
+          lines.map((l) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: a line acts on its parent like the parent row
+            <tr
+              key={l.id}
+              className={`split-line-row${checked ? " is-checked" : ""}`}
+              data-line-of={tx.id}
+              {...rowProps}
+            >
+              <td className="cell-check" />
+              {plan && <td />}
+              <td />
+              <td data-field="payee" title={l.payee_name ?? undefined}>
+                {l.payee_name}
+              </td>
+              {showCategory && (
+                <td data-field="category">
+                  {l.category_name ? (
+                    l.category_group_name ? (
+                      `${l.category_group_name}: ${l.category_name}`
+                    ) : (
+                      l.category_name
+                    )
+                  ) : l.inflow_to_ready_to_assign ? (
+                    "Inflow: Ready to Assign"
+                  ) : (
+                    <span className="needs-category">This needs a category</span>
+                  )}
+                </td>
+              )}
+              <td data-field="memo" title={l.memo ?? undefined}>
+                {l.memo}
+              </td>
+              <td data-field="outflow" className="num">
+                {l.amount < 0 ? registerMoney(l.amount) : null}
+              </td>
+              <td data-field="inflow" className="num">
+                {l.amount > 0 ? registerMoney(l.amount) : null}
+              </td>
+              <td className="cell-cleared" />
+            </tr>
+          ))}
+      </Fragment>
     );
   };
 
@@ -333,6 +465,7 @@ export function RegisterTable({
                 lockStart={isLockedStart(editTx)}
                 initialFocus={open.focus}
                 openCategory={open.openCategory}
+                startSplit={open.split}
                 onClose={onCloseEntry}
                 onSaved={onSaved}
               />

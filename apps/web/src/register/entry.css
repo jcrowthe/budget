@@ -349,3 +349,93 @@ button.needs-category {
 .entry-dropdown[role="dialog"] .entry-dropdown-panel {
   border-radius: 0.4rem;
 }
+
+/* Split lines (EXF-524): same editing look as the parent row, one 36px row per line. */
+.register-table .entry-body .split-line td,
+.register-table .entry-body .split-remaining td {
+  height: 36px;
+  padding: 1.6px;
+  border-bottom: 0;
+}
+.register-table .entry-body .split-line .split-remove {
+  text-align: right;
+}
+.split-icon-button,
+.split-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--actionPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.split-icon-button {
+  width: 28px;
+}
+.split-add {
+  gap: 6px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.split-icon-button:focus-visible,
+.split-add:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.register-table .entry-body .split-remaining .split-remaining-label {
+  color: var(--labelSecondary);
+  text-align: right;
+  white-space: nowrap;
+}
+.register-table .entry-body .split-remaining .split-remaining-number {
+  padding-right: 6px;
+  color: var(--labelPrimary);
+}
+.entry-footer-button.entry-split-button {
+  background: var(--buttonSecondaryBackground);
+}
+
+/* "Something Doesn't Add Up" */
+.split-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay);
+}
+.split-dialog {
+  box-sizing: border-box;
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+}
+.split-dialog h2 {
+  margin: 0 0 var(--space-2);
+  font-size: 18px;
+  font-weight: 600;
+}
+.split-dialog p {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+.split-dialog-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
