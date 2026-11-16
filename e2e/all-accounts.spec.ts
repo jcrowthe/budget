@@ -74,15 +74,17 @@ test("All Accounts: header and register", async ({ page, request }) => {
 test("All Accounts: sorting by account", async ({ page, request }) => {
   const s = await seed(request);
   await page.goto(`/${s.plan}/accounts`);
+  await expect(rows(page)).toHaveCount(6);
+  const accountCells = page.locator(".register-table tbody tr td:nth-child(2)");
+  const asc = ["ZZ Asset", "ZZ Asset", "ZZ Card", "ZZ Card", "ZZ Chk", "ZZ Chk"];
   await page.getByRole("button", { name: "ACCOUNT", exact: true }).click();
   const head = page.getByRole("columnheader", { name: "ACCOUNT" });
   await expect(head).toHaveAttribute("aria-sort", "descending");
   await expect(page.locator("th[aria-sort]")).toHaveCount(1);
-  const names = await col(page, 2);
-  expect(names).toEqual([...names].sort().reverse());
+  await expect(accountCells).toHaveText([...asc].reverse());
   await page.getByRole("button", { name: "ACCOUNT", exact: true }).click();
   await expect(head).toHaveAttribute("aria-sort", "ascending");
-  expect(await col(page, 2)).toEqual([...names].sort());
+  await expect(accountCells).toHaveText(asc);
   await page.getByRole("button", { name: "DATE", exact: true }).click();
   await expect(page.getByRole("columnheader", { name: "DATE" })).toHaveAttribute(
     "aria-sort",
