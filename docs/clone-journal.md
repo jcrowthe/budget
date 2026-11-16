@@ -5441,3 +5441,54 @@ EXF-520) beside the import, by manifest.
 EXF-519). Gap: done now EXF-593, EXF-590, EXF-587; in progress EXF-588, EXF-591; open EXF-558, EXF-560,
 EXF-562, EXF-589 (Low). Template: twenty-eight. Flow verdicts unchanged. Finished since each
 template's last review: Build 3, Deploy 5, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Plan round 66
+
+Children used 79 of 200. Two started now; four are running with the Reflect carry-over (at polish) and
+the Plan-page Build (planning). Main `3a98673`, live `4e3eb7a`. No ticket was filed at the last review.
+
+**Started:**
+
+1. **Deploy of main `3a98673`** (`p_ad9c4b07f40441a9b48e8c57f69fdfb0`), `gated_commit` `74dfa4f` (I
+   compared the two trees: identical), run prefix `ZZ-TEST D17`. Three merges, one migration
+   (`20261116100500_transfers_splits.sql`; I confirmed with the pending script that it is the only one).
+   Checks, with figures I worked out by hand in one sequence on one test plan (Ready to Assign after
+   each step: 1,000,000; 1,000,000; 1,000,000; 1,050,000; 850,000; 810,000; 1,060,000): a transfer; a
+   split counted once, with Net Worth 900,000; `adjust-balance` on an account holding a split; close,
+   then 422 `account_closed` twice; a monthly target with 60,000 to go and `today=nope` refused; the
+   payee's Ready to Assign flag; 53 tools expected (my "52" in round 63 was a miscount: 50 on live,
+   plus `create_transfer`, plus the two target tools); in the browser a transfer and a split entered
+   with a real mouse, the closed account's disabled button, the Target card with its Assign button,
+   the payee filling Ready to Assign.
+2. **EXF-462 with the Worker half of EXF-463** (`p_e051b02d89624ff7a3e8144e9f9710c2`): the import from
+   Plaid. No file under `apps/web/`, so nobody opens the source; tests use the Plaid stand-in.
+   - The cursor is saved only with what it produced; a repeat changes nothing; a Plaid error keeps it.
+   - Never import: before the start date, more than 3 days before the latest reconciled row, a
+     rejected or deleted `import_id` (tombstones).
+   - Automatic matching built here (same account and amount, within 10 days); manual match and
+     unmatch stay in EXF-464.
+   - Approve, reject, the `needs` read, two counts on accounts; tools `sync_bank_connections`,
+     `list_unapproved_transactions`, `approve_transactions`, `reject_transactions`.
+   - The Durable Object serialises one sync per connection; the scheduled handler syncs what is older
+     than 6 hours. **The cron stays daily**: it lives in `wrangler.jsonc`, which no parallel Build may
+     touch. A later change (with EXF-558, when nothing else runs) makes it six-hourly.
+   - Migration `20261116100800_...` (the Plan-page Build has `100700`).
+   - **No query that sums or counts `transactions` changes meaning**: an unapproved import counts like
+     any row. So it may run beside the Plan-page and Reflect Builds by my table rule.
+   - It holds the Plaid client, the Durable Object, `scheduled.ts`, the bank-connection files and the
+     transactions, accounts and payees files of the Worker.
+   - A slip of mine in its brief: note 6 contains a question I answered in the same sentence ("with a
+     tombstone? no: ..."). The decision is clear (no tombstone when the bank withdraws a row) and is
+     restated in my comment on EXF-462.
+
+**How the four fit:** disjoint files. All three Builds add tools, so all three edit the call list of
+`apps/worker/test/mcp-timestamps.test.ts` and `docs/README.md`: a rebase conflict there is to be
+resolved by keeping every entry (said in the import brief; the other two will meet it at their gates).
+
+**Not started:** flow tests (after the Deploy: flows 2, 3, 9); the credit engine (after the Plan-page
+Build); the plan import from a YNAB export (EXF-477: after Reflect's ZIP module and the Plaid import);
+the register's own features (flags, search, action bar, reconcile, scheduled transactions): their
+Worker files are held by the import Build.
+
+Ticket writes: 5 (two to In Progress, three comments). Review cadence: Build 3, Deploy 5, Discover 2,
+Test user flow 5.
