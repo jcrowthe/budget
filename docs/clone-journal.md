@@ -8959,3 +8959,52 @@ check-in.
   Deploy starts until the flow test ends.
 
 Ticket writes: 0. Review cadence: Build 0, Deploy 7, Discover 2, Test user flow 1 (one running).
+
+### 2026-11-16 · Review round 103
+
+Children used 120 of 200. One ended: **the Reconcile Build failed after the rate-limit pause**
+(`p_c4fd5a318a554da3b478910b86939c29`): no code lost, its design is on its branch. Four are running.
+Main and live `49012cd` (read by me at 23:11Z).
+
+**Reconcile Build: lost its box's platform files, and this time the cause is visible** (EXF-612; the
+thirteenth child: eight Builds, five Deploys).
+- 20:04Z its Clerk listed a healthy box (`bin` with `lib.sh` and the rest, `request.json`). 20:17Z the
+  five-hour rate limit paused it. 23:05Z it resumed, finished and committed the design
+  (`11219d7`, `docs/reconcile-design.md` and `-spec.md`). 23:09Z the Implementer, as the brief asks,
+  listed the folder first: no `bin`, no `request.json`; it answered blocked, and the Thread ended.
+- **So a Thread resumed after a rate-limit pause comes back in a new box: the repository is restored
+  from the platform's snapshot commit (`exfab: v_N`), the platform's own files are not.** Every code
+  step after that fails without a log. That explains the earlier losses that followed a pause (the
+  Deploys after 16:39Z). Written on EXF-612 with the times.
+- **The two Builds that resumed at 23:01Z are in the same position** (the plan import, the Plan
+  page): their work is safe on their branches (snapshot commits at 20:18Z and 20:19Z, and both are
+  committing again), but their next `checks` or gate step will most likely fail without a log. When
+  that card comes: Abandon and carry over, at once, without Retry.
+- **What follows for my planning:** the limit is per five hours on the account the children run on,
+  and it hit at 20:17Z with four or five children running. Every pause costs each Build in flight one
+  more child (a carry-over). So: start long Builds right after a reset (the window opened at
+  23:01Z), keep the number running at once to what finishes inside a window, and prefer one Deploy
+  for several merges.
+- Its design, which the carry-over keeps: 6 D1 calls without an adjustment and 7 with one, the same
+  for 10 and 1,000 cleared rows; the write holds only while the cleared balance is the one confirmed
+  (else 409); the adjustment is "Inflow: Ready to Assign" on every on-plan account, cards included,
+  and has no category on a tracking account; Reconcile sits in the header's top row at both widths;
+  the migration `20261116101400_account_reconciled_at.sql`. No step opened the source.
+
+**Running:**
+- **Plan import Build** (`p_b71911bc33cb444db359bb72047a1a75`): resumed, rebased; the service,
+  repository, route, tools, migration and tests are committed (35 files); fixing a hygiene-test
+  failure (the source's name in a test file).
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): its rework is committed ("one month
+  read per Plan page, Underfunded as the source, realistic names") with two more polish items.
+- **Build template review** (`p_dd5c621340c8478aab2076a69de29eb8`) and **flows 2 and 4**
+  (`p_ae5252ec1b92433790c8c1722e8fc7c2`): running.
+
+**Ticket writes:** 1 (the cause on EXF-612).
+
+**Backlog and flow verdicts:** unchanged from review 102; EXF-533 and EXF-664 stay In Progress for
+the carry-over. Finished since each template's last review: Build 1 (the lost Reconcile), Deploy 7,
+Discover 2, Test user flow 1.
+
+**Next plan:** start the Reconcile carry-over now, early in the window (its Clerk merges
+`origin/exfab/p_c4fd5a318a554da3b478910b86939c29`, head `11219d7`).
