@@ -8158,3 +8158,44 @@ migration `20261116101100` pending (read by me at 17:15Z). The person has not an
 
 Ticket writes: 2 (two priorities). Review cadence: Build 6, Deploy 4 (the fifth running), Discover 2,
 Test user flow 0.
+
+### 2026-11-16 · Review round 94
+
+Children used 110 of 200. Two ended: Deploy `D25` (the cancel took effect) and its retry **Deploy
+`D26`, which refused by itself after two and a half minutes: nothing released**. Two Builds are
+running. Main `b84f513`, live `85f3cc9`, the migration `20261116101100` still pending (read by me at
+17:18Z).
+
+**Deploy `D26`: refused, the platform again** (`p_a5a9076321b24ce2a9bcf93ad5daa18f`; the eleventh
+child lost today: six Builds, five Deploys).
+
+- 17:16:37Z the first step wrote `deploy.env`; the gate, a minute later, did not find it and wrote
+  `RESULT=refused`; the record step and the verifier recorded the refusal; the Thread ended with the
+  notice "runner_offline: connection lost before exec was answered".
+- **The template's guard worked this time:** a gate without its input refuses and no release step
+  starts. No card, no loop.
+- **What the two failures have in common:** both started after 16:39Z, when the running children
+  showed "Rate limited on Claude · Jacob; continuing on Claude · exFabrica"; a child I cancelled at
+  16:54Z shows "parked: runner_required". The two Deploys before that time today kept their files. I
+  cannot tell whether the account switch and the lost boxes are connected; the times are on EXF-612.
+- **The two running Builds are exposed to the same fault** at their code steps (checks, final gate).
+
+**Running:**
+- **Carry-over of scheduled transactions and the Reflect fixes**
+  (`p_65ee74c0816d452899f054187504cc58`): acceptance written (non-UI cases pass by test, 1,619 tests;
+  UI cases "partial": green real-mouse specs, 62 of 62 and 26 of 26, not compared with the source;
+  its Tester opened nothing in the source). Its final gate is next.
+- **Plan-page Build** (`p_8baaff851d044a5ea2fcccb712be3809`): implementing.
+
+**Ticket writes:** 1 (a comment on EXF-612).
+
+**Backlog and flow verdicts:** unchanged from review 93. Finished since each template's last review:
+Build 6, Deploy 5 (D22, D25 and D26 lost; D23 and D24 shipped), Discover 2, Test user flow 0.
+
+**Next plan, decided now so I do not spend children on a fault I cannot fix:** **no third Deploy
+attempt straight away.** Two in a row failed within minutes for the same reason and a third costs a
+child for the same odds. The carry-over's final gate is a code step in a box of the same platform: if
+it comes through to its card, the platform is holding files again; I then approve it (nothing is
+releasing) and start **one** Deploy for both merges (the credit engine and scheduled transactions,
+two migrations), which also saves a Deploy. If the carry-over is lost at its gate instead, I ask the
+person about the platform before spending more.
