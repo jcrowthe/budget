@@ -3778,3 +3778,31 @@ with the submenu open, and left nothing behind.
 (Medium), EXF-560, EXF-562 (Low); in progress EXF-569, EXF-574, EXF-579. Template: twenty-six. Flow
 verdicts: 1 `parity_known_gaps`, 9 `new_gaps` (EXF-586), 10 `new_gaps` (EXF-587), 11 `parity`. Finished
 since each template's last review: Build 1, Deploy 0, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Plan round 45
+
+Children used 59 of 200. Five Builds are running, all from earlier rounds: EXF-491 with EXF-492; EXF-517
+with EXF-507; EXF-548 with EXF-551; the Worker half of EXF-460 with EXF-574; EXF-579 with EXF-569.
+**Nothing started this round.**
+
+- No ticket was filed by me at the last review; the tester's two (EXF-586 High, EXF-587 Medium) are triaged.
+- Main and live are both `41bee46`: nothing to deploy, and no flow is waiting on a release.
+- Nothing new can start: the files of every ready ticket are held, as in round 44. EXF-586 waits for
+  `api/months.ts` (the Ready to Assign Build), EXF-587 for the transactions and bank-connection tool files.
+- **The Ready to Assign Build is at its gate** (transcript read):
+  - Its Reviewer found a real defect and it is fixed: two covers of one overspent category sent at once
+    both moved money. The cover amount is now checked inside the guarded write, with a test that fails
+    without the guard. A cover that keeps going stale answers 409 after five tries.
+  - Reviewer's note, not counted: the guard watches the category's Assigned only; a transaction landing
+    at the same instant can leave Available slightly off zero. Money never moves twice. Look again with
+    the credit engine.
+  - A service-raised 422 comes back with the envelope name `error`, not `unprocessable_entity` (the shared
+    error handler maps it so). **Check against `docs/conventions.md` at the card**; if the convention
+    says otherwise it is a small gap for the shared handler.
+  - Each move has one id carried by its history rows, for Recent Moves (EXF-506) and Undo (EXF-504).
+  - Its Designer stayed within the limits I gave (the Plan page of the test plan, zero states only,
+    nothing saved). Two tabs were left with a size override for a moment and were restored.
+  - First gate run failed on a spec that read the server before the request had landed; fixed in the spec.
+- **For the Ready to Assign card:** the month query still keeps previous data across plans (EXF-586). Do
+  not ask for it there: a rework costs a full pass; EXF-586 is its own ticket.
+- Review cadence: Build 1, Deploy 0, Discover 2, Test user flow 3.
