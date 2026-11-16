@@ -1,5 +1,7 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
 import {
+  AgeOfMoneyQuery,
+  AgeOfMoneyResponse,
   IncomeExpenseQuery,
   IncomeExpenseResponse,
   NetWorthQuery,
@@ -21,6 +23,7 @@ import {
   exportNetWorth,
   exportSpendingBreakdown,
   exportSpendingTrends,
+  getAgeOfMoney,
   getIncomeExpense,
   getNetWorth,
   getReportRange,
@@ -82,6 +85,19 @@ export default app
     async (c) => {
       const { budget_id } = c.req.valid("param");
       return c.json({ data: await getNetWorth(c.env, budget_id, c.req.valid("query")) }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/reports/age-of-money",
+      tags,
+      request: { params: z.object({ budget_id: budgetParam }), query: AgeOfMoneyQuery },
+      responses: { 200: json(AgeOfMoneyResponse, "Age of Money now and by month"), ...errors },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      return c.json({ data: await getAgeOfMoney(c.env, budget_id, c.req.valid("query")) }, 200);
     },
   )
   .openapi(

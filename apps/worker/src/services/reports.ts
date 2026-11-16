@@ -1,4 +1,5 @@
-import { displayGroup, sidebarSections } from "@budget/core/account-types";
+import { accountGroup, displayGroup, sidebarSections } from "@budget/core/account-types";
+import { computeAgeOfMoney } from "@budget/schema/age-of-money";
 import {
   computeIncomeExpense,
   filterIncome,
@@ -14,6 +15,8 @@ import {
   resolveRange,
 } from "@budget/schema/report-range";
 import type {
+  AgeOfMoney,
+  AgeOfMoneyQuery,
   IncomeExpense,
   IncomeExpenseQuery,
   NetWorth,
@@ -100,6 +103,22 @@ export async function getNetWorth(env: Env, budgetId: string, q: NetWorthQuery):
     .map((a) => ({ id: a.id, name: a.name }));
   const sums = await repo.monthlySums(db, budgetId, addMonthsTo(span.end_month, 1));
   return computeNetWorth({ accounts, sums, first_month: facts.first_month, ...span });
+}
+
+export async function getAgeOfMoney(
+  env: Env,
+  budgetId: string,
+  q: AgeOfMoneyQuery,
+): Promise<AgeOfMoney> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const today = q.today ?? utcToday();
+  const set = new Set(
+    (await repo.reportAccounts(db, budgetId))
+      .filter((a) => a.onBudget && accountGroup(a.type) === "cash")
+      .map((a) => a.id),
+  );
+  return computeAgeOfMoney(await repo.ageOfMoneyRows(db, budgetId, today), set, today);
 }
 
 export async function exportNetWorth(

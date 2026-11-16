@@ -60,6 +60,20 @@ export function TrendsChart({
   const fill = (rank: number) => `var(${rank < 8 ? `--sb-slice-${rank + 1}` : "--sb-slice-other"})`;
 
   const showTip = (lines: Tip["lines"], x: number, top: number) => setTip({ lines, x, y: top });
+  const showMarkerTip = (m: (typeof months)[number], i: number) =>
+    showTip([monthLabel(m.month), minusMoney(m.total), "Total Spending"], cx(i), y(m.total));
+  const seriesOf = (id: string, fallback: { id: string; name: string }) =>
+    data.series.find((d) => d.id === id) ?? { ...fallback, total: 0 };
+  // The marker is drawn over the bars, so a click on it goes to the segment of its month under the pointer.
+  const pickUnder = (month: string, x: number, px: number) => {
+    const seg = document
+      .elementsFromPoint(x, px)
+      .find((el) => el.classList.contains("st-seg") && el.getAttribute("data-month") === month);
+    const id = seg?.getAttribute("data-series");
+    if (!seg || !id) return;
+    setTip(null);
+    onPick(seriesOf(id, { id, name: id }), month, x, px);
+  };
 
   return (
     <div className="st-chart" ref={box} style={{ height: HEIGHT }}>
@@ -89,13 +103,7 @@ export function TrendsChart({
               cx={cx(i)}
               cy={y(m.total)}
               r={10}
-              onMouseEnter={() =>
-                showTip(
-                  [monthLabel(m.month), minusMoney(m.total), "Total Spending"],
-                  cx(i),
-                  y(m.total),
-                )
-              }
+              onMouseEnter={() => showMarkerTip(m, i)}
               onMouseLeave={() => setTip(null)}
             />
           </g>
@@ -115,7 +123,7 @@ export function TrendsChart({
                 if (s.amount > 0) pos = to;
                 else neg = to;
                 const top = Math.min(y(from), y(to));
-                const series = data.series.find((d) => d.id === s.id) ?? { ...s, total: 0 };
+                const series = seriesOf(s.id, s);
                 return (
                   // biome-ignore lint/a11y/noStaticElementInteractions: chart segments; the table holds the same figures
                   <rect
@@ -153,7 +161,17 @@ export function TrendsChart({
         <path className="st-line" d={line} />
         {months.map((m, i) => (
           <g key={m.month}>
-            <circle className="st-marker" data-month={m.month} cx={cx(i)} cy={y(m.total)} r={5} />
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: the visible marker takes the pointer over the bars; the table holds the same figures */}
+            <circle
+              className="st-marker"
+              data-month={m.month}
+              cx={cx(i)}
+              cy={y(m.total)}
+              r={5}
+              onMouseEnter={() => showMarkerTip(m, i)}
+              onMouseLeave={() => setTip(null)}
+              onClick={(e) => pickUnder(m.month, e.clientX, e.clientY)}
+            />
           </g>
         ))}
       </svg>

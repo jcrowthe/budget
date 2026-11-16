@@ -1,4 +1,5 @@
-import type { AccountType } from "@budget/core/account-types";
+import { ACCOUNT_TYPES, type AccountType, accountGroup } from "@budget/core/account-types";
+import type { AgeRow } from "@budget/schema/age-of-money";
 
 type Month = string;
 
@@ -6,10 +7,13 @@ import type { IncomeRow } from "@budget/schema/income-expense";
 import type { MonthlySum } from "@budget/schema/net-worth";
 import type { SpendingRow } from "@budget/schema/spending-breakdown";
 import { transferPayeeName } from "@budget/schema/transfers";
-import { and, asc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, lte, ne, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { transactions } from "../db/schema/transactions";
+import { countsInBalance } from "./transactions";
+
+const CASH_TYPES = ACCOUNT_TYPES.filter((t) => accountGroup(t) === "cash");
 
 export interface ReportAccount {
   id: string;
@@ -252,4 +256,35 @@ export async function findPayee(db: Db, budgetId: string, id: string): Promise<s
     sql`select name from payees where id = ${id} and budget_id = ${budgetId}`,
   );
   return rows[0]?.name ?? null;
+}
+
+/**
+ * THE AGE OF MONEY ROWS (one place). One query returns the plan's whole history of rows that Age of Money needs:
+ * rows that count in a balance (`countsInBalance`: not deleted, not a split line) on accounts that are not deleted,
+ * on-plan and of a cash type (checking, savings, cash; closed ones included), dated on or before `today`, amount
+ * not 0. Five columns, ordered by date, creation time and id; a ten-year plan is about 24,000 rows in one query.
+ */
+export async function ageOfMoneyRows(db: Db, budgetId: string, today: string): Promise<AgeRow[]> {
+  return db
+    .select({
+      date: transactions.date,
+      amount: transactions.amount,
+      account_id: transactions.accountId,
+      transfer_account_id: transactions.transferAccountId,
+    })
+    .from(transactions)
+    .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        countsInBalance(),
+        lte(transactions.date, today),
+        ne(transactions.amount, 0),
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        eq(accounts.onBudget, true),
+        inArray(accounts.type, CASH_TYPES),
+      ),
+    )
+    .orderBy(asc(transactions.date), asc(transactions.createdAt), asc(transactions.id));
 }
