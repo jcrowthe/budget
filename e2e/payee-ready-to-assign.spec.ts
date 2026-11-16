@@ -30,6 +30,7 @@ test("Tab on the payee fills Inflow: Ready to Assign, and saving gives an inflow
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await realClick(page, button(page, "Add Transaction"));
   await payee(page).fill("ZZ-TEST Emp");
+  await expect(page.getByRole("option", { name: "ZZ-TEST Employer", exact: true })).toBeVisible();
   await payee(page).press("Tab");
   await expect(payee(page)).toHaveValue("ZZ-TEST Employer");
   await expect(category(page)).toHaveValue("Inflow: Ready to Assign");
@@ -67,6 +68,7 @@ test("picking the payee with the real mouse fills it too; a chosen category is k
   await page.keyboard.press("Tab");
   await expect(category(page)).toHaveValue(/D4 Groceries/);
   await payee(page).fill("ZZ-TEST Emp");
+  await expect(page.getByRole("option", { name: "ZZ-TEST Employer", exact: true })).toBeVisible();
   await payee(page).press("Tab");
   await expect(payee(page)).toHaveValue("ZZ-TEST Employer");
   await expect(category(page)).toHaveValue(/D4 Groceries/);
