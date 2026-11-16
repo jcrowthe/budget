@@ -46,7 +46,9 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
 10. **Tests**: `apps/worker/test/widgets.test.ts` (REST, change_log rows, atomicity, and the resource's own
     surface: `expect(await apiPaths()).toEqual(expect.arrayContaining([...]))` with its paths and the same
     with `listedToolNames()` for its tools, both from `test/surface.ts`), `e2e/widgets.spec.ts` (the user
-    flow). Name test data `ZZ-TEST <random>`; no spec may assume an empty database. Never edit
+    flow). Name test data `ZZ-TEST <random>`; no spec may assume an empty database, nor that it is the only one opening or
+    creating plans: a spec that opens `/` or asserts on the latest, first or most recent plan shows the page only
+    its own plans (`showOnlyPlans` in `e2e/support/plans.ts`) and asserts only on those. Never edit
     `apps/worker/test/openapi.test.ts`, `apps/worker/test/mcp.test.ts` or `e2e/mcp.spec.ts`: they derive the
     route and tool lists from the globs (every route file contributes a path, every tool file exports a
     tool, no two tools share a name, `tools/list` matches the tool files), so a new resource adds files only.
@@ -127,10 +129,11 @@ running the gate or calling Cloudflare.
 - `bash scripts/plaid-credentials.sh`: pushes `PLAID_CLIENT_ID` with `PLAID_SANDBOX_SECRET` / `PLAID_PRODUCTION_SECRET` from the environment to the live clone (the release runs it last; a failure only warns). Prints `plaid credentials: sandbox set|skipped|failed, production set|skipped|failed`; exit 1 when an environment failed, 2 for a refused base URL or missing Access variables. Local: `PLAID_CREDENTIALS_BASE_URL=http://127.0.0.1:<port>`.
 - `bash scripts/live-test-plans.sh <command>`: manages test plans (name starts with `live.test_prefix`, `ZZ-TEST`)
   and nothing else; only calls `/api/v1/budgets`. Needs `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`.
-  - `list`: `<id><TAB><name>` per test plan
+  - `list ['<prefix>']`: `<id><TAB><name>` per test plan
   - `create '<name>'`: creates a Sandbox plan (`bank_environment: sandbox`), prints the new id; a name without the prefix is refused (exit 2)
   - `delete <id>`: re-reads the plan; prints `deleted <id>`; an unprefixed plan is refused (exit 3)
-  - `purge`: prints `deleted <n> remaining <m>`; exit 0 only when `m` is 0; more than 50 matches is refused (exit 3)
+  - `purge ['<prefix>']`: prints `deleted <n> remaining <m>`; exit 0 only when `m` is 0; more than 50 matches is refused (exit 3)
+  - `<prefix>` (must start with `ZZ-TEST`, else exit 2) narrows the command to one run's plans, e.g. `purge 'ZZ-TEST F9 '`; with no argument: every test plan
   - Local testing: `LIVE_TEST_PLANS_BASE_URL=http://127.0.0.1:<port>` targets `pnpm dev` (which signs requests
     itself); add `LIVE_TEST_PLANS_LOCAL_JWT=1` for the e2e server. No Access headers are sent to a local server.
 
