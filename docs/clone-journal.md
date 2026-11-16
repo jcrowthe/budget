@@ -321,7 +321,7 @@ The person gave none; these are the Lead's. Flows 10 and 11 exist only in the cl
 
 ## 7. Progress log
 
-Review counters (finished children since that template's last review): Build 2 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
+Review counters (finished children since that template's last review): Build 3 (last reviewed in round 24, fourteen Threads), Deploy 6, Test user flow 0,
 Discover 2 (the first ten were sent for review in round 13). Abandoned Builds, not counted: 3. (The Deploy and the three Discover children ended in under a minute at the profile check; the
 cancelled Build is not counted.) Last template-ticket sweep: none yet (due about round 30).
 
@@ -359,7 +359,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-15 | 19 | Build feature, EXF-487 Plan month grid (`p_33dc46ec590f4e2688c8437eee9cc5eb`) | EXF-487 | PR #11 | merged `129e425` (round 22) |
 | 2026-11-15 | 21 | Build feature, EXF-481 accounts and unlinked accounts (`p_26e65fda71f744f182581e2cffb61047`) | EXF-481 | PR #12 | merged `d2e659b` (round 23) |
 | 2026-11-15 | 23 | Deploy of main `129e425` (`p_77deb9856fa0437b93b1b3d693561e94`) | EXF-511, 561, 487 | n/a | live `129e425` |
-| 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | PR #15 | running |
+| 2026-11-15 | 23 | Build feature, EXF-493 month navigation and note (`p_d0368f708be6478c8718f93c77174947`) | EXF-493 | PR #15 | merged `0de1856` (round 29) |
 | 2026-11-15 | 23 | Build feature, EXF-489 edit Assigned inline (`p_538c1bb379f84d0d8d3dac0b6ec51136`) | EXF-489 | PR #13 | merged `0c81b09` (round 27) |
 | 2026-11-15 | 24 | Deploy of main `d2e659b` (`p_98f50d74ddb74e78904ef57aa417fcf4`) | EXF-481 | n/a | live `d2e659b` |
 | 2026-11-15 | 24 | Improve templates, review of fourteen Build Threads (`p_ba4466d6501f49e2b08b70e18a4bcd86`) | filed EXF-563 to EXF-568 | none | completed (13 minutes); all proposals approved |
@@ -2356,3 +2356,44 @@ Build for EXF-494 and EXF-495, and one started now.
   EXF-463 after that.
 - Review cadence: Build 2, Deploy 6, Discover 2.
 - Ticket writes this round: 2.
+
+### 2026-11-16 · Review round 29
+
+Children used 40 of 200. Three Builds are running: EXF-513 (pull request #16, 27 visits, in review or
+acceptance), the two-ticket Build for EXF-494 and EXF-495, and EXF-459 (Plaid Link). No card is waiting.
+
+**Ended: the Build for EXF-493 (month navigation), merged as `0de1856` (PR #15)** after 73 minutes. Ticket
+Done and commented. I read the diff before approving (21 files, +2021/-21).
+
+- Web: `plan/PlanHeader.tsx` (replaces the plain title in `pages/plan.tsx`; a comment marks where the view
+  chips of EXF-500 go), `MonthPicker.tsx`, `MonthNotePopover.tsx`, `monthNav.ts` (`navLimits`, `canPrev`,
+  `canNext`), `monthNavIcons.tsx`, `plan-header.css`, and **`plan/useDismiss.ts`** for popovers.
+- API: `PATCH .../months/{month}` `{note}` (trimmed; empty clears; max 5,000), tool `set_month_note`, and a
+  limits read (`getMonthRange`: `first_month`, `last_assigned_month`) from the new
+  `repositories/month-range.ts`. The browser applies the rule with its local month.
+- Gate: the full e2e run was 72 of 72 twice and 71 of 72 once. The failure was `e2e/plans.spec.ts:4`
+  ("create a plan, switch back, and reopen the last used plan"), 5 of 5 on rerun. It is the first flake of
+  the suite. That spec asserts which plan `/` opens while other workers create and open plans in parallel
+  (`fullyParallel: true`); it already tries to compare against the list the page loaded, and still lost
+  once. With 72 specs and growing, this will return. **Filing a gap ticket.**
+- Three small review leftovers (two brief display races around the note save and the Assigned queue; 404
+  instead of 422 on the limits read) and the one from EXF-489: commented onto EXF-560, which already holds
+  the months leftovers.
+- Unplanned: `e2e/accounts.spec.ts` (three exact locators for "Next", because of the new "Next month"
+  button). That file has now been edited by three Builds for the same reason: new buttons whose names
+  contain an older button's name. Not worth a ticket; tell Builds to use exact names in new specs.
+
+**Main is `0de1856`; live is `d2e659b`.** Not live: Assigned, sidebar groups, month navigation; one
+migration pending (`20261115231600_ui_state.sql`). EXF-513 is still in its Build; it has been close for a
+while. **In the next plan, deploy now** rather than wait longer: three merges are worth showing, and the
+register can ship with the categories Build.
+
+**Unblocked by this merge:** EXF-491 (Ready to Assign pill), to be grouped with EXF-492 (move money). Both
+need the shared category picker that the categories Build (EXF-494, EXF-495) is writing now, and EXF-492
+changes the Available pill in the grid rows that Build holds. So they start after it merges.
+
+**Ticket writes:** 3 (EXF-493 Done and comment, EXF-560 comment).
+
+**Backlog:** 86 open feature tickets (8 done; 4 in progress: EXF-513, 494, 495, 459), all triaged. Gap:
+EXF-558 (High), EXF-454, EXF-560, EXF-562 (Low), plus the one filed now. Template: fifteen. Finished since
+each template's last review: Build 3, Deploy 6, Discover 2, Test user flow 0.
