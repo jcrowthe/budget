@@ -2,17 +2,17 @@ import { Milliunits } from "@budget/schema/common/money";
 import { AssignedMonth } from "@budget/schema/month-categories";
 import { z } from "zod";
 import { setAssignedAndRead } from "../../services/month-categories";
+import { Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 export const tools: McpToolDef[] = [
   {
     name: "set_assigned",
-    description:
-      "Set a category's Assigned amount for one month of a plan (milliunits; negative allowed). Returns the category's month amounts and the month's new Ready to Assign.",
+    description: `Set a category's Assigned amount for one month of a plan. ${MONTH} ${MONEY} Assigned may be negative. Returns { category: { id, month, assigned, activity, available }, ready_to_assign }: the category's new month amounts and the month's new Ready to Assign.`,
     inputSchema: z.object({
-      budget_id: z.string().min(1),
+      budget_id: Id,
       month: AssignedMonth,
-      category_id: z.string().min(1),
+      category_id: Id,
       assigned: Milliunits,
     }),
     run: async (
