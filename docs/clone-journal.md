@@ -376,7 +376,7 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-494 and EXF-495 (`p_4fe1cb348be24f9f9bee5b5622d29168`) | EXF-494, EXF-495 | PR #22 | merged `325ee94` (round 38) |
 | 2026-11-16 | 37 | Build feature, carry-over of EXF-571, EXF-470, EXF-454 plan menu (`p_9a58f4af528e469b93711c3de218e26d`) | EXF-571, 470, 454 | PR #21 | merged `41bee46` (round 41; no card reached me); **its Designer opened the source despite the ban** (round 39 review) |
 | 2026-11-16 | 37 | Build feature, EXF-572 MCP tool coverage (`p_14fe85267f7449f192572c1b7cfc9cbf`) | EXF-572 | PR #23 | merged `70c71a2` (round 39) |
-| 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | pending | running |
+| 2026-11-16 | 39 | Build feature, EXF-491 and EXF-492 Ready to Assign pill and move money (`p_ed90e00d9e644c1aa0719b13500b32d1`) | EXF-491, 492 | PR #24 | merged `b09078b` (round 46), 88 minutes |
 | 2026-11-16 | 39 | Build feature, EXF-517 and EXF-507 inline transactions and payee picker (`p_19407e1a62d54f93b69b9199878c07b6`) | EXF-517, 507 | pending | running |
 | 2026-11-16 | 40 | Deploy of main `70c71a2` (`p_1569dfe9b3fd4313ad8828bf37c9da61`) | EXF-484, 534, 570, 494, 495, 572 | n/a | live `70c71a2` (6 minutes) |
 | 2026-11-16 | 40 | Improve templates, review of Build feature, eleven Threads (`p_8757e1731449410893235e6be0b6c82a`) | n/a | n/a | completed (15 minutes): filed EXF-575 to EXF-578, nine comments |
@@ -3866,3 +3866,58 @@ EXF-517 with EXF-507 (both at their gates), EXF-548 with EXF-551 (polish applied
 - The Reflect branch still has `placeholderData: keepPreviousData` in `api/reports.ts` line 117: ask for the
   plan-scoped placeholder at its card (EXF-586's rule), unless the query key change already makes it safe.
 - Review cadence: Build 2, Deploy 0, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Review round 46
+
+Children used 59 of 200. Three Builds are running: EXF-517 with EXF-507 (gate fixes), EXF-548 with EXF-551
+(second polish round), EXF-579 with EXF-569 (committed, towards its gate).
+
+**Ended: the Ready to Assign Build, merged as `b09078b` (PR #24)**, 88 minutes. EXF-491 and EXF-492 are
+Done.
+
+- Three cards in three side turns: the gate had run on base `41bee46` while main had moved to `3007076`,
+  so **Refresh**; the refresh found one of the branch's own commits changed by the rebase (the docs
+  commit, where `docs/README.md` gained a line on both sides), so **Regate**; the gate on the new base
+  was clean (e2e 147 of 147 three times, changed specs 200 of 200), so **Approve**. About ten minutes for
+  one line in a docs index: evidence for the "docs index line" point of the first Build review.
+- **A side turn's box can be stale.** In the first of those side turns `origin/main` in my box was still
+  `41bee46` and my own branch was two commits behind. I knew main had moved only from my journal. **Before
+  approving, compare the card's base with the journal's "main is", not only with the box's
+  `origin/main`.**
+- On main now: `apps/web/src/plan/ReadyToAssign.tsx`, `RtaBreakdown.tsx`, `AssignPopover.tsx`,
+  `FixThisPopover.tsx`, `MovePopover.tsx`, `CoverPopover.tsx`, `MoveAmountField.tsx`; `CategoryPicker.tsx`
+  takes an optional "Inflow: Ready to Assign" entry and a filter; `Popover.tsx` takes `scrim` and
+  `alignTo`; `api/moves.ts`; `routes/moves.ts`, `services/moves.ts`, `mcp/tools/moves.ts`,
+  `packages/schema/src/moves.ts` (`applyMove` in `assigned-edit.ts`); e2e helpers
+  `e2e/support/plan-seed.ts` and `real-click.ts`.
+- One id per move in its history rows (for EXF-506 and EXF-504). Moves and Assigned edits share one
+  write queue.
+- A service-raised 422 has the envelope name `error` (the shared handler's mapping). Small gap for a
+  later Build that holds the middleware; not filed yet, look at how many routes rely on it first.
+- **The Plan page and months files are free.** Next there: EXF-586 (High) with the targets screens.
+
+**Running Builds (transcript and heads read):**
+
+- **Reflect: the limited permission held.** Its Architect's sub-agent and its Designer (two rounds) stayed
+  on the test plan's Reflect tabs, opened only the date menu, the month grids and the two filter
+  popovers, never pressed Export or Apply, and said that nobody opened the plan button, the plan menu or
+  another plan. The Designer read the source's stylesheet rules to take exact values, which my brief did
+  not forbid for style rules (it forbade hidden markup and network traffic): fine, and the wording for
+  next time is "style rules yes, page data no".
+  - **A named place to look plus a named list of what never to touch works where a ban did not.**
+  - Second polish list of seven items after thirteen; its Reviewer's four nits fixed.
+  - Still to check at its card: `keepPreviousData` in `api/reports.ts`.
+- EXF-517 with EXF-507: head `b581918`, "retry a busy-server answer while seeding register specs": its
+  gate is failing under load in specs. Third gate round at least.
+- EXF-579 with EXF-569: head `cc26aea`, the work committed.
+
+**Main is `b09078b`; live is `41bee46`**, two merges behind (bank connection removal with one migration;
+Ready to Assign and moves). **Deploy next plan.**
+
+**Ticket writes:** 4 (two Done, two comments).
+
+**Backlog:** 77 open feature tickets (18 done; 4 in progress: EXF-517, 507, 548, 551). Gap: EXF-558 and
+EXF-586 (High), EXF-587 (Medium), EXF-560, EXF-562 (Low); in progress EXF-569, EXF-579. Template:
+twenty-six. Flow verdicts: 1 `parity_known_gaps` (its known gap, the Ready to Assign box, is now merged),
+9 and 10 `new_gaps`, 11 `parity`. Finished since each template's last review: Build 3, Deploy 0,
+Discover 2, Test user flow 3.
