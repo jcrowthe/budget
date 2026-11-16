@@ -388,6 +388,9 @@ cancelled Build is not counted.) Last template-ticket sweep: none yet (due about
 | 2026-11-16 | 43 | Build feature, EXF-579 and EXF-569 test infrastructure (`p_cd848105b4374ae2afe041183b489568`) | EXF-579, 569 | PR #28 | merged `0b53a5f` (round 48), 62 minutes |
 | 2026-11-16 | 47 | Deploy of main `b09078b` (`p_19af5f217da344c69a6bc314de0cfbaa`) | EXF-460 (Worker), 574, 491, 492 | n/a | live `b09078b` (6 minutes) |
 | 2026-11-16 | 47 | Build feature, EXF-498, EXF-523, EXF-521, EXF-586 selection, right panel, inspector (`p_65463dbc6be84add91017e885f952d56`) | EXF-498, 523, 521, 586 | pending | running |
+| 2026-11-16 | 50 | Deploy of main `3a3a977` (`p_8e0dbe332cab411d953c0e3eb9b6768c`) | EXF-579, 569, 517, 507 | n/a | running |
+| 2026-11-16 | 50 | Build feature, EXF-461 Worker half, linked accounts (`p_347cdcc27a6546818f5dad9ee7011a4a`) | EXF-461 | pending | running |
+| 2026-11-16 | 50 | Build feature, EXF-526 and EXF-524 transfers and splits (`p_ed951d9308614f88bc3289bed3b27d78`) | EXF-526, 524 | pending | running |
 
 ### 2026-11-15 · Plan round 1
 
@@ -4170,3 +4173,52 @@ one migration). **Deploy next plan**, then flows 1 and 2.
 (Medium), EXF-558, EXF-560, EXF-562 (Low), two new filed now; in progress EXF-586 (High). Template:
 twenty-six. Flow verdicts: 1 `parity_known_gaps`, 9 and 10 `new_gaps`, 11 `parity`. Finished since each
 template's last review: Build 5, Deploy 1, Discover 2, Test user flow 3.
+
+### 2026-11-16 · Plan round 50
+
+Children used 64 of 200. Five are running: two Builds from earlier rounds (EXF-548 with EXF-551, regating;
+the Plan-page Build for EXF-498, 523, 521, 586) and three children started now.
+
+- The two tickets filed at the last review exist: **EXF-588** (Reflect follow-ups, Medium) and **EXF-589**
+  (one category dropdown, Low).
+- **Started the Deploy of main `3a3a977`** (`p_8e0dbe332cab411d953c0e3eb9b6768c`), `gated_commit` `9047400`
+  (trees equal). It ships transaction entry with payees, and the test-infrastructure merge.
+  - **The pending migration `20261116100100_payees.sql` sorts before `100300`, already applied on live.**
+    I read `scripts/migrations-pending.sh`: it lists local files whose names are not in `d1_migrations`,
+    so the order does not matter to it; the release applies with `wrangler d1 migrations apply`. The
+    Deploy must show the file as pending before and applied after, and `GET .../payees` on a test plan
+    proves the table.
+  - **First run with a run prefix:** its plans are named `ZZ-TEST D13 ...` and it ends with
+    `purge 'ZZ-TEST D13'`, never the plain `purge`.
+  - Checks: payees through REST and MCP (39 tools expected); adding and editing a transaction with a real
+    mouse and the keyboard at two sizes; the payee dropdown; the account field on All Accounts.
+- **Started EXF-461, Worker half** (`p_347cdcc27a6546818f5dad9ee7011a4a`): `accounts/from-bank`, `link`,
+  `unlink`; the account's `bank_account_id`, `linked`, `import_start_date`; `linked_account_id` in the
+  connection reads; unlinking when a connection is removed; tools. The owner's date comes in as `today`.
+  Migration `20261116100600_...`. No file under `apps/web/`: no screen, so no source comparison (seven of
+  seven so far). The ticket stays open for its screens.
+- **Started EXF-526 with EXF-524** (`p_ed951d9308614f88bc3289bed3b27d78`): transfers and splits, one Build
+  because both change the transaction's data model, the entry row and the register table.
+  - Transfers: the pair in one batch; mirror amount, date and memo; per-side cleared; the category rule
+    as one pure function; an on-plan to on-plan transfer touches no category, not `uncategorized`, not
+    Ready to Assign; transfer payees derived when payees are read; `create_transfer`.
+  - Splits: `subtransactions` on create and update; the parent counts in nothing, each line in its
+    category; the editor with "Something Doesn't Add Up" and Auto-Distribute as a pure function.
+  - Left out: Undo (EXF-530), the action bar (EXF-520), search over lines (EXF-528), what a card payment
+    does to the plan (EXF-532, EXF-539), a split line that is a transfer, scheduled splits (EXF-501).
+  - Migration `20261116100500_transfers_splits.sql`.
+  - **It may not edit `services/months.ts`, the months files or `packages/core`** (the Plan-page Build
+    holds the months files). If the month figures cannot be made right through
+    `repositories/transactions.ts`, it must stop and say so.
+  - Source: limited. One place (the test plan's All Accounts register); open an existing row, the two
+    dropdowns and Split, then Cancel; never Save; never the plan menu, Bank Connections, Add Account or
+    another plan.
+- **Scheduling rule, four Builds:** the Plan page with months and categories; Reflect; accounts and
+  bank-connection Worker files; transactions, payees and the register. Disjoint by brief. The two new
+  Builds meet only through functions one calls and the other owns (`addUnlinkedAccount` uses the
+  transactions repository's insert): whichever merges second fixes its calls at the rebase.
+- **Not started:** flow tests (flow 1 again; flow 2 as far as built) wait for the Deploy: next round, with
+  their own run prefix. EXF-587 waits for the transactions and bank-connection tool files. The credit
+  engine and the targets screens wait for the Plan-page Build.
+- Ticket writes: 8 (two priorities; three to In Progress; three comments).
+- Review cadence: Build 5, Deploy 1, Discover 2, Test user flow 3. **This round's review is the check-in.**
