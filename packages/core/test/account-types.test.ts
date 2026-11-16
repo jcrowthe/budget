@@ -4,9 +4,14 @@ import {
   type AccountGroup,
   type AccountType,
   accountGroup,
+  DISPLAY_GROUPS,
+  type DisplayGroup,
+  displayGroup,
   isLoanType,
   isOnBudget,
   positiveMeansOwed,
+  type SidebarAccountLike,
+  sidebarSections,
   startingBalanceAmount,
   startingBalanceFeedsReadyToAssign,
 } from "../src/account-types";
@@ -70,5 +75,76 @@ describe("account type rules", () => {
     for (const t of ACCOUNT_TYPES) {
       expect(startingBalanceFeedsReadyToAssign(t)).toBe(GROUPS[t] === "cash");
     }
+  });
+});
+
+const DISPLAY: Record<AccountType, DisplayGroup> = {
+  checking: "cash",
+  savings: "cash",
+  cash: "cash",
+  creditCard: "credit",
+  lineOfCredit: "credit",
+  mortgage: "loans",
+  autoLoan: "loans",
+  studentLoan: "loans",
+  personalLoan: "loans",
+  medicalDebt: "loans",
+  otherDebt: "loans",
+  otherAsset: "tracking",
+  otherLiability: "tracking",
+};
+
+describe("displayGroup", () => {
+  it.each(ACCOUNT_TYPES)("%s, open and closed", (t) => {
+    expect(displayGroup(t, false)).toBe(DISPLAY[t]);
+    expect(displayGroup(t, true)).toBe("closed");
+    expect(DISPLAY_GROUPS).toContain(DISPLAY[t]);
+  });
+});
+
+let n = 0;
+const acc = (p: Partial<SidebarAccountLike> = {}): SidebarAccountLike => ({
+  id: `a${++n}`,
+  name: `n${n}`,
+  starred: false,
+  closed: false,
+  group: "cash",
+  balance: 0,
+  ...p,
+});
+
+describe("sidebarSections", () => {
+  it("sums the ticket's examples", () => {
+    const s = sidebarSections([
+      acc({ group: "credit", balance: -150000 }),
+      acc({ group: "credit", balance: -75000 }),
+      acc({ group: "tracking", balance: 5000000 }),
+      acc({ group: "tracking", balance: -700000 }),
+      acc({ group: "cash", starred: true, balance: 312500 }),
+    ]);
+    const total = (name: string) => s.find((x) => x.name === name)?.total;
+    expect(total("credit")).toBe(-225000);
+    expect(total("tracking")).toBe(4300000);
+    expect(total("starred")).toBe(312500);
+    expect(s.map((x) => x.name)).toEqual(["starred", "cash", "credit", "tracking"]);
+  });
+  it("leaves empty sections out", () => {
+    expect(sidebarSections([])).toEqual([]);
+  });
+  it("lists a starred open account twice, a starred closed one only in closed", () => {
+    const open = acc({ starred: true });
+    const closed = acc({ starred: true, closed: true, group: "closed" });
+    const s = sidebarSections([open, closed]);
+    expect(s.map((x) => x.name)).toEqual(["starred", "cash", "closed"]);
+    expect(s[0]?.rows).toEqual([open]);
+    expect(s[2]?.rows).toEqual([closed]);
+  });
+  it("sorts closed by name and gives it no total", () => {
+    const s = sidebarSections(
+      ["b", "A", "c"].map((name) => acc({ name, closed: true, group: "closed", balance: 5 })),
+    );
+    expect(s).toHaveLength(1);
+    expect(s[0]?.rows.map((r) => r.name)).toEqual(["A", "b", "c"]);
+    expect(s[0]?.total).toBeNull();
   });
 });
