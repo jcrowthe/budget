@@ -1,7 +1,8 @@
-import { and, asc, eq, inArray, isNull, type SQLWrapper, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { bankAccounts } from "../db/schema/bank-accounts";
+import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 
 export type AccountRow = typeof accounts.$inferSelect;
@@ -79,6 +80,28 @@ export async function nameTaken(db: Db, budgetId: string, name: string): Promise
   return r !== undefined;
 }
 
+/** True when another non-deleted account of the plan has this name, ignoring ASCII case. */
+export async function nameTakenByOther(
+  db: Db,
+  budgetId: string,
+  accountId: string,
+  name: string,
+): Promise<boolean> {
+  const [r] = await db
+    .select({ x: sql`1` })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        sql`${accounts.id} <> ${accountId}`,
+        sql`lower(${accounts.name}) = lower(${name})`,
+      ),
+    )
+    .limit(1);
+  return r !== undefined;
+}
+
 /** `SELECT 1` that holds while `sort` is the next free sort_order and no account of the plan has this name. */
 export function newAccountGuard(
   db: Db,
@@ -125,6 +148,120 @@ function starCondition(before: AccountRow) {
 
 export function setStarredIfStmt(db: Db, before: AccountRow, starred: boolean) {
   return db.update(accounts).set({ starred }).where(starCondition(before));
+}
+
+/** Per account: its active transaction count and the id of the active one that is its Starting Balance. */
+export async function transactionFacts(
+  db: Db,
+  budgetId: string,
+  accountId?: string,
+): Promise<Map<string, { count: number; startingId: string | null }>> {
+  const conds = [eq(transactions.budgetId, budgetId), isNull(transactions.deletedAt)];
+  if (accountId) conds.push(eq(transactions.accountId, accountId));
+  const rows = await db
+    .select({
+      accountId: transactions.accountId,
+      count: sql<number>`count(*)`,
+      startingId: sql<
+        string | null
+      >`max(case when ${payees.system} = 'starting_balance' then ${transactions.id} end)`,
+    })
+    .from(transactions)
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .where(and(...conds))
+    .groupBy(transactions.accountId);
+  return new Map(rows.map((r) => [r.accountId, { count: r.count, startingId: r.startingId }]));
+}
+
+/** `SELECT 1` that holds once a transaction row exists. */
+export function transactionExistsStmt(db: Db, id: string) {
+  return db.select({ x: sql`1` }).from(transactions).where(eq(transactions.id, id));
+}
+
+/** A condition: the account's active transactions sum to `amount`. */
+export function accountSumIs(accountId: string, amount: number): SQL {
+  return sql`(select coalesce(sum(${transactions.amount}), 0) from ${transactions} where ${transactions.accountId} = ${accountId} and ${transactions.deletedAt} is null) = ${amount}`;
+}
+
+/** A condition: the account has no active transaction other than `exceptId`. */
+export function noOtherTransactions(accountId: string, exceptId: string | null): SQL {
+  return exceptId === null
+    ? sql`not exists (select 1 from ${transactions} where ${transactions.accountId} = ${accountId} and ${transactions.deletedAt} is null)`
+    : sql`not exists (select 1 from ${transactions} where ${transactions.accountId} = ${accountId} and ${transactions.deletedAt} is null and ${transactions.id} <> ${exceptId})`;
+}
+
+/** A condition: no other non-deleted account of the plan has this name, ignoring ASCII case. */
+export function nameFree(budgetId: string, accountId: string, name: string): SQL {
+  return sql`not exists (select 1 from ${accounts} a2 where a2.budget_id = ${budgetId} and a2.deleted_at is null and a2.id <> ${accountId} and lower(a2.name) = lower(${name}))`;
+}
+
+/** Holds while the account is active and still has the name, note, star, closed flag and link of `before`. */
+function holdsCondition(before: AccountRow) {
+  return and(
+    eq(accounts.id, before.id),
+    isNull(accounts.deletedAt),
+    eq(accounts.name, before.name),
+    before.note === null ? isNull(accounts.note) : eq(accounts.note, before.note),
+    eq(accounts.starred, before.starred),
+    eq(accounts.closed, before.closed),
+    before.bankAccountId === null
+      ? isNull(accounts.bankAccountId)
+      : eq(accounts.bankAccountId, before.bankAccountId),
+  );
+}
+
+/** A `SELECT 1` that holds while `holdsCondition(before)` and `extra` do. */
+export function accountHolds(db: Db, before: AccountRow, extra?: SQL) {
+  return db
+    .select({ x: sql`1` })
+    .from(accounts)
+    .where(extra ? and(holdsCondition(before), extra) : holdsCondition(before));
+}
+
+export function updateFieldsIfStmt(
+  db: Db,
+  before: AccountRow,
+  set: { name?: string; note?: string | null; starred?: boolean },
+  extra?: SQL,
+) {
+  return db
+    .update(accounts)
+    .set(set)
+    .where(extra ? and(holdsCondition(before), extra) : holdsCondition(before));
+}
+
+/** Closes, unstars and unlinks the account while it still holds and `extra` does. */
+export function closeIfStmt(db: Db, before: AccountRow, extra: SQL) {
+  return db
+    .update(accounts)
+    .set({ closed: true, starred: false, bankAccountId: null, importStartDate: null })
+    .where(and(holdsCondition(before), extra));
+}
+
+export function reopenIfStmt(db: Db, before: AccountRow) {
+  return db.update(accounts).set({ closed: false }).where(holdsCondition(before));
+}
+
+/** Soft-deletes a Starting Balance transaction of the account (the one write to `transactions` kept here). */
+export function softDeleteStartingBalanceStmt(db: Db, txId: string, accountId: string, at: string) {
+  return db
+    .update(transactions)
+    .set({ deletedAt: at, updatedAt: at })
+    .where(
+      and(
+        eq(transactions.id, txId),
+        eq(transactions.accountId, accountId),
+        isNull(transactions.deletedAt),
+      ),
+    );
+}
+
+/** Soft-deletes and unlinks the account while it still holds and `extra` does. */
+export function softDeleteIfStmt(db: Db, before: AccountRow, at: string, extra: SQL) {
+  return db
+    .update(accounts)
+    .set({ deletedAt: at, bankAccountId: null, importStartDate: null })
+    .where(and(holdsCondition(before), extra));
 }
 
 /** `SELECT 1` that holds once the account row exists. */

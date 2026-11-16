@@ -8,15 +8,22 @@ import {
 } from "@budget/core/account-types";
 import {
   type Account,
+  AccountAdjustBalanceRequest,
+  type AccountAdjustBalanceRequest as AccountAdjustBalanceRequestInput,
+  AccountCloseRequest,
+  type AccountCloseRequest as AccountCloseRequestInput,
   AccountCreate,
   AccountCreateRequest,
   type AccountCreateRequest as AccountCreateRequestInput,
   type AccountType,
   AccountUpdateRequest,
   type AccountUpdateRequest as AccountUpdateRequestInput,
+  CLOSED_ACCOUNT_MEMO,
+  MANUAL_ADJUSTMENT_PAYEE,
 } from "@budget/schema/accounts";
 import type { AccountBalances, Transaction } from "@budget/schema/transactions";
-import { getDb } from "../db/client";
+import { sql } from "drizzle-orm";
+import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
@@ -55,9 +62,37 @@ export class UnsupportedAccountType extends Error {
   }
 }
 
+export type AccountFacts = { cleared: number; uncleared: number; canDelete: boolean };
+
+/** Open: no transaction or only its Starting Balance. Closed: no transaction at all. */
+function canDeleteFrom(
+  row: { closed: boolean },
+  f: { count: number; startingId: string | null } | undefined,
+): boolean {
+  const count = f?.count ?? 0;
+  return row.closed ? count === 0 : count === 0 || (count === 1 && f?.startingId != null);
+}
+
+/** Balances and `can_delete` of the plan's accounts (or one), as a function of the account row. */
+export async function accountFacts(
+  db: Db,
+  budgetId: string,
+  accountId?: string,
+): Promise<(row: accountsRepo.AccountRow) => AccountFacts> {
+  const [balances, tx] = await Promise.all([
+    txRepo.balancesByAccount(db, budgetId, accountId),
+    accountsRepo.transactionFacts(db, budgetId, accountId),
+  ]);
+  return (row) => ({
+    cleared: balances.get(row.id)?.cleared ?? 0,
+    uncleared: balances.get(row.id)?.uncleared ?? 0,
+    canDelete: canDeleteFrom(row, tx.get(row.id)),
+  });
+}
+
 export function accountToApi(
   row: accountsRepo.AccountRow,
-  b: { cleared: number; uncleared: number } = { cleared: 0, uncleared: 0 },
+  b: { cleared: number; uncleared: number; canDelete?: boolean } = { cleared: 0, uncleared: 0 },
 ): Account {
   return {
     id: row.id,
@@ -77,6 +112,7 @@ export function accountToApi(
     bank_account_id: row.bankAccountId,
     linked: row.bankAccountId !== null,
     import_start_date: row.importStartDate,
+    can_delete: b.canDelete ?? true,
   };
 }
 
@@ -134,11 +170,11 @@ export async function listAccounts(
 ): Promise<Account[]> {
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
-  const [rows, balances] = await Promise.all([
+  const [rows, facts] = await Promise.all([
     accountsRepo.list(db, budgetId, { includeClosed: opts.includeClosed ?? true }),
-    txRepo.balancesByAccount(db, budgetId),
+    accountFacts(db, budgetId),
   ]);
-  return rows.map((r) => accountToApi(r, balances.get(r.id)));
+  return rows.map((r) => accountToApi(r, facts(r)));
 }
 
 export async function getAccount(env: Env, budgetId: string, accountId: string): Promise<Account> {
@@ -146,17 +182,24 @@ export async function getAccount(env: Env, budgetId: string, accountId: string):
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   const row = await accountsRepo.findActive(db, budgetId, accountId);
   if (!row) throw new NotFound("Account");
-  const balances = await txRepo.balancesByAccount(db, budgetId, accountId);
-  return accountToApi(row, balances.get(accountId));
+  return accountToApi(row, (await accountFacts(db, budgetId, accountId))(row));
 }
 
-/** A rule of the account routes failed; the route answers 422 with this message. */
+/** A rule of the account routes failed; the route answers with this status and code. */
 export class AccountRefused extends Error {
-  status = 422 as const;
-  code = "unprocessable_entity";
+  constructor(
+    detail: string,
+    readonly status: 409 | 422 = 422,
+    readonly code = "unprocessable_entity",
+  ) {
+    super(detail);
+    this.name = "AccountRefused";
+  }
 }
 
-/** Sets `starred`. A closed account cannot be starred. One history row per real change. */
+const utcToday = () => new Date().toISOString().slice(0, 10);
+
+/** Renames, sets the note and stars. One history row per real change; a closed account cannot be starred. */
 export async function updateAccount(
   env: Env,
   actor: string,
@@ -167,17 +210,32 @@ export async function updateAccount(
   const patch = AccountUpdateRequest.parse(input);
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const name = patch.name?.trim();
+  if (name === "") throw new AccountRefused("The account name is required.", 422, "name_required");
+  const note = patch.note === undefined ? undefined : patch.note?.trim() ? patch.note : null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await accountsRepo.findActive(db, budgetId, accountId);
     if (!before) throw new NotFound("Account");
     if (patch.starred === true && before.closed) {
       throw new AccountRefused("A closed account cannot be starred");
     }
-    const balances = (await txRepo.balancesByAccount(db, budgetId, accountId)).get(accountId);
-    if (patch.starred === undefined || patch.starred === before.starred) {
-      return accountToApi(before, balances);
+    const set: { name?: string; note?: string | null; starred?: boolean } = {};
+    if (name !== undefined && name !== before.name) set.name = name;
+    if (note !== undefined && note !== before.note) set.note = note;
+    if (patch.starred !== undefined && patch.starred !== before.starred) {
+      set.starred = patch.starred;
     }
-    const after = { ...before, starred: patch.starred };
+    const facts = (await accountFacts(db, budgetId, accountId))(before);
+    if (Object.keys(set).length === 0) return accountToApi(before, facts);
+    if (
+      set.name !== undefined &&
+      (await accountsRepo.nameTakenByOther(db, budgetId, accountId, set.name))
+    ) {
+      throw new NameTaken();
+    }
+    const after = { ...before, ...set };
+    const extra =
+      set.name === undefined ? undefined : accountsRepo.nameFree(budgetId, accountId, set.name);
     const [, result] = await db.batch([
       changeLogInsertIf(
         db,
@@ -187,14 +245,402 @@ export async function updateAccount(
           action: "update",
           entityType: "account",
           entityId: accountId,
-          before: accountToApi(before, balances),
-          after: accountToApi(after, balances),
+          before: accountToApi(before, facts),
+          after: accountToApi(after, facts),
         },
-        accountsRepo.starHolds(db, before),
+        accountsRepo.accountHolds(db, before, extra),
       ),
-      accountsRepo.setStarredIfStmt(db, before, patch.starred),
+      accountsRepo.updateFieldsIfStmt(db, before, set, extra),
     ]);
-    if (result.meta.changes > 0) return accountToApi(after, balances);
+    if (result.meta.changes > 0) return accountToApi(after, facts);
+  }
+  throw new Conflict("Account");
+}
+
+type BatchItem = Parameters<Db["batch"]>[0][number];
+
+/** The system payee row of a kind, as found or as new; `stmts` create it (with their log row) when new. */
+function systemPayee(
+  db: Db,
+  actor: string,
+  budgetId: string,
+  existing: payeesRepo.PayeeRow | undefined,
+  system: "starting_balance" | "manual_adjustment",
+  name: string,
+  now: string,
+): { sys: payeesRepo.PayeeRow; stmts: BatchItem[] } {
+  const sys: payeesRepo.PayeeRow = existing ?? {
+    id: crypto.randomUUID(),
+    budgetId,
+    name,
+    hidden: false,
+    system,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  };
+  if (existing) return { sys, stmts: [] };
+  return {
+    sys,
+    stmts: [
+      payeesRepo.insertSystemIfMissingStmt(db, sys),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "create",
+          entityType: "payee",
+          entityId: sys.id,
+          before: null,
+          after: { id: sys.id, name: sys.name, hidden: false, system: sys.system },
+        },
+        payeesRepo.existsStmt(db, sys.id),
+      ),
+    ],
+  };
+}
+
+/** The adjustment's row: cleared, approved, to Ready to Assign for on-plan accounts, no category. */
+function adjustmentRow(
+  row: accountsRepo.AccountRow,
+  sys: payeesRepo.PayeeRow,
+  amount: number,
+  date: string,
+  memo: string | null,
+  now: string,
+): txRepo.TransactionRow {
+  return {
+    id: crypto.randomUUID(),
+    budgetId: row.budgetId,
+    accountId: row.id,
+    date,
+    payeeId: sys.id,
+    payeeName: MANUAL_ADJUSTMENT_PAYEE,
+    categoryId: null,
+    inflowToReadyToAssign: row.onBudget,
+    memo,
+    amount,
+    cleared: "cleared",
+    approved: true,
+    createdAt: now,
+    deletedAt: null,
+    updatedAt: now,
+  };
+}
+
+async function readAdjustment(db: Db, budgetId: string, tx: txRepo.TransactionRow) {
+  const linked = await payeesRepo.findSystem(db, budgetId, "manual_adjustment");
+  return transactionToApi({ ...tx, payeeId: linked?.id ?? null });
+}
+
+/** Sets an open account's working balance by adding a "Manual Balance Adjustment" for the difference. */
+export async function adjustBalance(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  accountId: string,
+  input: AccountAdjustBalanceRequestInput,
+): Promise<{ account: Account; adjustment: Transaction | null }> {
+  const v = AccountAdjustBalanceRequest.parse(input);
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = await accountsRepo.findActive(db, budgetId, accountId);
+    if (!before) throw new NotFound("Account");
+    if (before.closed) {
+      throw new AccountRefused(
+        "A closed account's balance cannot be adjusted",
+        422,
+        "account_closed",
+      );
+    }
+    const facts = (await accountFacts(db, budgetId, accountId))(before);
+    const working = facts.cleared + facts.uncleared;
+    const delta = v.balance - working;
+    if (delta === 0) return { account: accountToApi(before, facts), adjustment: null };
+    const now = new Date().toISOString();
+    const existing = await payeesRepo.findSystem(db, budgetId, "manual_adjustment");
+    const { sys, stmts } = systemPayee(
+      db,
+      actor,
+      budgetId,
+      existing,
+      "manual_adjustment",
+      MANUAL_ADJUSTMENT_PAYEE,
+      now,
+    );
+    const tx = adjustmentRow(before, sys, delta, v.today ?? utcToday(), null, now);
+    const guard = accountsRepo.accountHolds(
+      db,
+      before,
+      accountsRepo.accountSumIs(accountId, working),
+    );
+    const after = accountToApi(before, {
+      cleared: facts.cleared + delta,
+      uncleared: facts.uncleared,
+      canDelete: false,
+    });
+    const results = await db.batch([
+      ...stmts,
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "update",
+          entityType: "account",
+          entityId: accountId,
+          before: accountToApi(before, facts),
+          after,
+        },
+        guard,
+      ),
+      txRepo.insertIfStmt(db, tx, guard, payeesRepo.systemIdSql(budgetId, "manual_adjustment")),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "create",
+          entityType: "transaction",
+          entityId: tx.id,
+          before: null,
+          after: transactionToApi(tx),
+        },
+        accountsRepo.transactionExistsStmt(db, tx.id),
+      ),
+    ] as unknown as [BatchItem, ...BatchItem[]]);
+    if (results[stmts.length + 1]?.meta.changes > 0) {
+      return { account: after, adjustment: await readAdjustment(db, budgetId, tx) };
+    }
+  }
+  throw new Conflict("Account");
+}
+
+/** Closes the account: zeroes a non-zero balance with a "Closed Account" adjustment, unstars and unlinks it. */
+export async function closeAccount(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  accountId: string,
+  input: AccountCloseRequestInput = {},
+): Promise<{ account: Account; adjustment: Transaction | null }> {
+  const v = AccountCloseRequest.parse(input);
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = await accountsRepo.findActive(db, budgetId, accountId);
+    if (!before) throw new NotFound("Account");
+    const facts = (await accountFacts(db, budgetId, accountId))(before);
+    if (before.closed) return { account: accountToApi(before, facts), adjustment: null };
+    const working = facts.cleared + facts.uncleared;
+    const now = new Date().toISOString();
+    const existing = await payeesRepo.findSystem(db, budgetId, "manual_adjustment");
+    const { sys, stmts } =
+      working === 0
+        ? { sys: existing, stmts: [] as BatchItem[] }
+        : systemPayee(
+            db,
+            actor,
+            budgetId,
+            existing,
+            "manual_adjustment",
+            MANUAL_ADJUSTMENT_PAYEE,
+            now,
+          );
+    const tx = sys
+      ? adjustmentRow(before, sys, -working, v.today ?? utcToday(), CLOSED_ACCOUNT_MEMO, now)
+      : null;
+    const adjusting = working !== 0 && tx !== null;
+    const txFacts = (await accountsRepo.transactionFacts(db, budgetId, accountId)).get(accountId);
+    const afterRow = {
+      ...before,
+      closed: true,
+      starred: false,
+      bankAccountId: null,
+      importStartDate: null,
+    };
+    const after = accountToApi(afterRow, {
+      cleared: facts.cleared - working,
+      uncleared: facts.uncleared,
+      canDelete: canDeleteFrom(afterRow, {
+        count: (txFacts?.count ?? 0) + (adjusting ? 1 : 0),
+        startingId: txFacts?.startingId ?? null,
+      }),
+    });
+    const guard = accountsRepo.accountHolds(
+      db,
+      before,
+      accountsRepo.accountSumIs(accountId, working),
+    );
+    const closeGuard =
+      adjusting && tx
+        ? sql`${accountsRepo.accountSumIs(accountId, 0)} and exists ${accountsRepo.transactionExistsStmt(db, tx.id)}`
+        : accountsRepo.accountSumIs(accountId, 0);
+    const results = await db.batch([
+      ...(adjusting ? stmts : []),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "update",
+          entityType: "account",
+          entityId: accountId,
+          before: accountToApi(before, facts),
+          after: { ...after, adjustment_id: adjusting && tx ? tx.id : null },
+        },
+        guard,
+      ),
+      ...(adjusting && tx
+        ? [
+            txRepo.insertIfStmt(
+              db,
+              tx,
+              guard,
+              payeesRepo.systemIdSql(budgetId, "manual_adjustment"),
+            ),
+            changeLogInsertIf(
+              db,
+              {
+                budgetId,
+                actor,
+                action: "create",
+                entityType: "transaction",
+                entityId: tx.id,
+                before: null,
+                after: transactionToApi(tx),
+              },
+              accountsRepo.transactionExistsStmt(db, tx.id),
+            ),
+          ]
+        : []),
+      accountsRepo.closeIfStmt(db, before, closeGuard),
+    ] as unknown as [BatchItem, ...BatchItem[]]);
+    if ((results[results.length - 1]?.meta.changes ?? 0) > 0) {
+      return {
+        account: after,
+        adjustment: adjusting && tx ? await readAdjustment(db, budgetId, tx) : null,
+      };
+    }
+  }
+  throw new Conflict("Account");
+}
+
+/** Re-opens a closed account. The closing adjustment stays and the star is not restored. */
+export async function reopenAccount(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  accountId: string,
+): Promise<Account> {
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = await accountsRepo.findActive(db, budgetId, accountId);
+    if (!before) throw new NotFound("Account");
+    const facts = (await accountFacts(db, budgetId, accountId))(before);
+    if (!before.closed) return accountToApi(before, facts);
+    const afterRow = { ...before, closed: false };
+    const txFacts = (await accountsRepo.transactionFacts(db, budgetId, accountId)).get(accountId);
+    const after = accountToApi(afterRow, { ...facts, canDelete: canDeleteFrom(afterRow, txFacts) });
+    const [, result] = await db.batch([
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "update",
+          entityType: "account",
+          entityId: accountId,
+          before: accountToApi(before, facts),
+          after,
+        },
+        accountsRepo.accountHolds(db, before),
+      ),
+      accountsRepo.reopenIfStmt(db, before),
+    ]);
+    if (result.meta.changes > 0) return after;
+  }
+  throw new Conflict("Account");
+}
+
+const HAS_TX =
+  "This account has transactions other than its Starting Balance, so it cannot be deleted. Close it instead to keep its history.";
+const CLOSED_HAS_TX =
+  "This account has transactions, so it cannot be deleted. Delete all of its transactions first.";
+
+/** Soft-deletes an account and its Starting Balance, when that is its only transaction. */
+export async function deleteAccount(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  accountId: string,
+): Promise<{ account_id: string; deleted_transaction_ids: string[] }> {
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = await accountsRepo.findActive(db, budgetId, accountId);
+    if (!before) throw new NotFound("Account");
+    const facts = (await accountFacts(db, budgetId, accountId))(before);
+    if (!facts.canDelete) {
+      throw new AccountRefused(before.closed ? CLOSED_HAS_TX : HAS_TX, 409, "has_transactions");
+    }
+    const startingId =
+      (await accountsRepo.transactionFacts(db, budgetId, accountId)).get(accountId)?.startingId ??
+      null;
+    const startingTx = startingId ? await txRepo.findDetail(db, budgetId, startingId) : undefined;
+    if (startingId && !startingTx) continue;
+    const at = new Date().toISOString();
+    const stmts: BatchItem[] = [];
+    if (startingId && startingTx) {
+      stmts.push(
+        changeLogInsertIf(
+          db,
+          {
+            budgetId,
+            actor,
+            action: "delete",
+            entityType: "transaction",
+            entityId: startingId,
+            before: transactionToApi(startingTx),
+            after: null,
+          },
+          accountsRepo.accountHolds(
+            db,
+            before,
+            accountsRepo.noOtherTransactions(accountId, startingId),
+          ),
+        ),
+        accountsRepo.softDeleteStartingBalanceStmt(db, startingId, accountId, at),
+      );
+    }
+    stmts.push(
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "delete",
+          entityType: "account",
+          entityId: accountId,
+          before: accountToApi(before, facts),
+          after: null,
+        },
+        accountsRepo.accountHolds(db, before, accountsRepo.noOtherTransactions(accountId, null)),
+      ),
+      accountsRepo.softDeleteIfStmt(
+        db,
+        before,
+        at,
+        accountsRepo.noOtherTransactions(accountId, null),
+      ),
+    );
+    const results = await db.batch(stmts as unknown as [BatchItem, ...BatchItem[]]);
+    if ((results[results.length - 1]?.meta.changes ?? 0) > 0) {
+      return { account_id: accountId, deleted_transaction_ids: startingId ? [startingId] : [] };
+    }
   }
   throw new Conflict("Account");
 }
@@ -270,16 +716,15 @@ export async function insertAccountWithStartingBalance(
       bankAccountId: spec.bankAccountId,
       importStartDate: spec.importStartDate,
     };
-    const sys: payeesRepo.PayeeRow = existingSystem ?? {
-      id: crypto.randomUUID(),
+    const { sys, stmts: payeeStmts } = systemPayee(
+      db,
+      actor,
       budgetId,
-      name: STARTING_BALANCE_PAYEE,
-      hidden: false,
-      system: "starting_balance",
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    };
+      existingSystem,
+      "starting_balance",
+      STARTING_BALANCE_PAYEE,
+      now,
+    );
     const tx: txRepo.TransactionRow = {
       id: crypto.randomUUID(),
       budgetId,
@@ -297,7 +742,7 @@ export async function insertAccountWithStartingBalance(
       deletedAt: null,
       updatedAt: now,
     };
-    const account = accountToApi(row, { cleared: amount, uncleared: 0 });
+    const account = accountToApi(row, { cleared: amount, uncleared: 0, canDelete: true });
     const g1 = accountsRepo.newAccountGuard(
       db,
       budgetId,
@@ -321,24 +766,7 @@ export async function insertAccountWithStartingBalance(
         g1,
       ),
       accountsRepo.insertIfStmt(db, row, g1),
-      ...(existingSystem
-        ? []
-        : [
-            payeesRepo.insertSystemIfMissingStmt(db, sys),
-            changeLogInsertIf(
-              db,
-              {
-                budgetId,
-                actor,
-                action: "create",
-                entityType: "payee",
-                entityId: sys.id,
-                before: null,
-                after: { id: sys.id, name: sys.name, hidden: false, system: sys.system },
-              },
-              payeesRepo.existsStmt(db, sys.id),
-            ),
-          ]),
+      ...payeeStmts,
       txRepo.insertIfStmt(db, tx, g2, payeesRepo.systemIdSql(budgetId, "starting_balance")),
       changeLogInsertIf(
         db,
