@@ -23,4 +23,21 @@ export function endWrite(qc: QueryClient, budgetId: string): void {
   }
   pending.delete(budgetId);
   void qc.invalidateQueries({ queryKey: ["month", budgetId] });
+  void qc.invalidateQueries({ queryKey: ["month-list", budgetId] });
+}
+
+const queues = new Map<string, Promise<unknown>>();
+
+/**
+ * Runs the writes of one plan one after another, in call order (an absolute Assigned PATCH must not be
+ * overtaken by a later move of the same cell). Resolves or rejects with `fn`'s own outcome; a failure does
+ * not stop the queue.
+ */
+export function inOrder<T>(budgetId: string, fn: () => Promise<T>): Promise<T> {
+  const run = (queues.get(budgetId) ?? Promise.resolve()).then(fn);
+  queues.set(
+    budgetId,
+    run.catch(() => undefined),
+  );
+  return run;
 }

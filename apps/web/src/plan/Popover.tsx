@@ -8,8 +8,8 @@ const MARGIN = 8;
 /**
  * A box below its anchor, centred on it, with an up-arrow on its top edge (measured on the source: box top =
  * anchor bottom + 15). Escape closes it and returns focus to the anchor; a click outside does nothing, as in the
- * source (a transparent overlay catches it). A popover that closes on an outside click would use EXF-493's
- * `useDismiss.ts`, which is not on main yet.
+ * source (a transparent overlay catches it). `dismissOnOutside` makes a mousedown on that overlay close it
+ * (the Ready to Assign breakdown); `gap` is the distance from anchor to box (default 15).
  */
 export function Popover({
   anchor,
@@ -17,6 +17,10 @@ export function Popover({
   label,
   onClose,
   className,
+  dismissOnOutside,
+  scrim,
+  alignTo,
+  gap = ARROW_H,
   children,
 }: {
   anchor: HTMLElement;
@@ -24,6 +28,12 @@ export function Popover({
   label: string;
   onClose: () => void;
   className?: string;
+  dismissOnOutside?: boolean;
+  /** A dimmed overlay (the Ready to Assign breakdown); others keep it transparent. */
+  scrim?: boolean;
+  /** Centre horizontally on this element instead of the anchor (the vertical placement still follows the anchor). */
+  alignTo?: HTMLElement;
+  gap?: number;
   children: ReactNode;
 }) {
   const closeRef = useRef(onClose);
@@ -34,13 +44,13 @@ export function Popover({
     const r = anchor.getBoundingClientRect();
     const h = box.current?.offsetHeight ?? 0;
     // Below the anchor; above it when the box would run off the bottom of the window.
-    const above =
-      r.bottom + ARROW_H + h > window.innerHeight - MARGIN && r.top - ARROW_H - h >= MARGIN;
-    const centre = r.left + r.width / 2;
+    const above = r.bottom + gap + h > window.innerHeight - MARGIN && r.top - gap - h >= MARGIN;
+    const a = alignTo?.getBoundingClientRect() ?? r;
+    const centre = a.left + a.width / 2;
     const w = Math.min(width, window.innerWidth - 2 * MARGIN);
     const left = Math.max(MARGIN, Math.min(centre - w / 2, window.innerWidth - w - MARGIN));
     const arrow = Math.max(8, Math.min(centre - left - ARROW_W / 2, w - ARROW_W - 8));
-    return { left, top: above ? r.top - ARROW_H - h : r.bottom + ARROW_H, arrow, above };
+    return { left, top: above ? r.top - gap - h : r.bottom + gap, arrow, above };
   };
   const [pos, setPos] = useState(place);
 
@@ -54,7 +64,7 @@ export function Popover({
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [anchor, width]);
+  }, [anchor, width, gap, alignTo]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -91,7 +101,13 @@ export function Popover({
   }, [anchor]);
 
   return createPortal(
-    <div className="popover-overlay">
+    // biome-ignore lint/a11y/noStaticElementInteractions: the overlay only catches an outside mousedown; Escape is the keyboard route
+    <div
+      className={`popover-overlay${scrim ? " has-scrim" : ""}`}
+      onMouseDown={(e) => {
+        if (dismissOnOutside && e.target === e.currentTarget) closeRef.current();
+      }}
+    >
       <div
         ref={box}
         className={`popover${className ? ` ${className}` : ""}`}
