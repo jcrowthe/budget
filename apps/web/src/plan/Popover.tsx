@@ -58,6 +58,29 @@ export function Popover({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Tab" && box.current) {
+        // Focus trap: Tab and Shift+Tab wrap between the first and last tabbable inside the popover.
+        const items = [
+          ...box.current.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex='-1'])",
+          ),
+        ];
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (!first || !last) return;
+        const at = document.activeElement;
+        if (!box.current.contains(at)) {
+          e.preventDefault();
+          first.focus();
+        } else if (e.shiftKey && at === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && at === last) {
+          e.preventDefault();
+          first.focus();
+        }
+        return;
+      }
       if (e.key !== "Escape" || e.defaultPrevented) return;
       e.preventDefault();
       closeRef.current();

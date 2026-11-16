@@ -25,3 +25,4 @@ One line per design doc, appended by each Build (merge=union).
 - [Account header design](account-header-design.md): EXF-484, EXF-534, EXF-570 account page header (star, badge, balances with tooltips), PATCH starred, /account-summary, All Accounts register with ACCOUNT column and plan-wide transactions list, stored transactions.updated_at (spec: [account-header-spec.md](account-header-spec.md))
 - [Account header polish](account-header-polish.md): Designer polish list for the account header, with applied status
 - [Categories design](categories-design.md): EXF-494/EXF-495 create, rename, delete (with reassignment), hide and unhide category groups and categories; collapse saved on the server; shared category picker (spec: [categories-spec.md](categories-spec.md))
+- [Categories polish](categories-polish.md): EXF-494/EXF-495 Designer polish list

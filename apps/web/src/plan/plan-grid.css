@@ -306,7 +306,6 @@
   color: var(--labelAction);
 }
 .group-row:hover .add-category,
-.add-category.active,
 .add-category:focus-visible {
   opacity: 1;
 }
@@ -595,6 +594,8 @@ button.category-name {
   font-size: 14px;
 }
 .popover-buttons {
+  /* Source: the buttons start 20.24px below the input (8px input margin + 12.24px), popover 108.7px tall. */
+  margin-top: 12.24px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -793,4 +794,18 @@ button.category-name {
 }
 .delete-footer {
   padding: 8px 24px 24px;
+}
+
+/* Focus rings measured on the source: secondary/destructive 1px auto, primary 2px auto, offset 2px; names 1px, offset 0. */
+.popover-button:focus-visible {
+  outline: 1px auto var(--actionPrimary);
+  outline-offset: 2px;
+}
+.popover-button.is-primary:focus-visible {
+  outline-width: 2px;
+}
+.group-name:focus-visible,
+.grid-toolbar .toolbar-button:focus-visible {
+  outline: 1px auto var(--actionPrimary);
+  outline-offset: 0;
 }
