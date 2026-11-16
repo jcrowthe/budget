@@ -7718,7 +7718,7 @@ pending.
 Template: thirty-four. Flow verdicts unchanged. Finished since each template's last review: Build 5,
 Deploy 3 (one cancelled, two shipped), Discover 2, Test user flow 9.
 
-**Next plan:** flow 9 on live `85f3cc9` (third... its fourth run): the fix of EXF-614 on a deleted
+**Next plan:** flow 9 on live `85f3cc9` (its fourth run): the fix of EXF-614 on a deleted
 plan's four addresses, and the shell's new parts with two test plans (the plan menu under the usual
 rule: only its own `ZZ-TEST` rows, no capture with the menu open). It is the tenth flow test; the
 first review of the Test user flow template follows it.
