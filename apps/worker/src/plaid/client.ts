@@ -74,3 +74,16 @@ export function linkTokenRequest(e: BankEnvironment, publicHostname: string) {
     ...(e === "production" ? { redirect_uri: `https://${publicHostname}/plaid/oauth` } : {}),
   };
 }
+
+/** Update mode (Reset, Repair): the link-token body of a new link, minus the products, plus the Item's token. */
+export function linkTokenUpdateRequest(
+  e: BankEnvironment,
+  publicHostname: string,
+  accessToken: string,
+) {
+  const { products: _p, transactions: _t, ...rest } = linkTokenRequest(e, publicHostname);
+  return { ...rest, access_token: accessToken };
+}
+
+/** Plaid answers these when `/item/remove` finds nothing left to remove. */
+export const ITEM_GONE_CODES = new Set(["ITEM_NOT_FOUND", "INVALID_ACCESS_TOKEN"]);

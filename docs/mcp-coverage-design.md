@@ -18,13 +18,17 @@ Evidence from the clone at `2d1982e`, gathered with a throwaway vitest probe (de
   `cleared` with `enum: [uncleared, cleared, reconciled]`.
 - In `tools/list` input schemas, a `Month` field is `allOf` patterns, one of them ending in `-01$`; a date
   field has pattern `^\d{4}-\d{2}-\d{2}$` and none ending in `-01$`; a `Milliunits` field is `type: integer`.
-  In the OpenAPI document, money fields are `{type: integer}`; the only other integers (`sort`, target
-  `percent`, `every`, `day_of_*`) sit only in objects that also carry money.
+  In the OpenAPI document, money fields are `{type: integer}`; the only other integers (target
+  `percent`, `every`, `day_of_*`) sit only in objects that also carry money. `sort` is a display position, not
+  money, and does not count (`NOT_MONEY` in `mcp-descriptions.test.ts`).
 - A tool that throws answers `result.isError: true` with the error message in `content[0].text`. This holds
   for input validation (`Input validation error: … budget_id: Invalid UUID`) and for services' `NotFound`
   (`Plan not found`). Unknown ids never crash the server.
-- **Category routes are not on main** (`ls apps/worker/src/routes` has no categories file; `origin/main` is
-  `2d1982e`).
+- Since `325ee94` (EXF-494/EXF-495) the category and category-group routes are on main; their tools are
+  `create_category_group`, `rename_category_group`, `set_category_group_hidden`, `delete_category_group`,
+  `get_category_group_usage`, `create_category`, `rename_category`, `set_category_hidden`, `delete_category`,
+  `unhide_all_categories`, `get_category_usage`, mapped in `test/mcp-coverage/categories.ts` and
+  `category-groups.ts`.
 
 ## Approach
 
@@ -124,8 +128,9 @@ One `it` per tool name, from `toolFileNames()`; the tool's description and JSON 
 `tools/list`. A tool:
 - has a description of at least 80 characters that contains the word `Returns`, followed by the object and
   its main fields;
-- **carries money** when its input schema has an `integer` anywhere, or a 2xx response schema of an
-  operation it maps to (resolving `$ref`) has one. Then the description contains `milliunits` and
+- **carries money** when its input schema has an `integer` property anywhere other than one named
+  `sort` (a display position; `NOT_MONEY` in `mcp-descriptions.test.ts`), or a 2xx response schema of an
+  operation it maps to (resolving `$ref`) has one (same exception). Then the description contains `milliunits` and
   `1000 = one currency unit`;
 - with an input whose patterns include one ending in `-01$` (a month), contains `YYYY-MM-01`; with an input
   whose pattern is `^\d{4}-\d{2}-\d{2}$` and is not a month, contains `YYYY-MM-DD`;
@@ -153,9 +158,7 @@ its MCP tool and one mapping line, or an exclusion line with its reason; the des
   `pnpm check` naming the operation. A Build that adds a tool with no REST operation adds a
   `toolsWithoutOperation` entry.
 - Every later tool must meet the description rules or `mcp-descriptions.test.ts` fails on that tool's name.
-- **EXF-494/EXF-495 (categories)**: not on main now. If they land before this Build's last rebase, the
-  Implementer adds their mapping lines (task 8 of the spec). If not, the Lead has that Build add its lines;
-  its tools must also pass the description test.
+- **EXF-494/EXF-495 (categories)**: merged as `325ee94` with their tools and coverage lines.
 - **The `/me` Build**: its exclusion line is already present; it adds nothing to the mapping.
 - Agents see new tools and new descriptions in `tools/list`. Tool names that existed are unchanged; inputs
   change only by widening (`budget_id` accepts any non-empty string) and by narrowing `cleared` (a value that
