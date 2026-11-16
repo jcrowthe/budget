@@ -4,6 +4,7 @@ import { money, signed } from "../format";
 import { PencilIcon } from "../icons";
 import { NotesCard } from "./NotesCard";
 import { PanelCard } from "./PanelCard";
+import { PanelTooltip } from "./PanelTooltip";
 
 /** One selected category: its name and pencil, the Available Balance card and the Notes card. */
 export function CategoryInspector({
@@ -32,15 +33,19 @@ export function CategoryInspector({
         <h1 className="panel-title" title={c.name}>
           {c.name}
         </h1>
-        <button
-          type="button"
-          className="panel-pencil"
-          aria-label={`Edit category: ${c.name}`}
-          title="Edit Category"
-          onClick={(e) => onEdit(e.currentTarget)}
-        >
-          <PencilIcon />
-        </button>
+        <PanelTooltip text="Edit Category" align="end">
+          {(trigger) => (
+            <button
+              type="button"
+              {...trigger}
+              className="panel-pencil"
+              aria-label={`Edit category: ${c.name}`}
+              onClick={(e) => onEdit(e.currentTarget)}
+            >
+              <PencilIcon />
+            </button>
+          )}
+        </PanelTooltip>
       </div>
       <PanelCard
         id="panel-balance"

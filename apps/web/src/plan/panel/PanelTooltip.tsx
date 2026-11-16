@@ -15,15 +15,17 @@ type TriggerProps = {
  */
 export function PanelTooltip({
   text,
+  align = "start",
   children,
 }: {
   text: string;
+  align?: "start" | "end";
   children: (props: TriggerProps) => ReactElement;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   return (
-    <div className="panel-tip-anchor">
+    <div className={`panel-tip-anchor${align === "end" ? " is-end" : ""}`}>
       {children({
         "aria-describedby": open ? id : undefined,
         onMouseEnter: () => setOpen(true),

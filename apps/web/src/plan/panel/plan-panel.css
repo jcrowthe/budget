@@ -29,10 +29,8 @@
 }
 
 .panel-resizer {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+  position: relative;
+  flex: none;
   z-index: 3;
   width: 3px;
   cursor: ew-resize;
@@ -100,7 +98,7 @@
 }
 .panel-card-body {
   box-sizing: border-box;
-  padding: 16px;
+  padding: 16px 16px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 .panel-card-body[hidden] {
@@ -118,7 +116,16 @@
   line-height: 17px;
   cursor: default;
 }
-.panel-row:last-child {
+.panel-card-body > .panel-row:last-child {
+  margin-bottom: 0;
+}
+.panel-tip-anchor {
+  margin-bottom: var(--space-2);
+}
+.panel-tip-anchor:last-child {
+  margin-bottom: 0;
+}
+.panel-tip-anchor > .panel-row {
   margin-bottom: 0;
 }
 .panel-row.is-total {
@@ -139,9 +146,13 @@
 .panel-tip-anchor {
   position: relative;
 }
+.panel-tip-anchor.is-end .panel-tooltip {
+  right: 0;
+  left: auto;
+}
 .panel-tooltip {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-2));
   left: 0;
   z-index: 20;
   box-sizing: border-box;
@@ -170,7 +181,7 @@
 .panel-heading {
   display: flex;
   align-items: center;
-  min-height: 33px;
+  padding-bottom: var(--space-2);
   margin-bottom: 16px;
 }
 .panel-title {
@@ -189,6 +200,8 @@
 }
 .panel-pencil {
   display: flex;
+  align-items: center;
+  height: 20px;
   flex: none;
   margin-left: 16px;
   padding: 0;
@@ -200,6 +213,10 @@
 .panel-pencil svg {
   width: 16px;
   height: 16px;
+}
+/* The display pill lets the pointer through to the card header, as the source's disabled pill does. */
+.card-roll-up-right .available-pill {
+  pointer-events: none;
 }
 .panel-multi {
   margin-bottom: 16px;

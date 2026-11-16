@@ -11,18 +11,14 @@ export function AvailablePill({
 }: {
   amount: number;
   interactive?: boolean;
-  /** A plain span with the pill's look and title, for the inspector. */
+  /** A plain span with the pill's look (no title: the source's inspector pill has none), for the inspector. */
   display?: boolean;
   onOpen?: (anchor: HTMLButtonElement) => void;
   ref?: Ref<HTMLButtonElement>;
 }) {
   const kind = amount === 0 ? "zero" : amount > 0 ? "positive" : "negative";
   if (display) {
-    return (
-      <span className={`available-pill ${kind}`} title={pillTitle(amount) || undefined}>
-        {money(amount)}
-      </span>
-    );
+    return <span className={`available-pill ${kind}`}>{money(amount)}</span>;
   }
   return (
     <button

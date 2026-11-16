@@ -196,6 +196,7 @@ const cat = (id: string, name: string, available: number, hidden = false) => ({
   available,
   carried: 0,
   target: null,
+  note: null,
 });
 const groups = [
   {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronDownIcon, ChevronRightSmallIcon } from "../icons";
+import { CardChevronDownIcon, CardChevronRightIcon } from "../icons";
 
 /**
  * A card of the right panel. With `onToggle` its header is a button that rolls the body up and down; without
@@ -40,7 +40,7 @@ export function PanelCard({
         onClick={onToggle}
       >
         <h2 className="panel-card-title">{title}</h2>
-        {collapsed ? <ChevronRightSmallIcon /> : <ChevronDownIcon />}
+        {collapsed ? <CardChevronRightIcon /> : <CardChevronDownIcon />}
         {right && <span className="card-roll-up-right">{right}</span>}
       </button>
       <div id={id} className="panel-card-body" hidden={collapsed}>
