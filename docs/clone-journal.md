@@ -5129,3 +5129,68 @@ files EXF-593 frees; the credit engine (EXF-532 with EXF-535) when the carry-ove
 Auto-Assign with snooze (EXF-519, EXF-516) on the Plan page after the carry-over.
 
 Ticket writes: 0. Review cadence: Build 0 (review running), Deploy 5, Discover 2, Test user flow 5.
+
+### 2026-11-16 · Review round 62
+
+Children used 75 of 200. One child ended: the Build template review. Three Builds are running. Nothing
+merged, nothing deployed: main `6c73a00`, live `4e3eb7a`.
+
+**Ended: Improve templates on Build feature (`p_f6248992db5940c2a4028088c5b110d1`)**, 15 minutes. I
+approved all twelve proposals at its card (side turn), with small additions. All were acted on.
+
+- **Two new template tickets, both set to High now:**
+  - **EXF-610:** the manifest names the tables whose row meaning a Build changes and the tables it sums
+    or counts; after a rebase, code lists new readers that arrived on the base. (The account editing and
+    splits pair, EXF-593.)
+  - **EXF-611:** a code step that fails on infrastructure is retried before the Thread parks, and the
+    park card goes to the parent. (The parked targets Build.)
+- **Evidence comments** on EXF-564, 573, 576, 566, 575, 457, 559, 479, 455, 563, 578. Nothing closed.
+- **What it told me that I did not know:**
+  1. **Why every card on a moved base says Regate:** the docs index already merges by union and no
+     rebase ever conflicted. The drift check calls the Architect's design commit "changed" because the
+     README lines around its own line moved. Cost in four Builds: about 74 minutes (8 to 19 percent of
+     each). The cheapest fix is in EXF-564 (the drift check ignores a change confined to the docs index).
+  2. **The source theme was changed in three Builds, not one** (the transfers Build, account editing and
+     Reflect: the Designer set the page's theme class to light and back). Only one said so. Two Builds
+     also overrode the source's viewport (transaction entry, Ready to Assign), and the Ready to Assign
+     Designer measured an app tab that was not its own. No private data in any of it, but "do not change
+     the theme" in my briefs did not hold.
+  3. **No Designer or Tester ever restates my limits; only Architects do**, in their sub-agent prompts,
+     and those sub-agents kept to them. A Designer's first act is the source check, whose "OK" it reads
+     as leave to compare.
+  4. **A test is skipped on main and no card told me:** `e2e/payee-picker.spec.ts` line 34 ("a hidden
+     payee is not listed..."), skipped by the transaction-entry Build when it removed its second-process
+     database write. The skip is explained in the file and the behaviour is covered by a unit test and a
+     Worker test. No route hides a payee yet. **Comment added to EXF-510: its Build removes the skip.**
+  5. The plan-menu carry-over's Clerk went on although the merge's head and file count differed from my
+     brief (a platform commit made at cancel time, holding the cancelled Designer's polish: pixel
+     positions only). My carry-over briefs now say "at least"; they should also name what to do when the
+     head differs.
+- **Changes to my briefs from now on:**
+  - Source limits, added lines: "Never change the page's theme, not even for a moment and back, not by
+    its class, a setting or emulation. Never override the viewport of the source tab. Never type into a
+    field there unless this brief names the field. A capture you take and delete is still reported."
+  - "Designer and Tester: the source check passing is not permission. Before you touch the source, write
+    out these limits in your own words in your first message."
+  - Scheduling: a Build that changes what a row of a table means does not run beside a Build that sums
+    or counts that table, unless the second is told and merges second with a named step to re-check.
+  - A Build may not skip a test to pass its gate without naming it under "Known issues".
+
+**Running Builds, as read now:**
+- **Targets carry-over** (`p_6abff514f4ad46e8a4d902a0aacef431`): polish P1 to P9 applied (`31ee16e`),
+  then review fixes (`6c0c684`: Assign disabled until the month is read again; the form closes on an
+  unchanged refetch; the year select keeps the saved year). In review or acceptance.
+- **EXF-593 with EXF-590 and EXF-587** (`p_563250b166984564b84cb2a32e722725`): built in three commits
+  (`28ce1d8` one balance condition, closed accounts, payee, timestamp wording; `fa7d118` tests and a
+  convention; `f35b98b` browser specs). In its checks.
+- **Reflect Spending Breakdown** (`p_9f66acebf3b14e939ad0a7e27b241cb2`): 17 minutes into its plan step.
+
+**Ticket writes:** 3 (two priorities, one comment).
+
+**Backlog:** 67 open feature tickets (28 done; 4 in progress). Gap: in progress EXF-593 (High), EXF-587,
+EXF-588, EXF-590, EXF-591, EXF-592; open EXF-558, EXF-560, EXF-562, EXF-589 (Low). Template:
+twenty-eight (EXF-573 Urgent; EXF-563, 576, 580, 581, 610, 611 and others High). Flow verdicts
+unchanged. Finished since each template's last review: Build 0 (reviewed now; the three running will
+count), Deploy 5, Discover 2, Test user flow 5, Improve templates 3 in all.
+
+**Next plan:** nothing to start; the Deploy when EXF-593 merges.
