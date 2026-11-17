@@ -10315,3 +10315,50 @@ Declared for the tree, unchanged from round 117, with the register's view option
 first Build ends.
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 118
+
+Children used 134 of 200. One ended: **the export and import hardening Build completed and
+merged** (`p_164aad44232a4f72be7ecbbe87815e6b`, pull request 62, main now `3ab0051`), in one Build
+of 69 minutes. The Activity popover Build is running. Live is `d005439` (read by me at 10:26Z),
+one merge behind; no migration is pending.
+
+**EXF-723 (Done) and most of EXF-725 (back in Backlog for what is left): merged.** I approved its
+card at 10:25Z in a side turn, three minutes after it arrived.
+- **Gate** on main `d005439` at head `7438335`, the PR head: check passed; the whole browser suite
+  456 of 456 three times; no flake; no migration. Main's tree equals the gated head (compared now).
+- **EXF-723:** one table of system payee names shared by the export and the import, exhaustive over
+  the payee types; the import maps the reconciliation payee to the one Reconcile reuses; the round
+  trip with a reconciled adjustment is identical; the export test failed on the old code. Calls
+  unchanged (16 and 3).
+- **EXF-725 was three times the size I had estimated:** the search found 22 inserts that write by
+  position, not three. Eighteen are converted through one helper that takes the column names from
+  the Drizzle tables; a guard test refuses new ones. The Architect also corrected my proof: a
+  column added only to the database does not break the old code (Drizzle names its own columns);
+  the fault is a column added to the table definition, so the test adds it to both. The Reviewer
+  compared every converted insert with its table and reran the test against the old file.
+- **Left open on EXF-725:** four inserts in files the Build was told not to touch (the change log,
+  the reconcile repository, two in month-categories), listed on the ticket and exempted by name in
+  the guard test.
+- **Not built, a known issue:** the removal of finished import rows. It was built and taken out
+  because an existing test expects such a row to remain a day later.
+- The Tester had no screen to look at and said what it did not rerun (the old-code failures, which
+  the Reviewer had rerun).
+
+**What I learned:** asking a Build to "search for every other statement of this kind" turned a
+three-line ticket into the right-sized one; without it the next new column would have broken one
+of fifteen other inserts. A ticket about a class of fault should always ask for the search.
+
+**The Activity popover Build** (`p_4b3e4d16b0784c8a9090ea68151e465d`), 88 minutes in: the three
+EXF-714 tests and the popover with a first polish item are committed (`fa2029d`). It shares only
+`docs/README.md` with what just merged; I merged the two branches together in a throwaway checkout
+before approving: clean. Its card will need Refresh or Regate, since the base has moved.
+
+**Ticket writes:** 4 (EXF-723 Done and comment; EXF-725 to Backlog and comment). No new ticket.
+**Backlog:** 49 open feature tickets (50 done; 1 in progress). Gap: eighteen open, two of them in
+progress (EXF-720, EXF-714). Template: thirty-nine open (Urgent EXF-573, 611, 612). Flow verdicts
+unchanged. Finished since each template's last review: Build 1, Deploy 9, Discover 2, Test user
+flow 3.
+
+**Next plan:** the register's view options (EXF-529) with the two account-page riders, now that
+one Build has ended; the Deploy waits for the Activity popover so that one Deploy ships both.
