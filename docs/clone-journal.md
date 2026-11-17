@@ -10679,3 +10679,50 @@ review. The person has not answered the check-ins of rounds 110 and 120.
 Declared for the tree, unchanged from round 121.
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 122
+
+Children used 137 of 200. One ended: **the register's View options Build completed and merged**
+(`p_5b0c6eac7fb9459881ccfe507ef9a190`, pull request 63, main now `2f33143`), in one Build of 153
+minutes. Nothing is running. Live is `13cfcae` (read by me at 13:01Z), one merge behind; no
+migration is pending.
+
+**EXF-529, EXF-724 and EXF-722: merged; all three Done.** I approved its card at 13:00Z in a side
+turn, one minute after it arrived, on the digest, the diff and the gate; I read the steps' reports
+now.
+- **Gate** on main `13cfcae` at head `1e95f30`, the PR head: check passed; the whole browser suite
+  492 of 492 twice and 491 of 492 once; changed specs ten times, 390 of 390; no migration. Main's
+  tree equals the gated head (compared now). 87 MCP tools on main (four for view settings).
+- **The settings live in the app's UI state** (no table, no migration); the running balance is
+  computed in SQL (5 calls for the list with or without it, at 10 and 1,000 rows).
+- **The Reviewer found a real fault:** two saves of view settings at once lost one change (10 of
+  10 in its throwaway test). Fixed with a guarded write and a bounded retry, and a test that fails
+  on the old code.
+- **EXF-724 was real locally and is measured:** click to new figures went from about 89 and 185 ms
+  (10 and 500 rows) to about 8 and 95 ms; the bar's button waits for the server.
+- **Two regressions made by the polish itself were caught by the Designer's second pass** (column
+  widths with flags off; the category column at 1024 px with BALANCE on) and fixed with a test.
+- **The gate's own first run failed a Reconcile spec** that clicked Finish before the button was
+  enabled (the new EXF-724 behaviour); the fixer read the code and fixed the spec.
+- **The one failure left in the three full runs: `e2e/month-nav.spec.ts:127`, "6 month picker"**
+  (5 of 5 alone). Not this Build's files. It also failed once in a full run of the second
+  Plan-page Build yesterday (read then as a click-outside race under load) and could not be made
+  to fail alone by a Reviewer. Twice is enough: filed through this review.
+- **Departure I accept:** a row hides as soon as the page holds it as reconciled, not at the next
+  load as I had expected; the ticket's criterion 2 says so.
+- **Known issues:** Show Images does nothing yet; at 1024 px with BALANCE on the CATEGORY header
+  is clipped; one stale sentence in the design.
+- **The source:** this was the first Build allowed to apply something there. Three steps did what
+  the rules allow and no more, and each listed the settings as found and as left. Evidence on
+  EXF-573. The Tester looked (the "Looking" list was in the design) and named the two states it
+  did not open.
+
+**Ticket writes:** 7 (EXF-529, EXF-724, EXF-722 to Done with comments; evidence on EXF-573). One
+ticket filed through this review. **Backlog:** 47 open feature tickets (52 done; none in
+progress). Gap: fifteen open, none in progress, plus the one filed here. Template: thirty-nine
+open (Urgent EXF-573, 611, 612). Flow verdicts unchanged. Finished since each template's last
+review: Build 3, Deploy 0, Discover 2, Test user flow 3.
+
+**Next plan:** one Deploy (`ZZ-TEST D32`) for `2f33143`, with a walk of the register's View
+options and of reconcile mode on live; then, in the next rate-limit window (about 14:00Z), plan
+formats with EXF-726.
