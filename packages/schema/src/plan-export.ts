@@ -4,7 +4,18 @@
  * plan and calls these. Design: docs/plan-export-design.md.
  */
 import { z } from "@hono/zod-openapi";
+import { MANUAL_ADJUSTMENT_PAYEE } from "./accounts";
+import type { PayeeSystem } from "./payees";
+import { RECONCILE_ADJUSTMENT_PAYEE } from "./reconcile";
+import { REGISTER_STARTING_PAYEE } from "./register";
 import { FLAG_NAMES, type FlagColor, isCalendarDate } from "./transactions";
+
+/** The Register text of each system payee, in both directions of the file (export and import). */
+export const SYSTEM_PAYEE_NAMES: Record<PayeeSystem, string> = {
+  starting_balance: REGISTER_STARTING_PAYEE,
+  manual_adjustment: MANUAL_ADJUSTMENT_PAYEE,
+  reconciliation_adjustment: RECONCILE_ADJUSTMENT_PAYEE,
+};
 
 export const PLAN_HEADER: readonly string[] = [
   "Month",

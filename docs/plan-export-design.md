@@ -118,8 +118,9 @@ Header `"Account","Flag","Date","Payee","Category Group/Category","Category Grou
   `a > 0` else `amount(0)`. Cleared `Cleared` / `Uncleared` / `Reconciled` (parent's for lines; schedules always
   `Uncleared`).
 - **Payee**: a transfer (row or line with `transfer_account_id`) → `Transfer : <other account's current name>`; a
-  system payee `starting_balance` → `Starting Balance`; `manual_adjustment` and `reconciliation_adjustment` →
-  `Manual Balance Adjustment`; else the payee's name, or `""`. A line without a payee takes the parent's payee text.
+  system payee → `SYSTEM_PAYEE_NAMES[system]` (`starting_balance` → `Starting Balance`, `manual_adjustment` →
+  `Manual Balance Adjustment`, `reconciliation_adjustment` → `Reconciliation Balance Adjustment`), exhaustive, no
+  fallback; D1 calls still 16; else the payee's name, or `""`. A line without a payee takes the parent's payee text.
 - **Category** (columns 5–7): the account is a tracking account → empty; `inflow_to_ready_to_assign` with no category →
   `Inflow: Ready to Assign`, `Inflow`, `Ready to Assign`; no category (uncategorized, on-plan↔on-plan transfers, a
   card's Starting Balance) → empty; a hidden category (its own or its group's flag) → `Hidden Categories: <name>`,

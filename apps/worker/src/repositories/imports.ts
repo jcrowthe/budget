@@ -5,6 +5,7 @@ import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { importTombstones } from "../db/schema/import-tombstones";
 import { transactions } from "../db/schema/transactions";
+import { insertSelect } from "./insert-select";
 import type { TransactionRow } from "./transactions";
 
 /** D1 allows 100 bound parameters a statement. */
@@ -122,12 +123,19 @@ export type TombstoneInput = {
 
 /** Records the tombstone while `guard` holds; one per (account, import id), a repeat changes nothing. */
 export function tombstoneIfStmt(db: Db, t: TombstoneInput, guard: SQLWrapper, at: string) {
-  return db
-    .insert(importTombstones)
-    .select(
-      sql`select ${t.accountId}, ${t.importId}, ${t.budgetId}, ${t.reason}, ${t.transactionId}, ${at} where exists ${guard}`,
-    )
-    .onConflictDoNothing();
+  return insertSelect(
+    db,
+    importTombstones,
+    {
+      accountId: t.accountId,
+      importId: t.importId,
+      budgetId: t.budgetId,
+      reason: t.reason,
+      transactionId: t.transactionId,
+      createdAt: at,
+    },
+    sql`where exists ${guard}`,
+  ).onConflictDoNothing();
 }
 
 /** Unawaited select of the live rows of the plan with these import ids (at most CHUNK), for `db.batch`. */

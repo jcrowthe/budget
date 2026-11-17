@@ -25,6 +25,7 @@ import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
+import { insertSelect } from "./insert-select";
 
 type Sel = typeof transactions.$inferSelect;
 type LinkCols =
@@ -51,11 +52,40 @@ export function insertStmt(db: Db, row: TransactionRow) {
 export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, payeeIdSql?: SQL) {
   const r = row;
   const payeeId = payeeIdSql ?? sql`${r.payeeId}`;
-  return db
-    .insert(transactions)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.accountId}, ${r.date}, ${r.payeeName}, ${r.categoryId}, ${r.inflowToReadyToAssign ? 1 : 0}, ${r.memo}, ${r.amount}, ${r.cleared}, ${r.approved ? 1 : 0}, ${r.createdAt}, ${r.deletedAt}, ${r.updatedAt}, ${payeeId}, ${r.transferAccountId ?? null}, ${r.transferTransactionId ?? null}, ${r.parentTransactionId ?? null}, ${r.splitIndex ?? null}, ${r.importId ?? null}, ${r.source ?? null}, ${r.importedPayee ?? null}, ${r.bankDescription ?? null}, ${r.importDate ?? null}, ${r.importAmount ?? null}, ${r.importPayeeName ?? null}, ${r.flagColor ?? null} where exists ${guard}`,
-    );
+  return insertSelect(
+    db,
+    transactions,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      accountId: r.accountId,
+      date: r.date,
+      payeeName: r.payeeName,
+      categoryId: r.categoryId,
+      inflowToReadyToAssign: r.inflowToReadyToAssign ? 1 : 0,
+      memo: r.memo,
+      amount: r.amount,
+      cleared: r.cleared,
+      approved: r.approved ? 1 : 0,
+      createdAt: r.createdAt,
+      deletedAt: r.deletedAt,
+      updatedAt: r.updatedAt,
+      payeeId,
+      transferAccountId: r.transferAccountId ?? null,
+      transferTransactionId: r.transferTransactionId ?? null,
+      parentTransactionId: r.parentTransactionId ?? null,
+      splitIndex: r.splitIndex ?? null,
+      importId: r.importId ?? null,
+      source: r.source ?? null,
+      importedPayee: r.importedPayee ?? null,
+      bankDescription: r.bankDescription ?? null,
+      importDate: r.importDate ?? null,
+      importAmount: r.importAmount ?? null,
+      importPayeeName: r.importPayeeName ?? null,
+      flagColor: r.flagColor ?? null,
+    },
+    sql`where exists ${guard}`,
+  );
 }
 
 /** A row that counts in an account's balance: not deleted and not a split line. Usable in `where()` and in raw `sql`. */

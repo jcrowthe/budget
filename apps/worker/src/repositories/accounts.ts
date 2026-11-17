@@ -4,6 +4,7 @@ import { accounts } from "../db/schema/accounts";
 import { bankAccounts } from "../db/schema/bank-accounts";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
+import { insertSelect } from "./insert-select";
 import { countsInBalance } from "./transactions";
 
 export type AccountRow = typeof accounts.$inferSelect;
@@ -43,11 +44,27 @@ export function sortIsNext(db: Db, budgetId: string, sort: number) {
 /** Inserts the row only while its sort_order is still the next free one (so concurrent creates never share one). */
 export function insertIfSortStmt(db: Db, row: AccountRow) {
   const r = row;
-  return db
-    .insert(accounts)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt}, ${r.bankAccountId}, ${r.importStartDate}, ${r.lastReconciledAt} where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
-    );
+  return insertSelect(
+    db,
+    accounts,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      name: r.name,
+      type: r.type,
+      onBudget: r.onBudget ? 1 : 0,
+      note: r.note,
+      starred: r.starred ? 1 : 0,
+      closed: r.closed ? 1 : 0,
+      sortOrder: r.sortOrder,
+      createdAt: r.createdAt,
+      deletedAt: r.deletedAt,
+      bankAccountId: r.bankAccountId,
+      importStartDate: r.importStartDate,
+      lastReconciledAt: r.lastReconciledAt,
+    },
+    sql`where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
+  );
 }
 
 /** The plan's non-deleted accounts in display order (`sort_order`, then id). */
@@ -123,14 +140,30 @@ export function newAccountGuard(
     );
 }
 
-/** Inserts the row only while `guard` holds. Column order is the table's. */
+/** Inserts the row only while `guard` holds. */
 export function insertIfStmt(db: Db, row: AccountRow, guard: SQLWrapper) {
   const r = row;
-  return db
-    .insert(accounts)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.type}, ${r.onBudget ? 1 : 0}, ${r.note}, ${r.starred ? 1 : 0}, ${r.closed ? 1 : 0}, ${r.sortOrder}, ${r.createdAt}, ${r.deletedAt}, ${r.bankAccountId}, ${r.importStartDate}, ${r.lastReconciledAt} where exists ${guard}`,
-    );
+  return insertSelect(
+    db,
+    accounts,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      name: r.name,
+      type: r.type,
+      onBudget: r.onBudget ? 1 : 0,
+      note: r.note,
+      starred: r.starred ? 1 : 0,
+      closed: r.closed ? 1 : 0,
+      sortOrder: r.sortOrder,
+      createdAt: r.createdAt,
+      deletedAt: r.deletedAt,
+      bankAccountId: r.bankAccountId,
+      importStartDate: r.importStartDate,
+      lastReconciledAt: r.lastReconciledAt,
+    },
+    sql`where exists ${guard}`,
+  );
 }
 
 /** A `SELECT 1` that holds while the account is active with the `starred` and `closed` values of `before`. */

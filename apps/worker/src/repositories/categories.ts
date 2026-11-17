@@ -3,6 +3,7 @@ import type { Db } from "../db/client";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { idList, jsonBool } from "./guards";
+import { insertSelect } from "./insert-select";
 
 export type CategoryRow = typeof categories.$inferSelect;
 
@@ -61,11 +62,25 @@ export function sortIsNext(db: Db, groupId: string, sort: number) {
 /** Inserts the row only while its sort_order is still the next free one (so concurrent creates never share one). */
 export function insertIfSortStmt(db: Db, row: CategoryRow) {
   const r = row;
-  return db
-    .insert(categories)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note}, ${r.kind}, ${r.accountId} where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
-    );
+  return insertSelect(
+    db,
+    categories,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      groupId: r.groupId,
+      name: r.name,
+      sortOrder: r.sortOrder,
+      hidden: r.hidden ? 1 : 0,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      deletedAt: r.deletedAt,
+      note: r.note,
+      kind: r.kind,
+      accountId: r.accountId,
+    },
+    sql`where exists ${sortIsNext(db, r.groupId, r.sortOrder)}`,
+  );
 }
 
 // EXF-494, EXF-495. The conditions below are SQL booleans: a guard ANDs them into a statement's WHERE.
@@ -105,11 +120,25 @@ export function holds(id: string, updatedAt: string): SQL {
 }
 
 export function insertIfStmt(db: Db, r: CategoryRow, guard: SQL) {
-  return db
-    .insert(categories)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.groupId}, ${r.name}, ${r.sortOrder}, ${r.hidden ? 1 : 0}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt}, ${r.note}, ${r.kind}, ${r.accountId} where ${guard}`,
-    );
+  return insertSelect(
+    db,
+    categories,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      groupId: r.groupId,
+      name: r.name,
+      sortOrder: r.sortOrder,
+      hidden: r.hidden ? 1 : 0,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      deletedAt: r.deletedAt,
+      note: r.note,
+      kind: r.kind,
+      accountId: r.accountId,
+    },
+    sql`where ${guard}`,
+  );
 }
 
 export function updateIfStmt(

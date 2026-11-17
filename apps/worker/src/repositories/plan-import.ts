@@ -1,5 +1,6 @@
-import { type SQL, sql } from "drizzle-orm";
+import { getTableColumns, type InferInsertModel, type SQL, sql } from "drizzle-orm";
 import type { BatchItem as DrizzleBatchItem } from "drizzle-orm/batch";
+import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { budgets } from "../db/schema/budgets";
@@ -12,6 +13,7 @@ import { scheduledTransactions } from "../db/schema/scheduled-transactions";
 import { transactions } from "../db/schema/transactions";
 import { type ChangeLogEntry, changeLogInsertIf } from "../history/change-log";
 import type * as budgetsRepo from "./budgets";
+import { insertSelect } from "./insert-select";
 
 type BatchItem = DrizzleBatchItem<"sqlite">;
 export type PlanImportRow = typeof planImports.$inferSelect;
@@ -31,38 +33,52 @@ export type ImportTable =
   | "transactions"
   | "scheduled_transactions";
 
-/** A JSON index, "b" (the plan's id) or a SQL literal; in the column order of the Drizzle table. */
-type Col = number | "b" | { lit: string };
-const lit = (s: string): Col => ({ lit: s });
+/** A JSON index, "b" (the plan's id) or a SQL literal. */
+type Val = number | "b" | { lit: string };
+const lit = (s: string): Val => ({ lit: s });
 
-const SPEC: Record<ImportTable, { cols: Col[]; json: readonly string[] }> = {
-  accounts: {
-    json: ["id", "name", "type", "on_budget", "sort_order", "created_at"],
-    // id, budget_id, name, type, on_budget, note, starred, closed, sort_order, created_at, deleted_at, bank_account_id, import_start_date, last_reconciled_at
-    cols: [
-      0,
-      "b",
-      1,
-      2,
-      3,
-      lit("null"),
-      lit("0"),
-      lit("0"),
-      4,
-      5,
-      lit("null"),
-      lit("null"),
-      lit("null"),
-      lit("null"),
-    ],
-  },
-  category_groups: {
-    json: ["id", "name", "sort_order", "kind", "created_at", "updated_at"],
-    // id, budget_id, name, sort_order, hidden, collapsed, created_at, updated_at, deleted_at, kind
-    cols: [0, "b", 1, 2, lit("0"), lit("0"), 4, 5, lit("null"), 3],
-  },
-  categories: {
-    json: [
+type Spec = { table: SQLiteTable; json: readonly string[]; cols: Record<string, Val> };
+
+/** One table's entry: the Drizzle table, its JSON row order, and each written column paired with its value. A
+ * column that is not named takes its SQL default; an unknown property fails the type check. */
+function spec<T extends SQLiteTable>(
+  table: T,
+  json: readonly string[],
+  cols: { [K in keyof InferInsertModel<T>]?: Val },
+): Spec {
+  return { table, json, cols: cols as Record<string, Val> };
+}
+
+const SPEC: Record<ImportTable, Spec> = {
+  accounts: spec(accounts, ["id", "name", "type", "on_budget", "sort_order", "created_at"], {
+    id: 0,
+    budgetId: "b",
+    name: 1,
+    type: 2,
+    onBudget: 3,
+    starred: lit("0"),
+    closed: lit("0"),
+    sortOrder: 4,
+    createdAt: 5,
+  }),
+  category_groups: spec(
+    categoryGroups,
+    ["id", "name", "sort_order", "kind", "created_at", "updated_at"],
+    {
+      id: 0,
+      budgetId: "b",
+      name: 1,
+      sortOrder: 2,
+      hidden: lit("0"),
+      collapsed: lit("0"),
+      createdAt: 4,
+      updatedAt: 5,
+      kind: 3,
+    },
+  ),
+  categories: spec(
+    categories,
+    [
       "id",
       "group_id",
       "name",
@@ -73,21 +89,38 @@ const SPEC: Record<ImportTable, { cols: Col[]; json: readonly string[] }> = {
       "created_at",
       "updated_at",
     ],
-    // id, budget_id, group_id, name, sort_order, hidden, created_at, updated_at, deleted_at, note, kind, account_id
-    cols: [0, "b", 1, 2, 3, 4, 7, 8, lit("null"), lit("null"), 5, 6],
-  },
-  payees: {
-    json: ["id", "name", "system", "created_at", "updated_at"],
-    // id, budget_id, name, hidden, system, created_at, updated_at, deleted_at
-    cols: [0, "b", 1, lit("0"), 2, 3, 4, lit("null")],
-  },
-  month_categories: {
-    json: ["month", "category_id", "assigned", "updated_at"],
-    // budget_id, month, category_id, assigned, updated_at
-    cols: ["b", 0, 1, 2, 3],
-  },
-  transactions: {
-    json: [
+    {
+      id: 0,
+      budgetId: "b",
+      groupId: 1,
+      name: 2,
+      sortOrder: 3,
+      hidden: 4,
+      createdAt: 7,
+      updatedAt: 8,
+      kind: 5,
+      accountId: 6,
+    },
+  ),
+  payees: spec(payees, ["id", "name", "system", "created_at", "updated_at"], {
+    id: 0,
+    budgetId: "b",
+    name: 1,
+    hidden: lit("0"),
+    system: 2,
+    createdAt: 3,
+    updatedAt: 4,
+  }),
+  month_categories: spec(monthCategories, ["month", "category_id", "assigned", "updated_at"], {
+    budgetId: "b",
+    month: 0,
+    categoryId: 1,
+    assigned: 2,
+    updatedAt: 3,
+  }),
+  transactions: spec(
+    transactions,
+    [
       "id",
       "account_id",
       "date",
@@ -106,42 +139,31 @@ const SPEC: Record<ImportTable, { cols: Col[]; json: readonly string[] }> = {
       "created_at",
       "updated_at",
     ],
-    // id, budget_id, account_id, date, payee_name, category_id, inflow, memo, amount, cleared, approved, created_at,
-    // deleted_at, updated_at, payee_id, transfer_account_id, transfer_transaction_id, parent_transaction_id,
-    // split_index, import_id, source, imported_payee, bank_description, import_date, import_amount,
-    // import_payee_name, flag_color
-    cols: [
-      0,
-      "b",
-      1,
-      2,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      lit("1"),
-      15,
-      lit("null"),
-      16,
-      3,
-      11,
-      12,
-      13,
-      14,
-      lit("null"),
-      lit("null"),
-      lit("null"),
-      lit("null"),
-      lit("null"),
-      lit("null"),
-      lit("null"),
-      10,
-    ],
-  },
-  scheduled_transactions: {
-    json: [
+    {
+      id: 0,
+      budgetId: "b",
+      accountId: 1,
+      date: 2,
+      payeeName: 4,
+      categoryId: 5,
+      inflowToReadyToAssign: 6,
+      memo: 7,
+      amount: 8,
+      cleared: 9,
+      approved: lit("1"),
+      createdAt: 15,
+      updatedAt: 16,
+      payeeId: 3,
+      transferAccountId: 11,
+      transferTransactionId: 12,
+      parentTransactionId: 13,
+      splitIndex: 14,
+      flagColor: 10,
+    },
+  ),
+  scheduled_transactions: spec(
+    scheduledTransactions,
+    [
       "id",
       "account_id",
       "date_first",
@@ -156,26 +178,36 @@ const SPEC: Record<ImportTable, { cols: Col[]; json: readonly string[] }> = {
       "created_at",
       "updated_at",
     ],
-    // id, budget_id, account_id, date_first, date_next, frequency, amount, payee_id, category_id, inflow, memo,
-    // flag_color, write_token, created_at, updated_at, deleted_at
-    cols: [0, "b", 1, 2, 3, lit("'never'"), 4, 5, 6, 7, 8, 9, 10, 11, 12, lit("null")],
-  },
+    {
+      id: 0,
+      budgetId: "b",
+      accountId: 1,
+      dateFirst: 2,
+      dateNext: 3,
+      frequency: lit("'never'"),
+      amount: 4,
+      payeeId: 5,
+      categoryId: 6,
+      inflowToReadyToAssign: 7,
+      memo: 8,
+      flagColor: 9,
+      writeToken: 10,
+      createdAt: 11,
+      updatedAt: 12,
+    },
+  ),
 };
+
+/** The SQL names of the columns the import writes into a table. */
+export function importColumnNames(t: ImportTable): string[] {
+  const cols = getTableColumns(SPEC[t].table) as Record<string, { name: string }>;
+  return Object.keys(SPEC[t].cols).map((k) => cols[k]?.name as string);
+}
 
 /** The JSON array order of each table's rows (the budget id is bound apart). */
 export const IMPORT_COLUMNS: Record<ImportTable, readonly string[]> = Object.fromEntries(
   Object.entries(SPEC).map(([t, s]) => [t, s.json]),
 ) as Record<ImportTable, readonly string[]>;
-
-const TABLES = {
-  accounts,
-  category_groups: categoryGroups,
-  categories,
-  payees,
-  month_categories: monthCategories,
-  transactions,
-  scheduled_transactions: scheduledTransactions,
-};
 
 export type ChunkPart = { t: ImportTable; rows: unknown[][] };
 /** null on the single-call path (nothing to guard: the batch is the whole import). */
@@ -201,23 +233,19 @@ export function insertRowsStmts(
   const g = guardSql(guard);
   for (const part of parts) {
     const spec = SPEC[part.t];
-    const select = sql.join(
-      spec.cols.map((c) =>
+    const values = Object.fromEntries(
+      Object.entries(spec.cols).map(([k, c]) => [
+        k,
         c === "b"
           ? sql`${budgetId}`
           : typeof c === "number"
             ? sql`json_extract(j.value, ${`$[${c}]`})`
             : sql.raw(c.lit),
-      ),
-      sql`, `,
+      ]),
     );
     for (let i = 0; i < part.rows.length; i += perStatement) {
       const json = JSON.stringify(part.rows.slice(i, i + perStatement));
-      out.push(
-        db
-          .insert(TABLES[part.t] as typeof accounts)
-          .select(sql`select ${select} from json_each(${json}) j where ${g}`),
-      );
+      out.push(insertSelect(db, spec.table, values, sql`from json_each(${json}) j where ${g}`));
     }
   }
   return out;
@@ -274,8 +302,8 @@ export function cleanupStmts(
   p: { importId: string; budgetId: string; now: string },
 ): BatchItem[] {
   const guard = sql`exists (select 1 from plan_imports where id = ${p.importId} and budget_id = ${p.budgetId} and state = 'writing') and exists (select 1 from budgets where id = ${p.budgetId} and deleted_at is not null)`;
-  const del = (t: keyof typeof TABLES): BatchItem =>
-    db.delete(TABLES[t] as typeof accounts).where(sql`budget_id = ${p.budgetId} and ${guard}`);
+  const del = (t: ImportTable): BatchItem =>
+    db.delete(SPEC[t].table as typeof accounts).where(sql`budget_id = ${p.budgetId} and ${guard}`);
   return [
     del("scheduled_transactions"),
     del("transactions"),
