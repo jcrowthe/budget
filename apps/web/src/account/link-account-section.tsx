@@ -1,6 +1,7 @@
 import type { Account } from "@budget/schema/accounts";
 import { bankAccountLabel, syncLine } from "@budget/schema/bank-link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import {
   errorDetail,
   invalidateBankLink,
@@ -36,6 +37,13 @@ export function BankConnectionSection({
     mutationFn: () => syncConnection(budgetId, connection?.id ?? ""),
     onSettled: () => invalidateBankLink(qc, budgetId),
   });
+
+  const resultLine = useRef<HTMLParagraphElement>(null);
+  const done = sync.isSuccess || sync.isError;
+  // The result line appears below the buttons: bring it into view when the dialog is short (EXF-773).
+  useEffect(() => {
+    if (done) resultLine.current?.scrollIntoView({ block: "nearest" });
+  }, [done]);
 
   if (account.closed || (!account.linked && account.type === "cash")) return null;
 
@@ -80,19 +88,22 @@ export function BankConnectionSection({
           title={connection ? undefined : NOT_FOUND}
           onClick={() => sync.mutate()}
         >
-          {sync.isPending ? "Syncing…" : "Sync Now"}
+          <span className="sync-label">
+            <span aria-hidden={sync.isPending}>Sync Now</span>
+            <span aria-hidden={!sync.isPending}>Syncing…</span>
+          </span>
         </button>
         <button type="button" className="secondary" onClick={onUnlink}>
           Unlink Account
         </button>
       </div>
       {sync.isSuccess ? (
-        <p className="sync-line" role="status">
+        <p ref={resultLine} className="sync-line" role="status">
           {syncLine(sync.data)}
         </p>
       ) : null}
       {sync.isError ? (
-        <p className="sync-line is-error" role="status">
+        <p ref={resultLine} className="sync-line is-error" role="status">
           {errorDetail(sync.error)}
         </p>
       ) : null}

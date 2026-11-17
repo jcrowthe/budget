@@ -71,8 +71,8 @@ test("shell geometry and colours match the source", async ({ page, request }) =>
   await reflect.hover();
   await expect.poll(() => css(reflect, "background-color")).toBe("rgb(27, 29, 72)");
 
-  // Expected differences: no Bank Connections, referral or Share & Earn (case 14).
-  await expect(sidebar.getByText(/Bank Connections|Share & Earn|referral/i)).toHaveCount(0);
+  // Expected differences: no referral or Share & Earn (case 14). The Bank Connections button is built by EXF-460.
+  await expect(sidebar.getByText(/Share & Earn|referral/i)).toHaveCount(0);
 });
 
 test("plan menu matches the source", async ({ page, request }) => {

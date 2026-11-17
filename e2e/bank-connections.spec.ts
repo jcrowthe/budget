@@ -68,12 +68,15 @@ test("the Manage Bank Connections variant has a Back arrow and no unlinked butto
 }) => {
   await stubApi(page, { popular: [fakeInstitution(1)] });
   const id = await newPlan(request);
-  await page.goto(`/${id}/budget?add-accounts=connections`);
+  await page.goto(`/${id}/budget`);
+  await page.getByRole("button", { name: "Bank Connections", exact: true }).click();
+  await page.getByRole("button", { name: "Add a New Bank Connection" }).click();
   const dialog = page.getByRole("dialog", { name: "Add Accounts" });
   await expect(dialog.getByRole("button", { name: "Back" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Add an Unlinked Account" })).toHaveCount(0);
   await expect(dialog.getByText("or", { exact: true })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("dialog", { name: "Manage Bank Connections" })).toBeVisible();
   await expect(dialog).toHaveCount(0);
   await expect(page).not.toHaveURL(/add-accounts/);
 });

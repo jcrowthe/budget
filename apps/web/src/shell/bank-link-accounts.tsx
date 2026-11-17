@@ -56,6 +56,7 @@ export function BankLinkAccounts({
   screen,
   onScreen,
   onDone,
+  single = false,
 }: {
   budgetId: string;
   connection: BankConnection;
@@ -63,6 +64,8 @@ export function BankLinkAccounts({
   screen: BankLinkScreen;
   onScreen: (s: BankLinkScreen) => void;
   onDone: () => void;
+  /** Manage Bank Connections, "Add as a new Account": `connection.accounts` is the one bank account, opened on its form. */
+  single?: boolean;
 }) {
   const qc = useQueryClient();
   const accounts = useAccounts(budgetId);
@@ -72,8 +75,13 @@ export function BankLinkAccounts({
     () => new Set(rows.filter((r) => r.linked_account_id === null).map((r) => r.id)),
   );
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
-  const [editing, setEditing] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Override>({ name: "", type: "checking" });
+  const only = single ? rows[0] : undefined;
+  const [editing, setEditing] = useState<string | null>(only?.id ?? null);
+  const [draft, setDraft] = useState<Override>(() =>
+    only
+      ? { name: defaultAccountName(only), type: planAccountType(only.type, only.subtype) }
+      : { name: "", type: "checking" },
+  );
   const [draftError, setDraftError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,14 +91,14 @@ export function BankLinkAccounts({
   });
   const effective = (r: BankAccount): Override => overrides[r.id] ?? proposed(r);
   const labelOf = (r: BankAccount) => bankAccountLabel(effective(r).name, r.mask);
-  const chosen = rows.filter((r) => ticked.has(r.id));
+  const chosen = only ? [only] : rows.filter((r) => ticked.has(r.id));
   const tickable = rows.filter((r) => r.linked_account_id === null);
 
   const add = useMutation({
-    mutationFn: () => {
+    mutationFn: (own?: Override) => {
       const edited: NonNullable<AccountsFromBankRequest["overrides"]> = {};
       for (const r of chosen) {
-        const o = overrides[r.id];
+        const o = own ?? overrides[r.id];
         if (o) edited[r.id] = { name: o.name, type: o.type };
       }
       return createAccountsFromBank(budgetId, {
@@ -130,6 +138,21 @@ export function BankLinkAccounts({
       return next;
     });
     onScreen("select");
+  }
+
+  /** Single mode: the form's own button adds the one bank account, with the draft when it differs from the proposal. */
+  function addOnly() {
+    if (!only) return;
+    const name = draft.name.trim();
+    if (name === "") {
+      setDraftError("The account name is required.");
+      return;
+    }
+    const base = proposed(only);
+    setError(null);
+    add.mutate(
+      name === base.name && draft.type === base.type ? undefined : { name, type: draft.type },
+    );
   }
 
   function toggle(id: string, on: boolean) {
@@ -227,6 +250,11 @@ export function BankLinkAccounts({
               }}
             />
             {draftError ? <p className="field-error">{draftError}</p> : null}
+            {single && error ? (
+              <p className="field-error error-bar" role="alert">
+                {error}
+              </p>
+            ) : null}
             <label htmlFor="bank-link-type">Account Type</label>
             <select
               id="bank-link-type"
@@ -291,8 +319,13 @@ export function BankLinkAccounts({
           </button>
         ) : null}
         {screen === "edit" ? (
-          <button type="button" className="primary large" onClick={saveEdit}>
-            Save
+          <button
+            type="button"
+            className="primary large"
+            disabled={single && add.isPending}
+            onClick={single ? addOnly : saveEdit}
+          >
+            {single ? "Add Account" : "Save"}
           </button>
         ) : null}
         {screen === "summary" ? (
@@ -302,7 +335,7 @@ export function BankLinkAccounts({
             disabled={add.isPending || chosen.length === 0}
             onClick={() => {
               setError(null);
-              add.mutate();
+              add.mutate(undefined);
             }}
           >
             {addAccountsLabel(chosen.length)}

@@ -36,6 +36,12 @@ export type FakeConnection = {
   status: LinkStatus;
   last_synced_at: string | null;
   accounts: FakeBankAccount[];
+  /** The bank's own name (default: the nickname). */
+  institution_name?: string;
+  /** When the connection was last reset (default: never). */
+  last_reset_at?: string | null;
+  /** The bank's logo as base64 (default: none). */
+  logo?: string | null;
 };
 type Refusal = { status: number; name: string; detail: string };
 type SyncAnswer = {
@@ -99,6 +105,10 @@ export async function stubBankLink(
     afterSync?: SyncAnswer;
     fromBank?: Refusal;
     link?: Refusal;
+    /** Manage Bank Connections (EXF-460): refusals of the rename, the removal and the update-mode token. */
+    rename?: Refusal;
+    remove?: Refusal;
+    updateToken?: Refusal;
   },
 ): Promise<{
   requests: RecordedRequest[];
@@ -133,13 +143,13 @@ export async function stubBankLink(
     display_id: c.display_id,
     environment: "sandbox",
     institution_id: "ins_test_1",
-    institution_name: c.nickname,
-    institution_logo: null,
+    institution_name: c.institution_name ?? c.nickname,
+    institution_logo: c.logo ?? null,
     nickname: c.nickname,
     status: c.status,
     provider: "Plaid",
     last_synced_at: c.last_synced_at,
-    last_reset_at: null,
+    last_reset_at: c.last_reset_at ?? null,
     sync_failed_at: null,
     created_at: "2030-01-01T00:00:00Z",
     accounts: c.accounts.map((a) => ({
@@ -199,10 +209,51 @@ export async function stubBankLink(
     const body = record(route);
     const req = route.request();
     const url = new URL(req.url());
-    if (url.pathname.endsWith("/link-token")) {
+    if (/\/bank-connections\/link-token$/.test(url.pathname)) {
       return json(route, 200, {
         data: { link_token: "link-test", expiration: "2030-01-01T00:00:00Z" },
       });
+    }
+    const one = /\/bank-connections\/([^/]+)(\/[a-z-]+)?$/.exec(url.pathname);
+    const target = one
+      ? connections.find((c) => c.id === decodeURIComponent(one[1] as string))
+      : undefined;
+    if (one && one[1] !== "link-token" && one[2] !== "/sync") {
+      const tail = one[2];
+      const method = req.method();
+      if (!target)
+        return refuse(route, {
+          status: 404,
+          name: "not_found",
+          detail: "Bank connection not found",
+        });
+      if (!tail && method === "PATCH") {
+        if (opts.rename) return refuse(route, opts.rename);
+        const nick = String((body as { nickname?: string } | null)?.nickname ?? "").trim();
+        target.nickname = nick || (target.institution_name ?? target.nickname);
+        return json(route, 200, { data: { bank_connection: connectionJson(target) } });
+      }
+      if (!tail && method === "DELETE") {
+        if (opts.remove) return refuse(route, opts.remove);
+        const ids = new Set(target.accounts.map((a) => a.id));
+        for (const [acc, bank] of [...links]) if (ids.has(bank)) links.delete(acc);
+        connections.splice(connections.indexOf(target), 1);
+        return json(route, 200, { data: { deleted: true, plaid: "removed" } });
+      }
+      if (!tail && method === "GET") {
+        return json(route, 200, { data: { bank_connection: connectionJson(target) } });
+      }
+      if (tail === "/link-token" && method === "POST") {
+        if (opts.updateToken) return refuse(route, opts.updateToken);
+        return json(route, 200, {
+          data: { link_token: "link-update-test", expiration: "2030-01-01T00:00:00Z" },
+        });
+      }
+      if (tail === "/reset" && method === "POST") {
+        target.status = "connected";
+        target.last_reset_at = new Date().toISOString();
+        return json(route, 200, { data: { bank_connection: connectionJson(target) } });
+      }
     }
     const sync = /\/bank-connections\/([^/]+)\/sync$/.exec(url.pathname);
     if (sync && req.method() === "POST") {
