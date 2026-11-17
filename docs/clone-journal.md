@@ -10508,3 +10508,58 @@ Declared for the tree: the Build; this Deploy; plan formats with EXF-726; a Depl
 flow test after the View options merge; the Deploy template review.
 
 Ticket writes: 1 (EXF-726's priority).
+
+### 2026-11-17 · Review round 120 (check-in)
+
+Children used 136 of 200. One ended: **Deploy D31 completed**
+(`p_d9a9dfb24f404474ba3bb5d43e591f83`, 10 minutes). **Live is `13cfcae`** at
+https://budget.doxen.dev (read by me at 11:20Z), equal to main; no migration is pending. The
+register's View options Build is running.
+
+**Deploy D31: released; every check ran; two results differ from my brief, one of them my own
+arithmetic.**
+- Gate passed (tree equal to gated `8b5fcc9`; checks 232 s). Release passed, smoke ok. Health
+  gives the whole sha; **83 MCP tools**.
+- **Every kind of row the rewritten inserts write answered 2xx on live** (group, categories, three
+  account types with the card's payment category, assignment, plain row, refund, split, transfer
+  to a tracking account, last month's row, card purchase, target, snooze, card payment, reconcile).
+- **The Activity popover on live at both sizes:** the four rows, the three ways to close, last
+  month; the read and the tool give ZZ Food −110,000 from four rows and ZZ Fun −50,000 from two; a
+  payment category is refused with 422. `Got it!` is white on the app's blue. No console error.
+- **Export and import of a reconciled adjustment:** the payee reads "Reconciliation Balance
+  Adjustment" in the export and in the imported plan, with `system` = `reconciliation_adjustment`;
+  the two exports are byte-identical. EXF-723 is fixed on live.
+- **DIFFERS 1, mine:** ZZ Checking after the card payment is 835,000, not the 860,000 of my brief
+  (I had left out two rows; recorded at the plan before the Deploy reported it).
+- **DIFFERS 2:** at 1024×700 the Activity amount "−$110.00" is shown whole (65 px in 65 px), so
+  EXF-726 does not show at that amount; it does at "−$106.50" (the Build's Tester). Eight
+  characters fit to the pixel or not by their digits. Noted on EXF-726.
+- Plans not starting with `ZZ-TEST`: 1; purge `remaining 0`. The verifier named the three
+  screenshots it did not open.
+
+**Since the check-in of round 110, counted from the children list:** ten children started (127 to
+136): four Builds, three Deploys, one flow test, one template review, one sweep. **None was lost.**
+Three Builds merged (Reconcile, the export and import hardening, the Activity popover), the fourth
+is running; with the Plan-page Build that was running at the last check-in, four merges. All of it
+is live. What changed in how I work: one or two Builds at a time; every card answered within
+minutes of arriving; every carry-over merged and run by me first; what a late step must keep
+written into the design by the Architect.
+
+**Check-in sent** (round 120). Its points: what is live now; no loss in ten rounds and why; what I
+still need (the source test plan's contents first, since three features were built without
+anything to compare; then the plan menu and bank screens, where I say what I do if no answer
+comes: build them from the tickets with nobody opening those screens in the source); the two
+behaviours to expect (reconciled rows hidden by default after the next merge; the Designer may
+apply view settings in the test plan); budget: 64 children for 48 open feature tickets, and the
+order I work in.
+
+**Ticket writes:** 1 (the measurement on EXF-726). No new ticket. **Backlog:** 48 open feature
+tickets (51 done; 1 in progress). Gap: seventeen open, two of them in progress. Template:
+thirty-nine open (Urgent EXF-573, 611, 612). Flow verdicts: 1 `parity_known_gaps`; 2 `new_gaps`; 3
+`parity`; 4 `new_gaps` (its one gap, EXF-720, is fixed and live; not re-run); 5, 7
+`parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run (its reconcile part walked by D30).
+**Finished since each template's last review: Build 2, Deploy 10 (the Deploy review is due),
+Discover 2, Test user flow 3.**
+
+**Next plan:** the Deploy template review; nothing else beside the register Build (plan formats
+with EXF-726 follows it).
