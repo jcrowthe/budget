@@ -1,3 +1,4 @@
+import { planFormatter } from "@budget/schema/plan-formats";
 import {
   TransactionBulkRequest,
   type TransactionBulkResult,
@@ -13,6 +14,7 @@ import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as txRepo from "../repositories/transactions";
+import { formatsOfRow } from "./budgets";
 import { newOtherSide } from "./transaction-pairs";
 import {
   CLOSED_NO_MOVE,
@@ -85,7 +87,9 @@ export async function bulkTransactions(
 ): Promise<TransactionBulkResult> {
   const req = TransactionBulkRequest.parse(input);
   const db = getDb(env);
-  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const planRow = await budgetsRepo.findActive(db, budgetId);
+  if (!planRow) throw new NotFound("Plan");
+  const fmt = planFormatter(formatsOfRow(planRow));
   const ids = distinct(req.ids);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rows = await txRepo.findDetailMany(db, budgetId, ids);
@@ -165,7 +169,7 @@ export async function bulkTransactions(
       const planUpdate = async (patch: TransactionUpdateRequest) => {
         let plan: Plan;
         try {
-          plan = await prepare(db, budgetId, row, account, "update", patch, now, { reads });
+          plan = await prepare(db, budgetId, row, account, "update", patch, now, { reads, fmt });
         } catch (e) {
           return withId(id, e);
         }
@@ -268,6 +272,7 @@ export async function bulkTransactions(
             plan = await prepare(db, budgetId, row, account, "delete", undefined, now, {
               allowReconciled: req.confirm_reconciled === true,
               reads,
+              fmt,
             });
           } catch (e) {
             return withId(id, e);

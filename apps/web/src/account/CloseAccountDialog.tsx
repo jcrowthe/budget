@@ -1,8 +1,9 @@
 import type { Account } from "@budget/schema/accounts";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import { useEffect, useRef } from "react";
 import { CloseIcon } from "../shell/icons";
 import "./edit-account.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /** "Close Account": the confirmation for an account whose balance is not zero. */
 export function CloseAccountDialog({
@@ -18,6 +19,7 @@ export function CloseAccountDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const cancelRef = useRef(onCancel);
   cancelRef.current = onCancel;
   useEffect(() => {
@@ -50,7 +52,7 @@ export function CloseAccountDialog({
         <div className="form-body">
           <p className="close-text">
             Before you can close this account, the balance will have to be zeroed out. An adjustment
-            transaction will be created for {screenMoney(-account.balance)}.
+            transaction will be created for {fmt.money(-account.balance)}.
           </p>
           {account.on_budget ? (
             <div className="info-box">

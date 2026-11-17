@@ -10,10 +10,10 @@ import type { ScheduledTransaction } from "@budget/schema/scheduled-transactions
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Tooltip } from "../account/Tooltip";
 import { useScheduledTransactions } from "../api/scheduledTransactions";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
-import { registerDate, registerMoney } from "./format";
 import { CalendarIcon, CaretDownIcon, ChevronRightIcon, FlagFilledIcon, RepeatIcon } from "./icons";
 import { useRegisterView } from "./register-view";
 import { useSelection } from "./selection";
@@ -76,6 +76,7 @@ export function ScheduledSection({
   onSaved: (next: "close" | "again", date: string) => void;
   accounts: Account[];
 }) {
+  const fmt = usePlanFormatter();
   const { showFlags, showBalance } = useRegisterView();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   useEffect(() => {
@@ -157,7 +158,7 @@ export function ScheduledSection({
             </td>
           )}
           <td data-field="date" className="scheduled-date">
-            <span className="scheduled-date-text">{registerDate(s.date_next)}</span>
+            <span className="scheduled-date-text">{fmt.date(s.date_next)}</span>
             {tip ? (
               <Tooltip content={tip}>
                 {(props) => (
@@ -180,10 +181,10 @@ export function ScheduledSection({
             {s.memo}
           </td>
           <td data-field="outflow" className="num">
-            {s.amount < 0 ? registerMoney(s.amount) : null}
+            {s.amount < 0 ? fmt.abs(s.amount) : null}
           </td>
           <td data-field="inflow" className="num">
-            {s.amount > 0 ? registerMoney(s.amount) : null}
+            {s.amount > 0 ? fmt.abs(s.amount) : null}
           </td>
           {showBalance && <td className="num cell-balance" />}
           <td className="cell-cleared" />

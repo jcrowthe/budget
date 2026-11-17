@@ -2,8 +2,9 @@ import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 import type { PlanView } from "@budget/schema/plan-views";
 import type { ReactNode } from "react";
+import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { AvailablePill } from "../AvailablePill";
-import { categoryPill, money, signed } from "../format";
+import { categoryPill } from "../format";
 import { PencilIcon } from "../icons";
 import { NotesCard } from "./NotesCard";
 import { OverspentMessage } from "./overspentMessage";
@@ -42,13 +43,14 @@ export function CategoryInspector({
   onTogglePayment: (key: keyof PaymentCollapsed) => void;
   onView: (v: PlanView) => void;
 }) {
+  const fmt = usePlanFormatter();
   const rows: [string, string][] = [
-    ["Cash Left Over From Last Month", money(c.carried)],
-    ["Assigned This Month", signed(c.assigned)],
-    ["Cash Spending", signed(c.cash_spending)],
-    ["Credit Spending", signed(c.credit_spending)],
+    ["Cash Left Over From Last Month", fmt.money(c.carried)],
+    ["Assigned This Month", fmt.signed(c.assigned)],
+    ["Cash Spending", fmt.signed(c.cash_spending)],
+    ["Credit Spending", fmt.signed(c.credit_spending)],
   ];
-  const pill = categoryPill(c);
+  const pill = categoryPill(c, fmt);
   // A credit card payment category belongs to its account: no pencil and no target until its own inspector.
   const payment = c.kind !== null;
   return (

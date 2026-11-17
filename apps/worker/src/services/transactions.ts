@@ -1,5 +1,6 @@
 import { CREDIT_ACCOUNT_TYPES } from "@budget/core/account-types";
 import { OWN_PAYMENT_TEXT } from "@budget/schema/card-payments";
+import { DEFAULT_FORMATTER, type PlanFormatter, planFormatter } from "@budget/schema/plan-formats";
 import {
   type PlanSortColumn,
   type RegisterSortColumn,
@@ -30,6 +31,7 @@ import * as importsRepo from "../repositories/imports";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { runGroups, type StatementGroup } from "./batch-groups";
+import { formatsOfRow } from "./budgets";
 import { resolvePayee } from "./payees";
 import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
@@ -263,7 +265,9 @@ async function withLineNames(
 type Db = ReturnType<typeof getDb>;
 
 async function activePlan(db: Db, budgetId: string) {
-  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const row = await budgetsRepo.findActive(db, budgetId);
+  if (!row) throw new NotFound("Plan");
+  return row;
 }
 
 async function activeAccount(db: Db, budgetId: string, accountId: string) {
@@ -521,7 +525,7 @@ export async function addTransaction(
 ): Promise<TransactionDetail> {
   const v = TransactionCreateRequest.parse(input);
   const db = getDb(env);
-  await activePlan(db, budgetId);
+  const planRow = await activePlan(db, budgetId);
   const account = await activeAccount(db, budgetId, v.account_id);
   if (account.closed) throw closedAccount(CLOSED_NO_NEW);
   const cleared = parseCleared(v.cleared) ?? "uncleared";
@@ -576,6 +580,7 @@ export async function addTransaction(
         account,
         now,
         payee,
+        planFormatter(formatsOfRow(planRow)),
       );
       const parentCreates = payee?.create ? [payee.create] : [];
       const lineRows = await withLineNames(db, budgetId, rows);
@@ -846,7 +851,7 @@ async function mutate(
   patch: TransactionUpdateRequest | undefined,
 ): Promise<TransactionDetail> {
   const db = getDb(env);
-  await activePlan(db, budgetId);
+  const planRow = await activePlan(db, budgetId);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await txRepo.findDetail(db, budgetId, id);
     if (!before) throw new NotFound("Transaction");
@@ -860,6 +865,7 @@ async function mutate(
     const now = new Date().toISOString();
     const plan = await prepare(db, budgetId, before, beforeAccount, kind, patch, now, {
       singleUpdate: true,
+      fmt: planFormatter(formatsOfRow(planRow)),
     });
     // Every statement runs only while the rows read above are unchanged; the row's own write comes last and
     // only succeeds when the other side's write did, so a lost race changes nothing and is retried.
@@ -915,7 +921,13 @@ export async function prepare(
   kind: "update" | "delete",
   patch: TransactionUpdateRequest | undefined,
   now: string,
-  opts: { allowReconciled?: boolean; singleUpdate?: boolean; reads?: Reads } = {},
+  opts: {
+    allowReconciled?: boolean;
+    singleUpdate?: boolean;
+    reads?: Reads;
+    /** The plan's formats for a refusal's text; the plan row the caller already read. */
+    fmt?: PlanFormatter;
+  } = {},
 ): Promise<Plan> {
   const reads = opts.reads;
   const namesFor = async (id: string | null | undefined) => {
@@ -1068,7 +1080,16 @@ export async function prepare(
     after.inflowToReadyToAssign = false;
     if (!account.onBudget) throw unprocessable("A tracking account's transactions cannot be split");
     if (wantsLines) {
-      const r = await validateLines(db, budgetId, after, linesIn ?? [], account, now, payee);
+      const r = await validateLines(
+        db,
+        budgetId,
+        after,
+        linesIn ?? [],
+        account,
+        now,
+        payee,
+        opts.fmt ?? DEFAULT_FORMATTER,
+      );
       plan.payeeCreates.push(...r.payeeCreates);
       plan.lines = { mode: "replace", rows: r.rows };
       afterLines = await withLineNames(db, budgetId, r.rows);

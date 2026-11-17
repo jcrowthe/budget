@@ -9,6 +9,7 @@ import { TransactionPopover } from "./TransactionPopover";
 import { TrendsChart } from "./TrendsChart";
 import { TrendsTable } from "./TrendsTable";
 import "./spending-trends.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 interface PopoverState {
   title: string;
@@ -25,6 +26,7 @@ export function SpendingTrendsReport({
   drill: TrendsDrill | null;
   onDrill: (d: TrendsDrill | null) => void;
 }) {
+  const fmt = usePlanFormatter();
   const { budgetId, span, settings, today } = useReportState();
   const { data, isError } = useSpendingTrends(
     budgetId,
@@ -58,13 +60,13 @@ export function SpendingTrendsReport({
           <div>
             <div className="st-caption">Average Monthly Spending</div>
             <div className="st-average" data-testid="st-average">
-              {money(data.average_monthly)}
+              {money(data.average_monthly, fmt)}
             </div>
           </div>
           <div>
             <div className="st-caption">Total Spending</div>
             <div className="st-total" data-testid="st-total">
-              {money(data.total)}
+              {money(data.total, fmt)}
             </div>
           </div>
         </div>

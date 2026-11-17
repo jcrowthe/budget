@@ -18,7 +18,14 @@ export async function findActive(db: Db, id: string): Promise<BudgetRow | undefi
 }
 
 /** The *Stmt functions return UNEXECUTED statements for `db.batch`. */
-export function insertStmt(db: Db, row: BudgetRow) {
+/** A row to insert: the format columns may be left to their defaults. */
+export type NewBudgetRow = Omit<
+  BudgetRow,
+  "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat"
+> &
+  Partial<Pick<BudgetRow, "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat">>;
+
+export function insertStmt(db: Db, row: NewBudgetRow) {
   return db.insert(budgets).values(row);
 }
 
@@ -38,6 +45,10 @@ export function updateStmt(
     name?: string;
     lastOpenedAt?: string;
     bankEnvironment?: "production" | "sandbox";
+    currencyIsoCode?: string;
+    numberFormat?: string;
+    symbolPlacement?: "before" | "after" | "none";
+    dateFormat?: string;
   },
   updatedAt: string,
 ) {

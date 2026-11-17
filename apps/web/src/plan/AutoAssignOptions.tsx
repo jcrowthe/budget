@@ -10,7 +10,7 @@ import {
 import { VIEW_NO_CATEGORIES, viewCategories } from "@budget/schema/plan-views";
 import { type AutoAssignScope, useAutoAssign, useAutoAssignPreview } from "../api/autoAssign";
 import { useCachedMonth } from "../api/months";
-import { money } from "./format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /**
  * The eight Auto-Assign buttons with the Worker's previews, for the card and for the Assign popover. One click
@@ -29,6 +29,7 @@ export function AutoAssignOptions({
   onViewAll: () => void;
   onApplied?: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const detail = useCachedMonth(budgetId, month).data;
   const preview = useAutoAssignPreview(budgetId, month, scope).data;
   const { apply, busy, failed } = useAutoAssign(budgetId, month);
@@ -67,12 +68,12 @@ export function AutoAssignOptions({
     const rows = hidden ?? { underfunded: 1, reduce_overfunding: 1 };
     return (
       <div className="auto-assign-body" aria-busy="true">
-        <OptionList options={autoAssignOptions(BLANK, mode, rows)} loading />
+        <OptionList options={autoAssignOptions(BLANK, mode, rows, fmt)} loading />
       </div>
     );
   }
   if (preview.category_count === 0) return empty;
-  const options = autoAssignOptions(preview, mode, hidden);
+  const options = autoAssignOptions(preview, mode, hidden, fmt);
   return (
     <div className="auto-assign-body">
       <OptionList
@@ -121,6 +122,7 @@ function OptionList({
   busy?: boolean;
   onPick?: (strategy: AutoAssignStrategy) => void;
 }) {
+  const fmt = usePlanFormatter();
   const groups = [1, 2, 3].map((g) => options.filter((o) => o.group === g));
   return (
     <div className="auto-assign-list">
@@ -141,7 +143,7 @@ function OptionList({
                 {loading ? (
                   <strong aria-hidden="true">–</strong>
                 ) : (
-                  <strong title={money(o.amount)}>{money(o.amount)}</strong>
+                  <strong title={fmt.money(o.amount)}>{fmt.money(o.amount)}</strong>
                 )}
               </button>
             ))}

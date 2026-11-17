@@ -1,7 +1,8 @@
 import type { MonthDetail } from "@budget/schema/months";
 import { categoryLabel, categoryMenu } from "@budget/schema/register";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import { useMemo, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import type { CategoryValue } from "./entryDraft";
 import { Option, PickerInput } from "./PickerInput";
 
@@ -44,6 +45,7 @@ export function CategoryField({
   /** A card payment's category ("Credit Card Payments: <card>"): shown as text, disabled, no list. */
   fixedText?: string;
 }) {
+  const fmt = usePlanFormatter();
   const groups = month?.groups ?? [];
   const shown = split ? SPLIT_TEXT : categoryLabel(value, groups);
   const [typed, setTyped] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export function CategoryField({
                 onHover={() => hover(idx)}
               >
                 <span className="entry-option-name">{r.name}</span>
-                <span className={`entry-available ${tone(r.amount)}`}>{screenMoney(r.amount)}</span>
+                <span className={`entry-available ${tone(r.amount)}`}>{fmt.money(r.amount)}</span>
               </Option>
             );
             return (

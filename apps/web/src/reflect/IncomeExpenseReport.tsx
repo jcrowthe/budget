@@ -8,6 +8,7 @@ import { CaretDownIcon, CaretRightIcon } from "./icons";
 import { useReportState } from "./state";
 import { TransactionPopover } from "./TransactionPopover";
 import "./income-expense.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 interface PopoverState {
   title: string;
@@ -86,6 +87,7 @@ function Cells({
   /** Net Income colours by sign; other rows are grey at zero only. */
   tone?: "net";
 }) {
+  const fmt = usePlanFormatter();
   const cell = (value: number, column: string, month: string | null, i: number) => {
     const cls = Math.abs(value) < 5 ? "zero" : tone ? changeClass(value) : "";
     return (
@@ -106,10 +108,10 @@ function Cells({
               })
             }
           >
-            <span className={`amt ${cls}`}>{minusMoney(value)}</span>
+            <span className={`amt ${cls}`}>{minusMoney(value, fmt)}</span>
           </button>
         ) : (
-          <span className={`amt ${cls}`}>{minusMoney(value)}</span>
+          <span className={`amt ${cls}`}>{minusMoney(value, fmt)}</span>
         )}
       </td>
     );

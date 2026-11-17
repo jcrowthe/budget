@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { Account, PlanDate } from "./accounts";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
-import { screenMoney } from "./screen-money";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import { Transaction } from "./transactions";
 
 export const RECONCILE_ADJUSTMENT_PAYEE = "Reconciliation Balance Adjustment";
@@ -47,11 +47,14 @@ export const ReconcileConflictBody = z
 export const reconcileDifference = (statement: number, cleared: number) => statement - cleared;
 
 /** "This account's cleared balance in Budget is $100.00 higher than your actual account." / "lower than" / "the same as". */
-export function reconcileSentence(difference: number): string {
+export function reconcileSentence(
+  difference: number,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
+): string {
   const head = "This account's cleared balance in Budget is";
   if (difference === 0) return `${head} the same as your actual account.`;
   const word = difference < 0 ? "higher" : "lower";
-  return `${head} ${screenMoney(Math.abs(difference))} ${word} than your actual account.`;
+  return `${head} ${fmt.abs(difference)} ${word} than your actual account.`;
 }
 
 /** The Difference modal's three paragraphs. */

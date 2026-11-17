@@ -1,3 +1,5 @@
+import { exportFormat } from "@budget/schema/plan-export";
+import { planFormatter } from "@budget/schema/plan-formats";
 import { exportFileName, registerCsv } from "@budget/schema/register-export";
 import type { PlanTransaction } from "@budget/schema/transactions";
 import { getDb } from "../db/client";
@@ -6,6 +8,7 @@ import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as txRepo from "../repositories/transactions";
+import { formatsOfRow } from "./budgets";
 import { TransactionRefused, transactionDetailToApi } from "./transactions";
 
 /** The CSV of the given transactions (1 to 100), in the order given, and the file's name (UTC time). */
@@ -36,5 +39,8 @@ export async function exportTransactions(
       account_name: accounts.get(r.accountId) ?? "",
     };
   });
-  return { csv: registerCsv(out), fileName: exportFileName(plan.name, new Date(), "utc") };
+  return {
+    csv: registerCsv(out, exportFormat(planFormatter(formatsOfRow(plan)).planFormat())),
+    fileName: exportFileName(plan.name, new Date(), "utc"),
+  };
 }

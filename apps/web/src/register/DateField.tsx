@@ -1,6 +1,7 @@
-import { dateKeyAction, formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
+import { dateKeyAction } from "@budget/schema/date-entry";
 import type { Frequency } from "@budget/schema/recurrence";
 import { useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { Calendar } from "./Calendar";
 import { CaretDownIcon } from "./icons";
 
@@ -21,6 +22,7 @@ export function DateField({
   frequency?: Frequency;
   onFrequency?: (f: Frequency) => void;
 }) {
+  const fmt = usePlanFormatter();
   const input = useRef<HTMLInputElement>(null);
   // Escape in the Repeat select closes the calendar only; refocusing the input must not reopen it.
   const quiet = useRef(false);
@@ -28,12 +30,12 @@ export function DateField({
     t instanceof HTMLElement && t.closest('.entry-dropdown[role="dialog"]') !== null;
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
-  const parsed = parseEntryDate(text, today);
+  const parsed = fmt.parseDate(text, today);
   const [viewMonth, setViewMonth] = useState<string | null>(null);
   const month = viewMonth ?? `${(parsed ?? lastDate).slice(0, 7)}-01`;
 
   const set = (iso: string, input?: HTMLInputElement) => {
-    onChange(formatEntryDate(iso), iso);
+    onChange(fmt.date(iso), iso);
     setViewMonth(null);
     if (input) requestAnimationFrame(() => input.select());
   };
@@ -45,6 +47,7 @@ export function DateField({
         type="text"
         aria-label="Date"
         autoComplete="off"
+        placeholder={fmt.dateFormat}
         value={text}
         onFocus={(e) => {
           if (quiet.current) {
@@ -57,7 +60,7 @@ export function DateField({
         onClick={() => setOpen(true)}
         onChange={(e) => {
           const t = e.target.value;
-          const p = parseEntryDate(t, today);
+          const p = fmt.parseDate(t, today);
           onChange(t, p ?? lastDate);
           setViewMonth(null);
         }}
@@ -74,7 +77,7 @@ export function DateField({
           if (inCalendar(e.relatedTarget)) return;
           setOpen(false);
           setViewMonth(null);
-          if (parsed) onChange(formatEntryDate(parsed), parsed);
+          if (parsed) onChange(fmt.date(parsed), parsed);
         }}
       />
       <CaretDownIcon className="entry-caret" />
@@ -99,7 +102,7 @@ export function DateField({
             if (e.relatedTarget === input.current || inCalendar(e.relatedTarget)) return;
             setOpen(false);
             setViewMonth(null);
-            if (parsed) onChange(formatEntryDate(parsed), parsed);
+            if (parsed) onChange(fmt.date(parsed), parsed);
           }}
           onRepeatEscape={() => {
             quiet.current = true;

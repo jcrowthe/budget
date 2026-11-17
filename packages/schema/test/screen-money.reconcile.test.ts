@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_FORMATTER } from "../src/plan-formats";
 import { debtsMoney, drillAmount, minusMoney, reportMoney, tickMoney } from "../src/reflect-format";
-import { MINUS, screenMoney } from "../src/screen-money";
+import { MINUS } from "../src/screen-money";
+
+const screenMoney = DEFAULT_FORMATTER.money;
 
 describe("screenMoney (EXF-664)", () => {
   it("writes the minus sign U+2212 before the dollar sign, never a hyphen", () => {

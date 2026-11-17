@@ -1,6 +1,7 @@
 import { longMonthLabel, signedChange } from "@budget/schema/reflect-format";
 import type { SpendingTrends } from "@budget/schema/reports";
 import type { SyntheticEvent } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { money, percent } from "./format";
 import { InfoFillIcon } from "./icons";
 
@@ -17,6 +18,7 @@ const INFO =
   "This column highlights the difference between your spending in individual months and your average monthly spending for the selected time period.";
 
 export function TrendsTable({ data }: { data: SpendingTrends }) {
+  const fmt = usePlanFormatter();
   const empty = data.months.every((m) => m.series.length === 0);
   const rows = [...data.months].reverse();
   return (
@@ -65,10 +67,10 @@ export function TrendsTable({ data }: { data: SpendingTrends }) {
               return (
                 <tr key={m.month}>
                   <td className="st-month">{longMonthLabel(m.month)}</td>
-                  <td className="st-num">{money(m.total)}</td>
+                  <td className="st-num">{money(m.total, fmt)}</td>
                   <td className="st-num st-compare">
                     {arrow}
-                    {signedChange(diff)} ({percent(m.compared_pct)})
+                    {signedChange(diff, fmt)} ({percent(m.compared_pct)})
                   </td>
                 </tr>
               );

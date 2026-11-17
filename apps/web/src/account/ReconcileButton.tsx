@@ -1,5 +1,5 @@
 import { parseAmountInput } from "@budget/schema/amount-input";
-import { MINUS, screenMoney } from "@budget/schema/screen-money";
+import { MINUS } from "@budget/schema/screen-money";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { useShortcut } from "../shortcuts/dispatcher";
@@ -8,6 +8,7 @@ import { LockCheckArt } from "./icons";
 import { useReconcile } from "./ReconcileContext";
 import { Tooltip } from "./Tooltip";
 import "./reconcile.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /** The header's Reconcile button with its tooltip, `shift+E`, and the popover steps under it. */
 export function ReconcileButton() {
@@ -103,13 +104,14 @@ export function ReconcileButton() {
 }
 
 function AskStep() {
+  const fmt = usePlanFormatter();
   const rc = useReconcile();
   if (!rc) return null;
   return (
     <div className="reconcile-popover" role="dialog" aria-label="Reconcile">
       <div className="reconcile-balance-card">
         <p className="reconcile-note">Is your current balance</p>
-        <p className="reconcile-amount">{screenMoney(rc.account.cleared_balance)}?</p>
+        <p className="reconcile-amount">{fmt.money(rc.account.cleared_balance)}?</p>
       </div>
       {rc.error && (
         <p className="reconcile-error" role="alert">
@@ -134,11 +136,12 @@ function AskStep() {
 }
 
 function EnterStep({ onNext }: { onNext: (statement: number) => void }) {
+  const fmt = usePlanFormatter();
   const [text, setText] = useState("");
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.focus(), []);
-  const value = parseAmountInput(text.replaceAll(MINUS, "-"));
+  const value = parseAmountInput(fmt.typedAmount(text.replaceAll(MINUS, "-")), fmt.digits);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (value !== null) onNext(value);

@@ -1,13 +1,13 @@
 import { type SidebarSection, sidebarSections } from "@budget/core/account-types";
-import { formatMoney } from "@budget/core/money";
+
 import type { Account } from "@budget/schema/accounts";
 import { NavLink, useMatch } from "react-router";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { SIDEBAR_LABELS } from "./accountTypeLabels";
 import { ChevronDownIcon, ChevronRightIcon, PencilIcon } from "./icons";
+import { usePlanFormatter } from "./plan-formats-context";
 import { accountPath } from "./planPaths";
 
-const money = (m: number) => formatMoney(m).replace("-", "−");
 const sign = (n: number) => (n < 0 ? "negative" : n === 0 ? "zero" : "positive");
 
 /** The plan's accounts under typed groups (closed ones last) with totals; a group header collapses it (saved per plan). */
@@ -20,6 +20,7 @@ export function SidebarAccounts({
   accounts: Account[];
   onEdit?: (accountId: string) => void;
 }) {
+  const fmt = usePlanFormatter();
   const ui = useUiState(budgetId);
   const save = useSaveUiState(budgetId);
   const currentId = useMatch("/:budgetId/accounts/:accountId/*")?.params.accountId;
@@ -55,7 +56,7 @@ export function SidebarAccounts({
               <Chevron className="chevron" />
               <span className="label">{label}</span>
               {total === null ? null : (
-                <span className={`value ${sign(total)}`}>{money(total)}</span>
+                <span className={`value ${sign(total)}`}>{fmt.money(total)}</span>
               )}
               <span className="slot-right" />
             </button>
@@ -85,7 +86,7 @@ export function SidebarAccounts({
                       <span className="name" title={a.name}>
                         {a.name}
                       </span>
-                      <span className={`value ${sign(a.balance)}`}>{money(a.balance)}</span>
+                      <span className={`value ${sign(a.balance)}`}>{fmt.money(a.balance)}</span>
                       <span className="slot-right" />
                     </NavLink>
                   </div>

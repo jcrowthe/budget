@@ -1,3 +1,5 @@
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
+
 /** Amount arithmetic of the register's Outflow and Inflow fields (a sibling of assigned-edit.ts). */
 
 type Tok = { n: number } | { op: "+" | "-" | "*" | "/" | "(" | ")" };
@@ -22,7 +24,7 @@ function tokenize(text: string): Tok[] | null {
 }
 
 /** Milliunits ≥ 0 for the text, or null (empty field) for nothing, zero or anything that does not compute. */
-export function evaluateAmountEntry(text: string): number | null {
+export function evaluateAmountEntry(text: string, digits = 2): number | null {
   const toks = tokenize(text);
   if (!toks || toks.length === 0) return null;
   const last = toks[toks.length - 1];
@@ -80,7 +82,7 @@ export function evaluateAmountEntry(text: string): number | null {
   try {
     const v = sum();
     if (pos !== toks.length || !Number.isFinite(v)) return null;
-    const milli = Math.abs(Math.round(v * 100)) * 10;
+    const milli = Math.abs(Math.round(v * 10 ** digits)) * 10 ** (3 - digits);
     return milli === 0 || milli > Number.MAX_SAFE_INTEGER ? null : milli;
   } catch (e) {
     if (e === fail) return null;
@@ -88,12 +90,9 @@ export function evaluateAmountEntry(text: string): number | null {
   }
 }
 
-/** `1234500` → `1,234.50`: grouped, two decimals, no sign or currency. */
-export function formatAmountEntry(milli: number): string {
-  return (milli / 1000).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+/** `1234500` → `1,234.50` in the plan's format: grouped, every decimal, no sign or currency. */
+export function formatAmountEntry(milli: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.input(Math.abs(milli));
 }
 
 /** Stored amount: inflow minus outflow. */

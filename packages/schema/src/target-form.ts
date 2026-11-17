@@ -1,4 +1,5 @@
-import { addMonths, formatEntryDate, parseEntryDate } from "./date-entry";
+import { addMonths, formatEntryDate } from "./date-entry";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import type { FormTab } from "./target-wording";
 import { ordinal } from "./target-wording";
 import type { TargetBody, TargetDefinition } from "./targets";
@@ -15,7 +16,7 @@ export interface TargetDraft {
   dayOfWeek: number;
   /** null = the last day of the month. */
   dayOfMonth: number | null;
-  /** MM/DD/YYYY as typed. */
+  /** As typed, in the plan's date format. */
   yearlyDate: string;
   customDate: string;
   repeat: boolean;
@@ -39,9 +40,9 @@ export const WEEKDAYS: readonly string[] = [
 
 const firstOfNextMonth = (today: string) => addMonths(`${today.slice(0, 7)}-01`, 1);
 
-export function newDraft(today: string): TargetDraft {
+export function newDraft(today: string, fmt: PlanFormatter = DEFAULT_FORMATTER): TargetDraft {
   const next = firstOfNextMonth(today);
-  const date = formatEntryDate(next);
+  const date = formatEntryDate(next, fmt);
   return {
     tab: "monthly",
     amount: 0,
@@ -60,8 +61,12 @@ export function newDraft(today: string): TargetDraft {
   };
 }
 
-export function draftFromTarget(def: TargetDefinition, today: string): TargetDraft {
-  const d: TargetDraft = { ...newDraft(today), tab: def.cadence, amount: def.amount };
+export function draftFromTarget(
+  def: TargetDefinition,
+  today: string,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
+): TargetDraft {
+  const d: TargetDraft = { ...newDraft(today, fmt), tab: def.cadence, amount: def.amount };
   if (def.cadence === "custom") {
     d.custom = def.behavior === "refill" ? "set_aside" : def.behavior;
     if (def.behavior === "balance") {
@@ -71,7 +76,7 @@ export function draftFromTarget(def: TargetDefinition, today: string): TargetDra
         d.dueYear = Number(def.due_month.slice(0, 4));
       }
     } else {
-      if (def.due_date) d.customDate = formatEntryDate(def.due_date);
+      if (def.due_date) d.customDate = formatEntryDate(def.due_date, fmt);
       if (def.repeat) {
         d.repeat = true;
         d.every = def.repeat.every;
@@ -83,21 +88,23 @@ export function draftFromTarget(def: TargetDefinition, today: string): TargetDra
   d.periodic = def.behavior === "refill" ? "refill" : "set_aside";
   if (def.cadence === "weekly") d.dayOfWeek = def.day_of_week ?? 6;
   if (def.cadence === "monthly") d.dayOfMonth = def.day_of_month;
-  if (def.cadence === "yearly" && def.due_date) d.yearlyDate = formatEntryDate(def.due_date);
+  if (def.cadence === "yearly" && def.due_date) d.yearlyDate = formatEntryDate(def.due_date, fmt);
   return d;
 }
 
-export const AMOUNT_ERROR = "Enter an amount greater than $0.00.";
+export const amountError = (fmt: PlanFormatter = DEFAULT_FORMATTER) =>
+  `Enter an amount greater than ${fmt.money(0)}.`;
 export const DATE_ERROR = "Enter a valid date.";
 
 export function draftToBody(
   d: TargetDraft,
   today: string,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
 ): { body: TargetBody } | { errors: { amount?: string; date?: string } } {
   const errors: { amount?: string; date?: string } = {};
-  if (!(d.amount > 0)) errors.amount = AMOUNT_ERROR;
+  if (!(d.amount > 0)) errors.amount = amountError(fmt);
   const date = (text: string): string => {
-    const iso = parseEntryDate(text, today);
+    const iso = fmt.parseDate(text, today);
     if (iso === null) errors.date = DATE_ERROR;
     return iso ?? "";
   };

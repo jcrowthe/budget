@@ -10,4 +10,10 @@ export const budgets = sqliteTable("budgets", {
   bankEnvironment: text("bank_environment", { enum: ["production", "sandbox"] })
     .notNull()
     .default("production"),
+  currencyIsoCode: text("currency_iso_code").notNull().default("USD"),
+  numberFormat: text("number_format").notNull().default("123,456.78"),
+  symbolPlacement: text("symbol_placement", { enum: ["before", "after", "none"] })
+    .notNull()
+    .default("before"),
+  dateFormat: text("date_format").notNull().default("MM/DD/YYYY"),
 });

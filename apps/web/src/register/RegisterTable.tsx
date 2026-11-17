@@ -9,7 +9,7 @@ import {
   sortTransactions,
 } from "@budget/schema/register";
 import { registerVisible } from "@budget/schema/register-view";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -22,12 +22,12 @@ import {
   useSetCleared,
   useSetFlag,
 } from "../api/transactions";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { accountPath } from "../shell/planPaths";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
 import { FlagCell } from "./FlagMenu";
-import { registerDate, registerMoney } from "./format";
 import {
   CaretDownIcon,
   CaretUpIcon,
@@ -98,6 +98,7 @@ export function RegisterTable({
   onCloseEntry: () => void;
   onSaved: (next: "close" | "again", date: string) => void;
 }) {
+  const fmt = usePlanFormatter();
   const plan = !account;
   const accountQ = useAccountTransactions(budgetId, account?.id ?? "", !plan);
   const planQ = usePlanTransactions(budgetId, plan);
@@ -283,7 +284,7 @@ export function RegisterTable({
               {tx.account_name}
             </td>
           )}
-          <td data-field="date">{registerDate(tx.date)}</td>
+          <td data-field="date">{fmt.date(tx.date)}</td>
           {tx.transfer_account_id && tx.transfer_account_name ? (
             <td data-field="payee" title={pay?.payee ?? tx.payee_name ?? undefined}>
               <span className="transfer-payee">
@@ -350,17 +351,17 @@ export function RegisterTable({
             {tx.memo}
           </td>
           <td data-field="outflow" className="num">
-            {tx.amount < 0 ? registerMoney(tx.amount) : null}
+            {tx.amount < 0 ? fmt.abs(tx.amount) : null}
           </td>
           <td data-field="inflow" className="num">
-            {tx.amount > 0 ? registerMoney(tx.amount) : null}
+            {tx.amount > 0 ? fmt.abs(tx.amount) : null}
           </td>
           {showBalance && (
             <td
               className={`num cell-balance${(tx.running_balance ?? 0) < 0 ? " is-negative" : ""}`}
               data-field="balance"
             >
-              {tx.running_balance === undefined ? null : screenMoney(tx.running_balance)}
+              {tx.running_balance === undefined ? null : fmt.money(tx.running_balance)}
             </td>
           )}
           <td className="cell-cleared">
@@ -411,10 +412,10 @@ export function RegisterTable({
                 {l.memo}
               </td>
               <td data-field="outflow" className="num">
-                {l.amount < 0 ? registerMoney(l.amount) : null}
+                {l.amount < 0 ? fmt.abs(l.amount) : null}
               </td>
               <td data-field="inflow" className="num">
-                {l.amount > 0 ? registerMoney(l.amount) : null}
+                {l.amount > 0 ? fmt.abs(l.amount) : null}
               </td>
               {showBalance && <td className="num cell-balance" />}
               <td className="cell-cleared" />
@@ -495,7 +496,7 @@ export function RegisterTable({
             showCategory={showCategory}
             date={open.date}
             initialFocus={plan ? "account" : "date"}
-            prefillInflow={open.payment ? paymentPrefill(open.payment.inflow) : undefined}
+            prefillInflow={open.payment ? paymentPrefill(open.payment.inflow, fmt) : undefined}
             onClose={onCloseEntry}
             onSaved={onSaved}
           />

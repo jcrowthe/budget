@@ -27,10 +27,14 @@ describe("plan_imports migration", () => {
     expect(cols).toEqual([
       "bank_environment",
       "created_at",
+      "currency_iso_code",
+      "date_format",
       "deleted_at",
       "id",
       "last_opened_at",
       "name",
+      "number_format",
+      "symbol_placement",
       "updated_at",
     ]);
   });

@@ -1,5 +1,5 @@
 import { paymentTone } from "@budget/schema/card-payments";
-import { money } from "../plan/format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { ExclamationCircleIcon, QuestionRingIcon } from "./icons";
 import { Tooltip } from "./Tooltip";
 import { usePaymentAvailable } from "./usePaymentAvailable";
@@ -14,6 +14,7 @@ export function PaymentBalance({
   accountId: string;
   cardName: string;
 }) {
+  const fmt = usePlanFormatter();
   const { available } = usePaymentAvailable(budgetId, accountId, true);
   const tone = typeof available === "number" ? paymentTone(available) : null;
   return (
@@ -24,7 +25,7 @@ export function PaymentBalance({
           data-tone={tone ?? undefined}
         >
           {tone === "negative" ? <ExclamationCircleIcon /> : null}
-          {typeof available === "number" ? money(available) : ""}
+          {typeof available === "number" ? fmt.money(available) : ""}
         </span>
       </div>
       <Tooltip content={`Available in Credit Card Payments: ${cardName} this month`}>

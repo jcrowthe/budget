@@ -1,4 +1,4 @@
-import { formatMoney } from "@budget/core/money";
+import type { PlanFormatter } from "@budget/schema/plan-formats";
 import { splitSum } from "@budget/schema/split";
 import type { SubTransactionInput } from "@budget/schema/transactions";
 import type { getDb } from "../db/client";
@@ -30,7 +30,8 @@ export async function validateLines(
   lines: readonly SubTransactionInput[],
   account: accountsRepo.AccountRow,
   now: string,
-  parentPayee?: ResolvedPayee,
+  parentPayee: ResolvedPayee | undefined,
+  fmt: PlanFormatter,
 ): Promise<{ rows: TransactionRow[]; payeeCreates: payeesRepo.PayeeRow[] }> {
   if (!account.onBudget) throw unprocessable("A tracking account's transactions cannot be split");
   if (lines.length < 2) throw unprocessable("A split needs at least two lines");
@@ -86,7 +87,7 @@ export async function validateLines(
   const sum = splitSum(rows.map((r) => r.amount));
   if (sum !== parent.amount) {
     throw unprocessable(
-      `The splits add up to ${formatMoney(sum)} but the amount is ${formatMoney(parent.amount)}`,
+      `The splits add up to ${fmt.money(sum)} but the amount is ${fmt.money(parent.amount)}`,
     );
   }
   return { rows, payeeCreates };
