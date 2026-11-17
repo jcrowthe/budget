@@ -99,32 +99,43 @@ Auto-Assign preview **10**, the plan export **16** (was 15: it reads `getPlanMon
 EXF-674 items 2–7 (its own Build; the stale EXF-539 index line included), payment targets and Debt Payoff
 (EXF-538), help pages, interest detection, loans, the sidebar's width rules, and the source's page-wide sideways scroll.
 
-## Carry-over (Build `p_27170c2d…`, 2026-11-16)
+## Carry-over (Builds `p_27170c2d…` 2026-11-16, then this one 2026-11-17)
 
-The earlier Thread's work, merged unchanged (head `c0cf241`, on main `49012cd`; 55 files, +3,084/−120); no
-redesign. **This step opened and pressed nothing in the source app**, and no later step does: case 25 uses the
-recorded readings, everything else is "not compared: built from the ticket".
+Second carry-over: the branch head `b680a59` (on main `49012cd`; 57 files, +3,154/−125) merged unchanged; no
+redesign, no new case. **The Architect of each carry-over opened and pressed nothing in the source app**, and no
+later step does: case 25 uses the recorded readings, everything else is "not compared: built from the ticket".
 
-**Fits main** (read): main's EXF-539 opens the payment row for `?record-payment` (`register/Register.tsx`,
-`wantsPayment`, then drops it). `git diff --name-only origin/main...HEAD` holds none of the Lead's point-7 files
-and no `paths.always_overlap` file; no dependency.
+**Fits main** (read on 2026-11-17): main's EXF-539 opens the payment row for `?record-payment`
+(`register/Register.tsx`, `wantsPayment`, then drops it), which case 26 relies on. `git diff --name-only
+origin/main...HEAD` holds none of the Lead's point-7 files and no `paths.always_overlap` file, every changed file
+is inside the Manifest, no dependency. Known issue, not ours to edit: main's `docs/README.md` line 66 is a stale
+EXF-539 entry (that Build renamed its docs to `record-payment-*.md`, line 67) whose link now lands on this design.
 
 What the Lead's points need:
-1. **Implementer:** `pnpm check`, then `pnpm e2e` three times in the foreground; three totals. A failure in any run
-   is read in the code it exercises and explained, never called load unread.
-2. **Reviewer:** re-review `49ad5f6..c0cf241` (`useCachedMonth`'s placeholder; `columnWidths.ts`/`plan-grid.css`
-   name room). Old-code run: `git checkout 49ad5f6 -- apps/web/src/api/months.ts apps/web/src/plan/columnWidths.ts
+1. **Implementer:** `pnpm check`, then `pnpm e2e` **once** in the foreground; report the totals. A failure is read
+   in the code it exercises and explained, never called load unread.
+2. **Reviewer:** review `49ad5f6..HEAD` (the first review ended at `49ad5f6`): `c0cf241` (`useCachedMonth`'s
+   placeholder; `columnWidths.ts`/`plan-grid.css` name room) and `a567633..b680a59`. Old-code run:
+   `git checkout 49ad5f6 -- apps/web/src/api/months.ts apps/web/src/plan/columnWidths.ts
    apps/web/src/plan/plan-grid.css`, `pnpm e2e e2e/auto-assign-layout.spec.ts e2e/plan-narrow.spec.ts`, quote the
-   failing lines (case 28, case 21), then `git checkout HEAD -- <same files>`. HEAD stays on the branch.
-3. **Tester:** every case at 1440×900 and 1024×700, a screenshot per state. Judge again: the paid-off card's title
-   "Payment", names at 1024 (21, 21c), the pill (25c).
-4. **Leftovers:** done by the Architect in this commit: `docs/plan-export-design.md` says 16 and why; the index
-   line says 428. The scrollbar caveat is case 21c (Implementer adds it); no layout change unless it fails.
-5. **Rebase:** if the other Build's `plan-export-calls.test.ts`/`mcp-timestamps.test.ts` change lands first, keep
-   both sides in the timestamp test; in the export test keep theirs and set `CALLS` to what the code makes,
+   failing lines (cases 28 and 21), then `git checkout HEAD -- <same files>`. HEAD stays on the branch.
+   - 2b. Case 26 on the old link: in the working tree set `PaymentInspector.tsx`'s Record Payment `onClick` back to
+     `navigate(accountPath(budgetId, c.account_id as string))`, run `pnpm e2e e2e/card-payments.spec.ts -g "26."`,
+     quote the failing line, `git checkout HEAD -- apps/web/src/plan/panel/PaymentInspector.tsx`.
+   - 2c. `e2e/month-nav.spec.ts` "6 month picker": read `apps/web/src/plan/MonthPicker.tsx` and its opener in
+     `PlanHeader.tsx` (outside-click and open/close handlers). A person can meet it → fix under
+     `apps/web/src/plan/**` with a test; spec only → fix `e2e/month-nav.spec.ts`; elsewhere → known issue.
+3. **Designer:** case 25 against the recorded readings (`card-payments-polish.md`, Source), and every state at
+   1440×900 and 1024×700. **Tester:** every case, 21c and 26–28 included, at both sizes, a screenshot per state.
+   Judge again: the paid-off card's title "Payment" (15), names at 1024 (21, 21c), the pill (25c).
+4. **Leftovers (confirmed in the files):** `docs/plan-export-design.md` says 16 D1 calls and why; the index line
+   says 428; the scrollbar caveat is case 21c.
+5. **Rebase:** if the plan import's `plan-export-calls.test.ts`/`mcp-timestamps.test.ts` change lands first, keep
+   both sides in the timestamp test; in the export test keep theirs and set `CALLS` to what the code then makes,
    saying the number.
-6. **EXF-674 item 1:** Record Payment goes to `` `${accountPath(budgetId, id)}?record-payment` ``; case 26
-   replaces `card-payments.spec.ts` 15b.
+6. **EXF-674 item 1 (done):** Record Payment goes to `` `${accountPath(budgetId, id)}?record-payment` ``
+   (`PaymentInspector.tsx`); case 26. `e2e/record-payment.spec.ts` holds only the two enabled-button waits; a later
+   Build changes its minus signs, so nothing else in it is touched.
 
 ## Acceptance
 
@@ -249,9 +260,10 @@ minimum and 800 px page minimum were read), and every decision above.
 
 ## Manifest
 
-touches: [packages/core/src/budget-engine.ts, packages/core/src/card-payment.ts, packages/core/test/**, packages/schema/src/months.ts, packages/schema/src/month-categories.ts, packages/schema/src/month-totals.ts, packages/schema/src/auto-assign.ts, packages/schema/test/**, apps/worker/src/repositories/card-flows.ts, apps/worker/src/services/months.ts, apps/worker/src/services/month-categories.ts, apps/worker/src/services/auto-assign.ts, apps/worker/src/routes/month-categories.ts, apps/worker/src/mcp/tools/month-categories.ts, apps/worker/src/mcp/tools/months.ts, apps/worker/src/mcp/tools/auto-assign.ts, apps/worker/test/card-payments.test.ts, apps/worker/test/credit-call-count.test.ts, apps/worker/test/credit-engine.test.ts, apps/worker/test/auto-assign.test.ts, apps/worker/test/mcp-coverage/months.ts, apps/worker/test/mcp-timestamps.test.ts, apps/worker/test/month-summary.test.ts, apps/worker/test/plan-export-calls.test.ts, apps/web/src/plan/**, apps/web/src/pages/plan.tsx, apps/web/src/api/months.ts, e2e/card-payments.spec.ts, e2e/plan-narrow.spec.ts, e2e/plan-requests.spec.ts, e2e/auto-assign-layout.spec.ts, e2e/auto-assign.spec.ts, e2e/plan-grid.fixtures.ts, e2e/support/real-click.ts, e2e/credit-overspending.spec.ts, e2e/plan-panel.spec.ts, e2e/plan-grid.spec.ts, e2e/plan-selection.spec.ts, docs/card-payments-design.md, docs/card-payments-spec.md, docs/card-payments-polish.md, docs/README.md, docs/credit-engine-polish.md, docs/plan-export-design.md]
+touches: [packages/core/src/budget-engine.ts, packages/core/src/card-payment.ts, packages/core/test/**, packages/schema/src/months.ts, packages/schema/src/month-categories.ts, packages/schema/src/month-totals.ts, packages/schema/src/auto-assign.ts, packages/schema/test/**, apps/worker/src/repositories/card-flows.ts, apps/worker/src/services/months.ts, apps/worker/src/services/month-categories.ts, apps/worker/src/services/auto-assign.ts, apps/worker/src/routes/month-categories.ts, apps/worker/src/mcp/tools/month-categories.ts, apps/worker/src/mcp/tools/months.ts, apps/worker/src/mcp/tools/auto-assign.ts, apps/worker/test/card-payments.test.ts, apps/worker/test/credit-call-count.test.ts, apps/worker/test/credit-engine.test.ts, apps/worker/test/auto-assign.test.ts, apps/worker/test/mcp-coverage/months.ts, apps/worker/test/mcp-timestamps.test.ts, apps/worker/test/month-summary.test.ts, apps/worker/test/plan-export-calls.test.ts, apps/web/src/plan/**, apps/web/src/pages/plan.tsx, apps/web/src/api/months.ts, e2e/card-payments.spec.ts, e2e/plan-narrow.spec.ts, e2e/plan-requests.spec.ts, e2e/auto-assign-layout.spec.ts, e2e/auto-assign.spec.ts, e2e/plan-grid.fixtures.ts, e2e/support/real-click.ts, e2e/credit-overspending.spec.ts, e2e/plan-panel.spec.ts, e2e/plan-grid.spec.ts, e2e/plan-selection.spec.ts, e2e/record-payment.spec.ts, e2e/month-nav.spec.ts, docs/card-payments-design.md, docs/card-payments-spec.md, docs/card-payments-polish.md, docs/README.md, docs/credit-engine-polish.md, docs/plan-export-design.md]
 shared: [packages/core/src/budget-engine.ts — cardFlows input, per-card credit parts and the payment field of the read model; packages/core/src/card-payment.ts — the pure payment state beside the engine (Lead's note 8)]
 migrations: 0
 
-`apps/web/src/plan/**` includes `columnWidths.ts`. `mcp-timestamps.test.ts` gains one `NOT_CALLED` entry and
+`apps/web/src/plan/**` includes `columnWidths.ts` and `MonthPicker.tsx` (2c). `e2e/record-payment.spec.ts`: the
+two waits only; `e2e/month-nav.spec.ts`: only if 2c fixes the spec. `mcp-timestamps.test.ts` gains one `NOT_CALLED` entry and
 `plan-export-calls.test.ts` its count (15 → 16); `month-summary.test.ts` one `payment: null`. No dependency.

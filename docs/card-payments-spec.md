@@ -313,6 +313,14 @@ that file.
   services, repositories, routes and tools, the matching `packages/schema/src` files, `zip.ts`, the migrations
   `20261116101300`/`20261116101400`, or any `paths.always_overlap` file.
 
+**T15. Second carry-over (2026-11-17; done T1–T14, no new code planned).**
+- `pnpm check`, then `pnpm e2e` **once** (whole suite, foreground); report the totals. Change code only for a
+  failure, a Designer/Reviewer/Tester finding, or 2c.
+- Old-code runs (design § Carry-over 2 and 2b): the three files at `49ad5f6` for cases 21 and 28; the old
+  Record Payment `onClick` for case 26. Quote the failing lines, restore with `git checkout HEAD -- <file>`.
+- 2c: `MonthPicker.tsx`/`PlanHeader.tsx` fix with a test in `e2e/month-nav.spec.ts`, or the spec alone.
+- `e2e/record-payment.spec.ts`: nothing beyond the two existing waits.
+
 ## Verify
 - `pnpm check` is green.
 - The new specs and the touched specs pass with `--repeat-each=3`.
