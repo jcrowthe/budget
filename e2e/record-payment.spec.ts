@@ -105,6 +105,8 @@ test("Payment from, the fixed category, saving, and both sides' display (539 AC3
 }) => {
   const s = await seedCard(request);
   await open(page, s.plan, s.visa);
+  // The button stays disabled until the card's payment figure has settled: wait for it, as case 539 AC2 does.
+  await expect(button(page, "Record Payment")).toBeEnabled();
   await realClick(page, button(page, "Record Payment"));
   await payee(page).fill("");
   await payee(page).click();
@@ -163,6 +165,8 @@ test("Payment from, the fixed category, saving, and both sides' display (539 AC3
 
   // A second payment of 185.00 overpays the category.
   await open(page, s.plan, s.visa);
+  // The button stays disabled until the card's payment figure has settled: wait for it, as case 539 AC2 does.
+  await expect(button(page, "Record Payment")).toBeEnabled();
   await realClick(page, button(page, "Record Payment"));
   await payee(page).fill("Payment from ZZ-TEST Checking");
   await realClick(
