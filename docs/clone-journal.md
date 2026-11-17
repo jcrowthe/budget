@@ -11162,3 +11162,39 @@ Finished since each template's last review: Build 5, Deploy 2, Discover 2, Test 
 **Next plan:** the brief for EXF-463's register screens, started beside the bank-linking Build
 once its manifest shows that the two stay apart, and late enough in the rate-limit window (it
 turns at about 19:00Z) that a pause cannot cost both boxes.
+
+### 2026-11-17 · Plan round 127
+
+Children used 143 of 200. Nothing started this round. Two children run: the bank-linking screens
+Build (`p_e8c64873b67341c39fd61bdf62633a2d`) and the flow test of flows 2, 3 and 4
+(`p_7fe8174a2d3e40838a84c82548c99c85`). Main and live are both `8e54173`.
+
+**The brief for EXF-463's register screens is written** (with EXF-680, EXF-681 and EXF-728 as
+riders, because the new attention column changes the same column widths at 1024 px). It is kept
+in my scratch folder (`brief_172_approve.md`) and not started, for one reason:
+
+**The browser download is failing in the boxes today.** The bank-linking Build's Clerk failed it
+twice (17:41Z and 17:44Z: "Failed to download Chrome for Testing ... Download failure") and has
+asked for help. I measured from my own box: the download address at `cdn.playwright.dev` answers
+at once with a redirect to `storage.googleapis.com`, and that host timed out in two of three
+tries (25 s each) and answered the third in 7 s. So the fault is the network path to that host,
+not a box and not the repository. A second Build started now would stall at the same step and
+could cost a child.
+
+**What I do about it:**
+- The Clerk's card comes to me in a side turn. I tell it to try the download a few more times
+  and then to go on either way, saying whether the browser is there: the design step does not
+  need it, and every later step's brief already says to install it before a browser spec.
+- If the download stays impossible, no Build can pass its gate, because the suite runs on the
+  downloaded browser. Then **EXF-558 (run the suite on the system Chrome, which every box has)
+  becomes the first thing to build**, alone, since it changes `playwright.config.ts`.
+- The flow test's brief already tells it to use the system Chrome if the download fails.
+
+**What EXF-463's brief decides** (for when it starts): nothing in the source is opened (the
+ticket holds the measured values); the banner's number is the account read's
+`needs_attention_count`, no extra request; while View is on, every row that needs attention
+shows, whatever the View options hide; Undo of a reject is out (EXF-530); the sidebar's dot is
+the other Build's; the shell, `apps/web/src/account/**` and the account read are out of its
+bounds so that the two Builds stay apart.
+
+No template review is due (Build 5, Deploy 2, Discover 2, Test user flow 3). No ticket write.
