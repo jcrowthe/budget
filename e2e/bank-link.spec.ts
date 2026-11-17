@@ -47,6 +47,7 @@ function bank() {
   const old = fakeBankAccount({ name: "ZZ Old", mask: "9999", current_balance: 10000 });
   const connection: FakeConnection = fakeConnection({
     nickname: "ZZ Bank",
+    last_synced_at: new Date(Date.now() - 3_600_000).toISOString(), // 1 h ago: not due on its own
     accounts: [checking, savings, card, old],
   });
   return { checking, savings, card, old, connection };
@@ -84,6 +85,8 @@ async function setup(
   });
   await stubPlaidLink(page, { success: PUBLIC });
   await page.goto(`/${budgetId}/budget`);
+  // The plan's open-sync decision is made when its accounts first load: let it happen before the bank connects.
+  await expect(sidebar(page).getByRole("link", { name: /ZZ Linked/ })).toBeVisible();
   return { b, budgetId, stub };
 }
 async function openStep(page: Page) {
