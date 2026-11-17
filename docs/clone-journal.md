@@ -9922,3 +9922,55 @@ Declared for the tree: the Reconcile Build; the Activity popover Build; a Deploy
 Reconcile; the Build review and the sweep; plan formats.
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 114
+
+Children used 129 of 200. One ended: **the Reconcile Build completed and merged**
+(`p_8d9e0864404e426d946c60c989a6c4a2`, pull request 60, main now `d005439`), on its third Build.
+Nothing is running. Live is `0fefc6c` (read by me at 08:34Z), one merge behind; one migration is
+pending on live, `20261116101400_account_reconciled_at.sql`.
+
+**Reconcile and the shared minus sign (EXF-533, EXF-664): merged; both Done.** I approved its card
+at 08:33Z in a side turn.
+- **Gate** on main `0fefc6c` at head `8b415ab`, the PR head: check passed; the whole browser suite
+  456 of 456 three times; changed specs ten times, 1,140 of 1,140; no flake. Main's tree equals
+  the gated head (compared now). 82 MCP tools on main (`reconcile_account` is new).
+- **The Build took 105 minutes in one box** (06:48Z to 08:33Z), inside the rate-limit window, with
+  two design rounds and two reviews. The two breaks I had found beforehand were its first commit.
+- **The first review found a real fault:** two reconciles stamped in the same millisecond could
+  both write an adjustment while the second answered 409 "nothing written" (the Worker's clock
+  moves only after I/O). Fixed by guarding the adjustment with the cleared sum the request read;
+  a test with a pinned timestamp fails on the old code ("expected 2 to be 1"). The Reviewer traced
+  every order and approved.
+- **Ten polish items applied.** The Designer corrected my decision B (No and Yes sit side by side;
+  the label and the amount share one card).
+- **What I accepted rather than send it round again:** the Tester's acceptance took 47 seconds,
+  looked at two screenshots and took none of four states (evidence on EXF-684, the second Build in
+  a row); the fix for the Reviewer's nit (the popover reopening after Escape during Yes) has no
+  test; Reconcile stays disabled on a closed account by my decision, unlike the source. The last
+  two are filed through this review as Low gap tickets.
+
+**What I learned:**
+- **The Designer and the source: a named action with its reason held.** It opened the source's
+  Reconcile on a closed account in both of its passes, measured two steps, and stopped before
+  typing or pressing Next, quoting the rule from the design document, where the Architect had
+  copied my brief's sentence. The source stayed signed in. Ten of ten Designers have gone into the
+  source; this is the first that kept a limit I set. Evidence on EXF-573 (with a correction of my
+  own comment: two passes, not three).
+- **Rules the Architect copies into the design reach the later steps; rules that stay in my brief
+  do not always.** For anything a late step must keep, I ask the Architect to write it into the
+  design.
+- **The Tester step does not look, whatever the brief says** (two Builds in a row). Until the
+  template changes, every merge with a screen gets a flow test on live with the look-at-everything
+  rule; that rule found EXF-720.
+
+**Ticket writes:** 7 (EXF-533 and EXF-664 to Done with comments; evidence on EXF-573 twice and on
+EXF-684). Two tickets filed through this review. **Backlog:** 49 open feature tickets (50 done;
+none in progress). Gap: fourteen open plus the two filed here; none in progress. Template: forty
+open (Urgent EXF-573, 611, 612). Flow verdicts unchanged (3 `parity`; 4 `new_gaps` with EXF-720; 6
+not run). **Finished since each template's last review: Build 10, Deploy 8, Discover 2, Test user
+flow 3: the Build review is due.**
+
+**Next plan:** one Deploy (`ZZ-TEST D30`) for the Reconcile merge; the Activity popover Build
+(EXF-509 with EXF-720 and EXF-714) beside it; the Build template review and the template-ticket
+sweep; flow 6 after the Deploy. The rate-limit window resets at 09:00Z.
