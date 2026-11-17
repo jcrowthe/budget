@@ -84,6 +84,7 @@ const cat = (id: string, assigned: number, available: number) => ({
   target: null,
   note: null,
   target_snoozed: false,
+  payment: null,
 });
 const detail = (): MonthDetail => ({
   month: "2026-11-01",

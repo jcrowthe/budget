@@ -20,6 +20,7 @@ const cat = (id: string, o: Partial<MonthCategoryDetail> = {}): MonthCategoryDet
   target: null,
   note: null,
   target_snoozed: false,
+  payment: null,
   ...o,
 });
 
@@ -107,6 +108,7 @@ describe("categoryMonth", () => {
       credit_activity: 0,
       available: 140000,
       note: "n",
+      payment: null,
     });
   });
   it("splits activity into cash and credit (EXF-535)", () => {
