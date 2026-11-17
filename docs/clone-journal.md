@@ -11858,3 +11858,47 @@ Test user flow 5.
 
 **Next plan:** Deploy D35 for `2d9cde7` (both merges in one release; `ZZ-TEST D35`); then flow 5
 again on live.
+
+### 2026-11-17 · Plan round 134
+
+Children used 150 of 200 (149 before this plan; one started). Main is `2d9cde7`; live is
+`9ecd379` until the Deploy below releases. The person has not answered the check-in.
+
+**The ticket filed at the last review exists: EXF-783** (the scheduled-transactions spec that
+failed once in a full run); priority Low.
+
+**Status of the running child (23:30Z):** the import-start Build
+(`p_4333153b783043d392848313d6d594a0`) is at its polish step after 44 minutes, no open card.
+
+**Started: Deploy D35** (`p_0968d3d245324acfbcb5275ac971e2f4`) for `2d9cde7`, gated head
+`e2498aa` (trees equal), prefix `ZZ-TEST D35`: one release for two merges (the register's approve
+screens and Manage Bank Connections). No migration.
+- I read both designs before writing the checks and took every sentence from them (the banner's
+  words, the Approval panel, the disabled Reject's title, the chip's name, the modal's groups and
+  the detail's sections).
+- **The register:** unapproved rows are made through the API (two on one account, one of them
+  without a category; one approved row without a category on another account). My figures,
+  checked twice: needs-attention 2 and 1; the banner reads 2, then 1 after Approve on the row
+  with a category, then is gone after the pill's category choice; All Accounts then reads 1.
+  **The narrow column must disappear when no listed row is unapproved**, and must be absent on
+  the account whose only such row is approved and uncategorized.
+- Reject from the row cannot be checked here (no API makes an imported row): flow 5 does it.
+- **Manage Bank Connections is looked at only.** The live app holds two Sandbox connections that
+  are not a child's (made on 16 Nov by a signed-in person). The brief names every button the
+  verifier must not press (Save, Reset, Repair, Remove, Unlink, a bank account's row, Add a New
+  Bank Connection), allows a connection's row, Back and Close, and has it compare the connection
+  list through REST before the purge with what it saw at the start. The plan menu's entry is
+  reached by keyboard only, as in D33.
+- The narrow-window fixes of EXF-760 and EXF-728 are measured at 1024×700; EXF-773 needs a
+  linked account and is left to flow 5.
+
+**Cards:** if the import-start Build's card arrives while this Deploy is releasing, I wait for
+the release to end before I approve (a few minutes, inside the side turn).
+
+**Not started:** flow 5 (live must be `2d9cde7` first). No second Build: the next one is chosen
+at the next plan from the whole backlog; I want to look at what a real plan with linked
+investment or loan accounts needs (EXF-546, EXF-547) before more polish of the bank screens.
+**Build template review:** nine Builds have finished since the last one; the tenth is the Build
+now running, so the review starts when it ends.
+
+Ticket writes: 1 (EXF-783 priority).
