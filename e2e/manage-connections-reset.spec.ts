@@ -158,10 +158,7 @@ test("12 Repair: banner and Repair run the same calls; broken offers Remove; del
   ).toBeVisible();
 });
 
-test("13 Remove: the confirmation, one DELETE, the list without it", async ({
-  page,
-  request,
-}) => {
+test("13 Remove: the confirmation, one DELETE, the list without it", async ({ page, request }) => {
   const { stub } = await setup(page, request, (z) => [z.connection]);
   const detail = await openDetail(page, "ZZ Bank");
   await realClick(page, detail.getByRole("button", { name: "Remove", exact: true }));

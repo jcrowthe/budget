@@ -183,3 +183,40 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* EXF-773: at 1024×700 the linked account's Sync Now and Unlink Account are whole on opening. Above 760px nothing changes. */
+@media (max-height: 760px) {
+  .edit-account hr {
+    margin-bottom: var(--space-2);
+  }
+  .edit-account .form-body h3 {
+    margin-bottom: var(--space-1);
+  }
+  .dialog.form.edit-account .field {
+    margin-bottom: var(--space-2);
+  }
+  .dialog.form.edit-account input.field {
+    margin-top: var(--space-1);
+  }
+  .edit-account .helper {
+    margin-bottom: var(--space-2);
+  }
+  .edit-account .error-bar {
+    margin-top: calc(-1 * var(--space-2));
+    margin-bottom: var(--space-2);
+  }
+  .edit-account .sync-line {
+    margin-bottom: var(--space-2);
+  }
+}
+
+/* Sync Now / Syncing…: both labels share one grid cell, so the button's width never changes and Unlink Account stays put. */
+.edit-account .sync-label {
+  display: inline-grid;
+}
+.edit-account .sync-label > span {
+  grid-area: 1 / 1;
+}
+.edit-account .sync-label > span[aria-hidden="true"] {
+  visibility: hidden;
+}
