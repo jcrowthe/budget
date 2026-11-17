@@ -23,6 +23,7 @@ import { useSaveTransaction } from "../api/transactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AccountField } from "./AccountField";
 import { AmountField } from "./AmountField";
+import { useAttentionColumn } from "./attention-filter";
 import { Box } from "./Box";
 import { ReconciledSaveDialog } from "./BulkDialogs";
 import { CategoryField } from "./CategoryField";
@@ -330,8 +331,13 @@ export function EntryRow({
   };
 
   const { showFlags, showBalance } = useRegisterView();
+  const attentionCol = useAttentionColumn();
   const colCount =
-    (plan ? 1 : 0) + (showCategory ? 1 : 0) + 7 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
+    (plan ? 1 : 0) +
+    (showCategory ? 1 : 0) +
+    (attentionCol ? 7 : 6) +
+    (showFlags ? 1 : 0) +
+    (showBalance ? 1 : 0);
   const parentAmount = draftAmount(draft, fmt);
 
   const autoDistributeLines = () => {
@@ -363,7 +369,7 @@ export function EntryRow({
         <td className="cell-check">
           <Box state label="Select transaction" tabIndex={-1} onClick={() => {}} />
         </td>
-        <td className="cell-attention" />
+        {attentionCol && <td className="cell-attention" />}
         {showFlags && <td className="cell-flag" />}
         {plan && (
           <td data-field="account">
@@ -507,7 +513,7 @@ export function EntryRow({
           total={parentAmount}
           payees={payeesQ.data ?? []}
           month={monthQ.data}
-          lead={2 + (showFlags ? 1 : 0) + (plan ? 1 : 0)}
+          lead={(attentionCol ? 2 : 1) + (showFlags ? 1 : 0) + (plan ? 1 : 0)}
           showBalance={showBalance}
           showCategory={showCategory}
           onChange={patchLine}

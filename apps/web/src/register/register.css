@@ -14,6 +14,8 @@
   --register-actionbar-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.15);
   --register-actionbar-hover: rgba(255, 255, 255, 0.15);
   --register-menu-bg: #1f2038;
+  --register-banner-bg: #292c6c;
+  --register-primary-active: #7583ff;
   --register-menu-hover: #292b3d;
   --register-keycap-bg: rgba(114, 116, 132, 0.24);
   --register-menu-disabled: #9b9caa;
@@ -141,8 +143,9 @@
 .register-table .col-cleared {
   width: 36px;
 }
+/* Source (getComputedStyle on the shown column, dark theme): 26px. */
 .register-table .col-attention {
-  width: 24px;
+  width: 26px;
 }
 .register-table .col-account {
   width: 10%;
@@ -324,7 +327,7 @@
 .needs-category {
   display: inline-block;
   box-sizing: border-box;
-  height: 22px;
+  height: 24px;
   padding: 0 8px;
   border: 1px solid var(--register-needs-category);
   border-radius: 24px;
@@ -332,7 +335,7 @@
   color: var(--register-needs-category-label);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  line-height: 20px;
+  line-height: 22px; /* source: 24px high, 22px label line plus the 1px borders */
 }
 .register-table td.register-message {
   height: auto;
@@ -924,11 +927,14 @@
   overflow: visible;
   text-align: center;
 }
+/* Source: the header keeps its 1px right border like the flag and date headers; icon colour --iconFillPrimary
+   (#9b9caa, the same value as --labelTertiary). */
 .register-table th.cell-attention {
-  border-right: 0;
-  color: var(--register-icon-muted);
+  color: var(--labelTertiary);
 }
 .register-table th.cell-attention svg {
+  position: relative;
+  top: 1px;
   vertical-align: middle;
 }
 .register-table tbody tr.is-unapproved td {
@@ -938,12 +944,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  /* Source (.transaction-notification button): 16x16, margin-top 3px, icon 14x14, colour --labelAction. */
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--actionPrimary);
+  color: var(--register-label-action);
   cursor: pointer;
 }
 .attention-button:focus-visible {
@@ -951,24 +959,33 @@
   border-radius: 50%;
   box-shadow: 0 0 0 2px var(--actionPrimary);
 }
+.attention-button svg {
+  width: 14px;
+  height: 14px;
+}
 .attention-menu-error {
   margin: 4px 12px 8px;
   color: var(--labelNegative);
   font-size: var(--font-size-sm);
   white-space: normal;
 }
+/* Source (.accounts-notification-item-approval-or-category, dark): background #292c6c, 8px 16px padding (48px high),
+   16px/400 text with 6px side margins, the whole banner clickable; on hover the banner turns #545bfe and View
+   #7583ff. View: 32px, radius 8px, 16px/500, padding 0 16px, min-width 84px, no border. */
 .attention-banner {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
   box-sizing: border-box;
   width: 100%;
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  background: var(--buttonPrimaryBackground);
+  padding: var(--space-2) var(--space-3);
+  background: var(--register-banner-bg);
   color: var(--labelPrimary);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: 400;
+  cursor: pointer;
+}
+.attention-banner:hover {
+  background: var(--buttonPrimaryBackground);
 }
 .attention-banner svg {
   flex: none;
@@ -976,21 +993,53 @@
 .attention-banner p {
   flex: 1;
   min-width: 0;
-  margin: 0;
+  margin: 0 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .attention-banner-view {
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--labelPrimary);
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: inherit;
+  box-sizing: border-box;
+  height: 32px;
+  min-width: 84px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
   font: inherit;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  text-align: center;
   cursor: pointer;
+}
+.attention-banner:hover .attention-banner-view,
+.bulk-item.approval-button:hover {
+  background: var(--register-primary-active);
+}
+/* Source (.modal-account-approve-reject): a 320px panel, 16px padding, stacked full-width 32px buttons 8px apart. */
+.bulk-popover-body.is-approval .bulk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+.bulk-item.approval-button {
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+.bulk-item.approval-button[aria-disabled="true"] {
+  padding-block: 0;
+  opacity: 0.5;
+}
+.bulk-item.approval-button[aria-disabled="true"]:hover {
+  background: var(--buttonPrimaryBackground);
 }
 .attention-filter-row {
   padding: var(--space-2) var(--space-3);

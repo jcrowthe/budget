@@ -8,7 +8,9 @@ export function AttentionBanner({ count }: { count: number | undefined }) {
   if (!count) return null;
   const text = attentionBannerText(count);
   return (
-    <section className="attention-banner" aria-label="New transactions">
+    // biome-ignore lint/a11y/useKeyWithClickEvents: the View button inside takes the keys; the banner is a larger click target
+    // biome-ignore lint/a11y/noStaticElementInteractions: same
+    <section className="attention-banner" aria-label="New transactions" onClick={() => setOn(true)}>
       <InfoCircleIcon />
       <p title={text}>{text}</p>
       <button type="button" className="attention-banner-view" onClick={() => setOn(true)}>

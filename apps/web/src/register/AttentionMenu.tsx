@@ -62,7 +62,9 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
           <Popover
             anchor={button.current}
             placement="below"
-            width={200}
+            width={320}
+            bodyClass="is-approval"
+            align="start"
             label="Approval"
             onClose={close}
           >
@@ -71,7 +73,7 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
                 <button
                   type="button"
                   role="menuitem"
-                  className="bulk-item"
+                  className="bulk-item approval-button"
                   onClick={() => void choose("approve")}
                 >
                   Approve Transaction
@@ -81,7 +83,7 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
                 <button
                   type="button"
                   role="menuitem"
-                  className="bulk-item"
+                  className="bulk-item approval-button"
                   aria-disabled={rejectable ? undefined : "true"}
                   title={rejectable ? undefined : "Only an imported transaction can be rejected"}
                   onClick={() => rejectable && void choose("reject")}

@@ -10,4 +10,8 @@ export function AttentionFilterProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** True while the listed rows include an unapproved one: only then does the table show its attention column. */
+export const AttentionColumnContext = createContext(false);
+export const useAttentionColumn = () => useContext(AttentionColumnContext);
+
 export const useAttentionFilter = () => useContext(Ctx);

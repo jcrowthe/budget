@@ -130,7 +130,8 @@ test.describe("at 1024x700", () => {
       await expect(page.getByRole("region", { name: "New transactions" })).toContainText(BANNER(3));
       await headersOk(page);
       expect((await headerBox(page, "CATEGORY")).width).toBeGreaterThanOrEqual(88);
-      expect((await headerBox(page, "Approval")).width).toBeCloseTo(24, 0);
+      // Source (getComputedStyle on the shown column, dark theme, Designer polish P2): 26px.
+      expect((await headerBox(page, "Approval")).width).toBeCloseTo(26, 0);
       // The banner's View and the icon's menu lie inside the window.
       const view = await page
         .getByRole("region", { name: "New transactions" })

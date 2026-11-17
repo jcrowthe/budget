@@ -252,3 +252,43 @@ test("bulk Approve of three ticked rows, and a closed account still shows its ba
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await expect(banner(page)).toContainText(BANNER(1));
 });
+
+test("the attention column and the banner are absent when no row needs approval", async ({
+  page,
+  request,
+}) => {
+  const s = await seedApprove(request);
+  await call(request, "POST", `/api/v1/budgets/${s.plan}/transactions/approve`, {
+    ids: s.unapproved,
+  });
+  await call(request, "PATCH", `/api/v1/budgets/${s.plan}/transactions/${s.unapproved[2]}`, {
+    category_id: s.food,
+  });
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  await expect(rowOf(page, "ZZ Ok One")).toBeVisible();
+  // Source: the column is display:none with no unapproved row (Designer polish P1).
+  await expect(page.getByRole("columnheader", { name: "Approval", exact: true })).toHaveCount(0);
+  await expect(banner(page)).toHaveCount(0);
+});
+
+test("the banner is one click target and the approval menu is 320px, clear of the sidebar", async ({
+  page,
+  request,
+}) => {
+  const s = await seedApprove(request);
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  // Source (Designer polish P6, P7, dark): banner 48px high, #292c6c; View 32px; the menu panel 320px wide.
+  const b = await banner(page).boundingBox();
+  expect(Math.round(b?.height ?? 0)).toBe(48);
+  expect(await banner(page).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+    "rgb(41, 44, 108)",
+  );
+  await realClick(page, icon(page, "ZZ New One"));
+  const m = await menu(page).boundingBox();
+  expect(Math.round(m?.width ?? 0)).toBe(320);
+  const side = await page.getByRole("navigation", { name: "Sidebar" }).boundingBox();
+  expect((m?.x ?? 0) >= (side?.x ?? 0) + (side?.width ?? 0)).toBe(true);
+  await page.keyboard.press("Escape");
+  await realClick(page, banner(page));
+  await expect(page.getByRole("button", { name: /Remove filter/ })).toBeVisible();
+});

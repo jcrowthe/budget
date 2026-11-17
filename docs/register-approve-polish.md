@@ -1,13 +1,11 @@
 # Register: approve, reject, attention and the banner (polish list)
 
-Every item is "not compared: built from the ticket" (nothing was opened in the source app). Status is set by the
-step that applies it.
+Designer's list, measured against the source in dark. Status set by the step that applied it.
 
-| # | Item | Checked against | Status |
-|---|---|---|---|
-| 1 | Unapproved rows' text 600, approved 500 | EXF-463 "Register display" | built; `e2e/register-approve.spec.ts` |
-| 2 | Attention column 24 px, header info icon, circled "i" in the accent colour on unapproved rows only | EXF-463 | built; header width asserted in `register-attention-narrow.spec.ts` |
-| 3 | Pill: amber `rgb(218, 172, 0)`, text `rgb(54, 44, 5)`, 14 px, 600, 8 px sides, fully rounded; tooltip words | EXF-463 | built (`entry.css` also set 12 px: changed) |
-| 4 | Banner above the account header, full width, accent background, info icon, count text, `View` at the right | EXF-463 | built; 40 px high, colours from tokens |
-| 5 | Chip "Unapproved or Uncategorized" with a ×, same size as the flag pill | EXF-463 | built |
-| 6 | Header cells clip with an ellipsis and carry their word in `title`; CATEGORY ≥ 88 px at 1024 px | EXF-728, EXF-760 | built; widths in the design |
+- P1 [applied] The attention column (col, th, cells, the extra colSpan, the entry row's cell and split `lead`) is rendered only when a listed row is unapproved (source: display:none otherwise). `AttentionColumnContext` carries it to `EntryRow` and `ScheduledSection`. The departures in `all-accounts.spec.ts` and `register.spec.ts` are reverted (their seeds have no unapproved row); `register-attention-narrow.spec.ts` seeds unapproved rows.
+- P2 [applied] `col-attention` 26px; the header keeps its 1px right border. The two extra px come out of payee/memo's percentages as before; CATEGORY stays ≥ 88px at 1024px in every state (spec).
+- P3 [applied] Header icon is the filled `InfoCircleFillIcon`, 14x16, top 1px, `--labelTertiary` (#9b9caa, same value as the source's --iconFillPrimary).
+- P4 [applied] `.attention-button` 16x16, margin-top 3px, icon 14x14, `--register-label-action`.
+- P5 [applied] `.needs-category` 24px high, line-height 22px.
+- P6 [applied] Banner `--register-banner-bg` #292c6c, 8px 16px padding (48px), 16px/400, 6px text margins, whole banner turns the filter on, hover #545bfe with View #7583ff (`--register-primary-active`, a register token); View 32px, radius-lg, 16px/500, min-width 84px.
+- P7 [applied] Approval popover 320px, `bodyClass` `is-approval` (16px padding, stacked full-width 32px primary buttons, 8px gap); `Popover` gained `align="start"` (this use only) so the panel starts at the icon and stays clear of the sidebar. Roles, labels and the disabled Reject title kept; the disabled Reject is drawn at 50% opacity.
