@@ -9782,3 +9782,45 @@ at 03:00Z today with no due schedule of mine on live); multi-run bank sync.
 
 **Next plan:** flows 3 and 4 on live (the Plan page and the card, every state at both sizes), and
 flow 10 with the import; they can run beside the Build (no Deploy starts until they end).
+
+### 2026-11-17 · Plan round 113
+
+Children used 129 of 200. Started one flow test. Main and live `0fefc6c`. No tickets were filed at
+the last review. The person has not answered the round-110 check-in.
+
+**Started: flows 3 and 4 on live in one run** (`p_ad1b056c3b91409d84f2b8182ba6d83b`, prefix
+`ZZ-TEST F113`). One child for both, because both walk the Plan page and each alone is short.
+- **Flow 3, second run, short:** two targets and one overspent category; plan-wide Underfunded
+  1,060.00 applied (Ready to Assign 3,000.00 to 1,940.00) and then listed at $0.00; the one-category
+  card without an Underfunded row; the card's heights (352 and 304 px); **a view holding one
+  category stays plan-wide** (the behaviour EXF-714 wants a test for); December (Ready to Assign
+  1,910.00, Underfunded 1,060.00 by the refill rule found in the first run); the page at 1024×700
+  with long names.
+- **Flow 4, third run:** five cards, one per payment state (paid off, enough, underfunded by a
+  starting debt of 1,200.00, overpaid by 50.00, 30.00 of overspent categories); the pills' text,
+  colour and class; each Payment card's words; the balance breakdown; Cover Overspent Categories;
+  Auto-Assign for a payment row (Ready to Assign 1,500.00 to 300.00); Record Payment from the
+  inspector (ZZ Checking 1,615.00 to 1,495.00); December after an overpayment; the tool
+  `get_card_payment_status` for all five.
+- **New rule in this brief (rule 15), because the Build's Tester accepted these screens on tests:**
+  a fresh screenshot of every named state at both sizes, opened, with one sentence on what is seen.
+  Also: the setup script runs once (the Deploy's verifier doubled a transaction by running it
+  twice).
+- Where I do not predict (the pill of the overspent-categories card, the Auto-Assign amounts for
+  past payments, the paid-off card after Record Payment), the brief says so.
+- **Not started: flow 10.** Deploy D29 checked the new REST operations and tools on live an hour
+  ago (81 tools, the import round trip, the payment status tool); a further run would spend a
+  child on the same calls.
+
+**Running beside it:** the Reconcile Build (`p_8d9e0864404e426d946c60c989a6c4a2`). A flow test and
+a Build share nothing; no Deploy starts until the flow test ends.
+
+**Not started:** everything else needs the account page or the register (the Reconcile Build), a
+shared module, or the person's word. Reviews: Build 9, Deploy 8, Discover 2, Test user flow 2
+since each template's last review. The template-ticket sweep is due about round 114; I start it
+when the Build review starts, so that the sweep sees that review's tickets.
+
+Declared for the tree: the Reconcile Build; this flow test; a Deploy and flow 6 after Reconcile;
+the Build template review; then plan formats (EXF-468) or the register's view options (EXF-529).
+
+Ticket writes: 0.
