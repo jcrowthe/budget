@@ -48,7 +48,7 @@ export function PaymentHelpDialog({ onClose }: { onClose: () => void }) {
         <div className="popover-buttons delete-footer">
           <span className="popover-spacer" />
           {/* biome-ignore lint/a11y/noAutofocus: a modal takes focus */}
-          <button type="button" className="popover-button" autoFocus onClick={onClose}>
+          <button type="button" className="popover-button is-primary" autoFocus onClick={onClose}>
             Got it!
           </button>
         </div>

@@ -123,6 +123,52 @@ test.describe("card payments, 1440x900", () => {
     await expect(button).toBeFocused();
   });
 
+  // EXF-720: `Got it!` rendered as the browser's default button (white text on rgb(239, 239, 239)).
+  test("13b. Got it! is a primary button", async ({ page }) => {
+    const luminance = (rgb: string) => {
+      const [r, g, b] = (rgb.match(/\d+/g) ?? []).slice(0, 3).map((v) => {
+        const c = Number(v) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      }) as [number, number, number];
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    for (const size of [
+      { width: 1440, height: 900 },
+      { width: 1024, height: 700 },
+    ]) {
+      await page.setViewportSize(size);
+      await open(page, s);
+      const group = page.locator(".group-row", { hasText: "Credit Card Payments" });
+      const payment = group.getByRole("button", { name: "PAYMENT", exact: true });
+      await realClick(page, payment);
+      const dialog = page.getByRole("dialog", { name: "Using Credit Cards", exact: true });
+      const gotIt = dialog.getByRole("button", { name: "Got it!", exact: true });
+      const colours = () =>
+        gotIt.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { background: cs.backgroundColor, color: cs.color };
+        });
+      const check = async (state: string) => {
+        const c = await colours();
+        expect(c.background, `${size.width}px ${state}: background`).toBe("rgb(84, 91, 254)");
+        expect(c.color, `${size.width}px ${state}: colour`).toBe("rgb(255, 255, 255)");
+        expect(contrast(c.background, c.color)).toBeGreaterThanOrEqual(4.5);
+      };
+      await check("at rest");
+      await gotIt.hover();
+      await check("hover");
+      await gotIt.focus();
+      await check("focus");
+      await realClick(page, gotIt);
+      await expect(dialog).toHaveCount(0);
+      await expect(payment).toBeFocused();
+    }
+  });
+
   test("14. the payment pills are green, grey, yellow and red", async ({ page }) => {
     await open(page, s);
     await expect(pill(page, ENOUGH)).toHaveClass(/positive/);

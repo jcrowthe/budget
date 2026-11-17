@@ -1,5 +1,6 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are; the keys are the page's (shortcuts.ts)
+import { activityTitle } from "@budget/schema/category-activity";
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
 import { targetStatusText } from "@budget/schema/target-wording";
 import { useEffect, useRef, useState } from "react";
@@ -179,6 +180,7 @@ export function CategoryRow({
   onPill,
   selected,
   onContextMenu,
+  onActivity,
 }: {
   c: MonthCategoryDetail;
   selected: boolean;
@@ -195,6 +197,8 @@ export function CategoryRow({
   focusRequest: FocusTarget | null;
   onFocusDone: () => void;
   onPill: (anchor: HTMLElement) => void;
+  /** A click on a non-zero Activity amount of an ordinary category: its transactions popover (EXF-509). */
+  onActivity: (anchor: HTMLElement) => void;
 }) {
   const status = bars && c.target && c.available >= 0 ? targetStatusText(c) : null;
   const label = bars && !status ? statusLabel(c) : null;
@@ -268,7 +272,19 @@ export function CategoryRow({
         />
       </div>
       <div className="cell-activity" role="cell">
-        <span className={amountClass(c.activity)}>{money(c.activity)}</span>
+        {c.kind === null && c.activity !== 0 ? (
+          <button
+            type="button"
+            className="activity-button"
+            title={activityTitle(money(c.activity))}
+            aria-haspopup="dialog"
+            onClick={(e) => onActivity(e.currentTarget)}
+          >
+            <span className={amountClass(c.activity)}>{money(c.activity)}</span>
+          </button>
+        ) : (
+          <span className={amountClass(c.activity)}>{money(c.activity)}</span>
+        )}
       </div>
       <div className="cell-available" role="cell">
         <AvailablePill
