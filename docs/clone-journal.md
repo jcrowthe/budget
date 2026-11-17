@@ -11198,3 +11198,74 @@ the other Build's; the shell, `apps/web/src/account/**` and the account read are
 bounds so that the two Builds stay apart.
 
 No template review is due (Build 5, Deploy 2, Discover 2, Test user flow 3). No ticket write.
+
+### 2026-11-17 · Review round 127
+
+Children used 143 of 200. One ended: **the flow test of flows 2, 3 and 4 completed**
+(`p_7fe8174a2d3e40838a84c82548c99c85`, 33 minutes). The bank-linking screens Build
+(`p_e8c64873b67341c39fd61bdf62633a2d`) is running, at its build step. Main and live are both
+`8e54173`.
+
+**Flow verdicts on live `8e54173` (no step left out in any flow; "parity" means the clone does
+what the tickets and my figures say; the source was not opened):**
+- **Flow 2 (the register, fifth run): `new_gaps`.** Every figure right. One new gap, **EXF-760**:
+  on All Accounts at 1024 px the CATEGORY column is 41 px wide and its header runs under MEMO.
+  Known and seen again: EXF-679, EXF-680.
+- **Flow 3 (targets, Auto-Assign, next month; third run): `parity`.** The new Euro step held: no
+  `$` and no MM/DD/YYYY date left in text, titles, labels, placeholders or values on the Plan
+  page, the panel, the sidebar and the register.
+- **Flow 4 (the five payment states; fourth run): `parity`.** `Got it!` is white on blue and
+  readable (EXF-720 confirmed on live). Every state, sentence and figure as briefed; MCP equal.
+- So plan formats changed nothing for a plan with the default formats, to the figure, on the
+  screens these three flows walk. Purge `remaining 0`; plans that are not test plans: 1.
+
+**Seen and not filed by the walker (no written rule broken); my reading:**
+- A register save takes about 1.2 s on live; meanwhile the new row is listed, the editor stays
+  open and dimmed, and the header is stale. Not a fault by any ticket. I keep it in mind for the
+  owner's first real use: it is the slowest thing he will feel.
+- "Amount remaining to assign: 0.00 0.00" in the split editor shows bare numbers; not checked in
+  a Euro plan. Small; into the next register Build's brief as a thing to look at.
+- With two payment categories ticked, Underfunded reads $0.00 though each alone has an amount:
+  as designed (`auto-assign.ts`), accepted earlier.
+
+**EXF-760 triaged:** Medium; it becomes a rider of the register Build for EXF-463's screens
+(same file, same width, and that Build adds a column to the same table). I do not know since
+when the column collapses and have not called it a regression.
+
+**The running Build, from two side turns:**
+- Its Clerk failed the browser download twice and asked for help; my own measurement showed the
+  download's host answering again, and the third try worked (17:50Z).
+- Then **the preflight failed: "No open tab of the source app"**, twelve minutes after the Clerk
+  had opened that tab. I chose Proceed without: this Build compares nothing in the source. I do
+  not know why the tab went; the box kept its platform files.
+- **Its manifest has arrived and I checked it against the Build I hold back (EXF-463's
+  screens):** it touches the shell, `apps/web/src/account/**`, `pages/plaid-oauth.tsx`, the
+  account read in the Worker and schema, `e2e/bank-connections.spec.ts`; it does not touch
+  `apps/web/src/register/**`, `pages/account.tsx`, `pages/accounts.tsx` or
+  `api/transactions.ts`. No migration. The two are disjoint but for `docs/README.md`, which is
+  union-merged. One thing to watch at the rebase: its manifest lists `apps/worker/test/*.test.ts`
+  broadly (the account read gains two fields, so tests that compare whole accounts change).
+
+**The flow test's box** had no Playwright browser and no `node_modules`; its platform files were
+there. It installed `playwright-core` in its scratch folder and drove the system Chrome, as its
+brief allowed. Third child today to fall back on the system Chrome (EXF-558).
+
+**What I learned:**
+- Re-running three flows with their old figures after the widest change cost one child and gave
+  a clean answer in half an hour. Worth doing after every change that touches every screen.
+- A walker that has to list "run 1 failed because of my own locator" for seven steps still
+  finished every step: the state-file and marker rules hold.
+- The preflight wants a source tab even for a Build that is told to open nothing in the source.
+  That is a card wait for nothing each time the tab is lost; evidence for the next Build
+  template review (I file no template ticket on one sighting).
+
+**Ticket writes:** 2 (EXF-760's priority and triage note).
+**Backlog:** 46 open feature tickets (53 done; EXF-461 in progress). Gap: twenty-two open (with
+EXF-751 and EXF-760). Template: thirty-nine open (Urgent EXF-573, 611, 612).
+**Flow verdicts now:** 1 `parity_known_gaps`; 2 `new_gaps` (EXF-679, 680, 681, 760); 3 `parity`;
+4 `parity`; 5, 7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run as a flow.
+Finished since each template's last review: Build 5, Deploy 2, Discover 2, Test user flow 4.
+
+**Next plan:** start the register Build for EXF-463's screens beside the running Build, with
+EXF-680, EXF-681, EXF-728 and now EXF-760 as riders, if the rate-limit window allows (it turns
+at about 19:00Z).
