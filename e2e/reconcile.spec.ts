@@ -155,6 +155,10 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
   await expect(bar(page).getByText(/\$20\.00 higher than your actual account\.$/)).toBeVisible();
   await realClick(page, clearedBtn("ZZ Fuel"));
   await expect(bar(page).getByText(/is the same as your actual account\.$/)).toBeVisible();
+  // The button is disabled while the two clears are on their way (EXF-724): a click on it would do nothing.
+  await expect(
+    bar(page).getByRole("button", { name: "Finish Reconciliation", exact: true }),
+  ).toBeEnabled();
   await realClick(
     page,
     bar(page).getByRole("button", { name: "Finish Reconciliation", exact: true }),
