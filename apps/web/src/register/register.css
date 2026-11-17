@@ -845,3 +845,16 @@
 .register-table tr.is-checked td.cell-balance.is-negative {
   color: var(--labelPrimary);
 }
+/* With BALANCE, payee and memo give way so the category column keeps room at 1024px; a pill that does not fit is cut. */
+.register-table.has-balance .col-payee,
+.register-table.has-balance .col-memo {
+  width: 13%;
+}
+.register-table td .needs-category {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: middle;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
