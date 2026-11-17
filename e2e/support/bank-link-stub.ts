@@ -43,6 +43,8 @@ type SyncAnswer = {
   result?: Partial<Record<string, unknown>>;
   status?: number;
   detail?: string;
+  /** The connection sync answers this many ms late (to look at the button while it runs). */
+  delayMs?: number;
 };
 
 export function fakeBankAccount(
@@ -191,7 +193,7 @@ export async function stubBankLink(
     return json(route, 200, { data: { institutions: list } });
   });
 
-  await page.route(/\/api\/v1\/bank-connections/, (route) => {
+  await page.route(/\/api\/v1\/bank-connections/, async (route) => {
     const body = record(route);
     const req = route.request();
     const url = new URL(req.url());
@@ -202,6 +204,7 @@ export async function stubBankLink(
     }
     const sync = /\/bank-connections\/([^/]+)\/sync$/.exec(url.pathname);
     if (sync && req.method() === "POST") {
+      if (opts.afterSync?.delayMs) await new Promise((r) => setTimeout(r, opts.afterSync?.delayMs));
       if (syncFails(route)) return;
       const id = decodeURIComponent(sync[1] as string);
       applySync(id);
@@ -285,11 +288,16 @@ export async function stubBankLink(
     ),
     async (route) => {
       if (route.request().method() !== "GET") return route.fallback();
-      const res = await route.fetch();
-      const body = await res.json();
-      if (body.data?.accounts) body.data.accounts = body.data.accounts.map(overlay);
-      if (body.data?.account) body.data.account = overlay(body.data.account);
-      return route.fulfill({ response: res, json: body });
+      // The page may close while this runs (the end of a test): nothing to answer then.
+      try {
+        const res = await route.fetch();
+        const body = await res.json();
+        if (body.data?.accounts) body.data.accounts = body.data.accounts.map(overlay);
+        if (body.data?.account) body.data.account = overlay(body.data.account);
+        await route.fulfill({ response: res, json: body });
+      } catch {
+        return;
+      }
     },
   );
 

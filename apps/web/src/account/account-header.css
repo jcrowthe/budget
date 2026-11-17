@@ -335,3 +335,11 @@
 .acct-payment-pill svg {
   margin: -0.15rem 0 0 -0.2rem;
 }
+.acct-link-status svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.acct-link-status[data-status]:not([data-status="connected"]) {
+  color: var(--labelNegative);
+}

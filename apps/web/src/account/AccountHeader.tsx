@@ -8,6 +8,7 @@ import { useAccountSummary, useSetStarred } from "../api/accounts";
 import { ClearedFilledIcon, ClearedOutlineIcon } from "../register/icons";
 import { SelectedTotal } from "../register/selection";
 import { ACCOUNT_BADGE, ACCOUNT_TYPE_LABEL } from "../shell/accountTypeLabels";
+import { LinkStatusBadge } from "../shell/bank-link-status";
 import { EditAccountDialog } from "./EditAccountDialog";
 import {
   CardIcon,
@@ -160,6 +161,7 @@ export function AccountHeader({ account }: { account?: Account }) {
               {badgeIcon(account.type)}
               {badge}
             </span>
+            <LinkStatusBadge account={account} className="acct-info-item acct-link-status" />
             <ReconciledLabel at={account.last_reconciled_at} />
           </div>
         </div>

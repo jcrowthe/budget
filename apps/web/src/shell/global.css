@@ -547,6 +547,32 @@ a {
   margin: 0 8px;
   flex: none;
 }
+/* Linked accounts (EXF-461): a small dot for unapproved rows, a check or warning mark for the connection. */
+.nav-unapproved-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 5px;
+  border-radius: 50%;
+  background: var(--labelPrimary);
+}
+.nav-account-row:hover .nav-unapproved-dot,
+.nav-account-row:focus-within .nav-unapproved-dot {
+  visibility: hidden;
+}
+.nav-link-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 100%;
+}
+.nav-link-status[data-status="connected"] {
+  color: var(--labelSecondary);
+}
+.nav-link-status:not([data-status="connected"]) {
+  color: var(--labelNegative);
+}
 .nav-account-row .edit {
   position: absolute;
   left: 8px;

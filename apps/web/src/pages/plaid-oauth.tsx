@@ -1,6 +1,8 @@
 import type { BankConnection } from "@budget/schema/bank-connections";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { type ChooserView, LinkAccountChooser } from "../account/link-account-dialog";
+import { useAccount } from "../api/accounts";
 import { createBankConnection } from "../api/bank-connections";
 import { useBudgets } from "../api/budgets";
 import { ApiError } from "../api/client";
@@ -12,6 +14,7 @@ import {
 import { ChevronLeftIcon, CloseIcon } from "../shell/icons";
 import { loadPlaidLink, plaidExitMessage, takeLinkState } from "../shell/plaidLink";
 import { PlanFormatsProvider } from "../shell/plan-formats-context";
+import { accountPath } from "../shell/planPaths";
 import { useDocumentTitle } from "../shell/useCurrentPlan";
 
 type State =
@@ -19,7 +22,7 @@ type State =
   | { kind: "missing" }
   | { kind: "exit"; budgetId: string; message: string | null }
   | { kind: "error"; budgetId: string; message: string }
-  | { kind: "done"; budgetId: string; connection: BankConnection };
+  | { kind: "done"; budgetId: string; connection: BankConnection; linkAccountId?: string };
 
 /** The same Add Accounts step as the dialog, for the plan the saved state names. */
 function Done({ budgetId, connection }: { budgetId: string; connection: BankConnection }) {
@@ -74,6 +77,39 @@ function Done({ budgetId, connection }: { budgetId: string; connection: BankConn
   );
 }
 
+/** Link Account's own sign-in came back here: choose the bank account to link, then go to the account. */
+function LinkDone({ budgetId, accountId }: { budgetId: string; accountId: string }) {
+  const navigate = useNavigate();
+  const account = useAccount(budgetId, accountId);
+  const [view, setView] = useState<ChooserView>("list");
+  const here = accountPath(budgetId, accountId);
+  return (
+    <div className="dialog-backdrop top">
+      <div className="dialog modal account-modal" role="dialog" aria-label="Link Account">
+        <div className="dialog-head">
+          <h2>Link Account</h2>
+          <Link className="icon-button" aria-label="Close" to={here}>
+            <CloseIcon />
+          </Link>
+        </div>
+        <PlanFormatsProvider budgetId={budgetId}>
+          <div className="account-modal-body bank-link-body">
+            {account.data ? (
+              <LinkAccountChooser
+                budgetId={budgetId}
+                account={account.data}
+                view={view}
+                onView={setView}
+                onLinked={() => navigate(here)}
+              />
+            ) : null}
+          </div>
+        </PlanFormatsProvider>
+      </div>
+    </div>
+  );
+}
+
 /** Resumes Plaid Link after an OAuth bank's redirect, then finishes like the Add Accounts dialog. */
 function PlaidOAuthPage() {
   useDocumentTitle("Bank Connection | Budget");
@@ -103,7 +139,12 @@ function PlaidOAuthPage() {
                   institution_id: metadata?.institution?.institution_id ?? "unknown",
                   institution_name: metadata?.institution?.name,
                 });
-                setState({ kind: "done", budgetId, connection });
+                setState({
+                  kind: "done",
+                  budgetId,
+                  connection,
+                  ...(saved.link_account_id ? { linkAccountId: saved.link_account_id } : {}),
+                });
               } catch (e) {
                 setState({
                   kind: "error",
@@ -124,6 +165,9 @@ function PlaidOAuthPage() {
   const back =
     state.kind === "resuming" || state.kind === "missing" ? "/" : `/${state.budgetId}/budget`;
 
+  if (state.kind === "done" && state.linkAccountId) {
+    return <LinkDone budgetId={state.budgetId} accountId={state.linkAccountId} />;
+  }
   if (state.kind === "done")
     return <Done budgetId={state.budgetId} connection={state.connection} />;
 
