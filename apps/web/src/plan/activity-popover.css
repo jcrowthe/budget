@@ -1,0 +1,70 @@
+/* The Activity popover (EXF-509): the plan's Popover box, with a scrolling table inside. */
+.activity-title {
+  margin: 0;
+  color: var(--labelPrimary);
+  font-size: 16px;
+  font-weight: 600;
+}
+.activity-subtitle {
+  margin: 0 0 8px;
+  overflow: hidden;
+  color: var(--labelSecondary);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-list {
+  overflow-y: auto;
+}
+.activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+.activity-table .col-date {
+  width: 88px;
+}
+.activity-table .col-amount {
+  width: 96px;
+}
+.activity-table .col-account,
+.activity-table .col-memo {
+  width: 30%;
+}
+.activity-table .col-payee {
+  width: 35%;
+}
+.activity-table th {
+  position: sticky;
+  top: 0;
+  padding: 4px;
+  background: var(--backgroundTertiary);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-align: left;
+  text-transform: uppercase;
+}
+.activity-table td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--separatorStandard);
+  overflow: hidden;
+  color: var(--labelPrimary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.activity-table td.negative {
+  color: var(--labelNegative);
+}
+.activity-note,
+.activity-more {
+  margin: 8px 0 0;
+  color: var(--labelSecondary);
+  font-size: 14px;
+}

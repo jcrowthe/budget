@@ -15,6 +15,7 @@ import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
 import { localCurrentMonth } from "../shell/planPaths";
 import type { CloseHow } from "./AssignedCell";
+import { ActivityPopover } from "./activity-popover";
 import { CoverPopover } from "./CoverPopover";
 import { useCollapsedGroups } from "./collapse";
 import { useNumberColumns } from "./columnWidths";
@@ -48,6 +49,7 @@ type Open =
   | { kind: "add-category"; groupId: string; anchor: HTMLElement }
   | { kind: "edit-group"; groupId: string; anchor: HTMLElement }
   | { kind: "edit-category"; categoryId: string; anchor: HTMLElement }
+  | { kind: "activity"; categoryId: string; anchor: HTMLElement }
   | { kind: "move"; categoryId: string; anchor: HTMLElement }
   | { kind: "cover"; categoryId: string; anchor: HTMLElement }
   | {
@@ -263,6 +265,19 @@ export function PlanGrid({
         />
       );
     }
+    if (pop.kind === "activity") {
+      const c = allGroups.flatMap((x) => x.categories).find((x) => x.id === pop.categoryId);
+      if (!c || c.kind !== null) return null;
+      return (
+        <ActivityPopover
+          budgetId={budgetId}
+          month={month}
+          category={c}
+          anchor={pop.anchor}
+          onClose={close}
+        />
+      );
+    }
     if (pop.kind === "move" || pop.kind === "cover") {
       if (!data) return null;
       const Pop = pop.kind === "move" ? MovePopover : CoverPopover;
@@ -433,6 +448,9 @@ export function PlanGrid({
                           onFocusDone={() => setFocusReq(null)}
                           onContextMenu={(anchor) =>
                             setPop({ kind: "edit-category", categoryId: c.id, anchor })
+                          }
+                          onActivity={(anchor) =>
+                            setPop({ kind: "activity", categoryId: c.id, anchor })
                           }
                           onPill={(anchor) =>
                             setPop({
