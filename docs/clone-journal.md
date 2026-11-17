@@ -10964,3 +10964,75 @@ Discover 2, Test user flow 3.
 count of plans and by a new test plan with default formats). I set the four new tickets' priority.
 While the Deploy runs no Build is approved; a Build that does not touch the shell can start
 (the small register Build: EXF-680, 681, 728). The plans list and New Plan dialog follow.
+
+### 2026-11-17 · Plan round 125
+
+Children used 141 of 200 (139 before this plan; two started). Main is `8e54173`; live is
+`2f33143` until the Deploy below releases.
+
+**The four tickets filed at the last review exist: EXF-745** (Activity popover's amount column),
+**EXF-746** (Plan Settings' placement select), **EXF-747** (the reconcile spec's one failure),
+**EXF-748** (the formatter's optional argument). All set to Low. One count in EXF-745's body was
+wrong ("−888.888,88€" has twelve characters, not thirteen); corrected by a comment.
+
+**Started 1: Deploy D33** (`p_80111cfe59a74feeb70c0925e7b83a11`) for `8e54173`, gated head
+`8374d6c` (trees equal), prefix `ZZ-TEST D33`. One migration is pending
+(`20261116101500_plan_formats.sql`, four additive columns).
+- I read the Build's design before writing the checks (the API's field names, the three named
+  refusals, the rule for a changed currency).
+- **The owner's plan:** one numbers-only request before the setup prints three counts: plans not
+  starting with `ZZ-TEST` (1), of those the plans whose formats are not the defaults (0), and plans
+  without the new fields (0). Nothing else of it is read.
+- **Plan Settings is opened by keyboard only**, with the mouse parked away: the plan menu's
+  `Open Plan` row opens its list of other plans on hover (I read `PlanMenu.tsx`), and that list
+  would show the owner's plan.
+- My figures, checked twice: balance 2,000,000 − 1,234,560 − 45,000 − 30,000 = 690,440; ZZ Food
+  1,500,000 − 1,279,560 = 220,440; Ready to Assign 500,000, then 470,000 after `30,00` is typed
+  into ZZ Fun; in yen −1,279.56 shows as `−¥1,280` and 1,234.56 as `¥1,235`; Total Spending
+  `1.309,56€`. Assumed and said so: the starting balance row is cleared.
+
+**Started 2: Build feature for EXF-461, its screens** (`p_20723ffe9b154bbabbe11c4e862ef60c`).
+
+**Why this and not the plans list, which I had named:** reading the backlog by priority, the High
+tickets left are all bank work, and reading the web code showed what the tickets' comments say:
+**a connected bank cannot be turned into accounts from the screen.** The app has the bank search,
+the sign-in window and a plain "connected" confirmation; the Worker can add accounts from a bank,
+link, unlink, sync, approve and reject, but only through REST and MCP. The owner's stated goal is
+live bank data in accounts he connects himself. Nothing else in the backlog matters as much, and I
+should have put it ahead of plan formats.
+
+**Why now:** on 16 Nov I set these screens aside because a design step could not be kept away
+from the source's bank screens (EXF-573). Four Builds in a row have since kept limits named with
+their reasons. So the screens are built from the ticket, and **no step opens the source at all in
+this Build** (every part "not compared: built from the ticket"); the one linked account page the
+owner allowed for viewing is on the never-list too, because nothing here needs it.
+
+**In the Build (my decisions where the tickets are silent):**
+- "Add Accounts" after a connection: every row that can be ticked starts ticked; one
+  `from-bank` call; a way to leave without adding.
+- Link Account, Unlink Account and Sync Now in the account edit dialog (Sync Now is the clone's
+  addition, from EXF-462's text).
+- The sidebar's linked icon and the white dot for unapproved rows (the dot is EXF-463's; it is
+  here because this Build holds the shell).
+- Two fields on the account read (`connection_status`, `last_synced_at`) in the same statement,
+  so the header's label needs no second request: `Connected`, `Imports Delayed`,
+  `Connection Repair Needed`. Banner, popup and Repair stay with EXF-465.
+- One sync after accounts are added or linked, and one when a plan is opened and a linked account
+  was not synced for six hours. The Worker's job stays daily (`wrangler.jsonc` is out of bounds);
+  a six-hourly job has no ticket yet: I file one at the review.
+- Out of bounds for it: `apps/web/src/register/**` and the account pages, so that the next Build
+  (EXF-463's register screens) can run beside it.
+
+**Order from here:** EXF-463's screens (next plan, beside this Build if the manifests stay apart);
+then Manage Bank Connections with the connection statuses and Repair (EXF-460, EXF-465); then a
+Deploy and flow 5 on live with a Sandbox bank linked from the screen; then I ask the owner to
+connect a real bank. The plans list, the New Plan dialog and the small gap Builds wait.
+
+**Not started:** no flow test (live changes within minutes; flows 2, 3 and 4 run after the
+Deploy). No template review: Build 4, Deploy 1, Discover 2, Test user flow 3 finished since each
+template's last review. I approve no Build while the Deploy is releasing.
+
+**Timing:** the rate-limit window turns at about 19:00Z; one Deploy and one Build run now.
+
+Ticket writes: 8 (four priorities; the correction on EXF-745; EXF-461 to In Progress with a
+comment; a comment on EXF-463).
