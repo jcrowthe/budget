@@ -191,6 +191,21 @@ describe("unzip", () => {
     expect((await unzip(zip, inflate)).map((f) => f.name)).toEqual(["a.csv"]);
   });
 
+  it("inflates only the entries `only` accepts", async () => {
+    const zip = writeZip([
+      { name: "a.csv", data: body },
+      { name: "notes.bin", data: body },
+    ]);
+    let inflated = 0;
+    const counting = (d: Uint8Array) => {
+      inflated++;
+      return inflate(d);
+    };
+    const files = await unzip(zip, counting, {}, (n) => n.endsWith(".csv"));
+    expect(files.map((f) => f.name)).toEqual(["a.csv"]);
+    expect(inflated).toBe(1);
+  });
+
   it("refuses an encrypted entry", async () => {
     expect(await code(unzip(writeZip([{ name: "a", data: small, flags: 1 }]), inflate))).toBe(
       "zip_encrypted",

@@ -1,12 +1,13 @@
 import { env } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
+import type { Env } from "../src/env";
 import { insertRowsStmts } from "../src/repositories/plan-import";
 import { planClock } from "../src/services/plan-clock";
-import { importLimits } from "../src/services/plan-import";
+import { continueImport, importLimits } from "../src/services/plan-import";
 import { enterDue } from "../src/services/scheduled-transactions";
 import { type Json, q, tool } from "./bulk-helpers";
-import { json } from "./helpers";
+import { authed, call, json } from "./helpers";
 import { buildF, NOW, pinPlanClock, readZip } from "./plan-export-helpers";
 import {
   allCounts,
@@ -360,5 +361,69 @@ describe("case 9: cleanup", () => {
     expect(orphans[0]?.n).toBe(0);
     void allCounts;
     void readZip;
+  });
+});
+
+describe("case 8: a race on the last chunk answers the state as it is", () => {
+  /** Everything but the last chunk written; the import row is returned. */
+  async function atLastChunk() {
+    const { data: first, bid } = await start();
+    for (let i = 0; i < first.progress.chunk_count - 1; i++)
+      await continueImportRest(first.import_id);
+    return { first, bid };
+  }
+
+  it("the loser of two continues on the last chunk gets 201 done, not 409 import_abandoned", async () => {
+    const { first, bid } = await atLastChunk();
+    let raced = false;
+    const FILES = new Proxy(env.FILES, {
+      get(t, k) {
+        const v = (t as unknown as Record<string | symbol, unknown>)[k];
+        if (k !== "get" || typeof v !== "function") {
+          return typeof v === "function" ? v.bind(t) : v;
+        }
+        return async (...a: unknown[]) => {
+          if (!raced) {
+            raced = true;
+            // The winner finishes (and deletes the stored file) between the loser's read of the row and its get.
+            const won = await continueImport(env, first.import_id);
+            expect(won.status).toBe(201);
+          }
+          return (v as (...x: unknown[]) => unknown).apply(t, a);
+        };
+      },
+    });
+    const res = await continueImportRest(first.import_id, { FILES } as unknown as Partial<Env>);
+    expect(raced).toBe(true);
+    const data = await body(res, 201);
+    expect(data).toMatchObject({ state: "done", budget_id: bid });
+    expect(await status(`/api/v1/budgets/${bid}`)).toBe(200);
+    expect((await q("select count(*) n from change_log where budget_id = ?", bid))[0]?.n).toBe(1);
+  });
+
+  it("a cancel that loses to the last step answers 409 import_finished and keeps the plan", async () => {
+    const { first, bid } = await atLastChunk();
+    let raced = false;
+    const DB = Object.create(env.DB) as D1Database;
+    (DB as unknown as Record<string, unknown>).prepare = env.DB.prepare.bind(env.DB);
+    (DB as unknown as Record<string, unknown>).batch = async (stmts: D1PreparedStatement[]) => {
+      if (!raced) {
+        raced = true;
+        expect((await continueImport(env, first.import_id)).status).toBe(201);
+      }
+      return env.DB.batch(stmts);
+    };
+    const res = await call(
+      `/api/v1/budgets/import/${first.import_id}`,
+      await authed({ method: "DELETE" }),
+      { DB } as unknown as Partial<Env>,
+    );
+    expect(raced).toBe(true);
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as Json).error.name).toBe("import_finished");
+    expect(await status(`/api/v1/budgets/${bid}`)).toBe(200);
+    expect(
+      (await q("select state from plan_imports where id = ?", first.import_id))[0]?.state,
+    ).toBe("done");
   });
 });

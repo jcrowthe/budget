@@ -126,10 +126,8 @@ async function readPlan(
   const first = upload.files[0];
   if (upload.files.length === 1 && first && isZip(first.bytes)) {
     zipName = first.name;
-    const entries = await unzip(first.bytes, inflateRaw);
-    texts = entries
-      .filter((e) => /\.(csv|tsv)$/i.test(e.name))
-      .map((e) => decode(e.name.slice(e.name.lastIndexOf("/") + 1), e.data));
+    const entries = await unzip(first.bytes, inflateRaw, {}, (name) => /\.(csv|tsv)$/i.test(name));
+    texts = entries.map((e) => decode(e.name.slice(e.name.lastIndexOf("/") + 1), e.data));
   } else {
     texts = upload.files.map((f) => decode(f.name, f.bytes));
   }
@@ -153,8 +151,7 @@ interface Built {
 }
 
 /** Ids and timestamps of every row; each row's time is the start plus its position in the Register, in ms. */
-function buildRows(plan: ImportPlan, started: string, budgetId: string, actor: string): Built {
-  void actor;
+function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
   const startMs = Date.parse(started);
   const at = (order: number) => new Date(startMs + order).toISOString();
   const firstMonth = plan.firstMonth ? `${plan.firstMonth}T00:00:00.000Z` : started;
@@ -318,11 +315,17 @@ function resultOf(row: repo.PlanImportRow, summary: ImportSummary): PlanImportRe
 }
 
 /** Removes what is left of an unfinished import and its stored file (guarded: it never matches a visible plan). */
-async function cleanUp(env: Env, row: repo.PlanImportRow, now: string): Promise<void> {
+async function cleanUp(env: Env, row: repo.PlanImportRow, now: string): Promise<boolean> {
   const db = getDb(env);
   const stmts = repo.cleanupStmts(db, { importId: row.id, budgetId: row.budgetId, now });
-  await db.batch(stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]]);
-  if (row.r2Key) await env.FILES.delete(row.r2Key);
+  const results = (await db.batch(
+    stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]],
+  )) as { meta: { changes: number } }[];
+  // The last statement marks the import abandoned only while it is still writing: no change means a
+  // concurrent call finished (or already cleaned) it, and its stored file is not ours to delete.
+  const abandoned = (results[results.length - 1]?.meta.changes ?? 0) > 0;
+  if (abandoned && row.r2Key) await env.FILES.delete(row.r2Key);
+  return abandoned;
 }
 
 /** Cleans at most one stale import: an unfinished one untouched for a day, or a finished one whose file was kept. */
@@ -363,7 +366,7 @@ export async function startImport(
   const started = now.toISOString();
   const importId = crypto.randomUUID();
   const budgetId = crypto.randomUUID();
-  const built = buildRows(plan, started, budgetId, actor);
+  const built = buildRows(plan, started, budgetId);
   const summaryJson = JSON.stringify(summary);
   const fileName = plan.fileNames.register;
 
@@ -446,6 +449,25 @@ export async function continueImport(
 const ABANDONED = "This import was cancelled or expired; start again";
 const FAILED = "The import failed while writing; nothing was kept";
 
+/**
+ * Cleans an import that cannot go on and raises `refusal`; but when the cleanup changed nothing because a
+ * concurrent call finished the import, answers the state as it is (done: 201) instead of telling the caller to start again.
+ */
+async function giveUp(
+  env: Env,
+  row: repo.PlanImportRow,
+  now: string,
+  refusal: ImportRefused,
+): Promise<{ status: 201; result: PlanImportResult }> {
+  if (await cleanUp(env, row, now)) throw refusal;
+  const again = await repo.find(getDb(env), row.id);
+  if (again?.state === "done") {
+    return { status: 201, result: resultOf(again, JSON.parse(again.summaryJson) as ImportSummary) };
+  }
+  if (!again) throw new ImportRefused(404, "not_found", "Import not found");
+  throw new ImportRefused(409, "import_abandoned", ABANDONED);
+}
+
 async function stepOf(
   env: Env,
   row: repo.PlanImportRow,
@@ -464,15 +486,13 @@ async function stepOf(
       ? await env.FILES.get(row.r2Key, { range: { offset: where.offset, length: where.length } })
       : null;
   if (!object) {
-    await cleanUp(env, row, now);
-    throw new ImportRefused(409, "import_abandoned", ABANDONED);
+    return giveUp(env, row, now, new ImportRefused(409, "import_abandoned", ABANDONED));
   }
   let parts: repo.ChunkPart[];
   try {
     parts = JSON.parse(await object.text()) as repo.ChunkPart[];
   } catch {
-    await cleanUp(env, row, now);
-    throw new ImportRefused(422, "import_failed", FAILED);
+    return giveUp(env, row, now, new ImportRefused(422, "import_failed", FAILED));
   }
   const last = n === row.chunkCount - 1;
   const stmts = [
@@ -516,8 +536,7 @@ async function stepOf(
       stmts as [(typeof stmts)[number], ...(typeof stmts)[number][]],
     )) as typeof results;
   } catch {
-    await cleanUp(env, row, now);
-    throw new ImportRefused(422, "import_failed", FAILED);
+    return giveUp(env, row, now, new ImportRefused(422, "import_failed", FAILED));
   }
   if ((results[results.length - 1]?.meta.changes ?? 0) === 0) {
     // Another call took this step (a repeat after a lost answer, or two at once): answer the state as it is.
@@ -558,6 +577,16 @@ export async function cancelImport(
       "This import has finished; delete the plan instead",
     );
   }
-  if (row.state === "writing") await cleanUp(env, row, planClock.now().toISOString());
+  if (row.state === "writing" && !(await cleanUp(env, row, planClock.now().toISOString()))) {
+    // A concurrent call changed the import first: report what it became.
+    const again = await repo.find(db, importId);
+    if (again?.state === "done") {
+      throw new ImportRefused(
+        409,
+        "import_finished",
+        "This import has finished; delete the plan instead",
+      );
+    }
+  }
   return { import_id: importId, state: "abandoned" };
 }

@@ -32,6 +32,10 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
     }
   });
 
+  it("an unknown plan is 404 whatever the now", async () => {
+    expect((await json(url("no-such-plan", "2199-12-31T23:59"))).status).toBe(404);
+  });
+
   it("the tool refuses the same now with the same text", async () => {
     const f = await buildF();
     const r = await tool("export_budget", { budget_id: f.bid, now: "2199-12-31T23:59" });

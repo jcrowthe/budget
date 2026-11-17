@@ -229,12 +229,14 @@ export function utf8Decode(bytes: Uint8Array): string {
 /**
  * Reads the entries of a ZIP: the central directory, stored and deflated data, CRC and size checks.
  * `inflateRaw(data, size)` inflates a raw deflate stream whose entry has `size` bytes (the Worker passes
- * DecompressionStream; this package has no DOM types). Refuses what it does not read with a ZipError.
+ * DecompressionStream; this package has no DOM types). `only` names the entries to read; the others are skipped
+ * before any check or inflate. Refuses what it does not read with a ZipError.
  */
 export async function unzip(
   bytes: Uint8Array,
   inflateRaw: (data: Uint8Array, size: number) => Promise<Uint8Array>,
   limits: Partial<typeof ZIP_READ_LIMITS> = {},
+  only?: (name: string) => boolean,
 ): Promise<ZipFile[]> {
   const { maxEntries, maxEntryBytes } = { ...ZIP_READ_LIMITS, ...limits };
   const corrupt = () => new ZipError("zip_corrupt", ZIP_TEXT.corrupt);
@@ -288,6 +290,8 @@ export async function unzip(
       throw new ZipError("zip64", ZIP_TEXT.zip64);
     }
     if (name.endsWith("/") || name.startsWith("__MACOSX/")) continue;
+    // An entry the caller does not read is neither checked nor inflated.
+    if (only && !only(name)) continue;
     if (flags & 1) throw new ZipError("zip_encrypted", ZIP_TEXT.encrypted);
     if (method !== 0 && method !== 8) throw new ZipError("zip_method", ZIP_TEXT.method);
     if (size > maxEntryBytes)

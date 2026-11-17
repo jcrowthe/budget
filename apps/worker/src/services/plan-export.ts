@@ -46,11 +46,11 @@ export async function exportPlan(
   const db = getDb(env);
   const serverNow = planClock.now();
   const serverToday = serverNow.toISOString().slice(0, 10);
+  const plan = await budgetsRepo.findActive(db, budgetId);
+  if (!plan) throw new NotFound("Plan");
   if (q.now !== undefined && !nowWithinServerDays(q.now, serverToday)) {
     throw new ExportNowOutOfRange(serverToday);
   }
-  const plan = await budgetsRepo.findActive(db, budgetId);
-  if (!plan) throw new NotFound("Plan");
   const now = q.now ?? utcMinute(serverNow);
   const today = now.slice(0, 10);
   const current = `${today.slice(0, 7)}-01`;
