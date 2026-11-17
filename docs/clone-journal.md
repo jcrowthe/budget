@@ -10461,3 +10461,50 @@ Finished since each template's last review: Build 2, Deploy 9, Discover 2, Test 
 
 **Next plan:** one Deploy (`ZZ-TEST D31`) for the two merges (`3ab0051`, `13cfcae`); it can run
 beside the Build (no approval while it releases). The review of round 120 is a check-in.
+
+### 2026-11-17 · Plan round 120
+
+Children used 136 of 200. Started one Deploy; one Build is running from round 119. Main `13cfcae`,
+live `d005439` (two merges behind, nothing pending). The ticket filed at the last review exists as
+**EXF-726** (the Plan grid's number columns at 1024 px); set to Medium; it goes with plan formats
+(EXF-468). The person has not answered the round-110 check-in.
+
+**Started: Deploy D31** (`p_d9a9dfb24f404474ba3bb5d43e591f83`): ships main `13cfcae`; no
+migration; `gated_commit` `8b5fcc9` (its tree equals main's, compared now). Its checks:
+- **Every kind of row the rewritten inserts write, once through REST on live:** a plan, a group,
+  categories, three account types (a card with its payment category), an assignment, a plain row,
+  a refund, a split, a categorized transfer to a tracking account, a row of last month, a card
+  purchase, a target, a snooze, a card payment. Eighteen write statements were rewritten in
+  `3ab0051`; the tests cover them, and this is the look on live.
+- **The Activity popover** at 1440×900 and 1024×700: the button, its tooltip, the four rows, the
+  three ways to close it, last month, and whether an eight-character amount is cut at 1024 px
+  (EXF-726). The read and the tool: ZZ Food −110,000 from four rows, ZZ Fun −50,000 from two; a
+  payment category refused.
+- **`Got it!`** readable.
+- **Export and import with a reconciled adjustment:** the payee reads "Reconciliation Balance
+  Adjustment" in the export and in the imported plan, with the reconciliation system payee; the
+  two exports identical.
+- 83 tools; the count of plans; the prefixed purge; every import call with its `ZZ-TEST D31` name.
+- **An error of mine in the brief, found after sending it:** step 4 says ZZ Checking is 860,000
+  after the card payment. By the brief's own rows it is 835,000 (1,000,000 − 60,000 + 10,000 −
+  50,000 − 40,000 − 5,000 − 20,000). The brief's rule makes the verifier report the difference
+  and not bend the check; I count that report as mine, not the app's. Also not certain: step 7
+  assumes rows made through REST are uncleared unless said (so that the cleared balance is the
+  starting 1,000,000); if they are cleared by default the adjustment will be another amount, and
+  the verifier will say so.
+
+**Running beside it:** the register's View options Build (`p_5b0c6eac7fb9459881ccfe507ef9a190`).
+A Deploy and a Build share no file; **no approval of the Build while the Deploy releases** (the
+Deploy should be done in about a quarter of an hour; the Build is 40 minutes in).
+
+**Not started:** plan formats (EXF-468) with EXF-726 follows the register Build (one Build per
+page, and both change how amounts are written). No flow test yet: the Deploy's own walk covers the
+new screens at both sizes.
+
+Reviews: Build 2, Deploy 9 (D31 will be the tenth: the Deploy template review is due when it
+ends), Discover 2, Test user flow 3 since each template's last review.
+
+Declared for the tree: the Build; this Deploy; plan formats with EXF-726; a Deploy and a register
+flow test after the View options merge; the Deploy template review.
+
+Ticket writes: 1 (EXF-726's priority).
