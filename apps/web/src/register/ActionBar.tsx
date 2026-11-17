@@ -9,7 +9,7 @@ import {
   type SelAccount,
   type SelRow,
 } from "@budget/schema/register-selection";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import type { FlagColor } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -19,13 +19,13 @@ import { ApiError } from "../api/client";
 import { useScheduledBulk } from "../api/scheduledTransactions";
 import { downloadExport, useApproveReject, useBulkTransactions } from "../api/transactions";
 import { useSaveUiState, useUiState } from "../api/ui-state";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { useCurrentPlan } from "../shell/useCurrentPlan";
 import { useShortcut } from "../shortcuts/dispatcher";
 import { Tip } from "./BarTip";
 import { BulkCategorize } from "./BulkCategorize";
 import { DeleteDialog, ExportDialog, MemoDialog } from "./BulkDialogs";
 import { FlagMenu } from "./FlagMenu";
-import { registerDate } from "./format";
 import { CategorizeIcon, CloseSmallIcon, FlagFilledIcon, MoreDotsIcon } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import { useOpenAccounts } from "./openAccounts";
@@ -79,6 +79,7 @@ export function ActionBar({
   /** One selected row: open it in edit mode with the category list open. */
   onCategorizeOne: (id: string) => void;
 }) {
+  const fmt = usePlanFormatter();
   const { selected, rows, set, clear, scheduled, scheduledRows, setScheduled, extend } =
     useSelection();
   const { plan } = useCurrentPlan();
@@ -125,7 +126,7 @@ export function ActionBar({
     const payee =
       (side ? paymentDisplay(side, other)?.payee : undefined) ??
       (r.transfer_account_name ? transferCellText(r.transfer_account_name) : r.payee_name);
-    const rest = `on ${registerDate(r.date)} (${screenMoney(r.amount)})`;
+    const rest = `on ${fmt.date(r.date)} (${fmt.money(r.amount)})`;
     return payee ? `${payee} ${rest}` : `The transaction ${rest}`;
   };
   const refusalText = (e: unknown) =>

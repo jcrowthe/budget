@@ -11,6 +11,7 @@ import { ACCOUNT_TYPE_LABEL } from "./accountTypeLabels";
 import { BankConnected } from "./BankConnected";
 import { BankSearch } from "./BankSearch";
 import { CaretRightIcon, CheckCircleIcon, ChevronLeftIcon, CloseIcon } from "./icons";
+import { usePlanFormatter } from "./plan-formats-context";
 import { accountPath } from "./planPaths";
 import { useCurrentPlan } from "./useCurrentPlan";
 
@@ -39,6 +40,7 @@ export function AddAccountDialog({
   onBack?: () => void;
 }) {
   const { budgetId = "", plan } = useCurrentPlan();
+  const fmt = usePlanFormatter();
   const navigate = useNavigate();
   const create = useCreateAccount(budgetId);
   const [screen, setScreen] = useState<Screen>("start");
@@ -87,7 +89,7 @@ export function AddAccountDialog({
 
   function submit() {
     if (!type) return;
-    const milli = parseAmountInput(balance);
+    const milli = parseAmountInput(fmt.typedAmount(balance), fmt.digits);
     if (milli === null) {
       setErrors({ balance: "Enter an amount" });
       return;

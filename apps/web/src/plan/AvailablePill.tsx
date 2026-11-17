@@ -1,5 +1,6 @@
 import type { Ref } from "react";
-import { money, pillTitle } from "./format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
+import { pillTitle } from "./format";
 import {
   CheckCircleFillIcon,
   ClockCheckIcon,
@@ -43,6 +44,7 @@ export function AvailablePill({
   title?: string;
   ref?: Ref<HTMLButtonElement>;
 }) {
+  const fmt = usePlanFormatter();
   const kind = tone ?? (amount === 0 ? "zero" : amount > 0 ? "positive" : "negative");
   const Icon = icon ? ICONS[icon] : null;
   const cls = `available-pill ${kind}${icon === "card" ? " credit" : ""}`;
@@ -56,7 +58,7 @@ export function AvailablePill({
           data-icon={icon}
         />
       )}
-      <span className="pill-amount">{money(amount)}</span>
+      <span className="pill-amount">{fmt.money(amount)}</span>
     </>
   );
   if (display) {
@@ -69,7 +71,7 @@ export function AvailablePill({
       className={cls}
       disabled={amount === 0 || !interactive}
       onClick={(e) => onOpen?.(e.currentTarget)}
-      title={interactive ? (title ?? pillTitle(amount)) || undefined : undefined}
+      title={interactive ? (title ?? pillTitle(amount, fmt)) || undefined : undefined}
     >
       {content}
     </button>

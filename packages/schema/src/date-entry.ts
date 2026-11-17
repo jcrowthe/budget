@@ -1,3 +1,4 @@
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import { isCalendarDate } from "./transactions";
 
 /** Entry-row dates: ISO strings in, ISO strings out, UTC arithmetic, `today` always passed in. */
@@ -13,16 +14,26 @@ function parts(isoDate: string): { y: number; m: number; d: number } {
   };
 }
 
-/** `2026-11-15` → `11/15/2026`. */
-export function formatEntryDate(isoDate: string): string {
-  const { y, m, d } = parts(isoDate);
-  return `${pad(m)}/${pad(d)}/${pad(y, 4)}`;
+/** `2026-11-15` in the plan's date format (`11/15/2026` by default). */
+export function formatEntryDate(isoDate: string, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.date(isoDate);
 }
 
 const validYear = (y: number) => y >= 1900 && y <= 2199;
 
-/** Typed text → ISO date, or null when it is not a calendar date. */
-export function parseEntryDate(text: string, today: string): string | null {
+/** The order of day, month and year a date format writes. */
+export type DateOrder = "MDY" | "DMY" | "YMD";
+export function dateOrder(format: string): DateOrder {
+  if (format.startsWith("YYYY")) return "YMD";
+  return format.startsWith("DD") ? "DMY" : "MDY";
+}
+
+/** Typed text → ISO date, or null when it is not a calendar date. ISO `YYYY-M-D` is always accepted. */
+export function parseEntryDate(
+  text: string,
+  today: string,
+  order: DateOrder = "MDY",
+): string | null {
   const t = text.trim();
   const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
   const nums = isoMatch ? [Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3])] : null;
@@ -35,15 +46,25 @@ export function parseEntryDate(text: string, today: string): string | null {
     const bits = t.split(/[/.-]/);
     if (bits.length < 1 || bits.length > 3 || bits.some((b) => !/^\d{1,4}$/.test(b))) return null;
     const n = bits.map(Number);
-    const thisYear = parts(today).y;
-    m = n[0] as number;
-    d = n.length > 1 ? (n[1] as number) : 1;
-    if (n.length < 3) y = thisYear;
-    else {
-      const ys = bits[2] as string;
-      if (ys.length === 2) y = 2000 + (n[2] as number);
-      else if (ys.length === 4) y = n[2] as number;
+    const now = parts(today);
+    if (n.length === 3) {
+      const yi = order === "YMD" ? 0 : 2;
+      const ys = bits[yi] as string;
+      if (order === "YMD" && ys.length !== 4) return null;
+      if (ys.length === 2) y = 2000 + (n[yi] as number);
+      else if (ys.length === 4) y = n[yi] as number;
       else return null;
+      const [p, q] = order === "YMD" ? [n[1], n[2]] : [n[0], n[1]];
+      if (order === "DMY") [d, m] = [p as number, q as number];
+      else [m, d] = [p as number, q as number];
+    } else if (n.length === 2) {
+      y = now.y;
+      if (order === "DMY") [d, m] = [n[0] as number, n[1] as number];
+      else [m, d] = [n[0] as number, n[1] as number];
+    } else {
+      y = now.y;
+      if (order === "DMY") [d, m] = [n[0] as number, now.m];
+      else [m, d] = [n[0] as number, 1];
     }
   }
   if (!validYear(y)) return null;

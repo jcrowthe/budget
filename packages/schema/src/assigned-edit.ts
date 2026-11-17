@@ -1,4 +1,5 @@
 import type { MonthDetail } from "./months";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 
 type Tok = { op: "+" | "-" | "*" | "/" } | { n: number };
 
@@ -61,7 +62,7 @@ function evaluate(toks: Tok[]): number | null {
 }
 
 /** The milliunits the text in the Assigned field means. `before` is the amount before the edit. 0 when unparseable. */
-export function evaluateAssigned(text: string, before: number): number {
+export function evaluateAssigned(text: string, before: number, digits = 2): number {
   let s = text
     .replace(/[,\s]/g, "")
     .replace(/[xX×]/g, "*")
@@ -73,18 +74,15 @@ export function evaluateAssigned(text: string, before: number): number {
   const toks = tokenize(s);
   const r = toks ? evaluate(toks) : null;
   if (r === null || !Number.isFinite(r)) return 0;
-  const cents = Math.round(Number((Math.abs(r) * 100).toPrecision(12)));
-  const m = Math.sign(r) * cents * 10;
+  const cents = Math.round(Number((Math.abs(r) * 10 ** digits).toPrecision(12)));
+  const m = Math.sign(r) * cents * 10 ** (3 - digits);
   if (!Number.isFinite(m) || Math.abs(m) > Number.MAX_SAFE_INTEGER) return 0;
   return m === 0 ? 0 : m;
 }
 
-const fmt = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** The field's initial text: `0.00`, `1,234.50`, `-12.00`. */
-export function formatAssignedInput(m: number): string {
-  const s = fmt.format(m / 1000);
-  return s === "-0.00" ? "0.00" : s;
+/** The field's initial text in the plan's format: `0.00`, `1,234.50`, `-12.00`. */
+export function formatAssignedInput(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.input(m);
 }
 
 /** The cached month after setting a category's Assigned: category, group, Ready to Assign (targets are refetched). */

@@ -1,6 +1,7 @@
 import { addMonths, type Month } from "@budget/core/month";
 import type { MonthTotals } from "@budget/schema/months";
-import { longMonth, money } from "../format";
+import { usePlanFormatter } from "../../shell/plan-formats-context";
+import { longMonth } from "../format";
 import { PanelCard } from "./PanelCard";
 import { PanelTooltip } from "./PanelTooltip";
 
@@ -16,6 +17,7 @@ export function SummaryCard({
   collapsed: boolean;
   onToggle: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const here = longMonth(month);
   const prev = longMonth(addMonths(month, -1));
   const rows: { label: string; value: number; tip: string; total?: boolean }[] = [
@@ -54,7 +56,7 @@ export function SummaryCard({
             // biome-ignore lint/a11y/noNoninteractiveTabindex: the row is focusable so its tooltip is reachable by keyboard
             <div {...trigger} tabIndex={0} className={`panel-row${r.total ? " is-total" : ""}`}>
               <span className="panel-row-label">{r.label}</span>
-              <span className="panel-row-value">{money(r.value)}</span>
+              <span className="panel-row-value">{fmt.money(r.value)}</span>
             </div>
           )}
         </PanelTooltip>

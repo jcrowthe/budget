@@ -7,6 +7,8 @@ import {
   NO_PAYEE_ID,
 } from "@budget/schema/income-expense";
 import { computeNetWorth, netWorthCsv } from "@budget/schema/net-worth";
+import { exportFormat } from "@budget/schema/plan-export";
+import { planFormatter } from "@budget/schema/plan-formats";
 import {
   addMonthsTo,
   monthOfDate,
@@ -45,12 +47,19 @@ import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
 import * as repo from "../repositories/reports";
+import { formatsOfRow } from "./budgets";
 
 const utcToday = () => new Date().toISOString().slice(0, 10);
 
 async function requirePlan(db: Db, budgetId: string) {
-  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const row = await budgetsRepo.findActive(db, budgetId);
+  if (!row) throw new NotFound("Plan");
+  return row;
 }
+
+/** The plan's formats for a file, from the row the plan check already read. */
+const fileFormat = (row: budgetsRepo.BudgetRow) =>
+  exportFormat(planFormatter(formatsOfRow(row)).planFormat());
 
 export async function rangeFacts(db: Db, budgetId: string, today?: string): Promise<RangeFacts> {
   const current = monthOfDate(today ?? utcToday());
@@ -216,7 +225,7 @@ export async function exportSpendingTrends(
   q: SpendingTrendsQuery,
 ): Promise<{ filename: string; bytes: Uint8Array }> {
   const db = getDb(env);
-  await requirePlan(db, budgetId);
+  const planRow = await requirePlan(db, budgetId);
   const today = q.today ?? utcToday();
   const span = await reportSpan(db, budgetId, q);
   const rows = await loadSpendingRows(db, budgetId, span, {
@@ -229,7 +238,7 @@ export async function exportSpendingTrends(
       { name: `${stem}.csv`, data: utf8(breakdownCsv(rows, span)) },
       {
         name: `${stem}-transactions.csv`,
-        data: utf8(transactionsCsv([...rows].sort(newestFirst))),
+        data: utf8(transactionsCsv([...rows].sort(newestFirst), fileFormat(planRow))),
       },
     ],
     today,
@@ -360,7 +369,7 @@ export async function exportSpendingBreakdown(
   q: SpendingBreakdownQuery,
 ): Promise<{ filename: string; bytes: Uint8Array }> {
   const db = getDb(env);
-  await requirePlan(db, budgetId);
+  const planRow = await requirePlan(db, budgetId);
   const today = q.today ?? utcToday();
   const span = await spendingSpan(db, budgetId, q);
   const rows = await loadSpendingRows(db, budgetId, span, {
@@ -373,7 +382,7 @@ export async function exportSpendingBreakdown(
       { name: `${stem}.csv`, data: utf8(breakdownCsv(rows, span)) },
       {
         name: `${stem}-transactions.csv`,
-        data: utf8(transactionsCsv([...rows].sort(newestFirst))),
+        data: utf8(transactionsCsv([...rows].sort(newestFirst), fileFormat(planRow))),
       },
     ],
     today,

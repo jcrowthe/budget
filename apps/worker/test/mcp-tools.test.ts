@@ -128,7 +128,13 @@ describe("mcp-tools", () => {
     expect(errorText(empty)).toMatch(/nothing to update/i);
     expect((await logRows(bid, "update")).length).toBe(before);
     const props = Object.keys((await toolSchemas()).update_budget.inputSchema.properties).sort();
-    expect(props).toEqual(["bank_environment", "budget_id", "name"]);
+    expect(props).toEqual([
+      "bank_environment",
+      "budget_id",
+      "currency_format",
+      "date_format",
+      "name",
+    ]);
   });
 
   it("delete_budget deletes, logs an mcp actor, and answers tool errors for unknown plans", async () => {

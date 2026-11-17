@@ -1,17 +1,20 @@
 import { addMonths } from "@budget/core/month";
 import type { MonthDetail } from "@budget/schema/months";
-import { longMonth, money } from "./format";
+import type { PlanFormatter } from "@budget/schema/plan-formats";
+import { usePlanFormatter } from "../shell/plan-formats-context";
+import { longMonth } from "./format";
 import { AddCircleFillIcon, InfoCircleFillIcon, SubtractCircleFillIcon } from "./icons";
 import { Popover } from "./Popover";
 
 /** "+$1.00", "−$1.00" (money already carries U+2212), "+$0.00" at zero. */
-const signed = (m: number) => (m >= 0 ? `+${money(m)}` : money(m));
+const signed = (m: number, fmt: PlanFormatter) => (m >= 0 ? `+${fmt.money(m)}` : fmt.money(m));
 
 function Line({ text, amount }: { text: string; amount: number }) {
+  const fmt = usePlanFormatter();
   return (
     <div className="rta-line">
       <span>{text}</span>
-      <span>{signed(amount)}</span>
+      <span>{signed(amount, fmt)}</span>
     </div>
   );
 }
@@ -28,6 +31,7 @@ export function RtaBreakdown({
   alignTo?: HTMLElement;
   onClose: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const b = detail.rta_breakdown;
   const here = longMonth(detail.month);
   const prev = longMonth(addMonths(detail.month, -1));
@@ -52,7 +56,7 @@ export function RtaBreakdown({
         <div className="rta-block">
           <div className="rta-block-header is-plus">
             <AddCircleFillIcon width={16} height={16} />
-            <span>{signed(plus)}</span>
+            <span>{signed(plus, fmt)}</span>
           </div>
           {plus !== 0 && (
             <>
@@ -68,7 +72,7 @@ export function RtaBreakdown({
         <div className="rta-block">
           <div className="rta-block-header is-minus">
             <SubtractCircleFillIcon width={16} height={16} />
-            <span>{signed(minus)}</span>
+            <span>{signed(minus, fmt)}</span>
           </div>
           {minus !== 0 && (
             <>
@@ -83,7 +87,7 @@ export function RtaBreakdown({
         <hr className="rta-rule" />
         <div className={`rta-total is-${state}`}>
           <span>Total Ready to Assign</span>
-          <span>{total === 0 ? `= ${money(0)}` : `= ${signed(total)}`}</span>
+          <span>{total === 0 ? `= ${fmt.money(0)}` : `= ${signed(total, fmt)}`}</span>
         </div>
         {total > 0 && (
           <p className="rta-message">

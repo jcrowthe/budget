@@ -1,5 +1,5 @@
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import { monthLabel } from "./report-range";
-import { MINUS } from "./screen-money";
 
 /** Reflect's money and axis formatting (milliunits). Pure; a zero is never printed with a minus sign (EXF-591). */
 
@@ -9,30 +9,24 @@ export function cents(m: number): number {
   return c === 0 ? 0 : c;
 }
 
-const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-
-/** "$1,234.50", "−$55.00" (U+2212) and "$0.00" at zero cents. */
-export function reportMoney(m: number): string {
-  const c = cents(m);
-  if (c === 0) return "$0.00";
-  const text = usd.format(c / 100);
-  return text.startsWith("-") ? `${MINUS}${text.slice(1)}` : text;
+/** "$1,234.50", "−$55.00" (U+2212) and "$0.00" at zero cents, in the plan's formats. */
+export function reportMoney(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.money(m);
 }
 
 /** Debts are drawn negative: "−$4,750.00", and "$0.00" at zero. */
-export function debtsMoney(m: number): string {
-  return cents(m) === 0 ? "$0.00" : `${MINUS}${reportMoney(Math.abs(m))}`;
+export function debtsMoney(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.money(-Math.abs(m));
 }
 
 /** "+$3,300.00", "−$55.00" (U+2212), "$0.00". */
-export function signedChange(m: number): string {
-  const c = cents(m);
-  return c > 0 ? `+${reportMoney(m)}` : c < 0 ? `−${reportMoney(-m)}` : "$0.00";
+export function signedChange(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.signed(m);
 }
 
 /** "−$120.00" (U+2212) below zero cents, else as `reportMoney` (which writes the same sign). */
-export function minusMoney(m: number): string {
-  return reportMoney(m);
+export function minusMoney(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.money(m);
 }
 
 const LONG_MONTHS = [
@@ -61,21 +55,13 @@ export function drillTitle(name: string, month: string | null): string {
 }
 
 /** The drill-down's amount: "+$20.00", "−$150.00" (U+2212), "$0.00". */
-export function drillAmount(m: number): string {
-  const c = cents(m);
-  return c > 0 ? `+${reportMoney(m)}` : c < 0 ? `${MINUS}${reportMoney(-m)}` : "$0.00";
+export function drillAmount(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.signed(m);
 }
 
-/** Whole dollars for axis ticks; the minus sign only when the rounded dollar is not zero. */
-export function tickMoney(m: number): string {
-  const dollars = Math.round(Math.abs(m) / 1000);
-  const text = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(dollars);
-  return `${m < 0 && dollars !== 0 ? MINUS : ""}$${text}`;
-}
-
-/** "2026-10-21" -> "10/21/2026". */
-export function usDate(iso: string): string {
-  return `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
+/** Whole units for axis ticks; the minus sign only when the rounded unit is not zero. */
+export function tickMoney(m: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string {
+  return fmt.whole(m);
 }
 
 /**

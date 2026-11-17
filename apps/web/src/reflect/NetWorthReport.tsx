@@ -1,6 +1,7 @@
 import { monthLabel } from "@budget/schema/report-range";
 import { useState } from "react";
 import { useNetWorth } from "../api/reports";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { changeClass, debtsMoney, money, percent, signedChange } from "./format";
 import { InfoIcon } from "./icons";
 import { NetWorthChart } from "./NetWorthChart";
@@ -9,6 +10,7 @@ import { useReportState } from "./state";
 const TIP = "This column highlights how much your net worth has changed month over month.";
 
 export function NetWorthReport() {
+  const fmt = usePlanFormatter();
   const { budgetId, span, settings, today } = useReportState();
   const { data } = useNetWorth(budgetId, span, settings.excluded_account_ids, today);
   const [tip, setTip] = useState(false);
@@ -21,7 +23,7 @@ export function NetWorthReport() {
         <div className="nw-summary">
           <div className="nw-caption">Net Worth</div>
           <div className="nw-big" data-testid="nw-total">
-            {money(data.net_worth)}
+            {money(data.net_worth, fmt)}
           </div>
           <div className="nw-stats">
             <div className="nw-stat">
@@ -30,7 +32,7 @@ export function NetWorthReport() {
                 Assets
               </div>
               <div className="nw-amount" data-testid="nw-assets">
-                {money(data.assets)}
+                {money(data.assets, fmt)}
               </div>
             </div>
             <div className="nw-stat">
@@ -39,14 +41,14 @@ export function NetWorthReport() {
                 Debts
               </div>
               <div className="nw-amount" data-testid="nw-debts">
-                {debtsMoney(data.debts)}
+                {debtsMoney(data.debts, fmt)}
               </div>
             </div>
             <div className="nw-stat">
               <div className="nw-caption">Change in Net Worth</div>
               <div className="nw-change-row">
                 <span className={`nw-amount ${cls}`} data-testid="nw-change">
-                  {signedChange(data.change)}
+                  {signedChange(data.change, fmt)}
                 </span>
                 {data.change_pct !== null && (
                   <span className={`nw-pct ${cls}`} data-testid="nw-change-pct">
@@ -99,10 +101,10 @@ export function NetWorthReport() {
                 return (
                   <tr key={m.month} data-month={m.month}>
                     <td>{monthLabel(m.month)}</td>
-                    <td className="num">{money(m.net_worth)}</td>
+                    <td className="num">{money(m.net_worth, fmt)}</td>
                     <td className={`num change ${c}`}>
                       {m.change > 0 ? "↑ " : m.change < 0 ? "↓ " : ""}
-                      {signedChange(m.change)}
+                      {signedChange(m.change, fmt)}
                       {m.change_pct !== null && ` (${percent(m.change_pct)})`}
                     </td>
                   </tr>

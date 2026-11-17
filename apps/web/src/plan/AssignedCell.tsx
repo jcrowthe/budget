@@ -1,6 +1,7 @@
 import { evaluateAssigned, formatAssignedInput } from "@budget/schema/assigned-edit";
 import { useRef, useState } from "react";
-import { amountClass, money } from "./format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
+import { amountClass } from "./format";
 import { CalculatorIcon } from "./icons";
 
 export type CloseHow = "enter" | "escape" | "tab" | "shiftTab" | "next" | "prev" | "blur";
@@ -29,7 +30,8 @@ function AssignedInput({
   onClose: (how: CloseHow, committed?: Promise<void>) => void;
   onCommit: (after: number) => Promise<void>;
 }) {
-  const [initial] = useState(() => formatAssignedInput(assigned));
+  const fmt = usePlanFormatter();
+  const [initial] = useState(() => formatAssignedInput(assigned, fmt));
   const [text, setText] = useState(initial);
   const done = useRef(false);
 
@@ -38,7 +40,7 @@ function AssignedInput({
     done.current = true;
     let p: Promise<void> | undefined;
     if (commit && text !== initial) {
-      const after = evaluateAssigned(text, assigned);
+      const after = evaluateAssigned(fmt.typedAmount(text), assigned, fmt.digits);
       if (after !== assigned) p = onCommit(after);
     }
     onClose(how, p);
@@ -105,6 +107,7 @@ export function AssignedCell({
   onClose: (how: CloseHow, committed?: Promise<void>) => void;
   onCommit: (after: number) => Promise<void>;
 }) {
+  const fmt = usePlanFormatter();
   if (editing) {
     return (
       <div className="assigned-box is-editing">
@@ -118,8 +121,8 @@ export function AssignedCell({
     // biome-ignore lint/a11y/useKeyWithClickEvents: same
     <div className="assigned-box" onClick={onOpen}>
       <Calculator />
-      <button type="button" className={amountClass(assigned)}>
-        {money(assigned)}
+      <button type="button" className={amountClass(assigned)} title={fmt.money(assigned)}>
+        {fmt.money(assigned)}
       </button>
     </div>
   );

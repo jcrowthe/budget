@@ -1,6 +1,7 @@
 import { unbalancedText } from "@budget/schema/split";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /** "Something Doesn't Add Up": the lines of a split do not add up to its total. */
 export function SplitDialog({
@@ -16,6 +17,7 @@ export function SplitDialog({
   onUpdateTotal: () => void;
   onAdjust: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const titleId = useId();
   const first = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -37,7 +39,7 @@ export function SplitDialog({
     <div className="split-dialog-backdrop">
       <div className="split-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <h2 id={titleId}>Something Doesn't Add Up</h2>
-        <p>{unbalancedText(total, sum)}</p>
+        <p>{unbalancedText(total, sum, fmt)}</p>
         <div className="split-dialog-buttons">
           <button
             ref={first}

@@ -1,5 +1,6 @@
 import type { SpendingItem } from "@budget/schema/reports";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { money } from "./format";
 import { sliceColor } from "./SpendingDonut";
 
@@ -16,6 +17,7 @@ export function SpendingList({
   activeId?: string | null;
   onPick: (item: SpendingItem, x: number, y: number) => void;
 }) {
+  const fmt = usePlanFormatter();
   const body = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
   const measure = useCallback(() => {
@@ -53,11 +55,11 @@ export function SpendingList({
               type="button"
               className={activeId === item.id ? "sb-row active" : "sb-row"}
               data-id={item.id}
-              aria-label={`${item.name} ${money(item.total)} ${item.share_pct}%`}
+              aria-label={`${item.name} ${money(item.total, fmt)} ${item.share_pct}%`}
               onClick={click(item)}
             >
               <span className="sb-row-name">{item.name}</span>
-              <span className="sb-row-amount">{money(item.total)}</span>
+              <span className="sb-row-amount">{money(item.total, fmt)}</span>
               <span className="sb-row-track">
                 <span
                   className="sb-bar"

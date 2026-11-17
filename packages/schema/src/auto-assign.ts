@@ -3,6 +3,7 @@ import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import { MonthCategory, type MonthCategoryDetail, type MonthDetail } from "./months";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import { PlanView } from "./plan-views";
 import type { CategoryTargetMonth } from "./targets";
 
@@ -273,6 +274,7 @@ export function autoAssignOptions(
   p: AutoAssignPreview,
   scope: AutoAssignScope,
   hidden?: { underfunded: number; reduce_overfunding: number },
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
 ): AutoAssignOption[] {
   const s = scope === "many" ? "s" : "";
   const decide = hidden ?? p;
@@ -332,8 +334,7 @@ export function autoAssignOptions(
       group: 3,
       label: `Reset Available Amount${s}`,
       amount: p.reset_available,
-      title:
-        "Want to start from zero? Set the available amounts of all of your categories to $0.00, making the funds ready to assign. It's like a mini Fresh Start!",
+      title: `Want to start from zero? Set the available amounts of all of your categories to ${fmt.money(0)}, making the funds ready to assign. It's like a mini Fresh Start!`,
     },
     {
       strategy: "reset_assigned",

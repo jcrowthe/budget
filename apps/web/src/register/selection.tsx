@@ -1,6 +1,6 @@
 import { rangeIds, selectedTotal } from "@budget/schema/register-selection";
 import type { ScheduledTransaction } from "@budget/schema/scheduled-transactions";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import type { TransactionDetail } from "@budget/schema/transactions";
 import {
   createContext,
@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 type Row = TransactionDetail & { account_name?: string };
 
@@ -212,12 +213,13 @@ export function useSelection(): Selection {
 
 /** "$245.50" over "Selected Total (2)": nothing below two rows. */
 export function SelectedTotal() {
+  const fmt = usePlanFormatter();
   const { selected, rows } = useSelection();
   const { count, total } = selectedTotal(rows.filter((r) => selected.has(r.id)));
   if (count < 2) return null;
   return (
     <div className="acct-balance acct-selected-total" data-balance="selected">
-      <span className={`acct-amount${total < 0 ? " is-negative" : ""}`}>{screenMoney(total)}</span>
+      <span className={`acct-amount${total < 0 ? " is-negative" : ""}`}>{fmt.money(total)}</span>
       <span className="acct-label">Selected Total ({count})</span>
     </div>
   );

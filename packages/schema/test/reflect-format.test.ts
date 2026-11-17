@@ -10,7 +10,6 @@ import {
   reportMoney,
   signedChange,
   tickMoney,
-  usDate,
 } from "../src/reflect-format";
 
 describe("zero is never negative (EXF-591)", () => {
@@ -35,7 +34,6 @@ describe("zero is never negative (EXF-591)", () => {
     expect(cents(-5)).toBe(-1);
     expect(Object.is(cents(-0), 0)).toBe(true);
   });
-  it("formats dates", () => expect(usDate("2026-10-21")).toBe("10/21/2026"));
 });
 
 describe("niceTicks", () => {
@@ -57,7 +55,7 @@ describe("niceTicks", () => {
       expect(t.length).toBeGreaterThan(0);
       expect(t.length).toBeLessThanOrEqual(5);
       expect(new Set(t).size).toBe(t.length);
-      expect(new Set(t.map(tickMoney)).size).toBe(t.length);
+      expect(new Set(t.map((v) => tickMoney(v))).size).toBe(t.length);
       for (let i = 1; i < t.length; i++) expect(t[i]).toBeGreaterThan(t[i - 1] as number);
       expect(t[0]).toBeLessThanOrEqual(lo);
       expect(t[t.length - 1]).toBeGreaterThanOrEqual(hi);

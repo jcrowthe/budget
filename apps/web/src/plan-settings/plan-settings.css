@@ -1,0 +1,56 @@
+/* Plan Settings: the dialog box itself is `.dialog.form` (shell/global.css); fields look like the account edit dialog's. */
+.dialog.form.plan-settings {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.dialog.form.plan-settings .dialog-head .icon-button {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.dialog.form.plan-settings .dialog-head .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.dialog.form.plan-settings label {
+  margin-bottom: 0;
+  padding-bottom: var(--space-1);
+}
+.dialog.form.plan-settings .field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: var(--space-1) 0 15px;
+  border: 1px solid var(--inputBorder);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font-family: inherit;
+  font-weight: 500;
+}
+.dialog.form.plan-settings select.field {
+  text-overflow: ellipsis;
+}
+.dialog.form.plan-settings .field:focus {
+  border-color: var(--buttonPrimaryBackground);
+}
+.dialog.form.plan-settings .field[aria-invalid="true"] {
+  border-color: var(--labelNegative);
+  margin-bottom: var(--space-1);
+}
+.plan-settings .error {
+  margin: 0 0 var(--space-3);
+  color: var(--labelNegative);
+  font-size: var(--font-size-sm);
+}
+.plan-settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.plan-settings-row > div {
+  min-width: 0;
+}

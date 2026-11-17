@@ -1,4 +1,3 @@
-import { formatMoney } from "@budget/core/money";
 import type { Account } from "@budget/schema/accounts";
 import { parseAmountInput } from "@budget/schema/amount-input";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -16,6 +15,7 @@ import { CloseIcon } from "../shell/icons";
 import { accountsPath } from "../shell/planPaths";
 import { CloseAccountDialog } from "./CloseAccountDialog";
 import "./edit-account.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 type Errors = { name?: string; balance?: string; other?: string };
 
@@ -24,9 +24,6 @@ const CLOSE_TIP =
 const DELETE_TIP =
   "If you want to delete this account, first delete all of the transactions in it and transfers pointing to it. Be cautious, as this will potentially change your plan values.";
 const HELPER = "An adjustment transaction will be created automatically if you change this amount.";
-
-/** The balance as the field shows it: signed, with thousands separators and no currency sign. */
-const balanceText = (balance: number) => formatMoney(balance).replace("$", "");
 
 /** "Edit Account": nickname, notes and (open accounts) the balance, plus close, delete and re-open. */
 export function EditAccountDialog({
@@ -38,13 +35,14 @@ export function EditAccountDialog({
   account: Account;
   onClose: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const navigate = useNavigate();
   const update = useUpdateAccount(budgetId, account.id);
   const adjust = useAdjustBalance(budgetId, account.id);
   const close = useCloseAccount(budgetId, account.id);
   const reopen = useReopenAccount(budgetId, account.id);
   const remove = useDeleteAccount(budgetId, account.id);
-  const prefill = balanceText(account.balance);
+  const prefill = fmt.input(account.balance);
   const [name, setName] = useState(account.name);
   const [note, setNote] = useState(account.note ?? "");
   const [balance, setBalance] = useState(prefill);
@@ -77,7 +75,7 @@ export function EditAccountDialog({
     }
     let target: number | null = null;
     if (!account.closed && balance !== prefill) {
-      target = parseAmountInput(balance);
+      target = parseAmountInput(fmt.typedAmount(balance), fmt.digits);
       if (target === null) {
         setErrors({ balance: "Enter an amount" });
         return;

@@ -1,7 +1,7 @@
 import type { MonthCategoryDetail, MonthGroupDetail } from "@budget/schema/months";
 import { READY_TO_ASSIGN } from "@budget/schema/moves";
 import { useId, useMemo, useRef, useState } from "react";
-import { money } from "./format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 export { READY_TO_ASSIGN };
 
@@ -50,6 +50,7 @@ export function CategoryPicker({
   includeHidden?: boolean;
   autoFocus?: boolean;
 }) {
+  const fmt = usePlanFormatter();
   const listId = useId();
   const all = useMemo(
     () =>
@@ -182,7 +183,7 @@ export function CategoryPicker({
                   readyToAssign === 0 ? "zero" : readyToAssign > 0 ? "positive" : "negative"
                 }`}
               >
-                {money(readyToAssign)}
+                {fmt.money(readyToAssign)}
               </span>
             </div>
           )}
@@ -208,7 +209,7 @@ export function CategoryPicker({
                       c.available === 0 ? "zero" : c.available > 0 ? "positive" : "negative"
                     }`}
                   >
-                    {money(c.available)}
+                    {fmt.money(c.available)}
                   </span>
                 </div>
               ))}

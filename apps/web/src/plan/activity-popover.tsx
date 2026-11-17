@@ -1,11 +1,11 @@
 import type { Month } from "@budget/core/month";
 import { activityMoreText } from "@budget/schema/category-activity";
-import { formatEntryDate } from "@budget/schema/date-entry";
 import { useEffect, useState } from "react";
 import { useCategoryActivity } from "../api/category-activity";
-import { amountClass, money } from "./format";
+import { amountClass } from "./format";
 import { Popover } from "./Popover";
 import "./activity-popover.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /** Title, subtitle, table head, footer and padding around the scrolling list. */
 export const ACTIVITY_CHROME = 150;
@@ -32,6 +32,7 @@ export function ActivityPopover({
   anchor: HTMLElement;
   onClose: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const q = useCategoryActivity(budgetId, month, category.id);
   const [listMax, setListMax] = useState(() =>
     activityListMax(anchor.getBoundingClientRect(), window.innerHeight),
@@ -84,11 +85,11 @@ export function ActivityPopover({
               {data.transactions.map((t) => (
                 <tr key={t.subtransaction_id ?? t.id}>
                   <td title={t.account_name}>{t.account_name}</td>
-                  <td>{formatEntryDate(t.date)}</td>
+                  <td>{fmt.date(t.date)}</td>
                   <td title={t.payee_name ?? undefined}>{t.payee_name}</td>
                   <td title={t.memo ?? undefined}>{t.memo}</td>
                   <td className={`num ${amountClass(t.amount)}${t.amount < 0 ? " negative" : ""}`}>
-                    {money(t.amount)}
+                    {fmt.money(t.amount)}
                   </td>
                 </tr>
               ))}

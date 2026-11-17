@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_FORMATTER } from "../src/plan-formats";
 import type { FormTab } from "../src/target-wording";
 import {
   behaviorOptions,
@@ -9,7 +10,6 @@ import {
   targetEmptyText,
   targetHeading,
   targetMessage,
-  targetMoney,
   targetPill,
   targetStatusText,
 } from "../src/target-wording";
@@ -449,6 +449,8 @@ const rows: Row[] = [
     pillIcon: null,
   },
 ];
+
+const targetMoney = DEFAULT_FORMATTER.money;
 
 describe("target wording", () => {
   it.each(rows)("$name", (r) => {

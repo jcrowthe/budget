@@ -2,6 +2,7 @@ import { minusMoney, niceTicks } from "@budget/schema/reflect-format";
 import { monthLabel, shortMonthLabel } from "@budget/schema/report-range";
 import type { SpendingTrends } from "@budget/schema/reports";
 import { useEffect, useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { money, percent, tickMoney } from "./format";
 
 type Series = SpendingTrends["series"][number];
@@ -25,6 +26,7 @@ export function TrendsChart({
   data: SpendingTrends;
   onPick: (series: Series, month: string, x: number, y: number) => void;
 }) {
+  const fmt = usePlanFormatter();
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [tip, setTip] = useState<Tip | null>(null);
@@ -61,7 +63,7 @@ export function TrendsChart({
 
   const showTip = (lines: Tip["lines"], x: number, top: number) => setTip({ lines, x, y: top });
   const showMarkerTip = (m: (typeof months)[number], i: number) =>
-    showTip([monthLabel(m.month), minusMoney(m.total), "Total Spending"], cx(i), y(m.total));
+    showTip([monthLabel(m.month), minusMoney(m.total, fmt), "Total Spending"], cx(i), y(m.total));
   const seriesOf = (id: string, fallback: { id: string; name: string }) =>
     data.series.find((d) => d.id === id) ?? { ...fallback, total: 0 };
   // The marker is drawn over the bars, so a click on it goes to the segment of its month under the pointer.
@@ -88,7 +90,7 @@ export function TrendsChart({
               textAnchor="end"
               dominantBaseline="middle"
             >
-              {tickMoney(t)}
+              {tickMoney(t, fmt)}
             </text>
           </g>
         ))}
@@ -140,7 +142,7 @@ export function TrendsChart({
                       showTip(
                         [
                           s.name,
-                          s.amount < 0 ? minusMoney(s.amount) : money(s.amount),
+                          s.amount < 0 ? minusMoney(s.amount, fmt) : money(s.amount, fmt),
                           s.amount < 0 ? "Net Inflows" : `${percent(s.share_pct ?? 0)} of Total`,
                         ],
                         cx(i),

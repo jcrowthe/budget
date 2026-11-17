@@ -37,3 +37,12 @@ describe("split arithmetic", () => {
     );
   });
 });
+
+describe("autoDistribute rounds to the plan's digits", () => {
+  it("whole units in a 0-decimal plan", () => {
+    expect(autoDistribute(-1000000, [-1, -1, -1], 0)).toEqual([-333000, -333000, -334000]);
+  });
+  it("three decimals in a 3-decimal plan", () => {
+    expect(autoDistribute(-1000, [-1, -1, -1], 3)).toEqual([-333, -333, -334]);
+  });
+});

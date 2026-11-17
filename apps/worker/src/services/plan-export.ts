@@ -1,7 +1,6 @@
 import { addMonths } from "@budget/core/month";
 import {
   categoryCell,
-  DEFAULT_PLAN_FORMAT,
   exportFormat,
   exportMonthCeiling,
   exportNames,
@@ -14,6 +13,7 @@ import {
   SYSTEM_PAYEE_NAMES,
   utcMinute,
 } from "@budget/schema/plan-export";
+import { planFormatter } from "@budget/schema/plan-formats";
 import { transferPayeeName } from "@budget/schema/transfers";
 import { storeZip, utf8 } from "@budget/schema/zip";
 import { getDb } from "../db/client";
@@ -23,6 +23,7 @@ import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
+import { formatsOfRow } from "./budgets";
 import { getMonthRange, getPlanMonths } from "./months";
 import { planClock } from "./plan-clock";
 
@@ -160,8 +161,8 @@ export async function exportPlan(
     });
   }
 
-  // EXF-468 replaces this line with the plan's own settings; EXF-480 passes flag names to registerFile.
-  const fmt = exportFormat(DEFAULT_PLAN_FORMAT);
+  // EXF-480 passes flag names to registerFile.
+  const fmt = exportFormat(planFormatter(formatsOfRow(plan)).planFormat());
   const names = exportNames(plan.name, now, fmt.extension);
   const bytes = storeZip(
     [

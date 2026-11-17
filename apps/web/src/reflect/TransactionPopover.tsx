@@ -4,8 +4,9 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { type ReportTransactionSelector, useReportTransactions } from "../api/reports";
 import { useDismiss } from "../plan/useDismiss";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { accountPath } from "../shell/planPaths";
-import { drillAmount, usDate } from "./format";
+import { drillAmount } from "./format";
 import { useReportState } from "./state";
 
 const MARGIN = 8;
@@ -33,6 +34,7 @@ export function TransactionPopover({
   y: number;
   onClose: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const { budgetId, span: reportSpan, settings } = useReportState();
   const span = ownSpan ?? reportSpan;
   const navigate = useNavigate();
@@ -96,10 +98,12 @@ export function TransactionPopover({
                   }}
                 >
                   <td>{t.account_name}</td>
-                  <td>{usDate(t.date)}</td>
+                  <td>{fmt.date(t.date)}</td>
                   <td>{t.payee_name}</td>
                   <td>{t.memo}</td>
-                  <td className={`num ${t.amount > 0 ? "inflow" : ""}`}>{drillAmount(t.amount)}</td>
+                  <td className={`num ${t.amount > 0 ? "inflow" : ""}`}>
+                    {drillAmount(t.amount, fmt)}
+                  </td>
                 </tr>
               );
             })}

@@ -9,6 +9,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import {
+  BudgetRefused,
   createBudget,
   deleteBudget,
   getBudget,
@@ -27,6 +28,12 @@ const errors = {
   403: json(ErrorBody, "Forbidden"),
 };
 const notFound = { 404: json(ErrorBody, "Not found") };
+const refused = {
+  422: json(
+    ErrorBody,
+    "Refused: unknown_currency, number_format_not_offered or unknown_date_format. Nothing changed.",
+  ),
+};
 
 const app = new OpenAPIHono<AppEnv>({
   defaultHook: (result, c) => {
@@ -54,11 +61,16 @@ export default app
       request: {
         body: { content: { "application/json": { schema: BudgetCreate } }, required: true },
       },
-      responses: { 201: json(BudgetResponse, "Created"), ...errors },
+      responses: { 201: json(BudgetResponse, "Created"), ...errors, ...refused },
     }),
     async (c) => {
-      const budget = await createBudget(c.env, c.get("identity").actor, c.req.valid("json"));
-      return c.json({ data: { budget } }, 201);
+      try {
+        const budget = await createBudget(c.env, c.get("identity").actor, c.req.valid("json"));
+        return c.json({ data: { budget } }, 201);
+      } catch (e) {
+        if (e instanceof BudgetRefused) return apiError(c, e.status, e.code, e.message) as never;
+        throw e;
+      }
     },
   )
   .openapi(
@@ -82,16 +94,21 @@ export default app
         params: Params,
         body: { content: { "application/json": { schema: BudgetUpdate } }, required: true },
       },
-      responses: { 200: json(BudgetResponse, "Updated"), ...errors, ...notFound },
+      responses: { 200: json(BudgetResponse, "Updated"), ...errors, ...notFound, ...refused },
     }),
     async (c) => {
-      const budget = await updateBudget(
-        c.env,
-        c.get("identity").actor,
-        c.req.valid("param").id,
-        c.req.valid("json"),
-      );
-      return c.json({ data: { budget } }, 200);
+      try {
+        const budget = await updateBudget(
+          c.env,
+          c.get("identity").actor,
+          c.req.valid("param").id,
+          c.req.valid("json"),
+        );
+        return c.json({ data: { budget } }, 200);
+      } catch (e) {
+        if (e instanceof BudgetRefused) return apiError(c, e.status, e.code, e.message) as never;
+        throw e;
+      }
     },
   )
   .openapi(
