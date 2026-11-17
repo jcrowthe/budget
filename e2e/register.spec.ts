@@ -145,7 +145,8 @@ test("selection and the error state", async ({ page, request }) => {
   await expect(page.locator("tr.is-checked")).toHaveCount(0);
   expect(writes).toEqual([]);
 
-  await page.route("**/accounts/*/transactions", (route) =>
+  // The account list now carries `?include=running_balance` (EXF-529): the pattern allows a query.
+  await page.route(/\/accounts\/[^/]+\/transactions(\?|$)/, (route) =>
     route.fulfill({ status: 500, body: "{}" }),
   );
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
