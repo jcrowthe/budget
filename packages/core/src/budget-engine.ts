@@ -1,4 +1,5 @@
 import { type AccountType, accountGroup } from "./account-types";
+import { type CardFlow, type CardPayment, cardPayment } from "./card-payment";
 import { addMilliunits, type Milliunits } from "./money";
 import { addMonths, isMonth, type Month, toMonth } from "./month";
 import { computeTargetMonth, type TargetDefinition, type TargetMonth } from "./targets";
@@ -64,6 +65,8 @@ export interface EngineInput {
   targets?: EngineTarget[];
   /** ISO date; required when `targets` is not empty (the engine never reads the clock). */
   today?: string;
+  /** Per card and month balance flows (EXF-537); needed only for `payment` of payment categories. */
+  cardFlows?: CardFlow[];
 }
 
 export type Classified =
@@ -180,6 +183,8 @@ export interface MonthCategoryDetail {
   available: Milliunits;
   carried: Milliunits;
   target: TargetMonth | null;
+  /** A payment category's card status (EXF-537); null for an ordinary category. */
+  payment: CardPayment | null;
 }
 export interface MonthGroupDetail {
   id: string;
@@ -222,6 +227,8 @@ interface CatState {
 interface MonthState {
   month: Month;
   cats: Map<string, CatState>;
+  /** Per card: the part of this month's ordinary overspending that became that card's debt. */
+  creditParts: Map<string, Milliunits>;
   uncat: { carried: Milliunits; activity: Milliunits; available: Milliunits; hasRows: boolean };
   /** Cash overspending created in this month (>= 0), charged to the next month. */
   overspending: Milliunits;
@@ -257,6 +264,7 @@ interface Prepared {
   transferByCardMonth: Map<string, Milliunits>; // `${month}|${account}`: the sum of -amount of its transfers
   paymentCatOfAccount: Map<string, string>;
   paymentIds: Set<string>;
+  flowsByCard: Map<string, CardFlow[]>;
   uncatActivity: Map<Month, Milliunits>;
   inflowByMonth: Map<Month, Milliunits>;
   earliest: Month | null;
@@ -286,10 +294,16 @@ function prepare(input: EngineInput): Prepared {
     transferByCardMonth: new Map(),
     paymentCatOfAccount,
     paymentIds,
+    flowsByCard: new Map(),
     uncatActivity: new Map(),
     inflowByMonth: new Map(),
     earliest: null,
   };
+  for (const f of input.cardFlows ?? []) {
+    const list = p.flowsByCard.get(f.accountId) ?? [];
+    list.push(f);
+    p.flowsByCard.set(f.accountId, list);
+  }
   const seen = (m: Month) => {
     if (p.earliest === null || m < p.earliest) p.earliest = m;
   };
@@ -328,6 +342,7 @@ function timeline(p: Prepared, start: Month, end: Month): MonthState[] {
     let overspending = 0;
     // Money that funded card spending moves into each card's payment category (per account).
     const funded = new Map<string, Milliunits>();
+    const creditParts = new Map<string, Milliunits>();
     for (const c of p.activeCats) {
       if (p.paymentIds.has(c.id)) continue;
       const carried = Math.max(prev?.cats.get(c.id)?.available ?? 0, 0);
@@ -343,6 +358,7 @@ function timeline(p: Prepared, start: Month, end: Month): MonthState[] {
       const shares = splitAcrossCards(overspent?.credit ?? 0, spendByCard);
       for (const [k, v] of byCard) {
         add(funded, k, addMilliunits(neg(v), neg(shares.get(k) ?? 0)));
+        add(creditParts, k, shares.get(k) ?? 0);
       }
       cats.set(c.id, {
         carried,
@@ -386,6 +402,7 @@ function timeline(p: Prepared, start: Month, end: Month): MonthState[] {
     const state: MonthState = {
       month,
       cats,
+      creditParts,
       uncat: {
         carried: uCarried,
         activity: uActivity,
@@ -515,6 +532,15 @@ export function computeMonth(input: EngineInput, month: Month): MonthDetail {
         available: s.available,
         carried: s.carried,
         target: targetFor(c.id, s),
+        payment:
+          c.kind === "credit_card_payment" && c.accountId
+            ? cardPayment(
+                p.flowsByCard.get(c.accountId) ?? [],
+                month,
+                s.available,
+                state.creditParts.get(c.accountId) ?? 0,
+              )
+            : null,
       };
     });
     const visible = cats.filter((c) => !c.hidden);

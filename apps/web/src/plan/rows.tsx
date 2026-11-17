@@ -2,7 +2,7 @@
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are; the keys are the page's (shortcuts.ts)
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
 import { targetStatusText } from "@budget/schema/target-wording";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
 import {
@@ -18,8 +18,10 @@ import {
   ChevronDownIcon,
   ChevronRightSmallIcon,
   PlusCircleFillIcon,
+  QuestionCircleIcon,
   SubtractIcon,
 } from "./icons";
+import { PaymentHelpDialog } from "./PaymentHelpDialog";
 import { ProgressBar } from "./ProgressBar";
 
 /** A checkbox of the selection: checked, unchecked or "mixed" (some of the rows below it). */
@@ -70,6 +72,8 @@ export function GroupRow({
   addOpen: boolean;
 }) {
   const nameRef = useRef<HTMLButtonElement>(null);
+  const helpRef = useRef<HTMLButtonElement>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const locked = g.kind !== null;
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a right-click opens the edit popover; the name button does the same by keyboard
@@ -131,10 +135,30 @@ export function GroupRow({
       <div className="num cell-activity" role="cell">
         {money(g.activity)}
       </div>
-      <div className="num cell-available" role="cell">
-        {money(g.available)}
+      <div className={`num cell-available${locked ? " has-payment-help" : ""}`} role="cell">
+        {locked && (
+          <button
+            type="button"
+            ref={helpRef}
+            className="payment-help"
+            aria-haspopup="dialog"
+            onClick={() => setHelpOpen(true)}
+          >
+            <QuestionCircleIcon width={12} height={12} />
+            PAYMENT
+          </button>
+        )}
+        <span>{money(g.available)}</span>
       </div>
       <div className="cell-margin" />
+      {helpOpen && (
+        <PaymentHelpDialog
+          onClose={() => {
+            setHelpOpen(false);
+            helpRef.current?.focus();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -216,14 +240,18 @@ export function CategoryRow({
             {c.name}
           </button>
           {status && (
-            <span className="status-label">
+            <span className="status-label" title={`${status.amount ?? ""}${status.text}`.trim()}>
               {status.amount && <strong>{status.amount}</strong>}
               {status.text}
             </span>
           )}
-          {label && <span className="status-label">{label}</span>}
+          {label && (
+            <span className="status-label" title={label}>
+              {label}
+            </span>
+          )}
         </div>
-        {bars && (
+        {bars && c.kind === null && (
           <ProgressBar
             sections={c.target && c.available >= 0 ? targetSections(c) : plainSections(c)}
           />

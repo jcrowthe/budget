@@ -22,8 +22,10 @@ export function PlanPanel({
   selected,
   view,
   onViewAll,
+  onView,
   onEditCategory,
   bodyRef,
+  folded = false,
 }: {
   budgetId: string;
   month: Month;
@@ -32,6 +34,10 @@ export function PlanPanel({
   /** The Plan view in use: with nothing selected the summary and Auto-Assign cover what it shows. */
   view: PlanView;
   onViewAll: () => void;
+  /** Switches the grid's view chip (Cover Overspent Categories). */
+  onView: (v: PlanView) => void;
+  /** The Plan body is too narrow for the panel (planLayout.ts): it is hidden. */
+  folded?: boolean;
   onEditCategory: (id: string, anchor: HTMLElement) => void;
   bodyRef: RefObject<HTMLElement | null>;
 }) {
@@ -42,6 +48,8 @@ export function PlanPanel({
     balance: false,
     target: false,
     autoAssign: false,
+    paymentBalance: false,
+    forPayment: true,
   });
   const panelRef = useRef<HTMLElement>(null);
   const all = detail?.groups.flatMap((g) => g.categories) ?? [];
@@ -71,6 +79,7 @@ export function PlanPanel({
       className="plan-inspector"
       aria-label="Inspector"
       aria-busy={!detail}
+      hidden={folded}
       style={{ "--panel-width": width === null ? "33%" : `${width}px` } as React.CSSProperties}
     >
       <ResizeHandle bodyRef={bodyRef} panelRef={panelRef} width={width} onWidth={setWidth} />
@@ -86,6 +95,12 @@ export function PlanPanel({
               collapsed={collapsed.balance}
               onToggle={() => setCollapsed((c) => ({ ...c, balance: !c.balance }))}
               onEdit={(anchor) => onEditCategory(one.id, anchor)}
+              paymentCollapsed={{
+                paymentBalance: collapsed.paymentBalance,
+                forPayment: collapsed.forPayment,
+              }}
+              onTogglePayment={(k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }))}
+              onView={onView}
               autoAssign={autoAssign}
             />
           ) : (

@@ -7,6 +7,7 @@ import { KeyboardTip } from "../plan/KeyboardTip";
 import { type EditRequest, PlanGrid } from "../plan/PlanGrid";
 import { PlanHeader } from "../plan/PlanHeader";
 import { PlanPanel } from "../plan/panel/PlanPanel";
+import { usePlanLayout } from "../plan/panel/planLayout";
 import { useSelection, visibleSelection } from "../plan/selection";
 import { ViewChips } from "../plan/ViewChips";
 import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
@@ -17,6 +18,7 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
   const [selection, setSelection] = useSelection();
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const layout = usePlanLayout(bodyRef);
   const detail = useMonth(budgetId, month).data;
   // The chip in use is not saved: All after a reload or a plan switch, kept across months.
   const [view, setView] = useState<PlanView>("all");
@@ -31,7 +33,7 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
     <div className="plan-page">
       <PlanHeader budgetId={budgetId} month={month} view={view} onViewAll={viewAll} />
       <ViewChips detail={detail} view={view} onView={setView} />
-      <div className="plan-body" ref={bodyRef}>
+      <div className="plan-body" ref={bodyRef} {...layout}>
         <PlanGrid
           budgetId={budgetId}
           month={month}
@@ -47,6 +49,8 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
           selected={visibleSelection(selection, all)}
           view={view}
           onViewAll={viewAll}
+          onView={setView}
+          folded={"data-fold" in layout}
           onEditCategory={(id, anchor) => setEditRequest({ id, anchor, at: Date.now() })}
           bodyRef={bodyRef}
         />

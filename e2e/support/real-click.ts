@@ -8,7 +8,13 @@ export async function realClick(page: Page, loc: Locator) {
   for (let i = 0; i < 20; i++) {
     await page.waitForTimeout(100);
     const next = await loc.boundingBox();
-    const still = !!b && !!next && b.x === next.x && b.y === next.y && b.width === next.width;
+    const still =
+      !!b &&
+      !!next &&
+      b.x === next.x &&
+      b.y === next.y &&
+      b.width === next.width &&
+      b.height === next.height;
     b = next;
     if (still) break;
   }
