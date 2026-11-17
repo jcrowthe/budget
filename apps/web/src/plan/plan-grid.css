@@ -231,10 +231,18 @@
   padding-left: 4px;
 }
 .plan-body[data-narrow] .group-row .cell-name,
+.plan-body[data-narrow] .hidden-categories-row .cell-name,
 .plan-body[data-narrow] .category-row .cell-name {
   padding-left: 0;
 }
-.plan-body[data-narrow] .category-name {
+/* Polish P6: header, group, hidden-categories and category text all start 2px after the name cell (source: all at
+   the same x, 323 at 1440 and 1024). */
+.plan-body[data-narrow] .category-name,
+.plan-body[data-narrow] .group-name,
+.plan-body[data-narrow] .hidden-categories-label {
+  padding-left: 2px;
+}
+.plan-body[data-narrow] .header-row .cell-name {
   padding-left: 2px;
 }
 .plan-body[data-narrow] .header-row .cell-assigned,

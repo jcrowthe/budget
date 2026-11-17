@@ -286,6 +286,25 @@ test("21. a name keeps its first word, the target text gives way, the pill stays
       `group ${m.name}: first word ends at ${m.right}px, box at ${m.limit}px`,
     ).toBeLessThanOrEqual(m.limit + 0.5);
   }
+  // Polish P6: the header, the first group and the first category start their text at the same x. Source: all three
+  // at x=323 at 1440 and at 1024 (text Range, Designer's measurement); the clone's narrow layout is 2px after the cell.
+  const textLeft = (sel: string) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        return r.getBoundingClientRect().left;
+      });
+  const headerX = await textLeft(".header-row .cell-name");
+  const groupX = await textLeft(".group-row .group-name");
+  const categoryX = await textLeft(".category-row .category-name");
+  expect(Math.abs(headerX - groupX), `header ${headerX}, group ${groupX}`).toBeLessThanOrEqual(0.5);
+  expect(
+    Math.abs(categoryX - groupX),
+    `category ${categoryX}, group ${groupX}`,
+  ).toBeLessThanOrEqual(0.5);
   // The group rows: the payment group's PAYMENT button and totals are whole.
   const pay = page.locator(".group-row", { hasText: "PAYMENT" }).locator(".cell-available");
   expect(await pay.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
