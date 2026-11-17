@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DATE_FORMATS,
   dateCandidates,
+  detectDecimal,
   ImportError,
   identifyFiles,
   parseAmount,
@@ -64,6 +65,42 @@ describe("amounts", () => {
     for (const bad of ["12.3456", "1.2.3", "", "abc", "$12$", "1,234.56"]) {
       expect(parseAmount(bad), bad).toBeNull();
     }
+  });
+});
+
+describe("amounts with thousands separators", () => {
+  it.each([
+    [".", "$1,234.56", 1234560],
+    [".", "-$12,345.00", -12345000],
+    [".", "$1,234", 1234000],
+    [".", "$1,000,000.00", 1000000000],
+    [".", "1.234", 1234],
+    [",", "1.234,56€", 1234560],
+    [",", "1 234,56 €", 1234560],
+    [",", "1.234€", 1234000],
+  ])("reads %s file amount %s", (d, cell, milliunits) => {
+    expect(parseAmount(cell, d)?.milliunits).toBe(milliunits);
+  });
+  it.each([
+    [".", "$1,23.45"],
+    [".", "$12,3456.00"],
+    [".", "$1234,567.00"],
+    [".", "$1,234,56"],
+    [".", "$1,234.5678"],
+    [".", "$1,234 567.00"],
+    [".", "$1.234.567"],
+    [",", "1,234,56€"],
+  ])("refuses %s file amount %s", (d, cell) => {
+    expect(parseAmount(cell, d)).toBeNull();
+  });
+  it("keeps the plain rule without a decimal", () => {
+    expect(parseAmount("1,234.56")).toBeNull();
+    expect(parseAmount("$1,234,567", null)).toBeNull();
+  });
+  it("detects the decimal separator", () => {
+    expect(detectDecimal("$0.00")).toBe(".");
+    expect(detectDecimal("1.234,56€")).toBe(",");
+    expect(detectDecimal("$1,234")).toBeNull();
   });
 });
 

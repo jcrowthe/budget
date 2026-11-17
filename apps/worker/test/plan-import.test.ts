@@ -324,6 +324,53 @@ describe("case 2 (criterion 2): amounts", () => {
   });
 });
 
+describe("amounts with thousands separators (second carry-over, spec task 13)", () => {
+  const files = (outflow = '"$12,345.00"') => ({
+    plan: [
+      PLAN_HEADER,
+      '"Oct 2026","Bills: Rent","Bills","Rent","$1,234.56","-$12,345.00","-$11,110.44"',
+    ].join("\r\n"),
+    register: [
+      REGISTER_HEADER,
+      `"Main Checking","","10/15/2026","Landlord","Bills: Rent","Bills","Rent","",${outflow},$0.00,"Cleared"`,
+      '"Main Checking","","10/01/2026","Employer","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,"$1,000,000.00","Cleared"',
+    ].join("\r\n"),
+  });
+  const post = (f: { plan: string; register: string }) =>
+    postImport(
+      importForm([
+        { name: "g as of 2026-11-15 19-51 - Plan.csv", data: f.plan },
+        { name: "g as of 2026-11-15 19-51 - Register.csv", data: f.register },
+      ]),
+    );
+
+  it("imports grouped amounts to the milliunit", async () => {
+    const data = await body(await post(files()), 201);
+    // By hand: 1,234.56 assigned; 12,345.00 out; 1,000,000.00 in.
+    const assigned = await q(
+      "select sum(assigned) s from month_categories where budget_id = ?",
+      data.budget_id,
+    );
+    expect(assigned[0]?.s).toBe(1234560);
+    const total = await q(
+      "select sum(amount) s from transactions where budget_id = ?",
+      data.budget_id,
+    );
+    expect(total[0]?.s).toBe(987655000);
+    expect(data.summary.mismatch_count).toBe(0);
+  });
+
+  it("a wrong grouping is a 422 naming file, line, column and text, and writes nothing", async () => {
+    const before = await allCounts();
+    const res = await post(files('"$1,23.45"'));
+    expect(res.status).toBe(422);
+    const detail = ((await res.json()) as Json).error.detail as string;
+    expect(detail).toContain("Register file line 2, column Outflow");
+    expect(detail).toContain("$1,23.45");
+    expect(await allCounts()).toEqual(before);
+  });
+});
+
 describe("case 3 (criterion 3): the formula guard", () => {
   it("imports \\=bonus as =bonus", async () => {
     const data = await body(await importSample(), 201);

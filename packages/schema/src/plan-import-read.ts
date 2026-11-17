@@ -146,12 +146,17 @@ export interface ParsedAmount {
   separator: string | null;
   /** Digits after the separator. */
   digits: number;
+  /** The grouping (thousands) character, null when the amount has none. */
+  grouping: string | null;
 }
 
 const isDigit = (c: number) => c >= 48 && c <= 57;
 
-/** `-$45.00` → -45000, `120,50€` → 120500, `¥1234` → 1234000; null for anything else. */
-export function parseAmount(cell: string): ParsedAmount | null {
+/** The characters read as thousands grouping once the decimal separator is known. */
+export const GROUPING_CHARS: readonly string[] = [",", ".", " ", "\u00a0", "\u202f", "'", "\u2019"];
+const DECIMAL_CHARS = [".", ",", "-", "/"];
+
+function numberSpan(cell: string): { s: string; first: number; last: number } | null {
   const s = cell.trim();
   let first = -1;
   let last = -1;
@@ -161,7 +166,46 @@ export function parseAmount(cell: string): ParsedAmount | null {
       last = i;
     }
   }
-  if (first < 0) return null;
+  return first < 0 ? null : { s, first, last };
+}
+
+/**
+ * The decimal separator an amount cell reveals, or null: two different non-digits where the last occurs once and is
+ * a decimal character, or one non-digit occurring once followed by 1 or 2 digits.
+ */
+export function detectDecimal(cell: string): string | null {
+  const sp = numberSpan(cell);
+  if (!sp) return null;
+  const number = sp.s.slice(sp.first, sp.last + 1);
+  const seps: string[] = [];
+  for (let i = 0; i < number.length; i++)
+    if (!isDigit(number.charCodeAt(i))) seps.push(number[i] as string);
+  if (seps.length === 0) return null;
+  const lastSep = seps[seps.length - 1] as string;
+  if (seps.length === 1) {
+    const frac = number.length - number.lastIndexOf(lastSep) - 1;
+    return frac >= 1 && frac <= 2 ? lastSep : null;
+  }
+  const distinct = new Set(seps);
+  if (
+    distinct.size >= 2 &&
+    seps.filter((c) => c === lastSep).length === 1 &&
+    DECIMAL_CHARS.includes(lastSep)
+  ) {
+    return lastSep;
+  }
+  return null;
+}
+
+/**
+ * `-$45.00` → -45000, `120,50€` → 120500, `¥1234` → 1234000; null for anything else.
+ * With `decimal` (the file's decimal separator) grouped amounts are read too: `$1,234.56`, `1.234,56€`.
+ * Without it, exactly the plain rule.
+ */
+export function parseAmount(cell: string, decimal?: string | null): ParsedAmount | null {
+  const sp = numberSpan(cell);
+  if (!sp) return null;
+  const { s, first, last } = sp;
   let before = s.slice(0, first).trim();
   const after = s.slice(last + 1).trim();
   const negative = before.startsWith("-");
@@ -169,17 +213,69 @@ export function parseAmount(cell: string): ParsedAmount | null {
   if (before !== "" && after !== "") return null;
   const number = s.slice(first, last + 1);
   let separator: string | null = null;
+  let grouping: string | null = null;
   let whole = number;
   let frac = "";
-  for (let i = 0; i < number.length; i++) {
-    if (!isDigit(number.charCodeAt(i))) {
-      if (separator !== null) return null;
-      separator = number[i] as string;
-      whole = number.slice(0, i);
-      frac = number.slice(i + 1);
+  const seps: string[] = [];
+  for (let i = 0; i < number.length; i++)
+    if (!isDigit(number.charCodeAt(i))) seps.push(number[i] as string);
+  const grouped = (g: string, d: string | null): boolean => {
+    if (g === d || !GROUPING_CHARS.includes(g)) return false;
+    let intPart = number;
+    if (d !== null) {
+      const at = number.lastIndexOf(d);
+      intPart = number.slice(0, at);
+      frac = number.slice(at + 1);
+      if (frac.length < 1 || frac.length > 3 || !/^\d+$/.test(frac)) return false;
+    }
+    const groups = intPart.split(g);
+    if (groups.length < 2) return false;
+    if (!groups.every((x) => /^\d+$/.test(x))) return false;
+    if ((groups[0] as string).length > 3) return false;
+    if (!groups.slice(1).every((x) => x.length === 3)) return false;
+    whole = groups.join("");
+    grouping = g;
+    separator = d;
+    return true;
+  };
+  let done = false;
+  if (decimal) {
+    if (seps.length === 1) {
+      const g = seps[0] as string;
+      const frac3 = number.length - number.indexOf(g) - 1 === 3;
+      if (g !== decimal && frac3 && grouped(g, null)) {
+        // `1,234` in a `.` file is grouping; `1.234` in a `.` file stays a three-decimal amount.
+        separator = null;
+        frac = "";
+        done = true;
+      } else {
+        frac = "";
+      }
+    } else if (seps.length > 1) {
+      const g = seps[0] as string;
+      const d =
+        seps[seps.length - 1] === decimal && seps.filter((c) => c === decimal).length === 1
+          ? decimal
+          : null;
+      const used = d === null ? seps : seps.slice(0, -1);
+      if (g === decimal || !used.every((c) => c === g) || !grouped(g, d)) return null;
+      done = true;
     }
   }
-  if (separator !== null && (frac.length < 1 || frac.length > 3)) return null;
+  if (!done) {
+    whole = number;
+    frac = "";
+    separator = null;
+    for (let i = 0; i < number.length; i++) {
+      if (!isDigit(number.charCodeAt(i))) {
+        if (separator !== null) return null;
+        separator = number[i] as string;
+        whole = number.slice(0, i);
+        frac = number.slice(i + 1);
+      }
+    }
+    if (separator !== null && (frac.length < 1 || frac.length > 3)) return null;
+  }
   if (whole.length > 12 || whole === "" || frac.length > 3) return null;
   const units = Number(whole) * 1000 + Number(frac.padEnd(3, "0"));
   const symbol = before !== "" ? before : after;
@@ -189,6 +285,7 @@ export function parseAmount(cell: string): ParsedAmount | null {
     placement: before !== "" ? "before" : after !== "" ? "after" : "none",
     separator,
     digits: frac.length,
+    grouping,
   };
 }
 

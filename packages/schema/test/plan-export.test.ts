@@ -32,6 +32,7 @@ describe("amounts (ticket: $0.00, $17.34, $200000.00, -$120.00)", () => {
     expect(US.amount(-120000)).toBe("-$120.00");
     expect(US.amount(200000000)).toBe("$200000.00");
     expect(US.amount(0)).toBe("$0.00");
+    expect(US.amount(1234560)).toBe("$1234.56"); // the export writes no thousands separator
     expect(US.amount(17345)).toBe("$17.35");
     expect(US.amount(-4)).toBe("$0.00");
   });

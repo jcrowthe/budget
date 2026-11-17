@@ -11,6 +11,7 @@ import {
   DATE_FORMATS,
   type DateFormat,
   dateCandidates,
+  detectDecimal,
   ImportError,
   type NamedText,
   type ParsedAmount,
@@ -320,6 +321,22 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     );
   }
 
+  // ---- Decimal separator: the option, else the first amount cell that reveals it (Plan Assigned, Activity, Available,
+  // then Register Outflow, Inflow). Fixed before any amount is read, so grouped amounts are unambiguous.
+  let decimal: string | null = options.currency_format?.decimal_separator ?? null;
+  if (decimal === null) {
+    const scan = (rows: string[][], cols: number[]) => {
+      for (let i = 1; i < rows.length && decimal === null; i++) {
+        for (const c of cols) {
+          decimal = detectDecimal((rows[i] as string[])[c] ?? "");
+          if (decimal !== null) break;
+        }
+      }
+    };
+    scan(planRaw, [4, 5, 6]);
+    if (decimal === null) scan(regRaw, [8, 9]);
+  }
+
   // ---- Amount formats (first non-zero amount decides; a different one later is a warning)
   let fmt: ParsedAmount | null = null;
   let fallback: ParsedAmount | null = null;
@@ -327,7 +344,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
   const amount = (cell: string, file: string, line: number, column: string): number => {
     const t = cell.trim();
     if (t === "" && file === "Register file") return 0;
-    const p = parseAmount(t);
+    const p = parseAmount(t, decimal);
     if (!p)
       throw new ImportError(
         "bad_amount",
@@ -1138,7 +1155,8 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     delimiter: (input.delimiter === "\t" ? "tab" : "comma") as "tab" | "comma",
     currency_symbol: cf.currency_symbol ?? (f as ParsedAmount | null)?.symbol ?? "",
     symbol_placement: cf.symbol_placement ?? (f as ParsedAmount | null)?.placement ?? "none",
-    decimal_separator: cf.decimal_separator ?? (f as ParsedAmount | null)?.separator ?? ".",
+    decimal_separator:
+      cf.decimal_separator ?? decimal ?? (f as ParsedAmount | null)?.separator ?? ".",
     decimal_digits: cf.decimal_digits ?? (f as ParsedAmount | null)?.digits ?? 2,
     date_format: dateFormat,
   };

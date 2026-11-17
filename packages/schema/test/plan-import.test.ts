@@ -485,6 +485,41 @@ describe("rules and edges", () => {
     expect(p.assignments[0]?.assigned).toBe(10000);
   });
 
+  it("reads grouped amounts in a comma-decimal TSV", () => {
+    const tab = (cells: string[]) => cells.join("\t");
+    const plan = [
+      tab(PH.split(",")),
+      tab(['"Oct 2026"', '"G: C"', '"G"', '"C"', "1.234,56€", "0,00€", "1.234,56€"]),
+    ].join("\r\n");
+    const reg = [
+      tab(RH.split(",")),
+      tab([
+        '"K"',
+        '""',
+        '"30.10.2026"',
+        '"X"',
+        '""',
+        '""',
+        '""',
+        '""',
+        "1.234,56€",
+        "0,00€",
+        '"Cleared"',
+      ]),
+    ].join("\r\n");
+    const p = buildImportPlan({
+      plan: { name: "p.tsv", text: plan },
+      register: { name: "r.tsv", text: reg },
+      delimiter: "\t",
+      zipName: null,
+      options: { export_date: "2026-12-01" },
+      serverToday: "2026-11-16",
+    });
+    expect(p.assignments[0]?.assigned).toBe(1234560);
+    expect(p.transactions[0]?.amount).toBe(-1234560);
+    expect(p.formats.decimal_separator).toBe(",");
+  });
+
   it("warns once about a different currency format later in the file", () => {
     const p = build(
       regOf(
