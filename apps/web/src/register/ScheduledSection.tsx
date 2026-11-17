@@ -11,6 +11,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Tooltip } from "../account/Tooltip";
 import { useScheduledTransactions } from "../api/scheduledTransactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
+import { useAttentionColumn } from "./attention-filter";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
@@ -78,6 +79,7 @@ export function ScheduledSection({
 }) {
   const fmt = usePlanFormatter();
   const { showFlags, showBalance } = useRegisterView();
+  const attentionCol = useAttentionColumn();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   useEffect(() => {
     try {
@@ -147,6 +149,7 @@ export function ScheduledSection({
               onClick={(e) => pick("scheduled", s.id, e.shiftKey ? "rangeAdd" : "toggle")}
             />
           </td>
+          {attentionCol && <td className="cell-attention" />}
           {showFlags && (
             <td className="cell-flag">
               {s.flag_color ? <FlagFilledIcon className={`flag-${s.flag_color}`} /> : null}

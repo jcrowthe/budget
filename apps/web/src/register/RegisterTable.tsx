@@ -1,5 +1,6 @@
 import { sidebarSections } from "@budget/core/account-types";
 import type { Account } from "@budget/schema/accounts";
+import { NEEDS_CATEGORY_TIP, needsAttention } from "@budget/schema/attention";
 import { paymentDisplay, paymentPrefill } from "@budget/schema/card-payments";
 import {
   categoryCell,
@@ -24,6 +25,8 @@ import {
 } from "../api/transactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { accountPath } from "../shell/planPaths";
+import { AttentionCell } from "./AttentionMenu";
+import { AttentionColumnContext, useAttentionFilter } from "./attention-filter";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
@@ -35,6 +38,7 @@ import {
   ClearedFilledIcon,
   ClearedOutlineIcon,
   FlagFilledIcon,
+  InfoCircleFillIcon,
   LockIcon,
   TransferIcon,
 } from "./icons";
@@ -44,6 +48,20 @@ import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
 import { useSelection } from "./selection";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
+
+const SPLIT_TEXT = "Split (Multiple Categories)...";
+
+/** What a split line's category cell shows as text; none for the pill. */
+function lineCategoryText(l: {
+  category_name: string | null;
+  category_group_name: string | null;
+  inflow_to_ready_to_assign: boolean;
+}): string | undefined {
+  if (l.category_name) {
+    return l.category_group_name ? `${l.category_group_name}: ${l.category_name}` : l.category_name;
+  }
+  return l.inflow_to_ready_to_assign ? "Inflow: Ready to Assign" : undefined;
+}
 
 type Row = TransactionDetail & { account_name?: string; running_balance?: number };
 
@@ -126,12 +144,26 @@ export function RegisterTable({
   );
   const view = useRegisterView();
   const { showFlags, showBalance } = view;
-  const colCount = columns.length + 2 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
   const data = q.data;
   const scheduledRows = useScheduledRows(budgetId, account?.id, sort);
   const reconcileMode = useReconcile()?.step === "mode";
+  const attention = useAttentionFilter().on;
+  const openIds = useMemo(() => new Set(openAccounts.map((a) => a.id)), [openAccounts]);
   const { rows, hidden } = useMemo(() => {
     if (!data) return { rows: [] as Row[], hidden: 0 };
+    if (attention) {
+      // View: every row that needs attention, whatever the View options hide (the banner's N and these rows agree).
+      const need = data.transactions.filter(
+        (tx) =>
+          (account || openIds.has(tx.account_id)) &&
+          needsAttention(
+            tx,
+            account ?? byId.get(tx.account_id) ?? { on_budget: true },
+            tx.transfer_account_id ? (byId.get(tx.transfer_account_id) ?? null) : null,
+          ),
+      );
+      return { rows: sortTransactions<Row>(need, sort.column, sort.dir), hidden: 0 };
+    }
     const shown = registerVisible<Row>(
       data.transactions,
       view.settings,
@@ -140,7 +172,23 @@ export function RegisterTable({
       reconcileMode,
     );
     return { rows: sortTransactions<Row>(shown.rows, sort.column, sort.dir), hidden: shown.hidden };
-  }, [data, sort, view.settings, view.today, view.firstMonth, reconcileMode]);
+  }, [
+    data,
+    sort,
+    view.settings,
+    view.today,
+    view.firstMonth,
+    reconcileMode,
+    attention,
+    openIds,
+    byId,
+    account,
+  ]);
+
+  // Source: the attention column is display:none when no listed row needs approval.
+  const attentionCol = rows.some((r) => !r.approved);
+  const colCount =
+    columns.length + 2 + (attentionCol ? 1 : 0) + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
 
   // The selection and the bar read the rows as shown; ids that left the list drop out of the selection.
   useEffect(() => setRows(rows), [rows, setRows]);
@@ -263,7 +311,14 @@ export function RegisterTable({
     return (
       <Fragment key={tx.id}>
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes */}
-        <tr data-tx={tx.id} className={checked ? "is-checked" : undefined} {...rowProps}>
+        <tr
+          data-tx={tx.id}
+          className={
+            [checked && "is-checked", !tx.approved && "is-unapproved"].filter(Boolean).join(" ") ||
+            undefined
+          }
+          {...rowProps}
+        >
           <td className="cell-check">
             <Box
               state={checked}
@@ -271,6 +326,11 @@ export function RegisterTable({
               onClick={(e) => pick("real", tx.id, e.shiftKey ? "rangeAdd" : "toggle")}
             />
           </td>
+          {attentionCol && (
+            <td className="cell-attention">
+              <AttentionCell budgetId={budgetId} tx={tx} />
+            </td>
+          )}
           {showFlags && (
             <td className="cell-flag">
               <FlagCell
@@ -315,7 +375,16 @@ export function RegisterTable({
           {showCategory && (
             <td
               data-field="category"
-              title={pay?.category ?? (cell.kind === "text" ? cell.text : undefined)}
+              title={
+                pay?.category ??
+                (cell.kind === "text"
+                  ? cell.text
+                  : cell.kind === "split"
+                    ? SPLIT_TEXT
+                    : cell.kind === "notNeeded"
+                      ? "Category not needed"
+                      : undefined)
+              }
             >
               {pay ? (
                 pay.category
@@ -330,7 +399,7 @@ export function RegisterTable({
                   >
                     {expanded ? <CaretDownIcon /> : <ChevronRightIcon />}
                   </button>
-                  Split (Multiple Categories)...
+                  {SPLIT_TEXT}
                 </span>
               ) : cell.kind === "text" ? (
                 cell.text
@@ -340,6 +409,7 @@ export function RegisterTable({
                 <button
                   type="button"
                   className="needs-category"
+                  title={NEEDS_CATEGORY_TIP}
                   onClick={() => openEdit(tx, "category", true)}
                 >
                   This needs a category
@@ -382,11 +452,12 @@ export function RegisterTable({
             // biome-ignore lint/a11y/useKeyWithClickEvents: a line acts on its parent like the parent row
             <tr
               key={l.id}
-              className={`split-line-row${checked ? " is-checked" : ""}`}
+              className={`split-line-row${checked ? " is-checked" : ""}${tx.approved ? "" : " is-unapproved"}`}
               data-line-of={tx.id}
               {...rowProps}
             >
               <td className="cell-check" />
+              {attentionCol && <td className="cell-attention" />}
               {showFlags && <td className="cell-flag" />}
               {plan && <td />}
               <td />
@@ -394,7 +465,7 @@ export function RegisterTable({
                 {l.payee_name}
               </td>
               {showCategory && (
-                <td data-field="category">
+                <td data-field="category" title={lineCategoryText(l)}>
                   {l.category_name ? (
                     l.category_group_name ? (
                       `${l.category_group_name}: ${l.category_name}`
@@ -404,7 +475,9 @@ export function RegisterTable({
                   ) : l.inflow_to_ready_to_assign ? (
                     "Inflow: Ready to Assign"
                   ) : (
-                    <span className="needs-category">This needs a category</span>
+                    <span className="needs-category" title={NEEDS_CATEGORY_TIP}>
+                      This needs a category
+                    </span>
                   )}
                 </td>
               )}
@@ -426,159 +499,177 @@ export function RegisterTable({
   };
 
   return (
-    <div className="register-scroll">
-      <table
-        className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}`}
-        aria-label={`${account?.name ?? "All Accounts"} transactions`}
-        aria-busy={q.isPending || !view.ready}
-      >
-        <colgroup>
-          <col className="col-check" />
-          {showFlags && <col className="col-flag" />}
-          {plan && <col className="col-account" />}
-          <col className="col-date" />
-          <col className="col-payee" />
-          {showCategory && <col className="col-category" />}
-          <col className="col-memo" />
-          <col className="col-amount" />
-          <col className="col-amount" />
-          {showBalance && <col className="col-balance" />}
-          <col className="col-cleared" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th className="cell-check">
-              <Box state={allState} label="Select all transactions" onClick={toggleAll} />
-            </th>
-            {showFlags && (
-              <th className="cell-flag" aria-label="Flag">
-                <FlagFilledIcon />
-              </th>
-            )}
-            {columns.map((h) => {
-              const active = sort.column === h.column;
-              return (
-                <th
-                  key={h.column}
-                  className={`sortable${h.numeric ? " num" : ""}${active ? " is-active" : ""}`}
-                  aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-                >
-                  <button
-                    type="button"
-                    className="sort-button"
-                    onClick={() => clickHeader(h.column)}
-                  >
-                    {h.label}
-                  </button>
-                  {active &&
-                    (sort.dir === "asc" ? (
-                      <CaretUpIcon className="sort-icon" />
-                    ) : (
-                      <CaretDownIcon className="sort-icon" />
-                    ))}
-                </th>
-              );
-            })}
-            {showBalance && <th className="num cell-balance">BALANCE</th>}
-            <th className="cell-cleared" title={CLEARED_TIP} aria-label="Cleared">
-              <ClearedFilledIcon width={14} height={16} />
-            </th>
-          </tr>
-        </thead>
-        {open?.mode === "add" && (
-          <EntryRow
-            key={`add-${open.key}`}
-            budgetId={budgetId}
-            mode="add"
-            account={account}
-            accounts={openAccounts}
-            plan={plan}
-            showCategory={showCategory}
-            date={open.date}
-            initialFocus={plan ? "account" : "date"}
-            prefillInflow={open.payment ? paymentPrefill(open.payment.inflow, fmt) : undefined}
-            onClose={onCloseEntry}
-            onSaved={onSaved}
-          />
-        )}
-        <ScheduledSection
-          budgetId={budgetId}
-          account={account}
-          plan={plan}
-          showCategory={showCategory}
-          colCount={colCount}
-          rows={scheduledRows}
-          open={open}
-          onOpen={onOpen}
-          onCloseEntry={onCloseEntry}
-          onSaved={onSaved}
-          accounts={openAccounts}
-        />
-        {q.isPending ||
-        !view.ready ||
-        (q.isError && !data) ||
-        (rows.length === 0 && hidden === 0 && scheduledRows.length === 0 && !open) ? (
-          <tbody>
+    <AttentionColumnContext.Provider value={attentionCol}>
+      <div className="register-scroll">
+        <table
+          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}`}
+          aria-label={`${account?.name ?? "All Accounts"} transactions`}
+          aria-busy={q.isPending || !view.ready}
+        >
+          <colgroup>
+            <col className="col-check" />
+            {attentionCol && <col className="col-attention" />}
+            {showFlags && <col className="col-flag" />}
+            {plan && <col className="col-account" />}
+            <col className="col-date" />
+            <col className="col-payee" />
+            {showCategory && <col className="col-category" />}
+            <col className="col-memo" />
+            <col className="col-amount" />
+            <col className="col-amount" />
+            {showBalance && <col className="col-balance" />}
+            <col className="col-cleared" />
+          </colgroup>
+          <thead>
             <tr>
-              {q.isPending || !view.ready ? (
-                <td colSpan={colCount} className="register-message" role="status">
-                  Loading transactions…
-                </td>
-              ) : q.isError && !data ? (
-                <td colSpan={colCount} className="register-message" role="alert">
-                  <span>Couldn't load transactions.</span>
-                  <button type="button" className="toolbar-button" onClick={() => q.refetch()}>
-                    Try again
-                  </button>
-                </td>
-              ) : (
-                <td colSpan={colCount} className="register-message">
-                  No transactions
-                </td>
+              <th className="cell-check">
+                <Box state={allState} label="Select all transactions" onClick={toggleAll} />
+              </th>
+              {attentionCol && (
+                <th className="cell-attention" aria-label="Approval">
+                  <InfoCircleFillIcon width={14} height={16} />
+                </th>
               )}
-            </tr>
-          </tbody>
-        ) : (
-          <>
-            <tbody>{(editAt < 0 ? rows : rows.slice(0, editAt)).map(dataRow)}</tbody>
-            {editTx && open?.mode === "edit" && (
-              <EntryRow
-                key={`edit-${editTx.id}`}
-                budgetId={budgetId}
-                mode="edit"
-                tx={editTx}
-                account={account}
-                accounts={openAccounts}
-                plan={plan}
-                showCategory={showCategory}
-                lockStart={isLockedStart(editTx)}
-                initialFocus={open.focus}
-                openCategory={open.openCategory}
-                startSplit={open.split}
-                onClose={onCloseEntry}
-                onSaved={onSaved}
-              />
-            )}
-            {editAt >= 0 && <tbody>{rows.slice(editAt + 1).map(dataRow)}</tbody>}
-            {hidden > 0 && (
-              <tbody className="register-footer">
-                <tr>
-                  <td colSpan={colCount}>
-                    <p>Some transactions are hidden by filters.</p>
+              {showFlags && (
+                <th className="cell-flag" aria-label="Flag">
+                  <FlagFilledIcon />
+                </th>
+              )}
+              {columns.map((h) => {
+                const active = sort.column === h.column;
+                return (
+                  <th
+                    key={h.column}
+                    className={`sortable${h.numeric ? " num" : ""}${active ? " is-active" : ""}`}
+                    aria-sort={
+                      active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined
+                    }
+                  >
                     <button
                       type="button"
-                      className="secondary"
-                      onClick={() => view.save({ preset: "all_dates", show_reconciled: true })}
+                      className="sort-button"
+                      title={h.label}
+                      onClick={() => clickHeader(h.column)}
                     >
-                      View All
+                      {h.label}
+                    </button>
+                    {active &&
+                      (sort.dir === "asc" ? (
+                        <CaretUpIcon className="sort-icon" />
+                      ) : (
+                        <CaretDownIcon className="sort-icon" />
+                      ))}
+                  </th>
+                );
+              })}
+              {showBalance && (
+                <th className="num cell-balance" title="BALANCE">
+                  BALANCE
+                </th>
+              )}
+              <th className="cell-cleared" title={CLEARED_TIP} aria-label="Cleared">
+                <ClearedFilledIcon width={14} height={16} />
+              </th>
+            </tr>
+          </thead>
+          {open?.mode === "add" && (
+            <EntryRow
+              key={`add-${open.key}`}
+              budgetId={budgetId}
+              mode="add"
+              account={account}
+              accounts={openAccounts}
+              plan={plan}
+              showCategory={showCategory}
+              date={open.date}
+              initialFocus={plan ? "account" : "date"}
+              prefillInflow={open.payment ? paymentPrefill(open.payment.inflow, fmt) : undefined}
+              onClose={onCloseEntry}
+              onSaved={onSaved}
+            />
+          )}
+          <ScheduledSection
+            budgetId={budgetId}
+            account={account}
+            plan={plan}
+            showCategory={showCategory}
+            colCount={colCount}
+            rows={attention ? [] : scheduledRows}
+            open={open}
+            onOpen={onOpen}
+            onCloseEntry={onCloseEntry}
+            onSaved={onSaved}
+            accounts={openAccounts}
+          />
+          {q.isPending ||
+          !view.ready ||
+          (q.isError && !data) ||
+          (rows.length === 0 &&
+            hidden === 0 &&
+            (attention ? 0 : scheduledRows.length) === 0 &&
+            !open) ? (
+            <tbody>
+              <tr>
+                {q.isPending || !view.ready ? (
+                  <td colSpan={colCount} className="register-message" role="status">
+                    Loading transactions…
+                  </td>
+                ) : q.isError && !data ? (
+                  <td colSpan={colCount} className="register-message" role="alert">
+                    <span>Couldn't load transactions.</span>
+                    <button type="button" className="toolbar-button" onClick={() => q.refetch()}>
+                      Try again
                     </button>
                   </td>
-                </tr>
-              </tbody>
-            )}
-          </>
-        )}
-      </table>
-    </div>
+                ) : (
+                  <td colSpan={colCount} className="register-message">
+                    No transactions
+                  </td>
+                )}
+              </tr>
+            </tbody>
+          ) : (
+            <>
+              <tbody>{(editAt < 0 ? rows : rows.slice(0, editAt)).map(dataRow)}</tbody>
+              {editTx && open?.mode === "edit" && (
+                <EntryRow
+                  key={`edit-${editTx.id}`}
+                  budgetId={budgetId}
+                  mode="edit"
+                  tx={editTx}
+                  account={account}
+                  accounts={openAccounts}
+                  plan={plan}
+                  showCategory={showCategory}
+                  lockStart={isLockedStart(editTx)}
+                  initialFocus={open.focus}
+                  openCategory={open.openCategory}
+                  startSplit={open.split}
+                  onClose={onCloseEntry}
+                  onSaved={onSaved}
+                />
+              )}
+              {editAt >= 0 && <tbody>{rows.slice(editAt + 1).map(dataRow)}</tbody>}
+              {hidden > 0 && (
+                <tbody className="register-footer">
+                  <tr>
+                    <td colSpan={colCount}>
+                      <p>Some transactions are hidden by filters.</p>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => view.save({ preset: "all_dates", show_reconciled: true })}
+                      >
+                        View All
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              )}
+            </>
+          )}
+        </table>
+      </div>
+    </AttentionColumnContext.Provider>
   );
 }

@@ -1,10 +1,13 @@
 import type { Account } from "@budget/schema/accounts";
+import { ATTENTION_FILTER_LABEL } from "@budget/schema/attention";
 import { isCredit } from "@budget/schema/card-payments";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { usePaymentAvailable } from "../account/usePaymentAvailable";
 import { ActionBar } from "./ActionBar";
+import { useAttentionFilter } from "./attention-filter";
 import type { Open } from "./entryDraft";
+import { CloseSmallIcon } from "./icons";
 import { useOpenAccounts } from "./openAccounts";
 import { ReconcileBar } from "./ReconcileBar";
 import { RegisterTable } from "./RegisterTable";
@@ -22,6 +25,7 @@ const isTyping = (t: EventTarget | null) => {
 /** One account's register, or (without `account`) every account's: All Accounts. */
 export function Register({ budgetId, account }: { budgetId: string; account?: Account }) {
   const [open, setOpen] = useState<Open>(null);
+  const attention = useAttentionFilter();
   const view = useRegisterViewState(budgetId, account?.id);
   const { selected, scheduled } = useSelection();
   const { openAccounts, loaded } = useOpenAccounts(budgetId);
@@ -87,6 +91,19 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
           viewScope={account ? "account" : "all"}
         />
         <ReconcileBar />
+        {attention.on && (
+          <div className="attention-filter-row">
+            <button
+              type="button"
+              className="attention-chip"
+              aria-label={`Remove filter: ${ATTENTION_FILTER_LABEL}`}
+              onClick={() => attention.setOn(false)}
+            >
+              <span>{ATTENTION_FILTER_LABEL}</span>
+              <CloseSmallIcon />
+            </button>
+          </div>
+        )}
         <RegisterTable
           budgetId={budgetId}
           account={account}
