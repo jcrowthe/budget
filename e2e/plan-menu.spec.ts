@@ -160,9 +160,14 @@ test.describe("1440×900", () => {
     for (let i = 0; i < names.length; i++) {
       const box = await rows.nth(i).locator("svg").first().boundingBox();
       expect([box?.width, box?.height]).toEqual([16, 16]);
-      const enabled = ["New Plan", "Open Plan", "Keyboard Shortcuts", "Log Out"].includes(
-        names[i] ?? "",
-      );
+      // Plan Settings is enabled by EXF-468 (menu-actions/plan-settings.tsx).
+      const enabled = [
+        "New Plan",
+        "Open Plan",
+        "Plan Settings",
+        "Keyboard Shortcuts",
+        "Log Out",
+      ].includes(names[i] ?? "");
       if (enabled) await expect(rows.nth(i)).not.toHaveAttribute("aria-disabled", "true");
       else await expect(rows.nth(i)).toHaveAttribute("aria-disabled", "true");
     }
