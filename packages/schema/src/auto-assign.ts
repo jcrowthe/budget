@@ -359,9 +359,13 @@ export function autoAssignOptions(
 
 /**
  * The inputs of `hiddenAmounts` for the categories `ids` of a month read. A payment category's Total
- * Underfunded counts only when it is the only category in scope.
+ * Underfunded counts only when `lone`: one category was explicitly chosen (not a view that happens to hold one).
  */
-export function monthHiddenInputs(detail: MonthDetail, ids: readonly string[]): HiddenInput[] {
+export function monthHiddenInputs(
+  detail: MonthDetail,
+  ids: readonly string[],
+  lone: boolean,
+): HiddenInput[] {
   const byId = new Map<string, MonthCategoryDetail>(
     detail.groups.flatMap((g) => g.categories).map((c) => [c.id, c]),
   );
@@ -373,7 +377,7 @@ export function monthHiddenInputs(detail: MonthDetail, ids: readonly string[]): 
         assigned: c.assigned,
         target: c.target,
         payment: c.kind === "credit_card_payment",
-        payment_underfunded: ids.length === 1 && c.payment ? c.payment.underfunded : 0,
+        payment_underfunded: lone && c.payment ? c.payment.underfunded : 0,
       },
     ];
   });

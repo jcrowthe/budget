@@ -50,15 +50,17 @@ export function AutoAssignOptions({
     </div>
   );
   if (ids !== null && ids.length === 0) return empty;
-  const only = ids?.length === 1 ? ids[0] : undefined;
+  // One category means one ticked; a view that holds a single category is still plan-wide.
+  const lone = "categoryIds" in scope && ids?.length === 1;
+  const only = lone ? ids?.[0] : undefined;
   const isPayment =
     detail !== undefined &&
     only !== undefined &&
     detail.groups.some((g) =>
       g.categories.some((c) => c.id === only && c.kind === "credit_card_payment"),
     );
-  const mode: AutoAssignScope_ = isPayment ? "payment" : ids?.length === 1 ? "one" : "many";
-  const hidden = detail && ids ? hiddenAmounts(monthHiddenInputs(detail, ids)) : undefined;
+  const mode: AutoAssignScope_ = isPayment ? "payment" : lone ? "one" : "many";
+  const hidden = detail && ids ? hiddenAmounts(monthHiddenInputs(detail, ids, lone)) : undefined;
   if (!preview) {
     // Every row the list will have, in its final layout, disabled and without figures: no amount of another
     // selection is shown.

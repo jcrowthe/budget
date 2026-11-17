@@ -59,6 +59,8 @@ async function loadScope(
   } else {
     ids = viewCategories(current, scope.view ?? "all").map((c) => c.id);
   }
+  // One category means one explicitly chosen; a view holding a single category is still plan-wide.
+  const lone = scope.category_ids !== undefined && ids.length === 1;
   const created = new Map(rows.map((r) => [r.id, toMonth(r.createdAt)]));
   return ids.map((id): AutoAssignInput => {
     const c = byId.get(id) as MonthDetail["groups"][number]["categories"][number];
@@ -82,7 +84,7 @@ async function loadScope(
       activity: c.activity,
       target: c.target,
       payment: c.kind === "credit_card_payment",
-      payment_underfunded: ids.length === 1 && c.payment ? c.payment.underfunded : 0,
+      payment_underfunded: lone && c.payment ? c.payment.underfunded : 0,
       ...historyFigures(month, figures, first),
     };
   });
