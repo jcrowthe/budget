@@ -61,7 +61,9 @@ batch of `delete … where budget_id = ? and <import writing> and <plan hidden>`
 `transactions`, `month_categories`, `categories`, `category_groups`, `payees`, `accounts`, then the `budgets` row; the
 import becomes `abandoned` (summary and offsets cleared); then the R2 delete. A step whose batch fails or whose R2
 object is gone runs the same cleanup (422 / 409). **The sweep**: every call 1 first cleans at most one import that is
-`writing` and untouched for 24 h, or `done` with an `r2_key` left. The guards can never match a visible plan.
+`writing` and untouched for 24 h, or `done` with an `r2_key` left. The guards can never match a visible plan. **Purge** (EXF-725): the same call 1 also
+deletes, in its own batch (no extra D1 call), the rows of `done` or `abandoned` imports with no `r2_key` untouched for
+24 h; they hold no file, and a finished import's row had no other use.
 
 **Calls per invocation** (service only; the Idempotency middleware adds ≤ 2 when a key is sent). None grows with the
 file:
@@ -126,8 +128,9 @@ it, the state machine can split call 1 (store / parse / compare) without changin
   otherLiability` (422 for others, unknown names, or a payment-category account moved off credit types). All open.
   Sort order: a stable topological order of the account edges given by full (date, amount) ties in the Register,
   else first appearance, so the export's tie order comes back.
-- **Payees**: `Starting Balance` → system `starting_balance`; `Manual Balance Adjustment` → system
-  `manual_adjustment`; paired transfer → none (`payee_name` `Transfer : <other>`); `""` → none; else one per name.
+- **Payees**: the three system names of `SYSTEM_PAYEE_NAMES` (`Starting Balance` → `starting_balance`,
+  `Manual Balance Adjustment` → `manual_adjustment`, `Reconciliation Balance Adjustment` →
+  `reconciliation_adjustment`, one per plan, the row a later reconcile uses); paired transfer → none (`payee_name` `Transfer : <other>`); `""` → none; else one per name.
 - **Rows**: `Inflow: Ready to Assign` → `inflow_to_ready_to_assign`; `""` → uncategorized; else the category
   (created with a warning if not in the Plan file). Cleared 1:1. Flags by colour name (other names: none, warning).
   `approved` true. A tracking account's row loses any category. **A card's row in its own payment category** loses
@@ -174,6 +177,12 @@ and that while `state` is `writing` the caller calls `continue_budget_import` un
 - **Month bound**: `last = min(max(current, last_assigned_month), server month + 24)` (`EXPORT_MONTHS_AHEAD`); money
   assigned later is not written. Still 15 D1 calls.
 - `plan-export-design.md` line 170 gains the September assignments (Groceries $200.00, Fun $50.00, Hobby $20.00).
+
+## What the file format cannot carry
+
+Not faults: an account's `last_reconciled_at` (the files have no account rows; reconciled rows keep `Reconciled`, the
+date of the last reconcile is lost) and a closed account's state (every imported account is open) do not come back
+through an export and an import. See also the out-of-scope list below (formats, targets, notes, repeating schedules).
 
 ## Downstream effects and out of scope
 

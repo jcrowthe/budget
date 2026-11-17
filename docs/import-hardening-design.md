@@ -201,3 +201,11 @@ hand-written sample (`sampleFiles`/`sampleZip` of `plan-import-helpers.ts`); **F
 touches: [docs/import-hardening-design.md, docs/import-hardening-spec.md, docs/plan-import-design.md, docs/plan-export-design.md, docs/conventions.md, docs/README.md, packages/schema/src/plan-export.ts, packages/schema/src/plan-import.ts, packages/schema/test/plan-export.test.ts, packages/schema/test/plan-import.test.ts, apps/worker/src/repositories/insert-select.ts, apps/worker/src/repositories/plan-import.ts, apps/worker/src/repositories/accounts.ts, apps/worker/src/repositories/category-groups.ts, apps/worker/src/repositories/categories.ts, apps/worker/src/repositories/payees.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/guards.ts, apps/worker/src/repositories/imports.ts, apps/worker/src/repositories/targets.ts, apps/worker/src/repositories/target-snoozes.ts, apps/worker/src/services/credit-payments.ts, apps/worker/src/services/plan-export.ts, apps/worker/src/services/plan-import.ts, apps/worker/test/plan-import-roundtrip.test.ts, apps/worker/test/plan-import-reconcile.test.ts, apps/worker/test/plan-import-columns.test.ts, apps/worker/test/named-columns.test.ts, apps/worker/test/plan-import-purge.test.ts, scripts/test/positional-inserts.test.ts]
 shared: []
 migrations: 0
+
+## As built
+
+- `insertSelect` returns Drizzle's insert builder (not `BatchItem`) so `tombstoneIfStmt` can still call `onConflictDoNothing()`.
+- The conversions of the 16 in-bounds statements were made from the Drizzle column order, so each maps the same value to the same column as before.
+- `scripts/test/positional-inserts.test.ts` also allows `insert-select.ts` (the helper builds a sub-table insert).
+- Purge test: an ended import whose file was still kept and older than 24 h is also gone after a start, because the sweep (which runs first) clears its key and the purge then removes the row.
+- The probe test's first case (database column only) passes on both trees; the second (Drizzle knows the column) failed on the unfixed tree: account create answered 500, then, with accounts fixed, the import answered 500.
