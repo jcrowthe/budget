@@ -11551,3 +11551,50 @@ round 120, what the owner will meet when he links a real bank, and seven questio
 **Next plan:** nothing new to start beside the register Build until flow 5 reports; then the
 Build for Manage Bank Connections with the statuses and Repair (EXF-460, EXF-465, EXF-773), with
 the new start-date ticket if they fit one Build.
+
+### 2026-11-17 · Plan round 131
+
+Children used 148 of 200 (147 before this plan; one started). Main and live are both `9ecd379`.
+The person has not answered the check-in.
+
+**The ticket filed at the last review exists: EXF-774** (a linked account's import cannot start
+earlier); priority High.
+
+**Flow 5 completed between the check-in and this plan** (`p_01b401478049441db6b36fa23ad34e14`,
+23 minutes); I read its report here because the next Build depends on it, and I write it up in
+full at this round's review. In short: **verdict `parity_known_gaps`; with a real Plaid Sandbox
+bank on live, everything the bank-linking Build made works from the screen** (Add Accounts with
+fourteen accounts, two added in one request, the sync that follows, Sync Now, the dot, Link
+Account, the 409 for a second link, Unlink, the dialogs in a Euro plan); the connection it made
+is removed; no token in 273 saved answers and page bodies; no new gap filed. EXF-773 measured
+(the line after Sync Now starts one pixel below the dialog's body at 1024×700).
+
+**Status of the running child (21:04Z):** the carry-over Build for the register screens
+(`p_0625567f614e4952b9e62e5260678009`) is at its polish step after 35 minutes, no open card.
+
+**Started: Build feature for EXF-460's screens with EXF-773**
+(`p_49508f8bd85642faaf0d95e701fdecb7`): the Manage Bank Connections modal.
+- **Why this next:** it is the missing half of the bank screens (see, rename, repair, reset and
+  remove a connection; link or unlink one of its bank accounts), flow 5 found nothing that has to
+  be fixed first, and the live app holds two Sandbox connections that nobody can see or remove
+  from the screen.
+- **Why not EXF-774 first, though it is High:** its screen part is in the register's files, which
+  the running Build holds. It starts when that Build has merged.
+- **Why it may run beside the register Build:** its files are the shell, a new modal, the plan
+  menu's registry file and `apps/web/src/account/EditAccountDialog.tsx` (the rider); the register
+  Build's manifest holds `apps/web/src/register/**`, the two account pages and its own helpers.
+  Each brief lists the other's files as out of bounds. No migration on either side; neither
+  touches `paths.always_overlap`; only this one holds the shell.
+- **Scope decisions:** EXF-465's parts stay out (header banner, sidebar popup, finer statuses,
+  pausing imports); the badge and banner use the three labels that exist. Read in the Worker
+  half's design before writing: the token call refuses within 24 hours of a reset (409
+  `reset_too_soon`) and refuses a `broken` connection for good (409 `bank_connection_broken`), so
+  the brief asks what a broken connection's banner offers (I expect its sentence and Remove, not
+  a Repair that can only fail). No step opens the source.
+- From flow 5 into the brief: the list must scroll inside the modal (a connection on live has
+  fourteen bank accounts); the "Syncing…" button's width shift goes with EXF-773.
+
+**Not started:** no Deploy (live equals main); no flow test; no template review (Build 7,
+Deploy 3, Discover 2, Test user flow 5 finished since each template's last review).
+
+Ticket writes: 5 (EXF-774 priority; EXF-460 and EXF-773 to In Progress, each with a comment).
