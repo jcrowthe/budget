@@ -9631,3 +9631,51 @@ Declared for the tree, unchanged from round 110. Reviews: Build 8, Deploy 7, Dis
 flow 2 since each template's last review.
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 111
+
+Children used 126 of 200. One ended: **the Plan-page Build completed and merged**
+(`p_27986a1771a440a3b5efdec4bd06865a`, pull request 59, main now `0fefc6c`), on its fourth Build.
+Nothing is running. Live is still `49012cd` (read by me at 06:30Z), two merges behind; one
+migration is pending on live, `20261116101300_plan_imports.sql`.
+
+**The Plan page (EXF-537 with EXF-622, 623, 616, 646; EXF-624 closed as not a gap): merged.** I
+approved its card at 06:29Z in a side turn.
+- **Gate** on main `8b3e9a7` at head `40b4497`, the PR head: check passed; the whole browser suite
+  448 of 448 three times; changed specs ten times, 420 of 420; no flake. Main's tree equals the
+  gated head (compared now).
+- **The Build took 77 minutes in one box, inside one rate-limit window** (05:13Z to 06:30Z). The
+  merge commands and the one failing test line I had tried beforehand went as written.
+- **What it added after the last approved head (`ffcd2eb`), which I read before approving:** the
+  export's count of 16 in the import Build's test; polish P7 (dark scrollbars on the Plan grid and
+  panel; scoped there, not in the shell); and a fix for its Reviewer's one finding: a filtered view
+  that holds a single category was treated as one ticked category in Auto-Assign (singular labels,
+  Underfunded hidden, a card's Total Underfunded added to a plan-wide run). Now "one" means one
+  explicitly ticked. Reviewed and approved at `40b4497`.
+- **Two weaknesses I accepted rather than send it round again:**
+  - **That fix has no test of its own.** Filed through this review as a Low gap ticket.
+  - **The Tester's acceptance took 76 seconds and rested on specs;** it looked at three screenshots
+    at 1024×700 and reused a stored one at 1440, against the brief. Evidence on EXF-684. The flow
+    tests on live look at every state at both sizes.
+- **The Designer measured the source again, in both its passes,** against the strongest wording I
+  have (ticking categories in the test plan to compare the Auto-Assign card; nothing left ticked).
+  Nine of nine. Evidence on EXF-573. Its finding (light scrollbars) was real.
+- `e2e/reflect-frame.spec.ts` "548-6": did not fail in the gate's three full runs or in mine.
+  The Implementer's reading (a click by coordinates right after a list reload) stays a note here.
+
+**What I learned:**
+- **A carry-over that I try first, with the finished steps told to confirm and move on, fits one
+  window.** That is the shape for the Reconcile Build too.
+- **No wording keeps the Designer out of the source.** I stop spending brief text on it. What I
+  can still do: say what it may never do there (save, create, delete), and run such a Build alone.
+
+**Ticket writes:** 15 (EXF-537, 622, 623, 616, 646 to Done and EXF-624 to Canceled, each with a
+comment; evidence on EXF-573 and EXF-684; EXF-674 item 1). One ticket filed through this review.
+**Backlog:** 50 open feature tickets (49 done; 1 in progress: EXF-533). Gap: twelve open and one in
+progress (EXF-664), counted from the tracker now, plus the one filed here. Template: forty open
+(Urgent EXF-573, 611, 612). Flow verdicts unchanged. Finished since each template's last review:
+Build 9, Deploy 7, Discover 2, Test user flow 2.
+
+**Next plan:** one Deploy (`ZZ-TEST D29`) for the two merges (`8b3e9a7`, `0fefc6c`); the third
+Reconcile Build beside it (a Deploy and a Build share no file; no approval while it releases); set
+the new ticket's priority.
