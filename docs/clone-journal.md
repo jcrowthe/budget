@@ -11690,3 +11690,70 @@ cases", and `institution_data.routing_number` only highlights a bank in Plaid's 
 skips Plaid's own bank search. So the connection design's sentence holds and I file no ticket.
 A possible small help later: pass the bank's routing number so that Plaid highlights it; not
 ticketed, because I do not know that the search results carry one.
+
+### 2026-11-17 · Review round 132
+
+Children used 148 of 200. One ended: **the register screens Build completed and merged**
+(`p_0625567f614e4952b9e62e5260678009`, the carry-over; 2 h 6 min). **Main is `5bee02f`** (pull
+request 66; its tree equals the gated head `61492e9`). **Live is still `9ecd379`** (read by me at
+22:40Z); no migration.
+
+**Status of the running child (22:41Z):** the Manage Bank Connections Build
+(`p_49508f8bd85642faaf0d95e701fdecb7`) is at its acceptance step after 94 minutes, no open card;
+its pull request 67 is open on base `9ecd379`, so its card will say the base moved: Refresh or
+Regate, never Request changes.
+
+**Build for EXF-463's screens with EXF-680, 681, 728, 760: merged; all five Done.**
+- Gate on base `9ecd379`: check passed; browser suite 553 of 553 once and 552 of 553 twice; the
+  failure named is the month picker spec (EXF-727; 5 of 5 alone). **That spec has now failed in
+  three gates of three Builds in a day**; it is no longer rare. I approved in the side turn the
+  card arrived in: 25 files, all on the Build's ground; no existing test edited.
+- **On main:** the attention column (shown only when a listed row is unapproved) with the
+  circled "i" and its Approval panel; unapproved rows bolder; the pill's look and tooltip; the
+  banner on both account pages, its number from the account read; the View filter with its chip;
+  the four narrow-window faults fixed with their specs. No Worker change.
+- The carry-over worked as meant: the Clerk merged the design branch, the Architect changed
+  nothing of substance, the Implementer built from the spec.
+- **The Reviewer earned its place:** a spec the Build itself had added failed every time after
+  the polish widened the new column by two pixels (CATEGORY 87.2 px, floor 88). It ran it three
+  times alone before calling it. Five more findings, all fixed, three with new specs.
+- The codify step wrote the missing Euro spec and, finding that the split editor's "remaining"
+  line has no symbol, fitted its assertion to the app and said so. See the ticket below.
+
+**A step went into the source against the brief (EXF-573, two comments, the second correcting my
+own count).** The brief said no step opens, reads or captures the source. The Designer read the
+source's style rules in the test plan's tab and measured probe elements with the source's classes
+in a tab of its own; it also measured the test plan's All Accounts widths. It read nothing of the
+owner's data, kept all four named limits, changed nothing, and reported every action. Its eight
+polish items come from there (among them: the source hides the column when no row needs
+approval).
+- I accept the result and record the breach as one. The same blanket sentence was obeyed in the
+  bank-linking Build and set aside here; what differs is that here something could be read that
+  none of my reasons covered. **From the next brief on I say what may be read (style rules in the
+  test plan's tab, no navigation) where the screens themselves cannot be seen, and not
+  "nothing".**
+- The Manage Bank Connections Build, running now, has the same blanket sentence. I read its
+  Designer's report at its review.
+
+**Filed through this review (one gap ticket, Low):** the split editor's "Amount remaining to
+assign" line in a plan with other formats: the Tester read `1,000,00` on a 1,00€ row; the codify
+step read `100,00` and `0,00` with no symbol. The two readings do not agree, and nobody has said
+which is the fault.
+
+**What I learned:**
+- Two Builds side by side on disjoint grounds: both went through, the first without touching the
+  second's files. The second now needs one Refresh.
+- A carry-over of a design alone costs one child and about two hours; nothing of the first
+  attempt's thinking was lost.
+
+**Ticket writes:** 9 (EXF-463, 680, 681, 728, 760 to Done; notes on EXF-463 and EXF-760; two
+comments on EXF-573).
+**Backlog:** 44 open feature tickets (55 done; EXF-460 in progress). Gap: twenty open (EXF-773
+in progress; EXF-774 High, free to start now), plus the one filed here. Template: thirty-nine
+open (Urgent EXF-573, 611, 612). Flow verdicts unchanged. Finished since each template's last
+review: Build 8, Deploy 3, Discover 2, Test user flow 5.
+
+**Next plan:** Deploy D35 for `5bee02f` (`ZZ-TEST D35`; unapproved rows made through the API;
+the Approval panel, the banner, View; the four narrow-window fixes); the Build for EXF-774 (the
+register's files are free; it must stay off the shell and the account dialog, which the running
+Build holds).
