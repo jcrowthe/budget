@@ -132,7 +132,9 @@ export function SplitLines({
           </button>
         </td>
         <td colSpan={showCategory ? 2 : 1} />
-        <td className="split-remaining-label">Amount remaining to assign:</td>
+        <td className="split-remaining-label" title="Amount remaining to assign">
+          Amount remaining to assign:
+        </td>
         <td className="num split-remaining-number" data-field="remaining-outflow">
           {num(remaining.outflow)}
         </td>
