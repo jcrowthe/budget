@@ -9444,3 +9444,25 @@ flow 2.
 
 **Next plan:** the third Reconcile Build once both running Builds are past acceptance; nothing
 else can start beside them.
+
+### 2026-11-17 · Plan round 109
+
+Children used 125 of 200. Nothing started; two Builds are running (the plan import and Plan-page
+carry-overs, both started at 01:06Z in fresh boxes). Main and live `49012cd`. No tickets were filed
+at the last review. The person has not answered the round-100 check-in.
+
+- **Why nothing new:** the third Reconcile Build stays held until both running Builds are past
+  acceptance (the reason is in the plan of round 108). Every other unblocked ticket needs the Plan
+  page, the account page or the register, a shared module, or the person's word. Main and live are
+  equal: no Deploy and no flow test. Reviews: Build 6, Deploy 7, Discover 2, Test user flow 2 since
+  each template's last review; none is due.
+- **Cards:** answered at once. A clean card on main: approve; the other then rebases (the two named
+  test-file conflicts are in both briefs). A source check failing a further time after the brief's
+  reload: abandon only if a fresh box would differ; otherwise to the person. A checks or gate card
+  with no log: Abandon and carry over.
+
+Declared for the tree, unchanged from round 108: the two running Builds, the Reconcile Build, one
+Deploy (`ZZ-TEST D29`) for the three merges, then flows 3, 4 and 6. The next review is round 109's;
+the check-in is the review of round 110.
+
+Ticket writes: 0.
