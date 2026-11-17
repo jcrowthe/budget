@@ -167,7 +167,7 @@ test with fixed dates: plan `ZZ-TEST Ex/port: 7`; default groups deleted; groups
 (`Groceries 🛒`, `Fun "x", y`), `Old` hidden (`Hobby`), and `Old Hobby` hidden alone in `Bills`; accounts `Main
 Checking` (Starting Balance $1000.00 on 2026-09-01), `Rainy Day` savings ($50.00 on 2026-09-01), `Sample Visa`
 credit card (Starting Balance −$25.00), `House` tracking asset ($2000.00), `Old Cash` cash ($10.00, closed after its rows: a Manual Balance
-Adjustment); assignments Sep and Oct `Rent` $900.00, Dec `Groceries 🛒` $50.00; transactions as listed in case 6;
+Adjustment); assignments Sep `Rent` $900.00, `Groceries 🛒` $200.00, `Fun "x", y` $50.00, `Hobby` $20.00; Oct `Rent` $900.00; Dec `Groceries 🛒` $50.00; transactions as listed in case 6;
 `now=2026-11-16T09:05`.
 
 1. **Names and entries (criterion 2).** GET `/api/v1/budgets/<F>/export?now=2026-11-16T09:05` → 200,

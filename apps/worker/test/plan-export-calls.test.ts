@@ -4,10 +4,12 @@ import { createBudget } from "../src/services/budgets";
 import { createCategory, createCategoryGroup } from "../src/services/categories";
 import { exportPlan } from "../src/services/plan-export";
 import { account, actor } from "./bulk-helpers";
-import { buildF, counting, NOW, readZip } from "./plan-export-helpers";
+import { buildF, counting, NOW, pinPlanClock, readZip } from "./plan-export-helpers";
 
 // EXF-476, "Services: D1 calls" (docs/conventions.md): the export reads a whole plan, and its D1 calls
 // do not grow with the months, categories, accounts or transactions.
+pinPlanClock();
+
 const CALLS = 15;
 
 const ins =

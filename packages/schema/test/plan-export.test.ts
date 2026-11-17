@@ -4,8 +4,11 @@ import {
   DEFAULT_PLAN_FORMAT,
   ExportNow,
   exportFormat,
+  exportMonthCeiling,
   exportNames,
   monthLabel,
+  nowRangeText,
+  nowWithinServerDays,
   planFile,
   type RegisterEntry,
   registerFile,
@@ -29,6 +32,7 @@ describe("amounts (ticket: $0.00, $17.34, $200000.00, -$120.00)", () => {
     expect(US.amount(-120000)).toBe("-$120.00");
     expect(US.amount(200000000)).toBe("$200000.00");
     expect(US.amount(0)).toBe("$0.00");
+    expect(US.amount(1234560)).toBe("$1234.56"); // the export writes no thousands separator
     expect(US.amount(17345)).toBe("$17.35");
     expect(US.amount(-4)).toBe("$0.00");
   });
@@ -339,5 +343,27 @@ describe("registerFile", () => {
     expect(text.split("\r\n")[1]).toBe(
       '"Main Checking","","11/01/2026","","","","","a ""q"", b\nc 🛒",$0.00,$1.00,"Cleared"',
     );
+  });
+});
+
+describe("EXF-670 now bound", () => {
+  it("accepts the server's date and one calendar day either side", () => {
+    expect(nowWithinServerDays("2026-11-16T09:05", "2026-11-16")).toBe(true);
+    expect(nowWithinServerDays("2026-11-17T23:59", "2026-11-16")).toBe(true);
+    expect(nowWithinServerDays("2026-11-15T00:00", "2026-11-16")).toBe(true);
+    expect(nowWithinServerDays("2026-11-18T00:00", "2026-11-16")).toBe(false);
+    expect(nowWithinServerDays("2026-11-14T23:59", "2026-11-16")).toBe(false);
+    expect(nowWithinServerDays("2199-12-31T23:59", "2026-11-16")).toBe(false);
+  });
+  it("crosses month and year ends", () => {
+    expect(nowWithinServerDays("2027-01-01T00:00", "2026-12-31")).toBe(true);
+    expect(nowWithinServerDays("2026-12-31T00:00", "2027-01-01")).toBe(true);
+    expect(nowRangeText("2026-12-31")).toBe("2026-12-30 to 2027-01-01");
+    expect(nowRangeText("2026-11-16")).toBe("2026-11-15 to 2026-11-17");
+  });
+  it("the month ceiling is the server's month plus 24", () => {
+    expect(exportMonthCeiling("2026-11-16")).toBe("2028-11-01");
+    expect(exportMonthCeiling("2026-12-31")).toBe("2028-12-01");
+    expect(exportMonthCeiling("2026-01-05")).toBe("2028-01-01");
   });
 });
