@@ -10257,3 +10257,36 @@ the account page's leftovers.
 
 Ticket writes: 11 (three priorities; EXF-575, EXF-585, EXF-612's title; the correction on EXF-724;
 EXF-723 and EXF-725 to In Progress with comments).
+
+### 2026-11-17 · Review round 117
+
+Children used 134 of 200. One ended since the last review: **the template-ticket sweep completed**
+(`p_5a6cdef2d3a14bd7b845dd642965e78e`, 14 minutes). Two Builds are running. Main and live `d005439`
+(read by me at 09:17Z).
+
+**The sweep: what I approved, and that it was done.** Fourteen comments, one closure, no new
+ticket. The tracker shows the fourteen tickets it named updated between 09:10:13Z and 09:10:49Z
+(EXF-612, 611, 582, 559, 457, 575, 564, 573, 479, 684, 566, 618, 456, 554) and EXF-554 Canceled.
+Its step could not set priorities or a title; I set them in the plan of this round (EXF-575 and
+EXF-585 to High; EXF-612's title). Nothing approved is left undone, so I file nothing.
+- **Its ordered list, for whoever maintains the platform and the templates** (in its report): six
+  groups; the five changes that would have saved the most are EXF-612, EXF-575, EXF-563, EXF-576,
+  EXF-564; EXF-684 is cheap and belongs early.
+- **Its corrections of my reading, accepted** (recorded at the review of round 116).
+
+**Running:**
+- **Activity popover** (`p_4b3e4d16b0784c8a9090ea68151e465d`): design and spec committed
+  (`b67dec9`); the Implementer is on the Worker side.
+- **Export and import hardening** (`p_164aad44232a4f72be7ecbbe87815e6b`): started at 09:15Z; no
+  commit yet.
+- Their manifests: the first has arrived (the Plan page, new `category-activity` Worker files, its
+  tests, `mcp-timestamps.test.ts`, the months coverage file, `docs/README.md`; no shared module);
+  the second's is still my estimate (the export, the import, the accounts repository, their tests
+  and documents; nothing under `apps/web` or `e2e`). Disjoint but for the keep-both files. I check
+  the second against the first when it arrives.
+
+**Ticket writes:** 0 in this review. **Backlog:** 49 open feature tickets (50 done; 1 in
+progress). Gap: nineteen open, four of them in progress (EXF-720, EXF-714, EXF-723, EXF-725). Template: thirty-nine open (Urgent EXF-573, 611, 612).
+Finished since each template's last review: Build 0, Deploy 9, Discover 2, Test user flow 3.
+
+**Next plan:** nothing to start beside the two Builds.
