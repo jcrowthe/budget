@@ -72,7 +72,7 @@ export function PayeeField({
       items={items}
       initialActive={initialActive}
       disabled={disabled}
-      title={title}
+      title={title ?? (value.name || undefined)}
       width={320}
       listLabel="Payees"
       onPick={(item) => {

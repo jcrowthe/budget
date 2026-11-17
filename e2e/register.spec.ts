@@ -31,7 +31,7 @@ async function seed(request: APIRequestContext) {
   return { plan: budget.id as string, checking: checking.id as string, asset: asset.id as string };
 }
 const payees = async (page: Page) =>
-  page.locator(".register-table tbody tr td:nth-child(4)").allTextContents();
+  page.locator(".register-table tbody tr td:nth-child(5)").allTextContents();
 const rows = (page: Page) => page.locator(".register-table tbody tr");
 
 test("toolbar, columns, Starting Balance and tracking account", async ({ page, request }) => {

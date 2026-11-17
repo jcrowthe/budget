@@ -49,6 +49,20 @@ import { useSelection } from "./selection";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
 
+const SPLIT_TEXT = "Split (Multiple Categories)...";
+
+/** What a split line's category cell shows as text; none for the pill. */
+function lineCategoryText(l: {
+  category_name: string | null;
+  category_group_name: string | null;
+  inflow_to_ready_to_assign: boolean;
+}): string | undefined {
+  if (l.category_name) {
+    return l.category_group_name ? `${l.category_group_name}: ${l.category_name}` : l.category_name;
+  }
+  return l.inflow_to_ready_to_assign ? "Inflow: Ready to Assign" : undefined;
+}
+
 type Row = TransactionDetail & { account_name?: string; running_balance?: number };
 
 type Header = { column: PlanSortColumn; label: string; numeric?: boolean };
@@ -355,7 +369,16 @@ export function RegisterTable({
           {showCategory && (
             <td
               data-field="category"
-              title={pay?.category ?? (cell.kind === "text" ? cell.text : undefined)}
+              title={
+                pay?.category ??
+                (cell.kind === "text"
+                  ? cell.text
+                  : cell.kind === "split"
+                    ? SPLIT_TEXT
+                    : cell.kind === "notNeeded"
+                      ? "Category not needed"
+                      : undefined)
+              }
             >
               {pay ? (
                 pay.category
@@ -370,7 +393,7 @@ export function RegisterTable({
                   >
                     {expanded ? <CaretDownIcon /> : <ChevronRightIcon />}
                   </button>
-                  Split (Multiple Categories)...
+                  {SPLIT_TEXT}
                 </span>
               ) : cell.kind === "text" ? (
                 cell.text
@@ -436,7 +459,7 @@ export function RegisterTable({
                 {l.payee_name}
               </td>
               {showCategory && (
-                <td data-field="category">
+                <td data-field="category" title={lineCategoryText(l)}>
                   {l.category_name ? (
                     l.category_group_name ? (
                       `${l.category_group_name}: ${l.category_name}`
@@ -514,6 +537,7 @@ export function RegisterTable({
                   <button
                     type="button"
                     className="sort-button"
+                    title={h.label}
                     onClick={() => clickHeader(h.column)}
                   >
                     {h.label}
@@ -527,7 +551,11 @@ export function RegisterTable({
                 </th>
               );
             })}
-            {showBalance && <th className="num cell-balance">BALANCE</th>}
+            {showBalance && (
+              <th className="num cell-balance" title="BALANCE">
+                BALANCE
+              </th>
+            )}
             <th className="cell-cleared" title={CLEARED_TIP} aria-label="Cleared">
               <ClearedFilledIcon width={14} height={16} />
             </th>
