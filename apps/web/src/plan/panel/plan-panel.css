@@ -32,6 +32,9 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+  /* Source (dark): scrollbar-color rgb(60,62,83) transparent, color-scheme dark; #3c3e53 = --inputBackground */
+  color-scheme: dark;
+  scrollbar-color: var(--inputBackground) transparent;
   box-sizing: border-box;
   padding: 16px 16px 48px 12px;
   font-size: var(--font-size-sm);
