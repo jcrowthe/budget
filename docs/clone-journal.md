@@ -11036,3 +11036,72 @@ template's last review. I approve no Build while the Deploy is releasing.
 
 Ticket writes: 8 (four priorities; the correction on EXF-745; EXF-461 to In Progress with a
 comment; a comment on EXF-463).
+
+### 2026-11-17 · Review round 125
+
+Children used 141 of 200. Two ended: **Deploy D33 completed**
+(`p_80111cfe59a74feeb70c0925e7b83a11`, 18 minutes) and **the bank-linking screens Build was lost at
+intake and cancelled by me** (`p_20723ffe9b154bbabbe11c4e862ef60c`). **Live is `8e54173`** at
+https://budget.doxen.dev (read by me at 17:32Z), equal to main; no migration is pending. Nothing
+is running.
+
+**Deploy D33: released; every check held.**
+- Gate passed (tree equal to gated `8374d6c`; checks 318 s). The release applied
+  `20261116101500_plan_formats.sql` after the bookmark phase; smoke ok; health gives the whole
+  sha; 401 without credentials; **87 MCP tools**.
+- **The owner's plan, counted only:** 1 plan that is not a test plan, 0 of them with formats
+  other than the defaults, 0 without the new fields.
+- **Plan formats on live, as briefed to the figure:** a default plan reads as before; Plan
+  Settings (opened by keyboard, the Open Plan list never shown) cancels and applies; Euro with
+  comma decimals and `DD.MM.YYYY` on the Plan page, the sidebar, the register, the Activity
+  popover and the Spending Breakdown without a reload; `30,00` typed into Assigned stores 30000;
+  the three named refusals; the currency-change rule; yen without decimals; "Don't show"; MCP
+  reads and writes; 1024×700 without sideways scroll.
+- **Differs from my brief (one point of substance):** a refused `update_budget` is a tool error
+  with the message only; my brief expected the refusal's name in it. That is how the tools report
+  refusals in general, as far as I can read the code; I had written the expectation without
+  looking. Not a ticket until I have checked what the other tools return.
+- Not checked: the plan's history rows (no read for them in the API); a twelve-character amount
+  in the Activity popover (EXF-745 stands as filed); the `plaid credentials:` line (the verify
+  step's box had lost `deploy.out`).
+- The verifier's first setup script stopped at the assignment (it sent `2026-11` for the month;
+  the API wants `2026-11-01`) and went on from its state file without creating anything twice.
+  The state-file rule did its work.
+- Purge `remaining 0`.
+
+**Two boxes were replaced at about 17:21Z, with no idle (EXF-612, commented).**
+- The Build's Clerk had the platform's files at 17:19Z and not at 17:26Z; it asked for help and I
+  told it to stop (a side turn). Nothing was built. **One child spent for nothing; I start the
+  same Build again at the next plan with the same brief.**
+- The Deploy's verify step ran in a box whose platform files were gone; the gate and the release
+  had already passed, and it worked from the Thread's inputs. My brief told a step to stop only
+  when a file *its own step needs* is missing; the verifier judged it needed none, said so first
+  thing, and listed what it could not read. I accept that reading.
+- In the same minutes the Playwright browser download failed in two boxes (no network to the
+  download hosts). The verifier used the system Chrome. **EXF-558 (run the suite on the system
+  Chrome) would take this dependency away; it is Low and I raise it at the next plan.**
+
+**Filed through this review:** the bank sync job runs once a day (`"0 3 * * *"` in
+`apps/worker/wrangler.jsonc`) while the import design wants every connection checked every six
+hours; the handler already syncs whatever was not synced for six hours whenever it runs.
+
+**What I learned:**
+- A numbers-only count is enough to check a migration against the owner's plan without opening
+  it; I keep that form for every migration that touches existing rows' meaning.
+- I wrote one expectation into a Deploy brief without reading how the tools report refusals.
+  Reading the design was not enough; where the brief asserts wording, I read the code that
+  produces it.
+- A box can be replaced within four minutes of a Thread's start. Nothing in a brief can guard
+  that; the cost is one child each time.
+
+**Ticket writes:** 4 (the live note on EXF-468; EXF-612 with a correction of my own comment;
+EXF-461).
+**Backlog:** 46 open feature tickets (53 done; EXF-461 in progress, its Build to be restarted).
+Gap: twenty open (EXF-745 to EXF-748 added), plus the one filed here. Template: thirty-nine open
+(Urgent EXF-573, 611, 612). **Flow verdicts unchanged; flows 2, 3 and 4 are due on live now.**
+Finished since each template's last review: Build 5 (one of them the lost one), Deploy 2,
+Discover 2, Test user flow 3.
+
+**Next plan:** start the bank-linking screens Build again (same brief); a flow test of flows 2, 3
+and 4 on live `8e54173` (one plan in a non-default format); EXF-463's register screens beside the
+Build if I can keep their files apart; EXF-558 raised.
