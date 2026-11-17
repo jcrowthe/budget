@@ -19,6 +19,7 @@ export function SplitLines({
   month,
   lead,
   showCategory,
+  showBalance,
   onChange,
   onRemove,
   onAdd,
@@ -30,6 +31,7 @@ export function SplitLines({
   month: MonthDetail | undefined;
   lead: number;
   showCategory: boolean;
+  showBalance: boolean;
   onChange: (index: number, patch: Partial<LineDraft>) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
@@ -115,6 +117,7 @@ export function SplitLines({
               }
             />
           </td>
+          {showBalance && <td className="num cell-balance" />}
           <td className="cell-cleared" />
         </tr>
       ))}
@@ -134,6 +137,7 @@ export function SplitLines({
         <td className="num split-remaining-number" data-field="remaining-inflow">
           {num(remaining.inflow)}
         </td>
+        {showBalance && <td className="num cell-balance" />}
         <td className="cell-cleared" />
       </tr>
     </>

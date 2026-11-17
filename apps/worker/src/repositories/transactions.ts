@@ -247,6 +247,7 @@ export type TransactionDetailRow = TransactionRow & {
   groupName: string | null;
   payeeSystem: PayeeSystem | null;
   transferAccountName: string | null;
+  runningBalance?: number;
 };
 
 const ta = alias(accounts, "ta");
@@ -330,6 +331,7 @@ export async function listDetailForAccount(
   accountId: string,
   sinceDate?: string,
   needs?: "approval_or_category",
+  opts: { runningBalance?: boolean } = {},
 ): Promise<TransactionDetailRow[]> {
   const conds = [
     eq(transactions.budgetId, budgetId),
@@ -339,7 +341,44 @@ export async function listDetailForAccount(
   ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
   if (needs) conds.push(needsAttention());
-  return (await detailSelect(db).where(and(...conds))).map(toDetail);
+  if (!opts.runningBalance) return (await detailSelect(db).where(and(...conds))).map(toDetail);
+  // Every live row of the account counts, whatever the filters above leave out: the window runs in its own
+  // subquery. The register's order is date desc, amount asc, created_at, id, so the balance runs the reverse.
+  const rb = db
+    .select({
+      id: transactions.id,
+      balance:
+        sql<number>`sum(${transactions.amount}) over (order by ${transactions.date} asc, ${transactions.amount} desc, ${transactions.createdAt} desc, ${transactions.id} desc rows between unbounded preceding and current row)`.as(
+          "running_balance",
+        ),
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        eq(transactions.accountId, accountId),
+        countsInBalance(),
+      ),
+    )
+    .as("rb");
+  const rows = await db
+    .select({
+      t: transactions,
+      categoryName: categories.name,
+      groupName: categoryGroups.name,
+      payeeName: payees.name,
+      payeeSystem: payees.system,
+      transferAccountName: ta.name,
+      runningBalance: rb.balance,
+    })
+    .from(transactions)
+    .leftJoin(categories, eq(categories.id, transactions.categoryId))
+    .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .leftJoin(ta, eq(ta.id, transactions.transferAccountId))
+    .leftJoin(rb, eq(rb.id, transactions.id))
+    .where(and(...conds));
+  return rows.map((r) => ({ ...toDetail(r), runningBalance: r.runningBalance ?? undefined }));
 }
 
 export type PlanDetailRow = TransactionDetailRow & { accountName: string };

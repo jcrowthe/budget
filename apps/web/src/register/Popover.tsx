@@ -26,7 +26,7 @@ export function Popover({
   placement: "above" | "below" | "right";
   width: number;
   label: string;
-  role?: "menu";
+  role?: "menu" | "dialog";
   /** Extra class of the popover (for example `is-submenu`) and of its body (`is-flags`). */
   className?: string;
   bodyClass?: string;

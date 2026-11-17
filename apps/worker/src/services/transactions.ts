@@ -315,18 +315,27 @@ export async function listAccountTransactions(
     sort?: RegisterSortColumn;
     dir?: SortDir;
     needs?: "approval_or_category";
+    include?: "running_balance";
   } = {},
-): Promise<{ transactions: TransactionDetail[]; balances: AccountBalances }> {
+): Promise<{
+  transactions: (TransactionDetail & { running_balance?: number })[];
+  balances: AccountBalances;
+}> {
   const db = getDb(env);
   await activePlan(db, budgetId);
   await activeAccount(db, budgetId, accountId);
   const [rows, balances, lines] = await Promise.all([
-    txRepo.listDetailForAccount(db, budgetId, accountId, opts.sinceDate, opts.needs),
+    txRepo.listDetailForAccount(db, budgetId, accountId, opts.sinceDate, opts.needs, {
+      runningBalance: opts.include === "running_balance",
+    }),
     balancesOf(db, budgetId, accountId),
     txRepo.listLines(db, budgetId, { accountId, sinceDate: opts.sinceDate }),
   ]);
   const byParent = linesByParent(lines);
-  const detail = rows.map((r) => transactionDetailToApi(r, byParent.get(r.id)));
+  const detail = rows.map((r) => ({
+    ...transactionDetailToApi(r, byParent.get(r.id)),
+    ...(r.runningBalance === undefined ? {} : { running_balance: r.runningBalance }),
+  }));
   return {
     transactions: sortTransactions(detail, opts.sort ?? "date", opts.dir ?? "desc"),
     balances,

@@ -334,8 +334,12 @@ export type TransactionBulkResult = z.infer<typeof TransactionBulkResult>;
 export const TransactionBulkResponse = dataEnvelope(TransactionBulkResult);
 
 export const TransactionResponse = dataEnvelope(z.object({ transaction: TransactionDetail }));
+/** A row of an account's list; `running_balance` only with `include=running_balance`. */
+export const RegisterTransaction = TransactionDetail.extend({
+  running_balance: Milliunits.optional(),
+}).openapi("RegisterTransaction");
 export const TransactionListResponse = dataEnvelope(
-  z.object({ transactions: z.array(TransactionDetail), balances: AccountBalances }),
+  z.object({ transactions: z.array(RegisterTransaction), balances: AccountBalances }),
 );
 
 export const TransactionsResponse = dataEnvelope(

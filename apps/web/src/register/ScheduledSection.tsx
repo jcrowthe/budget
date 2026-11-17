@@ -15,6 +15,7 @@ import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
 import { registerDate, registerMoney } from "./format";
 import { CalendarIcon, CaretDownIcon, ChevronRightIcon, FlagFilledIcon, RepeatIcon } from "./icons";
+import { useRegisterView } from "./register-view";
 import { useSelection } from "./selection";
 
 const COLLAPSED_KEY = "register.scheduled-collapsed";
@@ -75,6 +76,7 @@ export function ScheduledSection({
   onSaved: (next: "close" | "again", date: string) => void;
   accounts: Account[];
 }) {
+  const { showFlags, showBalance } = useRegisterView();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   useEffect(() => {
     try {
@@ -144,9 +146,11 @@ export function ScheduledSection({
               onClick={(e) => pick("scheduled", s.id, e.shiftKey ? "rangeAdd" : "toggle")}
             />
           </td>
-          <td className="cell-flag">
-            {s.flag_color ? <FlagFilledIcon className={`flag-${s.flag_color}`} /> : null}
-          </td>
+          {showFlags && (
+            <td className="cell-flag">
+              {s.flag_color ? <FlagFilledIcon className={`flag-${s.flag_color}`} /> : null}
+            </td>
+          )}
           {plan && (
             <td data-field="account" title={s.account_name}>
               {s.account_name}
@@ -181,6 +185,7 @@ export function ScheduledSection({
           <td data-field="inflow" className="num">
             {s.amount > 0 ? registerMoney(s.amount) : null}
           </td>
+          {showBalance && <td className="num cell-balance" />}
           <td className="cell-cleared" />
         </tr>
       </Fragment>

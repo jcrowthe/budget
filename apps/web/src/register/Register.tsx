@@ -9,6 +9,7 @@ import { useOpenAccounts } from "./openAccounts";
 import { ReconcileBar } from "./ReconcileBar";
 import { RegisterTable } from "./RegisterTable";
 import { RegisterToolbar } from "./RegisterToolbar";
+import { RegisterViewContext, useRegisterViewState } from "./register-view";
 import { useSelection } from "./selection";
 import "./register.css";
 import "./entry.css";
@@ -21,6 +22,7 @@ const isTyping = (t: EventTarget | null) => {
 /** One account's register, or (without `account`) every account's: All Accounts. */
 export function Register({ budgetId, account }: { budgetId: string; account?: Account }) {
   const [open, setOpen] = useState<Open>(null);
+  const view = useRegisterViewState(budgetId, account?.id);
   const { selected, scheduled } = useSelection();
   const { openAccounts, loaded } = useOpenAccounts(budgetId);
   // A closed account, or All Accounts with no open account, takes no new transaction.
@@ -71,34 +73,37 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
   }, [openAdd, closed]);
 
   return (
-    <section
-      className={`register${selected.size > 0 || scheduled.size > 0 ? " has-actionbar" : ""}`}
-      aria-label="Register"
-    >
-      <RegisterToolbar
-        name={account?.name ?? "All Accounts"}
-        onAdd={() => openAdd()}
-        closed={closed}
-        onRecordPayment={credit ? openPayment : undefined}
-        paymentDisabled={!account || account.closed || !pay.settled}
-      />
-      <ReconcileBar />
-      <RegisterTable
-        budgetId={budgetId}
-        account={account}
-        open={open}
-        onOpen={setOpen}
-        onCloseEntry={() => setOpen(null)}
-        onSaved={(next, date) => (next === "again" ? openAdd(date) : setOpen(null))}
-      />
-      <ActionBar
-        budgetId={budgetId}
-        account={account}
-        entryOpen={open !== null}
-        onCategorizeOne={(id) =>
-          setOpen({ mode: "edit", id, focus: "category", openCategory: true })
-        }
-      />
-    </section>
+    <RegisterViewContext.Provider value={view}>
+      <section
+        className={`register${selected.size > 0 || scheduled.size > 0 ? " has-actionbar" : ""}`}
+        aria-label="Register"
+      >
+        <RegisterToolbar
+          name={account?.name ?? "All Accounts"}
+          onAdd={() => openAdd()}
+          closed={closed}
+          onRecordPayment={credit ? openPayment : undefined}
+          paymentDisabled={!account || account.closed || !pay.settled}
+          viewScope={account ? "account" : "all"}
+        />
+        <ReconcileBar />
+        <RegisterTable
+          budgetId={budgetId}
+          account={account}
+          open={open}
+          onOpen={setOpen}
+          onCloseEntry={() => setOpen(null)}
+          onSaved={(next, date) => (next === "again" ? openAdd(date) : setOpen(null))}
+        />
+        <ActionBar
+          budgetId={budgetId}
+          account={account}
+          entryOpen={open !== null}
+          onCategorizeOne={(id) =>
+            setOpen({ mode: "edit", id, focus: "category", openCategory: true })
+          }
+        />
+      </section>
+    </RegisterViewContext.Provider>
   );
 }
