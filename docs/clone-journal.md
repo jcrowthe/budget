@@ -10411,3 +10411,53 @@ Declared for the tree: the two Builds; one Deploy for the two merges; a flow tes
 popover; plan formats.
 
 Ticket writes: 6 (EXF-529, EXF-724, EXF-722 to In Progress, each with a comment).
+
+### 2026-11-17 · Review round 119
+
+Children used 135 of 200. One ended: **the Activity popover Build completed and merged**
+(`p_4b3e4d16b0784c8a9090ea68151e465d`, pull request 61, main now `13cfcae`), in one Build of 128
+minutes. The register's View options Build is running. Live is `d005439` (read by me at 11:06Z),
+two merges behind; no migration is pending.
+
+**EXF-509, EXF-720 and EXF-714: merged; all three Done.** I approved its card at 11:05Z in a side
+turn, two minutes after it arrived, on the digest, the diff and the gate; I read the steps' reports
+now.
+- **Gate** on main `3ab0051` at head `8b5fcc9`, the PR head: check passed; the whole browser suite
+  478 of 478 three times; changed specs ten times, 430 of 430; no flake; no migration. Main's tree
+  equals the gated head (compared now). 83 MCP tools on main (`list_category_transactions`).
+- **The read** lists what the engine counts as a category's Activity and sums to the month read's
+  figure to the milliunit; 3 D1 calls at 10 and 100 rows; a bound of 500 rows with the full count
+  and sum in the answer. Payment categories keep a plain Activity cell (a known issue).
+- **The review loop worked as it should:** the Reviewer's one nit (a column width) was fixed with a
+  test shown failing first; the gate's first run failed an older Auto-Assign test, and the fixer
+  read the code and found a race in the test (a click before the option was enabled), not load.
+- **The Tester looked** (five minutes; a fresh screenshot of every listed state at both sizes; 15
+  of 15). What was different: the "Looking" list was in the design, copied there by the Architect.
+  Evidence on EXF-684, with two corrections of my own wording there ("the first Tester that
+  looked" was wrong, and so was "three before it": two Testers before it did not look, 76 and 47
+  seconds). I check a count against the Threads before I write it into a ticket.
+- **The source rules held in all three steps that touched the source**, each of which listed its
+  actions (month arrows, a hover, style readings, size and colour-scheme overrides set back). The
+  source has no category with activity, so the popover is "not compared: built from the ticket".
+  Evidence on EXF-573, with the limits of that evidence.
+- **What looking found, filed through this review:** at 1024×700 an Activity amount of eight
+  characters (−$106.50) is cut with an ellipsis inside its new button, and a group row's amount
+  wraps. In my approval I wrote that the text "ran past its box before this Build": that is my
+  inference from the flow test's measurement of the Assigned cell at the same width (66 px), not
+  something anyone measured for Activity.
+
+**What I learned:** what a late step must do goes into the design through the Architect, word for
+word. It has now carried the source rules twice and the Tester's looking once.
+
+**The register's View options Build** (`p_5b0c6eac7fb9459881ccfe507ef9a190`), 37 minutes in:
+design and spec committed. Its manifest is not in yet at the time of writing; it shares only
+keep-both files with what merged today by my estimate, and I check it when it arrives.
+
+**Ticket writes:** 10 (EXF-509, EXF-720, EXF-714 to Done with comments; evidence on EXF-684 with
+two corrections, and on EXF-573). One ticket filed through this review. **Backlog:** 48 open feature tickets (51 done;
+1 in progress: EXF-529). Gap: sixteen open, two of them in progress (EXF-724, EXF-722), plus the
+one filed here. Template: thirty-nine open (Urgent EXF-573, 611, 612). Flow verdicts unchanged.
+Finished since each template's last review: Build 2, Deploy 9, Discover 2, Test user flow 3.
+
+**Next plan:** one Deploy (`ZZ-TEST D31`) for the two merges (`3ab0051`, `13cfcae`); it can run
+beside the Build (no approval while it releases). The review of round 120 is a check-in.
