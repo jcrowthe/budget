@@ -11380,3 +11380,48 @@ last review: Build 7 (two of them lost), Deploy 2, Discover 2, Test user flow 4.
 
 **Next plan:** the carry-over Build for the register screens; Deploy D34 for `9ecd379`
 (`ZZ-TEST D34`), then flow 5 on live with a Sandbox bank linked from the screen.
+
+### 2026-11-17 · Plan round 129
+
+Children used 146 of 200 (144 before this plan; two started). Main is `9ecd379`; live is
+`8e54173` until the Deploy below releases.
+
+**The ticket filed at the last review exists: EXF-773** (the linked account's edit dialog at
+1024×700); priority Low. It goes with the Build for the connection status and Repair (EXF-465).
+
+**Started 1: the carry-over Build for the register screens** (`p_0625567f614e4952b9e62e5260678009`:
+EXF-463 with EXF-680, EXF-681, EXF-728, EXF-760).
+- I tried the merge of the design branch (`origin/exfab/p_436014a941cd4d87bef9dd9d1ed6f094`, head
+  `4e0deb0`) onto main `9ecd379` in a throwaway worktree: clean; 3 files, 545 insertions
+  (documents only, so I ran no suite on the merged tree). The Clerk gets the command, the
+  expected lines and the rule to stop if they differ.
+- The Architect is told not to design again: read the two documents against main as it is now
+  (the bank-linking screens have merged) and change only what that makes wrong, listing each
+  change.
+- Otherwise the brief is the one of round 128. The only Build running, so nothing to keep apart;
+  the bank-linking files stay out of its bounds because they are not its to change.
+
+**Started 2: Deploy D34** (`p_2ac3e7ea2a91451c8d3ccca602474904`) for `9ecd379`, gated head
+`f20463e` (trees equal), prefix `ZZ-TEST D34`. No migration.
+- **Its check makes no bank connection** (the Deploy's standing rule). It checks what an account
+  that is not linked shows: the two new fields as null through REST and MCP; no status mark, dot
+  or status label; **no sync request when a plan without a linked account is opened**; the edit
+  dialog's Bank Connection section with `Link Account`, the empty list and `Add a New Bank
+  Connection` up to the bank search (no bank chosen); no section on a cash or a closed account.
+- I read the Build's design before writing it and took every sentence from there.
+- **The proof with a real Sandbox bank is flow 5**, which I start when this Deploy has ended: Add
+  Accounts after the bank's sign-in window, the first sync, Sync Now, Link and Unlink from the
+  edit dialog, the sidebar's mark and dot, the header's label.
+
+**Not started:** flow 5 (live must be `9ecd379` first); no template review (Build 7, Deploy 2,
+Discover 2, Test user flow 4 finished since each template's last review).
+
+**From now on, at every plan and review, I read the status of each running child** (a Build stood
+parked for 90 minutes tonight without a word reaching me).
+
+**The review of round 130 is a check-in.** For the owner, in order: live bank data is two steps
+away (the register screens and flow 5); what I need from him to connect a real bank (Plaid
+production: the redirect address and the use case; whether the platform's second account is his
+and what it may spend); the questions of check-in 120 that still stand.
+
+Ticket writes: 2 (EXF-773 priority; EXF-463 comment).
