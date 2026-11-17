@@ -11488,3 +11488,66 @@ review (Build 7, Deploy 2, Discover 2, Test user flow 4).
 **This round's review is the check-in.**
 
 Ticket writes: none.
+
+### 2026-11-17 · Review round 130 (check-in)
+
+Children used 147 of 200. One ended: **Deploy D34 completed**
+(`p_2ac3e7ea2a91451c8d3ccca602474904`, 11 minutes). **Live is `9ecd379`** at
+https://budget.doxen.dev (read by me at 20:42Z), equal to main; no migration pending.
+
+**Status of the running children (20:43Z):** the carry-over Build for the register screens
+(`p_0625567f614e4952b9e62e5260678009`) at its build step, no open card; flow 5
+(`p_01b401478049441db6b36fa23ad34e14`) walking, no open card.
+
+**Deploy D34: released; the checks held; two points differ from my brief, both my error.**
+- Gate passed (tree equal to gated `f20463e`; checks 260 s); release passed, smoke ok, bookmark
+  phase ran; 401 without credentials; **87 MCP tools**; `plaid credentials: sandbox set,
+  production set`. This verifier's box had all its platform files.
+- As briefed: the two new account fields null for accounts that are not linked (REST, MCP); no
+  mark, dot or label on them; **no sync request on opening a plan without a linked account**;
+  the edit dialog's Bank Connection section with a readable `Link Account`; nothing of it on a
+  cash or closed account; everything inside the window at 1024×700. Purge `remaining 0`; plans
+  that are not test plans: 1.
+- **Differs:** the bank connection list for the verifier's plan was not empty, and so the Link
+  Account dialog listed bank accounts. **Two Sandbox connections exist on live** (Chase and Tartan
+  Bank). That a plan sees them is the design (a connection belongs to the user and shows in every
+  plan of its environment); I wrote "empty list" without reading that line of the manage design.
+  Second time this week I asserted behaviour in a Deploy brief from the ticket alone.
+
+**Who made those two connections.** I read, on the live database, only the Sandbox rows of
+`bank_connections` and the kind of actor that created each (SELECT only, no plan data): Chase,
+16 Nov 16:41Z; Tartan Bank, 16 Nov 23:26Z; both created by an actor of kind `user`, where a
+child's browser shows as `service` (flow 5's own connection of tonight does). No account is linked
+to either. So **a signed-in person made them, most likely the owner trying the app**, and he met
+the step that did not exist until tonight: nothing to do after connecting. I do not know which
+plan they were made in (the one plan that is not a test plan is set to `production`: a count,
+nothing else read). I leave them alone and ask.
+- A by-product: both were last synced at 03:00Z today. **That is the first proof on live that
+  the nightly job runs and syncs bank connections.**
+
+**Found while writing flow 5, checked in the code today:** nothing changes `import_start_date`
+when a Starting Balance's date is edited. So a bank linked from the screen starts today and has
+no way to an earlier start (the MCP tool can back-date `today`; the screen cannot). Filed below.
+
+**Filed through this review (one gap ticket, High):** a linked account's import cannot be made
+to start earlier.
+
+**What I learned:**
+- The owner is using the live app. Evidence beats my guesses about what matters: he tried to
+  connect a bank on the day the Worker half went live.
+- Before I assert what a live read returns, I read the design that defines its scope, even for
+  a line as small as "an empty list".
+
+**Ticket writes:** 1 (the live note on EXF-461).
+**Backlog:** 45 open feature tickets (54 done; EXF-463 in progress). Gap: twenty-three open (five
+in progress), plus the one filed here. Template: thirty-nine open (Urgent EXF-573, 611, 612).
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps`; 3 `parity`; 4 `parity`; 5 running;
+7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run as a flow. Finished since each template's
+last review: Build 7, Deploy 3, Discover 2, Test user flow 4.
+
+**Check-in sent** (the report is in the answer): what is live, what landed and failed since
+round 120, what the owner will meet when he links a real bank, and seven questions.
+
+**Next plan:** nothing new to start beside the register Build until flow 5 reports; then the
+Build for Manage Bank Connections with the statuses and Repair (EXF-460, EXF-465, EXF-773), with
+the new start-date ticket if they fit one Build.
