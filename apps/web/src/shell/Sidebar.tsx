@@ -1,5 +1,5 @@
 import { type ComponentType, useRef, useState } from "react";
-import { NavLink, useMatch, useSearchParams } from "react-router";
+import { NavLink, useMatch } from "react-router";
 import { EditAccountDialog } from "../account/EditAccountDialog";
 import { useAccounts } from "../api/accounts";
 import { identityLabel, useMe } from "../api/me";
@@ -8,6 +8,7 @@ import { ShortcutTooltip } from "../shortcuts/ShortcutTooltip";
 import { AddAccountDialog } from "./AddAccountDialog";
 import {
   AccountsIcon,
+  BankIcon,
   CaretIcon,
   Logo,
   PlanIcon,
@@ -16,6 +17,7 @@ import {
   SidebarCloseIcon,
   SidebarOpenIcon,
 } from "./icons";
+import { ManageConnectionsDialog } from "./manage-connections-dialog";
 import { PlanMenu } from "./PlanMenu";
 import {
   accountsPath,
@@ -41,14 +43,7 @@ export function Sidebar() {
   const label = identityLabel(useMe().data);
   const [addAccount, setAddAccount] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  // Until Manage Bank Connections exists (EXF-460), ?add-accounts=connections opens the connections variant.
-  const [params, setParams] = useSearchParams();
-  const connectionsVariant = params.get("add-accounts") === "connections";
-  const clearConnections = () => {
-    const next = new URLSearchParams(params);
-    next.delete("add-accounts");
-    setParams(next, { replace: true });
-  };
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
   const accounts = useAccounts(plan?.id);
   const accountList = accounts.data ?? [];
   const editing = accountList.find((a) => a.id === editingId);
@@ -173,6 +168,16 @@ export function Sidebar() {
             Add Account
           </button>
         )}
+        {rail || notFound || !plan ? null : (
+          <button
+            type="button"
+            className="add-account bank-connections"
+            onClick={() => setConnectionsOpen(true)}
+          >
+            <BankIcon />
+            {side.narrow ? "Connections" : "Bank Connections"}
+          </button>
+        )}
       </div>
       <div className="sidebar-bottom">
         <ShortcutTooltip id="toggle-sidebar" align={rail ? "start" : "center"}>
@@ -203,12 +208,8 @@ export function Sidebar() {
         />
       ) : null}
       {addAccount && !notFound ? <AddAccountDialog onClose={() => setAddAccount(false)} /> : null}
-      {connectionsVariant && !notFound ? (
-        <AddAccountDialog
-          variant="connections"
-          onBack={clearConnections}
-          onClose={clearConnections}
-        />
+      {connectionsOpen && plan && !notFound ? (
+        <ManageConnectionsDialog budgetId={plan.id} onClose={() => setConnectionsOpen(false)} />
       ) : null}
     </nav>
   );

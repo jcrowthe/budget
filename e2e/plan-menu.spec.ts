@@ -160,11 +160,12 @@ test.describe("1440×900", () => {
     for (let i = 0; i < names.length; i++) {
       const box = await rows.nth(i).locator("svg").first().boundingBox();
       expect([box?.width, box?.height]).toEqual([16, 16]);
-      // Plan Settings is enabled by EXF-468 (menu-actions/plan-settings.tsx).
+      // Plan Settings is enabled by EXF-468 (menu-actions/plan-settings.tsx), Manage Bank Connections by EXF-460.
       const enabled = [
         "New Plan",
         "Open Plan",
         "Plan Settings",
+        "Manage Bank Connections",
         "Keyboard Shortcuts",
         "Log Out",
       ].includes(names[i] ?? "");
@@ -296,10 +297,14 @@ test.describe("1440×900", () => {
     // Plan Settings (EXF-468) follows Open Plan; Keyboard Shortcuts is enabled (EXF-473): it sits before Log Out.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Plan Settings")).toBeFocused();
+    // Manage Bank Connections is enabled by EXF-460: it sits between Plan Settings and Keyboard Shortcuts.
+    await page.keyboard.press("ArrowDown");
+    await expect(item(page, "Manage Bank Connections")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Keyboard Shortcuts")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Log Out")).toBeFocused();
+    await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");

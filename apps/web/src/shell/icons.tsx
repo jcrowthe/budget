@@ -174,3 +174,19 @@ export const LinkWarningIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0Zm-.6 2.8h1.2v4H5.4v-4Zm0 5h1.2V9H5.4V7.8Z" />
   </svg>
 );
+
+export const TrashIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M9 2h6l1 2h5v2H3V4h5l1-2ZM5 8h14l-1 13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8Zm4 2v10h2V10H9Zm4 0v10h2V10h-2Z" />
+  </svg>
+);
+export const LinkIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} aria-hidden="true" {...p}>
+    <path d="M10.6 13.4a1 1 0 0 1 0-1.4l3-3a3 3 0 1 1 4.2 4.2l-1.5 1.5-1.4-1.4 1.5-1.5a1 1 0 0 0-1.4-1.4l-3 3a1 1 0 0 1-1.4 0ZM13.4 10.6a1 1 0 0 1 0 1.4l-3 3a3 3 0 1 1-4.2-4.2l1.5-1.5 1.4 1.4-1.5 1.5a1 1 0 0 0 1.4 1.4l3-3a1 1 0 0 1 1.4 0Z" />
+  </svg>
+);
+export const ClockIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" width="12" height="12" aria-hidden="true" {...p}>
+    <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0Zm.6 3v3l2.2 1.3-.6 1L5.4 6.6V3h1.2Z" />
+  </svg>
+);
