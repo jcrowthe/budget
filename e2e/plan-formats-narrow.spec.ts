@@ -67,6 +67,7 @@ type Measure = {
   lines: number;
   right: number;
   boxRight: number;
+  ellipsis: boolean;
   cellRight: number;
   title: string;
 };
@@ -89,11 +90,21 @@ async function measure(page: Page): Promise<Measure[]> {
       out.push({
         what,
         text: (textEl.textContent ?? "").trim(),
-        scrollWidth: box.scrollWidth,
-        clientWidth: box.clientWidth,
+        // A block-level text element (the pill's amount) clips itself; the others are clipped by their box.
+        scrollWidth:
+          (textEl as HTMLElement).clientWidth > 0
+            ? (textEl as HTMLElement).scrollWidth
+            : box.scrollWidth,
+        clientWidth:
+          (textEl as HTMLElement).clientWidth > 0
+            ? (textEl as HTMLElement).clientWidth
+            : box.clientWidth,
         lines: lines(textEl),
         right: textRight(textEl),
         boxRight: box.getBoundingClientRect().right,
+        ellipsis:
+          getComputedStyle((textEl as HTMLElement).clientWidth > 0 ? textEl : box).textOverflow ===
+          "ellipsis",
         cellRight: cell.getBoundingClientRect().right,
         title: box.getAttribute("title") ?? textEl.getAttribute("title") ?? "",
       });
@@ -249,7 +260,7 @@ test("EXF-726: fourteen characters in another format never wrap; they are cut on
   for (const x of m) {
     expect(x.text).toBe("−8.888.888,88€");
     expect(x.lines, `${x.what}: one line`).toBe(1);
-    expect(x.scrollWidth, `${x.what}: is cut (ellipsis)`).toBeGreaterThan(x.clientWidth);
+    expect(x.ellipsis, `${x.what}: a cut amount ends in an ellipsis`).toBe(true);
     expect(x.title, `${x.what}: title holds the amount`).toContain("−8.888.888,88€");
     // The text is cut (an ellipsis): its box, not the clipped text, lies inside the cell.
     expect(x.boxRight, `${x.what}: right edge`).toBeLessThanOrEqual(x.cellRight + 0.5);
