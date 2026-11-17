@@ -141,6 +141,9 @@
 .register-table .col-cleared {
   width: 36px;
 }
+.register-table .col-attention {
+  width: 24px;
+}
 .register-table .col-account {
   width: 10%;
 }
@@ -164,6 +167,8 @@
   width: 10%;
 }
 .register-table th {
+  overflow: hidden;
+  white-space: nowrap;
   position: sticky;
   top: 48px;
   z-index: 2;
@@ -187,9 +192,15 @@
   text-align: right;
 }
 .register-table th.num.is-active .sort-button {
-  margin-right: 16px;
+  max-width: calc(100% - 16px);
 }
 .sort-button {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
   padding: 0;
   border: 0;
   background: transparent;
@@ -319,7 +330,8 @@
   border-radius: 24px;
   background: var(--register-needs-category);
   color: var(--register-needs-category-label);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   line-height: 20px;
 }
 .register-table td.register-message {
@@ -872,13 +884,28 @@
 .register-table.no-flags.has-balance .col-amount {
   width: 8.6%;
 }
-/* Below 1280px the 96px minimums are in force: payee and memo give way again so category keeps some room. */
+/* Below 1280px the 96px minimums are in force: payee and memo give way so category keeps room (EXF-728, EXF-760).
+   The attention column's 24px comes out of them too. Widths measured at 1024px: see register-approve-design.md. */
 @media (max-width: 1279px) {
+  .register-table .col-payee,
+  .register-table .col-memo {
+    width: 14%;
+  }
   .register-table.has-balance .col-payee,
-  .register-table.has-balance .col-memo,
+  .register-table.has-balance .col-memo {
+    width: 10%;
+  }
   .register-table.no-flags.has-balance .col-payee,
   .register-table.no-flags.has-balance .col-memo {
-    width: 13%;
+    width: 11%;
+  }
+  .register-table.has-account .col-payee,
+  .register-table.has-account .col-memo {
+    width: 10%;
+  }
+  .register-table.has-account.no-flags .col-payee,
+  .register-table.has-account.no-flags .col-memo {
+    width: 12%;
   }
 }
 .register-table td .needs-category {
@@ -888,4 +915,102 @@
   vertical-align: middle;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* EXF-463: the attention column, bolder unapproved rows, the banner and the View chip. */
+.register-table th.cell-attention,
+.register-table td.cell-attention {
+  padding: 0;
+  overflow: visible;
+  text-align: center;
+}
+.register-table th.cell-attention {
+  border-right: 0;
+  color: var(--register-icon-muted);
+}
+.register-table th.cell-attention svg {
+  vertical-align: middle;
+}
+.register-table tbody tr.is-unapproved td {
+  font-weight: 600;
+}
+.attention-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.attention-button:focus-visible {
+  outline: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.attention-menu-error {
+  margin: 4px 12px 8px;
+  color: var(--labelNegative);
+  font-size: var(--font-size-sm);
+  white-space: normal;
+}
+.attention-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.attention-banner svg {
+  flex: none;
+}
+.attention-banner p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attention-banner-view {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--labelPrimary);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.attention-filter-row {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.attention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--separatorStandard);
+  border-radius: 24px;
+  background: transparent;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.attention-chip:hover {
+  background: var(--register-menu-hover);
 }

@@ -331,7 +331,7 @@ export function EntryRow({
 
   const { showFlags, showBalance } = useRegisterView();
   const colCount =
-    (plan ? 1 : 0) + (showCategory ? 1 : 0) + 6 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
+    (plan ? 1 : 0) + (showCategory ? 1 : 0) + 7 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
   const parentAmount = draftAmount(draft, fmt);
 
   const autoDistributeLines = () => {
@@ -363,6 +363,7 @@ export function EntryRow({
         <td className="cell-check">
           <Box state label="Select transaction" tabIndex={-1} onClick={() => {}} />
         </td>
+        <td className="cell-attention" />
         {showFlags && <td className="cell-flag" />}
         {plan && (
           <td data-field="account">
@@ -506,7 +507,7 @@ export function EntryRow({
           total={parentAmount}
           payees={payeesQ.data ?? []}
           month={monthQ.data}
-          lead={1 + (showFlags ? 1 : 0) + (plan ? 1 : 0)}
+          lead={2 + (showFlags ? 1 : 0) + (plan ? 1 : 0)}
           showBalance={showBalance}
           showCategory={showCategory}
           onChange={patchLine}

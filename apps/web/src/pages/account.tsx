@@ -4,6 +4,8 @@ import { ReconcileProvider } from "../account/ReconcileContext";
 import { useAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { useEnterDueOnOpen } from "../api/scheduledTransactions";
+import { AttentionBanner } from "../register/AttentionBanner";
+import { AttentionFilterProvider } from "../register/attention-filter";
 import { Register } from "../register/Register";
 import { SelectionProvider } from "../register/selection";
 import { accountsPath } from "../shell/planPaths";
@@ -20,14 +22,17 @@ function AccountPage() {
   }
   return (
     <SelectionProvider key={`${budgetId}:${accountId}`}>
-      {account ? (
-        <ReconcileProvider key={account.id} account={account}>
+      <AttentionFilterProvider>
+        <AttentionBanner count={account?.needs_attention_count} />
+        {account ? (
+          <ReconcileProvider key={account.id} account={account}>
+            <AccountHeader account={account} />
+            <Register key={account.id} budgetId={budgetId} account={account} />
+          </ReconcileProvider>
+        ) : (
           <AccountHeader account={account} />
-          <Register key={account.id} budgetId={budgetId} account={account} />
-        </ReconcileProvider>
-      ) : (
-        <AccountHeader account={account} />
-      )}
+        )}
+      </AttentionFilterProvider>
     </SelectionProvider>
   );
 }

@@ -223,3 +223,10 @@ export const CalendarIcon = (p: P) => (
     <path d="M4 5h16v16H4zM4 10h16M8 3v4M16 3v4" />
   </svg>
 );
+export const InfoCircleIcon = (p: P) => (
+  <svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true" {...p}>
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M8 7.2v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="8" cy="4.8" r="1" fill="currentColor" />
+  </svg>
+);

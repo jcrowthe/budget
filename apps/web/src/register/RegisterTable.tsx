@@ -1,5 +1,6 @@
 import { sidebarSections } from "@budget/core/account-types";
 import type { Account } from "@budget/schema/accounts";
+import { NEEDS_CATEGORY_TIP, needsAttention } from "@budget/schema/attention";
 import { paymentDisplay, paymentPrefill } from "@budget/schema/card-payments";
 import {
   categoryCell,
@@ -24,6 +25,8 @@ import {
 } from "../api/transactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { accountPath } from "../shell/planPaths";
+import { AttentionCell } from "./AttentionMenu";
+import { useAttentionFilter } from "./attention-filter";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
@@ -35,6 +38,7 @@ import {
   ClearedFilledIcon,
   ClearedOutlineIcon,
   FlagFilledIcon,
+  InfoCircleIcon,
   LockIcon,
   TransferIcon,
 } from "./icons";
@@ -126,12 +130,27 @@ export function RegisterTable({
   );
   const view = useRegisterView();
   const { showFlags, showBalance } = view;
-  const colCount = columns.length + 2 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
+  const colCount = columns.length + 3 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
   const data = q.data;
   const scheduledRows = useScheduledRows(budgetId, account?.id, sort);
   const reconcileMode = useReconcile()?.step === "mode";
+  const attention = useAttentionFilter().on;
+  const openIds = useMemo(() => new Set(openAccounts.map((a) => a.id)), [openAccounts]);
   const { rows, hidden } = useMemo(() => {
     if (!data) return { rows: [] as Row[], hidden: 0 };
+    if (attention) {
+      // View: every row that needs attention, whatever the View options hide (the banner's N and these rows agree).
+      const need = data.transactions.filter(
+        (tx) =>
+          (account || openIds.has(tx.account_id)) &&
+          needsAttention(
+            tx,
+            account ?? byId.get(tx.account_id) ?? { on_budget: true },
+            tx.transfer_account_id ? (byId.get(tx.transfer_account_id) ?? null) : null,
+          ),
+      );
+      return { rows: sortTransactions<Row>(need, sort.column, sort.dir), hidden: 0 };
+    }
     const shown = registerVisible<Row>(
       data.transactions,
       view.settings,
@@ -140,7 +159,18 @@ export function RegisterTable({
       reconcileMode,
     );
     return { rows: sortTransactions<Row>(shown.rows, sort.column, sort.dir), hidden: shown.hidden };
-  }, [data, sort, view.settings, view.today, view.firstMonth, reconcileMode]);
+  }, [
+    data,
+    sort,
+    view.settings,
+    view.today,
+    view.firstMonth,
+    reconcileMode,
+    attention,
+    openIds,
+    byId,
+    account,
+  ]);
 
   // The selection and the bar read the rows as shown; ids that left the list drop out of the selection.
   useEffect(() => setRows(rows), [rows, setRows]);
@@ -263,13 +293,23 @@ export function RegisterTable({
     return (
       <Fragment key={tx.id}>
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes */}
-        <tr data-tx={tx.id} className={checked ? "is-checked" : undefined} {...rowProps}>
+        <tr
+          data-tx={tx.id}
+          className={
+            [checked && "is-checked", !tx.approved && "is-unapproved"].filter(Boolean).join(" ") ||
+            undefined
+          }
+          {...rowProps}
+        >
           <td className="cell-check">
             <Box
               state={checked}
               label="Select transaction"
               onClick={(e) => pick("real", tx.id, e.shiftKey ? "rangeAdd" : "toggle")}
             />
+          </td>
+          <td className="cell-attention">
+            <AttentionCell budgetId={budgetId} tx={tx} />
           </td>
           {showFlags && (
             <td className="cell-flag">
@@ -340,6 +380,7 @@ export function RegisterTable({
                 <button
                   type="button"
                   className="needs-category"
+                  title={NEEDS_CATEGORY_TIP}
                   onClick={() => openEdit(tx, "category", true)}
                 >
                   This needs a category
@@ -382,11 +423,12 @@ export function RegisterTable({
             // biome-ignore lint/a11y/useKeyWithClickEvents: a line acts on its parent like the parent row
             <tr
               key={l.id}
-              className={`split-line-row${checked ? " is-checked" : ""}`}
+              className={`split-line-row${checked ? " is-checked" : ""}${tx.approved ? "" : " is-unapproved"}`}
               data-line-of={tx.id}
               {...rowProps}
             >
               <td className="cell-check" />
+              <td className="cell-attention" />
               {showFlags && <td className="cell-flag" />}
               {plan && <td />}
               <td />
@@ -404,7 +446,9 @@ export function RegisterTable({
                   ) : l.inflow_to_ready_to_assign ? (
                     "Inflow: Ready to Assign"
                   ) : (
-                    <span className="needs-category">This needs a category</span>
+                    <span className="needs-category" title={NEEDS_CATEGORY_TIP}>
+                      This needs a category
+                    </span>
                   )}
                 </td>
               )}
@@ -428,12 +472,13 @@ export function RegisterTable({
   return (
     <div className="register-scroll">
       <table
-        className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}`}
+        className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}`}
         aria-label={`${account?.name ?? "All Accounts"} transactions`}
         aria-busy={q.isPending || !view.ready}
       >
         <colgroup>
           <col className="col-check" />
+          <col className="col-attention" />
           {showFlags && <col className="col-flag" />}
           {plan && <col className="col-account" />}
           <col className="col-date" />
@@ -449,6 +494,9 @@ export function RegisterTable({
           <tr>
             <th className="cell-check">
               <Box state={allState} label="Select all transactions" onClick={toggleAll} />
+            </th>
+            <th className="cell-attention" aria-label="Approval">
+              <InfoCircleIcon />
             </th>
             {showFlags && (
               <th className="cell-flag" aria-label="Flag">
@@ -507,7 +555,7 @@ export function RegisterTable({
           plan={plan}
           showCategory={showCategory}
           colCount={colCount}
-          rows={scheduledRows}
+          rows={attention ? [] : scheduledRows}
           open={open}
           onOpen={onOpen}
           onCloseEntry={onCloseEntry}

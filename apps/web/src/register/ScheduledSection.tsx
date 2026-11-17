@@ -147,6 +147,7 @@ export function ScheduledSection({
               onClick={(e) => pick("scheduled", s.id, e.shiftKey ? "rangeAdd" : "toggle")}
             />
           </td>
+          <td className="cell-attention" />
           {showFlags && (
             <td className="cell-flag">
               {s.flag_color ? <FlagFilledIcon className={`flag-${s.flag_color}`} /> : null}
