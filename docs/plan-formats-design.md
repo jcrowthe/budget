@@ -157,6 +157,13 @@ the window at 1024×700.
   20); the page never scrolls sideways. A longer amount (state 9) stays on one line, cut with an ellipsis and its
   `title`. At 1440 nothing changes (narrow widths apply only under `data-narrow`).
 
+## Built (Implementer)
+
+- Repository test `scripts/test/plan-formats-screens.test.ts` found **48** places before the sweep (allow-list empty); it is green after, with the formatter, catalogue, `plan-export`, `plan-import-read`, the zod and column defaults, `plan-import`'s starting guess, `report-range` (MM/YY axis) and `reflect/format` (percent text) allowed. Lines that are comments are skipped.
+- The catalogue lists 133 currencies; the ticket's symbol list has no entry for BBD and CLP: both use `$`.
+- EXF-726: the columns measure `fmt.money(n)` with every digit as `0` (the canvas width of that equals the DOM's tabular width: 77 px for `−$0,000.00`, 95 for `−$000,000.00`), cap at `−$000,000.00` plus the cell's extras, and take the room from the name column and from the narrow cell paddings that were not needed (Assigned and Activity left padding 4 and 2 px to 0, the 2 px slack). `e2e/plan-narrow.spec.ts` test 21 passes unedited at 140 px of name with its data.
+- Import: with Symbol None the file holds no symbol, so the currency is the first with those decimals (a 3-decimal plan comes back as BHD, amounts and format kept).
+
 ## Out of scope; known issues
 
 Out: New Plan currency fields (EXF-469), converting amounts, percent text, month/weekday names, `planMenuEntries.ts`,
@@ -171,6 +178,13 @@ U+200E; the file limits above; the source writes a hyphen minus, the clone U+221
 2. `apps/worker/test/plan-import-migration.test.ts` "leaves the plan table's columns as they were": four columns added.
 3. The split refusal writes U+2212 (no test asserts it).
 4. A negative under half a cent shows `$0.00`, not `−$0.00` (no test known).
+
+5. `packages/schema/test/screen-money.reconcile.test.ts`: imports `DEFAULT_FORMATTER.money` where it imported the deleted `screenMoney` (same expectations).
+6. `packages/schema/test/target-wording.test.ts`: `targetMoney` (deleted) is `DEFAULT_FORMATTER.money` in the test (same expectations).
+7. `packages/schema/test/reflect-format.test.ts`: the `usDate` test is removed with `usDate` (covered by `plan-formats.test.ts`); `t.map(tickMoney)` becomes `t.map((v) => tickMoney(v))` (the second argument is now the formatter, `map` would pass the index).
+8. `e2e/plan-menu.spec.ts` test 6 (Plan Settings is enabled now) and test 5 (the keyboard path visits Plan Settings between Open Plan and Keyboard Shortcuts).
+9. Pure schema functions take `fmt` as an optional last parameter defaulting to `DEFAULT_FORMATTER` (the spec said required), so every existing unit test passes without an added argument. Every call in `apps/web` and `apps/worker` was written with `fmt` while it was required (the compiler found them), then relaxed.
+10. `autoAssignOptions(p, scope, hidden?, fmt)`: `fmt` follows the optional `hidden`.
 
 Any other edited expectation is added here with its reason.
 
