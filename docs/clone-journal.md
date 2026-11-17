@@ -10808,3 +10808,75 @@ EXF-727), none in progress, plus the one filed here. Template: thirty-nine open 
 page. Finished since each template's last review: Build 3, Deploy 1, Discover 2, Test user flow 3.
 
 **Next plan:** plan formats (EXF-468) with EXF-726 and EXF-727; I read EXF-468 first.
+
+### 2026-11-17 · Plan round 124
+
+Children used 139 of 200 (138 before this plan; one started). Nothing else is running. Main and
+live are both `2f33143`.
+
+**The ticket filed at the last review exists: EXF-728** (the register's CATEGORY header clipped at
+1024 px with the BALANCE column); priority set to Low. It goes with EXF-680 and EXF-681 in one
+small register Build later.
+
+**Started: Build feature for EXF-468 (plan formats) with EXF-726 (the Plan grid's number columns
+at 1024 px)**, child `p_a45bb55447494ccd9dfb245a1af9f37b`. One Build, alone: it changes how every amount and date is
+written on every screen, so no other Build can run beside it.
+
+**What I read first, and what it changed:**
+- EXF-468 is wide: a migration, a catalogue of about 130 currencies, new fields on the plan in
+  REST and MCP, one formatter for every screen, typed amounts and dates, the export and import
+  files, and the Plan Settings dialog. The code writes amounts in at least seven different places
+  today (`formatMoney` in core, `screenMoney`, `money` on the Plan page, `registerMoney`, the
+  Reflect formatters, literal `$` in components).
+- **EXF-727 (the month picker spec) is not in this Build**, against what I wrote at the last
+  review: the Build is already the widest so far, and the picker's fault is a separate search.
+  The brief names it as the one known flake and puts its files out of bounds. It goes into the
+  next small Plan-page Build.
+- EXF-726 stays in: the formatter changes how wide amounts are, and both touch
+  `apps/web/src/plan/columnWidths.ts`. Its own example of "twelve characters" has eleven; the
+  brief measures with `−$888,888.88` (twelve; counted by script).
+
+**Decisions in the brief (mine, where the ticket is silent):**
+- Existing plans get US Dollar, `123,456.78`, Symbol First, `MM/DD/YYYY`, and **for such a plan
+  every screen and file reads byte for byte as today, and an API answer differs only by the new
+  fields: every existing test passes without an edit** (but a test that compares a whole plan
+  object; any other edited expectation is a departure). This is the guard for the owner's real
+  plan on live.
+- REST and MCP amounts stay integer milliunits and dates stay ISO whatever the formats.
+- One tool for one operation: `update_budget` and `create_budget` take the new fields; the
+  ticket's `update_budget_settings` is not added.
+- A changed currency without a number format or placement takes the currency's defaults, as the
+  dialog does.
+- Typing follows the plan's decimal separator and date order (the clone's rule; not observed in
+  the source).
+- Export files follow the plan's formats through the hook the export design left; the importer
+  stores the formats it detects; one round trip in a non-default format.
+- A repository test fails when a file formats money or a date by itself (the same kind of guard
+  as the one for positional inserts).
+- The work is ordered in six parts, each committed before the next, so that a lost box keeps what
+  is done.
+- My figures, checked twice against the ticket's rules: 1,234,560 milliunits in seven formats,
+  the yen rounding (`¥1,235`), the Indian grouping (`1,23,45,678.90`), the seven dates.
+
+**The source in this Build:** the test plan's Plan page and one account page may be looked at and
+measured; nothing is changed. **The plan menu stays on the never-list** (it lists the owner's
+other plans by name; my question at check-in 120 has no answer), so the Plan Settings dialog is
+built from the ticket and is "not compared".
+
+**Timing:** the rate-limit window turns at about 14:00Z. I started the Build at 13:43Z, not
+at 13:28Z when the brief was ready: a pause before 14:00Z is then shorter than the 20 minutes
+after which a box is lost.
+
+**Not started, and why:**
+- No flow test now. Flows 2, 3 and 4 are due, but this Build touches every screen they walk; one
+  run after it is live covers both (and can walk a plan in a non-default format).
+- No Deploy: live equals main.
+- No template review: Build 3, Deploy 1, Discover 2, Test user flow 3 finished since each
+  template's last review.
+
+Declared for the tree: this Build; then a Deploy (`ZZ-TEST D33`) and a flow test of flows 2, 3 and
+4; then the plans list and New Plan dialog (EXF-471, EXF-469, which EXF-468 unblocks); a small
+register Build (EXF-680, 681, 728, the rest of EXF-674); a small Plan-page Build with EXF-727.
+
+Ticket writes: 6 (EXF-728 priority; EXF-468 and EXF-726 to In Progress, each with a comment; a
+comment on EXF-727 saying why it is not in this Build).
