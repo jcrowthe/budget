@@ -28,7 +28,7 @@ function twoBankAccounts() {
   return { checking, savings, connection: fakeConnection({ accounts: [checking, savings] }) };
 }
 
-async function addCard(request: APIRequestContext, plan: string, name: string) {
+async function addCash(request: APIRequestContext, plan: string, name: string) {
   const res = await request.post(`/api/v1/budgets/${plan}/accounts`, {
     headers: await authHeaders(),
     data: { name, type: "cash", balance: 0 },
@@ -183,7 +183,7 @@ test("9 Escape steps back from Unlink and Link, then closes", async ({ page, req
 
 test("10 no Link Account for Cash or a closed account", async ({ page, request }) => {
   const plan = await newPlan(request);
-  const cash = await addCard(request, plan, "ZZ Cash");
+  const cash = await addCash(request, plan, "ZZ Cash");
   const closed = await newAccount(request, plan, "ZZ Closed", "checking", 0);
   await request.post(`/api/v1/budgets/${plan}/accounts/${closed}/close`, {
     headers: await authHeaders(),

@@ -2,10 +2,7 @@ import { planSyncDue } from "@budget/schema/bank-link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAccounts } from "../api/accounts";
-import { startPlanSync } from "../api/bank-link";
-
-/** Plans already checked in this page load: a reload empties it, a navigation or a refetch never does. */
-const checked = new Set<string>();
+import { checkedPlans as checked, startPlanSync } from "../api/bank-link";
 
 /**
  * When a plan opens (once per page load and plan) and a linked account was never synced or last synced six

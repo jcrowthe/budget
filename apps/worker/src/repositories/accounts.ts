@@ -460,16 +460,13 @@ const ofConnection = (connectionId: string) =>
   sql`select ${bankAccounts.id} from ${bankAccounts} where ${bankAccounts.bankConnectionId} = ${connectionId}`;
 
 /** Every account row (any plan) linked to a bank account of the connection. */
-export async function linkedToConnection(db: Db, connectionId: string): Promise<AccountRow[]> {
-  return db
-    .select()
-    .from(accounts)
-    .where(
-      and(
-        isNull(accounts.deletedAt),
-        sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`,
-      ),
-    );
+export async function linkedToConnection(db: Db, connectionId: string): Promise<AccountReadRow[]> {
+  return selectWithLink(db).where(
+    and(
+      isNull(accounts.deletedAt),
+      sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`,
+    ),
+  );
 }
 
 /** A condition that holds while no active account is linked to any of the connection's bank accounts. */

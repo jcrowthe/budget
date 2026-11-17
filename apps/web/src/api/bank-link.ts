@@ -7,7 +7,7 @@ import {
 import { PlanSyncResponse, SyncResultResponse } from "@budget/schema/bank-connections";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { listBankConnections } from "./bank-connections";
-import { apiFetch } from "./client";
+import { ApiError, apiFetch } from "./client";
 
 const accountUrl = (budgetId: string, accountId: string) =>
   `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}` as const;
@@ -73,8 +73,19 @@ export function invalidateBankLink(qc: QueryClient, budgetId: string): void {
   void qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) });
 }
 
+/** Plans whose sync this page load has dealt with: a reload empties it, a navigation or a refetch never does. */
+export const checkedPlans = new Set<string>();
+
+/** Notes that this page load has dealt with the plan's sync (one was just sent for it). */
+export const markPlanChecked = (planId: string): void => void checkedPlans.add(planId);
+
+/** What a failed request shows: the server's detail, else a plain sentence (never "Failed to fetch"). */
+export const errorDetail = (e: unknown): string =>
+  e instanceof ApiError ? e.detail : "Something went wrong. Try again.";
+
 /** The sync after adding or linking, and when a plan opens: not awaited, a failure shows nothing. */
 export function startPlanSync(qc: QueryClient, budgetId: string): void {
+  markPlanChecked(budgetId); // this page load already syncs the plan: opening it must not send a second one
   syncPlan(budgetId)
     .catch(() => undefined)
     .finally(() => invalidateBankLink(qc, budgetId));

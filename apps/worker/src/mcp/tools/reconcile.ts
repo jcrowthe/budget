@@ -1,11 +1,8 @@
 import { reconcileFields } from "@budget/schema/reconcile";
 import { z } from "@hono/zod-openapi";
 import { reconcileAccount } from "../../services/reconcile";
-import { dates, Id, MONEY, timestamps } from "../tool-text";
+import { dates, Id, LINK_STATE, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
-
-const LINK_STATE =
-  "connection_status (connected, delayed, login_required or broken; null when not linked) and last_synced_at (when its bank connection last synced; null when not linked or never synced)";
 
 export const tools: McpToolDef[] = [
   {

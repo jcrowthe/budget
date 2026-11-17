@@ -3,6 +3,7 @@ import { bankAccountLabel, planAccountType } from "@budget/schema/bank-link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
+  errorDetail,
   invalidateBankLink,
   linkAccount,
   startPlanSync,
@@ -89,6 +90,11 @@ export function LinkAccountChooser({
           </span>
         ) : null}
       </div>
+      {link.isError ? (
+        <p className="field-error" role="alert">
+          {errorDetail(link.error)}
+        </p>
+      ) : null}
       {connections.isSuccess && groups.length === 0 ? (
         <p className="bank-link-note">
           There are no bank accounts to link. Add a new bank connection to link this account.
@@ -127,11 +133,6 @@ export function LinkAccountChooser({
       >
         <span className="bank-link-name">Add a New Bank Connection</span>
       </button>
-      {link.isError ? (
-        <p className="field-error" role="alert">
-          {link.error.message}
-        </p>
-      ) : null}
     </div>
   );
 }

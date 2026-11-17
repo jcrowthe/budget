@@ -1,7 +1,7 @@
 import type { Account } from "@budget/schema/accounts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { invalidateBankLink, unlinkAccount } from "../api/bank-link";
+import { errorDetail, invalidateBankLink, unlinkAccount } from "../api/bank-link";
 import { CloseIcon } from "../shell/icons";
 import "./edit-account.css";
 
@@ -61,7 +61,7 @@ export function UnlinkAccountDialog({
           </p>
           {unlink.isError ? (
             <p className="error-bar" role="alert">
-              {unlink.error.message}
+              {errorDetail(unlink.error)}
             </p>
           ) : null}
         </div>

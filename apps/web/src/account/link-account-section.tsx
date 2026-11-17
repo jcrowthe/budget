@@ -1,7 +1,12 @@
 import type { Account } from "@budget/schema/accounts";
 import { bankAccountLabel, syncLine } from "@budget/schema/bank-link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { invalidateBankLink, syncConnection, useBankConnections } from "../api/bank-link";
+import {
+  errorDetail,
+  invalidateBankLink,
+  syncConnection,
+  useBankConnections,
+} from "../api/bank-link";
 import { localToday } from "../api/today";
 import { LinkStatusBadge } from "../shell/bank-link-status";
 import { usePlanFormatter } from "../shell/plan-formats-context";
@@ -28,7 +33,7 @@ export function BankConnectionSection({
   );
   const bank = connection?.accounts.find((a) => a.id === account.bank_account_id);
   const sync = useMutation({
-    mutationFn: () => syncConnection(budgetId, (connection?.id ?? "") as string),
+    mutationFn: () => syncConnection(budgetId, connection?.id ?? ""),
     onSettled: () => invalidateBankLink(qc, budgetId),
   });
 
@@ -88,7 +93,7 @@ export function BankConnectionSection({
       ) : null}
       {sync.isError ? (
         <p className="sync-line is-error" role="status">
-          {sync.error.message || "Something went wrong. Try again."}
+          {errorDetail(sync.error)}
         </p>
       ) : null}
     </>

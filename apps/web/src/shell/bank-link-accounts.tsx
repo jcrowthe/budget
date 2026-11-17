@@ -11,7 +11,12 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAccounts } from "../api/accounts";
-import { createAccountsFromBank, invalidateBankLink, startPlanSync } from "../api/bank-link";
+import {
+  createAccountsFromBank,
+  errorDetail,
+  invalidateBankLink,
+  startPlanSync,
+} from "../api/bank-link";
 import { localToday } from "../api/today";
 import { ACCOUNT_TYPE_GROUPS, ACCOUNT_TYPE_LABEL } from "./accountTypeLabels";
 import "./bank-link.css";
@@ -99,7 +104,7 @@ export function BankLinkAccounts({
       startPlanSync(qc, budgetId);
       onDone();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) => setError(errorDetail(e)),
   });
 
   function startEdit(r: BankAccount) {
