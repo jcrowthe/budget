@@ -10563,3 +10563,42 @@ Discover 2, Test user flow 3.**
 
 **Next plan:** the Deploy template review; nothing else beside the register Build (plan formats
 with EXF-726 follows it).
+
+### 2026-11-17 · Plan round 121
+
+Children used 137 of 200. Started one: the Deploy template review. One Build is running from round
+119. Main and live `13cfcae`. No tickets were filed at the last review. The person has not
+answered the check-ins of rounds 110 and 120.
+
+**Started: Improve templates, a review of Deploy** (`p_cdb0214708904792a520429beb80d1a6`) on the
+ten Deploys finished since its last review: `p_dcdf…` (abandoned), `p_5969…`, `p_4aff…`,
+`p_2062…` (abandoned after five help cards), `p_a5a9…` (failed), `p_da28…`, `p_c5f4…`, `p_516e…`
+(D29), `p_d841…` (D30), `p_d9a9…` (D31). What I asked, in order: the three that did not release;
+why the three of today released cleanly; the verifier's first script failing on its own account
+in almost every run (once doubling a row on live); screenshots taken but not opened; which
+sentences of the 13,000-character brief a step acted on, and the import-name trap as a profile
+recipe; the DIFFERS rule; findings beyond the brief; the `plaid credentials:` line reaching some
+verifiers and not others; cost per step. With the standing line: "Post evidence for an existing
+ticket with comment_ticket or in your report; never file stand-in tickets." It may open neither
+the source nor the live clone.
+
+**Running:** the register's View options Build (`p_5b0c6eac7fb9459881ccfe507ef9a190`), started
+at 10:28Z, 71 minutes in at 11:39Z. The review is read-only and shares nothing with it.
+
+**Not started, and why:** plan formats (EXF-468) with EXF-726 follows the register Build. No
+Deploy: main and live are equal. No flow test: Deploy D31 walked the new screens on live at
+about 11:18Z; flow 4's one gap (EXF-720) was read as fixed on live by that Deploy, and a
+re-run for the verdict word alone is not worth a child now.
+
+**What I said I would do if the person stays silent on the plan menu and bank screens** (check-in
+of round 120): build the plans list page and the New Plan dialog (EXF-471, EXF-469) from the
+tickets, with the plan menu on the source's never-list, after plan formats. I read both tickets
+before I start that.
+
+Reviews: Build 2, Deploy 0 after this one, Discover 2, Test user flow 3 since each template's last
+review.
+
+Declared for the tree: the Build; this review; a Deploy and a register flow test after the merge;
+plan formats with EXF-726; the plans list and New Plan dialog.
+
+Ticket writes: 0.
