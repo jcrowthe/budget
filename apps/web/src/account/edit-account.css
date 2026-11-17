@@ -117,7 +117,7 @@
   min-height: 0;
   overflow-y: auto;
 }
-.edit-account select.field:disabled {
+.dialog.form.edit-account select.field:disabled {
   color: var(--labelSecondary);
   cursor: default;
 }
@@ -161,4 +161,25 @@
 }
 .edit-account .sync-line.is-error {
   color: var(--labelNegative);
+}
+
+/* In-body secondary buttons (Sync Now, Unlink Account, Link Account): the footer's secondary look. */
+.dialog.form.edit-account .form-body .secondary {
+  height: 32px;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.dialog.form.edit-account .form-body .secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.dialog.form.edit-account .form-body .secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
