@@ -604,7 +604,10 @@ export function RegisterTable({
           {q.isPending ||
           !view.ready ||
           (q.isError && !data) ||
-          (rows.length === 0 && hidden === 0 && scheduledRows.length === 0 && !open) ? (
+          (rows.length === 0 &&
+            hidden === 0 &&
+            (attention ? 0 : scheduledRows.length) === 0 &&
+            !open) ? (
             <tbody>
               <tr>
                 {q.isPending || !view.ready ? (

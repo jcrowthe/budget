@@ -111,6 +111,43 @@ test.describe("at 1024x700", () => {
     expect(title).toBe(value);
   });
 
+  test("EXF-681: a credit card's payment row carries its whole Payee text", async ({
+    page,
+    request,
+  }) => {
+    const s = await seedApprove(request);
+    const card = (
+      await call(request, "POST", `/api/v1/budgets/${s.plan}/accounts`, {
+        name: "ZZ Visa",
+        type: "creditCard",
+        balance: 0,
+        date: daysAgo(40),
+      })
+    ).account.id as string;
+    await call(request, "POST", `/api/v1/budgets/${s.plan}/transactions`, {
+      account_id: s.checking,
+      date: daysAgo(4),
+      amount: -12000,
+      transfer_account_id: card,
+    });
+    await page.goto(`/${s.plan}/accounts/${card}`);
+    const row = page
+      .locator(".register-table tbody tr[data-tx]")
+      .filter({ hasText: "ZZ Checking" });
+    await realClick(page, row.locator("td[data-field=date]"));
+    await realClick(page, row.locator("td[data-field=date]"));
+    const payee = page.getByRole("combobox", { name: "Payee", exact: true }).first();
+    await expect(payee).toBeVisible();
+    const [cut, title, value] = await payee.evaluate((el: HTMLInputElement) => [
+      el.scrollWidth > el.clientWidth,
+      el.title,
+      el.value,
+    ]);
+    expect(value).toContain("Payment from ZZ Checking");
+    expect(cut).toBe(true);
+    expect(title).toBe(value);
+  });
+
   for (const state of [
     { name: "defaults", flags: true, balance: false },
     { name: "BALANCE on", flags: true, balance: true },

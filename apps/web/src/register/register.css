@@ -896,7 +896,7 @@
   }
   .register-table.has-balance .col-payee,
   .register-table.has-balance .col-memo {
-    width: 10%;
+    width: 9.5%;
   }
   .register-table.no-flags.has-balance .col-payee,
   .register-table.no-flags.has-balance .col-memo {

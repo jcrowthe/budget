@@ -12,6 +12,7 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const busy = useRef(false);
   const mutation = useApproveReject(budgetId);
   if (tx.approved) return null;
   const rejectable = canReject(tx);
@@ -22,7 +23,8 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
     button.current?.focus();
   };
   const choose = async (action: "approve" | "reject") => {
-    if (mutation.isPending) return;
+    if (busy.current) return;
+    busy.current = true;
     setError(null);
     try {
       await mutation.mutateAsync({ action, ids: [tx.id] });
@@ -35,6 +37,8 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
             ? err.message
             : "That did not work",
       );
+    } finally {
+      busy.current = false;
     }
   };
 

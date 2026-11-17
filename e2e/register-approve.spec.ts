@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { BANNER, seedApprove, stubReject } from "./support/approve-seed";
-import { call, realClick } from "./support/register-seed";
+import { call, realClick, TODAY } from "./support/register-seed";
+import { createSched } from "./support/scheduled-seed";
 import { setViewSettings, viewSettingsOf } from "./support/view-settings";
 
 // EXF-463 (screens). Nothing was compared with the source: built from the ticket's measured values.
@@ -291,4 +292,57 @@ test("the banner is one click target and the approval menu is 320px, clear of th
   await page.keyboard.press("Escape");
   await realClick(page, banner(page));
   await expect(page.getByRole("button", { name: /Remove filter/ })).toBeVisible();
+});
+
+test("All Accounts makes no needs= request", async ({ page, request }) => {
+  const s = await seedApprove(request, { savingsUnapproved: true });
+  const urls: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/api/v1")) urls.push(r.url());
+  });
+  await page.goto(`/${s.plan}/accounts`);
+  await expect(banner(page)).toContainText(BANNER(4));
+  expect(urls.filter((u) => u.includes("needs="))).toEqual([]);
+});
+
+test("reconcile mode keeps the column and banner and the menu approves; a scheduled row has an empty cell", async ({
+  page,
+  request,
+}) => {
+  const s = await seedApprove(request);
+  const future = new Date();
+  future.setDate(future.getDate() + 5);
+  const iso = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}-${String(future.getDate()).padStart(2, "0")}`;
+  await createSched(request, s.plan, TODAY, {
+    account_id: s.checking,
+    date_first: iso,
+    frequency: "monthly",
+    amount: -1500,
+    payee_name: "ZZ Sched",
+  });
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  await expect(banner(page)).toContainText(BANNER(3));
+  const sched = page.locator(".register-table tbody tr").filter({ hasText: "ZZ Sched" });
+  await expect(sched).toHaveCount(1);
+  await expect(sched.locator("td.cell-attention")).toHaveText("");
+  await expect(sched.locator("td.cell-attention button")).toHaveCount(0);
+
+  await realClick(
+    page,
+    page.getByRole("main").getByRole("button", { name: "Reconcile", exact: true }),
+  );
+  await realClick(page, page.getByRole("button", { name: "No", exact: true }));
+  await page.keyboard.type("100");
+  await page.keyboard.press("Enter");
+  await realClick(
+    page,
+    page
+      .getByRole("dialog", { name: "Reconcile", exact: true })
+      .getByRole("button", { name: "Next", exact: true }),
+  );
+  await expect(page.getByRole("columnheader", { name: "Approval", exact: true })).toBeVisible();
+  await expect(banner(page)).toContainText(BANNER(3));
+  await realClick(page, icon(page, "ZZ New One"));
+  await realClick(page, item(page, "Approve Transaction"));
+  await expect(banner(page)).toContainText(BANNER(2));
 });

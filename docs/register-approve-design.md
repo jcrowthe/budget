@@ -130,12 +130,12 @@ minimums already take 40 px more than their 10 %.
 
 | State at 1024×700 | Rule (payee, memo) | Attention | CATEGORY today → after |
 |---|---|---|---|
-| Account, defaults | 16 % → **14 %** (107 px each) | 24 | 118 → ~123 |
-| Account, BALANCE on | 13 % → **10 %** (76 px each) | 24 | 67 ("CATEGOR") → ~88 |
-| Account, flags off | 16.6 % (unchanged) | 24 | ~150 → ~126 |
-| Account, flags off, BALANCE | 13 % → **11 %** (84 px each) | 24 | ~110 → ~115 |
-| All Accounts, defaults | 16 % → **10 %** (76 px each) | 24 | 41 → ~108 |
-| All Accounts, flags off | 16.6 % → **12 %** (92 px each) | 24 | ~74 → ~120 |
+| Account, defaults | 16 % → **14 %** (107 px each) | 26 | 118 → 122.1 measured |
+| Account, BALANCE on | 13 % → **9.5 %** (73 px each) | 26 | 67 ("CATEGOR") → 94.8 measured (10 % gave 87.2 with the 26 px column) |
+| Account, flags off | 16.6 % (unchanged) | 26 | ~150 → 124.4 measured |
+| Account, flags off, BALANCE | 13 % → **11 %** (84 px each) | 26 | ~110 → 113.9 measured |
+| All Accounts, defaults | 16 % → **10 %** (76 px each) | 26 | 41 → 106.8 measured |
+| All Accounts, flags off | 16.6 % → **12 %** (92 px each) | 26 | ~74 → 118.3 measured |
 
 So the new column and the riders' room come from **payee and memo only**; date, amounts, balance, account, flag and
 cleared keep their widths. At 1440×900 the media query does not apply: the only change there is CATEGORY giving the
