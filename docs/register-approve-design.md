@@ -8,7 +8,8 @@ Polish list: [register-approve-polish.md](register-approve-polish.md).
 
 The source app is the owner's real account. **This Build compares nothing in the source, and no step opens, reads or
 captures it** beyond what the template itself does (the Clerk's step 2 opens the test plan's tab because the
-template's source check needs it; that tab is then left alone on the test plan's Plan page).
+template's source check needs it; that tab is then left alone on the test plan's Plan page; if a later platform check
+fails only because that tab is missing, say so in the first line of your answer and go on with your own step).
 
 Reason: the only place in the source where these screens show is the register of a linked account, with the owner's
 real transactions on it. The test plan has no linked account and none may be made there. The ticket already holds
@@ -37,7 +38,13 @@ nothing.** The Architect opened nothing in the source app.
 The ticket's "Register display" and "Actions" sections are the specification (weights, the pill's look, the
 tooltips' and the banner's words, View's "Unapproved or Uncategorized" chip). No study notes: nothing was opened.
 
-## What is there today (read in the code at `8e54173`)
+## What is there today (read in the code at `8e54173`; re-read at `9ecd379`)
+
+EXF-461's merge (`9ecd379`) changed no file under `apps/web/src/register/` and neither page; the facts below hold. What it
+added around this Build: the account header's connection label (`LinkStatusBadge`, inside `<AccountHeader>`: the
+banner still goes above the header), the sidebar's unapproved dot, `connection_status` and `last_synced_at` on the
+account read (joined in the same statement), and `e2e/support/bank-link-stub.ts`.
+
 
 - `RegisterTable.tsx`: columns check, flag, (account), date, payee, category, memo, outflow, inflow, (balance),
   cleared. The pill is `button.needs-category` (opens the row with the category picker open); **no tooltip**. Its CSS
@@ -159,7 +166,9 @@ keep their lock title.
 Real rows through the API: `POST …/transactions` with `approved: false` (the create schema accepts it). The server
 counts them, so the banner, Approve, the bar and the pill's save are real end to end. The Plaid stand-in
 (`e2e/support/plaid-stub.ts`) cannot make one: it only answers the browser's institutions and bank-connections calls
-and runs no sync. **Reject** needs an `import_id`, which no API sets: as in `e2e/register-bulk.spec.ts`, `rewriteList`
+and runs no sync. Nor can EXF-461's `e2e/support/bank-link-stub.ts`: its "sync" writes no row; it only lays a made-up
+`unapproved_count` over the browser's account reads (not `needs_attention_count`), so the counts would disagree with
+the rows. This Build's specs do not use it. **Reject** needs an `import_id`, which no API sets: as in `e2e/register-bulk.spec.ts`, `rewriteList`
 marks the row imported in the browser, and the spec's `page.route` for `POST …/transactions/reject` deletes the row
 through the server's API (`DELETE …/transactions/{id}`) and answers 200; the refusal case answers 409. Nothing writes
 the database from outside the server.
@@ -174,14 +183,16 @@ new `apps/worker/test/attention-calls.test.ts`):
 | `GET accounts/{id}/transactions?include=running_balance` (the register) | 5, 5 (also 5 for 1,000 rows: `register-view-calls.test.ts`) |
 | same with `needs=approval_or_category` (not called by the screens) | 5, 5 |
 | `GET transactions` (All Accounts) / with `needs=…` | 4, 4 / 4, 4 |
-| `GET accounts` / `GET accounts/{id}` (banner counts) | 5, 5 / 5, 5 |
+| `GET accounts` / `GET accounts/{id}` (banner counts) | 5, 5 / 5, 5 (unchanged by `9ecd379`'s join: `bank-link-calls.test.ts` pins list 5, get 5) |
 | `POST transactions/approve`, 1 row and 99 rows | 6, 6 (7 with transfers: `bulk-call-count.test.ts`) |
 | `POST transactions/reject`, 1 row and 99 rows | 4, 4 |
 
 ## Out of scope / known issues
 
 - Undo of a reject: EXF-530 is not built; a reject cannot be undone in this Build (criterion 5's Undo).
-- The sidebar's white dot (criteria 1 and 8): the EXF-461 Build, which holds the shell.
+- The sidebar's white dot (criteria 1 and 8): merged with EXF-461 (`9ecd379`, `shell/SidebarAccounts.tsx`
+  `.nav-unapproved-dot` from the accounts list's `unapproved_count`; its spec is `e2e/bank-link-status.spec.ts`). Not
+  this Build's to change; it follows an approve or reject here through the same invalidation of `["accounts", plan]`.
 - Matching and unmatching (EXF-464), pending transactions (EXF-466), connection status and Repair (EXF-465).
 - The split editor's "Amount remaining to assign" line: looked at in a Euro plan (case 15), not changed.
 

@@ -4,7 +4,9 @@ Design: [register-approve-design.md](register-approve-design.md) (read its "sour
 of the work first). EXF-463 screens with EXF-680, EXF-681, EXF-728, EXF-760. No Worker change, no migration, no
 dependency, no shared module. Ground: `apps/web/src/register/**`, `apps/web/src/pages/account.tsx`,
 `apps/web/src/pages/accounts.tsx`, `packages/schema/src/attention.ts`, tests and docs. `apps/web/src/account/**`,
-`apps/web/src/api/accounts.ts` and `apps/web/src/shell/**` are **read-only** here (import from them, never edit).
+`apps/web/src/api/accounts.ts` and `apps/web/src/shell/**` are **read-only** here (import from them, never edit), as
+are EXF-461's files (`apps/web/src/api/bank-link.ts`, `packages/schema/src/bank-link.ts`, `e2e/support/bank-link-stub.ts`:
+specs here do not use the stub, which fakes `unapproved_count` without rows).
 Commit after each part; run `pnpm check` before each commit; run only this Build's specs and the specs named per part
 (`pnpm e2e <specs>`), never the full suite.
 
@@ -46,7 +48,8 @@ Worker test `apps/worker/test/attention-calls.test.ts` (copy the `counting()` he
   off-plan, Starting Balance, deleted). The ids of `listAccountTransactions(..., { needs })` equal the ids of the plain
   list filtered by `needsAttention`; their count equals `getAccount(...).needs_attention_count`; the same for the plan
   list over all accounts.
-- **Calls** (10 and 100 rows, same number both times, and exactly): account list with `include=running_balance` 5,
+- **Calls** (10 and 100 rows, same number both times, and exactly; `listAccounts`/`getAccount` already pinned at 5 by
+  `bank-link-calls.test.ts` after `9ecd379`'s join): account list with `include=running_balance` 5,
   with `needs` 5; plan list 4, with `needs` 4; `listAccounts` 5; `getAccount` 5; approve 1 row and 99 rows 6;
   reject 1 imported row and 99 rows 4 (imports made as in `bulk-call-count.test.ts`, `setSql(... import_id ...)`).
   If a number differs, record the measured one in the design's D1 table and say so in the report.
