@@ -9824,3 +9824,65 @@ Declared for the tree: the Reconcile Build; this flow test; a Deploy and flow 6 
 the Build template review; then plan formats (EXF-468) or the register's view options (EXF-529).
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 113
+
+Children used 129 of 200. One ended: **the flow test completed**
+(`p_ad1b056c3b91409d84f2b8182ba6d83b`, flows 3 and 4 on live `0fefc6c`, prefix `ZZ-TEST F113`, 24
+minutes). The Reconcile Build is running. Main and live `0fefc6c`.
+
+**Flow 3 (targets, Auto-Assign, next month), second run: `parity`.** Every figure of mine held and
+every step ran: Underfunded 1,060.00 applied (Ready to Assign 3,000.00 to 1,940.00) and then listed
+at $0.00; the cards 352, 304 and 352 px; **a view holding one category stays plan-wide** (the
+labels read word for word); December 1,910.00 with Underfunded 1,060.00; at 1024×700 the panel is
+320 px, no sideways scroll, every cut name has an ellipsis and a tooltip. No minus sign on the Plan
+page is a hyphen.
+- Not filed, and I agree: at 1024×700 the target text of a row gives way to the name (it sits on a
+  clipped second line, with a tooltip): the source's own rule, recorded as polish P3.
+
+**Flow 4 (credit cards: the five payment states), third run: `new_gaps`, one gap.** Every figure
+held: the five pills and classes, each Payment card's words, the balance breakdown, Auto-Assign for
+a payment row (Ready to Assign 1,500.00 to 300.00), Record Payment from the inspector (ZZ Checking
+1,495.00, then the paid-off card), December after an overpayment (paid off, +$50.00), the tool's
+five states equal to the screen.
+- **EXF-720 (triaged Medium): the "Using Credit Cards" dialog's `Got it!` button is white text on
+  a near-white button** (the browser's default button), at both sizes. The Build's spec passed it,
+  its Tester did not look, the Deploy's verifier clicked it without remark. **The flow test found
+  it because its brief made it open every screenshot.** Evidence on EXF-684.
+- What I had left open, now read: the overspent-categories card's pill is $0.00 yellow
+  (`cautious`); an overspent category paid by card shows −$30.00 yellow with a card icon
+  (`cautious credit`); Paid Last Month and Average Paid read $0.00 in the first month and $385.00
+  in December.
+- **Noted, not filed (no written rule; unknown in the source, whose test plan has no card):** an
+  overpaid card's payment row reads "Overspent. $50.00 of $0.00" in the grid while its card says
+  overpaid, and the Overspent view counts it ("2 Overspent"); Cover Overspent Categories switches
+  the panel to the view's summary because the ticked row is hidden by the view; the Available for
+  Payment pill sits 8 px right of the other amounts; an Assigned amount runs 4 px past its button
+  at 1024 px without being cut; Prior Balance $50.00 has no plus sign beside a Current Balance of
+  +$50.00. These wait for a source test plan with a card (asked at three check-ins).
+- Cleanup: `deleted 2 remaining 0`; plans not starting with `ZZ-TEST`: 1. No source app, no plan
+  menu, no bank connection, no response headers. The run's box had no Playwright browser and no
+  `node_modules`; it used the box's Chrome with its own `playwright-core`.
+
+**Reconcile Build** (`p_8d9e0864404e426d946c60c989a6c4a2`), 38 minutes in: both breaks fixed
+(`pnpm check` 1,876 tests), decisions B to D built, the whole browser suite 455 passed; in its
+first design round.
+- **The Designer opened Reconcile in the source again (the ask step and the bank-balance step on a
+  closed account, in dark and light), but it did not type, did not press Next and did not open the
+  Difference step, and said why: the rule I named.** The source stayed signed in. Naming the one
+  forbidden action with its reason held where nine bans did not.
+- **It corrected a decision of mine taken from the last Designer's words:** No and Yes sit side by
+  side (about 120 px each, 8 px gap), not full width each; the label and the amount share one card.
+  Eight polish items in all; the Implementer applies them.
+
+**Flow verdicts now:** 1 `parity_known_gaps`; 2 `new_gaps` (EXF-679, 680, 681); 3 `parity`; 4
+`new_gaps` (EXF-720); 5, 7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run.
+
+**Ticket writes:** 3 (EXF-720 priority and comment; evidence on EXF-684). No new ticket from me.
+**Backlog:** 50 open feature tickets (49 done; 1 in progress). Gap: fourteen open (with EXF-714 and
+EXF-720), one in progress. Template: forty open (Urgent EXF-573, 611, 612). Finished since each
+template's last review: Build 9, Deploy 8, Discover 2, Test user flow 3.
+
+**Next plan:** nothing beside the Reconcile Build: the next small Build (EXF-720 with EXF-714 and
+the rest of EXF-674, all on the Plan page) touches no file of Reconcile's, so it could run beside
+it; I decide in the plan by the rate-limit window (it resets at 09:00Z).
