@@ -10766,3 +10766,45 @@ Declared for the tree: this Deploy; plan formats with its two riders; the plans 
 dialog; a Deploy and a flow test of flows 2 and 3 after plan formats.
 
 Ticket writes: 1 (EXF-727's priority).
+
+### 2026-11-17 · Review round 123
+
+Children used 138 of 200. One ended: **Deploy D32 completed**
+(`p_cca7951cd0c14278bc76a44b44020c8e`, 14 minutes). **Live is `2f33143`** at
+https://budget.doxen.dev (read by me at 13:19Z), equal to main; no migration is pending. Nothing
+is running.
+
+**Deploy D32: released; every check held; four points differ from my brief, none of them a wrong
+figure.**
+- Gate passed (tree equal to gated `1e95f30`; checks 235 s). Release passed, smoke ok; the bookmark
+  phase ran. Health gives the whole sha; 401 without credentials; **87 MCP tools**.
+- **The view settings, the running balance to the cent, hidden reconciled rows with the footer and
+  View All, All Accounts: as briefed**, through REST, MCP and the browser. No console error, no
+  failing request of the page's own.
+- **EXF-724 on live: the header and the bar changed within 32 ms of the click** (stale at 700 ms
+  before); the bar's button stayed disabled for about 0.6 s until the server answered.
+- **The four points:**
+  1. A click on a preset applies it at once and closes the popover; my brief had the verifier press
+     Apply. The design says so from the source study (line 29); I had not read the design before
+     writing the brief.
+  2. View All also saves Show Reconciled as on (what I expected for reconciled rows; noted by the
+     verifier for the date-range case too).
+  3. The starting balance row of 0 is hidden with the reconciled rows (it is cleared, so it was
+     reconciled): correct, and I had left it out of "three rows".
+  4. **At 1024 px with the BALANCE column the CATEGORY header is clipped with no ellipsis and no
+     tooltip.** I expected the clipping; the missing ellipsis and tooltip break the narrow-window
+     rule. Filed through this review (Low).
+- Plans not starting with `ZZ-TEST`: 1; purge `remaining 0`. The verifier listed the two
+  screenshots it did not open, and found the `plaid credentials:` line in the raw log (sandbox
+  set, production set). The setup ran once from a state file.
+
+**What I learned:** before I write a Deploy's checks for a feature, I read the Build's design, not
+only the ticket: the design holds what the source study found (here: presets apply at once).
+
+**Ticket writes:** 1 (the live note on EXF-529). One ticket filed through this review.
+**Backlog:** 47 open feature tickets (52 done; none in progress). Gap: sixteen open (with
+EXF-727), none in progress, plus the one filed here. Template: thirty-nine open (Urgent EXF-573,
+611, 612). Flow verdicts unchanged; flow 2 (the register) is due a run after two merges on that
+page. Finished since each template's last review: Build 3, Deploy 1, Discover 2, Test user flow 3.
+
+**Next plan:** plan formats (EXF-468) with EXF-726 and EXF-727; I read EXF-468 first.
