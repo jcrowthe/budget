@@ -11269,3 +11269,40 @@ Finished since each template's last review: Build 5, Deploy 2, Discover 2, Test 
 **Next plan:** start the register Build for EXF-463's screens beside the running Build, with
 EXF-680, EXF-681, EXF-728 and now EXF-760 as riders, if the rate-limit window allows (it turns
 at about 19:00Z).
+
+### 2026-11-17 · Plan round 128
+
+Children used 144 of 200 (143 before this plan; one started). Main and live are both `8e54173`.
+No ticket was filed at the last review.
+
+**Started: Build feature for EXF-463's register screens, with EXF-680, EXF-681, EXF-728 and
+EXF-760** (`p_436014a941cd4d87bef9dd9d1ed6f094`), beside the bank-linking screens Build
+(`p_e8c64873b67341c39fd61bdf62633a2d`, at its build step).
+
+- **Why the two may run together:** the running Build's manifest touches the shell,
+  `apps/web/src/account/**`, `pages/plaid-oauth.tsx` and the account read; this one's ground is
+  `apps/web/src/register/**`, `pages/account.tsx`, `pages/accounts.tsx` and
+  `api/transactions.ts`, and its brief lists the other's files as out of bounds. Neither touches
+  `paths.always_overlap`; this one touches no shared module; neither has a migration.
+  `docs/README.md` is union-merged. When this Build's manifest arrives I check it again.
+- **In it:** the attention column with the circled "i" and its Approve / Reject menu, bolder
+  unapproved rows, the pill's look and tooltip, the banner on both account pages (its number is
+  the account read's `needs_attention_count`), `View` with its chip. No step opens the source.
+- **The riders** are four narrow-window faults of the same table; the new column changes the
+  same widths, so they are measured together. EXF-760 was added today (from the flow test), with
+  the question "why does All Accounts differ from an account's register" to be answered first.
+- **Asked to look at, no fix:** the split editor's "Amount remaining to assign" line in a Euro
+  plan.
+
+**Timing:** the brief was ready at 18:17Z; I started the Build at 18:40Z, so that a rate-limit
+pause before the window turns at about 19:00Z stays under twenty minutes. Before starting I
+probed the browser download's host again from my box: three answers out of three.
+
+**Not started:** no Deploy (live equals main); no flow test (flows 2, 3 and 4 ran an hour ago;
+flow 5 waits for the two Builds); no template review (Build 5, Deploy 2, Discover 2,
+Test user flow 4 finished since each template's last review).
+
+**Cards to expect:** two Builds' cards, each answered in the side turn it arrives in. If both
+are ready together, I approve one, and the other gets Refresh or Regate after the base has moved.
+
+Ticket writes: 7 (EXF-463, 680, 681, 728, 760 to In Progress; comments on EXF-463 and EXF-760).
