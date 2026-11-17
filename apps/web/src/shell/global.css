@@ -183,6 +183,9 @@ a {
   width: 12px;
   height: 12px;
 }
+.add-account + .bank-connections {
+  margin-top: 0;
+}
 
 @keyframes menu-fade {
   from {

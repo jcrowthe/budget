@@ -1,0 +1,262 @@
+/* Manage Bank Connections (EXF-460): list rows, detail sections, banner, badges. Tokens only. */
+.manage-connections .dialog-head {
+  padding: 0 70px;
+}
+.manage-connections .mc-title {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+}
+.manage-connections .mc-title h2,
+.manage-connections .mc-subtitle {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.manage-connections .mc-title h2 {
+  font-size: var(--font-size-md);
+}
+.manage-connections .mc-subtitle {
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.manage-connections h3 {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+.manage-connections .env-pill {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+}
+.mc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-1) 0;
+  border: 0;
+  border-top: 1px solid var(--borderSubtle);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mc-row:hover:not(:disabled) {
+  background: var(--menuHover);
+}
+.mc-row:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mc-row > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--labelSecondary);
+}
+.mc-logo {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.mc-logo img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+.mc-logo svg {
+  width: 18px;
+  height: 18px;
+}
+.mc-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--backgroundTertiary);
+  border-radius: 50%;
+  box-sizing: content-box;
+  background: var(--labelWarning);
+}
+.mc-dot[data-status="others"] {
+  background: var(--statusPositive);
+}
+.mc-lines {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.mc-line {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--labelSecondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mc-line.mc-name {
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.mc-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--calloutWarningSubtleBackground);
+  color: var(--labelWarning);
+  font-size: 12px;
+  font-weight: 600;
+}
+.mc-empty,
+.mc-sentence,
+.mc-sub {
+  margin: var(--space-2) 0 var(--space-3);
+  overflow-wrap: anywhere;
+}
+.mc-sub {
+  color: var(--labelSecondary);
+}
+.mc-empty {
+  color: var(--labelSecondary);
+}
+.mc-banner {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--calloutWarningSubtleBackground);
+  color: var(--labelWarning);
+}
+.mc-banner > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.mc-banner-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+.mc-banner-text span {
+  color: var(--labelPrimary);
+  font-weight: 400;
+}
+.manage-connections .mc-banner button,
+.manage-connections .mc-actions button,
+.manage-connections .mc-wide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  height: 32px;
+  margin-top: var(--space-1);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.manage-connections .secondary:not(.large) {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.manage-connections .destructive:not(.large) {
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+}
+.manage-connections button:disabled:not(.large) {
+  opacity: 0.5;
+  cursor: default;
+}
+.manage-connections button svg {
+  width: 14px;
+  height: 14px;
+}
+.mc-link-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.mc-link-heading svg {
+  width: 16px;
+  height: 16px;
+}
+.mc-details {
+  margin: 0;
+}
+.mc-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+.mc-details dt {
+  flex: none;
+  color: var(--labelSecondary);
+}
+.mc-details dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mc-synced {
+  margin: var(--space-1) 0 var(--space-3);
+  color: var(--labelSecondary);
+  overflow-wrap: anywhere;
+}
+.mc-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.mc-actions button {
+  flex: 1;
+}
+.mc-reset-note {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.manage-connections .mc-error {
+  margin: var(--space-2) var(--space-3) 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+  overflow-wrap: anywhere;
+}
+.manage-connections .account-modal-body .mc-error {
+  margin: 0 0 var(--space-2);
+}
