@@ -9355,3 +9355,56 @@ feature tickets (48 done; 3 in progress). Gap: twelve open, eight in progress. T
 Build 4, Deploy 7, Discover 2, Test user flow 2.
 
 **Next plan:** the third Reconcile Build, in a fresh box, merging `cb25396`.
+
+### 2026-11-17 · Plan round 108
+
+Children used 125 of 200. Started two Builds; a third is held back on purpose. Main and live
+`49012cd`. No tickets were filed at the last review. The person has not answered the round-100
+check-in.
+
+**After the review, in a side turn (01:00Z):** the Plan-page and plan import Builds both came back
+blocked on the tab at the sign-in page a further time; I abandoned both, as the review said I
+would. The import Build's check had failed four times in its box. Both branches are whole:
+`b680a59` (Plan page) and `d427fbb` (import, reviewed and approved).
+
+**Started:**
+- **Plan import, second carry-over** (`p_54808387099a4079ae59bcea99e3509f`, EXF-477 API half with
+  EXF-670): merges `d427fbb` (36 files, 6,970 insertions); acceptance and the gate are left. One
+  addition from the Reviewer's open risk: amounts with thousands separators (`$1,234.56`) are
+  accepted when unambiguous under the file's number format; the clone's export writes none
+  (`plan-export.ts` says so), and nobody has seen whether the source's real export does. The
+  owner's real file must not be refused for that.
+- **Plan page, second carry-over** (`p_d551d2b31d2045cebf7e9161c230c828`, EXF-537 with EXF-622,
+  623, 624, 616, 646): merges `b680a59` (57 files, 3,154 insertions); the design check, a review of
+  everything after the first review, acceptance and the gate are left. One full browser run instead
+  of three (three were clean on this commit). The Reviewer also reads the month picker's
+  click-outside race that failed `e2e/month-nav.spec.ts` once.
+- I tried both merges together in a throwaway worktree: they conflict only in
+  `apps/worker/test/mcp-timestamps.test.ts` and `apps/worker/test/plan-export-calls.test.ts`, as
+  both briefs say.
+
+**New in both briefs:**
+- The Clerk prints the number of tabs at the sign-in page after opening its own (must be 0;
+  otherwise "SOURCE SIGNED OUT IN THIS BOX" in its first line).
+- Any step that meets a source check failing on a sign-in tab loads the test plan's address again
+  in that tab once, with a command I tested in my own box at 01:05Z (it navigated a blank tab to
+  the test plan's page; signed in), then runs the check again; "RELOADED, STILL SIGNED OUT" if it
+  still fails. A card note did not make a step do this; a brief may.
+
+**Held back: the third Reconcile Build (EXF-533 with EXF-664, merges `cb25396`).** The source
+signed out while the last Reconcile Designer was pressing through Reconcile in the test plan. I do
+not know whether that caused it. Its design step would come before the Plan-page Build's own
+source checks, and no wording has kept a Designer out of the source. So it starts when the two
+Builds above are past acceptance; a sign-out then stops only itself, and would tell me the cause.
+Its brief will allow what the person's Retry allowed by my reading: comparing Reconcile in the test
+plan only, never pressing a button that saves.
+
+**Not started, and why:** every other unblocked ticket needs the Plan page, the account page or
+the register (held by these three), a shared module, or the person's word. Main and live are
+equal: no Deploy, no flow test. Reviews since each template's last review: Build 6, Deploy 7,
+Discover 2, Test user flow 2; none is due.
+
+Declared for the tree: the two Builds, the Reconcile Build, one Deploy (`ZZ-TEST D29`) for the
+three merges, then flows 3, 4 and 6.
+
+Ticket writes: 2 comments (EXF-477, EXF-537).
