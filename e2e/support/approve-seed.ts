@@ -75,7 +75,7 @@ export async function seedApprove(
       statement_balance: -8000,
     });
   }
-  return { plan, checking, savings, food, unapproved, ...extra };
+  return { plan, checking, savings, food, group: g as string, unapproved, ...extra };
 }
 
 export const BANNER = (n: number) =>
