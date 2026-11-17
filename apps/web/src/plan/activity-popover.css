@@ -28,11 +28,11 @@
 .activity-table .col-amount {
   width: 96px;
 }
-.activity-table .col-account,
-.activity-table .col-memo {
+.activity-table .col-account {
   width: 30%;
 }
-.activity-table .col-payee {
+.activity-table .col-payee,
+.activity-table .col-memo {
   width: 35%;
 }
 .activity-table th {

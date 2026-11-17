@@ -97,6 +97,14 @@ for (const size of SIZES) {
         "",
         "−$60.00",
       ]);
+      // Design: ACCOUNT, PAYEE and MEMO share the width left by DATE and AMOUNT 30/35/35.
+      const w = await dialog(page)
+        .locator("th")
+        .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
+      const rest = (w[0] ?? 0) + (w[2] ?? 0) + (w[3] ?? 0);
+      expect((w[0] ?? 0) / rest).toBeCloseTo(0.3, 1);
+      expect(Math.abs((w[2] ?? 0) - (w[3] ?? 0))).toBeLessThanOrEqual(1);
+      expect((w[2] ?? 0) / rest).toBeCloseTo(0.35, 1);
       const [d, a] = [await dialog(page).boundingBox(), await button(page).boundingBox()];
       expect(d?.y ?? 0).toBeGreaterThan((a?.y ?? 0) + (a?.height ?? 0));
     });
