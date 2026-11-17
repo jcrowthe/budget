@@ -29,6 +29,8 @@ const ALLOWED: Record<string, string> = {
   "packages/schema/src/plan-import.ts": "the importer's starting guess when a file has no dates",
   "packages/schema/src/report-range.ts": "MM/YY axis labels are not part of the date format",
   "apps/worker/src/db/schema/budgets.ts": "the column's default",
+  "apps/web/src/plan/columnWidths.ts":
+    "the sample text the number columns are capped at, in no one's format",
   "apps/web/src/reflect/format.ts": "percent text, not money (out of scope)",
 };
 

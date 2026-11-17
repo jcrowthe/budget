@@ -43,12 +43,13 @@ export function PlanSettingsDialog({
   const { plans } = useCurrentPlan();
   const plan = plans.find((p) => p.id === budgetId);
   const update = useUpdateBudget();
+  const formats = plan ?? DEFAULT_PLAN_FORMATS;
   const saved = {
     name: plan?.name ?? "",
-    code: plan?.currency_format.iso_code ?? "USD",
-    numberFormat: plan?.currency_format.example_format ?? "123,456.78",
-    placement: plan ? placementOf(plan.currency_format) : ("before" as Placement),
-    dateFormat: plan?.date_format.format ?? ("MM/DD/YYYY" as DateFormat),
+    code: formats.currency_format.iso_code,
+    numberFormat: formats.currency_format.example_format,
+    placement: placementOf(formats.currency_format),
+    dateFormat: formats.date_format.format,
   };
   const [name, setName] = useState(saved.name);
   const [code, setCode] = useState(saved.code);
