@@ -83,3 +83,23 @@ export const QuestionRingIcon = (p: P) => (
     />
   </svg>
 );
+
+/** A padlock with a check mark: the "Account reconciled" popover's picture (Budget's own art). */
+export const LockCheckArt = (p: P) => (
+  <svg viewBox="0 0 64 64" width={64} height={64} fill="none" aria-hidden="true" {...p}>
+    <path
+      d="M20 28v-7a12 12 0 0 1 24 0v7"
+      stroke="currentColor"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+    <rect x="12" y="28" width="40" height="30" rx="6" fill="currentColor" />
+    <path
+      d="m23 43 6.500 6.500L41 37.500"
+      stroke="var(--backgroundTertiary, #fff)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

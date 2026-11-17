@@ -40,7 +40,7 @@ test("the card header: badge, three balances and the Payment pill; a line of cre
   await open(page, s.plan, s.visa);
   await expect(page.locator(".acct-info")).toContainText("Credit Card");
   await expect(page.locator(".acct-balance[data-balance=cleared]")).toBeVisible();
-  await expect(working(page)).toHaveText("-$335.00");
+  await expect(working(page)).toHaveText("−$335.00");
   await expect(pill(page)).toHaveText("$335.00");
   await expect(pill(page)).toHaveClass(/is-positive/);
   await expect(page.locator("[data-balance=payment] .acct-label")).toHaveText("Payment");
@@ -144,7 +144,7 @@ test("Payment from, the fixed category, saving, and both sides' display (539 AC3
   );
   await expect(row.locator(".transfer-link")).toBeVisible();
   await expect(pill(page)).toHaveText("$135.00");
-  await expect(working(page)).toHaveText("-$135.00");
+  await expect(working(page)).toHaveText("−$135.00");
   expect(await paymentAvailable(request, s.plan, s.visa)).toBe(135000);
 
   // The other side reads the same, and its payee list says To/From.

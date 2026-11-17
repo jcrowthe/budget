@@ -6,6 +6,7 @@ import { usePaymentAvailable } from "../account/usePaymentAvailable";
 import { ActionBar } from "./ActionBar";
 import type { Open } from "./entryDraft";
 import { useOpenAccounts } from "./openAccounts";
+import { ReconcileBar } from "./ReconcileBar";
 import { RegisterTable } from "./RegisterTable";
 import { RegisterToolbar } from "./RegisterToolbar";
 import { useSelection } from "./selection";
@@ -81,6 +82,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
         onRecordPayment={credit ? openPayment : undefined}
         paymentDisabled={!account || account.closed || !pay.settled}
       />
+      <ReconcileBar />
       <RegisterTable
         budgetId={budgetId}
         account={account}

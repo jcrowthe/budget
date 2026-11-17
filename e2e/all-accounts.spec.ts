@@ -43,7 +43,7 @@ test("All Accounts: header and register", async ({ page, request }) => {
   await expect(page.getByText("Not Yet Reconciled")).toHaveCount(0);
   // Checking 250000-1000, Credit -150000-3000, Asset 5000000+2000: cleared are the Starting Balances.
   await expect(amount(page, "cleared")).toHaveText("$5,100.00");
-  await expect(amount(page, "uncleared")).toHaveText("-$2.00");
+  await expect(amount(page, "uncleared")).toHaveText("−$2.00");
   await expect(amount(page, "working")).toHaveText("$5,098.00");
   const toolbar = page.getByRole("toolbar", { name: "Register toolbar" });
   await expect(toolbar.getByRole("button", { name: "Link Account" })).toHaveCount(0);
@@ -104,7 +104,7 @@ test("a cleared toggle on All Accounts moves the totals and the account's page",
     .getByRole("button", { name: "This transaction is uncleared" })
     .click();
   await expect(amount(page, "cleared")).toHaveText("$5,099.00");
-  await expect(amount(page, "uncleared")).toHaveText("-$1.00");
+  await expect(amount(page, "uncleared")).toHaveText("−$1.00");
   await expect(amount(page, "working")).toHaveText("$5,098.00");
   await page.goto(`/${s.plan}/accounts/${s.chk}`);
   await expect(amount(page, "cleared")).toHaveText("$249.00");

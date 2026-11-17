@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { CloseSmallIcon } from "./icons";
 
 /** A modal over the register: Escape and Cancel close it. */
-function Modal({
+export function Modal({
   title,
   onCancel,
   children,
@@ -124,6 +124,37 @@ export function DeleteDialog({
           {p}
         </p>
       ))}
+    </Modal>
+  );
+}
+
+/** Saving an amount, date or account change of a reconciled transaction asks first. */
+export function ReconciledSaveDialog({
+  onCancel,
+  onSave,
+}: {
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Modal
+      title="Save Changes to Reconciled Transaction"
+      onCancel={onCancel}
+      footer={
+        <>
+          <button type="button" className="secondary" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="primary" onClick={onSave}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <p className="bulk-dialog-text">
+        Saving your changes to this reconciled transaction may bring your reconciliation out of
+        balance.
+      </p>
     </Modal>
   );
 }

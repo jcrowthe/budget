@@ -341,6 +341,8 @@ describe("editing a pair", () => {
     }
     expect(await logs(bid)).toHaveLength(before.length);
     expect((await patch(bid, tx.id, { cleared: "cleared" })).status).toBe(200);
+    // The confirmation lets the mirrored amount through (D4).
+    expect((await patch(bid, tx.id, { amount: -1000, confirm_reconciled: true })).status).toBe(200);
   });
 });
 

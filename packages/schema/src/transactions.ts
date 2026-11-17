@@ -207,6 +207,12 @@ const updateFields = z
     transfer_account_id: requestFields.transfer_account_id,
     subtransactions: requestFields.subtransactions,
     flag_color: FlagColor.nullable().optional(),
+    confirm_reconciled: z
+      .boolean()
+      .optional()
+      .describe(
+        "Must be true to change the amount, date, account, cleared state or transfer account of a reconciled transaction (or of a transfer whose other side is reconciled)",
+      ),
   })
   .strict();
 
@@ -214,7 +220,10 @@ const updateFields = z
 export const transactionUpdateShape = updateFields.shape;
 
 export const TransactionUpdateRequest = updateFields
-  .refine((o) => Object.keys(o).length > 0, "Nothing to update")
+  .refine(
+    (o) => Object.keys(o).filter((k) => k !== "confirm_reconciled").length > 0,
+    "Nothing to update",
+  )
   .openapi("TransactionUpdateRequest");
 
 /** `needs` filter of the transaction lists. */
