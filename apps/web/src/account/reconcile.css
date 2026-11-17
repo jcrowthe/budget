@@ -6,7 +6,7 @@
 .reconcile-popover {
   position: absolute;
   top: calc(100% + 15px);
-  right: 0;
+  right: -6px;
   z-index: 30;
   box-sizing: border-box;
   display: flex;
@@ -27,7 +27,7 @@
   content: "";
   position: absolute;
   top: -15px;
-  right: 36px;
+  right: 42px;
   width: 30px;
   height: 15px;
   background: var(--backgroundTertiary);
@@ -145,7 +145,7 @@
   box-sizing: border-box;
   width: 100%;
   height: 32px;
-  padding: 4px 8px;
+  padding: 0 3px;
   border: 1px solid var(--buttonPrimaryBackground);
   border-radius: var(--radius-xs);
   background: var(--inputBackground);

@@ -10,3 +10,5 @@ Measured against the source's ask and bank-balance popovers (dark; light for P1,
 - P6 [applied] Difference step gap `--space-3` (16px).
 - P7 [applied] Difference foot Next: margin 0, padding 0 16px, 16px text, scoped to `.reconcile-diff-foot .primary`; `shell/global.css` untouched.
 - P8 [applied] Decision C's label rule scoped to `.reconcile-popover > label`; the checkbox label is flex, 8px gap, weight 500.
+- P9 [applied] Bank-balance input: padding 0 3px (the source's text starts 4px inside the field); height 32px and the border stay.
+- P10 [applied] Popover right -6px (its right edge 6px past the button's, as in the source), arrow right 42px so it stays centred on the button; the 1024×700 inside-viewport assertions still hold.
