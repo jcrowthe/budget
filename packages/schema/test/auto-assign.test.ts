@@ -8,9 +8,11 @@ import {
   autoAssignResult,
   hiddenAmounts,
   historyFigures,
+  monthHiddenInputs,
   ORDINARY_SKIPS,
   PAYMENT_SKIPS,
 } from "../src/auto-assign";
+import type { MonthDetail } from "../src/months";
 import type { CategoryTargetMonth } from "../src/targets";
 
 const target = (o: Partial<CategoryTargetMonth> = {}): CategoryTargetMonth => ({
@@ -338,5 +340,28 @@ describe("EXF-537: payment strategies and hidden amounts", () => {
     );
     expect(h.last_paid).toBe(30000);
     expect(h.average_paid).toBe(65000);
+  });
+});
+
+// EXF-714: a payment category's Total Underfunded counts only when one category was explicitly chosen.
+describe("monthHiddenInputs: lone", () => {
+  const detail = {
+    groups: [
+      {
+        categories: [
+          {
+            id: "pay",
+            kind: "credit_card_payment",
+            assigned: 100000,
+            target: null,
+            payment: { underfunded: 1100000 },
+          },
+        ],
+      },
+    ],
+  } as unknown as MonthDetail;
+  it("takes the card's Total Underfunded when lone, and 0 when the one category is only a view", () => {
+    expect(monthHiddenInputs(detail, ["pay"], true)[0]?.payment_underfunded).toBe(1100000);
+    expect(monthHiddenInputs(detail, ["pay"], false)[0]?.payment_underfunded).toBe(0);
   });
 });

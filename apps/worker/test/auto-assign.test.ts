@@ -248,6 +248,42 @@ describe("auto-assign: scope and history", () => {
     ).toBe(true);
   });
 
+  // EXF-714: a view that holds one payment category is still plan-wide; only `category_ids` names it.
+  it("a money_available view holding one payment category leaves it out; category_ids gets its Total Underfunded", async () => {
+    const s = await seedPlan([]);
+    const open = await send("POST", api(s.bid, "/accounts"), {
+      name: "ZZ Visa",
+      type: "creditCard",
+      balance: 1200000,
+      date: "2026-11-02",
+    });
+    expect(open.status).toBe(201);
+    const month = async (q = "") =>
+      ((await (await send("GET", api(s.bid, `/months/${NOV}?today=${TODAY}${q}`))).json()) as Json)
+        .data;
+    const pay = (await month()).groups
+      .flatMap((g: Json) => g.categories)
+      .find((c: Json) => c.kind === "credit_card_payment") as Json;
+    const set = await send("PATCH", api(s.bid, `/months/${NOV}/categories/${pay.id}`), {
+      assigned: 100000,
+    });
+    expect(set.status).toBe(200);
+    // The view holds exactly the payment category, and its Total Underfunded is 1,100.00.
+    const view = (await month("&view=money_available")).groups.flatMap((g: Json) => g.categories);
+    expect(view.map((c: Json) => c.id)).toEqual([pay.id]);
+    expect(view[0].payment.underfunded).toBe(1100000);
+
+    expect((await preview(s.bid, NOV, "&view=money_available")).body.underfunded).toBe(0);
+    const viaView = await post(s.bid, NOV, { strategy: "underfunded", view: "money_available" });
+    expect(viaView.status).toBe(200);
+    expect((await assignedOf(s.bid, NOV, pay.id)).assigned).toBe(100000);
+
+    expect((await preview(s.bid, NOV, `&category_ids=${pay.id}`)).body.underfunded).toBe(1100000);
+    const named = await post(s.bid, NOV, { strategy: "underfunded", category_ids: [pay.id] });
+    expect(named.status).toBe(200);
+    expect((await assignedOf(s.bid, NOV, pay.id)).assigned).toBe(1200000);
+  });
+
   it("is on the surface", async () => {
     const paths = await apiPaths();
     expect(paths).toContain("/api/v1/budgets/{budget_id}/months/{month}/auto-assign");

@@ -24,6 +24,7 @@ import {
 import { expect, test } from "./fixtures";
 import { GROCERIES, openPlan, PHONE, RENT, spend, UTILITIES } from "./plan-panel.fixtures";
 import { authHeaders } from "./support/auth";
+import { fixCardClock, seedCard } from "./support/card-seed";
 import { lastOfMonth, mcpCall, ordinal } from "./targets.fixtures";
 
 test.use({ timezoneId: "UTC" });
@@ -367,3 +368,47 @@ for (const size of SIZES) {
     });
   });
 }
+
+// EXF-714: a view that holds one category is still plan-wide; only ticking the category makes it a one-category card.
+test.describe("a view holding one category", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+  let plan: string;
+  test.afterEach(async ({ request }) => {
+    await removePlan(request, { id: plan } as Seed);
+  });
+
+  test("20. a view holding one category stays plan-wide", async ({ page, request }) => {
+    const card = await seedCard(request);
+    plan = card.plan;
+    await fixCardClock(page);
+    await page.goto(`/${plan}/budget/202611`);
+    await expect(page.getByRole("treegrid", { name: "Plan" })).toBeVisible();
+    await realClick(page, chip(page, "Money Available"));
+    // The Visa payment category holds 335.00 and nothing else has money available.
+    await expect(page.locator(".category-row")).toHaveCount(1);
+    await expect(row(page, "ZZ-TEST Visa")).toBeVisible();
+    const auto = autoCard(page);
+    await expect(optionLabels(auto)).toHaveText([
+      "Underfunded",
+      "Assigned Last Month",
+      "Spent Last Month",
+      "Average Assigned",
+      "Average Spent",
+      "Reset Available Amounts",
+      "Reset Assigned Amounts",
+    ]);
+    await expect(option(auto, "Underfunded")).toContainText("$0.00");
+    await expect(option(auto, "Paid Last Month")).toHaveCount(0);
+    await expect(option(auto, "Average Paid")).toHaveCount(0);
+    // Ticking the category makes it the one-category payment card (Underfunded is 0 there, so it is hidden).
+    await realClick(page, page.getByRole("checkbox", { name: "ZZ-TEST Visa", exact: true }));
+    await expect(optionLabels(autoCard(page))).toHaveText([
+      "Assigned Last Month",
+      "Paid Last Month",
+      "Average Assigned",
+      "Average Paid",
+      "Reset Available Amount",
+      "Reset Assigned Amount",
+    ]);
+  });
+});
