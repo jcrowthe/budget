@@ -55,13 +55,13 @@ export function HiddenCategoriesRow({
           Hidden Categories
         </button>
       </div>
-      <div className="num cell-assigned" role="cell">
+      <div className="num cell-assigned" role="cell" title={fmt.money(sum("assigned"))}>
         <span className={amountClass(sum("assigned"))}>{fmt.money(sum("assigned"))}</span>
       </div>
-      <div className="num cell-activity" role="cell">
+      <div className="num cell-activity" role="cell" title={fmt.money(sum("activity"))}>
         <span className={amountClass(sum("activity"))}>{fmt.money(sum("activity"))}</span>
       </div>
-      <div className="num cell-available" role="cell">
+      <div className="num cell-available" role="cell" title={fmt.money(sum("available"))}>
         <span className={amountClass(sum("available"))}>{fmt.money(sum("available"))}</span>
       </div>
       <div className="cell-margin" />

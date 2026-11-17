@@ -125,13 +125,17 @@ export function GroupRow({
           </>
         )}
       </div>
-      <div className="num cell-assigned" role="cell">
+      <div className="num cell-assigned" role="cell" title={fmt.money(g.assigned)}>
         {fmt.money(g.assigned)}
       </div>
-      <div className="num cell-activity" role="cell">
+      <div className="num cell-activity" role="cell" title={fmt.money(g.activity)}>
         {fmt.money(g.activity)}
       </div>
-      <div className={`num cell-available${locked ? " has-payment-help" : ""}`} role="cell">
+      <div
+        className={`num cell-available${locked ? " has-payment-help" : ""}`}
+        role="cell"
+        title={fmt.money(g.available)}
+      >
         {locked && (
           <button
             type="button"
@@ -279,7 +283,9 @@ export function CategoryRow({
             <span className={amountClass(c.activity)}>{fmt.money(c.activity)}</span>
           </button>
         ) : (
-          <span className={amountClass(c.activity)}>{fmt.money(c.activity)}</span>
+          <span className={amountClass(c.activity)} title={fmt.money(c.activity)}>
+            {fmt.money(c.activity)}
+          </span>
         )}
       </div>
       <div className="cell-available" role="cell">

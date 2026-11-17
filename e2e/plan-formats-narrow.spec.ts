@@ -66,6 +66,7 @@ type Measure = {
   clientWidth: number;
   lines: number;
   right: number;
+  boxRight: number;
   cellRight: number;
   title: string;
 };
@@ -92,6 +93,7 @@ async function measure(page: Page): Promise<Measure[]> {
         clientWidth: box.clientWidth,
         lines: lines(textEl),
         right: textRight(textEl),
+        boxRight: box.getBoundingClientRect().right,
         cellRight: cell.getBoundingClientRect().right,
         title: box.getAttribute("title") ?? textEl.getAttribute("title") ?? "",
       });
@@ -247,8 +249,10 @@ test("EXF-726: fourteen characters in another format never wrap; they are cut on
   for (const x of m) {
     expect(x.text).toBe("−8.888.888,88€");
     expect(x.lines, `${x.what}: one line`).toBe(1);
+    expect(x.scrollWidth, `${x.what}: is cut (ellipsis)`).toBeGreaterThan(x.clientWidth);
     expect(x.title, `${x.what}: title holds the amount`).toContain("−8.888.888,88€");
-    expect(x.right, `${x.what}: right edge`).toBeLessThanOrEqual(x.cellRight + 0.5);
+    // The text is cut (an ellipsis): its box, not the clipped text, lies inside the cell.
+    expect(x.boxRight, `${x.what}: right edge`).toBeLessThanOrEqual(x.cellRight + 0.5);
   }
   // The group row's total of the long amount and the page: no sideways scroll, no wrap.
   const all = await measure(page);

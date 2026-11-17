@@ -406,6 +406,15 @@
 .hidden-categories-row .num {
   font-size: var(--font-size-sm);
   font-weight: 500;
+  /* EXF-726: an amount never wraps; one too long for its column is cut with an ellipsis (its title holds it). */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-row .cell-available > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .category-row {
@@ -564,6 +573,10 @@
   color: var(--labelPrimary);
   text-align: right;
   cursor: text;
+  /* EXF-726: never wraps; cut with an ellipsis when the column is too narrow (the title holds the amount). */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .assigned-box .amount.zero {
   color: var(--labelSecondary);
@@ -621,6 +634,7 @@ button.category-name {
 .available-pill .pill-amount {
   min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 .available-pill.zero {
   background: var(--inputBackground);

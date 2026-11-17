@@ -13,8 +13,9 @@ export interface NumberColumns {
 
 // Floors: the header labels (12px, caps, letter-spaced) and the PAYMENT button of the Credit Card Payments group.
 const FLOOR = { assigned: 68, activity: 62, available: 80 };
-// The Assigned cell: a hover calculator button (18px) before the amount, 4px of padding, 2px of border.
-const ASSIGNED_EXTRA = 18 + 4 + 2;
+// The Assigned cell: a hover calculator button (18px) before the amount, 4px of padding, 2px of border and the
+// amount button's own 3px of padding on each side.
+const ASSIGNED_EXTRA = 18 + 4 + 2 + 6;
 // The Activity cell: padding 2px + 2px.
 const ACTIVITY_EXTRA = 4;
 // The pill: padding 7px twice, its icon (13-14px) and the gap after it.
@@ -25,6 +26,8 @@ const GROUP_PADDING = 6;
 const PAYMENT_BUTTON = 76;
 // Tabular digits and a font that may not be loaded yet: a little room.
 const SLACK = 2;
+// EXF-726: an amount of up to twelve characters ("−$000,000.00") shows whole; a longer one is cut by its column.
+const CAP_TEXT = "−$000,000.00";
 
 let canvas: CanvasRenderingContext2D | null = null;
 const textWidth = (text: string, font: string): number => {
@@ -41,11 +44,18 @@ export function numberColumns(
   fmt: PlanFormatter,
 ): NumberColumns {
   const font = `500 14px ${family}`;
-  const w = (n: number) => textWidth(fmt.money(n), font);
+  // The digits are tabular on screen but not on the canvas: measure every digit as a 0, the widest one.
+  const w = (n: number) => textWidth(fmt.money(n).replace(/\d/g, "0"), font);
   const cols = { ...FLOOR };
   if (!detail) return cols;
+  const cap = textWidth(CAP_TEXT, font);
+  const caps: NumberColumns = {
+    assigned: Math.ceil(cap + Math.max(ASSIGNED_EXTRA, GROUP_PADDING) + SLACK),
+    activity: Math.ceil(cap + Math.max(ACTIVITY_EXTRA, GROUP_PADDING) + SLACK),
+    available: Math.ceil(cap + Math.max(PILL_PADDING + PILL_ICON, GROUP_PADDING) + SLACK),
+  };
   const grow = (k: keyof NumberColumns, px: number) => {
-    cols[k] = Math.max(cols[k], Math.ceil(px + SLACK));
+    cols[k] = Math.max(cols[k], Math.min(Math.ceil(px + SLACK), caps[k]));
   };
   for (const g of detail.groups) {
     if (g.hidden) continue;
