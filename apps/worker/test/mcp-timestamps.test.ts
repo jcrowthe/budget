@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { A, account, DAY, data, send, tool } from "./account-helpers";
 import { json } from "./helpers";
 import { createPlan, stubPlaid } from "./plaid-stub";
+import { sampleFiles } from "./plan-import-helpers";
 import { listedToolNames, mcpRpc } from "./surface";
 
 // biome-ignore lint/suspicious/noExplicitAny: parsed tool results
@@ -173,7 +174,28 @@ const results = new Map<string, Json>();
 const CALLS: [string, (c: Ctx) => Json][] = [
   ["list_budgets", () => ({})],
   ["get_budget", (c) => ({ budget_id: c.bid })],
-  ["export_budget", (c) => ({ budget_id: c.bid, now: "2026-11-16T09:05" })],
+  ["export_budget", (c) => ({ budget_id: c.bid })],
+  [
+    "import_budget_export",
+    () => {
+      const f = sampleFiles();
+      const b64 = (text: string) => btoa(String.fromCharCode(...new TextEncoder().encode(text)));
+      return {
+        files: [
+          {
+            file_name: "Sample Plan as of 2026-11-15 19-51 - Plan.csv",
+            content_base64: b64(f.plan),
+          },
+          {
+            file_name: "Sample Plan as of 2026-11-15 19-51 - Register.csv",
+            content_base64: b64(f.register),
+          },
+        ],
+        name: "ZZ-TEST imported",
+      };
+    },
+  ],
+  ["continue_budget_import", () => ({ import_id: results.get("import_budget_export")?.import_id })],
   ["create_budget", () => ({ name: "ZZ-TEST made by tool", bank_environment: "sandbox" })],
   ["update_budget", (c) => ({ budget_id: c.bid, name: "ZZ-TEST renamed" })],
   ["list_accounts", (c) => ({ budget_id: c.bid, include_closed: true })],
@@ -358,7 +380,10 @@ const CALLS: [string, (c: Ctx) => Json][] = [
 ];
 
 /** A tool this test cannot call, with the reason. */
-const NOT_CALLED: Record<string, string> = { pay_credit_card: "the seed has no credit card" };
+const NOT_CALLED: Record<string, string> = {
+  pay_credit_card: "the seed has no credit card",
+  cancel_budget_import: "needs an unfinished import; covered by plan-import-steps.test.ts",
+};
 
 /** A tool of a file another Build holds, whose result holds a timestamp the description may not name yet. */
 const HELD: Record<string, string> = {};

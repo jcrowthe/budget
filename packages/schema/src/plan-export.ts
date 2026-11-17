@@ -150,6 +150,40 @@ export const PlanExportQuery = z.object({
     .openapi({ param: { name: "now", in: "query" } }),
 });
 
+/** `now` may be at most this many calendar days from the server's UTC date (EXF-670). */
+export const EXPORT_NOW_MAX_DAYS = 1;
+/** The Plan file never goes past the server's month plus this many months (EXF-670). */
+export const EXPORT_MONTHS_AHEAD = 24;
+
+function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** True when the date of `now` is within EXPORT_NOW_MAX_DAYS calendar days of `serverToday`. */
+export function nowWithinServerDays(now: string, serverToday: string): boolean {
+  const lo = addDays(serverToday, -EXPORT_NOW_MAX_DAYS);
+  const hi = addDays(serverToday, EXPORT_NOW_MAX_DAYS);
+  const d = now.slice(0, 10);
+  return d >= lo && d <= hi;
+}
+
+/** "2026-11-15 to 2026-11-17". */
+export function nowRangeText(serverToday: string): string {
+  return `${addDays(serverToday, -EXPORT_NOW_MAX_DAYS)} to ${addDays(serverToday, EXPORT_NOW_MAX_DAYS)}`;
+}
+
+/** The last month the Plan file may hold: the server's month plus EXPORT_MONTHS_AHEAD, as YYYY-MM-01. */
+export function exportMonthCeiling(serverToday: string): string {
+  const total =
+    Number(serverToday.slice(0, 4)) * 12 +
+    Number(serverToday.slice(5, 7)) -
+    1 +
+    EXPORT_MONTHS_AHEAD;
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}-01`;
+}
+
 export function utcMinute(at: Date): string {
   return at.toISOString().slice(0, 16);
 }
