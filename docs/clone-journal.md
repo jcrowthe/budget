@@ -10072,3 +10072,62 @@ review: Build 0, Deploy 8, Discover 2, Test user flow 3.
 **Next plan (the rate-limit window resets at 09:00Z):** Deploy D30 for the Reconcile merge; the
 Activity popover Build (EXF-509 with EXF-720 and EXF-714); the template-ticket sweep; flow 6 after
 the Deploy.
+
+### 2026-11-17 · Plan round 116
+
+Children used 133 of 200. Started three: a Deploy, a Build and the template-ticket sweep. Main
+`d005439`, live `0fefc6c`. No tickets were filed at the last review. The person has not answered
+the round-110 check-in. The children started between 08:55Z and 08:58Z, a few minutes before the
+rate-limit window's reset at 09:00Z (my inference from the last pause ending at 04:00Z; the
+platform does not tell me).
+
+**Started:**
+- **Deploy D30** (`p_d84176d3eb4c4ba6b3a14a3615996ee4`): ships main `d005439`, expects the one
+  migration `20261116101400_account_reconciled_at.sql`; `gated_commit` `8b415ab` (its tree equals
+  main's, compared now). Its checks walk Reconcile on live, because the Build's acceptance looked at
+  two screens: the worked example of the design through REST (cleared 755,500; a difference of
+  −100,000 refused without an adjustment); the Yes path; the No path with the Difference step and
+  the bar; clearing live; Finish (seven locked rows); editing a reconciled row with its
+  confirmation; the adjustment (Ready to Assign 795,000 back to 790,000); refusals through REST;
+  the tool; a closed account; five states at 1024×700; 82 tools. **And one import of its own
+  export: the proof on live that the import survives the new account column** (the break I found
+  before the merge). Every named state gets a fresh screenshot and a sentence.
+- **The Activity popover Build** (`p_4b3e4d16b0784c8a9090ea68151e465d`, EXF-509 with EXF-720 and
+  EXF-714; all three now In Progress). A fresh Build, not a carry-over. What its brief does
+  differently, from the template review of an hour ago:
+  - **The Architect copies three things into the design word for word**, because later steps read
+    the design and not my brief: the source rules, the "Looking" list for the Tester, the D1 count.
+  - **The source rules are a list of what may be looked at and four things nobody does, each with
+    its reason** (no blanket ban): the Designer may open the Activity popover on the test plan's
+    Plan page if a row there has activity; otherwise "not compared" is a complete answer.
+  - **"Looking":** the Tester's fresh screenshot per state and size with a sentence, as a list in
+    the acceptance section; a case without its entries is PARTIAL "not looked at".
+  - The read's rows must sum to the month read's Activity to the milliunit, proven on a plan with
+    a refund, a split, a categorized transfer to a tracking account, a deleted row, an unentered
+    scheduled row and a neighbouring month's row; calls counted at 10 and 100 rows.
+  - Payment categories keep their Activity cell as it is unless the same read fits them.
+  - EXF-720 with a search for other unstyled buttons on the Plan page; EXF-714's three tests, each
+    shown failing on the old condition. "A test for a review finding, whatever the finding is
+    called" (the nit that slipped through last time).
+  - Every insert names its columns.
+- **The template-ticket sweep** (`p_5a6cdef2d3a14bd7b845dd642965e78e`), the second (the first was
+  round 82): duplicates; one ordered list with the five changes that would have saved the most;
+  priorities against the newest figures; texts out of date (several of them my own comments);
+  anything that is not a template matter. With the standing line on evidence and stand-in tickets.
+
+**Three at once, and why now:** the allowance should be fresh within minutes of their start; the
+Deploy's release comes after its gate, well past 09:00Z; the Deploy and the sweep
+are short and share nothing with the Build; the Build will reach its card long after the Deploy has
+released. **Cards are answered in the side turn they arrive in: an idle of 20 minutes costs the
+box.** No approval of the Build while the Deploy releases.
+
+**Not started:** flow 6 waits for the Deploy. Plan formats (EXF-468) follows the Build (both touch
+how the Plan page writes amounts).
+
+Reviews: Build 0, Deploy 8, Discover 2, Test user flow 3 since each template's last review; the
+sweep is running.
+
+Declared for the tree: the three running; flow 6; plan formats; a Deploy and a flow test for the
+Activity popover.
+
+Ticket writes: 6 (EXF-509, EXF-720, EXF-714 to In Progress, each with a comment).
