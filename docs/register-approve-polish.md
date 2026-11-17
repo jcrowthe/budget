@@ -9,3 +9,4 @@ Designer's list, measured against the source in dark. Status set by the step tha
 - P5 [applied] `.needs-category` 24px high, line-height 22px.
 - P6 [applied] Banner `--register-banner-bg` #292c6c, 8px 16px padding (48px), 16px/400, 6px text margins, whole banner turns the filter on, hover #545bfe with View #7583ff (`--register-primary-active`, a register token); View 32px, radius-lg, 16px/500, min-width 84px.
 - P7 [applied] Approval popover 320px, `bodyClass` `is-approval` (16px padding, stacked full-width 32px primary buttons, 8px gap); `Popover` gained `align="start"` (this use only) so the panel starts at the icon and stays clear of the sidebar. Roles, labels and the disabled Reject title kept; the disabled Reject is drawn at 50% opacity.
+- P8 [applied] The Approval popover's panel has radius 4px (`--radius-xs`, source `.modal-account-dropdown .modal`), scoped to `.bulk-popover-body.is-approval`; the shared `.bulk-popover-body` is unchanged.

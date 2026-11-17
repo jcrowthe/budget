@@ -1018,6 +1018,10 @@
   background: var(--register-primary-active);
 }
 /* Source (.modal-account-approve-reject): a 320px panel, 16px padding, stacked full-width 32px buttons 8px apart. */
+/* Source (.modal-account-dropdown .modal, getComputedStyle): border-radius 4px. */
+.bulk-popover-body.is-approval {
+  border-radius: var(--radius-xs);
+}
 .bulk-popover-body.is-approval .bulk-list {
   display: flex;
   flex-direction: column;

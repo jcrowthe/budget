@@ -287,6 +287,12 @@ test("the banner is one click target and the approval menu is 320px, clear of th
   await realClick(page, icon(page, "ZZ New One"));
   const m = await menu(page).boundingBox();
   expect(Math.round(m?.width ?? 0)).toBe(320);
+  // Source (Designer polish P8, getComputedStyle on the panel): border-top-left-radius 4px.
+  expect(
+    await menu(page)
+      .locator(".bulk-popover-body")
+      .evaluate((el) => getComputedStyle(el).borderTopLeftRadius),
+  ).toBe("4px");
   const side = await page.getByRole("navigation", { name: "Sidebar" }).boundingBox();
   expect((m?.x ?? 0) >= (side?.x ?? 0) + (side?.width ?? 0)).toBe(true);
   await page.keyboard.press("Escape");
