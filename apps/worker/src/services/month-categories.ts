@@ -1,5 +1,6 @@
 import type { AssignedResult, CategoryMonth } from "@budget/schema/month-categories";
 import { categoryMonth } from "@budget/schema/month-totals";
+import type { CardPayment } from "@budget/schema/months";
 import { z } from "zod";
 import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
@@ -43,4 +44,25 @@ export async function getMonthCategory(
   const r = categoryMonth(await getPlanMonth(env, budgetId, month), categoryId);
   if (!r) throw new NotFound("Category");
   return r;
+}
+
+export type CardPaymentStatus = {
+  account_id: string;
+  category_id: string;
+  name: string;
+} & CardPayment;
+
+/** A credit card's payment status for one month, found by the card's account (EXF-537). */
+export async function getCardPaymentStatus(
+  env: Env,
+  budgetId: string,
+  month: string,
+  accountId: string,
+): Promise<CardPaymentStatus> {
+  if (!isUuid(budgetId)) throw new NotFound("Plan");
+  const c = (await getPlanMonth(env, budgetId, month)).groups
+    .flatMap((g) => g.categories)
+    .find((x) => x.kind === "credit_card_payment" && x.account_id === accountId);
+  if (!c?.payment || !c.account_id) throw new NotFound("Account");
+  return { account_id: c.account_id, category_id: c.id, name: c.name, ...c.payment };
 }

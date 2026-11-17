@@ -141,13 +141,13 @@ Read-only: no `change_log` row, no `Idempotency-Key`. Coverage: `"GET /budgets/{
 
 ## D1 calls and size (note 8)
 
-`exportPlan` makes **15** D1 calls whatever the plan's size: `budgets.findActive` (1), `getMonthRange` (2),
-`getPlanMonths` (8: its plan check and its seven set reads), accounts with closed ones (1), `listDetailForPlan` (1),
+`exportPlan` makes **16** D1 calls whatever the plan's size: `budgets.findActive` (1), `getMonthRange` (2),
+`getPlanMonths` (9: its plan check and its eight set reads; the card flows query of EXF-537 made it 9, was 8), accounts with closed ones (1), `listDetailForPlan` (1),
 `listLines` for the whole plan (1), `scheduledRepo.listForPlan` (1). The engine runs per month in memory on the one
 loaded input. Every join of rows to lines, accounts and categories is a `Map` lookup; the sort is one
-`Array.prototype.sort`. A counting test asserts 15 for a small plan and for 1,000 transactions over 24 months.
+`Array.prototype.sort`. A counting test asserts 16 for a small plan and for 1,000 transactions over 24 months.
 
-Largest plan tested (`plan-export-calls.test.ts`, in the Worker test pool, local D1): 1,080 transactions (1,000 plain, 10 splits of three lines, 20 transfer pairs), 24 months, 51 categories, 4 accounts: 15 calls, handler 97 ms, zip 210,524 bytes. Fixture F (the small plan) also makes 15.
+Largest plan tested (`plan-export-calls.test.ts`, in the Worker test pool, local D1): 1,080 transactions (1,000 plain, 10 splits of three lines, 20 transfer pairs), 24 months, 51 categories, 4 accounts: 15 calls then (16 since EXF-537 added the card flows read), handler 97 ms, zip 210,524 bytes. Fixture F (the small plan) also makes 16.
 
 ## Downstream effects
 
@@ -204,7 +204,7 @@ Adjustment); assignments Sep and Oct `Rent` $900.00, Dec `Groceries 🛒` $50.00
    `content_base64` decodes to bytes equal to the REST body, `bytes` = their length.
 9. **Read-only and errors.** `change_log` rows of F are the same count before and after cases 1 and 8; unknown plan →
    404 (REST) / tool error; `now` = `2026-11-16 09:05`, `2026-02-30T10:00`, `2026-11-16T24:00` → 422.
-10. **D1 calls.** Counting env: 15 calls for F and 15 for a plan with 1,000 transactions over 24 months (seeded with
+10. **D1 calls.** Counting env: 16 calls for F and 16 for a plan with 1,000 transactions over 24 months (seeded with
     SQL batches), 40 categories and 4 accounts; the test logs `plan-export: <n> transactions, <m> months, <ms> ms`.
 11. **Zip.** `zip.test.ts`'s existing cases pass unchanged; a new case: `storeZip(files, "2026-11-15", "19:51")`
     has time `(19 << 11) | (51 << 5)` at offset 10 and in the central header, and the same files without `time`

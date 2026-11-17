@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
 import { addUnlinkedAccount, deleteAccount, updateAccount } from "../src/services/accounts";
 import { createCategory, createCategoryGroup, updateCategory } from "../src/services/categories";
+import { getCardPaymentStatus, getMonthCategory } from "../src/services/month-categories";
 import { getPlanMonth, getPlanMonths, listPlanMonths } from "../src/services/months";
 import { account, actor, type Json, plan, tx } from "./bulk-helpers";
 import { json } from "./helpers";
 
-// EXF-532, EXF-535: the D1 calls of the handlers this feature adds or changes ("Services: D1 calls" in
+// EXF-532, EXF-535, EXF-537: the D1 calls of the handlers this feature adds or changes ("Services: D1 calls" in
 // docs/conventions.md). Each count must be the same for 10 and for 100 categories.
 
 /**
@@ -93,18 +94,24 @@ async function world(n: number) {
 const SIZES = [10, 100];
 
 describe("EXF-532/535 D1 calls", () => {
-  it("the month read makes 8 D1 calls whatever the plan's size", async () => {
+  it("the month read makes 9 D1 calls (EXF-537 adds the card flows) whatever the plan's size", async () => {
     for (const n of SIZES) {
       const w = await world(n);
       const c = counting();
       await getPlanMonth(c.env, w.bid, "2026-11-01");
-      expect(c.calls(), `getPlanMonth at ${n}`).toBe(8);
+      expect(c.calls(), `getPlanMonth at ${n}`).toBe(9);
       c.reset();
       await getPlanMonths(c.env, w.bid, ["2026-09-01", "2026-10-01", "2026-11-01"]);
-      expect(c.calls(), `getPlanMonths at ${n}`).toBe(8);
+      expect(c.calls(), `getPlanMonths at ${n}`).toBe(9);
       c.reset();
       await listPlanMonths(c.env, w.bid, "2026-01-01", "2026-12-01");
       expect(c.calls(), `listPlanMonths at ${n}`).toBe(6);
+      c.reset();
+      await getMonthCategory(c.env, w.bid, "2026-11-01", w.cats[0] as string);
+      expect(c.calls(), `getMonthCategory at ${n}`).toBe(9);
+      c.reset();
+      await getCardPaymentStatus(c.env, w.bid, "2026-11-01", w.cards[0] as string);
+      expect(c.calls(), `getCardPaymentStatus at ${n}`).toBe(9);
     }
   });
 

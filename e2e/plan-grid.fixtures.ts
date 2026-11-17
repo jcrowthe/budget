@@ -26,6 +26,7 @@ const cat = (
   target: null,
   note: null,
   target_snoozed: false,
+  payment: null,
   ...extra,
 });
 
