@@ -1,6 +1,5 @@
 import type { Account } from "@budget/schema/accounts";
 import { paymentDisplay, transferEntryLabel } from "@budget/schema/card-payments";
-import { parseEntryDate } from "@budget/schema/date-entry";
 import type { Payee } from "@budget/schema/payees";
 import { savesAsScheduled } from "@budget/schema/recurrence";
 import {
@@ -21,6 +20,7 @@ import { useMonth } from "../api/months";
 import { usePayees } from "../api/payees";
 import { useCreateScheduled, useUpdateScheduled } from "../api/scheduledTransactions";
 import { useSaveTransaction } from "../api/transactions";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AccountField } from "./AccountField";
 import { AmountField } from "./AmountField";
 import { Box } from "./Box";
@@ -104,12 +104,16 @@ export function EntryRow({
   onSaved: (next: "close" | "again", date: string) => void;
 }) {
   const today = localToday();
+  const fmt = usePlanFormatter();
   const [draft, setDraft] = useState<Draft>(() => {
     const d = scheduled
-      ? draftFromScheduled(scheduled)
+      ? draftFromScheduled(scheduled, fmt)
       : tx
-        ? draftFromTx(tx)
-        : { ...emptyDraft(date ?? today, account?.id ?? null), inflowText: prefillInflow ?? "" };
+        ? draftFromTx(tx, fmt)
+        : {
+            ...emptyDraft(date ?? today, account?.id ?? null, fmt),
+            inflowText: prefillInflow ?? "",
+          };
     // S on a row: the old category is not carried over.
     return startSplit && !d.lines
       ? { ...d, category: { kind: "none" }, lines: [emptyLine(), emptyLine()] }
@@ -209,7 +213,7 @@ export function EntryRow({
     const d0 = override ?? draft;
     // A category the rule does not allow is never sent.
     const d: Draft = noCategory ? { ...d0, category: { kind: "none" } } : d0;
-    const err = draftError(d, today, plan);
+    const err = draftError(d, today, plan, fmt);
     if (err) {
       setMessage(err.message);
       focusField(err.field);
@@ -220,8 +224,8 @@ export function EntryRow({
         setMessage("A split needs at least two lines.");
         return;
       }
-      const total = draftAmount(d);
-      const sum = splitSum(d.lines.map(lineAmount));
+      const total = draftAmount(d, fmt);
+      const sum = splitSum(d.lines.map((l) => lineAmount(l, fmt)));
       if (sum !== total) {
         setMessage(null);
         setUnbalanced({ total, sum, next });
@@ -230,7 +234,7 @@ export function EntryRow({
     }
     setMessage(null);
     const accountId = account?.id ?? (d.accountId as string);
-    const typedDate = parseEntryDate(d.dateText, today) as string;
+    const typedDate = fmt.parseDate(d.dateText, today) as string;
     if (mode === "add" && savesAsScheduled(typedDate, d.frequency, today)) {
       // The same rule as the API: a future date or a repeat is a schedule.
       if (d.lines || d.transferAccountId) {
@@ -238,7 +242,7 @@ export function EntryRow({
         return;
       }
       saving.current = true;
-      createScheduled.mutate(draftToScheduledCreate(d, accountId, today), {
+      createScheduled.mutate(draftToScheduledCreate(d, accountId, today, fmt), {
         onSuccess: () => onSaved(next, typedDate),
         onError: (e) => setMessage(`Couldn't save the transaction. ${e.message}`),
         onSettled: () => {
@@ -248,7 +252,7 @@ export function EntryRow({
       return;
     }
     if (isScheduledEdit && scheduled) {
-      const body = draftToScheduledPatch(scheduled, d, today);
+      const body = draftToScheduledPatch(scheduled, d, today, fmt);
       if (body.date_first && typedDate <= today && d.frequency === "never") {
         setMessage(EDIT_NOT_SCHEDULED);
         return;
@@ -271,7 +275,9 @@ export function EntryRow({
       return;
     }
     const body =
-      mode === "edit" && tx ? draftToPatch(tx, d, today) : draftToCreate(d, accountId, today);
+      mode === "edit" && tx
+        ? draftToPatch(tx, d, today, fmt)
+        : draftToCreate(d, accountId, today, fmt);
     if (mode === "edit" && Object.keys(body).length === 0) {
       onClose();
       return;
@@ -326,21 +332,24 @@ export function EntryRow({
   const { showFlags, showBalance } = useRegisterView();
   const colCount =
     (plan ? 1 : 0) + (showCategory ? 1 : 0) + 6 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
-  const parentAmount = draftAmount(draft);
+  const parentAmount = draftAmount(draft, fmt);
 
   const autoDistributeLines = () => {
     if (!draft.lines || !unbalanced) return;
-    const spread = autoDistribute(unbalanced.total, draft.lines.map(lineAmount));
+    const spread = autoDistribute(
+      unbalanced.total,
+      draft.lines.map((l) => lineAmount(l, fmt)),
+    );
     setDraft((d) => ({
       ...d,
-      lines: (d.lines ?? []).map((l, i) => ({ ...l, ...amountTexts(spread[i] ?? 0) })),
+      lines: (d.lines ?? []).map((l, i) => ({ ...l, ...amountTexts(spread[i] ?? 0, fmt) })),
     }));
     setUnbalanced(null);
   };
   const updateTotal = () => {
     if (!draft.lines || !unbalanced) return;
     const next = unbalanced.next;
-    const updated: Draft = { ...draft, ...amountTexts(unbalanced.sum) };
+    const updated: Draft = { ...draft, ...amountTexts(unbalanced.sum, fmt) };
     setDraft(updated);
     setUnbalanced(null);
     submit(next, updated);

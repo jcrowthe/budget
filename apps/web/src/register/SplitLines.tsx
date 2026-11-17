@@ -2,6 +2,7 @@ import { formatAmountEntry } from "@budget/schema/amount-entry";
 import type { MonthDetail } from "@budget/schema/months";
 import type { Payee } from "@budget/schema/payees";
 import { splitRemaining, splitRemainingColumns } from "@budget/schema/split";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AmountField } from "./AmountField";
 import { CategoryField } from "./CategoryField";
 import { type LineDraft, lineAmount, rememberedCategory } from "./entryDraft";
@@ -36,13 +37,14 @@ export function SplitLines({
   onRemove: (index: number) => void;
   onAdd: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const remaining = splitRemainingColumns(
     splitRemaining(
       total,
-      lines.map((l) => lineAmount(l)),
+      lines.map((l) => lineAmount(l, fmt)),
     ),
   );
-  const num = (n: number) => formatAmountEntry(n);
+  const num = (n: number) => formatAmountEntry(n, fmt);
   const lead_ = <td colSpan={lead} />;
   return (
     <>

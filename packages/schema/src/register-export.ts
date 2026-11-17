@@ -1,3 +1,4 @@
+import { DEFAULT_PLAN_FORMAT, type ExportFormat, exportFormat } from "./plan-export";
 import { FLAG_NAMES, type PlanTransaction } from "./transactions";
 
 export const REGISTER_CSV_HEADER = [
@@ -16,13 +17,6 @@ export const REGISTER_CSV_HEADER = [
 
 const quote = (s: string) => `"${s.replaceAll('"', '""')}"`;
 
-/** A dollar sign and the amount to the cent (milliunits in), with no thousands separator. */
-function money(milli: number): string {
-  const cents = Math.round(Math.abs(milli) / 10);
-  return `$${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
-}
-
-const dateText = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
 const CLEARED_TEXT = {
   uncleared: "Uncleared",
   cleared: "Cleared",
@@ -39,7 +33,10 @@ type Line = {
 };
 
 /** The CSV of the selected rows: a BOM, the header, then one line per row (one per line of a split). */
-export function registerCsv(rows: readonly PlanTransaction[]): string {
+export function registerCsv(
+  rows: readonly PlanTransaction[],
+  fmt: ExportFormat = exportFormat(DEFAULT_PLAN_FORMAT),
+): string {
   const out: string[] = [REGISTER_CSV_HEADER.map(quote).join(",")];
   for (const r of rows) {
     const n = r.subtransactions.length;
@@ -71,14 +68,14 @@ export function registerCsv(rows: readonly PlanTransaction[]): string {
       const fields = [
         r.account_name,
         r.flag_color ? FLAG_NAMES[r.flag_color] : "",
-        dateText(r.date),
+        fmt.date(r.date),
         l.payee ?? "",
         both,
         group,
         category,
         l.memo ?? "",
-        l.amount < 0 ? money(l.amount) : "$0.00",
-        l.amount > 0 ? money(l.amount) : "$0.00",
+        l.amount < 0 ? fmt.amount(Math.abs(l.amount)) : fmt.amount(0),
+        l.amount > 0 ? fmt.amount(Math.abs(l.amount)) : fmt.amount(0),
         CLEARED_TEXT[r.cleared],
       ];
       out.push(fields.map(quote).join(","));

@@ -1,5 +1,5 @@
-import { formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
 import { useRef, useState } from "react";
+import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { CalendarIcon } from "../icons";
 import { Popover } from "../Popover";
 import { TargetCalendar } from "./TargetCalendar";
@@ -20,17 +20,18 @@ export function TargetDateField({
   disabled?: boolean;
   invalid?: boolean;
 }) {
+  const fmt = usePlanFormatter();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const parsed = parseEntryDate(value, today);
+  const parsed = fmt.parseDate(value, today);
   return (
     <div ref={box} className="target-field target-date">
       <input
         ref={input}
         type="text"
         className="target-input"
-        placeholder="MM/DD/YYYY"
+        placeholder={fmt.dateFormat}
         aria-label={label}
         aria-haspopup="dialog"
         aria-invalid={invalid || undefined}
@@ -63,7 +64,7 @@ export function TargetDateField({
             start={parsed ?? today}
             selected={parsed}
             onPick={(iso) => {
-              onChange(formatEntryDate(iso));
+              onChange(fmt.date(iso));
               setOpen(false);
               input.current?.focus();
             }}

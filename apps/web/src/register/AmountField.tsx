@@ -1,5 +1,6 @@
 import { evaluateAmountEntry, formatAmountEntry } from "@budget/schema/amount-entry";
 import { useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { CalculatorIcon } from "./icons";
 
 /** Outflow or Inflow: arithmetic on blur, two decimals; a calculator icon while focused. */
@@ -12,6 +13,7 @@ export function AmountField({
   value: string;
   onChange: (text: string) => void;
 }) {
+  const fmt = usePlanFormatter();
   const [focused, setFocused] = useState(false);
   return (
     <div className={`entry-input entry-amount${focused ? " is-focused" : ""}`}>
@@ -27,8 +29,8 @@ export function AmountField({
         onChange={(e) => onChange(e.target.value)}
         onBlur={() => {
           setFocused(false);
-          const v = evaluateAmountEntry(value);
-          onChange(v === null ? "" : formatAmountEntry(v));
+          const v = evaluateAmountEntry(fmt.typedAmount(value), fmt.digits);
+          onChange(v === null ? "" : formatAmountEntry(v, fmt));
         }}
       />
     </div>

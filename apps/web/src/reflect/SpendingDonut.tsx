@@ -1,5 +1,6 @@
 import type { SpendingItem } from "@budget/schema/reports";
 import { useEffect, useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { money } from "./format";
 
 /** Slice colour by rank: eight slots, then one for the rest (custom properties in spending-breakdown.css). */
@@ -39,6 +40,7 @@ export function SpendingDonut({
   onHover: (id: string | null) => void;
   onPick: (item: SpendingItem, x: number, y: number) => void;
 }) {
+  const fmt = usePlanFormatter();
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   useEffect(() => {
@@ -116,7 +118,7 @@ export function SpendingDonut({
                   {s.item.name}
                 </tspan>
                 <tspan className="sb-label-value" x={lx} dy="1.3em">
-                  {`${money(s.item.total)} (${s.item.share_pct}%)`}
+                  {`${money(s.item.total, fmt)} (${s.item.share_pct}%)`}
                 </tspan>
               </text>
             );
@@ -129,7 +131,7 @@ export function SpendingDonut({
               {hovered.item.name}
             </span>
             <span className="sb-centre-amount" data-testid="sb-centre-amount">
-              {money(hovered.item.total)}
+              {money(hovered.item.total, fmt)}
             </span>
             <span className="sb-centre-pct" data-testid="sb-centre-pct">
               {hovered.item.share_pct}%
@@ -141,7 +143,7 @@ export function SpendingDonut({
               Total Spending
             </span>
             <span className="sb-centre-amount" data-testid="sb-centre-amount">
-              {money(total)}
+              {money(total, fmt)}
             </span>
           </>
         )}

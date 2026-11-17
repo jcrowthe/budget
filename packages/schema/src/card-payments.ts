@@ -4,6 +4,7 @@ import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import type { MonthDetail } from "./months";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import { REGISTER_CREDIT_TYPES } from "./register";
 import { TransactionDetail } from "./transactions";
 
@@ -56,8 +57,10 @@ export const paymentTone = (available: number): PaymentTone =>
   available === 0 ? "zero" : available > 0 ? "positive" : "negative";
 
 /** D2: the Inflow text for Record Payment: the Available when it is above 0, else nothing. */
-export const paymentPrefill = (available: number | null | undefined): string =>
-  available != null && available > 0 ? formatAmountEntry(available) : "";
+export const paymentPrefill = (
+  available: number | null | undefined,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
+): string => (available != null && available > 0 ? formatAmountEntry(available, fmt) : "");
 
 export const CardPaymentRequest = z
   .object({

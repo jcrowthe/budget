@@ -1,6 +1,7 @@
 import { evaluateAmountEntry, formatAmountEntry, signedAmount } from "@budget/schema/amount-entry";
-import { formatEntryDate, parseEntryDate } from "@budget/schema/date-entry";
+import { formatEntryDate } from "@budget/schema/date-entry";
 import type { Payee } from "@budget/schema/payees";
+import type { PlanFormatter } from "@budget/schema/plan-formats";
 import type { Frequency } from "@budget/schema/recurrence";
 import type {
   ScheduledTransaction,
@@ -53,13 +54,19 @@ export const emptyLine = (): LineDraft => ({
   inflowText: "",
 });
 
-export const lineAmount = (l: Pick<LineDraft, "outflowText" | "inflowText">): number =>
-  signedAmount(evaluateAmountEntry(l.outflowText), evaluateAmountEntry(l.inflowText));
+/** The milliunits typed in a field, read with the plan's separators and decimal digits. */
+export const typedAmount = (text: string, fmt: PlanFormatter): number | null =>
+  evaluateAmountEntry(fmt.typedAmount(text), fmt.digits);
+
+export const lineAmount = (
+  l: Pick<LineDraft, "outflowText" | "inflowText">,
+  fmt: PlanFormatter,
+): number => signedAmount(typedAmount(l.outflowText, fmt), typedAmount(l.inflowText, fmt));
 
 /** The text of an amount in its column: outflow for a negative one. */
-export const amountTexts = (amount: number) => ({
-  outflowText: amount < 0 ? formatAmountEntry(-amount) : "",
-  inflowText: amount > 0 ? formatAmountEntry(amount) : "",
+export const amountTexts = (amount: number, fmt: PlanFormatter) => ({
+  outflowText: amount < 0 ? formatAmountEntry(-amount, fmt) : "",
+  inflowText: amount > 0 ? formatAmountEntry(amount, fmt) : "",
 });
 
 export type Draft = {
@@ -82,12 +89,12 @@ export type Draft = {
   frequency: Frequency;
 };
 
-export function emptyDraft(date: string, accountId: string | null): Draft {
+export function emptyDraft(date: string, accountId: string | null, fmt: PlanFormatter): Draft {
   return {
     transferAccountId: null,
     lines: null,
     accountId,
-    dateText: formatEntryDate(date),
+    dateText: formatEntryDate(date, fmt),
     lastDate: date,
     payee: { id: null, name: "" },
     category: { kind: "none" },
@@ -99,7 +106,7 @@ export function emptyDraft(date: string, accountId: string | null): Draft {
   };
 }
 
-export function draftFromTx(tx: TransactionDetail): Draft {
+export function draftFromTx(tx: TransactionDetail, fmt: PlanFormatter): Draft {
   return {
     transferAccountId: tx.transfer_account_id,
     lines: tx.subtransactions.length
@@ -112,11 +119,11 @@ export function draftFromTx(tx: TransactionDetail): Draft {
               ? { kind: "rta" }
               : { kind: "none" },
           memo: l.memo ?? "",
-          ...amountTexts(l.amount),
+          ...amountTexts(l.amount, fmt),
         }))
       : null,
     accountId: tx.account_id,
-    dateText: formatEntryDate(tx.date),
+    dateText: formatEntryDate(tx.date, fmt),
     lastDate: tx.date,
     payee: { id: tx.payee_id, name: tx.payee_name ?? "" },
     category: tx.category_id
@@ -125,20 +132,20 @@ export function draftFromTx(tx: TransactionDetail): Draft {
         ? { kind: "rta" }
         : { kind: "none" },
     memo: tx.memo ?? "",
-    outflowText: tx.amount < 0 ? formatAmountEntry(-tx.amount) : "",
-    inflowText: tx.amount > 0 ? formatAmountEntry(tx.amount) : "",
+    outflowText: tx.amount < 0 ? formatAmountEntry(-tx.amount, fmt) : "",
+    inflowText: tx.amount > 0 ? formatAmountEntry(tx.amount, fmt) : "",
     cleared: tx.cleared,
     frequency: "never",
   };
 }
 
 /** A scheduled row opened for editing: its next date and its frequency. */
-export function draftFromScheduled(s: ScheduledTransaction): Draft {
+export function draftFromScheduled(s: ScheduledTransaction, fmt: PlanFormatter): Draft {
   return {
     transferAccountId: null,
     lines: null,
     accountId: s.account_id,
-    dateText: formatEntryDate(s.date_next),
+    dateText: formatEntryDate(s.date_next, fmt),
     lastDate: s.date_next,
     payee: { id: s.payee_id, name: s.payee_name ?? "" },
     category: s.category_id
@@ -147,14 +154,14 @@ export function draftFromScheduled(s: ScheduledTransaction): Draft {
         ? { kind: "rta" }
         : { kind: "none" },
     memo: s.memo ?? "",
-    ...amountTexts(s.amount),
+    ...amountTexts(s.amount, fmt),
     cleared: "uncleared",
     frequency: s.frequency,
   };
 }
 
-export function draftAmount(d: Draft): number {
-  return signedAmount(evaluateAmountEntry(d.outflowText), evaluateAmountEntry(d.inflowText));
+export function draftAmount(d: Draft, fmt: PlanFormatter): number {
+  return signedAmount(typedAmount(d.outflowText, fmt), typedAmount(d.inflowText, fmt));
 }
 
 const categoryFields = (c: CategoryValue) => ({
@@ -172,19 +179,24 @@ const payeeFields = (p: Draft["payee"]) =>
 export type DraftError = { field: Field; message: string } | null;
 
 /** The date and account checks that stop a save; nothing else does. */
-export function draftError(d: Draft, today: string, needAccount: boolean): DraftError {
+export function draftError(
+  d: Draft,
+  today: string,
+  needAccount: boolean,
+  fmt: PlanFormatter,
+): DraftError {
   if (needAccount && !d.accountId) return { field: "account", message: "Choose an account." };
-  if (!parseEntryDate(d.dateText, today)) {
-    return { field: "date", message: "Enter a date like 11/15/2026." };
+  if (!fmt.parseDate(d.dateText, today)) {
+    return { field: "date", message: `Enter a date like ${fmt.date("2026-11-15")}.` };
   }
   return null;
 }
 
-const linesBody = (lines: LineDraft[]): SubTransactionInput[] =>
+const linesBody = (lines: LineDraft[], fmt: PlanFormatter): SubTransactionInput[] =>
   lines.map((l) => {
     const memo = l.memo.trim();
     return {
-      amount: lineAmount(l),
+      amount: lineAmount(l, fmt),
       ...(l.payee.id || l.payee.name.trim() !== "" ? payeeFields(l.payee) : {}),
       ...(l.category.kind === "none" ? {} : categoryFields(l.category)),
       ...(memo ? { memo } : {}),
@@ -192,12 +204,12 @@ const linesBody = (lines: LineDraft[]): SubTransactionInput[] =>
   });
 
 /** Compares lines by what they would send. */
-const linesSignature = (lines: LineDraft[] | null) =>
+const linesSignature = (lines: LineDraft[] | null, fmt: PlanFormatter) =>
   lines === null
     ? null
     : JSON.stringify(
         lines.map((l) => [
-          lineAmount(l),
+          lineAmount(l, fmt),
           l.payee.id ?? l.payee.name.trim(),
           l.category,
           l.memo.trim(),
@@ -208,14 +220,15 @@ export function draftToCreate(
   d: Draft,
   accountId: string,
   today: string,
+  fmt: PlanFormatter,
 ): TransactionCreateRequest {
-  const date = parseEntryDate(d.dateText, today) as string;
+  const date = fmt.parseDate(d.dateText, today) as string;
   const memo = d.memo.trim();
   const payee = payeeFields(d.payee);
   return {
     account_id: accountId,
     date,
-    amount: draftAmount(d),
+    amount: draftAmount(d, fmt),
     cleared: d.cleared === "cleared" ? "cleared" : "uncleared",
     approved: true,
     ...(memo ? { memo } : {}),
@@ -225,7 +238,7 @@ export function draftToCreate(
         ? {}
         : payee),
     ...(d.category.kind === "none" || d.lines ? {} : categoryFields(d.category)),
-    ...(d.lines ? { subtransactions: linesBody(d.lines) } : {}),
+    ...(d.lines ? { subtransactions: linesBody(d.lines, fmt) } : {}),
   };
 }
 
@@ -234,10 +247,11 @@ export function draftToPatch(
   before: TransactionDetail,
   d: Draft,
   today: string,
+  fmt: PlanFormatter,
 ): TransactionUpdateRequest {
-  const was = draftFromTx(before);
+  const was = draftFromTx(before, fmt);
   const patch: TransactionUpdateRequest = {};
-  const date = parseEntryDate(d.dateText, today) as string;
+  const date = fmt.parseDate(d.dateText, today) as string;
   if (date !== before.date) patch.date = date;
   if (d.accountId && d.accountId !== before.account_id) patch.account_id = d.accountId;
   if (d.transferAccountId !== was.transferAccountId) {
@@ -255,14 +269,14 @@ export function draftToPatch(
   }
   if (d.memo.trim() !== (before.memo ?? ""))
     patch.memo = d.memo.trim() === "" ? null : d.memo.trim();
-  const amount = draftAmount(d);
+  const amount = draftAmount(d, fmt);
   if (amount !== before.amount) patch.amount = amount;
   if (d.cleared !== was.cleared) patch.cleared = d.cleared;
   if (
     d.lines &&
-    (linesSignature(d.lines) !== linesSignature(was.lines) || amount !== before.amount)
+    (linesSignature(d.lines, fmt) !== linesSignature(was.lines, fmt) || amount !== before.amount)
   ) {
-    patch.subtransactions = linesBody(d.lines);
+    patch.subtransactions = linesBody(d.lines, fmt);
     patch.amount = amount;
   } else if (!d.lines && was.lines) {
     patch.subtransactions = [];
@@ -280,15 +294,16 @@ export function draftToScheduledCreate(
   d: Draft,
   accountId: string,
   today: string,
+  fmt: PlanFormatter,
 ): ScheduledTransactionCreate {
-  const date = parseEntryDate(d.dateText, today) as string;
+  const date = fmt.parseDate(d.dateText, today) as string;
   const memo = d.memo.trim();
   const payee = payeeFields(d.payee);
   return {
     account_id: accountId,
     date_first: date,
     frequency: d.frequency,
-    amount: draftAmount(d),
+    amount: draftAmount(d, fmt),
     ...(memo ? { memo } : {}),
     ...("payee_id" in payee && payee.payee_id === null ? {} : payee),
     ...(d.category.kind === "none" ? {} : categoryFields(d.category)),
@@ -300,10 +315,11 @@ export function draftToScheduledPatch(
   before: ScheduledTransaction,
   d: Draft,
   today: string,
+  fmt: PlanFormatter,
 ): ScheduledTransactionUpdate {
-  const was = draftFromScheduled(before);
+  const was = draftFromScheduled(before, fmt);
   const patch: ScheduledTransactionUpdate = {};
-  const date = parseEntryDate(d.dateText, today) as string;
+  const date = fmt.parseDate(d.dateText, today) as string;
   if (date !== before.date_next || d.frequency !== before.frequency) patch.date_first = date;
   if (d.frequency !== before.frequency) patch.frequency = d.frequency;
   if (d.accountId && d.accountId !== before.account_id) patch.account_id = d.accountId;
@@ -316,7 +332,7 @@ export function draftToScheduledPatch(
   }
   if (d.memo.trim() !== (before.memo ?? ""))
     patch.memo = d.memo.trim() === "" ? null : d.memo.trim();
-  const amount = draftAmount(d);
+  const amount = draftAmount(d, fmt);
   if (amount !== before.amount) patch.amount = amount;
   return patch;
 }

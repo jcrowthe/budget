@@ -23,7 +23,7 @@ import { useCommitAssigned } from "../../api/assigned";
 import { useDeleteTarget, useSaveTarget } from "../../api/targets";
 import { localToday } from "../../api/today";
 import { localCurrentMonth } from "../../shell/planPaths";
-import { money } from "../format";
+
 import { QuestionCircleIcon, TargetRingIcon } from "../icons";
 import { useToggleSnooze } from "../snooze";
 import { PanelCard } from "./PanelCard";
@@ -31,6 +31,7 @@ import { PanelTooltip } from "./PanelTooltip";
 import { Switch } from "./Switch";
 import { TargetForm } from "./TargetForm";
 import "./target.css";
+import { usePlanFormatter } from "../../shell/plan-formats-context";
 
 /** The donut: the percentage as a ring, yellow while the target is short and green once it is met or on track. */
 function Donut({ percent, tone }: { percent: number; tone: "cautious" | "positive" }) {
@@ -78,6 +79,7 @@ export function TargetCard({
   collapsed: boolean;
   onToggle: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const qc = useQueryClient();
   const [draft, setDraft] = useState<TargetDraft | null>(null);
   const [errors, setErrors] = useState<{ amount?: string; date?: string }>({});
@@ -108,7 +110,7 @@ export function TargetCard({
   }, [reads, waitingFor]);
 
   // A new to-go figure means the month was read again after the Assign.
-  const toGo = targetMessage(c)?.assign ?? null;
+  const toGo = targetMessage(c, fmt)?.assign ?? null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: clears when the figure changes
   useEffect(() => {
     setAssigning((a) => (a !== null && a !== toGo ? null : a));
@@ -159,7 +161,7 @@ export function TargetCard({
             else submit(() => del.mutateAsync(c.id), "Couldn't delete the target.");
           }}
           onSave={() => {
-            const r = draftToBody(draft, today);
+            const r = draftToBody(draft, today, fmt);
             if ("errors" in r) {
               setErrors(r.errors);
               return;
@@ -183,7 +185,11 @@ export function TargetCard({
         <div className="target-empty">
           <strong>{text.question}</strong>
           <p>{text.body}</p>
-          <button type="button" className="target-create" onClick={() => open(newDraft(today))}>
+          <button
+            type="button"
+            className="target-create"
+            onClick={() => open(newDraft(today, fmt))}
+          >
             Create Target
           </button>
         </div>
@@ -191,8 +197,8 @@ export function TargetCard({
     );
   }
 
-  const { heading, subheading } = targetHeading(t);
-  const message = targetMessage(c);
+  const { heading, subheading } = targetHeading(t, fmt);
+  const message = targetMessage(c, fmt);
   const donut = targetDonut(c);
   return (
     <PanelCard
@@ -243,7 +249,7 @@ export function TargetCard({
               {r.rule && <hr />}
               <div className="panel-row">
                 <span className="panel-row-label">{r.label}</span>
-                <span className="panel-row-value">{money(r.amount)}</span>
+                <span className="panel-row-value">{fmt.money(r.amount)}</span>
               </div>
             </div>
           ))}
@@ -251,7 +257,7 @@ export function TargetCard({
         <button
           type="button"
           className="target-edit"
-          onClick={() => open(draftFromTarget(t.definition, today))}
+          onClick={() => open(draftFromTarget(t.definition, today, fmt))}
         >
           Edit Target
         </button>

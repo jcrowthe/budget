@@ -3,9 +3,9 @@ import type { PlanView } from "@budget/schema/plan-views";
 import { useEffect, useRef, useState } from "react";
 import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AssignPopover } from "./AssignPopover";
 import { FixThisPopover } from "./FixThisPopover";
-import { money } from "./format";
 import { CheckCircleFillIcon, InfoCircleFillIcon } from "./icons";
 import { CaretDownIcon } from "./monthNavIcons";
 import { RtaBreakdown } from "./RtaBreakdown";
@@ -24,6 +24,7 @@ export function ReadyToAssign({
   view: PlanView;
   onViewAll: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const detail = useMonth(budgetId, month).data;
   const [open, setOpen] = useState<Open>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function ReadyToAssign({
           onClick={() => setOpen((o) => (o === "breakdown" ? null : "breakdown"))}
         >
           <span className="rta-amount">
-            {money(rta)}
+            {fmt.money(rta)}
             <InfoCircleFillIcon className="rta-info" width={16} height={16} />
           </span>
           <span className="rta-label">{label}</span>

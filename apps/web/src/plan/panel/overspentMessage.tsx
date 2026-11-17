@@ -1,5 +1,5 @@
 import type { MonthCategoryDetail } from "@budget/schema/months";
-import { money } from "../format";
+import { usePlanFormatter } from "../../shell/plan-formats-context";
 
 /**
  * The message of an overspent category (EXF-535): credit only (yellow), cash only or cash and credit (red).
@@ -10,9 +10,10 @@ export function OverspentMessage({
 }: {
   c: Pick<MonthCategoryDetail, "overspent" | "available">;
 }) {
+  const fmt = usePlanFormatter();
   const o = c.overspent;
   if (!o || c.available >= 0) return null;
-  const total = <strong>{money(o.cash + o.credit)}</strong>;
+  const total = <strong>{fmt.money(o.cash + o.credit)}</strong>;
   if (o.cash === 0) {
     return (
       <div className="inspector-message cautious" role="note">
@@ -32,7 +33,7 @@ export function OverspentMessage({
   return (
     <div className="inspector-message negative" role="note">
       You've overspent this category by {total} with cash and credit. Add at least{" "}
-      <strong>{money(o.cash)}</strong> to this category or you can’t trust your plan balances!
+      <strong>{fmt.money(o.cash)}</strong> to this category or you can’t trust your plan balances!
     </div>
   );
 }

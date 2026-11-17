@@ -4,6 +4,7 @@
  * Design: docs/plan-formats-design.md, "Formatter rules".
  */
 
+import { type DateOrder, dateOrder, parseEntryDate } from "./date-entry";
 import type { PlanFormat } from "./plan-export";
 import {
   type CurrencyFormat,
@@ -49,6 +50,8 @@ export interface PlanFormatter {
   input(m: number): string;
   /** An ISO date in the plan's date format. */
   date(iso: string): string;
+  /** Typed text in the plan's day, month, year order (ISO also accepted) → ISO date, or null. */
+  parseDate(text: string, today: string): string | null;
   /** A typed amount with the plan's separators turned into what the parsers read (`.` decimal, no groups). */
   typedAmount(text: string): string;
   /** The plan as `exportFormat` reads it. */
@@ -76,6 +79,7 @@ export function planFormatter(formats: PlanFormats): PlanFormatter {
   const digits = (
     cf.decimal_digits === 0 || cf.decimal_digits === 3 ? cf.decimal_digits : 2
   ) as Digits;
+  const order: DateOrder = dateOrder(dateFormat);
   const { indian } = numberFormatParts(cf.example_format);
 
   function number(m: number, d: number, sep: string): { text: string; units: number } {
@@ -116,6 +120,7 @@ export function planFormatter(formats: PlanFormats): PlanFormatter {
         .replace("YYYY", iso.slice(0, 4))
         .replace("MM", iso.slice(5, 7))
         .replace("DD", iso.slice(8, 10)),
+    parseDate: (text, today) => parseEntryDate(text, today, order),
     typedAmount(text) {
       const groupSep = cf.group_separator;
       const decimal = cf.decimal_separator;

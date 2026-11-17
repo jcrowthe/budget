@@ -2,6 +2,7 @@ import { niceTicks } from "@budget/schema/reflect-format";
 import { monthLabel, shortMonthLabel } from "@budget/schema/report-range";
 import type { NetWorth } from "@budget/schema/reports";
 import { useEffect, useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { money, tickMoney } from "./format";
 
 export { niceTicks };
@@ -11,6 +12,7 @@ const HEIGHT = 320;
 const PAD = { left: 72, right: 16, top: 0, bottom: 20 };
 
 export function NetWorthChart({ data }: { data: NetWorth }) {
+  const fmt = usePlanFormatter();
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [hover, setHover] = useState<number | null>(null);
@@ -56,7 +58,7 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
               textAnchor="end"
               dominantBaseline="middle"
             >
-              {tickMoney(t)}
+              {tickMoney(t, fmt)}
             </text>
           </g>
         ))}
@@ -133,17 +135,17 @@ export function NetWorthChart({ data }: { data: NetWorth }) {
             <span className="swatch debts" />
             Debts
           </div>
-          <div className="nw-tip-value">{money(Math.abs(h.debts))}</div>
+          <div className="nw-tip-value">{money(Math.abs(h.debts), fmt)}</div>
           <div className="nw-tip-label">
             <span className="swatch assets" />
             Assets
           </div>
-          <div className="nw-tip-value">{money(h.assets)}</div>
+          <div className="nw-tip-value">{money(h.assets, fmt)}</div>
           <div className="nw-tip-label">
             <span className="swatch line" />
             Net Worth
           </div>
-          <div className="nw-tip-value">{money(h.net_worth)}</div>
+          <div className="nw-tip-value">{money(h.net_worth, fmt)}</div>
         </div>
       )}
     </div>

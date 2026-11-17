@@ -1,14 +1,10 @@
-import { formatMoney } from "../../core/src/money";
 import { describe, expect, it } from "vitest";
-import { formatAssignedInput } from "../src/assigned-edit";
 import { DEFAULT_FORMATTER, type PlanFormatter, planFormatter } from "../src/plan-formats";
 import {
   currencyFormatOf,
   DATE_FORMAT_OPTIONS,
   type Placement,
 } from "../src/plan-formats-catalogue";
-import { reportMoney, usDate } from "../src/reflect-format";
-import { screenMoney } from "../src/screen-money";
 
 const N = " "; // the non-breaking space screens use
 const make = (code: string, nf: string, p: Placement, date = "MM/DD/YYYY"): PlanFormatter =>
@@ -17,21 +13,30 @@ const make = (code: string, nf: string, p: Placement, date = "MM/DD/YYYY"): Plan
     date_format: { format: date as never },
   });
 
-describe("default formatter equals today's functions", () => {
-  const values = [
-    0, 10, -10, 1000, -1000, 1234560, -1234560, 12345678900, -50000, 990, 4560, -123450,
+describe("default formatter equals what the screens wrote before (EXF-468)", () => {
+  // Expected values are what screenMoney, plan money, reportMoney, registerDate and formatAssignedInput gave.
+  const table: [number, string, string][] = [
+    [0, "$0.00", "0.00"],
+    [10, "$0.01", "0.01"],
+    [-10, "−$0.01", "-0.01"],
+    [1000, "$1.00", "1.00"],
+    [-1000, "−$1.00", "-1.00"],
+    [1234560, "$1,234.56", "1,234.56"],
+    [-1234560, "−$1,234.56", "-1,234.56"],
+    [12345678900, "$12,345,678.90", "12,345,678.90"],
+    [-50000, "−$50.00", "-50.00"],
+    [990, "$0.99", "0.99"],
+    [-4, "$0.00", "0.00"],
   ];
-  it("screenMoney, plan money, reportMoney, formatAssignedInput", () => {
-    for (const v of values) {
-      expect(DEFAULT_FORMATTER.money(v)).toBe(screenMoney(v));
-      expect(DEFAULT_FORMATTER.money(v)).toBe(formatMoney(v).replace("-", "−"));
-      expect(DEFAULT_FORMATTER.money(v)).toBe(reportMoney(v));
-      expect(DEFAULT_FORMATTER.input(v)).toBe(formatAssignedInput(v));
-      expect(DEFAULT_FORMATTER.abs(v)).toBe(formatMoney(Math.abs(v)));
+  it("money and input", () => {
+    for (const [m, money, input] of table) {
+      expect(DEFAULT_FORMATTER.money(m)).toBe(money);
+      expect(DEFAULT_FORMATTER.input(m)).toBe(input);
+      expect(DEFAULT_FORMATTER.abs(m)).toBe(money.replace("−", ""));
     }
   });
   it("dates", () => {
-    expect(DEFAULT_FORMATTER.date("2026-12-30")).toBe(usDate("2026-12-30"));
+    expect(DEFAULT_FORMATTER.date("2026-12-30")).toBe("12/30/2026");
     expect(DEFAULT_FORMATTER.date("2026-01-05")).toBe("01/05/2026");
   });
 });

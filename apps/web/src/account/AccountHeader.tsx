@@ -1,7 +1,7 @@
 import type { Account, AccountType } from "@budget/schema/accounts";
 import { isCredit } from "@budget/schema/card-payments";
 import { reconciledAgo, reconciledTitle } from "@budget/schema/reconcile";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import type { AccountBalances } from "@budget/schema/transactions";
 import { Fragment, type ReactNode, useEffect, useState } from "react";
 import { useAccountSummary, useSetStarred } from "../api/accounts";
@@ -23,6 +23,7 @@ import { PaymentBalance } from "./PaymentBalance";
 import { ReconcileButton } from "./ReconcileButton";
 import { Tooltip } from "./Tooltip";
 import "./account-header.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 const TIPS = {
   cleared:
@@ -52,6 +53,7 @@ export function BalanceRow({
   working,
   children,
 }: Partial<AccountBalances> & { children?: ReactNode }) {
+  const fmt = usePlanFormatter();
   const values = { cleared, uncleared, working };
   return (
     // biome-ignore lint/a11y/useSemanticElements: a fieldset would add form semantics and its own box
@@ -70,7 +72,7 @@ export function BalanceRow({
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: each amount is focusable to show its tooltip
                 <div className="acct-balance" data-balance={b.key} tabIndex={0} {...tip}>
                   <span className={`acct-amount${v !== undefined && v < 0 ? " is-negative" : ""}`}>
-                    {v === undefined ? "" : screenMoney(v)}
+                    {v === undefined ? "" : fmt.money(v)}
                   </span>
                   <span className="acct-label">
                     {b.icon}

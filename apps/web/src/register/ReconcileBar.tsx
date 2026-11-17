@@ -2,6 +2,7 @@ import { reconcileSentence } from "@budget/schema/reconcile";
 import { useIsFetching, useIsMutating } from "@tanstack/react-query";
 import { useReconcile } from "../account/ReconcileContext";
 import { setClearedKey } from "../api/transactions";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /** The bar over the table in reconcile mode: the live difference, Cancel and the finishing button. */
 export function ReconcileBar() {
@@ -11,11 +12,12 @@ export function ReconcileBar() {
   const clearing = useIsMutating({ mutationKey: setClearedKey(budgetId) }) > 0;
   const reading = useIsFetching({ queryKey: ["accounts", budgetId, rc?.account.id] }) > 0;
   const stale = clearing || reading;
+  const fmt = usePlanFormatter();
   if (!rc || rc.step !== "mode" || rc.statement === undefined) return null;
   const difference = rc.statement - rc.account.cleared_balance;
   return (
     <section className="reconcile-bar" aria-label="Reconciliation">
-      <p className="reconcile-text">{reconcileSentence(difference)}</p>
+      <p className="reconcile-text">{reconcileSentence(difference, fmt)}</p>
       {rc.error && (
         <p className="reconcile-bar-error" role="alert">
           {rc.error}

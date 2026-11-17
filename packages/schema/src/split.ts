@@ -1,4 +1,4 @@
-import { screenMoney } from "./screen-money";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 /** Split arithmetic, all in milliunits (1000 = one unit, an outflow is negative). */
 
 export const splitSum = (lines: readonly number[]): number => lines.reduce((a, b) => a + b, 0);
@@ -29,7 +29,11 @@ export function autoDistribute(total: number, lines: readonly number[]): number[
   return out;
 }
 
-export function unbalancedText(total: number, sum: number): string {
-  const f = screenMoney;
+export function unbalancedText(
+  total: number,
+  sum: number,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
+): string {
+  const f = fmt.money;
   return `The total is ${f(total)}, but the splits add up to ${f(sum)}. How would you like to handle the unassigned ${f(total - sum)}?`;
 }

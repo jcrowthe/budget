@@ -3,6 +3,7 @@
  * `spendingRows` in the reports repository), the span and the mode; "today" never enters here.
  */
 import { csvAmount } from "./net-worth";
+import { DEFAULT_PLAN_FORMAT, type ExportFormat, exportFormat } from "./plan-export";
 import { type MonthSpan, monthCount, monthLabel, monthsIn } from "./report-range";
 import type { SpendingBreakdown, SpendingGroupBy } from "./reports";
 import { UNCATEGORIZED_ID } from "./reports";
@@ -202,6 +203,8 @@ export function computeBreakdown(input: {
 }
 
 const quote = (s: string) => `"${s.replaceAll('"', '""')}"`;
+/** An amount is written bare, but quoted when it holds a comma (a comma decimal separator). */
+const bare = (s: string) => (s.includes(",") ? quote(s) : s);
 const BOM = "﻿";
 export const HIDDEN_GROUP = "Hidden Categories";
 
@@ -255,11 +258,11 @@ export function breakdownCsv(rows: readonly SpendingRow[], span: MonthSpan): str
   return BOM + lines.join("\n");
 }
 
-const dollars = (m: number) => `$${csvAmount(Math.abs(m))}`;
-const usDate = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
-
 /** The transactions CSV: one row per counted row (a split line is one row), newest first. */
-export function transactionsCsv(rows: readonly SpendingRow[]): string {
+export function transactionsCsv(
+  rows: readonly SpendingRow[],
+  fmt: ExportFormat = exportFormat(DEFAULT_PLAN_FORMAT),
+): string {
   const lines = [
     [
       "Account",
@@ -290,14 +293,14 @@ export function transactionsCsv(rows: readonly SpendingRow[]): string {
       [
         quote(r.account_name),
         quote(""),
-        quote(usDate(r.date)),
+        quote(fmt.date(r.date)),
         quote(r.payee_name ?? ""),
         quote(both),
         quote(group),
         quote(category),
         quote(r.memo ?? ""),
-        dollars(Math.max(-r.amount, 0)),
-        dollars(Math.max(r.amount, 0)),
+        bare(fmt.amount(Math.max(-r.amount, 0))),
+        bare(fmt.amount(Math.max(r.amount, 0))),
         quote(r.cleared === "uncleared" ? "Uncleared" : "Cleared"),
       ].join(","),
     );

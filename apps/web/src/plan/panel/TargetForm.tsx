@@ -8,8 +8,8 @@ import {
 } from "@budget/schema/target-form";
 import { behaviorOptions, type FormTab } from "@budget/schema/target-wording";
 import { useEffect, useId, useRef, useState } from "react";
+import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { Calculator } from "../AssignedCell";
-import { money } from "../format";
 import { TrashIcon } from "../icons";
 import { BehaviorDropdown } from "./BehaviorDropdown";
 import { Switch } from "./Switch";
@@ -48,6 +48,7 @@ function TargetAmountField({
   disabled?: boolean;
   invalid?: boolean;
 }) {
+  const fmt = usePlanFormatter();
   const [text, setText] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const selectNext = useRef(false);
@@ -60,7 +61,8 @@ function TargetAmountField({
     }
   }, [text]);
   const commit = () => {
-    if (text !== null) onChange(text.trim() === "" ? 0 : evaluateAssigned(text, value));
+    if (text !== null)
+      onChange(text.trim() === "" ? 0 : evaluateAssigned(fmt.typedAmount(text), value, fmt.digits));
   };
   return (
     <div className="target-field target-amount">
@@ -75,10 +77,10 @@ function TargetAmountField({
         disabled={disabled}
         // biome-ignore lint/a11y/noAutofocus: opening the form puts the cursor in the amount, as the source does
         autoFocus
-        value={text ?? money(value)}
+        value={text ?? fmt.money(value)}
         onFocus={() => {
           selectNext.current = true;
-          setText(value === 0 ? "" : formatAssignedInput(value));
+          setText(value === 0 ? "" : formatAssignedInput(value, fmt));
         }}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => {
@@ -121,12 +123,13 @@ export function TargetForm({
   onCancel: () => void;
   onDelete: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const id = useId();
   const set = (patch: Partial<TargetDraft>) => onDraft((d) => ({ ...d, ...patch }));
   const tab = draft.tab;
   const custom = tab === "custom";
   const behavior = custom ? draft.custom : draft.periodic;
-  const options = behaviorOptions(tab, draft.amount);
+  const options = behaviorOptions(tab, draft.amount, fmt);
   const nextLabel = tab === "yearly" ? "Next year I want to" : "Next month I want to";
   const field = (label: string, control: React.ReactNode, key = label) => (
     <dl className="target-block" key={key}>

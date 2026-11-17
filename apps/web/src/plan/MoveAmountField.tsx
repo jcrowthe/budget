@@ -1,5 +1,6 @@
 import { evaluateAssigned, formatAssignedInput } from "@budget/schema/assigned-edit";
 import { useEffect, useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /**
  * The amount field of the Assign and Move popovers: it takes the same maths as the Assigned cell
@@ -15,7 +16,8 @@ export function MoveAmountField({
   onAmount: (amount: number) => void;
   onEnter: () => void;
 }) {
-  const [text, setText] = useState(() => formatAssignedInput(base));
+  const fmt = usePlanFormatter();
+  const [text, setText] = useState(() => formatAssignedInput(base, fmt));
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     ref.current?.focus();
@@ -31,9 +33,11 @@ export function MoveAmountField({
       value={text}
       onChange={(e) => {
         setText(e.target.value);
-        onAmount(evaluateAssigned(e.target.value, base));
+        onAmount(evaluateAssigned(fmt.typedAmount(e.target.value), base, fmt.digits));
       }}
-      onBlur={() => setText(formatAssignedInput(evaluateAssigned(text, base)))}
+      onBlur={() =>
+        setText(formatAssignedInput(evaluateAssigned(fmt.typedAmount(text), base, fmt.digits), fmt))
+      }
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();

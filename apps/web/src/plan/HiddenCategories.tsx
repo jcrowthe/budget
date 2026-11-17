@@ -4,7 +4,8 @@ import { addMilliunits } from "@budget/core/money";
 import type { MonthGroupDetail } from "@budget/schema/months";
 import { useRef, useState } from "react";
 import { useCategoryActions } from "../api/categories";
-import { amountClass, money } from "./format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
+import { amountClass } from "./format";
 import { Popover } from "./Popover";
 
 /**
@@ -21,6 +22,7 @@ export function HiddenCategoriesRow({
   /** Runs when an unhide fails (the grid shows its notice). */
   onError: () => void;
 }) {
+  const fmt = usePlanFormatter();
   const actions = useCategoryActions(budgetId);
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -54,13 +56,13 @@ export function HiddenCategoriesRow({
         </button>
       </div>
       <div className="num cell-assigned" role="cell">
-        <span className={amountClass(sum("assigned"))}>{money(sum("assigned"))}</span>
+        <span className={amountClass(sum("assigned"))}>{fmt.money(sum("assigned"))}</span>
       </div>
       <div className="num cell-activity" role="cell">
-        <span className={amountClass(sum("activity"))}>{money(sum("activity"))}</span>
+        <span className={amountClass(sum("activity"))}>{fmt.money(sum("activity"))}</span>
       </div>
       <div className="num cell-available" role="cell">
-        <span className={amountClass(sum("available"))}>{money(sum("available"))}</span>
+        <span className={amountClass(sum("available"))}>{fmt.money(sum("available"))}</span>
       </div>
       <div className="cell-margin" />
       {open && button.current && (

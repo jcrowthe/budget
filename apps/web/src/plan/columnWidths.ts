@@ -1,6 +1,8 @@
 import type { MonthDetail } from "@budget/schema/months";
+import type { PlanFormatter } from "@budget/schema/plan-formats";
 import { useEffect, useMemo, useState } from "react";
-import { categoryPill, money } from "./format";
+import { usePlanFormatter } from "../shell/plan-formats-context";
+import { categoryPill } from "./format";
 
 /** What the three number columns of the grid need to show this month's figures whole, in px. */
 export interface NumberColumns {
@@ -33,9 +35,13 @@ const textWidth = (text: string, font: string): number => {
 };
 
 /** The columns' widths from the month's figures: the widest amount of each, never below the floors. */
-export function numberColumns(detail: MonthDetail | undefined, family: string): NumberColumns {
+export function numberColumns(
+  detail: MonthDetail | undefined,
+  family: string,
+  fmt: PlanFormatter,
+): NumberColumns {
   const font = `500 14px ${family}`;
-  const w = (n: number) => textWidth(money(n), font);
+  const w = (n: number) => textWidth(fmt.money(n), font);
   const cols = { ...FLOOR };
   if (!detail) return cols;
   const grow = (k: keyof NumberColumns, px: number) => {
@@ -50,7 +56,10 @@ export function numberColumns(detail: MonthDetail | undefined, family: string): 
       if (c.hidden) continue;
       grow("assigned", w(c.assigned) + ASSIGNED_EXTRA);
       grow("activity", w(c.activity) + ACTIVITY_EXTRA);
-      grow("available", w(c.available) + PILL_PADDING + (categoryPill(c)?.icon ? PILL_ICON : 0));
+      grow(
+        "available",
+        w(c.available) + PILL_PADDING + (categoryPill(c, fmt)?.icon ? PILL_ICON : 0),
+      );
     }
   }
   if (detail.uncategorized) {
@@ -62,6 +71,7 @@ export function numberColumns(detail: MonthDetail | undefined, family: string): 
 
 /** The custom properties `--col-assigned`, `--col-activity` and `--col-available` (used by the narrow layout). */
 export function useNumberColumns(detail: MonthDetail | undefined): React.CSSProperties {
+  const fmt = usePlanFormatter();
   const [family, setFamily] = useState(() =>
     typeof document === "undefined"
       ? "sans-serif"
@@ -74,11 +84,11 @@ export function useNumberColumns(detail: MonthDetail | undefined): React.CSSProp
     );
   }, []);
   return useMemo(() => {
-    const c = numberColumns(detail, family);
+    const c = numberColumns(detail, family, fmt);
     return {
       "--col-assigned": `${c.assigned}px`,
       "--col-activity": `${c.activity}px`,
       "--col-available": `${c.available}px`,
     } as React.CSSProperties;
-  }, [detail, family]);
+  }, [detail, family, fmt]);
 }

@@ -12,6 +12,7 @@ import { SpendingList } from "./SpendingList";
 import { useReportState } from "./state";
 import { TransactionPopover } from "./TransactionPopover";
 import "./spending-breakdown.css";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 interface PopoverState {
   title: string;
@@ -31,6 +32,7 @@ export function SpendingBreakdownReport({
   onMode: (m: SpendingGroupBy) => void;
   onDrill: (d: Drill | null) => void;
 }) {
+  const fmt = usePlanFormatter();
   const { budgetId, span, settings, today } = useReportState();
   const groupBy = drill ? "category" : mode;
   const { data, isError } = useSpendingBreakdown(
@@ -75,7 +77,7 @@ export function SpendingBreakdownReport({
             <div>
               <div className="nw-caption">Total Spending</div>
               <div className="sb-total" data-testid="sb-total">
-                {money(data.total)}
+                {money(data.total, fmt)}
               </div>
             </div>
             {!drill && (
@@ -113,13 +115,13 @@ export function SpendingBreakdownReport({
           <div className="sb-metric">
             <div className="nw-caption">Average Monthly Spending</div>
             <div className="sb-metric-value" data-testid="sb-average-monthly">
-              {money(data.average_monthly)}
+              {money(data.average_monthly, fmt)}
             </div>
           </div>
           <div className="sb-metric">
             <div className="nw-caption">Average Daily Spending</div>
             <div className="sb-metric-value" data-testid="sb-average-daily">
-              {money(data.average_daily)}
+              {money(data.average_daily, fmt)}
             </div>
           </div>
           <div className="sb-metric">
@@ -140,7 +142,7 @@ export function SpendingBreakdownReport({
             </div>
             {data.largest_outflow && (
               <div className="sb-metric-sub" data-testid="sb-largest-amount">
-                {money(data.largest_outflow.amount)}
+                {money(data.largest_outflow.amount, fmt)}
               </div>
             )}
           </div>

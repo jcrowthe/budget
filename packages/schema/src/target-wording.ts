@@ -1,4 +1,5 @@
 import type { MonthCategoryDetail } from "./months";
+import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
 import type { CategoryTargetMonth, TargetBehavior } from "./targets";
 
 // Every string a category's target shows, in one pure module (no React, no clock). The wording is the
@@ -8,12 +9,6 @@ export type TargetCategory = Pick<
   MonthCategoryDetail,
   "carried" | "assigned" | "activity" | "available"
 > & { target: CategoryTargetMonth | null };
-
-/** "$1,200.00", with a real minus sign (U+2212). The schema package does not import core, so it formats itself. */
-export const targetMoney = (m: number): string =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
-    .format(m / 1000)
-    .replace("-", "−");
 
 export function ordinal(n: number): string {
   const tens = n % 100;
@@ -73,12 +68,12 @@ const monthOfYear = (iso: string) => {
 };
 
 /** The pill's title when no target speaks (moved here from the grid's format module). */
-export const pillTitle = (available: number): string => {
+export const pillTitle = (available: number, fmt: PlanFormatter = DEFAULT_FORMATTER): string => {
   if (available > 0) {
-    return `${targetMoney(available)} Available to plan your spending—or click to move it to another category!`;
+    return `${fmt.money(available)} Available to plan your spending—or click to move it to another category!`;
   }
   if (available < 0) {
-    return `${targetMoney(available)} A green category is a happy category. Make this category happy by adding funds from surplus categories.`;
+    return `${fmt.money(available)} A green category is a happy category. Make this category happy by adding funds from surplus categories.`;
   }
   return "";
 };
@@ -98,12 +93,13 @@ const dueDate = (t: CategoryTargetMonth) => t.period_due_date ?? t.definition.du
 
 export function targetStatusText(
   c: TargetCategory,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
 ): { amount: string | null; text: string } | null {
   const t = c.target;
   if (!t || t.status === "snoozed" || c.available < 0) return null;
   const spent = c.activity < 0 ? -c.activity : 0;
   const spentText =
-    spent > 0 ? `. Spent ${targetMoney(spent)} of ${targetMoney(c.carried + c.assigned)}` : "";
+    spent > 0 ? `. Spent ${fmt.money(spent)} of ${fmt.money(c.carried + c.assigned)}` : "";
   switch (t.status) {
     case "funded":
     case "complete":
@@ -112,7 +108,7 @@ export function targetStatusText(
       return { amount: null, text: `On Track${spentText}` };
     case "eventually":
       return {
-        amount: targetMoney(t.overall_to_go),
+        amount: fmt.money(t.overall_to_go),
         text: ` ${t.funded > 0 ? "more " : ""}needed eventually`,
       };
     default: {
@@ -123,35 +119,38 @@ export function targetStatusText(
       } else if (!isPeriodic(t) && t.due_this_month && t.period_due_date) {
         when = `by ${longDay(t.period_due_date)}`;
       }
-      return { amount: targetMoney(t.to_go_this_month), text: ` ${more}needed ${when}` };
+      return { amount: fmt.money(t.to_go_this_month), text: ` ${more}needed ${when}` };
     }
   }
 }
 
-export function targetPill(c: TargetCategory): {
+export function targetPill(
+  c: TargetCategory,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
+): {
   tone: "zero" | "positive" | "negative" | "cautious";
   icon: "clock" | "check" | "clockCheck" | "snooze" | null;
   title: string;
 } {
   const plainTone = c.available === 0 ? "zero" : c.available > 0 ? "positive" : "negative";
-  const plain = { tone: plainTone, icon: null, title: pillTitle(c.available) } as const;
+  const plain = { tone: plainTone, icon: null, title: pillTitle(c.available, fmt) } as const;
   const t = c.target;
   if (t?.status === "snoozed") {
     return {
       tone: plainTone,
       icon: c.available < 0 ? null : "snooze",
-      title: pillTitle(c.available),
+      title: pillTitle(c.available, fmt),
     };
   }
   if (!t || t.status === "eventually" || c.available < 0) return plain;
   const def = t.definition;
-  const T = targetMoney(def.amount);
+  const T = fmt.money(def.amount);
   const grey = c.available === 0;
-  const toGo = targetMoney(t.to_go_this_month);
+  const toGo = fmt.money(t.to_go_this_month);
   if (t.status === "underfunded") {
     let title: string;
     if (isPeriodic(t)) {
-      title = `Assign ${toGo} more to fund your ${targetMoney(t.needed_this_month)} monthly target.`;
+      title = `Assign ${toGo} more to fund your ${fmt.money(t.needed_this_month)} monthly target.`;
     } else if (t.due_this_month) {
       title = `Your ${T} target is due this month, and you're short by ${toGo}. Assign another ${toGo} to fund your target.`;
     } else if (isBalance(t)) {
@@ -170,14 +169,17 @@ export function targetPill(c: TargetCategory): {
     };
   }
   const title = isPeriodic(t)
-    ? `You've funded your ${targetMoney(t.needed_this_month)} target for the month!`
+    ? `You've funded your ${fmt.money(t.needed_this_month)} target for the month!`
     : `You've funded your ${T} target!`;
   return { tone: grey ? "zero" : "positive", icon: grey ? null : "check", title };
 }
 
-export function targetHeading(t: CategoryTargetMonth): { heading: string; subheading: string } {
+export function targetHeading(
+  t: CategoryTargetMonth,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
+): { heading: string; subheading: string } {
   const def = t.definition;
-  const T = targetMoney(def.amount);
+  const T = fmt.money(def.amount);
   const each = { weekly: "Week", monthly: "Month", yearly: "Year", custom: "" }[def.cadence];
   if (def.cadence === "custom") {
     if (def.behavior === "balance") {
@@ -210,6 +212,7 @@ export function targetHeading(t: CategoryTargetMonth): { heading: string; subhea
 
 export function targetMessage(
   c: TargetCategory,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
 ): { tone: "cautious" | "positive"; text: string; assign: number | null } | null {
   const t = c.target;
   if (!t) return null;
@@ -220,7 +223,7 @@ export function targetMessage(
     return { tone: "positive", text: "You're on track to meet your target!", assign: null };
   }
   if (t.status !== "underfunded") return null;
-  const toGo = targetMoney(t.to_go_this_month);
+  const toGo = fmt.money(t.to_go_this_month);
   const text = isPeriodic(t)
     ? `Assign ${toGo} ${t.funded > 0 ? "more " : ""}to meet your target`
     : `Assign ${toGo} ${c.assigned > 0 ? "more " : ""}this month to stay on track`;
@@ -288,6 +291,7 @@ export type FormTab = "weekly" | "monthly" | "yearly" | "custom";
 export function behaviorOptions(
   tab: FormTab,
   amount: number,
+  fmt: PlanFormatter = DEFAULT_FORMATTER,
 ): {
   value: TargetBehavior;
   title: string;
@@ -295,7 +299,7 @@ export function behaviorOptions(
   tagline: string | null;
   badge: string | null;
 }[] {
-  const X = targetMoney(amount);
+  const X = fmt.money(amount);
   if (tab === "custom") {
     return [
       {

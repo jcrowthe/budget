@@ -4,16 +4,10 @@ import { activityTitle } from "@budget/schema/category-activity";
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
 import { targetStatusText } from "@budget/schema/target-wording";
 import { useEffect, useRef, useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
-import {
-  amountClass,
-  categoryPill,
-  money,
-  plainSections,
-  statusLabel,
-  targetSections,
-} from "./format";
+import { amountClass, categoryPill, plainSections, statusLabel, targetSections } from "./format";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -72,6 +66,7 @@ export function GroupRow({
   onAddCategory: (anchor: HTMLElement) => void;
   addOpen: boolean;
 }) {
+  const fmt = usePlanFormatter();
   const nameRef = useRef<HTMLButtonElement>(null);
   const helpRef = useRef<HTMLButtonElement>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -131,10 +126,10 @@ export function GroupRow({
         )}
       </div>
       <div className="num cell-assigned" role="cell">
-        {money(g.assigned)}
+        {fmt.money(g.assigned)}
       </div>
       <div className="num cell-activity" role="cell">
-        {money(g.activity)}
+        {fmt.money(g.activity)}
       </div>
       <div className={`num cell-available${locked ? " has-payment-help" : ""}`} role="cell">
         {locked && (
@@ -149,7 +144,7 @@ export function GroupRow({
             PAYMENT
           </button>
         )}
-        <span>{money(g.available)}</span>
+        <span>{fmt.money(g.available)}</span>
       </div>
       <div className="cell-margin" />
       {helpOpen && (
@@ -200,9 +195,10 @@ export function CategoryRow({
   /** A click on a non-zero Activity amount of an ordinary category: its transactions popover (EXF-509). */
   onActivity: (anchor: HTMLElement) => void;
 }) {
-  const status = bars && c.target && c.available >= 0 ? targetStatusText(c) : null;
-  const label = bars && !status ? statusLabel(c) : null;
-  const pill = categoryPill(c);
+  const fmt = usePlanFormatter();
+  const status = bars && c.target && c.available >= 0 ? targetStatusText(c, fmt) : null;
+  const label = bars && !status ? statusLabel(c, fmt) : null;
+  const pill = categoryPill(c, fmt);
   const nameRef = useRef<HTMLButtonElement>(null);
   const pillRef = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: c.available re-runs it when a disabled pill becomes enabled
@@ -276,14 +272,14 @@ export function CategoryRow({
           <button
             type="button"
             className="activity-button"
-            title={activityTitle(money(c.activity))}
+            title={activityTitle(fmt.money(c.activity))}
             aria-haspopup="dialog"
             onClick={(e) => onActivity(e.currentTarget)}
           >
-            <span className={amountClass(c.activity)}>{money(c.activity)}</span>
+            <span className={amountClass(c.activity)}>{fmt.money(c.activity)}</span>
           </button>
         ) : (
-          <span className={amountClass(c.activity)}>{money(c.activity)}</span>
+          <span className={amountClass(c.activity)}>{fmt.money(c.activity)}</span>
         )}
       </div>
       <div className="cell-available" role="cell">
@@ -302,6 +298,7 @@ export function CategoryRow({
 }
 
 export function UncategorizedRow({ u }: { u: NonNullable<MonthDetail["uncategorized"]> }) {
+  const fmt = usePlanFormatter();
   return (
     <div className="grid-row category-row uncategorized-row" role="row" aria-level={2}>
       <div className="cell-margin" />
@@ -320,7 +317,7 @@ export function UncategorizedRow({ u }: { u: NonNullable<MonthDetail["uncategori
         </div>
       </div>
       <div className="cell-activity" role="cell">
-        <span className={amountClass(u.activity)}>{money(u.activity)}</span>
+        <span className={amountClass(u.activity)}>{fmt.money(u.activity)}</span>
       </div>
       <div className="cell-available" role="cell">
         <AvailablePill amount={u.available} interactive={false} />

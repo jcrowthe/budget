@@ -1,17 +1,11 @@
-import { formatMoney, type Milliunits } from "@budget/core/money";
 import type { Month } from "@budget/core/month";
 import { targetBar } from "@budget/core/targets";
 import type { MonthCategoryDetail } from "@budget/schema/months";
+import type { PlanFormatter } from "@budget/schema/plan-formats";
 import { pillTitle, targetPill } from "@budget/schema/target-wording";
 import type { PillTone } from "./AvailablePill";
 
 export { pillTitle };
-
-/** Plan currency formats arrive with EXF-468; until then dollars, with a real minus sign (U+2212). */
-export const money = (m: Milliunits): string => formatMoney(m).replace("-", "−");
-
-/** "+$40.00" for a positive amount, else the plain amount ("−$30.00", "$0.00"). */
-export const signed = (m: Milliunits): string => (m > 0 ? `+${money(m)}` : money(m));
 
 /** The full English month name of a first-of-month date, "November". */
 export const longMonth = (m: Month): string =>
@@ -24,12 +18,12 @@ export function spentFunded(c: Amounts): { spent: number; funded: number } {
 }
 
 /** Status label of a category without a target. Target labels belong to the targets area. */
-export function statusLabel(c: MonthCategoryDetail): string | null {
+export function statusLabel(c: MonthCategoryDetail, fmt: PlanFormatter): string | null {
   const { spent, funded } = spentFunded(c);
   if (spent <= 0) return null;
-  if (c.available < 0) return `Overspent. ${money(spent)} of ${money(funded)}`;
+  if (c.available < 0) return `Overspent. ${fmt.money(spent)} of ${fmt.money(funded)}`;
   if (c.available === 0) return "Fully Spent";
-  return `Spent ${money(spent)} of ${money(funded)}`;
+  return `Spent ${fmt.money(spent)} of ${fmt.money(funded)}`;
 }
 
 export type Segment = { kind: "spent" | "funded" | "cautious" | "overspent"; pct: number };
@@ -108,9 +102,9 @@ export function overspentPill(
 }
 
 /** The titles of a credit card payment category's pill (the source's tooltip.budget.positivePayment / negativePayment). */
-export const paymentPillTitle = (available: number): string => {
+export const paymentPillTitle = (available: number, fmt: PlanFormatter): string => {
   if (available > 0) {
-    return `You have ${money(available)} set aside for payment. (Want to send more? Add money to Assigned.)`;
+    return `You have ${fmt.money(available)} set aside for payment. (Want to send more? Add money to Assigned.)`;
   }
   if (available < 0) {
     return "Red in your payment? Assign more (and cover overspending) to get back to green!";
@@ -119,8 +113,8 @@ export const paymentPillTitle = (available: number): string => {
 };
 
 /** The title of a credit-overspent pill (the source's tooltip.budget.creditOverspent); the amount is the credit part. */
-export const creditOverspentTitle = (credit: number): string =>
-  `You've overspent this category by ${money(credit)} with credit. Cover this overspending to avoid creating debt!`;
+export const creditOverspentTitle = (credit: number, fmt: PlanFormatter): string =>
+  `You've overspent this category by ${fmt.money(credit)} with credit. Cover this overspending to avoid creating debt!`;
 
 type CategoryPill = {
   tone: "zero" | "positive" | "negative" | "cautious";
@@ -129,16 +123,16 @@ type CategoryPill = {
 };
 
 /** The pill look of a category: the overspending state first, else its target's, else the plain pill (null). */
-export function categoryPill(c: MonthCategoryDetail): CategoryPill | null {
+export function categoryPill(c: MonthCategoryDetail, fmt: PlanFormatter): CategoryPill | null {
   const over = overspentPill(c);
   let pill: CategoryPill | null = null;
   if (over) {
     const title =
       over.icon === "card" && c.overspent
-        ? creditOverspentTitle(c.overspent.credit)
-        : pillTitle(c.available);
+        ? creditOverspentTitle(c.overspent.credit, fmt)
+        : pillTitle(c.available, fmt);
     pill = { ...over, title };
-  } else if (c.target) pill = targetPill(c);
+  } else if (c.target) pill = targetPill(c, fmt);
   if (c.kind === "credit_card_payment") {
     // EXF-537: red when overpaid, yellow when underfunded (even at $0.00), green with money set aside, else grey.
     const tone: PillTone =
@@ -149,7 +143,7 @@ export function categoryPill(c: MonthCategoryDetail): CategoryPill | null {
           : c.available > 0
             ? "positive"
             : "zero";
-    return { tone, icon: null, title: paymentPillTitle(c.available) };
+    return { tone, icon: null, title: paymentPillTitle(c.available, fmt) };
   }
   return pill;
 }

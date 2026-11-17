@@ -25,6 +25,11 @@ const ALLOWED: Record<string, string> = {
   "packages/schema/src/plan-export.ts":
     "exportFormat and DEFAULT_PLAN_FORMAT: the files' formatter",
   "packages/schema/src/plan-import-read.ts": "DATE_FORMATS lists the format strings",
+  "packages/schema/src/budgets.ts": "the zod default of a plan's date_format (the stored default)",
+  "packages/schema/src/plan-import.ts": "the importer's starting guess when a file has no dates",
+  "packages/schema/src/report-range.ts": "MM/YY axis labels are not part of the date format",
+  "apps/worker/src/db/schema/budgets.ts": "the column's default",
+  "apps/web/src/reflect/format.ts": "percent text, not money (out of scope)",
 };
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -40,6 +45,7 @@ function hitsOf(file: string): string[] {
   const lines = readFileSync(file, "utf8").split("\n");
   const out: string[] = [];
   lines.forEach((line, i) => {
+    if (/^\s*(\/\/|\/\*|\*)/.test(line)) return; // a comment names an example; it formats nothing
     if (PATTERNS.some((re) => re.test(line))) out.push(`${relative(root, file)}:${i + 1}`);
   });
   return out;

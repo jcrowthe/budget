@@ -1,6 +1,7 @@
 import { DIFFERENCE_TEXT } from "@budget/schema/reconcile";
-import { screenMoney } from "@budget/schema/screen-money";
+
 import { useState } from "react";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 
 /** The Difference step: the anchored popover's third step (no title bar, no close button). */
 export function DifferenceDialog({
@@ -10,11 +11,12 @@ export function DifferenceDialog({
   difference: number;
   onNext: (dontShowAgain: boolean) => void;
 }) {
+  const fmt = usePlanFormatter();
   const [dont, setDont] = useState(false);
   return (
     <div className="reconcile-popover is-difference" role="dialog" aria-label="Reconcile">
       <div className="reconcile-diff-card">
-        <p className="reconcile-big">{screenMoney(difference)}</p>
+        <p className="reconcile-big">{fmt.money(difference)}</p>
         <p className="reconcile-big-label">Difference</p>
       </div>
       {DIFFERENCE_TEXT.map((t) => (

@@ -3,7 +3,7 @@
  * decimal digits and defaults, the number formats per decimal digits and the seven date formats. Pure data and
  * small helpers; no I/O. Design: docs/plan-formats-design.md.
  */
-import { DATE_FORMATS, type DateFormat } from "./plan-import-read";
+import type { DateFormat } from "./plan-import-read";
 
 export type Placement = "before" | "after" | "none";
 export type Digits = 0 | 2 | 3;
@@ -212,7 +212,6 @@ export const DATE_FORMAT_OPTIONS: readonly DateFormat[] = [
   "MM/DD/YYYY",
   "YYYY.MM.DD",
 ];
-export { DATE_FORMATS };
 
 const BY_CODE = new Map(CURRENCIES.map((cur) => [cur.code, cur]));
 export function currencyByCode(code: string): Currency | undefined {
