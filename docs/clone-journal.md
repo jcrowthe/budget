@@ -9408,3 +9408,39 @@ Declared for the tree: the two Builds, the Reconcile Build, one Deploy (`ZZ-TEST
 three merges, then flows 3, 4 and 6.
 
 Ticket writes: 2 comments (EXF-477, EXF-537).
+
+### 2026-11-17 · Review round 108
+
+Children used 125 of 200. Two ended since the last review, both **abandoned by me at 01:00Z** and
+both already carried over in the plan of this round: the Plan-page carry-over
+(`p_27170c2d7ee8476b927e1819efee5d26`, branch head `b680a59`, PR 56 unmerged) and the plan import
+carry-over (`p_51a143af64a84fd4bef3df56774f8506`, branch head `d427fbb`, PR 55 unmerged). Nothing
+merged. Main and live `49012cd` (read by me at 01:09Z).
+
+**Why they ended:** the platform's source check kept failing on a tab left at the sign-in page in
+their old boxes (the import Build four times, the Plan-page Build twice), and no step reloaded the
+tab. Not a fault of either Build's work. Evidence is on EXF-479; the tickets (EXF-477, EXF-537)
+carry the comments.
+
+**Running, both in fresh boxes, both started well (their Clerks at 01:07Z):**
+- **Plan import** (`p_54808387099a4079ae59bcea99e3509f`): platform files present; three source tabs,
+  none at the sign-in page; merge clean at `d427fbb` (36 files, 6,970 insertions). The Architect is
+  writing the thousands-separator rule.
+- **Plan page** (`p_d551d2b31d2045cebf7e9161c230c828`): platform files present; three source tabs,
+  none at the sign-in page; merge clean at `b680a59` (57 files, 3,154 insertions).
+- Their manifests are the earlier ones (the Plan-page one gains `e2e/record-payment.spec.ts`); they
+  share only the two test files and two documents both briefs name. They run side by side as
+  before.
+
+**Lost boxes and lost Builds so far, for the check-in at round 110:** sixteen children lost their
+platform files (EXF-612); two more Builds were lost to the stale sign-in tab (EXF-479). Three groups
+of tickets need a third Build each (Plan page and import running, Reconcile to start): six extra
+children in all, five of them started.
+
+**Ticket writes:** 0. **Backlog:** unchanged: 51 open feature tickets (48 done; 3 in progress).
+Gap: twelve open, eight in progress. Template: forty open (Urgent EXF-573, 611, 612). Flow verdicts
+unchanged. Finished since each template's last review: Build 6, Deploy 7, Discover 2, Test user
+flow 2.
+
+**Next plan:** the third Reconcile Build once both running Builds are past acceptance; nothing
+else can start beside them.
