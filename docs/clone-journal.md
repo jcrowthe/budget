@@ -11902,3 +11902,55 @@ investment or loan accounts needs (EXF-546, EXF-547) before more polish of the b
 now running, so the review starts when it ends.
 
 Ticket writes: 1 (EXF-783 priority).
+
+### 2026-11-17 · Review round 134
+
+Children used 150 of 200. One ended: **Deploy D35 completed**
+(`p_0968d3d245324acfbcb5275ac971e2f4`, 14 minutes). **Live is `2d9cde7`** at
+https://budget.doxen.dev (read by me at 23:43Z), equal to main; no migration.
+
+**Status of the running child (23:44Z):** the import-start Build
+(`p_4333153b783043d392848313d6d594a0`) is at its polish step (second visit), no open card.
+
+**Deploy D35: released; the register's checks held to the figure; one fault found in the modal.**
+- Gate passed (tree equal to gated `e2498aa`; checks 253 s); release passed, smoke ok, bookmark
+  phase ran; 401 without credentials; **87 MCP tools**; `plaid credentials: sandbox set,
+  production set`. The box had its platform files.
+- **The register, as briefed:** the banner 2, then 1, then gone; the narrow column only where a
+  row is unapproved, and gone when none is; weights 600 and 500; the Approval panel with Reject
+  disabled on a row that was not imported; View and its chip with the stored settings unchanged;
+  the pill's tooltip; the sidebar's dot. At 1024×700 CATEGORY is 133 px on All Accounts (was 41)
+  and 121 px with the BALANCE column; nothing cut without an ellipsis and a tooltip.
+- **Manage Bank Connections, looked at only:** both ways in; one group with the two Sandbox
+  connections of 16 Nov; the detail's sections; inside the window at 1024×700. The connection
+  list was the same before and after; the verifier pressed nothing that writes.
+- **The fault: a bank's logo shows as a broken image**, on the list row and on each of that
+  bank's fourteen account rows, with `ERR_INVALID_URL` in the console. I read the cause in the
+  code: the server stores the logo as a whole data address, and the modal's `ConnectionLogo`
+  prefixes it again. The Build's stand-in gave bare base64, so every spec passed. **Any real bank
+  with a logo will show it.** Filed below (Medium).
+- Differs from my brief: `Reject Transaction` is `aria-disabled`, not the HTML attribute (the
+  design says so; I had written "disabled").
+- The verifier said that one probe print put a fragment of the sidebar's identity label into its
+  own tool output (not into a screenshot or the report). The label under a service token is the
+  token's, not the owner's; I note it and tighten the brief's wording next time ("read no text
+  node of the sidebar's header").
+- Eleven of nineteen screenshots were not opened; named in the report.
+- Plans that are not test plans: 1; purge `remaining 0`.
+
+**Filed through this review (one gap ticket, Medium):** the doubled prefix of a bank's logo.
+
+**What I learned:**
+- A stand-in that invents a field's shape hides exactly the fault a real server shows. The next
+  bank Build's brief asks that a stand-in's answers be built from the Worker's own mapping (or
+  checked against the schema's example), and the flow test on live stays the proof.
+- One release for two merges worked, and the verifier got through both lists in 14 minutes.
+
+**Ticket writes:** 2 (live notes on EXF-463 and EXF-460).
+**Backlog:** 43 open feature tickets (56 done). Gap: twenty open (EXF-774 and EXF-780 in
+progress), plus the one filed here. Template: thirty-nine open. Flow verdicts unchanged; **flow 5
+is due now** (the register's Reject on an imported row, the modal's writes, the logo).
+Finished since each template's last review: Build 9, Deploy 4, Discover 2, Test user flow 5.
+
+**Next plan:** flow 5, fourth run, on live `2d9cde7`. Then choose the next Build from the whole
+backlog.
