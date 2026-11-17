@@ -553,3 +553,20 @@ describe("rules and edges", () => {
     ]);
   });
 });
+
+describe("system payees by name (EXF-723)", () => {
+  it("maps each adjustment name to its own system payee, once", () => {
+    const p = build(
+      regOf(
+        '"Main Checking","","11/16/2026","Reconciliation Balance Adjustment","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,$5.00,"Reconciled"',
+        '"Main Checking","","11/17/2026","Reconciliation Balance Adjustment","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,$2.00,"Reconciled"',
+        '"Main Checking","","11/12/2026","Manual Balance Adjustment","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,$1.00,"Cleared"',
+      ),
+    );
+    const sys = p.payees.filter((x) => x.system !== null);
+    expect(sys).toEqual([
+      { name: "Reconciliation Balance Adjustment", system: "reconciliation_adjustment" },
+      { name: "Manual Balance Adjustment", system: "manual_adjustment" },
+    ]);
+  });
+});

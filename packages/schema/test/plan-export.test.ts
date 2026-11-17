@@ -12,9 +12,11 @@ import {
   planFile,
   type RegisterEntry,
   registerFile,
+  SYSTEM_PAYEE_NAMES,
   safeName,
   textField,
 } from "../src/plan-export";
+import { PAYEE_SYSTEMS } from "../src/payees";
 
 const US = exportFormat(DEFAULT_PLAN_FORMAT);
 const EU = exportFormat({
@@ -365,5 +367,18 @@ describe("EXF-670 now bound", () => {
     expect(exportMonthCeiling("2026-11-16")).toBe("2028-11-01");
     expect(exportMonthCeiling("2026-12-31")).toBe("2028-12-01");
     expect(exportMonthCeiling("2026-01-05")).toBe("2028-01-01");
+  });
+});
+
+describe("SYSTEM_PAYEE_NAMES", () => {
+  it("covers every system payee, under distinct names (EXF-723)", () => {
+    expect(Object.keys(SYSTEM_PAYEE_NAMES).sort()).toEqual([...PAYEE_SYSTEMS].sort());
+    const names = Object.values(SYSTEM_PAYEE_NAMES);
+    expect(new Set(names).size).toBe(names.length);
+    expect(SYSTEM_PAYEE_NAMES).toEqual({
+      starting_balance: "Starting Balance",
+      manual_adjustment: "Manual Balance Adjustment",
+      reconciliation_adjustment: "Reconciliation Balance Adjustment",
+    });
   });
 });

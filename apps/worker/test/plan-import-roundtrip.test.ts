@@ -5,6 +5,7 @@ import { type Json, q } from "./bulk-helpers";
 import { json } from "./helpers";
 import { buildF, NOW, pinPlanClock, readZip, text } from "./plan-export-helpers";
 import { body, importForm, postImport, runToDone } from "./plan-import-helpers";
+import { reconcile } from "./reconcile-helpers";
 
 // EXF-477 criterion 7 (the main test): a plan built in a test, exported by the clone, imported, exported again:
 // the Plan and Register rows are identical. Also criterion 5: the recomputed figures equal the file's.
@@ -130,6 +131,47 @@ describe("criterion 7: export, import, export", () => {
     } finally {
       importLimits.singleCallRows = small;
     }
+  });
+});
+
+describe("EXF-723: a reconciliation adjustment", () => {
+  it("is exported under its own name and survives the round trip", async () => {
+    const f = await buildF();
+    const acct = (await (await json(`/api/v1/budgets/${f.bid}/accounts/${f.accounts.main}`)).json()) as Json;
+    const cleared = acct.data.account.cleared_balance as number;
+    const rec = await reconcile(f.bid, f.accounts.main, {
+      statement_balance: cleared - 5000,
+      create_adjustment: true,
+      today: "2026-11-16",
+    });
+    expect(rec.status).toBe(200);
+    const first = await exportOf(f.bid);
+    const firstRegister = text(readZip(first.bytes)[1]?.data as Uint8Array);
+    expect(firstRegister).toMatch(
+      /"Main Checking","","11\/16\/2026","Reconciliation Balance Adjustment","Inflow: Ready to Assign".*\$5\.00,\$0\.00,"Reconciled"/,
+    );
+    const data = await body(
+      await postImport(importForm([{ name: first.name, data: first.bytes }])),
+      201,
+    );
+    expect(data.state).toBe("done");
+    const nb = data.budget_id as string;
+    const payees = (await q(
+      "select id, name from payees where budget_id = ? and system = 'reconciliation_adjustment'",
+      nb,
+    )) as Json[];
+    expect(payees).toHaveLength(1);
+    expect(payees[0]?.name).toBe("Reconciliation Balance Adjustment");
+    const row = (await q(
+      "select payee_id from transactions where budget_id = ? and payee_name = 'Reconciliation Balance Adjustment'",
+      nb,
+    )) as Json[];
+    expect(row.map((r) => r.payee_id)).toEqual([payees[0]?.id]);
+    const second = await exportOf(nb);
+    const a = readZip(first.bytes);
+    const b = readZip(second.bytes);
+    expect(text(b[0]?.data as Uint8Array)).toBe(text(a[0]?.data as Uint8Array));
+    expect(text(b[1]?.data as Uint8Array)).toBe(text(a[1]?.data as Uint8Array));
   });
 });
 
