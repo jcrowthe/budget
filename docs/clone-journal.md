@@ -11425,3 +11425,23 @@ production: the redirect address and the use case; whether the platform's second
 and what it may spend); the questions of check-in 120 that still stand.
 
 Ticket writes: 2 (EXF-773 priority; EXF-463 comment).
+
+### 2026-11-17 · Review round 129
+
+Children used 146 of 200. **Nothing new ended:** this review came because the Build I cancelled
+at the last review (`p_436014a941cd4d87bef9dd9d1ed6f094`) reached its end state, abandoned. It is
+already counted and written up (review of round 128).
+
+**I read the status of both running children (20:33Z), as I now do every turn:**
+- The carry-over Build for the register screens (`p_0625567f614e4952b9e62e5260678009`): running,
+  at its plan step after four minutes, no open card. So its Clerk's merge and the preflight went
+  through.
+- Deploy D34 (`p_2ac3e7ea2a91451c8d3ccca602474904`): running, at its deploy step, no open card.
+
+Main is `9ecd379`; live is still `8e54173` (read by me at 20:32Z). No ticket write. Backlog and
+flow verdicts unchanged: 45 open feature tickets (EXF-463 in progress), twenty-three open gap
+tickets (five in progress), thirty-nine template tickets. Finished since each template's last
+review: Build 7, Deploy 2, Discover 2, Test user flow 4.
+
+**Next plan (round 130):** when Deploy D34 has ended, flow 5 on live with a Sandbox bank linked
+from the screen. The review of round 130 is the check-in.
