@@ -4,6 +4,13 @@ Implements [reconcile-design.md](reconcile-design.md); decisions are cited as D1
 
 Out of bounds (read, never change): the brief's out-of-bounds list (note 3 of the carry-over brief: `apps/web/src/plan/**`, `pages/plan.tsx`, `packages/core/**`, …), every `paths.always_overlap` file and shared module, `e2e/support/real-click.ts`, the tests the conventions say are never edited. No new dependency.
 
+## T0 Second carry-over (do first; design "Second carry-over")
+
+1. `apps/worker/src/repositories/plan-import.ts`, `SPEC.accounts.cols`: one `lit("null")` at the end; `last_reconciled_at` added to the comment above. Nothing else.
+2. `e2e/sidebar-groups.spec.ts`, fixture `fx`: `last_reconciled_at: null` beside `import_start_date: null`. Nothing else.
+3. Verify: `pnpm check` green; `pnpm e2e e2e/sidebar-groups.spec.ts` green (the plan-import Worker tests run in `pnpm check`). Commit.
+4. Then decisions B–D in T10, with `e2e/reconcile*.spec.ts` changed from `dialog "Difference"` to the popover (`dialog "Reconcile"`) at its Difference step, and design case 21 in `e2e/reconcile-popover.spec.ts` (computed styles at 1440×900 and 1024×700; Escape and outside mousedown from the Difference step). Commit, then the full browser suite once.
+
 ## T1 Column (D1)
 
 - `apps/worker/migrations/20261116101400_account_reconciled_at.sql`: `ALTER TABLE accounts ADD COLUMN last_reconciled_at TEXT;` (only this line).
@@ -30,7 +37,7 @@ export const ReconcileConflictBody = z.object({ error: z.object({ id: z.string()
 export const reconcileDifference = (statement: number, cleared: number) => statement - cleared;
 /** "This account's cleared balance in Budget is $100.00 higher than your actual account." / "lower than" / "is the same as your actual account." */
 export function reconcileSentence(difference: number): string;   // amount = screenMoney(|difference|); difference < 0 → "higher"
-export const DIFFERENCE_TEXT: readonly [string, string, string];  // the modal's three paragraphs, design case 3 / ticket, with "Budget"
+export const DIFFERENCE_TEXT: readonly [string, string, string];  // the Difference step's three paragraphs, design case 3 / ticket, with "Budget" and U+2019 apostrophes (decision D)
 export function reconciledAgo(iso: string, nowMs: number): string; // D11, thresholds below
 export function reconciledTitle(iso: string): string;              // D11, local time
 ```
@@ -107,18 +114,18 @@ Routes and tools are found by glob (`app.ts`, `mcp/server.ts`): neither file cha
 - `apps/web/src/api/accounts.ts`: `reconcileAccount(budgetId, accountId, body: ReconcileRequestInput)` (POST, `Idempotency-Key`, `ReconcileResponse`) and `useReconcileAccount(budgetId, accountId)`, which on success **and** on a 409 `reconcile_changed` runs the existing `useInvalidatePlan`.
 - `apps/web/src/api/transactions.ts`: nothing beyond the type (`confirm_reconciled` comes with `TransactionUpdateRequest`).
 
-## T10 Header, popover, modal (D7–D11)
+## T10 Header, popover with its Difference step (D7–D11, decisions B–D)
 
 `apps/web/src/account/`:
 - `ReconcileContext.tsx`: `ReconcileProvider({ account, children })`, `useReconcile()` (`null` outside a provider). State `{ step: "idle"|"ask"|"enter"|"done"|"difference"|"mode", statement?: number }`; actions `open()`, `cancel()`, `enterMode(statement)`, `finish(createAdjustment)`. `finish` calls `useReconcileAccount` with `{ statement_balance, create_adjustment, cleared_balance: account.cleared_balance, today: localToday() }`; success → `idle` (or `done` from Yes); 409 `reconcile_changed` keeps the step; other errors show `role="alert"` text in the bar or popover.
 - `pages/account.tsx`: wrap header and register in `<ReconcileProvider key={account.id} account={account}>` once `useAccount` has loaded; the provider fetches nothing.
 - `ReconcileButton.tsx` replaces the inert button in `AccountHeader` (same class, tooltip, text; no `data-ticket`). `useShortcut("reconcile", open, enabled)` with enabled = account open and step `idle`; disabled when closed or in `mode`. Popover under the button, right-aligned, `role="dialog"`, `aria-label="Reconcile"`, closes on Escape and outside click. Steps:
-  - `ask`: "Is your current balance" over the big `${screenMoney(account.cleared_balance)}?`; "No" (secondary), "Yes" (primary; `finish(false)` with statement = cleared).
+  - `ask`: "Is your current balance" over the big `${screenMoney(account.cleared_balance)}?`; "No" and "Yes" (both primary, full width, 16px, decision B; Yes: `finish(false)` with statement = cleared).
   - `enter`: `<label for>` "Current balance at your bank", input (autofocus, `inputmode="decimal"`, U+2212 → "-" before `parseAmountInput`), "Next" (primary, disabled while unparsable); Enter submits. Equal to cleared → `enterMode` (D10); else `ui.hide_reconcile_difference_dialog` → `enterMode`, else step `difference`.
   - `done`: own SVG `LockCheckArt` (`icons.tsx`, 64px, `--statusPositive`), "Account reconciled", "Time for the reconciliation dance!".
-- `DifferenceDialog.tsx`: modal (`role="dialog"`, `aria-modal`, `aria-label="Difference"`, the dialog classes of `BulkDialogs.tsx`): big signed `screenMoney(statement − cleared)`, "Difference", the three `DIFFERENCE_TEXT` paragraphs; footer checkbox "Don't Show Again" (left) and "Next" (primary, right; saves the UI state when ticked, then `enterMode`). Escape → `cancel()`.
+- `DifferenceDialog.tsx`: the popover's Difference step (decision D), rendered inside the popover wrapper, the popover element widened to 323px; `"difference"` joins the steps whose Escape and outside mousedown call `cancel()`; no `aria-modal`, no title bar, no close button: big signed `screenMoney(statement − cleared)`, "Difference", the three `DIFFERENCE_TEXT` paragraphs; footer checkbox "Don't Show Again" (left) and "Next" (primary, right; saves the UI state when ticked, then `enterMode`). Escape → `cancel()`.
 - `ReconciledLabel` in `AccountHeader.tsx`: null → lock + "Not Yet Reconciled"; else lock + `Reconciled ${reconciledAgo(..., now)}` with `title={reconciledTitle(...)}`; `now` from a 30 s interval inside this component only.
-- `reconcile.css`: tokens only; popover 280px wide, big amount 24px/700, header button styles; modal like the register dialogs; no other header size changes.
+- `reconcile.css`: tokens only; popover 280px wide (323px on the Difference step) with the arrow, radius 6.4px and `--shadowMenu`, the ask amount 21px in a `--menuHover` card, the difference 18px in a `--backgroundSecondary` card, the bank-balance label and disabled Next of decision C; header button styles; no other header size changes.
 - Verify: cases 1, 2, 3, 9, 10 in `e2e/reconcile.spec.ts`.
 
 ## T11 Register (bar, locked rows)
@@ -133,8 +140,8 @@ Routes and tools are found by glob (`app.ts`, `mcp/server.ts`): neither file cha
 
 - `e2e/support/reconcile-seed.ts`: fixture W through the API, and `seedReconcileCard(request, name)` (long-named card, balances near −$12,345.67, Payment pill).
 - `e2e/reconcile.spec.ts`: cases 1–10 in order on fixture W; wait for each request with `expect.poll` on the API (cleared balance, rows' `cleared`, `last_reconciled_at`); case 6 reads Ready to Assign from the month API before and after; case 7 races `page.waitForRequest` against 500 ms.
-- `e2e/reconcile-narrow.spec.ts`: case 18 at 1024×700, and the Reconcile location at 1440×900. `scrollWidth ≤ clientWidth` and boxes for the `h1`, `.acct-info`, `.acct-actions` (right edge ≤ `.acct-head-top`'s), the balance row with the pill, `.reconcile-text` (one line: height ≤ 1.5 × line-height) and both buttons inside `.reconcile-bar`, the popover, Difference modal and save confirmation inside the viewport. The `Register toolbar` toolbar contains no "Reconcile".
-- `e2e/reconcile-minus-sign.spec.ts` (case 19): a plan with a negative category activity, an uncleared outflow and a debt. Read `innerText` and every `[title]`/`[aria-label]` on the Plan page, a register with two rows selected (header, Selected Total, rows), the reconcile bar and Difference modal, and Net Worth. Within amount tokens (`/[-−]?\$[\d,]+\.\d{2}/`) fail on `/-(?=\$|\d)/`; ignore dates and ids.
+- `e2e/reconcile-narrow.spec.ts`: case 18 at 1024×700, and the Reconcile location at 1440×900. `scrollWidth ≤ clientWidth` and boxes for the `h1`, `.acct-info`, `.acct-actions` (right edge ≤ `.acct-head-top`'s), the balance row with the pill, `.reconcile-text` (one line: height ≤ 1.5 × line-height) and both buttons inside `.reconcile-bar`, the popover (all steps, the 323px Difference step included) and save confirmation inside the viewport. The `Register toolbar` toolbar contains no "Reconcile".
+- `e2e/reconcile-minus-sign.spec.ts` (case 19): a plan with a negative category activity, an uncleared outflow and a debt. Read `innerText` and every `[title]`/`[aria-label]` on the Plan page, a register with two rows selected (header, Selected Total, rows), the reconcile bar and the Difference step, and Net Worth. Within amount tokens (`/[-−]?\$[\d,]+\.\d{2}/`) fail on `/-(?=\$|\d)/`; ignore dates and ids.
 - Update only the "-$" → "−$" assertions of the e2e files in the Manifest.
 - Verify: `pnpm e2e e2e/reconcile.spec.ts e2e/reconcile-narrow.spec.ts e2e/reconcile-minus-sign.spec.ts` plus each edited spec, then `pnpm check`.
 
