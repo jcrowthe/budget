@@ -5,14 +5,14 @@
 }
 .reconcile-popover {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 15px);
   right: 0;
   z-index: 30;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  width: 280px;
+  width: 281px;
   max-width: calc(100vw - 32px);
   padding: var(--space-3);
   border-radius: 6.4px;
@@ -20,17 +20,18 @@
   box-shadow: var(--shadowMenu);
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
+  font-weight: 500;
   text-align: center;
 }
 .reconcile-popover::before {
   content: "";
   position: absolute;
-  top: -5px;
-  right: 28px;
-  width: 10px;
-  height: 10px;
+  top: -15px;
+  right: 36px;
+  width: 30px;
+  height: 15px;
   background: var(--backgroundTertiary);
-  transform: rotate(45deg);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 .reconcile-note {
   margin: 0;
@@ -38,14 +39,16 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
 }
+.reconcile-balance-card {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--menuHover);
+}
 .reconcile-amount {
   margin: 0;
-  padding: var(--space-2);
-  border-radius: 6.4px;
-  background: var(--menuHover);
   font-size: 21px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 25.2px;
   overflow-wrap: anywhere;
 }
 .reconcile-error {
@@ -55,16 +58,14 @@
 }
 .reconcile-buttons {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
   gap: var(--space-2);
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
 }
 .reconcile-buttons button {
   box-sizing: border-box;
   height: 32px;
+  flex: 1;
   margin: 0;
-  width: 100%;
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-lg);
@@ -87,7 +88,7 @@
   color: var(--labelTertiary);
   cursor: default;
 }
-.reconcile-popover label {
+.reconcile-popover > label {
   color: var(--labelPrimary);
   font-weight: 600;
   text-align: left;
@@ -95,7 +96,7 @@
 .reconcile-popover.is-difference {
   width: 323px;
   align-items: stretch;
-  gap: var(--space-4);
+  gap: var(--space-3);
   text-align: left;
 }
 .reconcile-diff-card {
@@ -123,14 +124,22 @@
 }
 .reconcile-diff-foot .primary {
   height: 32px;
-  padding: 0 var(--space-4);
+  margin: 0;
+  padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-lg);
   background: var(--buttonPrimaryBackground);
   color: var(--labelPrimary);
   font: inherit;
+  font-size: var(--font-size-md);
   font-weight: 500;
   cursor: pointer;
+}
+.reconcile-diff-foot .bulk-dialog-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 500;
 }
 .reconcile-input {
   box-sizing: border-box;
@@ -231,9 +240,9 @@
   cursor: default;
 }
 .reconcile-buttons.is-end {
-  align-items: flex-end;
+  justify-content: flex-end;
+  margin-top: 0;
 }
 .reconcile-buttons.is-end button {
-  width: auto;
-  min-width: 72px;
+  flex: none;
 }

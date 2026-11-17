@@ -90,13 +90,16 @@ for (const [w, h] of [
       }, name);
     expect(await css(popover(page), "border-top-left-radius")).toBe("6.4px");
     expect(await css(popover(page).locator(".reconcile-amount"), "font-size")).toBe("21px");
-    expect(await css(popover(page).locator(".reconcile-amount"), "background-color")).toBe(
+    expect(await css(popover(page).locator(".reconcile-balance-card"), "background-color")).toBe(
       await tok("--menuHover"),
     );
     const inner = await box(popover(page).locator(".reconcile-buttons"));
     for (const n of ["No", "Yes"]) {
       const b = popover(page).getByRole("button", { name: n, exact: true });
-      expect((await box(b)).width).toBeCloseTo(inner.width, 0);
+      // Source (ask step, dark, measured live by the Designer): one row, each 120.5px = (249 - 8) / 2, same y.
+      const bb = await box(b);
+      expect(bb.width).toBeCloseTo((inner.width - 8) / 2, 0);
+      expect(bb.y).toBeCloseTo(inner.y, 0);
       expect(await css(b, "font-size")).toBe("16px");
       expect(await css(b, "background-color")).toBe(await tok("--buttonPrimaryBackground"));
     }

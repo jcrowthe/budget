@@ -107,8 +107,10 @@ function AskStep() {
   if (!rc) return null;
   return (
     <div className="reconcile-popover" role="dialog" aria-label="Reconcile">
-      <p className="reconcile-note">Is your current balance</p>
-      <p className="reconcile-amount">{screenMoney(rc.account.cleared_balance)}?</p>
+      <div className="reconcile-balance-card">
+        <p className="reconcile-note">Is your current balance</p>
+        <p className="reconcile-amount">{screenMoney(rc.account.cleared_balance)}?</p>
+      </div>
       {rc.error && (
         <p className="reconcile-error" role="alert">
           {rc.error}
