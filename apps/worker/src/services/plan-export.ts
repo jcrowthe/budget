@@ -3,7 +3,10 @@ import {
   categoryCell,
   DEFAULT_PLAN_FORMAT,
   exportFormat,
+  exportMonthCeiling,
   exportNames,
+  nowRangeText,
+  nowWithinServerDays,
   planFile,
   type RegisterEntry,
   type RegisterLine,
@@ -20,6 +23,15 @@ import * as budgetsRepo from "../repositories/budgets";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
 import { getMonthRange, getPlanMonths } from "./months";
+import { planClock } from "./plan-clock";
+
+/** `now` is further from the server's date than one day (EXF-670); the route answers 422. */
+export class ExportNowOutOfRange extends Error {
+  constructor(serverToday: string) {
+    super(`now must be within one day of the server's date (${nowRangeText(serverToday)})`);
+    this.name = "ExportNowOutOfRange";
+  }
+}
 
 /**
  * Export Plan: the whole plan as a zip of the Plan file and the Register file (docs/plan-export-design.md).
@@ -32,16 +44,24 @@ export async function exportPlan(
   q: { now?: string },
 ): Promise<{ fileName: string; bytes: Uint8Array }> {
   const db = getDb(env);
+  const serverNow = planClock.now();
+  const serverToday = serverNow.toISOString().slice(0, 10);
   const plan = await budgetsRepo.findActive(db, budgetId);
   if (!plan) throw new NotFound("Plan");
-  const now = q.now ?? utcMinute(new Date());
+  if (q.now !== undefined && !nowWithinServerDays(q.now, serverToday)) {
+    throw new ExportNowOutOfRange(serverToday);
+  }
+  const now = q.now ?? utcMinute(serverNow);
   const today = now.slice(0, 10);
   const current = `${today.slice(0, 7)}-01`;
 
   const range = await getMonthRange(env, budgetId);
   const first = range.first_month < current ? range.first_month : current;
   const lastAssigned = range.last_assigned_month ?? current;
-  const last = lastAssigned > current ? lastAssigned : current;
+  const wanted = lastAssigned > current ? lastAssigned : current;
+  // Money assigned further ahead than the bound is not written (EXF-670).
+  const ceiling = exportMonthCeiling(serverToday);
+  const last = wanted > ceiling ? ceiling : wanted;
   const months: string[] = [];
   for (let m = first; m <= last; m = addMonths(m, 1)) months.push(m);
 
