@@ -54,6 +54,7 @@ export function BankSearch({
   onUnlinked,
   onConnected,
   onLinkingChange,
+  linkAccountId,
 }: {
   budgetId: string;
   sandbox: boolean;
@@ -61,6 +62,8 @@ export function BankSearch({
   onUnlinked: () => void;
   onConnected: (c: BankConnection) => void;
   onLinkingChange?: (linking: boolean) => void;
+  /** The account being linked (Link Account): kept in the OAuth state so /plaid/oauth can finish it. */
+  linkAccountId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -87,7 +90,13 @@ export function BankSearch({
       const { link_token } = await createLinkToken(budgetId);
       const plaid = await loadPlaidLink();
       // OAuth banks leave the page: /plaid/oauth resumes from this state (production only).
-      if (!sandbox) saveLinkState({ link_token, budget_id: budgetId, query });
+      if (!sandbox)
+        saveLinkState({
+          link_token,
+          budget_id: budgetId,
+          query,
+          ...(linkAccountId ? { link_account_id: linkAccountId } : {}),
+        });
       plaid
         .create({
           token: link_token,

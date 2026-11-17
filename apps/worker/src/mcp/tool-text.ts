@@ -25,3 +25,7 @@ export function timestamps(fields: string[], nullable: string[] = []): string {
 export function dates(...fields: string[]): string {
   return `Dates (${fields.join(", ")}) are YYYY-MM-DD.`;
 }
+
+/** Describes the two fields every account read carries from its bank connection (EXF-461). */
+export const LINK_STATE =
+  "connection_status (connected, delayed, login_required or broken; null when not linked) and last_synced_at (when its bank connection last synced; null when not linked or never synced)";

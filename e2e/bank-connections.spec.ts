@@ -162,7 +162,10 @@ test("only a sandbox plan shows the Sandbox mark", async ({ page, request }) => 
   await expect(prod.getByText("Sandbox", { exact: true })).toHaveCount(0);
 });
 
-test("link success shows the confirmation; Done closes", async ({ page, request }) => {
+test("link success shows the Add Accounts step; Next leads to the summary", async ({
+  page,
+  request,
+}) => {
   const requests = await stubApi(page, {
     popular: [fakeInstitution(1)],
     create: CONNECTION,
@@ -177,19 +180,15 @@ test("link success shows the confirmation; Done closes", async ({ page, request 
   await page.goto(`/${id}/budget`);
   const dialog = await openModal(page);
   await dialog.getByRole("button", { name: "ZZ Test Bank 1" }).click();
-  await expect(dialog.getByRole("heading", { name: "ZZ Test Bank" })).toBeVisible();
-  await expect(dialog.getByText("ID: 0a1b2c")).toBeVisible();
-  await expect(dialog.getByText("ZZ Checking")).toBeVisible();
-  await expect(dialog.getByText("Checking ending in 0000")).toBeVisible();
-  await expect(dialog.getByText("$110.00")).toBeVisible();
+  await expect(dialog.getByText("ZZ Checking – 0000")).toBeVisible();
+  await expect(dialog.getByText("Checking | $110.00")).toBeVisible();
   const post = requests.find((r) => r.method === "POST" && !r.url.includes("link-token"));
   expect(post?.body).toMatchObject({
     budget_id: id,
     public_token: "public-test-token",
     institution_id: "ins_test_1",
   });
-  await dialog.getByRole("button", { name: "Done" }).click();
-  await expect(dialog).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Next" })).toBeEnabled();
 });
 
 test("closing Link creates nothing, keeps the query and shows Plaid's message", async ({
@@ -213,7 +212,7 @@ test("closing Link creates nothing, keeps the query and shows Plaid's message", 
   );
 });
 
-test("/plaid/oauth resumes Link with the received URL and shows the confirmation", async ({
+test("/plaid/oauth resumes Link with the received URL and shows the Add Accounts step", async ({
   page,
 }) => {
   await stubApi(page, { create: CONNECTION });
@@ -233,7 +232,9 @@ test("/plaid/oauth resumes Link with the received URL and shows the confirmation
   }, planId);
   await page.goto("/plaid/oauth?oauth_state_id=x");
   const dialog = page.getByRole("dialog", { name: "Add Accounts" });
-  await expect(dialog.getByText("ID: 0a1b2c")).toBeVisible();
+  await expect(dialog.getByText("ZZ Checking – 0000")).toBeVisible();
+  await expect(dialog.getByText("Checking | $110.00")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Next" })).toBeVisible();
   const cfg = await page.evaluate(
     () =>
       (window as unknown as { __plaidConfig: { token: string; receivedRedirectUri: string } })

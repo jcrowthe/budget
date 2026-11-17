@@ -108,8 +108,12 @@ export async function accountFacts(
   });
 }
 
+const CONNECTION_STATUSES = ["connected", "delayed", "login_required", "broken"] as const;
+const asStatus = (s: string | null | undefined) => CONNECTION_STATUSES.find((c) => c === s) ?? null;
+
 export function accountToApi(
-  row: accountsRepo.AccountRow,
+  row: accountsRepo.AccountRow &
+    Partial<Pick<accountsRepo.AccountReadRow, "connectionStatus" | "connectionSyncedAt">>,
   b: {
     cleared: number;
     uncleared: number;
@@ -140,6 +144,8 @@ export function accountToApi(
     can_delete: b.canDelete ?? true,
     unapproved_count: b.unapproved ?? 0,
     needs_attention_count: b.attention ?? 0,
+    connection_status: row.bankAccountId === null ? null : asStatus(row.connectionStatus),
+    last_synced_at: row.bankAccountId === null ? null : (row.connectionSyncedAt ?? null),
   };
 }
 
@@ -779,6 +785,8 @@ export async function insertAccountWithStartingBalance(
     date: string;
     bankAccountId: string | null;
     importStartDate: string | null;
+    /** The bank connection's state, for the answer and the log row (the row itself does not hold it). */
+    link?: { connectionStatus: string; connectionSyncedAt: string | null };
   },
 ): Promise<{ account: Account; starting_balance: Transaction }> {
   const db = getDb(env);
@@ -828,7 +836,10 @@ export async function insertAccountWithStartingBalance(
       deletedAt: null,
       updatedAt: now,
     };
-    const account = accountToApi(row, { cleared: amount, uncleared: 0, canDelete: true });
+    const account = accountToApi(
+      { ...row, ...spec.link },
+      { cleared: amount, uncleared: 0, canDelete: true },
+    );
     const g1 = accountsRepo.newAccountGuard(
       db,
       budgetId,

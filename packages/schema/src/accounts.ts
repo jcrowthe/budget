@@ -69,6 +69,18 @@ export const Account = z
       description:
         "Live transactions that are unapproved or need a category (an on-plan account, no category, not Ready to Assign, not a split or an on-plan transfer or a Starting Balance)",
     }),
+    connection_status: z
+      .enum(["connected", "delayed", "login_required", "broken"])
+      .nullable()
+      .default(null)
+      .openapi({
+        description:
+          "Status of the linked account's bank connection: connected, delayed, login_required or broken; null when not linked",
+      }),
+    last_synced_at: z.string().nullable().default(null).openapi({
+      description:
+        "When the linked account's bank connection last synced (ISO 8601 UTC); null when not linked or never synced",
+    }),
   })
   .openapi("Account");
 
@@ -191,6 +203,7 @@ export const AccountsFromBankResponse = dataEnvelope(
 export type AccountType = z.infer<typeof AccountType>;
 export type AccountGroup = z.infer<typeof AccountGroup>;
 export type Account = z.infer<typeof Account>;
+export type ConnectionStatus = NonNullable<Account["connection_status"]>;
 export type AccountCreate = z.infer<typeof AccountCreate>;
 export type AccountCreateRequest = z.input<typeof AccountCreateRequest>;
 export type AccountUpdateRequest = z.input<typeof AccountUpdateRequest>;

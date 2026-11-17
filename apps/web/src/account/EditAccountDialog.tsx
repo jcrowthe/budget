@@ -11,9 +11,13 @@ import {
   useUpdateAccount,
 } from "../api/accounts";
 import { ApiError } from "../api/client";
+import { ACCOUNT_TYPE_LABEL } from "../shell/accountTypeLabels";
 import { CloseIcon } from "../shell/icons";
 import { accountsPath } from "../shell/planPaths";
 import { CloseAccountDialog } from "./CloseAccountDialog";
+import { LinkAccountDialog } from "./link-account-dialog";
+import { BankConnectionSection } from "./link-account-section";
+import { UnlinkAccountDialog } from "./link-account-unlink";
 import "./edit-account.css";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 
@@ -48,14 +52,18 @@ export function EditAccountDialog({
   const [balance, setBalance] = useState(prefill);
   const [errors, setErrors] = useState<Errors>({});
   const [confirming, setConfirming] = useState(false);
+  const [screen, setScreen] = useState<"edit" | "link" | "unlink">("edit");
   const [saving, setSaving] = useState(false);
   const busy = saving || close.isPending || reopen.isPending || remove.isPending;
 
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
+      // The Link and Unlink screens handle Escape themselves (back to this one).
+      if (e.key === "Escape" && screenRef.current === "edit") closeRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -134,6 +142,27 @@ export function EditAccountDialog({
         onConfirm={() =>
           close.mutate({ today: localToday() }, { onSuccess: onClose, onError: fail })
         }
+      />
+    );
+  }
+
+  if (screen === "link") {
+    return (
+      <LinkAccountDialog
+        budgetId={budgetId}
+        account={account}
+        onBack={() => setScreen("edit")}
+        onLinked={() => setScreen("edit")}
+      />
+    );
+  }
+  if (screen === "unlink") {
+    return (
+      <UnlinkAccountDialog
+        budgetId={budgetId}
+        account={account}
+        onCancel={() => setScreen("edit")}
+        onUnlinked={() => setScreen("edit")}
       />
     );
   }
@@ -220,6 +249,26 @@ export function EditAccountDialog({
               <p className="helper">{HELPER}</p>
             </>
           )}
+          {account.linked ? (
+            <>
+              <label htmlFor="edit-account-type">Account Type</label>
+              <select
+                id="edit-account-type"
+                className="field"
+                disabled
+                title="The type of a linked account cannot be changed."
+                value={account.type}
+              >
+                <option value={account.type}>{ACCOUNT_TYPE_LABEL[account.type]}</option>
+              </select>
+            </>
+          ) : null}
+          <BankConnectionSection
+            budgetId={budgetId}
+            account={account}
+            onLink={() => setScreen("link")}
+            onUnlink={() => setScreen("unlink")}
+          />
           {errors.other ? (
             <p className="error-bar" role="alert">
               {errors.other}
