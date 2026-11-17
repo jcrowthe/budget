@@ -10198,3 +10198,62 @@ template's last review: Build 0, Deploy 9, Discover 2, Test user flow 3.
 
 **Next plan:** nothing beside the Build (one Build at a time on the Plan page; plan formats
 touches the same amounts). Set the three new tickets' priorities.
+
+### 2026-11-17 · Plan round 117
+
+Children used 134 of 200. Started one Build; one is running from round 116. Main and live
+`d005439`. The three tickets filed at the last review exist: **EXF-723** (export and import and
+the reconciliation payee; set to Medium), **EXF-724** (the reconcile lag; Low), **EXF-725**
+(inserts by column position; Low); nothing blocks them. The person has not answered the round-110
+check-in.
+
+**The template-ticket sweep ended** (`p_5a6cdef2d3a14bd7b845dd642965e78e`, 09:11Z; its review is
+the next one). Its comments are posted and EXF-554 is Canceled. Its step could not change
+priorities or a title, so I did what I had approved: **EXF-575 and EXF-585 to High; EXF-612's
+title is now "Clone · platform (all templates): a replaced box comes back with the repository but
+without `/workspace/.exfab` and the home cache"** (the same fault, described as the evidence now
+shows it; body untouched).
+
+**Started: export and import hardening** (`p_164aad44232a4f72be7ecbbe87815e6b`, EXF-723 with
+EXF-725; both In Progress). Worker and schema only, no screen, no source.
+- Why now and why first among the gap tickets: the import is how the owner brings their real plan
+  over, a real plan that was ever reconciled with a difference holds "Reconciliation Balance
+  Adjustment" rows, and the import breaks again with the next column any of its seven tables
+  gains.
+- The brief asks for: an exhaustive mapping of system payees in the export; the import mapping the
+  reconciliation payee to the one a later Reconcile uses (no second payee of that kind); the round
+  trip with a reconciled adjustment; named columns built from the Drizzle tables; a test that adds
+  a throwaway column to `accounts` and still creates an account and imports a plan, shown failing
+  on the present code; a search for other statements of the kind; the conventions rule; what the
+  file format cannot carry, written into the import's design; a decision on finished import rows.
+  The export's 16 calls and the import's 3 per invocation must not change.
+- **Beside the Activity popover Build** (`p_4b3e4d16b0784c8a9090ea68151e465d`): their files are
+  disjoint (that Build's read lives in new `category-activity` files and it touches no export,
+  import or accounts repository file; this one touches nothing under `apps/web` or `e2e`). They
+  meet only in the keep-both files (`mcp-timestamps.test.ts` if this one adds a tool, which is not
+  expected, and `docs/README.md`). No shared module in either.
+
+**The Activity popover Build, 20 minutes in:** its Architect wrote the design with my three
+sections copied in; the read makes 3 D1 calls with a bound of 500 rows; payment categories are
+refused by the read and keep a plain Activity cell (a known issue: no list of rows adds up to
+their Activity); three other class-less buttons on the Plan page are styled by their containers,
+so `Got it!` was the only one drawn as the browser's default. **The source test plan has no
+activity in any month it allows, so the popover is "not compared: built from the ticket"; the
+study hovered one amount, used the month arrows and two size overrides, and reported each
+action.** The Implementer is writing the Worker side.
+
+**Also this turn:** a correction on EXF-724 ("the icon turned green at once" was my wording, not
+the verifier's).
+
+**Not started:** plan formats (EXF-468) follows the Activity popover (both touch how the Plan page
+writes amounts). The account page's leftovers (EXF-724, EXF-722, the rest of EXF-674) wait for it
+too: one Build per area. No Deploy: main and live are equal.
+
+Reviews: Build 0, Deploy 9, Discover 2, Test user flow 3 since each template's last review; the
+sweep ran this round (next about round 146).
+
+Declared for the tree: the two Builds; one Deploy for both merges with a flow test; plan formats;
+the account page's leftovers.
+
+Ticket writes: 11 (three priorities; EXF-575, EXF-585, EXF-612's title; the correction on EXF-724;
+EXF-723 and EXF-725 to In Progress with comments).
