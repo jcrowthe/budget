@@ -500,6 +500,15 @@
   outline: 1px auto var(--actionPrimary);
   outline-offset: 0;
 }
+/* Source rule `.budget-number:hover { color: var(--actionPrimary); text-decoration: underline }`; a selected row keeps
+   --labelPrimary and only underlines (source `.is-checked ... .budget-number`). Zero amounts are plain spans. */
+.activity-button:hover {
+  color: var(--actionPrimary);
+  text-decoration: underline;
+}
+.category-row.is-selected .activity-button:hover {
+  color: var(--labelPrimary);
+}
 .category-row:not(.uncategorized-row) .assigned-box {
   display: flex;
   align-items: center;

@@ -42,6 +42,14 @@ for (const size of SIZES) {
       await expect(b).toHaveText("−$60.00");
       await expect(b).toHaveAttribute("title", "(−$60.00) View this category's monthly activity.");
       expect(await b.evaluate((el) => getComputedStyle(el).cursor)).toBe("pointer");
+      // Source rule `.budget-number:hover { color: var(--actionPrimary) #7583ff; text-decoration: underline }`
+      // (read from the source's CSSOM; no non-zero amount exists there to render it).
+      await b.hover();
+      const hov = await b.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { color: cs.color, line: cs.textDecorationLine };
+      });
+      expect(hov).toEqual({ color: "rgb(117, 131, 255)", line: "underline" });
       // A zero row and a non-zero row have the same height, cell box, and right edge of the amount.
       const measure = (name: string) =>
         row(page, name).evaluate((r) => {
