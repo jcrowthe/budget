@@ -59,6 +59,7 @@ test("11 Reset: confirm, token, sign-in, reset, one sync; then Reset is disabled
   await expect(dialogNamed(page, "ZZ Bank").locator(".mc-reset-note")).toHaveText(
     (await reset.getAttribute("title")) as string,
   );
+  expect(posts(stub.requests, "POST", /\/bank-connections\/[^/]+\/sync$/)).toHaveLength(1);
 });
 
 test("11b Reset within 24 hours of a reset is disabled from the start", async ({
@@ -124,6 +125,7 @@ test("12 Repair: banner and Repair run the same calls; broken offers Remove; del
     .poll(() => posts(stub.requests, "POST", /\/bank-connections\/[^/]+\/sync$/).length)
     .toBeGreaterThanOrEqual(1);
   await expect(dialogNamed(page, "ZZ Locked").locator(".mc-subtitle")).toHaveText("Connected");
+  expect(posts(stub.requests, "POST", /\/bank-connections\/[^/]+\/sync$/)).toHaveLength(1);
   await realClick(page, dialogNamed(page, "ZZ Locked").getByRole("button", { name: "Back" }));
   const list = dialogNamed(page, "Manage Bank Connections");
   await expect(
@@ -192,4 +194,29 @@ test("13b Remove refused (502): its message, kept", async ({ page, request }) =>
       exact: true,
     }),
   ).toBeVisible();
+});
+
+test("11e a Reset message stays with its connection", async ({ page, request }) => {
+  await stubPlaidLink(page, { exit: { display_message: null } });
+  await setup(page, request, (z) => [
+    z.connection,
+    oneAccountBank("ZZ Other", "connected", "aa11bb"),
+  ]);
+  const detail = await openDetail(page, "ZZ Bank");
+  await realClick(page, detail.getByRole("button", { name: "Reset", exact: true }));
+  await realClick(
+    page,
+    dialogNamed(page, "Reset Bank Connection").getByRole("button", { name: "Reset", exact: true }),
+  );
+  await expect(dialogNamed(page, "ZZ Bank").getByRole("alert")).toBeVisible();
+  await realClick(page, dialogNamed(page, "ZZ Bank").getByRole("button", { name: "Back" }));
+  await realClick(
+    page,
+    dialogNamed(page, "Manage Bank Connections").getByRole("button", {
+      name: "ZZ Other",
+      exact: true,
+    }),
+  );
+  await expect(dialogNamed(page, "ZZ Other")).toBeVisible();
+  await expect(dialogNamed(page, "ZZ Other").getByRole("alert")).toHaveCount(0);
 });

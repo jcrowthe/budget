@@ -100,6 +100,10 @@ function Host({ budgetId, onClose }: { budgetId: string; onClose: () => void }) 
   const relink = useConnectionRelink(budgetId, id, (open) => {
     linking.current = open;
   });
+  // A Reset or Repair message belongs to the connection it came from.
+  const clearRelinkError = relink.clearError;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clear only when the viewed connection changes
+  useEffect(() => clearRelinkError(), [id]);
   const list = connections.data ?? [];
   const connection = list.find((c) => c.id === id);
   const bank =
