@@ -17,6 +17,7 @@ import {
   reconciledAtIs,
   reconcileFlagsStmt,
   reconcileLogsStmt,
+  transactionIs,
 } from "../repositories/reconcile";
 import * as txRepo from "../repositories/transactions";
 import { accountFacts, accountToApi, adjustmentRow, type BatchItem, systemPayee } from "./accounts";
@@ -107,7 +108,16 @@ export async function reconcileAccount(
     });
   }
   const guard = accountsRepo.accountHolds(db, before, clearedSumIs(accountId, C));
-  const marked = reconciledAtIs(db, accountId, now);
+  // `now` has millisecond resolution: two requests may share it, so the marker alone proves nothing.
+  // The adjustment is guarded by marker AND the cleared sum still being C (the winner's adjustment moves it);
+  // the account log by marker AND this request's own adjustment existing (or the sum, with no adjustment).
+  const marked = reconciledAtIs(db, accountId, now, clearedSumIs(accountId, C));
+  const markedLog = reconciledAtIs(
+    db,
+    accountId,
+    now,
+    tx ? transactionIs(tx.id) : clearedSumIs(accountId, C),
+  );
   const after = accountToApi(
     { ...before, lastReconciledAt: now },
     { ...facts, cleared: C + d, canDelete: d !== 0 ? false : facts.canDelete },
@@ -155,7 +165,7 @@ export async function reconcileAccount(
         before: accountToApi(before, facts),
         after,
       },
-      marked,
+      markedLog,
     ),
   );
   const results = await db.batch(stmts as unknown as [BatchItem, ...BatchItem[]]);

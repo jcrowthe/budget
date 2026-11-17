@@ -40,9 +40,18 @@ export function reconcileFlagsStmt(
 }
 
 /** The marker guard: holds once the account's `last_reconciled_at` is `now`. */
-export function reconciledAtIs(db: Db, accountId: string, now: string) {
+export function reconciledAtIs(db: Db, accountId: string, now: string, extra?: SQL) {
   return db
     .select({ x: sql`1` })
     .from(accounts)
-    .where(sql`${accounts.id} = ${accountId} and ${accounts.lastReconciledAt} = ${now}`);
+    .where(
+      extra
+        ? sql`${accounts.id} = ${accountId} and ${accounts.lastReconciledAt} = ${now} and ${extra}`
+        : sql`${accounts.id} = ${accountId} and ${accounts.lastReconciledAt} = ${now}`,
+    );
+}
+
+/** A condition: the transaction `id` exists (the adjustment row of this request was written). */
+export function transactionIs(id: string): SQL {
+  return sql`exists (select 1 from ${transactions} where ${transactions.id} = ${id})`;
 }

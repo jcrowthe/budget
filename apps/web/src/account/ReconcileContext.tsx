@@ -80,7 +80,8 @@ export function ReconcileProvider({
         {
           onSuccess: () => {
             setStatement(undefined);
-            setStep(yes ? "done" : "idle");
+            // A cancel while the request ran already went to idle: only the ask step moves on to "done".
+            setStep((cur) => (yes ? (cur === "ask" ? "done" : cur) : "idle"));
           },
           onError: (e) => {
             // The plan's queries refetch: the bar shows the new difference and keeps its step.

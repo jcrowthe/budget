@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env";
 import { reconcileAccount } from "../src/services/reconcile";
 import { q } from "./bulk-helpers";
@@ -73,6 +73,34 @@ describe("reconcile: two requests at once (case 15)", () => {
       status: 409,
       code: "reconcile_changed",
     });
+    const adj = await q(
+      "select count(*) n from transactions where account_id = ? and payee_name = 'Reconciliation Balance Adjustment'",
+      w.checking,
+    );
+    expect(adj[0]?.n).toBe(1);
+    const marks = await q(
+      "select count(*) n from change_log where entity_type = 'account' and entity_id = ? and action = 'update'",
+      w.checking,
+    );
+    expect(marks[0]?.n).toBe(1);
+  });
+
+  it("two adjustment reconciles in the same millisecond still write one adjustment and one account log", async () => {
+    const w = await seedWorkedExample();
+    const input = { statement_balance: 700000, create_adjustment: true };
+    const pinned = new Date().toISOString();
+    const spy = vi.spyOn(Date.prototype, "toISOString").mockReturnValue(pinned);
+    try {
+      const e = interleaved(async () => {
+        await reconcileAccount(env, actor, w.b, w.checking, input);
+      });
+      await expect(reconcileAccount(e.env, actor, w.b, w.checking, input)).rejects.toMatchObject({
+        status: 409,
+        code: "reconcile_changed",
+      });
+    } finally {
+      spy.mockRestore();
+    }
     const adj = await q(
       "select count(*) n from transactions where account_id = ? and payee_name = 'Reconciliation Balance Adjustment'",
       w.checking,
