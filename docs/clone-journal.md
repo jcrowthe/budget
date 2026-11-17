@@ -10652,3 +10652,30 @@ progress). Gap: seventeen open, two in progress. Template: thirty-nine open (Urg
 612). Finished since each template's last review: Build 2, Deploy 0, Discover 2, Test user flow 3.
 
 **Next plan:** nothing beside the Build.
+
+### 2026-11-17 · Plan round 122
+
+Children used 137 of 200. Nothing started; the register's View options Build is running
+(`p_5b0c6eac7fb9459881ccfe507ef9a190`). Main and live `13cfcae`. No tickets were filed at the last
+review. The person has not answered the check-ins of rounds 110 and 120.
+
+- **Why nothing new, although the scheduling rule would allow a second Build** (the plans list and
+  New Plan dialog share no file with the register Build): the rate-limit window that opened at
+  about 09:00Z is three hours old, and both earlier pauses came at about this point of a window
+  (2 hours 46 minutes and 3 hours 38 minutes in). This window has carried three Builds, three
+  Deploys, the sweep, two template reviews and many turns of mine. A Build started now would have
+  most of its steps ahead of it when a pause is most likely; the Build that is running has only
+  its last steps left. The next window should open at about 14:00Z.
+- **What starts then, in this order:** plan formats (EXF-468, High) with the narrow number columns
+  (EXF-726), once the register Build has merged; the plans list page and New Plan dialog (EXF-471,
+  EXF-469) from the tickets, with the plan menu on the source's never-list, as I told the person
+  at the check-in. The second touches the shell and the router (shared modules), so it runs with
+  no other shared-module Build.
+- **When the register Build's card comes:** read what changed since its last review, approve on a
+  clean gate on main `13cfcae`; then one Deploy with the review's three new lines in its brief,
+  and a register walk in that Deploy (no separate flow test unless the Deploy finds something).
+- No review is due (Build 2, Deploy 0, Discover 2, Test user flow 3).
+
+Declared for the tree, unchanged from round 121.
+
+Ticket writes: 0.
