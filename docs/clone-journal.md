@@ -10362,3 +10362,52 @@ flow 3.
 
 **Next plan:** the register's view options (EXF-529) with the two account-page riders, now that
 one Build has ended; the Deploy waits for the Activity popover so that one Deploy ships both.
+
+### 2026-11-17 · Plan round 119
+
+Children used 135 of 200. Started one Build; one is running from round 116. Main `3ab0051`, live
+`d005439` (one merge behind, nothing pending). No tickets were filed at the last review. The
+person has not answered the round-110 check-in.
+
+**Started: the register's View options** (`p_5b0c6eac7fb9459881ccfe507ef9a190`, EXF-529 with
+EXF-724 and EXF-722; all three In Progress).
+- Why this one: it is the next feature the person's list names for the register ("historical
+  tracking of all past transactions": a date range, a running balance, reconciled rows out of the
+  way), it builds on Reconcile, which merged this morning, and its two riders are on the same page.
+- **What the brief settles so that no design round is spent on it:** Show Reconciled is off by
+  default as in the source, so reconciled rows are hidden after this Build, and the Reconcile
+  specs and cases that expect locked rows after Finish turn the option on first; a row's running
+  balance counts every earlier row, also hidden ones, and is computed in SQL with the same calls
+  for 10 and for 1,000 rows; Show Images is stored but changes nothing yet (no image column,
+  EXF-536); where the settings live is the Architect's choice (the migration's name is fixed if
+  one is needed: `20261116101500_account_view_settings.sql`).
+- **The source rules, as a list of what may be done and what never, each with its reason, for the
+  Architect to copy into the design:** on one account of the test plan and on All Accounts the View
+  popover may be opened and its settings changed and applied to see their effect, and are then set
+  back (the before and after go into the report); never Reconcile; never a change to a
+  transaction or an account; never the plan menu, Bank Connections, another plan. This is the
+  first brief that lets a Designer apply something in the source: view settings are the test
+  plan's own display state, and the person gave that plan for any purpose.
+- EXF-724: measure, then fix, with a spec that fails on the present code or a report that the lag
+  does not exist locally. EXF-722: two tests, each shown failing with the guard removed.
+- The "Looking" list for the Tester, as in the Activity popover's brief.
+
+**Beside the Activity popover Build** (`p_4b3e4d16b0784c8a9090ea68151e465d`, 93 minutes in): the
+Plan page and new `category-activity` Worker files on one side; the register, the account page
+and new `view-settings` files on the other. They meet only in the keep-both files. No shared
+module in either. If the new Build's manifest says otherwise when it arrives, I sequence it.
+
+**The rate limit:** the window opened at 09:00Z by my inference; two Builds, a Deploy and the sweep
+have run in it so far, which is less than the load before either earlier pause at the same point.
+If a pause comes all the same, the code is on the branches.
+
+**Not started:** the Deploy waits for the Activity popover's merge (one Deploy for both merges).
+Plan formats (EXF-468) follows both Builds: it changes how the Plan page and the register write
+amounts and dates.
+
+Reviews: Build 1, Deploy 9, Discover 2, Test user flow 3 since each template's last review.
+
+Declared for the tree: the two Builds; one Deploy for the two merges; a flow test of the Activity
+popover; plan formats.
+
+Ticket writes: 6 (EXF-529, EXF-724, EXF-722 to In Progress, each with a comment).
