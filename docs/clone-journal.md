@@ -9466,3 +9466,62 @@ Deploy (`ZZ-TEST D29`) for the three merges, then flows 3, 4 and 6. The next rev
 the check-in is the review of round 110.
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 109
+
+Children used 125 of 200. Two ended: **the plan import Build completed and merged**
+(`p_54808387099a4079ae59bcea99e3509f`, pull request 57, main now `8b3e9a7`), and **the Plan-page
+Build was abandoned by me** (`p_d551d2b31d2045cebf7e9161c230c828`, branch head `ffcd2eb`, PR 58
+unmerged). Nothing is running. Live is still `49012cd` (read by me at 05:03Z); one migration is
+pending on live, `20261116101300_plan_imports.sql`.
+
+**What happened: a second rate-limit pause, 01:47Z to 04:00Z.** Both Builds came back in new boxes
+without the platform's files (the seventeenth and eighteenth child; evidence on EXF-612).
+- **Plan import: landed all the same.** It was paused at its relay step, after the final gate. Its
+  relay agent asked for help (`card.md` and `gate-line.txt` gone). I gave it a text to send in
+  their place, marked as rebuilt, with only the head, the base, the diff size and the listing. The
+  approval card came. **I did the gate's work by hand on that head (`2540886`) in a throwaway
+  checkout: `pnpm check` 133 files and 1,825 tests; the whole browser suite 430 passed, 2 skipped,
+  0 failed.** I approved at 05:02Z and it landed at 05:03Z. Main's tree equals the commit I checked
+  (`git diff` empty).
+- **Plan page: lost before acceptance.** Its Reviewer approved `ffcd2eb` at 04:08Z in the new box
+  (after installing the browser itself); then the dev-server step failed with an empty message.
+  The gate cannot run in such a box. Abandoned at 04:54Z.
+
+**The plan import as merged (EXF-477 API half, EXF-670):** `POST /api/v1/budgets/import`, its
+`continue` and cancel, tools `import_budget_export`, `continue_budget_import`,
+`cancel_budget_import`; acceptance 15 of 15; the 20,000-transaction file in 17 calls with at most
+3 D1 and 2 R2 calls each; thousands separators accepted when unambiguous. Known issues: the zip
+filter's narrower checks; a stored file left in R2 if its delete fails; never tried with a real
+export. EXF-670 is Done; EXF-477 is back in Backlog for the dialog (parked on the person's word).
+
+**The Plan-page work at `ffcd2eb`:** reviewed and approved there (cases 21, 28 and 26 each shown
+failing on the old code; the month picker spec passed 5 of 5 alone and could not be made to fail);
+one polish item applied (P6: at 1024 px the header, group and category names now start at the same
+x); one full browser run gave 447 passed and 1 failed, `e2e/reflect-frame.spec.ts` "548-6 account
+filter sections", a file the branch does not touch, 10 of 10 alone: called load by the
+Implementer, **not read by anyone, so by my rule still open**. Acceptance and the gate are left.
+
+**What I learned:**
+- **A Thread past its gate can land from a box without the platform's files;** the steps before
+  the landing (checks, dev server, gate) cannot. So: a late help card gets an answer and my own
+  check of the head; an early one gets Abandon.
+- **The rate limit, not the Builds, now decides what lands.** Two pauses (20:17Z to 23:01Z,
+  01:47Z to 04:00Z) hit every Build running at the time: three were lost in the first, one in the
+  second, and the import Build landed only because it was already past its gate. The allowance
+  lasted 2 hours 46 minutes with three Builds, then two, running. A Build must start early in a
+  window and be short, and I run fewer at once.
+- **The Designer went into the source again against the ban** (the Plan page of the test plan,
+  measuring only; it left the tab at a wrong size and restored it). Eight of eight. Evidence on
+  EXF-573. Its finding was real (P6).
+- The sign-in tab rule in the new briefs was not needed: both fresh boxes were signed in.
+
+**Ticket writes:** 6 (EXF-670 Done and comment; EXF-477 Backlog and comment; evidence on EXF-573
+and EXF-612). **Backlog:** 51 open feature tickets (48 done; 2 in progress: EXF-537, EXF-533). Gap:
+twelve open, seven in progress, EXF-670 done. Template: forty open (Urgent EXF-573, 611, 612). Flow
+verdicts unchanged. Finished since each template's last review: Build 8, Deploy 7, Discover 2, Test
+user flow 2.
+
+**Next plan:** the fourth Plan-page Build, short, merging `ffcd2eb` onto main `8b3e9a7` (I try the
+merge first: the two test files will conflict). A Deploy for the import merge can run beside it.
+The Reconcile Build waits for the Plan-page Build's acceptance.
