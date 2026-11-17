@@ -58,6 +58,9 @@ async function createsAndImports() {
   return bid;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Drizzle hides `Table.Symbol` from its types.
+const symbolColumns = (Table as any).Symbol.Columns;
+
 describe("a new nullable column on accounts", () => {
   beforeAll(async () => {
     await env.DB.prepare("ALTER TABLE accounts ADD COLUMN zz_probe TEXT").run();
@@ -72,16 +75,17 @@ describe("a new nullable column on accounts", () => {
 
   describe("and Drizzle knows it", () => {
     beforeAll(() => {
-      const probe = text("zz_probe").build(accounts as never);
+      // biome-ignore lint/suspicious/noExplicitAny: `build` is internal to Drizzle.
+      const probe = (text("zz_probe") as any).build(accounts);
       // biome-ignore lint/suspicious/noExplicitAny: the probe column is attached to the module's table object.
       const t = accounts as any;
-      t[Table.Symbol.Columns].zzProbe = probe;
+      t[symbolColumns].zzProbe = probe;
       t.zzProbe = probe;
     });
     afterAll(() => {
       // biome-ignore lint/suspicious/noExplicitAny: undoes the probe.
       const t = accounts as any;
-      delete t[Table.Symbol.Columns].zzProbe;
+      delete t[symbolColumns].zzProbe;
       delete t.zzProbe;
     });
 

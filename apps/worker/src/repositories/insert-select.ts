@@ -1,5 +1,4 @@
 import { getTableColumns, getTableName, type InferInsertModel, is, SQL, sql } from "drizzle-orm";
-import type { BatchItem } from "drizzle-orm/batch";
 import { type SQLiteTable, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { Db } from "../db/client";
 
@@ -17,7 +16,7 @@ export function insertSelect<T extends SQLiteTable>(
   table: T,
   values: InsertValues<T>,
   tail?: SQL,
-): BatchItem<"sqlite"> {
+): ReturnType<ReturnType<Db["insert"]>["select"]> {
   const cols = getTableColumns(table) as Record<string, { name: string }>;
   const name = getTableName(table);
   const keys = Object.keys(values);

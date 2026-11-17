@@ -137,7 +137,9 @@ describe("criterion 7: export, import, export", () => {
 describe("EXF-723: a reconciliation adjustment", () => {
   it("is exported under its own name and survives the round trip", async () => {
     const f = await buildF();
-    const acct = (await (await json(`/api/v1/budgets/${f.bid}/accounts/${f.accounts.main}`)).json()) as Json;
+    const acct = (await (
+      await json(`/api/v1/budgets/${f.bid}/accounts/${f.accounts.main}`)
+    ).json()) as Json;
     const cleared = acct.data.account.cleared_balance as number;
     const rec = await reconcile(f.bid, f.accounts.main, {
       statement_balance: cleared - 5000,
