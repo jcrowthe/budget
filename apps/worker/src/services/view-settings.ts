@@ -10,11 +10,10 @@ import {
 import { HTTPException } from "hono/http-exception";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
-import { changeLogInsert } from "../history/change-log";
-import { NotFound } from "../middleware/errors";
+import { changeLogInsertIf } from "../history/change-log";
+import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
-import * as uiStateRepo from "../repositories/ui-state";
 import * as repo from "../repositories/view-settings";
 
 const ALL = "all_accounts";
@@ -81,33 +80,38 @@ async function write(
   accountId: string | null,
   patch: Partial<ViewSettings>,
 ): Promise<Stored> {
-  const { db, json } = await readOne(env, budgetId, accountId);
-  const before = parseStored(json);
-  const merged = mergeViewSettings(before, patch);
-  if ("error" in merged) throw new HTTPException(422, { message: merged.error });
-  const stored: Stored = accountId
-    ? merged
-    : { ...merged, show_running_balance: VIEW_DEFAULTS.show_running_balance };
+  const key = repo.viewSettingsKey(accountId ?? ALL);
   const shape = (s: Stored) => (accountId ? s : withoutBalance(s));
-  await db.batch([
-    uiStateRepo.upsertStmt(
-      db,
-      budgetId,
-      repo.viewSettingsKey(accountId ?? ALL),
-      JSON.stringify(shape(stored)),
-      new Date().toISOString(),
-    ),
-    changeLogInsert(db, {
-      budgetId,
-      actor,
-      action: json === undefined ? "create" : "update",
-      entityType: "view_settings",
-      entityId: accountId ?? ALL,
-      before: shape(before),
-      after: shape(stored),
-    }),
-  ]);
-  return stored;
+  // The write only lands while the stored value is still the one this merge started from; otherwise another
+  // write got in first and the merge is redone on what it stored (a few tries, then 409).
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { db, json } = await readOne(env, budgetId, accountId);
+    const before = parseStored(json);
+    const merged = mergeViewSettings(before, patch);
+    if ("error" in merged) throw new HTTPException(422, { message: merged.error });
+    const stored: Stored = accountId
+      ? merged
+      : { ...merged, show_running_balance: VIEW_DEFAULTS.show_running_balance };
+    const now = new Date().toISOString();
+    const results = await db.batch([
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: json === undefined ? "create" : "update",
+          entityType: "view_settings",
+          entityId: accountId ?? ALL,
+          before: shape(before),
+          after: shape(stored),
+        },
+        repo.unchangedGuard(budgetId, key, json),
+      ),
+      repo.writeIfStmt(db, budgetId, key, JSON.stringify(shape(stored)), now, json),
+    ]);
+    if ((results[1]?.meta.changes ?? 0) > 0) return stored;
+  }
+  throw new Conflict("View settings");
 }
 
 export async function updateAccountViewSettings(

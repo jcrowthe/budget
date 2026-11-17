@@ -56,6 +56,7 @@ export function useRegisterViewState(budgetId: string, accountId?: string): Regi
   }, [rows]);
   const today = localToday();
   const firstMonth = useMemo(() => {
+    // Today's month is the floor while the plan and the list are still loading.
     const candidates = [`${today.slice(0, 7)}-01`];
     if (plan?.created_at) candidates.push(`${plan.created_at.slice(0, 7)}-01`);
     if (oldest) candidates.push(`${oldest.slice(0, 7)}-01`);

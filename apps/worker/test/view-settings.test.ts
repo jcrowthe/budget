@@ -1,3 +1,4 @@
+import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { account, data, logs, tool } from "./account-helpers";
 import { type Json, plan, send } from "./bulk-helpers";
@@ -135,6 +136,39 @@ describe("view settings REST (EXF-529)", () => {
   });
 });
 
+describe("overlapping writes (EXF-529 review)", () => {
+  it("two PUTs of different fields at once keep both fields and log create, then update", async () => {
+    for (const scope of ["account", "all"]) {
+      const { b, a } = await mk();
+      const url = scope === "account" ? V(b, a) : ALL(b);
+      const id = scope === "account" ? a : "all_accounts";
+      const bodies = [{ show_flags: false }, { show_images: false }];
+      const res = await Promise.all(bodies.map((body) => send(url, "PUT", body)));
+      expect(res.map((r) => r.status)).toEqual([200, 200]);
+      const got = (await data(await send(url, "GET"))).view_settings;
+      expect(got).toMatchObject({ show_flags: false, show_images: false });
+      const rows = (
+        await env.DB.prepare(
+          "select action, before_json, after_json from change_log where budget_id = ? and entity_id = ? and entity_type = 'view_settings' order by rowid",
+        )
+          .bind(b, id)
+          .all<Json>()
+      ).results;
+      expect(rows.map((r: Json) => r.action)).toEqual(["create", "update"]);
+      const first = JSON.parse(rows[0].after_json);
+      expect(JSON.parse(rows[0].before_json)).toMatchObject({
+        show_flags: true,
+        show_images: true,
+      });
+      expect(JSON.parse(rows[1].before_json)).toEqual(first);
+      expect(JSON.parse(rows[1].after_json)).toMatchObject({
+        show_flags: false,
+        show_images: false,
+      });
+    }
+  });
+});
+
 describe("view settings MCP (EXF-529)", () => {
   it("tools return the REST data and log as mcp:", async () => {
     const { b, a } = await mk();
@@ -164,6 +198,11 @@ describe("view settings MCP (EXF-529)", () => {
     expect((await logs(a)).find((r: Json) => r.entity_type === "view_settings")?.actor).toMatch(
       /^mcp:/,
     );
+    const strict = await tool("update_all_accounts_view_settings", {
+      budget_id: b,
+      show_running_balance: true,
+    });
+    expect(strict.isError).toBe(true);
     const bad = await tool("update_account_view_settings", {
       budget_id: b,
       account_id: a,

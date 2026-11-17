@@ -28,7 +28,7 @@ export const tools: McpToolDef[] = [
   {
     name: "update_account_view_settings",
     description: `Change the register view settings of one account: ${FIELDS}, show_running_balance. ${RULES} Returns { view_settings: { account_id, preset, range_from, range_to, show_reconciled, show_running_balance, show_flags, show_images } } after the change.`,
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       budget_id: Id,
       account_id: Id,
       ...AccountViewSettingsUpdate.shape,
@@ -54,7 +54,7 @@ export const tools: McpToolDef[] = [
   {
     name: "update_all_accounts_view_settings",
     description: `Change the register view settings of the All Accounts page: ${FIELDS}. It has no running balance. ${RULES} Returns { view_settings: { preset, range_from, range_to, show_reconciled, show_flags, show_images } } after the change.`,
-    inputSchema: z.object({ budget_id: Id, ...AllAccountsViewSettingsUpdate.shape }),
+    inputSchema: z.strictObject({ budget_id: Id, ...AllAccountsViewSettingsUpdate.shape }),
     run: async (input: { budget_id: string } & Record<string, unknown>, { env, actor }) => {
       const { budget_id, ...patch } = input;
       return { view_settings: await updateAllAccountsViewSettings(env, actor, budget_id, patch) };
