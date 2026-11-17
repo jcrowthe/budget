@@ -1,0 +1,78 @@
+/* Add Accounts after a connection (EXF-461): rows, pills, notes. Tokens only. */
+.bank-link-bank {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.bank-link-bank h3 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bank-link-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bank-link-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--borderSubtle);
+}
+.bank-link-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--actionPrimary);
+}
+.bank-link-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.bank-link-name,
+.bank-link-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bank-link-name {
+  font-weight: 600;
+}
+.bank-link-sub {
+  color: var(--labelSecondary);
+}
+.bank-link-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.bank-link-note {
+  margin: var(--space-3) 0;
+  font-size: 12px;
+  color: var(--labelSecondary);
+}
+.bank-link-row.is-linked .bank-link-name {
+  color: var(--labelSecondary);
+}
+.bank-link-intro {
+  margin: 0 0 var(--space-2);
+}
+.bank-link-body .error-bar {
+  margin: var(--space-2) 0;
+  color: var(--labelNegative);
+}

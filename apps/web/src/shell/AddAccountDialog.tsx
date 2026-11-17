@@ -8,14 +8,14 @@ import { localToday, useCreateAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { AccountTypePicker } from "./AccountTypePicker";
 import { ACCOUNT_TYPE_LABEL } from "./accountTypeLabels";
-import { BankConnected } from "./BankConnected";
 import { BankSearch } from "./BankSearch";
+import { BANK_LINK_TITLES, BankLinkAccounts, type BankLinkScreen } from "./bank-link-accounts";
 import { CaretRightIcon, CheckCircleIcon, ChevronLeftIcon, CloseIcon } from "./icons";
 import { usePlanFormatter } from "./plan-formats-context";
 import { accountPath } from "./planPaths";
 import { useCurrentPlan } from "./useCurrentPlan";
 
-type Screen = "start" | "form" | "types" | "success" | "connected";
+type Screen = "start" | "form" | "types" | "success" | "link";
 type Errors = { name?: string; balance?: string; other?: string };
 
 const TITLES: Record<Screen, string> = {
@@ -23,7 +23,7 @@ const TITLES: Record<Screen, string> = {
   form: "Add Unlinked Account",
   types: "Select Account Type",
   success: "Add Unlinked Account",
-  connected: "Add Accounts",
+  link: "Add Accounts",
 };
 
 /**
@@ -50,11 +50,15 @@ export function AddAccountDialog({
   const [errors, setErrors] = useState<Errors>({});
   const [created, setCreated] = useState<Account | null>(null);
   const [connection, setConnection] = useState<BankConnection | null>(null);
+  const [linkScreen, setLinkScreen] = useState<BankLinkScreen>("select");
   const linkOpen = useRef(false);
 
-  const title = TITLES[screen];
+  const title = screen === "link" ? BANK_LINK_TITLES[linkScreen] : TITLES[screen];
   const canGoBack =
-    screen === "form" || screen === "types" || (screen === "start" && variant === "connections");
+    screen === "form" ||
+    screen === "types" ||
+    (screen === "link" && linkScreen !== "select") ||
+    (screen === "start" && variant === "connections");
   const canSubmit = !!name.trim() && !!type && balance !== "" && !create.isPending;
 
   function closeDialog() {
@@ -63,16 +67,22 @@ export function AddAccountDialog({
   }
 
   function back() {
-    if (screen === "start") (onBack ?? onClose)();
+    if (screen === "link") setLinkScreen("select");
+    else if (screen === "start") (onBack ?? onClose)();
     else setScreen(screen === "types" ? "form" : "start");
   }
 
-  // Escape closes the modal, except while Plaid Link is open.
+  // Escape closes the modal, except while Plaid Link is open; on a sub-screen of Add Accounts it goes back.
   const closeRef = useRef(closeDialog);
   closeRef.current = closeDialog;
+  const escRef = useRef(() => {});
+  escRef.current = () => {
+    if (screen === "link" && linkScreen !== "select") setLinkScreen("select");
+    else closeDialog();
+  };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !linkOpen.current) closeRef.current();
+      if (e.key === "Escape" && !linkOpen.current) escRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -136,14 +146,14 @@ export function AddAccountDialog({
               onUnlinked={() => setScreen("form")}
               onConnected={(c) => {
                 setConnection(c);
-                setScreen("connected");
+                setLinkScreen("select");
+                setScreen("link");
               }}
               onLinkingChange={(v) => {
                 linkOpen.current = v;
               }}
             />
           ) : null}
-          {screen === "connected" && connection ? <BankConnected connection={connection} /> : null}
           {screen === "form" ? (
             <>
               <p className="intro">
@@ -214,12 +224,15 @@ export function AddAccountDialog({
             </button>
           </div>
         ) : null}
-        {screen === "connected" ? (
-          <div className="account-modal-footer">
-            <button type="button" className="primary large" onClick={onClose}>
-              Done
-            </button>
-          </div>
+        {screen === "link" && connection ? (
+          <BankLinkAccounts
+            budgetId={budgetId}
+            connection={connection}
+            sandbox={plan?.bank_environment === "sandbox"}
+            screen={linkScreen}
+            onScreen={setLinkScreen}
+            onDone={onClose}
+          />
         ) : null}
         {screen === "success" ? (
           <div className="account-modal-footer two">
