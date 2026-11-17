@@ -309,6 +309,8 @@ for (const size of SIZES) {
         await route.continue();
       });
       const b = option(autoCard(page), "Underfunded");
+      // The options are disabled while the preview of the two ticked rows loads: click only once they are enabled.
+      await expect(b).toBeEnabled();
       await realClick(page, b);
       await expect(b).toBeDisabled();
       await expect.poll(() => posts).toBe(1);
