@@ -10726,3 +10726,43 @@ review: Build 3, Deploy 0, Discover 2, Test user flow 3.
 **Next plan:** one Deploy (`ZZ-TEST D32`) for `2f33143`, with a walk of the register's View
 options and of reconcile mode on live; then, in the next rate-limit window (about 14:00Z), plan
 formats with EXF-726.
+
+### 2026-11-17 · Plan round 123
+
+Children used 138 of 200. Started one Deploy. Main `2f33143`, live `13cfcae` (one merge behind,
+nothing pending). The ticket filed at the last review exists as **EXF-727** (the month picker
+spec); set to Low; it rides with the next Plan-page Build. The person has not answered the
+check-ins of rounds 110 and 120.
+
+**Started: Deploy D32** (`p_cca7951cd0c14278bc76a44b44020c8e`): ships main `2f33143`; no
+migration; `gated_commit` `1e95f30` (its tree equals main's, compared now). Its checks:
+- 87 tools; the view settings through REST and MCP (defaults, a write, per account, the refusal of
+  Running Balance for All Accounts);
+- **the running balance to the cent** on five dated rows (500,000; 530,000; 510,000; 465,000;
+  455,500), through REST and in the BALANCE column, surviving a reload and a date range;
+- the View popover (six presets on one row, the selects, four checkboxes, Cancel and Apply), This
+  Month, the flag column, Cancel changing nothing;
+- **reconciled rows hidden by default** after a reconcile through REST, the footer and View All;
+- **reconcile mode keeping up (EXF-724), measured in milliseconds on live**, where a verifier saw
+  the figures stale after 700 ms before;
+- All Accounts; 1024×700 with the BALANCE column (the clipped CATEGORY header is expected);
+- the count of plans; the prefixed purge.
+- **Three changes in the brief from the Deploy template review:** the setup is one script with a
+  state file that refuses a second run; the report ends with four lists (DIFFERS, NOT CHECKED,
+  OBSERVED, SCREENSHOTS NOT OPENED); the `plaid credentials:` line is looked for in the raw
+  `deploy.out`.
+- My figures, checked twice this time: cleared 500,000 + 30,000 − 20,000 = 510,000; uncleared
+  −45,000 − 9,500 = −54,500; balance 455,500; a statement of 465,000 is 45,000 below cleared.
+  Not certain, and said so in the brief: whether an account created with a starting balance of 0
+  has a starting row, and whether a date range shows the footer.
+
+**Not started yet:** plan formats (EXF-468) with EXF-726 and EXF-727. It starts when this Deploy
+has ended: by then the rate-limit window (about 09:00Z to 14:00Z) is nearly over, and I read
+EXF-468 first. Then the plans list and New Plan dialog.
+
+Reviews: Build 3, Deploy 0, Discover 2, Test user flow 3 since each template's last review.
+
+Declared for the tree: this Deploy; plan formats with its two riders; the plans list and New Plan
+dialog; a Deploy and a flow test of flows 2 and 3 after plan formats.
+
+Ticket writes: 1 (EXF-727's priority).
