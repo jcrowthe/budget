@@ -10880,3 +10880,87 @@ register Build (EXF-680, 681, 728, the rest of EXF-674); a small Plan-page Build
 
 Ticket writes: 6 (EXF-728 priority; EXF-468 and EXF-726 to In Progress, each with a comment; a
 comment on EXF-727 saying why it is not in this Build).
+
+### 2026-11-17 · Review round 124
+
+Children used 139 of 200. One ended: **the plan formats Build completed and merged**
+(`p_a45bb55447494ccd9dfb245a1af9f37b`, 3 h 19 min, 38 visits). **Main is `8e54173`** (pull
+request 64; its tree equals the gated head `8374d6c`). **Live is still `2f33143`** (read by me at
+17:10Z); one migration is pending (`20261116101500_plan_formats.sql`). Nothing is running.
+
+**Build: EXF-468 and EXF-726, both Done.**
+- Gate on base `2f33143`: check passed; browser suite 507 of 508, then 508 of 508 twice; the one
+  failure was `e2e/reconcile.spec.ts:102`, which passed 5 of 5 alone. I approved in the side turn
+  the card arrived in (8 minutes after the card) on the digest, the diff and the gate: no
+  out-of-bounds file, the shell files as expected, four additive columns with defaults.
+- **What is in it:** four columns on `budgets`; a catalogue of 133 currencies; `currency_format`
+  and `date_format` on every plan read; `PATCH` and `POST /api/v1/budgets` take
+  `currency_format` `{iso_code?, example_format?, symbol_placement?}` and `date_format`
+  `{format}` (a bad value: 422 with a named refusal); `update_budget` and `create_budget` take the
+  same; one formatter (`packages/schema/src/plan-formats.ts`) reached through a context mounted
+  once in the shell (no second fetch of the plan); the Plan Settings dialog through the menu's
+  registry; typing by the plan's separators and date order; export files in the plan's formats;
+  the import stores what it detects. Still **87 MCP tools**.
+- **The guard test found 48 places** that formatted money or a date by themselves before the
+  sweep; it is green now.
+- **My figures of note 10 are all in the tests** (with a no-break space where a symbol or a group
+  separator has a space, so an amount never breaks).
+- **EXF-726, cause found:** the canvas measure ignored tabular digits ("−$106.50": 59.5 px on the
+  canvas, 63.5 px in the page). The columns now measure with every digit as `0`, capped at twelve
+  wide characters; the name column gives way.
+- **The Designer found by measuring** a case nobody had named (a plain Activity amount in the
+  Uncategorized row and in payment categories wrapped at 13 characters), then found that its own
+  fix had dropped the font of most Activity amounts (P2). Both fixed, both with a test.
+- **The Reviewer found** that an even split rounded to cents in every currency (a yen plan stored
+  fractions of a yen); fixed with two tests.
+- **Departures, all listed in the design:** the tool's key list and the migration test gain the new
+  fields; three schema tests import the new formatter where they imported deleted functions; the
+  plan menu spec's tests 5 and 6 (Plan Settings is enabled now). No other expectation was edited.
+- **Known and not fixed** (in the design): a file cannot carry the group separator, cannot tell
+  CAD from USD, and with "Don't show" an imported plan gets the first currency with those decimals;
+  IRR's symbol is unverified; RUB and RUR have the same name; the minus sign is U+2212 where the
+  source writes a hyphen.
+- **The Plan Settings dialog is not compared with the source** (the plan menu stayed closed).
+
+**The source in this Build:** every step reported its own actions; the Plan page of the test plan
+only, no click, no typing. Fourth Build in a row that kept the named limits (my count from the
+Threads). One incident, reported by the Designer: a timed-out capture left the source tab's
+viewport at 562×44; it noticed, reset it to 1600×813 and ran the source check again.
+
+**The Tester looked** (810 s; nine states at two sizes) and reported two things only looking finds
+(below). It left the full suite to the gate (case 12 PARTIAL) and said it had not re-run the
+EXF-726 spec on the old code.
+
+**Filed through this review (four gap tickets, all Low):**
+1. The Activity popover's amount column is fixed at 96 px and cuts a twelve-character amount
+   though the popover has room (the Tester's note).
+2. The Plan Settings dialog's Currency Placement select cuts its label (the Tester's note).
+3. `e2e/reconcile.spec.ts:102` failed once in a full run (the gate); nobody has seen the failing
+   line.
+4. The pure functions of `packages/schema` take the formatter as an optional last argument that
+   defaults to US dollars (the design's departure 9): a call that forgets it writes dollars in a
+   Euro plan and no test fails. The Reviewer checked every caller of today by hand; nothing guards
+   the next one.
+
+**What I learned:**
+- The wide Build went through in one piece. What I think helped: defaults that change nothing (so
+  every existing spec was a regression test), the guard test run before the sweep, and the six
+  parts committed in order. Holding the start to 13:43Z cost fifteen minutes; no pause came.
+- Taking EXF-727 out was right for the size, and the gate met a second spec that fails now and
+  then; I file such a spec at its first sighting so the next one has a place to go.
+- A step that relaxes "required" to "optional with a default" to keep old tests unedited trades a
+  compiler check for nothing; I should have said in the brief which matters more. Ticket 4.
+
+**Ticket writes:** 6 (EXF-468 and EXF-726 to Done, each with a comment; evidence on EXF-573 and
+EXF-684).
+**Backlog:** 46 open feature tickets (53 done; none in progress); EXF-469 (New Plan dialog) is no
+longer blocked. Gap: sixteen open (EXF-726 done, EXF-728 added), plus the four filed here.
+Template: thirty-nine open (Urgent EXF-573, 611, 612). Flow verdicts unchanged; flows 2, 3 and 4
+are due a run once this is live. Finished since each template's last review: Build 4, Deploy 1,
+Discover 2, Test user flow 3.
+
+**Next plan:** Deploy D33 for `8e54173` (one migration; checks for plan formats read from
+`docs/plan-formats-design.md`; the owner's real plan must read as before, checked only by the
+count of plans and by a new test plan with default formats). I set the four new tickets' priority.
+While the Deploy runs no Build is approved; a Build that does not touch the shell can start
+(the small register Build: EXF-680, 681, 728). The plans list and New Plan dialog follow.
