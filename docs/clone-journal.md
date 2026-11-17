@@ -11802,3 +11802,59 @@ linked account's import can be made to start earlier.
   Test user flow 5).
 
 Ticket writes: 4 (EXF-780 priority and state; EXF-774 state and comment).
+
+### 2026-11-17 · Review round 133
+
+Children used 149 of 200. One ended: **the Manage Bank Connections Build completed and merged**
+(`p_49508f8bd85642faaf0d95e701fdecb7`, 2 h 16 min). **Main is `2d9cde7`** (pull request 67; its
+tree equals the gated head `e2498aa`). **Live is still `9ecd379`** (read by me at 23:23Z): two
+merges wait for a release (`5bee02f` and `2d9cde7`), no migration in either.
+
+**Status of the running child (23:24Z):** the import-start Build
+(`p_4333153b783043d392848313d6d594a0`, EXF-774 with EXF-780) is at its checks step after 37
+minutes, no open card.
+
+**Build for EXF-460's screens with EXF-773: merged; both Done.**
+- The gate rebased onto `5bee02f` by itself and ran there: check passed; browser suite 578 of
+  578 once and 577 of 578 twice; the failure named is `e2e/scheduled-transactions.spec.ts:151`
+  (5 of 5 alone), a spec this Build does not touch. An earlier gate had failed on
+  `e2e/shell-compare.spec.ts`, which asserted that the sidebar has no Bank Connections button;
+  the Build adds that button on purpose, and the assertion was narrowed (a departure, listed). I
+  approved in the side turn: 33 files, none out of bounds; three existing specs edited, each for
+  a thing this Build replaces.
+- **On main:** the modal from the sidebar and the plan menu; the list in three groups; the
+  detail with rename, the link section, the details, Reset and Remove; a bank account's options;
+  Repair and Reset through the bank's sign-in with the 24-hour rule; Remove offered where a
+  broken connection cannot be reset; the edit dialog's narrow-window fix. The list read stays at
+  4 database calls. No Worker change.
+- **No step opened the source** (same blanket sentence as the last Build, obeyed here; noted on
+  EXF-573).
+- The Reviewer found by a throwaway spec that a Reset error stayed on screen when another
+  connection was opened; fixed with a spec that failed first, and the Reviewer took the fix out
+  once more to see the spec fail. The Designer's four items were sizes and hover states.
+- Acceptance 17 pass, 1 partial; four cases by test only (the flows through Add a New Bank
+  Connection, Link to an Existing Account and Add as a new Account were not driven by hand).
+  **Those three flows are the first things the next flow 5 walks on live.**
+
+**A third spec that fails now and then.** After the month picker (EXF-727, three gates today)
+and the reconcile spec (EXF-747, one), now `e2e/scheduled-transactions.spec.ts:151` (one). Each
+passed five times alone. Filed below. Three different specs in one day, each in a full run
+only: that begins to look like one cause under load rather than three faults, and I say so in
+the ticket without claiming it.
+
+**Filed through this review (one gap ticket, Low):** the scheduled-transactions spec's failure.
+
+**What I learned:**
+- A gate that rebases onto the moved base by itself made "Refresh or Regate" unnecessary here:
+  the card came back already gated on the new main.
+- Two pairs of Builds side by side today, four merges, no conflict. The out-of-bounds lists in
+  both briefs did the work.
+
+**Ticket writes:** 4 (EXF-460 and EXF-773 to Done; the note on EXF-460; evidence on EXF-573).
+**Backlog:** 43 open feature tickets (56 done; none in progress). Gap: nineteen open (EXF-774
+and EXF-780 in progress), plus the one filed here. Template: thirty-nine open. Flow verdicts
+unchanged. Finished since each template's last review: Build 9, Deploy 3, Discover 2,
+Test user flow 5.
+
+**Next plan:** Deploy D35 for `2d9cde7` (both merges in one release; `ZZ-TEST D35`); then flow 5
+again on live.
