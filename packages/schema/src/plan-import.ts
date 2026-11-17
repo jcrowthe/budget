@@ -574,7 +574,8 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
   // ---- Accounts known from the Plan file's payment rows, and the Starting Balance of each account
   const startingOf = new Map<number, RegRow>();
   for (const r of rows) {
-    if (r.payee === SYSTEM_PAYEE_NAMES.starting_balance && !startingOf.has(r.account)) startingOf.set(r.account, r);
+    if (r.payee === SYSTEM_PAYEE_NAMES.starting_balance && !startingOf.has(r.account))
+      startingOf.set(r.account, r);
   }
   const paymentNames = new Set<string>();
   for (const pc of planCats) if (pc.payment) paymentNames.add(pc.name);

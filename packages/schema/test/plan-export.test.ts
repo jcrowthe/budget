@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PAYEE_SYSTEMS } from "../src/payees";
 import {
   categoryCell,
   DEFAULT_PLAN_FORMAT,
@@ -16,7 +17,6 @@ import {
   safeName,
   textField,
 } from "../src/plan-export";
-import { PAYEE_SYSTEMS } from "../src/payees";
 
 const US = exportFormat(DEFAULT_PLAN_FORMAT);
 const EU = exportFormat({
