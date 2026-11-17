@@ -9602,3 +9602,32 @@ run. Finished since each template's last review: Build 8, Deploy 7, Discover 2, 
 
 **Next plan:** nothing to start while the Plan-page Build runs; then one Deploy for both merges,
 then the Reconcile Build.
+
+### 2026-11-17 · Plan round 111
+
+Children used 126 of 200. Nothing started; one Build is running, the Plan-page third carry-over
+(`p_27986a1771a440a3b5efdec4bd06865a`). Main `8b3e9a7`, live `49012cd`. No tickets were filed at
+the last review. The person has not answered the round-110 check-in (sent at 05:16Z).
+
+- **The Build, at 05:33Z, 19 minutes in:** the Clerk's merge went as the brief said (`c09175e`, 57
+  files, both conflicts resolved, no tab at the sign-in page); the Architect took one commit; the
+  Implementer changed the one test line and `pnpm check` passes with 1,853 tests (`3623ee0`); the
+  design check is running.
+  - **The Designer is measuring the source again** ("measure the narrow Plan page and the wide one
+    on both apps"; it had to reset the source tab's viewport after a screenshot timed out), against
+    a brief that says in capitals not to open, measure or capture it. Nine of nine. Evidence goes
+    on EXF-573 at the review.
+  - `e2e/reflect-frame.spec.ts` "548-6", read by the Implementer: the spec clicks by screen
+    coordinates right after the accounts list reloads; a reload under load could move a row before
+    the click lands; no wait it could name is missing; the product code is out of this Build's
+    bounds. A known issue for me: a Low gap ticket with the next Reflect work, if it fails again.
+- **Why nothing new:** one Build at a time while rate-limit pauses replace boxes (the window opened
+  at 04:00Z). The Deploy waits for this Build so that one Deploy ships both merges. The Reconcile
+  Build waits for this Build's acceptance.
+- **Cards:** answered at once. A clean approval card on main `8b3e9a7`: approve. A help card after
+  the gate: an answer and my own check of the head. A failure before the gate with no log: Abandon.
+
+Declared for the tree, unchanged from round 110. Reviews: Build 8, Deploy 7, Discover 2, Test user
+flow 2 since each template's last review.
+
+Ticket writes: 0.
