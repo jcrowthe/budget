@@ -879,31 +879,28 @@ async function mutate(
     const next = moved
       ? importStartAfterMove(beforeAccount.importStartDate, before.date, plan.after.date)
       : null;
-    const importChanges = next !== null && next !== beforeAccount.importStartDate;
+    // The new import start, only when it differs from the one read.
+    const importNext = next !== null && next !== beforeAccount.importStartDate ? next : null;
     const guards = [
       txRepo.holdsAt(db, before),
       ...plan.others.flatMap((o) => (o.kind === "insert" ? [] : [txRepo.holdsAt(db, o.before)])),
-      ...(importChanges ? [accountsRepo.importStartHolds(db, beforeAccount)] : []),
+      ...(importNext !== null ? [accountsRepo.importStartHolds(db, beforeAccount)] : []),
     ];
     const guard = guards.length > 1 ? txRepo.allHold(guards) : (guards[0] as SQLWrapper);
     // A linked Starting Balance's date move also moves the account's import start, in this same batch.
     const imp =
-      importChanges && next !== null
-        ? await importStartStmts(db, actor, budgetId, beforeAccount, next, guard)
+      importNext !== null
+        ? await importStartStmts(db, actor, budgetId, beforeAccount, importNext, guard)
         : null;
     const lastOther = plan.others[plan.others.length - 1];
-    const selfHolds = [
-      ...(lastOther
-        ? [txRepo.holdsAt(db, before), txRepo.writtenAt(db, lastOther.row.id, now)]
-        : []),
-      ...(imp ? [imp.written] : []),
-    ];
     const selfGuard =
-      selfHolds.length === 0
-        ? guard
-        : txRepo.allHold(
-            lastOther || !imp ? selfHolds : [txRepo.holdsAt(db, before), ...selfHolds],
-          );
+      lastOther || imp
+        ? txRepo.allHold([
+            txRepo.holdsAt(db, before),
+            ...(lastOther ? [txRepo.writtenAt(db, lastOther.row.id, now)] : []),
+            ...(imp ? [imp.written] : []),
+          ])
+        : guard;
     const w0 = planWrites(db, { budgetId, actor, id, kind, plan, now, guard, selfGuard });
     const statements: unknown[] = [
       ...w0.payees,

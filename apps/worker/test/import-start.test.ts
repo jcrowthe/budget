@@ -103,11 +103,13 @@ describe("a linked Starting Balance's date moves the import start (EXF-774)", ()
     const r2Before = await byId("ZZ-r2");
     const r3Before = await byId("ZZ-r3");
 
+    const accLogsBefore = (await accountLogs(plan, account)).length;
     const res = await moveTo(plan, sb, day(30));
     expect(res.status).toBe(200);
     expect((await acc(plan, account)).import_start_date).toBe(day(30));
     // Same batch: one transaction update and one account update, the account's before T and after T-30.
     const al = await accountLogs(plan, account);
+    expect(al).toHaveLength(accLogsBefore + 1);
     const last = al[al.length - 1] as Json;
     expect(last.actor).toBe(REST_ACTOR);
     expect(JSON.parse(last.before_json).import_start_date).toBe(T);
@@ -141,12 +143,16 @@ describe("a linked Starting Balance's date moves the import start (EXF-774)", ()
     const { plan, account } = await world1();
     const sb = await sbOf(account);
     const { updateTransaction } = await import("../src/services/transactions");
+    const logTotal = () => count("select count(*) n from change_log where budget_id = ?", plan);
+    const logsBefore = await logTotal();
     await expect(
       updateTransaction(failingBatchEnv(1), REST_ACTOR, plan, sb, { date: day(30) }),
     ).rejects.toThrow("simulated");
     expect((await acc(plan, account)).import_start_date).toBe(T);
     const row = (await q("select date from transactions where id = ?", sb))[0] as Json;
     expect(row.date).toBe(T);
+    // No account and no transaction history row was added.
+    expect(await logTotal()).toBe(logsBefore);
   });
 
   it("3: moved later keeps every imported row, the start follows, a later sync skips the gap", async () => {
