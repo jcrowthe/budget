@@ -13,8 +13,10 @@ import type {
   TransactionUpdateRequest,
 } from "@budget/schema/transactions";
 import { transferCategoryRule } from "@budget/schema/transfers";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useAccounts } from "../api/accounts";
+import { startPlanSync } from "../api/bank-link";
 import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
 import { usePayees } from "../api/payees";
@@ -49,6 +51,7 @@ import {
 } from "./entryDraft";
 import { localToday } from "./format";
 import { ClearedFilledIcon, ClearedOutlineIcon, LockIcon } from "./icons";
+import { startMoved } from "./import-start";
 import { PayeeField } from "./PayeeField";
 import { useRegisterView } from "./register-view";
 import { SplitDialog } from "./SplitDialog";
@@ -128,6 +131,7 @@ export function EntryRow({
   } | null>(null);
   const [askReconciled, setAskReconciled] = useState<PendingSave | null>(null);
   const [lineFocus, setLineFocus] = useState<{ line: number; n: number } | null>(null);
+  const qc = useQueryClient();
   const accountsQ = useAccounts(budgetId);
   const rows = useRef<HTMLTableSectionElement>(null);
   // Set synchronously, so two key events in one tick cannot both start a save.
@@ -299,7 +303,11 @@ export function EntryRow({
         body: confirmed ? { ...p.body, confirm_reconciled: true } : p.body,
       },
       {
-        onSuccess: () => onSaved(p.next, p.iso),
+        onSuccess: () => {
+          // A linked Starting Balance moved: the server moved the import start, so the next sync re-reads.
+          if (mode === "edit" && tx && startMoved(tx, p.body, chosen)) startPlanSync(qc, budgetId);
+          onSaved(p.next, p.iso);
+        },
         onError: (e) => {
           // A transfer's reconciled other side answers 409 the same way: ask, then resend confirmed.
           if (!confirmed && e instanceof ApiError && e.errorName === "transaction_reconciled") {
