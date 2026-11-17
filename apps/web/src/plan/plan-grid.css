@@ -33,12 +33,19 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  /* EXF-646, EXF-622: the panel never gets narrower than 320px (the source's own minimum is 300px; its cards need
+     more), the grid's content never narrower than 428px (polish P2). A narrower grid box scrolls inside itself. */
+  --panel-min: 320px;
+  --grid-min: 428px;
 }
 .plan-grid {
   flex: 1;
-  min-width: 562px;
-  overflow-y: auto;
+  min-width: 0;
+  overflow: auto;
   --num-col: 18%;
+}
+.plan-grid [role="treegrid"] {
+  min-width: var(--grid-min);
 }
 .plan-grid.bars-on {
   --num-col: 15%;
@@ -73,6 +80,20 @@
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
+}
+/* Polish P1: in the narrow layout the toolbar never wraps; Undo and Redo keep only their icon (the label stays in
+   the accessible name). */
+.plan-body[data-narrow] .toolbar-button {
+  position: relative;
+  white-space: nowrap;
+}
+.plan-body[data-narrow] .toolbar-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .toolbar-button svg {
   width: 0.8rem;
@@ -176,6 +197,70 @@
 }
 .num {
   font-variant-numeric: tabular-nums;
+}
+/* EXF-622: under a 562px grid box (planLayout.ts) the number columns take fixed minimums and the name column the
+   rest; the Available column keeps the width of its widest pill. */
+.plan-body[data-narrow] .cell-assigned {
+  padding-left: 4px;
+  width: var(--col-assigned, 5.75rem);
+  min-width: 0;
+}
+.plan-body[data-narrow] .cell-activity {
+  padding-left: 2px;
+  width: var(--col-activity, 5.25rem);
+  min-width: 0;
+}
+/* Polish P3: a target text with no room wraps to a hidden second line instead of being cut to a sliver (source's
+   .budget-table-cell-edit-category-label: flex-flow wrap, max-height 1.25rem, overflow hidden). The clip margin keeps
+   the name button's focus ring whole. */
+.plan-body[data-narrow] .name-line {
+  flex-wrap: wrap;
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+.plan-body[data-narrow] .status-label {
+  min-width: 4.5rem;
+}
+/* The outer margins and the header paddings give way too: the name column gets every pixel left. */
+.plan-body[data-narrow] .cell-margin:first-child,
+.plan-body[data-narrow] .cell-margin:last-child {
+  width: 4px;
+}
+.plan-body[data-narrow] .cell-checkbox {
+  width: 23px;
+  padding-left: 4px;
+}
+.plan-body[data-narrow] .group-row .cell-name,
+.plan-body[data-narrow] .hidden-categories-row .cell-name,
+.plan-body[data-narrow] .category-row .cell-name {
+  padding-left: 0;
+}
+/* Polish P6: header, group, hidden-categories and category text all start 2px after the name cell (source: all at
+   the same x, 323 at 1440 and 1024). */
+.plan-body[data-narrow] .category-name,
+.plan-body[data-narrow] .group-name,
+.plan-body[data-narrow] .hidden-categories-label {
+  padding-left: 2px;
+}
+.plan-body[data-narrow] .header-row .cell-name {
+  padding-left: 2px;
+}
+.plan-body[data-narrow] .header-row .cell-assigned,
+.plan-body[data-narrow] .group-row .cell-assigned {
+  padding-left: 4px;
+}
+.plan-body[data-narrow] .header-row .cell-available,
+.plan-body[data-narrow] .group-row .cell-available {
+  padding-left: 4px;
+}
+/* The Available column takes the width of the month's widest pill (columnWidths.ts) instead of a fixed 7.5rem;
+   the pill stays whole (EXF-535 case 23). */
+.plan-body[data-narrow] .cell-available {
+  width: var(--col-available, 7.5rem);
+  min-width: 0;
+}
+.plan-body[data-narrow] .category-row:not(.uncategorized-row) .assigned-box {
+  width: 100%;
 }
 
 .header-row {
@@ -334,6 +419,8 @@
   height: 44px;
 }
 .category-name {
+  flex: 0 0 auto;
+  max-width: 100%;
   min-width: 0;
   padding: 2px 4px;
   font-size: var(--font-size-sm);
@@ -352,9 +439,16 @@
   gap: var(--space-2);
   height: 20px;
 }
+/* EXF-622: the target text gives way before the name; it ellipsizes (the full text is its title). */
 .status-label {
-  flex: none;
-  padding-right: 4px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* a transparent border, not padding: overflow clips at the padding box, so a label squeezed to nothing must not
+     leave a 4px window onto its text */
+  border-right: 4px solid transparent;
   color: var(--labelSecondary);
   font-size: var(--font-size-sm);
   font-weight: 500;
@@ -820,6 +914,54 @@ button.category-name {
   color: var(--labelSecondary);
 }
 
+/* EXF-537: the Credit Card Payments header's PAYMENT button above the group's Available total. */
+.cell-available.has-payment-help {
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+}
+.payment-help {
+  display: inline-flex;
+  align-items: center;
+  /* source (stylesheet): the icon's margin-right is .125rem */
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelSecondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.payment-help:hover {
+  color: var(--labelAction);
+}
+.payment-help svg {
+  fill: currentColor;
+}
+.payment-help-dialog {
+  width: 420px;
+}
+.payment-help-body {
+  padding: 0 24px 8px;
+}
+.payment-help-body p {
+  margin: 0 0 12px;
+}
+.payment-help-more {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelAction);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* The delete dialog body (on the shell's .dialog.modal) */
 .delete-dialog {
   width: 420px;
@@ -929,4 +1071,10 @@ button.category-name {
 }
 .month-dropdown-list .picker-option {
   padding-left: 12px;
+}
+
+/* EXF-646: a Plan body under 620px has no room for the panel; the grid keeps the whole width and scrolls inside
+   its own box (the page never scrolls sideways). */
+.plan-body[data-fold] .plan-inspector {
+  display: none;
 }

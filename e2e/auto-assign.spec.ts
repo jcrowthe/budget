@@ -337,6 +337,8 @@ for (const size of SIZES) {
         spent_last_month: 30000,
         average_assigned: 100000,
         average_spent: 30000,
+        paid_last_month: 0,
+        average_paid: 0,
         reduce_overfunding: 0,
         reset_available: 0,
         reset_assigned: 0,

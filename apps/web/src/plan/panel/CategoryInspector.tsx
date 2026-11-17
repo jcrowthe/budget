@@ -1,5 +1,6 @@
 import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
+import type { PlanView } from "@budget/schema/plan-views";
 import type { ReactNode } from "react";
 import { AvailablePill } from "../AvailablePill";
 import { categoryPill, money, signed } from "../format";
@@ -8,6 +9,7 @@ import { NotesCard } from "./NotesCard";
 import { OverspentMessage } from "./overspentMessage";
 import { PanelCard } from "./PanelCard";
 import { PanelTooltip } from "./PanelTooltip";
+import { type PaymentCollapsed, PaymentInspector } from "./PaymentInspector";
 import { TargetCard } from "./TargetCard";
 
 /** One selected category: its name and pencil, the Available Balance, Target and Notes cards. */
@@ -21,6 +23,9 @@ export function CategoryInspector({
   onToggleTarget,
   onEdit,
   autoAssign,
+  paymentCollapsed,
+  onTogglePayment,
+  onView,
 }: {
   budgetId: string;
   month: Month;
@@ -32,6 +37,10 @@ export function CategoryInspector({
   onEdit: (anchor: HTMLElement) => void;
   /** The Auto-Assign card, drawn between the Target and Notes cards. */
   autoAssign: ReactNode;
+  /** A payment category's own cards (EXF-537). */
+  paymentCollapsed: PaymentCollapsed;
+  onTogglePayment: (key: keyof PaymentCollapsed) => void;
+  onView: (v: PlanView) => void;
 }) {
   const rows: [string, string][] = [
     ["Cash Left Over From Last Month", money(c.carried)],
@@ -64,34 +73,49 @@ export function CategoryInspector({
           </PanelTooltip>
         )}
       </div>
-      <PanelCard
-        id="panel-balance"
-        title="Available Balance"
-        collapsed={collapsed}
-        onToggle={onToggle}
-        right={<AvailablePill amount={c.available} display tone={pill?.tone} icon={pill?.icon} />}
-      >
-        {rows.map(([label, value]) => (
-          <div key={label} className="panel-row">
-            <span className="panel-row-label">{label}</span>
-            <span className="panel-row-value" title={value}>
-              {value}
-            </span>
-          </div>
-        ))}
-        <OverspentMessage c={c} />
-      </PanelCard>
-      {!payment && (
-        <TargetCard
-          key={c.id}
+      {c.kind === "credit_card_payment" ? (
+        <PaymentInspector
           budgetId={budgetId}
-          month={month}
-          category={c}
-          collapsed={targetCollapsed}
-          onToggle={onToggleTarget}
+          c={c}
+          collapsed={paymentCollapsed}
+          onToggle={onTogglePayment}
+          onView={onView}
+          autoAssign={autoAssign}
         />
+      ) : (
+        <>
+          <PanelCard
+            id="panel-balance"
+            title="Available Balance"
+            collapsed={collapsed}
+            onToggle={onToggle}
+            right={
+              <AvailablePill amount={c.available} display tone={pill?.tone} icon={pill?.icon} />
+            }
+          >
+            {rows.map(([label, value]) => (
+              <div key={label} className="panel-row">
+                <span className="panel-row-label">{label}</span>
+                <span className="panel-row-value" title={value}>
+                  {value}
+                </span>
+              </div>
+            ))}
+            <OverspentMessage c={c} />
+          </PanelCard>
+          {!payment && (
+            <TargetCard
+              key={c.id}
+              budgetId={budgetId}
+              month={month}
+              category={c}
+              collapsed={targetCollapsed}
+              onToggle={onToggleTarget}
+            />
+          )}
+          {autoAssign}
+        </>
       )}
-      {autoAssign}
       <NotesCard budgetId={budgetId} categoryId={c.id} note={c.note} />
     </>
   );

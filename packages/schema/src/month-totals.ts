@@ -38,6 +38,7 @@ export function categoryMonth(d: MonthDetail, id: string): CategoryMonth | null 
         credit_activity: c.credit_spending,
         available: c.available,
         note: c.note,
+        payment: c.payment,
       };
     }
   }

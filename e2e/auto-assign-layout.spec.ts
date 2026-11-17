@@ -1,9 +1,21 @@
-import { fixedClock, panel, removePlan, type Seed, seedPlan } from "./auto-assign.fixtures";
+import {
+  assign,
+  autoCard,
+  chip,
+  fixedClock,
+  MONTHLY,
+  panel,
+  putTarget,
+  realClick,
+  removePlan,
+  type Seed,
+  seedPlan,
+} from "./auto-assign.fixtures";
 import { expect, test } from "./fixtures";
-import { openPlan, PHONE, RENT } from "./plan-panel.fixtures";
+import { GROCERIES, openPlan, PHONE, RENT } from "./plan-panel.fixtures";
 
 test.use({ timezoneId: "UTC" });
-const { at } = fixedClock();
+const { at, today } = fixedClock();
 
 let s: Seed;
 test.beforeEach(async ({ request, page }) => {
@@ -54,4 +66,149 @@ test("the Notes card does not move while the Auto-Assign preview loads or the se
     panel(page).locator("button.auto-assign-option strong", { hasText: "$" }).first(),
   ).toBeVisible({ timeout: 5000 });
   expect(await notesTop(page), "after the new preview").toBe(before);
+});
+
+const cardHeight = async (page: import("@playwright/test").Page) =>
+  (await autoCard(page).boundingBox())?.height ?? 0;
+
+test("EXF-616: the card has the source's height in every state", async ({ page, request }) => {
+  // RENT is underfunded (target 100.00, nothing assigned); GROCERIES is overfunded (target 100.00, 150.00 assigned).
+  await putTarget(request, s, RENT, MONTHLY, today);
+  await putTarget(request, s, GROCERIES, MONTHLY, today);
+  await assign(request, s, GROCERIES, 150000);
+  await openPlan(page, s);
+  // Underfunded and Reduce Overfunding both show: 8 rows in three groups (source arithmetic).
+  expect(Math.abs((await cardHeight(page)) - 386)).toBeLessThanOrEqual(1);
+  // One fully funded category ticked: 6 rows, no Underfunded.
+  await page.getByRole("checkbox", { name: PHONE, exact: true }).click();
+  await expect(panel(page).getByRole("heading", { name: PHONE, exact: true })).toBeVisible();
+  await expect.poll(async () => Math.abs((await cardHeight(page)) - 304)).toBeLessThanOrEqual(1);
+  await page.getByRole("checkbox", { name: PHONE, exact: true }).click();
+  // Without the overfunded category the card has 7 rows: 352.
+  await assign(request, s, GROCERIES, 100000);
+  await page.reload();
+  await expect(page.locator(".category-row").first()).toBeVisible();
+  await expect.poll(async () => Math.abs((await cardHeight(page)) - 352)).toBeLessThanOrEqual(1);
+});
+
+test("EXF-616: the height and the Notes card hold while the preview is held", async ({
+  page,
+  request,
+}) => {
+  await putTarget(request, s, RENT, MONTHLY, today);
+  let release: () => void = () => {};
+  const gate = new Promise<void>((r) => {
+    release = r;
+  });
+  await openPlan(page, s);
+  await page.route(/\/auto-assign\?/, async (route) => {
+    if (route.request().method() === "GET") await gate;
+    await route.continue();
+  });
+  await page.getByRole("checkbox", { name: RENT, exact: true }).click();
+  await expect(panel(page).getByRole("heading", { name: RENT, exact: true })).toBeVisible();
+  await expect(
+    panel(page).locator("#panel-auto-assign button.auto-assign-option").first(),
+  ).toBeVisible();
+  const held = await cardHeight(page);
+  const notes = await notesTop(page);
+  release();
+  await expect(
+    panel(page).locator("button.auto-assign-option strong", { hasText: "$" }).first(),
+  ).toBeVisible();
+  expect(await cardHeight(page)).toBe(held);
+  expect(await notesTop(page)).toBe(notes);
+});
+
+test("EXF-616: an empty view shows its message at once, in the card and in the Assign popover", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.route(/\/auto-assign\?/, async (route) => {
+    if (route.request().method() === "GET") await new Promise(() => {});
+    await route.continue();
+  });
+  await page.evaluate(() => {
+    const w = window as unknown as { drawn: number };
+    w.drawn = 0;
+    new MutationObserver((list) => {
+      for (const m of list) {
+        for (const n of m.addedNodes) {
+          if (
+            n instanceof Element &&
+            (n.matches(".auto-assign-option") || n.querySelector(".auto-assign-option"))
+          )
+            w.drawn++;
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await realClick(page, chip(page, "Snoozed"));
+  await expect(panel(page).getByRole("button", { name: "View All Categories" })).toBeVisible();
+  await expect(panel(page).locator(".auto-assign-option")).toHaveCount(0);
+  await realClick(page, page.getByRole("button", { name: "Assign", exact: true }));
+  const dlg = page.getByRole("dialog", { name: "Assign", exact: true });
+  await realClick(page, dlg.getByRole("tab", { name: "Auto", exact: true }));
+  await expect(dlg.getByRole("button", { name: "View All Categories" })).toBeVisible();
+  await expect(dlg.locator(".auto-assign-option")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { drawn: number }).drawn)).toBe(0);
+});
+
+// EXF-624 was reversed by the Lead after the source was seen (live, 1600x813): with nothing ticked the card lists
+// Underfunded even at $0.00 (352 px, also on a plan with no targets); with one category ticked it is hidden (304 px).
+test("EXF-624 (as the source): Underfunded shows at $0.00 with nothing ticked, in the card and the popover, and hides for one category", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  const labels = (scope: import("@playwright/test").Locator) =>
+    scope.locator("button.auto-assign-option > span");
+  await expect(labels(panel(page)).first()).toBeVisible();
+  const underfunded = (scope: import("@playwright/test").Locator) =>
+    scope.locator("button.auto-assign-option", { hasText: /^Underfunded/ });
+  await expect(underfunded(panel(page))).toContainText("$0.00");
+  await expect(labels(panel(page)).filter({ hasText: /^Reduce Overfunding$/ })).toHaveCount(0);
+  expect(Math.abs((await cardHeight(page)) - 352)).toBeLessThanOrEqual(1);
+  await realClick(page, page.getByRole("button", { name: "Assign", exact: true }));
+  const dlg = page.getByRole("dialog", { name: "Assign", exact: true });
+  await realClick(page, dlg.getByRole("tab", { name: "Auto", exact: true }));
+  await expect(underfunded(dlg)).toContainText("$0.00");
+  await page.keyboard.press("Escape");
+  await page.getByRole("checkbox", { name: PHONE, exact: true }).click();
+  await expect(panel(page).getByRole("heading", { name: PHONE, exact: true })).toBeVisible();
+  await expect(underfunded(panel(page))).toHaveCount(0);
+});
+
+test("EXF-616: switching month with one category ticked keeps its list (304 px, singular labels) while the month loads", async ({
+  page,
+}) => {
+  await openPlan(page, s);
+  await page.getByRole("checkbox", { name: RENT, exact: true }).click();
+  await expect(panel(page).getByRole("heading", { name: RENT, exact: true })).toBeVisible();
+  await expect.poll(async () => Math.abs((await cardHeight(page)) - 304)).toBeLessThanOrEqual(1);
+  let release: () => void = () => {};
+  const gate = new Promise<void>((r) => {
+    release = r;
+  });
+  let held = false;
+  await page.route(/\/months\/\d{4}-\d{2}-01(\?[^/]*)?$/, async (route) => {
+    if (route.request().method() === "GET") {
+      held = true;
+      await gate;
+    }
+    await route.continue();
+  });
+  await realClick(page, page.getByRole("button", { name: "Next month", exact: true }));
+  await expect.poll(() => held).toBe(true);
+  // The month has not arrived: the list still has the one-category rows.
+  await page.waitForTimeout(300);
+  expect(Math.abs((await cardHeight(page)) - 304)).toBeLessThanOrEqual(1);
+  await expect(
+    panel(page).locator("button.auto-assign-option > span", {
+      hasText: /^Reset Available Amount$/,
+    }),
+  ).toHaveCount(1);
+  await expect(
+    panel(page).locator("button.auto-assign-option > span", { hasText: /^Underfunded$/ }),
+  ).toHaveCount(0);
+  release();
 });

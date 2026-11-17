@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { CardPayment } from "./months";
 
 /** The month path parameter: a first day, in a sane year range. (Same rule as the private one in months.ts.) */
 export const AssignedMonth = Month.regex(/^(19|20|21)\d{2}-/, "Year must be between 1900 and 2199");
@@ -33,6 +34,8 @@ export const CategoryMonth = z
     credit_activity: Milliunits,
     available: Milliunits,
     note: z.string().nullable(),
+    /** A payment category's card status; null for an ordinary category. */
+    payment: CardPayment.nullable(),
   })
   .openapi("CategoryMonth");
 
