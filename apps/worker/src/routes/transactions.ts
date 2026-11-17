@@ -92,6 +92,12 @@ export default app
             .describe(
               "approval_or_category: only transactions that are unapproved or need a category",
             ),
+          include: z
+            .enum(["running_balance"])
+            .optional()
+            .describe(
+              "running_balance: each row gets the account's balance after it (every earlier row counts, also those the other filters leave out)",
+            ),
         }),
       },
       responses: {
@@ -107,6 +113,7 @@ export default app
         sort: q.sort,
         dir: q.dir,
         needs: q.needs,
+        include: q.include,
       });
       return c.json({ data }, 200);
     },

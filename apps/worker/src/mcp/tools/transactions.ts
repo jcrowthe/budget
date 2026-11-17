@@ -31,18 +31,30 @@ type Update = z.input<typeof TransactionUpdateRequest>;
 export const tools: McpToolDef[] = [
   {
     name: "list_transactions",
-    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} since_date limits the rows, not the balances. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name, subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. ${dates("date", "since_date") + " " + timestamps(["updated_at", "created_at"])}`,
+    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} since_date limits the rows, not the balances. With account_id and include "running_balance", each row also has running_balance: the account's balance after that row, adding oldest first (same-date rows by amount descending), counting every earlier row of the account, also those since_date leaves out; scheduled transactions have none. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name, subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. ${dates("date", "since_date") + " " + timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id.optional(),
       since_date: IsoDate.optional(),
+      include: z.enum(["running_balance"]).optional(),
     }),
-    run: async (input: { budget_id: string; account_id?: string; since_date?: string }, { env }) =>
-      input.account_id
+    run: async (
+      input: {
+        budget_id: string;
+        account_id?: string;
+        since_date?: string;
+        include?: "running_balance";
+      },
+      { env },
+    ) => {
+      if (!input.account_id && input.include) throw new Error("running_balance needs account_id");
+      return input.account_id
         ? listAccountTransactions(env, input.budget_id, input.account_id, {
             sinceDate: input.since_date,
+            include: input.include,
           })
-        : listPlanTransactions(env, input.budget_id, { sinceDate: input.since_date }),
+        : listPlanTransactions(env, input.budget_id, { sinceDate: input.since_date });
+    },
   },
   {
     name: "list_unapproved_transactions",
