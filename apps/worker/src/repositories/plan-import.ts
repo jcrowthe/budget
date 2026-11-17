@@ -320,6 +320,13 @@ export function cleanupStmts(
   ];
 }
 
+/** Removes the rows of finished or abandoned imports untouched since `before`; they hold no file any more. */
+export function purgeEndedStmt(db: Db, before: string): BatchItem {
+  return db
+    .delete(planImports)
+    .where(sql`state in ('done', 'abandoned') and r2_key is null and updated_at < ${before}`);
+}
+
 export function clearKeyStmt(db: Db, importId: string): BatchItem {
   return db.update(planImports).set({ r2Key: null }).where(sql`id = ${importId}`);
 }
