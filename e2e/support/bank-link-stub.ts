@@ -93,6 +93,8 @@ export async function stubBankLink(
     newConnection?: FakeConnection;
     popular?: boolean;
     links?: Record<string, string>;
+    /** What a linked account reports while its bank account is in no listed connection (yet). */
+    orphanSyncedAt?: string;
     unapproved?: Record<string, number>;
     afterSync?: SyncAnswer;
     fromBank?: Refusal;
@@ -161,8 +163,8 @@ export async function stubBankLink(
       bank_account_id: bank ?? null,
       linked: !!bank,
       import_start_date: bank ? "2030-01-01" : null,
-      connection_status: conn?.status ?? null,
-      last_synced_at: conn?.last_synced_at ?? null,
+      connection_status: conn?.status ?? (bank ? "connected" : null),
+      last_synced_at: conn ? conn.last_synced_at : bank ? (opts.orphanSyncedAt ?? null) : null,
       unapproved_count: unapproved.get(a.id as string) ?? 0,
     };
   };

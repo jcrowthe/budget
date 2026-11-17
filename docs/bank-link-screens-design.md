@@ -127,9 +127,7 @@ localToday() }`, disabled while it runs. Success: plan queries and connections r
 ## D1 calls of the account reads
 
 Measured on main `8e54173` (throwaway test with `plan-formats-calls.test.ts`'s `counting()`): **`listAccounts` 5,
-`getAccount` 5, `updateAccount` (rename) 7. After: 5, 5, 7** (joins in the same statements). The Implementer first
-measures `linkAccount`, `unlinkAccount`, `createAccountsFromBank` (1 and 2 ids) on unchanged code and writes the
-numbers here; `apps/worker/test/bank-link-calls.test.ts` asserts all stay equal, and list = 5 with 2 and 10 accounts.
+`getAccount` 5, `updateAccount` (rename) 7. After: 5, 5, 7** (joins in the same statements). Measured on unchanged code by the Implementer: `linkAccount` 10, `unlinkAccount` 6, `createAccountsFromBank` 9 (1 id) and 15 (2 ids). `apps/worker/test/bank-link-calls.test.ts` asserts all of them (and list = 5 with 2 and with 10 accounts) after the change: **no number grew**.
 
 ## Downstream effects
 

@@ -62,7 +62,11 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" }
 async function setup(
   page: Page,
   request: APIRequestContext,
-  over: { fromBank?: Parameters<typeof stubBankLink>[2]["fromBank"] } = {},
+  over: {
+    fromBank?: Parameters<typeof stubBankLink>[2]["fromBank"];
+    /** The first sync brings this many unapproved rows to ZZ Checking. */
+    checkingUnapproved?: number;
+  } = {},
 ) {
   const b = bank();
   const budgetId = await newPlan(request);
@@ -72,7 +76,11 @@ async function setup(
     connections: [],
     newConnection: b.connection,
     links: { [linkedId]: b.old.id },
-    ...over,
+    orphanSyncedAt: new Date(Date.now() - 3_600_000).toISOString(), // ZZ Old's connection is not listed until the bank connects
+    ...(over.fromBank ? { fromBank: over.fromBank } : {}),
+    ...(over.checkingUnapproved
+      ? { afterSync: { unapproved: { [b.checking.id]: over.checkingUnapproved } } }
+      : {}),
   });
   await stubPlaidLink(page, { success: PUBLIC });
   await page.goto(`/${budgetId}/budget`);
@@ -119,7 +127,9 @@ test("2 Add 2 Accounts: one request, dialog closes, sidebar shows the accounts, 
   page,
   request,
 }) => {
-  const { b, stub } = await setup(page, request);
+  const { b, stub } = await setup(page, request, {
+    checkingUnapproved: 2,
+  });
   const dialog = await openStep(page);
   await realClick(page, dialog.getByRole("checkbox", { name: "ZZ Savings", exact: true }));
   await realClick(page, dialog.getByRole("button", { name: "Next", exact: true }));
@@ -140,6 +150,9 @@ test("2 Add 2 Accounts: one request, dialog closes, sidebar shows the accounts, 
   await expect(sidebar(page).getByRole("link", { name: /ZZ Card/ })).toBeVisible();
   await expect(sidebar(page).getByRole("link", { name: /ZZ Savings/ })).toHaveCount(0);
   await expect.poll(() => planSyncs(stub.requests).length).toBe(1);
+  // Each new account shows the linked mark; the sync brought unapproved rows to ZZ Checking only.
+  await expect(sidebar(page).locator(".nav-link-status")).toHaveCount(3); // ZZ Linked, ZZ Checking, ZZ Card
+  await expect(sidebar(page).locator(".nav-unapproved-dot")).toHaveCount(1);
   await page.waitForTimeout(800);
   expect(planSyncs(stub.requests)).toHaveLength(1);
 });

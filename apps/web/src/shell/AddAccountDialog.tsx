@@ -137,86 +137,88 @@ export function AddAccountDialog({
             <CloseIcon />
           </button>
         </div>
-        <div className="account-modal-body">
-          {screen === "start" ? (
-            <BankSearch
-              budgetId={budgetId}
-              sandbox={plan?.bank_environment === "sandbox"}
-              variant={variant}
-              onUnlinked={() => setScreen("form")}
-              onConnected={(c) => {
-                setConnection(c);
-                setLinkScreen("select");
-                setScreen("link");
-              }}
-              onLinkingChange={(v) => {
-                linkOpen.current = v;
-              }}
-            />
-          ) : null}
-          {screen === "form" ? (
-            <>
-              <p className="intro">
-                <strong>Let's go!</strong> And don’t worry—if you change your mind, you can link
-                your account at any time.
-              </p>
-              <label htmlFor="account-name">Give it a nickname</label>
-              <input
-                id="account-name"
-                className="account-field"
-                // biome-ignore lint/a11y/noAutofocus: the source focuses the nickname when the form opens
-                autoFocus
-                autoCapitalize="words"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setErrors((s) => ({ ...s, name: undefined, other: undefined }));
+        {screen === "link" ? null : (
+          <div className="account-modal-body">
+            {screen === "start" ? (
+              <BankSearch
+                budgetId={budgetId}
+                sandbox={plan?.bank_environment === "sandbox"}
+                variant={variant}
+                onUnlinked={() => setScreen("form")}
+                onConnected={(c) => {
+                  setConnection(c);
+                  setLinkScreen("select");
+                  setScreen("link");
+                }}
+                onLinkingChange={(v) => {
+                  linkOpen.current = v;
                 }}
               />
-              {errors.name ? <p className="field-error">{errors.name}</p> : null}
-              <p className="label">What type of account are you adding?</p>
-              <button
-                type="button"
-                className="account-field select"
-                onClick={() => setScreen("types")}
-              >
-                <span>{type ? ACCOUNT_TYPE_LABEL[type] : "Select account type..."}</span>
-                <CaretRightIcon />
-              </button>
-              <label htmlFor="account-balance">What is your current account balance?</label>
-              <input
-                id="account-balance"
-                className="account-field"
-                inputMode="decimal"
-                value={balance}
-                onChange={(e) => {
-                  setBalance(e.target.value);
-                  setErrors((s) => ({ ...s, balance: undefined, other: undefined }));
+            ) : null}
+            {screen === "form" ? (
+              <>
+                <p className="intro">
+                  <strong>Let's go!</strong> And don’t worry—if you change your mind, you can link
+                  your account at any time.
+                </p>
+                <label htmlFor="account-name">Give it a nickname</label>
+                <input
+                  id="account-name"
+                  className="account-field"
+                  // biome-ignore lint/a11y/noAutofocus: the source focuses the nickname when the form opens
+                  autoFocus
+                  autoCapitalize="words"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setErrors((s) => ({ ...s, name: undefined, other: undefined }));
+                  }}
+                />
+                {errors.name ? <p className="field-error">{errors.name}</p> : null}
+                <p className="label">What type of account are you adding?</p>
+                <button
+                  type="button"
+                  className="account-field select"
+                  onClick={() => setScreen("types")}
+                >
+                  <span>{type ? ACCOUNT_TYPE_LABEL[type] : "Select account type..."}</span>
+                  <CaretRightIcon />
+                </button>
+                <label htmlFor="account-balance">What is your current account balance?</label>
+                <input
+                  id="account-balance"
+                  className="account-field"
+                  inputMode="decimal"
+                  value={balance}
+                  onChange={(e) => {
+                    setBalance(e.target.value);
+                    setErrors((s) => ({ ...s, balance: undefined, other: undefined }));
+                  }}
+                />
+                {errors.balance ? <p className="field-error">{errors.balance}</p> : null}
+                {errors.other ? <p className="field-error">{errors.other}</p> : null}
+              </>
+            ) : null}
+            {screen === "types" ? (
+              <AccountTypePicker
+                value={type}
+                onPick={(t) => {
+                  setType(t);
+                  setScreen("form");
                 }}
               />
-              {errors.balance ? <p className="field-error">{errors.balance}</p> : null}
-              {errors.other ? <p className="field-error">{errors.other}</p> : null}
-            </>
-          ) : null}
-          {screen === "types" ? (
-            <AccountTypePicker
-              value={type}
-              onPick={(t) => {
-                setType(t);
-                setScreen("form");
-              }}
-            />
-          ) : null}
-          {screen === "success" ? (
-            <div className="account-success">
-              <CheckCircleIcon />
-              <h3>Success!</h3>
-              <p>
-                Add transactions in the register, or import a transaction file with File Import.
-              </p>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+            {screen === "success" ? (
+              <div className="account-success">
+                <CheckCircleIcon />
+                <h3>Success!</h3>
+                <p>
+                  Add transactions in the register, or import a transaction file with File Import.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
         {screen === "form" ? (
           <div className="account-modal-footer">
             <button type="button" className="primary large" disabled={!canSubmit} onClick={submit}>
