@@ -4,6 +4,7 @@
 .bulk-popover-body.view-options-body {
   padding: 0 14px 14px;
   background: var(--backgroundTertiary);
+  line-height: var(--line-height);
 }
 .bulk-popover.view-options .bulk-popover-arrow {
   fill: var(--backgroundTertiary);
@@ -23,7 +24,7 @@
 }
 .view-presets {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding: 6px 0;
 }
 .view-presets li {
@@ -41,7 +42,8 @@
   cursor: pointer;
 }
 .view-pill:hover {
-  background: var(--buttonSecondaryBackground);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
 }
 .view-pill.is-active {
   background: var(--buttonPrimaryBackground);
@@ -56,9 +58,10 @@
 .view-range {
   display: flex;
   align-items: center;
-  padding: var(--space-2) 0;
+  padding: 12px 0;
 }
 .view-range-label {
+  padding-right: 6px;
   font-weight: 600;
   color: var(--labelPrimary);
   white-space: pre;
@@ -93,9 +96,10 @@
 .view-select::after {
   content: "";
   position: absolute;
-  top: 14px;
+  top: 13px;
   right: 8px;
-  border: 6px solid transparent;
+  border: solid transparent;
+  border-width: 6px 4px 0;
   border-top-color: var(--inputBorder);
   pointer-events: none;
 }
@@ -103,9 +107,11 @@
   padding: var(--space-2) 0;
 }
 .view-checks li {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   height: 28.8px;
+  padding-top: var(--space-2);
 }
 .view-check-label {
   padding: 0 0 0 4px;
@@ -138,20 +144,35 @@
   color: var(--buttonSecondaryLabel);
 }
 .view-actions .primary {
+  margin-top: 0;
   background: var(--buttonPrimaryBackground);
   color: var(--labelPrimary);
 }
+.view-actions .secondary:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.view-actions .primary:hover {
+  background: var(--actionPrimary);
+}
+/* The source's overlay covers View while the popover is open: it never shows hover then. */
+.toolbar-button.is-view[aria-expanded="true"] {
+  background: transparent;
+}
+/* The View tooltip sits 8px above the button (source: tooltip bottom 8px above the button's top). */
+.register .toolbar-group.right .acct-tooltip.is-above {
+  bottom: calc(100% + var(--space-2));
+}
 
 /* The footer under the rows when a filter hides some (EXF-529). */
-.register-footer td {
-  padding: var(--space-3) 0;
+.register-table .register-footer td {
+  padding: var(--space-2) 0;
   border-bottom: 0;
   background: transparent;
   text-align: center;
   cursor: default;
 }
 .register-footer p {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 18px;
   color: var(--labelSecondary);
   font-weight: 500;
 }

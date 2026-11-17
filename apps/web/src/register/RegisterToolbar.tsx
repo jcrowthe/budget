@@ -155,7 +155,7 @@ export function RegisterToolbar({
             <button
               type="button"
               ref={viewBtn}
-              className="toolbar-button"
+              className="toolbar-button is-view"
               aria-haspopup="dialog"
               aria-expanded={viewOpen}
               onClick={() => setViewOpen((o) => !o)}

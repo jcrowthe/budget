@@ -427,7 +427,7 @@ export function RegisterTable({
   return (
     <div className="register-scroll">
       <table
-        className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${scheduledRows.length > 0 ? " has-scheduled" : ""}`}
+        className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}`}
         aria-label={`${account?.name ?? "All Accounts"} transactions`}
         aria-busy={q.isPending || !view.ready}
       >

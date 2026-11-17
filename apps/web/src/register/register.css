@@ -846,9 +846,29 @@
   color: var(--labelPrimary);
 }
 /* With BALANCE, payee and memo give way so the category column keeps room at 1024px; a pill that does not fit is cut. */
+/* Source (measured at 1600, BALANCE on): BALANCE's 10% comes equally from the five flexible columns: payee and
+   memo 14.33%, outflow and inflow 8.33%. 1024px keeps the 96px minimum. */
 .register-table.has-balance .col-payee,
 .register-table.has-balance .col-memo {
-  width: 13%;
+  width: 14%;
+}
+.register-table.has-balance .col-amount {
+  width: 8%;
+}
+/* Source (flags hidden): the flag column's 43px is shared equally by payee, category, memo, outflow and inflow. */
+.register-table.no-flags .col-payee,
+.register-table.no-flags .col-memo {
+  width: calc(16% + 8.4px);
+}
+.register-table.no-flags .col-amount {
+  width: calc(10% + 8.4px);
+}
+.register-table.no-flags.has-balance .col-payee,
+.register-table.no-flags.has-balance .col-memo {
+  width: calc(14% + 8.4px);
+}
+.register-table.no-flags.has-balance .col-amount {
+  width: calc(8% + 8.4px);
 }
 .register-table td .needs-category {
   box-sizing: border-box;
