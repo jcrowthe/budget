@@ -116,7 +116,7 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
   ).toBeVisible();
   await expect(
     modal.getByText(
-      "If you can't find the difference, that's okay! We'll make an adjustment transaction and you can move on.",
+      "If you can’t find the difference, that’s okay! We’ll make an adjustment transaction and you can move on.",
     ),
   ).toBeVisible();
   await expect(modal.getByText("Don’t Show Again")).toBeVisible();

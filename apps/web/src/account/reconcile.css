@@ -82,6 +82,7 @@
   color: var(--labelPrimary);
 }
 .reconcile-buttons button:disabled {
+  opacity: 1;
   background: var(--menuHover);
   color: var(--labelTertiary);
   cursor: default;
