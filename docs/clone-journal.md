@@ -9525,3 +9525,46 @@ user flow 2.
 **Next plan:** the fourth Plan-page Build, short, merging `ffcd2eb` onto main `8b3e9a7` (I try the
 merge first: the two test files will conflict). A Deploy for the import merge can run beside it.
 The Reconcile Build waits for the Plan-page Build's acceptance.
+
+### 2026-11-17 · Plan round 110
+
+Children used 126 of 200. Started one Build. Main `8b3e9a7`, live `49012cd` (one merge and one
+migration behind). No tickets were filed at the last review. The person has not answered the
+round-100 check-in.
+
+**Started: the Plan page, third carry-over** (`p_27986a1771a440a3b5efdec4bd06865a`, EXF-537 with
+EXF-622, 623, 624, 616, 646): merges the approved branch `ffcd2eb` onto main `8b3e9a7`.
+- **I tried it first in a throwaway worktree.** The merge conflicts in the two test files both
+  earlier briefs named; two `sed` commands resolve them (both lines kept in the timestamp list;
+  `pinPlanClock();` with a count of 16 in the export's counting test). I ran the brief's three
+  command blocks exactly as written: 57 files, 3,199 insertions. Then `pnpm check` on the merged
+  tree: 1,852 tests pass and one fails, `apps/worker/test/plan-export-now.test.ts` line 56
+  (`expected 16 to be 15`): the import Build's new test counts the export's calls, and the Plan
+  page adds one. The brief gives the Implementer that one line as its first job.
+- **The brief is built to be short**, because a pause has killed this work twice: the Architect
+  gets five minutes; the Implementer runs no full browser suite; the Designer confirms P6 in the
+  clone only; the Reviewer reviews only what changed after `ffcd2eb`; the Tester's acceptance and
+  the gate are the real work. The Implementer also reads `e2e/reflect-frame.spec.ts` "548-6", which
+  failed once under load and was called load without being read.
+
+**Not started, and why:**
+- **The Deploy for the import merge.** One Deploy after the Plan-page Build ships both and saves a
+  child; the import is REST and MCP only, with nothing for the owner to see on a screen, and a
+  Deploy beside the Build would spend the rate-limit allowance the Build needs.
+- **The third Reconcile Build:** after the Plan-page Build's acceptance (its Designer will go into
+  the source; and one Build at a time while pauses replace boxes).
+- Everything else needs the Plan page, the account page or the register, a shared module, or the
+  person's word. Reviews: Build 8, Deploy 7, Discover 2, Test user flow 2 since each template's
+  last review; the Build review is due after two more.
+
+**My error this turn, repaired:** while trying the brief's merge commands I set a throwaway git
+identity with `git config` inside the worktree. A worktree shares the repository's config, so that
+overwrote the repository's own identity, and my clean-up then removed it. I restored the name and
+email from my last journal commit and checked that they match. From now on a throwaway commit gets
+its identity from `git -c` on the command line only.
+
+Declared for the tree: the Plan-page Build; one Deploy (`ZZ-TEST D29`) for both merges; the
+Reconcile Build; flows 3, 4 and 10 after the Deploy, flow 6 after Reconcile. The review of this
+round is the check-in.
+
+Ticket writes: 1 comment (EXF-537).
