@@ -11667,3 +11667,26 @@ Template: thirty-nine open.
 Finished since each template's last review: Build 7, Deploy 3, Discover 2, Test user flow 5.
 
 **Next plan:** nothing to start beside the two Builds (EXF-774 waits for the register Build).
+
+### 2026-11-17 · Plan round 132
+
+Children used 148 of 200. Nothing started this round. Main and live are both `9ecd379`. No
+ticket was filed at the last review. The person has not answered the check-in.
+
+**Status of the running children (21:13Z):** the register screens Build
+(`p_0625567f614e4952b9e62e5260678009`) at its polish step, no open card; the Manage Bank
+Connections Build (`p_49508f8bd85642faaf0d95e701fdecb7`) at its plan step, no open card.
+
+**Why nothing else starts:** every open ticket of weight overlaps one of the two Builds.
+EXF-774 (High) needs the register's files; EXF-465 needs the shell and the account dialog, which
+the Manage Bank Connections Build holds; EXF-751 and EXF-558 change always-overlap files and run
+alone. No Deploy (live equals main), no flow test (flows 2 to 5 ran today), no template review
+(Build 7, Deploy 3, Discover 2, Test user flow 5).
+
+**One question from the last review settled, by reading Plaid's documentation** (the page of
+`/link/token/create`, fetched today): "the bank is chosen twice" is not something the clone can
+remove. The request's `institution_id` field is described only as "Used for certain legacy use
+cases", and `institution_data.routing_number` only highlights a bank in Plaid's list; nothing
+skips Plaid's own bank search. So the connection design's sentence holds and I file no ticket.
+A possible small help later: pass the bank's routing number so that Plaid highlights it; not
+ticketed, because I do not know that the search results carry one.
