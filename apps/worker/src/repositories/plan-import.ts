@@ -38,7 +38,7 @@ const lit = (s: string): Col => ({ lit: s });
 const SPEC: Record<ImportTable, { cols: Col[]; json: readonly string[] }> = {
   accounts: {
     json: ["id", "name", "type", "on_budget", "sort_order", "created_at"],
-    // id, budget_id, name, type, on_budget, note, starred, closed, sort_order, created_at, deleted_at, bank_account_id, import_start_date
+    // id, budget_id, name, type, on_budget, note, starred, closed, sort_order, created_at, deleted_at, bank_account_id, import_start_date, last_reconciled_at
     cols: [
       0,
       "b",
@@ -50,6 +50,7 @@ const SPEC: Record<ImportTable, { cols: Col[]; json: readonly string[] }> = {
       lit("0"),
       4,
       5,
+      lit("null"),
       lit("null"),
       lit("null"),
       lit("null"),
