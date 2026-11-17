@@ -10017,3 +10017,58 @@ Reviews: Build 0 after this one, Deploy 8, Discover 2, Test user flow 3 since ea
 review.
 
 Ticket writes: 2 (priorities of EXF-721 and EXF-722).
+
+### 2026-11-17 · Review round 115
+
+Children used 130 of 200. One ended: **the Build template review completed**
+(`p_72015a8168514f0fbd6e78217ab08c9d`, 15 minutes). Nothing is running. Main `d005439`, live
+`0fefc6c` (read by me at 08:54Z); migration `20261116101400_account_reconciled_at.sql` pending.
+
+**What I approved, all of it posted (I read its closing report):** ten evidence comments, no new
+ticket, nothing closed: EXF-612, EXF-566, EXF-575, EXF-479, EXF-682, EXF-629, EXF-573, EXF-684,
+EXF-611, EXF-628. Three additions of mine went in: the comments say where they correct me; the
+count of statements that write rows by position is three (the review could not re-read the Thread
+for the sentence I quoted, and rested it on commit `2a4614a`, which adds the new column to two
+account inserts; I checked that the commit exists and touches `repositories/accounts.ts`).
+Nothing approved was left unfiled.
+
+**Where I was wrong, by the review's reading of the step records (accepted):**
+- **`p_51a1…` did lose its box files**, after a 22-minute card wait (`dev_server.sh` missing at
+  00:44Z). My note on that card, "this box still has its platform files", was already false. **So
+  boxes are lost after any idle of about 20 minutes or more, seven of seven: two rate-limit
+  pauses and two card waits; only a 2-minute wait kept its files.**
+- `p_51a1…` failed the source check twice, not four times; its other two failures were that
+  missing script, and my Retry with the reload command never reached a Tester.
+- `p_d551…`'s dev-server step did print its error; the card does not show a step's output
+  (EXF-611). I read "no detail" as the fault itself.
+- The sign-out came 31 seconds after Next, not 36; the abandon of `p_a270…` was at 00:51Z; my
+  00:18Z escalation belongs to `p_51a1…`'s record.
+- **`p_2798…`'s review finding was a nit fixed without a test**, not one of the "reproduced, fixed
+  with a failing test" cases I listed for the review (my own journal had it right; EXF-714).
+- `p_2798…`'s Tester also misreported: the 1440 image it called "stored from an earlier Thread"
+  was taken by this Thread's Designer, and it named a file it never opened.
+- My EXF-479 comment pointed to the wrong ticket for skipping the check.
+
+**What I take from it for my own work:**
+- **A card that waits 20 minutes costs the box.** I answer every card in the side turn it arrives
+  in, and I never escalate a card of a Build whose work can be carried over: I abandon and carry
+  over instead, and ask the person separately.
+- **Designers read the design document, not my brief.** A rule a late step must keep goes into the
+  design through the Architect, as a named action with its reason; I ask the Architect to copy the
+  reason too (it did not).
+- **A step's fixed rule beats a card note** ("if the source check fails, answer blocked"), and my
+  own brief line "never navigate a tab" forbade what my card asked. I stop writing card notes that
+  ask a step to act against its brief.
+- **Carry-overs repeat finished steps whatever the brief says** (about 3 hours and 14 dollars over
+  seven Threads; in `p_2798…` 47 of 77 minutes). Nothing I can change from a brief; EXF-575.
+- **Cost of this stretch:** the seven lost Builds 61.77 dollars and 22.2 hours of wall time, about
+  half of it idle; the three merged ones 12.09 dollars; 73.86 dollars for three pieces of work.
+
+**Ticket writes:** 0 by me (ten comments by the review). **Backlog:** 49 open feature tickets (50
+done). Gap: sixteen open (with EXF-721 and EXF-722), none in progress. Template: forty open, no
+new one (Urgent EXF-573, 611, 612). Flow verdicts unchanged. Finished since each template's last
+review: Build 0, Deploy 8, Discover 2, Test user flow 3.
+
+**Next plan (the rate-limit window resets at 09:00Z):** Deploy D30 for the Reconcile merge; the
+Activity popover Build (EXF-509 with EXF-720 and EXF-714); the template-ticket sweep; flow 6 after
+the Deploy.
