@@ -10290,3 +10290,28 @@ progress). Gap: nineteen open, four of them in progress (EXF-720, EXF-714, EXF-7
 Finished since each template's last review: Build 0, Deploy 9, Discover 2, Test user flow 3.
 
 **Next plan:** nothing to start beside the two Builds.
+
+### 2026-11-17 · Plan round 118
+
+Children used 134 of 200. Nothing started; two Builds are running (the Activity popover,
+`p_4b3e4d16b0784c8a9090ea68151e465d`, and the export and import hardening,
+`p_164aad44232a4f72be7ecbbe87815e6b`). Main and live `d005439`. No tickets were filed at the last
+review. The person has not answered the round-110 check-in.
+
+- **What could start by the scheduling rule, and why it does not yet:** the register's view
+  options (EXF-529, Medium; with the reconcile lag EXF-724 and the Escape test EXF-722 as riders on
+  the same page) share no file with either running Build. But three Builds at once is the load
+  under which the rate limit came after 2 hours 46 minutes, and a pause costs every Build that is
+  before its gate. Two at once is what the allowance has carried. I start it when the first of the
+  two ends.
+- **Plan formats (EXF-468, High)** follows the Activity popover Build (the same Plan-page files).
+- No Deploy and no flow test: main and live are equal. No review is due (Build 0, Deploy 9,
+  Discover 2, Test user flow 3; the sweep ran in round 116).
+- **Cards:** answered in the side turn they arrive in. A clean card on main: approve, after reading
+  what changed since the last review inside the Build; the other Build then rebases (they meet only
+  in keep-both files). No approval while a Deploy releases.
+
+Declared for the tree, unchanged from round 117, with the register's view options added after the
+first Build ends.
+
+Ticket writes: 0.
