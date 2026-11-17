@@ -11,6 +11,7 @@ import {
   type RegisterEntry,
   type RegisterLine,
   registerFile,
+  SYSTEM_PAYEE_NAMES,
   utcMinute,
 } from "@budget/schema/plan-export";
 import { transferPayeeName } from "@budget/schema/transfers";
@@ -96,11 +97,9 @@ export async function exportPlan(
     if (!a) continue;
     const payee = r.transferAccountId
       ? (r.payeeName ?? "")
-      : r.payeeSystem === "starting_balance"
-        ? "Starting Balance"
-        : r.payeeSystem
-          ? "Manual Balance Adjustment"
-          : (r.payeeName ?? "");
+      : r.payeeSystem
+        ? SYSTEM_PAYEE_NAMES[r.payeeSystem]
+        : (r.payeeName ?? "");
     const own: RegisterLine[] = (linesOf.get(r.id) ?? []).map((l) => ({
       payee: l.transferAccountId
         ? transferPayeeName(acct.get(l.transferAccountId)?.name ?? "")

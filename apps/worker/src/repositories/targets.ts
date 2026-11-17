@@ -2,6 +2,7 @@ import type { TargetDefinition } from "@budget/core/targets";
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { targets } from "../db/schema/targets";
+import { insertSelect } from "./insert-select";
 
 export type TargetRow = typeof targets.$inferSelect;
 
@@ -67,11 +68,27 @@ export function holds(
 /** Inserts (no row was read) or updates (the row still has `beforeUpdatedAt`); otherwise changes 0 rows. */
 export function upsertIfHoldsStmt(db: Db, row: TargetRow, beforeUpdatedAt: string | undefined) {
   if (beforeUpdatedAt === undefined) {
-    return db
-      .insert(targets)
-      .select(
-        sql`select ${row.categoryId}, ${row.budgetId}, ${row.cadence}, ${row.behavior}, ${row.amount}, ${row.dayOfWeek}, ${row.dayOfMonth}, ${row.dueDate}, ${row.dueMonth}, ${row.repeatEvery}, ${row.repeatUnit}, ${row.createdOn}, ${row.createdAt}, ${row.updatedAt} where not exists (select 1 from ${targets} where ${same(row.budgetId, row.categoryId)})`,
-      );
+    return insertSelect(
+      db,
+      targets,
+      {
+        categoryId: row.categoryId,
+        budgetId: row.budgetId,
+        cadence: row.cadence,
+        behavior: row.behavior,
+        amount: row.amount,
+        dayOfWeek: row.dayOfWeek,
+        dayOfMonth: row.dayOfMonth,
+        dueDate: row.dueDate,
+        dueMonth: row.dueMonth,
+        repeatEvery: row.repeatEvery,
+        repeatUnit: row.repeatUnit,
+        createdOn: row.createdOn,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      },
+      sql`where not exists (select 1 from ${targets} where ${same(row.budgetId, row.categoryId)})`,
+    );
   }
   return db
     .update(targets)

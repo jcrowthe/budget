@@ -2,6 +2,7 @@ import type { PayeeSystem } from "@budget/schema/payees";
 import { and, eq, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { payees } from "../db/schema/payees";
+import { insertSelect } from "./insert-select";
 
 export type PayeeRow = typeof payees.$inferSelect;
 export type PayeeListRow = PayeeRow & {
@@ -92,21 +93,41 @@ export function insertStmt(db: Db, row: PayeeRow) {
 /** Inserts the payee only while `guard` holds. Column order is the table's. */
 export function insertIfStmt(db: Db, row: PayeeRow, guard: SQLWrapper) {
   const r = row;
-  return db
-    .insert(payees)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.hidden ? 1 : 0}, ${r.system}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where exists ${guard}`,
-    );
+  return insertSelect(
+    db,
+    payees,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      name: r.name,
+      hidden: r.hidden ? 1 : 0,
+      system: r.system,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      deletedAt: r.deletedAt,
+    },
+    sql`where exists ${guard}`,
+  );
 }
 
 /** Inserts the system payee unless the plan already has one of that kind. */
 export function insertSystemIfMissingStmt(db: Db, row: PayeeRow) {
   const r = row;
-  return db
-    .insert(payees)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.hidden ? 1 : 0}, ${r.system}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where not exists (select 1 from payees p where p.budget_id = ${r.budgetId} and p.system = ${r.system} and p.deleted_at is null)`,
-    );
+  return insertSelect(
+    db,
+    payees,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      name: r.name,
+      hidden: r.hidden ? 1 : 0,
+      system: r.system,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      deletedAt: r.deletedAt,
+    },
+    sql`where not exists (select 1 from payees p where p.budget_id = ${r.budgetId} and p.system = ${r.system} and p.deleted_at is null)`,
+  );
 }
 
 /** A scalar subquery for a `payee_id` column value: the plan's system payee of that kind. */
@@ -127,11 +148,21 @@ export function isUniqueViolation(e: unknown): boolean {
 /** Inserts the ordinary payee unless the plan has a live one with that name, and only while `guard` holds. */
 export function insertByNameIfMissingStmt(db: Db, row: PayeeRow, guard: SQLWrapper) {
   const r = row;
-  return db
-    .insert(payees)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.name}, ${r.hidden ? 1 : 0}, ${r.system}, ${r.createdAt}, ${r.updatedAt}, ${r.deletedAt} where ${missingByNameSql(r.budgetId, r.name)} and exists ${guard}`,
-    );
+  return insertSelect(
+    db,
+    payees,
+    {
+      id: r.id,
+      budgetId: r.budgetId,
+      name: r.name,
+      hidden: r.hidden ? 1 : 0,
+      system: r.system,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      deletedAt: r.deletedAt,
+    },
+    sql`where ${missingByNameSql(r.budgetId, r.name)} and exists ${guard}`,
+  );
 }
 
 /** True while the plan has no live ordinary payee of that name (a condition, for `where`). */

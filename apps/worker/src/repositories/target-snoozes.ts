@@ -1,6 +1,7 @@
 import { and, eq, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { targetSnoozes } from "../db/schema/target-snoozes";
+import { insertSelect } from "./insert-select";
 
 export type TargetSnoozeRow = typeof targetSnoozes.$inferSelect;
 
@@ -36,11 +37,17 @@ export async function find(
 
 /** Inserts the snooze only while `guard` holds (the statement before it in the batch changed a row). */
 export function insertIfStmt(db: Db, row: TargetSnoozeRow, guard: SQL) {
-  return db
-    .insert(targetSnoozes)
-    .select(
-      sql`select ${row.budgetId}, ${row.categoryId}, ${row.month}, ${row.createdAt} where ${guard}`,
-    );
+  return insertSelect(
+    db,
+    targetSnoozes,
+    {
+      budgetId: row.budgetId,
+      categoryId: row.categoryId,
+      month: row.month,
+      createdAt: row.createdAt,
+    },
+    sql`where ${guard}`,
+  );
 }
 
 export function deleteStmt(

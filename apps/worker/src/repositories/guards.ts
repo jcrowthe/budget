@@ -1,6 +1,7 @@
 import { type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { changeLog } from "../db/schema/change-log";
+import { insertSelect } from "./insert-select";
 
 /** A `SELECT 1` that yields a row only while `cond` holds, for `changeLogInsertIf`. */
 export function whenQuery(db: Db, cond: SQL) {
@@ -46,9 +47,20 @@ export function logSelectStmt(
 ) {
   const h = sql.raw("h");
   const id = sql`substr(${h}, 1, 8) || '-' || substr(${h}, 9, 4) || '-' || substr(${h}, 13, 4) || '-' || substr(${h}, 17, 4) || '-' || substr(${h}, 21, 12)`;
-  return db
-    .insert(changeLog)
-    .select(
-      sql`select ${id}, ${base.budgetId}, ${base.actor}, ${base.action}, ${base.entityType}, ${cols.entityId}, ${cols.before ?? sql`null`}, ${cols.after ?? sql`null`}, ${base.createdAt} from (select lower(hex(randomblob(16))) as h, s.* from (${inner}) s)`,
-    );
+  return insertSelect(
+    db,
+    changeLog,
+    {
+      id,
+      budgetId: base.budgetId,
+      actor: base.actor,
+      action: base.action,
+      entityType: base.entityType,
+      entityId: cols.entityId,
+      beforeJson: cols.before ?? sql`null`,
+      afterJson: cols.after ?? sql`null`,
+      createdAt: base.createdAt,
+    },
+    sql`from (select lower(hex(randomblob(16))) as h, s.* from (${inner}) s)`,
+  );
 }

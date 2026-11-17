@@ -7,6 +7,8 @@ import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import type { PayeeSystem } from "./payees";
+import { SYSTEM_PAYEE_NAMES } from "./plan-export";
 import {
   DATE_FORMATS,
   type DateFormat,
@@ -59,8 +61,9 @@ export const IMPORT_LIMITS = {
 };
 export const HIDDEN_GROUP = "Hidden Categories";
 export const PAYMENT_GROUP = "Credit Card Payments";
-const STARTING_BALANCE = "Starting Balance";
-const MANUAL_ADJUSTMENT = "Manual Balance Adjustment";
+const SYSTEM_OF = new Map(
+  Object.entries(SYSTEM_PAYEE_NAMES).map(([s, n]) => [n, s as PayeeSystem] as const),
+);
 const TRANSFER_PREFIX = "Transfer : ";
 
 // ---- Schemas ----
@@ -228,7 +231,7 @@ export interface ImportPlan {
     paymentAccount: number | null;
   }[];
   assignments: { category: number; month: string; assigned: number }[];
-  payees: { name: string; system: "starting_balance" | "manual_adjustment" | null }[];
+  payees: { name: string; system: PayeeSystem | null }[];
   transactions: {
     account: number;
     date: string;
@@ -571,7 +574,8 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
   // ---- Accounts known from the Plan file's payment rows, and the Starting Balance of each account
   const startingOf = new Map<number, RegRow>();
   for (const r of rows) {
-    if (r.payee === STARTING_BALANCE && !startingOf.has(r.account)) startingOf.set(r.account, r);
+    if (r.payee === SYSTEM_PAYEE_NAMES.starting_balance && !startingOf.has(r.account))
+      startingOf.set(r.account, r);
   }
   const paymentNames = new Set<string>();
   for (const pc of planCats) if (pc.payment) paymentNames.add(pc.name);
@@ -878,12 +882,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
       p = payees.length;
       payees.push({
         name: text,
-        system:
-          text === STARTING_BALANCE
-            ? "starting_balance"
-            : text === MANUAL_ADJUSTMENT
-              ? "manual_adjustment"
-              : null,
+        system: SYSTEM_OF.get(text) ?? null,
       });
       payeeIx.set(text, p);
     }
