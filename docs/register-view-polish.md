@@ -14,3 +14,6 @@ Measured by the Designer against the source's View popover, toolbar and footer (
 - P10 [applied] Footer rule raised to `.register-table .register-footer td` (padding 8px 0, no border); `p` margin-bottom 18px.
 - P11 [applied] With BALANCE: payee and memo 14%, amounts 8%; the 96px minimum keeps 1024px as before.
 - P12 [applied] `no-flags` class on the table; payee and memo `calc(16% + 8.4px)`, amounts `calc(10% + 8.4px)` (and the same shift with BALANCE on).
+- R1 [applied] The View button's open-state rule is `.toolbar-group.right .toolbar-button.is-view[aria-expanded="true"]`, so it beats plan-grid.css's `:hover` (P8 tied with it). plan-grid.css untouched.
+- R2 [applied] Flags off uses plain percentages (payee/memo 16.6%, amounts 10.6%; with BALANCE 14.6% and 8.6%): a calc() mixing % and px on a `<col>` is auto in table layout. The 96px minimum stays. Supersedes P12's calc values. Spec: category wider than outflow with Show Flags off.
+- R3 [scoped] Below 1280px payee and memo are 13% again with BALANCE on, so the category column keeps room where the 96px minimums are in force. Not compared with the source (it scrolls sideways at 1024, design D11).

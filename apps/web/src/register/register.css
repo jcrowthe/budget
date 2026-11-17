@@ -855,20 +855,31 @@
 .register-table.has-balance .col-amount {
   width: 8%;
 }
-/* Source (flags hidden): the flag column's 43px is shared equally by payee, category, memo, outflow and inflow. */
+/* Source (flags hidden, measured at 1600): the flag column's 42px is shared equally by payee, category, memo,
+   outflow and inflow, about +0.6% of the 1340px grid each. Plain percentages: a calc() that mixes % and px is
+   treated as auto by table layout. */
 .register-table.no-flags .col-payee,
 .register-table.no-flags .col-memo {
-  width: calc(16% + 8.4px);
+  width: 16.6%;
 }
 .register-table.no-flags .col-amount {
-  width: calc(10% + 8.4px);
+  width: 10.6%;
 }
 .register-table.no-flags.has-balance .col-payee,
 .register-table.no-flags.has-balance .col-memo {
-  width: calc(14% + 8.4px);
+  width: 14.6%;
 }
 .register-table.no-flags.has-balance .col-amount {
-  width: calc(8% + 8.4px);
+  width: 8.6%;
+}
+/* Below 1280px the 96px minimums are in force: payee and memo give way again so category keeps some room. */
+@media (max-width: 1279px) {
+  .register-table.has-balance .col-payee,
+  .register-table.has-balance .col-memo,
+  .register-table.no-flags.has-balance .col-payee,
+  .register-table.no-flags.has-balance .col-memo {
+    width: 13%;
+  }
 }
 .register-table td .needs-category {
   box-sizing: border-box;

@@ -236,6 +236,13 @@ test("Show Flags off hides the column, header and cells, also in the add row (AC
   await expect(page.locator(".register-table th.cell-flag")).toHaveCount(0);
   await expect(page.locator(".register-table td.cell-flag")).toHaveCount(0);
   await expect(page.locator(".register-table col.col-flag")).toHaveCount(0);
+  // Source (Show Flags off, measured at 1600): category 381px stays wider than outflow and inflow (147px).
+  const widths = await page
+    .locator(".register-table thead th")
+    .evaluateAll((els) =>
+      Object.fromEntries(els.map((el) => [el.textContent, el.getBoundingClientRect().width])),
+    );
+  expect(widths.CATEGORY).toBeGreaterThan((widths.OUTFLOW as number) + 50);
   await realClick(page, button(page, "Add Transaction"));
   await expect(page.locator(".entry-row")).toBeVisible();
   await expect(page.locator(".register-table .entry-row .cell-flag")).toHaveCount(0);

@@ -155,7 +155,7 @@
   background: var(--actionPrimary);
 }
 /* The source's overlay covers View while the popover is open: it never shows hover then. */
-.toolbar-button.is-view[aria-expanded="true"] {
+.toolbar-group.right .toolbar-button.is-view[aria-expanded="true"] {
   background: transparent;
 }
 /* The View tooltip sits 8px above the button (source: tooltip bottom 8px above the button's top). */
