@@ -3,6 +3,7 @@ import type { Month } from "@budget/core/month";
 import { targetBar } from "@budget/core/targets";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 import { pillTitle, targetPill } from "@budget/schema/target-wording";
+import type { PillTone } from "./AvailablePill";
 
 export { pillTitle };
 
@@ -139,9 +140,16 @@ export function categoryPill(c: MonthCategoryDetail): CategoryPill | null {
     pill = { ...over, title };
   } else if (c.target) pill = targetPill(c);
   if (c.kind === "credit_card_payment") {
-    const tone =
-      pill?.tone ?? (c.available === 0 ? "zero" : c.available > 0 ? "positive" : "negative");
-    return { tone, icon: pill?.icon ?? null, title: paymentPillTitle(c.available) };
+    // EXF-537: red when overpaid, yellow when underfunded (even at $0.00), green with money set aside, else grey.
+    const tone: PillTone =
+      c.available < 0
+        ? "negative"
+        : (c.payment?.underfunded ?? 0) > 0
+          ? "cautious"
+          : c.available > 0
+            ? "positive"
+            : "zero";
+    return { tone, icon: null, title: paymentPillTitle(c.available) };
   }
   return pill;
 }

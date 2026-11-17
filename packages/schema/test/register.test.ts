@@ -233,6 +233,7 @@ const cat = (id: string, name: string, available: number, hidden = false) => ({
   target: null,
   note: null,
   target_snoozed: false,
+  payment: null,
 });
 const groups = [
   {

@@ -36,11 +36,11 @@ export function Toolbar({
       </button>
       <button type="button" className="toolbar-button" disabled>
         <UndoIcon />
-        Undo
+        <span className="toolbar-label">Undo</span>
       </button>
       <button type="button" className="toolbar-button" disabled>
         <RedoIcon />
-        Redo
+        <span className="toolbar-label">Redo</span>
       </button>
       <button
         type="button"

@@ -30,6 +30,19 @@ export const useMonth = (budgetId: string, month: Month) =>
     placeholderData: keepPreviousInPlan<MonthDetail>(budgetId),
   });
 
+/**
+ * The month the page already holds, without a read of its own: it subscribes to the cache and never fetches, so
+ * a late observer (the Auto-Assign list) does not make a second request. Undefined until the page's own
+ * `useMonth` has loaded it.
+ */
+export const useCachedMonth = (budgetId: string, month: Month) =>
+  useQuery<MonthDetail>({
+    queryKey: ["month", budgetId, month],
+    enabled: false,
+    // The same placeholder as useMonth: while the next month loads the list keeps its rows.
+    placeholderData: keepPreviousInPlan<MonthDetail>(budgetId),
+  });
+
 export const getMonthRange = async (budgetId: string): Promise<MonthRange> =>
   (await apiFetch(`/api/v1/budgets/${budgetId}/month-range`, { schema: MonthRangeResponse })).data;
 
