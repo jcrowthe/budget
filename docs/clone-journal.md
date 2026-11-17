@@ -11306,3 +11306,77 @@ Test user flow 4 finished since each template's last review).
 are ready together, I approve one, and the other gets Refresh or Regate after the base has moved.
 
 Ticket writes: 7 (EXF-463, 680, 681, 728, 760 to In Progress; comments on EXF-463 and EXF-760).
+
+### 2026-11-17 · Review round 128
+
+Children used 144 of 200. One ended: **the bank-linking screens Build completed and merged**
+(`p_e8c64873b67341c39fd61bdf62633a2d`, 2 h 44 min). **Main is `9ecd379`** (pull request 65; its
+tree equals the gated head `f20463e`). **Live is still `8e54173`** (read by me at 20:22Z); no
+migration is pending. And **I cancelled the register screens Build**
+(`p_436014a941cd4d87bef9dd9d1ed6f094`): it was parked on an infrastructure failure. Nothing is
+running.
+
+**Build for EXF-461's screens: merged; EXF-461 is Done.**
+- Gate on base `8e54173`: check passed; browser suite 529 of 530, then 530 of 530 twice; the one
+  failure was the month picker spec (EXF-727; 5 of 5 alone). The first gate had failed on one of
+  the Build's own specs (two plan syncs where one was expected: the spec let the app-open sync
+  race the sync after adding); fixed in the spec, then the gate passed. I approved in the side
+  turn the card arrived in, on the digest, the diff and the gate.
+- **On main:** Add Accounts after a bank connection (also on `/plaid/oauth`); Link Account,
+  Unlink Account and Sync Now in the account edit dialog; the sidebar's status mark and the dot
+  for unapproved rows; the header's status label from two new fields on the account read, joined
+  in the same statements (list 5, one 5, rename 7 database calls, unchanged); one sync after
+  adding or linking, and one when a plan is opened and a linked account was not synced for six
+  hours. No REST operation, tool or migration. **Not compared with the source: no step opened
+  it** (the preflight had failed for a missing source tab; I chose Proceed without).
+- The Designer found by looking that the edit dialog's three new buttons had no styling (white
+  text on a light grey box). The Reviewer found seven smaller things (a history row that lost the
+  status, raw browser errors, a second sync after a bank's sign-in redirect), all fixed. The
+  Tester looked at ten states at two sizes (1,088 s) and left one note, filed below.
+- Departures listed: two tests of `e2e/bank-connections.spec.ts` now check the Add Accounts step
+  where they checked the old confirmation.
+- One point I leave open: the sidebar's status mark sits to the right of the balance; the ticket
+  says "at the right of its name". Nobody has compared it; EXF-465 owns the mark's popup and can
+  settle its place.
+
+**The register screens Build: parked, cancelled, its design kept.**
+- Its Clerk and Architect ran well (the browser download worked at once; the preflight passed).
+  The Implementer's step never produced a line: the Thread stood `parked: infra_failed` from
+  about 18:54Z until I looked at 20:22Z. **No card and no notice reached me in those 90
+  minutes.** I cancelled it; the design and spec are on its branch (head `4e0deb0`).
+- **Next plan: a carry-over Build** whose Clerk merges that branch onto main `9ecd379`. I check
+  the merge myself first (documents only, so no suite run is needed for it).
+- From the design, accepted: View filters in the page with a helper that applies the server's
+  rule, checked against the server by a Worker test; the attention column is 24 px and present in
+  every mode; EXF-760's cause is found (CATEGORY is the only column without a set width on
+  All Accounts, so ACCOUNT's 76 px come out of it); unapproved rows in specs are made through the
+  API with `approved: false`, and Reject, which needs an imported row, is tested with the reject
+  call intercepted. That last point means **no test in the repository will reject a really
+  imported row from the screen; flow 5 on live must do it.**
+
+**The rate limit did not pause the Builds this time.** At 18:14Z the merged Build's Implementer
+hit the limit ("resets 7pm (UTC)") and the platform wrote "Rate limited on Claude · exFabrica;
+continuing on Claude · Jacob". So there is a second account now, and it looks like the owner's
+own. I do not know its limits, nor whether the parked Build's failure has to do with the switch.
+Both facts are on EXF-612, and I tell the owner at the check-in of round 130.
+
+**Filed through this review (one gap ticket, Low):** at 1024×700 the linked account's edit dialog
+scrolls inside itself, the Sync Now and Unlink row sits at the scroll edge on opening, and the
+"Synced:" line is below the fold (the Tester's note).
+
+**What I learned:**
+- Holding a Build's start for the rate-limit window is moot while the platform switches
+  accounts; what cost a child tonight was a parked Thread nobody announced. **In every review and
+  plan I now read the status of each running child, not only of the one that ended.**
+- "Proceed without" at a failed preflight worked for a Build that needs nothing from the source.
+- Two Builds side by side with disjoint grounds: the first landed without touching the second's
+  files, as its manifest said.
+
+**Ticket writes:** 4 (EXF-461 to Done with its note; EXF-463; EXF-612).
+**Backlog:** 45 open feature tickets (54 done; EXF-463 in progress with four gap riders). Gap:
+twenty-two open, five of them in progress, plus the one filed here. Template: thirty-nine open.
+Flow verdicts unchanged; **flow 5 is due after the next release.** Finished since each template's
+last review: Build 7 (two of them lost), Deploy 2, Discover 2, Test user flow 4.
+
+**Next plan:** the carry-over Build for the register screens; Deploy D34 for `9ecd379`
+(`ZZ-TEST D34`), then flow 5 on live with a Sandbox bank linked from the screen.
