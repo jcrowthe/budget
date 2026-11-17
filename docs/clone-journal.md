@@ -11144,3 +11144,21 @@ statuses and Repair (EXF-460, EXF-465); the six-hourly job (EXF-751, alone); a D
 with a Sandbox bank linked from the screen.
 
 Ticket writes: 4 (EXF-751 priority; EXF-558 priority and comment; EXF-461 comment).
+
+### 2026-11-17 · Review round 126
+
+Children used 143 of 200. **Nothing new ended:** this review came because the Build I cancelled
+at the last review (`p_20723ffe9b154bbabbe11c4e862ef60c`) reached its end state, abandoned. It is
+already counted and written up (review of round 125).
+
+**Running, both started four minutes ago and both on course:**
+- The bank-linking screens Build (`p_e8c64873b67341c39fd61bdf62633a2d`, EXF-461): at intake.
+- The flow test of flows 2, 3 and 4 on live (`p_7fe8174a2d3e40838a84c82548c99c85`): walking.
+
+Main and live are both `8e54173`. No ticket write. Backlog and flow verdicts unchanged: 46 open
+feature tickets (EXF-461 in progress), twenty-one open gap tickets, thirty-nine template tickets.
+Finished since each template's last review: Build 5, Deploy 2, Discover 2, Test user flow 3.
+
+**Next plan:** the brief for EXF-463's register screens, started beside the bank-linking Build
+once its manifest shows that the two stay apart, and late enough in the rate-limit window (it
+turns at about 19:00Z) that a pause cannot cost both boxes.
