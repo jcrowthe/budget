@@ -207,5 +207,5 @@ migrations: 0
 - `insertSelect` returns Drizzle's insert builder (not `BatchItem`) so `tombstoneIfStmt` can still call `onConflictDoNothing()`.
 - The conversions of the 16 in-bounds statements were made from the Drizzle column order, so each maps the same value to the same column as before.
 - `scripts/test/positional-inserts.test.ts` also allows `insert-select.ts` (the helper builds a sub-table insert).
-- Purge test: an ended import whose file was still kept and older than 24 h is also gone after a start, because the sweep (which runs first) clears its key and the purge then removes the row.
 - The probe test's first case (database column only) passes on both trees; the second (Drizzle knows the column) failed on the unfixed tree: account create answered 500, then, with accounts fixed, the import answered 500.
+- **Departure: no purge (task 9, case 11).** It was built (a `delete` first in call 1's batch) and met `plan-import-hidden.test.ts`, which is never edited: it starts two imports a day after a finished one and expects that row to remain. The purge was removed; the finished import's row is a known issue (see `plan-import-design.md`, Leftovers). No D1 call was added.

@@ -61,9 +61,8 @@ batch of `delete … where budget_id = ? and <import writing> and <plan hidden>`
 `transactions`, `month_categories`, `categories`, `category_groups`, `payees`, `accounts`, then the `budgets` row; the
 import becomes `abandoned` (summary and offsets cleared); then the R2 delete. A step whose batch fails or whose R2
 object is gone runs the same cleanup (422 / 409). **The sweep**: every call 1 first cleans at most one import that is
-`writing` and untouched for 24 h, or `done` with an `r2_key` left. The guards can never match a visible plan. **Purge** (EXF-725): the same call 1 also
-deletes, in its own batch (no extra D1 call), the rows of `done` or `abandoned` imports with no `r2_key` untouched for
-24 h; they hold no file, and a finished import's row had no other use.
+`writing` and untouched for 24 h, or `done` with an `r2_key` left. The guards can never match a visible plan.
+**Known issue (EXF-725, note 8):** the row of a finished import stays for ever (its DELETE answers 409 `import_finished`, it has no read). A purge of such rows older than 24 h in call 1 was built and dropped: `plan-import-hidden.test.ts` starts two imports a day later and expects the finished row to remain. It holds no file.
 
 **Calls per invocation** (service only; the Idempotency middleware adds ≤ 2 when a key is sent). None grows with the
 file:

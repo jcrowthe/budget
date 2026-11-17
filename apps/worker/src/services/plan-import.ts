@@ -370,11 +370,6 @@ export async function startImport(
   const built = buildRows(plan, started, budgetId);
   const summaryJson = JSON.stringify(summary);
   const fileName = plan.fileNames.register;
-  // Rows of ended imports older than a day go in the same batch as this import's own (no extra D1 call).
-  const purge = repo.purgeEndedStmt(
-    db,
-    new Date(now.getTime() - importLimits.staleMs).toISOString(),
-  );
 
   if (built.rows <= importLimits.singleCallRows) {
     const row: repo.PlanImportRow = {
@@ -393,7 +388,6 @@ export async function startImport(
       finishedAt: started,
     };
     await db.batch([
-      purge,
       repo.insertPlanStmt(db, built.budget),
       ...repo.insertRowsStmts(db, budgetId, built.parts, null, importLimits.rowsPerStatement),
       changeLogInsert(db, historyEntry(built.budget, actor, importId, summary)),
@@ -431,7 +425,6 @@ export async function startImport(
   };
   // The plan is written hidden: nothing reads it until the last step clears deleted_at.
   await db.batch([
-    purge,
     repo.insertPlanStmt(db, { ...built.budget, deletedAt: started }),
     repo.insertImportStmt(db, row),
   ]);
