@@ -46,6 +46,7 @@ test("toolbar, columns, Starting Balance and tracking account", async ({ page, r
   const heads = page.getByRole("columnheader");
   await expect(heads).toHaveText([
     "",
+    "", // the approval column
     "", // the flag column
     "DATE",
     "PAYEE",
