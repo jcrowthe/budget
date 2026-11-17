@@ -51,8 +51,8 @@ action log: a hover on one $0.00 amount, month arrows Oct ↔ Dec 2026 and back 
 at 1440×900 and 1024×700 that was cleared afterwards. The tab was left on the test plan's Plan page,
 `/budget/202611`.
 
-- **Popover: not compared, built from the ticket.** Every month the test plan allows (Oct to Dec 2026, the arrows
-  are disabled beyond) has $0.00 Activity on every row, so no popover could be opened.
+- **Popover: not compared, built from the ticket.** Every month the test plan allows (Oct to Dec 2026) has $0.00
+  Activity on every row, so no popover could be opened.
 - **Observed in the Activity cell.** The amount is a `<button>` with a native `title` of the form
   `(<amount>) View this category's monthly activity. <flourish>`, cursor pointer. A zero amount gets
   `aria-disabled="true"` and cursor default. Category amounts are 14px/500 in `labelSecondary`; amounts end in an
@@ -96,10 +96,9 @@ month M is the sum of the `planActivity` rows (`apps/worker/src/repositories/pla
   Split lines are rows of their own and count in their own category. As in `planActivity`, the parent's deleted
   state is not checked.
 
-Scheduled transactions live in their own table and are never listed. Card rows in C count (the engine's credit
-spending is part of C's Activity). The new repository writes this as one SQL statement with a comment that it
-mirrors `planActivity` and `classifyTransaction`; `plan-activity.ts` is read, not changed. The sum test below is
-what locks the two together.
+Scheduled transactions (their own table) are never listed. Card rows in C count (credit spending is part of C's
+Activity). The new repository writes this as one SQL statement that mirrors `planActivity`, which is read, not
+changed; the sum test locks the two together.
 
 Payee: `coalesce(py.name, t.payee_name, pp.name, p.payee_name)` (the line's own, else the parent's, as
 `spendingRows` does). A row with a transfer account shows `transferPayeeName(ta.name)` ("Transfer : <account>").
@@ -152,9 +151,7 @@ amount }] }". It also states the bound and the `payment_category` tool error. Th
   the cell's content is `<button type="button" class="activity-button">` wrapping today's span. The button's
   `title` is ``(${money(c.activity)}) View this category's monthly activity.`` and `aria-haspopup="dialog"`; a
   click calls the new `onActivity(anchor)` prop.
-  - The button is an inline-block with no border, background or padding, `font: inherit`, `color: inherit`,
-    `max-width: 100%`, cursor pointer and a 1px `--actionPrimary` focus-visible outline. The row's height and the
-    cell's width do not change.
+  - An unstyled inline-block (spec T8): the row's height and the cell's width do not change.
   - A zero amount, a payment category, the Uncategorized row and group rows keep today's plain span.
   - The click does not change the selection.
 - **The grid (`PlanGrid.tsx`).** A new `Open` kind is `{ kind: "activity"; categoryId; anchor }`, so opening it
@@ -164,17 +161,13 @@ amount }] }". It also states the bound and the `payment_category` tool error. Th
   - It uses the plan's `Popover` (`label="Activity"`, `className="activity-popover"`, `width={512}`,
     `dismissOnOutside`). Escape closes it and focus returns to the amount, through `Popover`. A mousedown outside
     closes it. `Close` is a `popover-button is-primary` and returns focus to the amount.
-  - Inside: an `h2.activity-title` "Activity" and a `p.activity-subtitle` with the category name (`title` = name).
-  - A `table.activity-table` (`table-layout: fixed`) has the head ACCOUNT | DATE | PAYEE | MEMO | AMOUNT
-    (uppercase 12px/500 `labelSecondary`) inside a `div.activity-list` that scrolls (`overflow-y: auto`).
-  - Each cell is nowrap with an ellipsis. Account, payee and memo carry `title` with their full text when not
-    empty.
-  - Date: `formatEntryDate` (`@budget/schema/date-entry`, MM/DD/YYYY). Amount: `money` from `plan/format.ts`, the
-    Plan page's own formatter: U+2212 minus, signed, no `+`.
-  - Amount colour: `amountClass`, plus `labelNegative` for a negative amount.
+  - Inside: the title "Activity", the category name, and a fixed-layout table ACCOUNT | DATE | PAYEE | MEMO |
+    AMOUNT in a `div.activity-list` that scrolls.
+  - Cells are nowrap with an ellipsis; account, payee and memo carry `title` with their full text.
+  - Date: `formatEntryDate` (`@budget/schema/date-entry`, MM/DD/YYYY). Amount: `money` from `plan/format.ts`
+    (U+2212 minus, no `+`), coloured by `amountClass`, plus `labelNegative` when negative.
   - Column widths: DATE 88px, AMOUNT 96px; ACCOUNT, PAYEE and MEMO share the rest 30/35/35.
-  - States: "Loading…" while pending; "The transactions could not be loaded." on error; "No transactions" for an
-    empty list (possible after a concurrent delete).
+  - States: "Loading…", "The transactions could not be loaded.", "No transactions".
   - When `total_count > transactions.length`, a `p.activity-more` reads "N more transactions not shown."
 - **Height: always inside the window.** The list's `max-height` is computed when the popover renders and on
   resize:
@@ -185,13 +178,9 @@ amount }] }". It also states the bound and the `payment_category` tool error. Th
     guarantees one side fits, so the box lies wholly inside the window on any row, the first and the last
     included.
   - More rows scroll inside `.activity-list`; the window never scrolls.
-- **Data (`apps/web/src/api/category-activity.ts`).**
-  - `useCategoryActivity(budgetId, month, categoryId)` uses `useQuery` with key
-    `["category-activity", budgetId, month, categoryId]`, `staleTime: 0` and no placeholder (a list never shows
-    another category's rows). It is mounted only while the popover is open: one request per open, none per row.
-  - `apiFetch` parses the response with `CategoryActivityResponse`.
-- **Styles (`apps/web/src/plan/activity-popover.css`).** Imported by the popover. Colours come from
-  `shell/tokens.css` variables only.
+- **Data (`apps/web/src/api/category-activity.ts`).** `useCategoryActivity` (key
+  `["category-activity", budgetId, month, categoryId]`, `staleTime: 0`, no placeholder) is mounted only while the
+  popover is open: one request per open, none per row. Styles go in `activity-popover.css`, with tokens only.
 
 ### EXF-720
 
@@ -209,37 +198,26 @@ amount }] }". It also states the bound and the `payment_category` tool error. Th
 
 ### EXF-714 (tests only)
 
-1. **`packages/schema/test/auto-assign.test.ts`.** `monthHiddenInputs(detail, [payId], true)` gives
-   `payment_underfunded` = the category's `payment.underfunded` (> 0), and with `false` gives 0. Guarded change:
-   `lone &&` → `ids.length === 1 &&` in `monthHiddenInputs` (`packages/schema/src/auto-assign.ts`).
-2. **`apps/worker/test/auto-assign.test.ts`.** Set up a plan with a checking account and a credit card that owes
-   1,200.00 (starting balance), with 100.00 assigned to the card's payment category in Nov and no other category
-   with money available. Its `money_available` view then holds exactly the payment category: Total Underfunded is
-   1,100.00, the view holds one category, and no `category_ids` are sent.
-   - Preview with `view=money_available`: `underfunded` = 0. Apply `underfunded` with that view: nothing changes,
-     and the assigned amount stays 100.00.
-   - With `category_ids=[pay]`: the preview's `underfunded` = 1,100,000, and the apply sets the assigned amount to
-     1,200,000.
-   - Guarded change: `scope.category_ids !== undefined && ids.length === 1` → `ids.length === 1` in `loadScope`
-     (`apps/worker/src/services/auto-assign.ts`).
-3. **`e2e/auto-assign.spec.ts`, a new test.** The plan comes from `seedCard`: its Visa payment category holds
-   335.00 and no other category has money available.
-   - With nothing ticked, click the **Money Available** chip. The grid shows exactly one category (ZZ-TEST Visa).
-     The card's labels are the plan-wide ones (plural, as in test 11's `plan` list) with Underfunded at $0.00, and
-     there is no Paid Last Month or Average Paid.
-   - Tick ZZ-TEST Visa: the card switches to the payment card (Paid Last Month and Average Paid offered, singular
-     labels).
-   - Guarded change: `"categoryIds" in scope && ids?.length === 1` → `ids?.length === 1` in
-     `apps/web/src/plan/AutoAssignOptions.tsx`.
+Three tests, each guarding one `lone` condition, as the ticket lists them. Their setups are in spec T12.
+
+1. **Unit, `monthHiddenInputs`** (`packages/schema/src/auto-assign.ts`): a payment category alone in `ids` counts its
+   Total Underfunded with `lone` true and not with false. Guarded change: `lone &&` → `ids.length === 1 &&`.
+2. **Worker, preview and apply** (`loadScope` in `apps/worker/src/services/auto-assign.ts`): a view holding only a
+   payment category with Total Underfunded > 0, with no `category_ids`, leaves it out; the same category named in
+   `category_ids` gets its Total Underfunded. Guarded change: `scope.category_ids !== undefined && ids.length === 1`
+   → `ids.length === 1`.
+3. **Browser, the Auto-Assign card** (`apps/web/src/plan/AutoAssignOptions.tsx`): with nothing ticked and a chip
+   showing one category, the card stays plan-wide (plural labels, Underfunded at $0.00, no Paid Last Month or
+   Average Paid); ticking it switches to the one-category card. Guarded change:
+   `"categoryIds" in scope && ids?.length === 1` → `ids?.length === 1`.
 
 Each test is run once against its guarded change (quote the failing line), then the change is restored.
 
 ## Downstream effects
 
-- One new route file and one new tool file. Both are collected by `import.meta.glob`, so no shared module changes.
-- `openapi.test.ts` and `mcp.test.ts` pick them up untouched.
-- `mcp-timestamps.test.ts` gains one `CALLS` line.
-- The Activity cell's DOM gains a button only for non-zero ordinary categories. `e2e/plan-narrow.spec.ts` and
+- The new route and tool files are collected by `import.meta.glob`: no shared module changes, and
+  `openapi.test.ts` and `mcp.test.ts` pick them up untouched. `mcp-timestamps.test.ts` gains one `CALLS` line.
+- The Activity cell gains a button only for non-zero ordinary categories. `e2e/plan-narrow.spec.ts` and
   `plan-grid.spec.ts` must pass unchanged.
 
 ## Out of scope / known issues
@@ -250,9 +228,7 @@ Each test is run once against its guarded change (quote the failing line), then 
 - **The Uncategorized row's Activity, group rows and the Ready to Assign figures** are not clickable.
 - **Clicking a row in the popover** does nothing; the ticket does not ask for navigation to the register.
 - **The source's flourish word** in the tooltip and its date headings are not copied.
-- **Out of bounds** (none change): every `paths.always_overlap` and shared-module file;
-  `apps/web/src/{account,register,reflect}/**`; `services/{transactions,reconcile,plan-import*,plan-export}.ts`
-  and their repositories; `plan-activity.ts`. No migration and no dependency.
+- **Out of bounds:** listed at the top of the spec; none of those files change. No migration and no dependency.
 
 ## Acceptance
 

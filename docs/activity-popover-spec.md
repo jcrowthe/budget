@@ -139,9 +139,10 @@ That is exactly **3 D1 calls**, run one after the other (the plan check comes fi
 - **Errors.** Expect 404 for an unknown category id, another plan's category, an unknown plan, and a category of
   plan A requested under plan B's id. Expect 422 for `month` `2026-13-01`. A credit card payment category gives
   422 with `error.name` `payment_category`.
-- **Bound.** Make 503 rows in one month. Seed them through the same route other bulk tests use, for example
-  `POST …/transactions/bulk` or the repository's seeding helper in `bulk-helpers.ts`, not 503 single POSTs if a
-  bulk path exists. Expect 500 rows, `total_count` 503, and `activity` = the sum of all 503.
+- **Bound.** Make 503 rows in one month. There is no bulk-create route, so the Worker test inserts them in one
+  `env.DB.batch` of `insert into transactions (id, budget_id, account_id, date, category_id, amount, memo,
+  cleared, approved, inflow_to_ready_to_assign, created_at, updated_at) values (…)`, **naming every column**, as
+  other Worker tests seed. Expect 500 rows, `total_count` 503, and `activity` = the sum of all 503.
 - **MCP.** `list_category_transactions` returns the same `data` as REST.
 - **Surface.** `apiPaths()` contains the path; `listedToolNames()` contains the tool.
 
@@ -234,6 +235,10 @@ export function ActivityPopover(props: {
   - Acceptance 13 counts requests with `page.on("request")` filtered on `/transactions`.
   - After a click, wait with `expect.poll` on the dialog's row count.
   - Acceptance 8's payment category comes from `seedCard` in `e2e/support/card-seed.ts`.
+  - Acceptance 7 in the browser: the Worker test proves the bound. The spec checks the popover's line with
+    `page.route` on the read, fulfilling the server's real answer for a 2-row category with `total_count` raised
+    by 3. It expects "3 more transactions not shown." It seeds no 503 rows through the browser and writes nothing
+    to the database.
 - **`e2e/activity-popover-narrow.spec.ts`**, acceptance 12. With 30 rows, and enough categories that the grid
   scrolls (as `plan-narrow.spec.ts` seeds them), open the popover on the first visible, a middle and the last
   visible category row.
@@ -264,6 +269,30 @@ export function ActivityPopover(props: {
 
 The design's three tests go in `packages/schema/test/auto-assign.test.ts`, `apps/worker/test/auto-assign.test.ts`
 and `e2e/auto-assign.spec.ts` (new test "20. a view holding one category stays plan-wide").
+
+1. **`packages/schema/test/auto-assign.test.ts`.** `monthHiddenInputs(detail, [payId], true)` gives
+   `payment_underfunded` = the category's `payment.underfunded` (> 0), and with `false` gives 0. Guarded change:
+   `lone &&` → `ids.length === 1 &&` in `monthHiddenInputs` (`packages/schema/src/auto-assign.ts`).
+2. **`apps/worker/test/auto-assign.test.ts`.** Set up a plan with a checking account and a credit card that owes
+   1,200.00 (starting balance), with 100.00 assigned to the card's payment category in Nov and no other category
+   with money available. Its `money_available` view then holds exactly the payment category: Total Underfunded is
+   1,100.00, the view holds one category, and no `category_ids` are sent.
+   - Preview with `view=money_available`: `underfunded` = 0. Apply `underfunded` with that view: nothing changes,
+     and the assigned amount stays 100.00.
+   - With `category_ids=[pay]`: the preview's `underfunded` = 1,100,000, and the apply sets the assigned amount to
+     1,200,000.
+   - Guarded change: `scope.category_ids !== undefined && ids.length === 1` → `ids.length === 1` in `loadScope`
+     (`apps/worker/src/services/auto-assign.ts`).
+3. **`e2e/auto-assign.spec.ts`, a new test.** The plan comes from `seedCard`: its Visa payment category holds
+   335.00 and no other category has money available.
+   - With nothing ticked, click the **Money Available** chip. The grid shows exactly one category (ZZ-TEST Visa).
+     The card's labels are the plan-wide ones (plural, as in test 11's `plan` list) with Underfunded at $0.00, and
+     there is no Paid Last Month or Average Paid.
+   - Tick ZZ-TEST Visa: the card switches to the payment card (Paid Last Month and Average Paid offered, singular
+     labels).
+   - Guarded change: `"categoryIds" in scope && ids?.length === 1` → `ids?.length === 1` in
+     `apps/web/src/plan/AutoAssignOptions.tsx`.
+
 - **Setup.** The Worker test builds its card the way `card-payments.test.ts`'s `world()` does (a `creditCard`
   account opened with balance 1200000, then `setAssigned`/PATCH 100000 on its payment category). It asserts first
   that `viewCategories(money_available)` holds only the payment category: `GET …/months/{m}?view=money_available`
