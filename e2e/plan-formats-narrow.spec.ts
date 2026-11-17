@@ -300,12 +300,22 @@ test("EXF-726 polish P1: an Uncategorized Activity of thirteen characters stays 
     const cs = getComputedStyle(el);
     return {
       h: el.getBoundingClientRect().height,
+      fw: cs.fontWeight,
+      fv: cs.fontVariantNumeric,
       ws: cs.whiteSpace,
       ov: cs.overflow,
       to: cs.textOverflow,
       title: el.title,
     };
   });
-  expect(r).toMatchObject({ ws: "nowrap", ov: "hidden", to: "ellipsis", title: "−$9,777,777.76" });
+  // Source: Activity amounts are 14px / weight 500 / tabular-nums (measured live).
+  expect(r).toMatchObject({
+    fw: "500",
+    fv: "tabular-nums",
+    ws: "nowrap",
+    ov: "hidden",
+    to: "ellipsis",
+    title: "−$9,777,777.76",
+  });
   expect(r.h).toBeLessThan(20);
 });

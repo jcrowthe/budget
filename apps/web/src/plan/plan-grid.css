@@ -488,8 +488,7 @@
 .cell-activity {
   text-align: right;
 }
-.activity-button,
-.cell-activity > span {
+.activity-button {
   display: inline-block;
   max-width: 100%;
   margin: 0;
@@ -501,6 +500,15 @@
   line-height: inherit;
   text-align: inherit;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+/* EXF-726: a plain Activity amount never wraps; it keeps the .amount font, weight and colour. */
+.cell-activity > span {
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
