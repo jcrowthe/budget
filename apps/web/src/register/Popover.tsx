@@ -19,6 +19,7 @@ export function Popover({
   bodyClass,
   dx = 4,
   belowTrim = 0,
+  align = "center",
   onClose,
   children,
 }: {
@@ -34,6 +35,8 @@ export function Popover({
   dx?: number;
   /** For `below`: pixels the menu moves up into the arrow's room, so the arrow overlaps the anchor more. */
   belowTrim?: number;
+  /** `start` puts the menu's left edge at the anchor's (a wide menu must not run over the sidebar). */
+  align?: "center" | "start";
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -60,7 +63,8 @@ export function Popover({
         return;
       }
       const center = r.left + r.width / 2;
-      const left = Math.max(MARGIN, Math.min(center - w / 2, window.innerWidth - w - MARGIN));
+      const from = align === "start" ? r.left - 16 : center - w / 2;
+      const left = Math.max(MARGIN, Math.min(from, window.innerWidth - w - MARGIN));
       el.style.left = `${left}px`;
       tip.style.left = `${Math.max(8, Math.min(center - left - ARROW_W / 2, w - ARROW_W - 8))}px`;
       const below = window.innerHeight - r.bottom - ARROW_H - MARGIN;

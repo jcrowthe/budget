@@ -223,3 +223,18 @@ export const CalendarIcon = (p: P) => (
     <path d="M4 5h16v16H4zM4 10h16M8 3v4M16 3v4" />
   </svg>
 );
+export const InfoCircleIcon = (p: P) => (
+  <svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true" {...p}>
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M8 7.2v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="8" cy="4.8" r="1" fill="currentColor" />
+  </svg>
+);
+export const InfoCircleFillIcon = (p: P) => (
+  <svg {...base} width={14} height={16} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm-1.200 10.800h2.400V18h-2.400v-7.200ZM12 6a1.500 1.500 0 1 1 0 3 1.500 1.500 0 0 1 0-3Z"
+    />
+  </svg>
+);

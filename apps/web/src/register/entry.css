@@ -119,7 +119,8 @@
 }
 .register-table .needs-category {
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 button.needs-category {
   cursor: pointer;
