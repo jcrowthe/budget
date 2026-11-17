@@ -204,12 +204,12 @@
 /* EXF-622: under a 562px grid box (planLayout.ts) the number columns take fixed minimums and the name column the
    rest; the Available column keeps the width of its widest pill. */
 .plan-body[data-narrow] .cell-assigned {
-  padding-left: 4px;
+  padding-left: 0;
   width: var(--col-assigned, 5.75rem);
   min-width: 0;
 }
 .plan-body[data-narrow] .cell-activity {
-  padding-left: 2px;
+  padding-left: 0;
   width: var(--col-activity, 5.25rem);
   min-width: 0;
 }
@@ -250,7 +250,7 @@
 }
 .plan-body[data-narrow] .header-row .cell-assigned,
 .plan-body[data-narrow] .group-row .cell-assigned {
-  padding-left: 4px;
+  padding-left: 0;
 }
 .plan-body[data-narrow] .header-row .cell-available,
 .plan-body[data-narrow] .group-row .cell-available {

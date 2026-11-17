@@ -293,11 +293,14 @@ test.describe("1440×900", () => {
     await expect(item(page, "New Plan")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(open).toBeFocused();
-    // Keyboard Shortcuts is enabled (EXF-473): it sits between Open Plan and Log Out.
+    // Plan Settings (EXF-468) follows Open Plan; Keyboard Shortcuts is enabled (EXF-473): it sits before Log Out.
+    await page.keyboard.press("ArrowDown");
+    await expect(item(page, "Plan Settings")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Keyboard Shortcuts")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Log Out")).toBeFocused();
+    await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     await expect(open).toBeFocused();
