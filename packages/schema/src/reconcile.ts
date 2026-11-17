@@ -56,9 +56,9 @@ export function reconcileSentence(difference: number): string {
 
 /** The Difference modal's three paragraphs. */
 export const DIFFERENCE_TEXT = [
-  "The balance recorded in Budget doesn't match the balance at your financial institution.",
+  "The balance recorded in Budget doesn’t match the balance at your financial institution.",
   "To correct this, compare each unlocked transaction in Budget against your account to make sure they match. Budget will keep track of the current difference at the top of your register.",
-  "If you can't find the difference, that's okay! We'll make an adjustment transaction and you can move on.",
+  "If you can’t find the difference, that’s okay! We’ll make an adjustment transaction and you can move on.",
 ] as const;
 
 /** "a few seconds ago" ... "3 years ago". Future times read as "a few seconds ago". */

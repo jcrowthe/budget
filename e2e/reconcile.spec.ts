@@ -103,12 +103,12 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
   const w = await seedWorked(request);
   await goto(page, w.plan, w.checking);
   await enterBalance(page, "655.50");
-  const modal = page.getByRole("dialog", { name: "Difference", exact: true });
+  const modal = page.getByRole("dialog", { name: "Reconcile", exact: true });
   await expect(modal.getByText("−$100.00")).toBeVisible();
   await expect(modal.getByText("Difference", { exact: true }).first()).toBeVisible();
   await expect(
     modal.getByText(
-      "The balance recorded in Budget doesn't match the balance at your financial institution.",
+      "The balance recorded in Budget doesn’t match the balance at your financial institution.",
     ),
   ).toBeVisible();
   await expect(
@@ -119,7 +119,7 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
       "If you can't find the difference, that's okay! We'll make an adjustment transaction and you can move on.",
     ),
   ).toBeVisible();
-  await expect(modal.getByText("Don't Show Again")).toBeVisible();
+  await expect(modal.getByText("Don’t Show Again")).toBeVisible();
   await realClick(page, modal.getByRole("button", { name: "Next", exact: true }));
   await expect(modal).toHaveCount(0);
   await expect(
@@ -212,7 +212,7 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
   // AC5: the $5.00 adjustment.
   const rtaBefore = await readyToAssign(request, w.plan);
   await enterBalance(page, "655.50");
-  const m2 = page.getByRole("dialog", { name: "Difference", exact: true });
+  const m2 = page.getByRole("dialog", { name: "Reconcile", exact: true });
   await expect(m2.getByText("−$5.00")).toBeVisible();
   await realClick(page, m2.getByRole("button", { name: "Next", exact: true }));
   await expect(bar(page).getByText(/\$5\.00 higher than your actual account\.$/)).toBeVisible();
@@ -235,7 +235,7 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
   expect(await readyToAssign(request, w.plan)).toBe(rtaBefore - 5000);
 });
 
-test("lower than, Cancel writes nothing, Don't Show Again, and the matching balance (cases 8-10)", async ({
+test("lower than, Cancel writes nothing, Don’t Show Again, and the matching balance (cases 8-10)", async ({
   page,
   request,
 }) => {
@@ -245,7 +245,7 @@ test("lower than, Cancel writes nothing, Don't Show Again, and the matching bala
   });
   await goto(page, w.plan, w.checking);
   await enterBalance(page, "800.00");
-  const modal = page.getByRole("dialog", { name: "Difference", exact: true });
+  const modal = page.getByRole("dialog", { name: "Reconcile", exact: true });
   await expect(modal.getByText("$144.50", { exact: true })).toBeVisible();
   await realClick(page, modal.getByRole("button", { name: "Next", exact: true }));
   await expect(
@@ -258,9 +258,9 @@ test("lower than, Cancel writes nothing, Don't Show Again, and the matching bala
   expect((await accountOf(request, w.plan, w.checking)).last_reconciled_at).toBeNull();
   expect(await reconciledCount(request, w.plan, w.checking)).toBe(0);
 
-  // Case 9: Don't Show Again.
+  // Case 9: Don’t Show Again.
   await enterBalance(page, "600.00");
-  await modal.getByLabel("Don't Show Again").check();
+  await modal.getByLabel("Don’t Show Again").check();
   await realClick(page, modal.getByRole("button", { name: "Next", exact: true }));
   await expect(bar(page)).toBeVisible();
   await realClick(page, bar(page).getByRole("button", { name: "Cancel", exact: true }));

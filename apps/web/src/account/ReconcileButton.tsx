@@ -19,7 +19,8 @@ export function ReconcileButton() {
   const closed = rc?.account.closed ?? true;
   useShortcut("reconcile", () => rc?.open(), !!rc && idle && !closed);
 
-  const showing = rc?.step === "ask" || rc?.step === "enter" || rc?.step === "done";
+  const showing =
+    rc?.step === "ask" || rc?.step === "enter" || rc?.step === "difference" || rc?.step === "done";
   const close = rc?.cancel;
   useEffect(() => {
     if (!showing || !close) return;
@@ -90,14 +91,13 @@ export function ReconcileButton() {
             <p className="reconcile-note">Time for the reconciliation dance!</p>
           </div>
         )}
+        {rc.step === "difference" && rc.statement !== undefined && (
+          <DifferenceDialog
+            difference={bankDifference(rc.statement)}
+            onNext={(dont) => toMode(rc.statement as number, dont)}
+          />
+        )}
       </span>
-      {rc.step === "difference" && rc.statement !== undefined && (
-        <DifferenceDialog
-          difference={bankDifference(rc.statement)}
-          onCancel={rc.cancel}
-          onNext={(dont) => toMode(rc.statement as number, dont)}
-        />
-      )}
     </>
   );
 }
@@ -115,7 +115,7 @@ function AskStep() {
         </p>
       )}
       <div className="reconcile-buttons">
-        <button type="button" className="secondary" onClick={rc.goEnter}>
+        <button type="button" className="primary" onClick={rc.goEnter}>
           No
         </button>
         <button
@@ -155,7 +155,7 @@ function EnterStep({ onNext }: { onNext: (statement: number) => void }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <div className="reconcile-buttons">
+      <div className="reconcile-buttons is-end">
         <button type="submit" className="primary" disabled={value === null}>
           Next
         </button>

@@ -56,9 +56,9 @@ test("negative amounts use the minus sign on the Plan page, the register, the re
   await realClick(page, page.getByRole("button", { name: "No", exact: true }));
   await page.keyboard.type("0");
   await page.keyboard.press("Enter");
-  const modal = page.getByRole("dialog", { name: "Difference", exact: true });
+  const modal = page.getByRole("dialog", { name: "Reconcile", exact: true });
   await expect(modal.getByText("$335.00", { exact: true })).toBeVisible();
-  await expectMinusSigns(page, "Difference modal");
+  await expectMinusSigns(page, "Difference step");
   await realClick(page, modal.getByRole("button", { name: "Next", exact: true }));
   await expect(page.getByRole("region", { name: "Reconciliation", exact: true })).toBeVisible();
   await expectMinusSigns(page, "reconcile bar");

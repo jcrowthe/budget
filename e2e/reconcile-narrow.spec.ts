@@ -75,17 +75,60 @@ for (const [w, h] of [
     await page.screenshot({
       path: `.screenshots/reconcile-popover-${w === 1440 ? 1440 : 1024}.png`,
     });
+    // Case 21, decision B (the source's ask popover, measured by the last Designer on EXF-533, 17 Nov):
+    // radius 6.4px, the menu shadow, the balance at 21px in a menu-hover card, No and Yes full width at 16px.
+    const css = (l: Locator, prop: string) =>
+      l.evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
+    const tok = (name: string) =>
+      page.evaluate((n) => {
+        const d = document.createElement("div");
+        d.style.background = `var(${n})`;
+        document.body.append(d);
+        const v = getComputedStyle(d).backgroundColor;
+        d.remove();
+        return v;
+      }, name);
+    expect(await css(popover(page), "border-top-left-radius")).toBe("6.4px");
+    expect(await css(popover(page).locator(".reconcile-amount"), "font-size")).toBe("21px");
+    expect(await css(popover(page).locator(".reconcile-amount"), "background-color")).toBe(
+      await tok("--menuHover"),
+    );
+    const inner = await box(popover(page).locator(".reconcile-buttons"));
+    for (const n of ["No", "Yes"]) {
+      const b = popover(page).getByRole("button", { name: n, exact: true });
+      expect((await box(b)).width).toBeCloseTo(inner.width, 0);
+      expect(await css(b, "font-size")).toBe("16px");
+      expect(await css(b, "background-color")).toBe(await tok("--buttonPrimaryBackground"));
+    }
     await realClick(page, button(page, "No"));
     await expect(popover(page).getByText("Current balance at your bank")).toBeVisible();
+    // Decision C: the label in the primary label colour at weight 600, left; disabled Next on menu-hover.
+    const label = popover(page).locator("label");
+    expect(await css(label, "font-weight")).toBe("600");
+    expect(await css(label, "text-align")).toBe("left");
+    const next = popover(page).getByRole("button", { name: "Next", exact: true });
+    await expect(next).toBeDisabled();
+    expect(await css(next, "opacity")).toBe("1");
+    expect(await css(next, "background-color")).toBe(await tok("--menuHover"));
     await insideViewport(page, popover(page));
     await page.screenshot({ path: `.screenshots/reconcile-enter-balance-${w}.png` });
     await page.keyboard.type("1234567.89");
     await page.keyboard.press("Enter");
-    // The Difference modal.
-    const modal = page.getByRole("dialog", { name: "Difference", exact: true });
+    // The Difference step (anchored popover).
+    const modal = page.getByRole("dialog", { name: "Reconcile", exact: true });
     await expect(modal.getByText("Difference", { exact: true }).first()).toBeVisible();
     await insideViewport(page, modal);
-    expect(await noOverflow(modal.locator(".form-body"))).toBe(true);
+    // Decision D: the same anchored popover, 323px, no title bar or close button, 18px amount in a card.
+    expect((await box(modal)).width).toBeCloseTo(323, 0);
+    await expect(modal).not.toHaveAttribute("aria-modal", /.*/);
+    await expect(modal.getByRole("button", { name: "Close" })).toHaveCount(0);
+    expect(await css(modal.locator(".reconcile-big"), "font-size")).toBe("18px");
+    expect(await css(modal.locator(".reconcile-diff-card"), "background-color")).toBe(
+      await tok("--backgroundSecondary"),
+    );
+    await expect(modal.locator("strong")).toHaveText("To correct this");
+    await expect(modal).toContainText("doesn\u2019t match");
+    expect(await noOverflow(modal)).toBe(true);
     await page.screenshot({ path: `.screenshots/reconcile-difference-${w}.png` });
     await realClick(page, modal.getByRole("button", { name: "Next", exact: true }));
 

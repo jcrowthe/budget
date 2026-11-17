@@ -15,12 +15,22 @@
   width: 280px;
   max-width: calc(100vw - 32px);
   padding: var(--space-3);
-  border-radius: var(--radius-lg);
+  border-radius: 6.4px;
   background: var(--backgroundTertiary);
-  box-shadow: var(--account-tooltip-shadow);
+  box-shadow: var(--shadowMenu);
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
   text-align: center;
+}
+.reconcile-popover::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: 28px;
+  width: 10px;
+  height: 10px;
+  background: var(--backgroundTertiary);
+  transform: rotate(45deg);
 }
 .reconcile-note {
   margin: 0;
@@ -30,7 +40,10 @@
 }
 .reconcile-amount {
   margin: 0;
-  font-size: 24px;
+  padding: var(--space-2);
+  border-radius: 6.4px;
+  background: var(--menuHover);
+  font-size: 21px;
   font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -42,8 +55,8 @@
 }
 .reconcile-buttons {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--space-2);
   margin-top: var(--space-1);
 }
@@ -51,11 +64,12 @@
   box-sizing: border-box;
   height: 32px;
   margin: 0;
-  min-width: 72px;
+  width: 100%;
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-lg);
   font: inherit;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -68,11 +82,54 @@
   color: var(--labelPrimary);
 }
 .reconcile-buttons button:disabled {
-  opacity: 0.5;
+  background: var(--menuHover);
+  color: var(--labelTertiary);
   cursor: default;
 }
 .reconcile-popover label {
+  color: var(--labelPrimary);
+  font-weight: 600;
   text-align: left;
+}
+.reconcile-popover.is-difference {
+  width: 323px;
+  align-items: stretch;
+  gap: var(--space-4);
+  text-align: left;
+}
+.reconcile-diff-card {
+  padding: var(--space-3);
+  border-radius: 6.4px;
+  background: var(--backgroundSecondary);
+  text-align: center;
+}
+.reconcile-diff-card .reconcile-big {
+  font-size: 18px;
+}
+.reconcile-diff-card .reconcile-big-label {
+  margin: 0;
+}
+.reconcile-diff-text {
+  margin: 0;
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+}
+.reconcile-diff-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.reconcile-diff-foot .primary {
+  height: 32px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
 }
 .reconcile-input {
   box-sizing: border-box;
@@ -171,4 +228,11 @@
 .reconcile-bar-buttons button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+.reconcile-buttons.is-end {
+  align-items: flex-end;
+}
+.reconcile-buttons.is-end button {
+  width: auto;
+  min-width: 72px;
 }
