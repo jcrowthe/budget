@@ -1,22 +1,49 @@
-import { and, asc, eq, inArray, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  type SQL,
+  type SQLWrapper,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { bankAccounts } from "../db/schema/bank-accounts";
+import { bankConnections } from "../db/schema/bank-connections";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 import { insertSelect } from "./insert-select";
 import { countsInBalance } from "./transactions";
 
 export type AccountRow = typeof accounts.$inferSelect;
+/** An account with its bank connection's status and last sync (null when not linked), read in the same statement. */
+export type AccountReadRow = AccountRow & {
+  connectionStatus: string | null;
+  connectionSyncedAt: string | null;
+};
+
+/** The accounts table with the linked connection's status and sync time joined in. */
+function selectWithLink(db: Db) {
+  return db
+    .select({
+      ...getTableColumns(accounts),
+      connectionStatus: bankConnections.status,
+      connectionSyncedAt: bankConnections.lastSyncedAt,
+    })
+    .from(accounts)
+    .leftJoin(bankAccounts, eq(bankAccounts.id, accounts.bankAccountId))
+    .leftJoin(bankConnections, eq(bankConnections.id, bankAccounts.bankConnectionId));
+}
 
 export async function findActive(
   db: Db,
   budgetId: string,
   id: string,
-): Promise<AccountRow | undefined> {
-  const [row] = await db
-    .select()
-    .from(accounts)
+): Promise<AccountReadRow | undefined> {
+  const [row] = await selectWithLink(db)
     .where(and(eq(accounts.id, id), eq(accounts.budgetId, budgetId), isNull(accounts.deletedAt)))
     .limit(1);
   return row;
@@ -72,12 +99,10 @@ export async function list(
   db: Db,
   budgetId: string,
   opts: { includeClosed: boolean },
-): Promise<AccountRow[]> {
+): Promise<AccountReadRow[]> {
   const conds = [eq(accounts.budgetId, budgetId), isNull(accounts.deletedAt)];
   if (!opts.includeClosed) conds.push(eq(accounts.closed, false));
-  return db
-    .select()
-    .from(accounts)
+  return selectWithLink(db)
     .where(and(...conds))
     .orderBy(asc(accounts.sortOrder), asc(accounts.id));
 }

@@ -221,14 +221,16 @@ export async function findBankAccountInEnvironment(
   db: Db,
   environment: "production" | "sandbox",
   bankAccountId: string,
-): Promise<BankAccountRow | undefined> {
+): Promise<
+  (BankAccountRow & { connectionStatus: string; connectionSyncedAt: string | null }) | undefined
+> {
   const [r] = await db
-    .select({ a: bankAccounts })
+    .select({ a: bankAccounts, s: bankConnections.status, t: bankConnections.lastSyncedAt })
     .from(bankAccounts)
     .innerJoin(bankConnections, eq(bankConnections.id, bankAccounts.bankConnectionId))
     .where(and(eq(bankAccounts.id, bankAccountId), eq(bankConnections.environment, environment)))
     .limit(1);
-  return r?.a;
+  return r && { ...r.a, connectionStatus: r.s, connectionSyncedAt: r.t };
 }
 
 export async function findBankAccountById(db: Db, id: string): Promise<BankAccountRow | undefined> {
