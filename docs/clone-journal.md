@@ -9679,3 +9679,60 @@ Build 9, Deploy 7, Discover 2, Test user flow 2.
 **Next plan:** one Deploy (`ZZ-TEST D29`) for the two merges (`8b3e9a7`, `0fefc6c`); the third
 Reconcile Build beside it (a Deploy and a Build share no file; no approval while it releases); set
 the new ticket's priority.
+
+### 2026-11-17 · Plan round 112
+
+Children used 128 of 200. Started two: a Deploy and the Reconcile Build. Main `0fefc6c`, live
+`49012cd` (two merges and one migration behind). The ticket filed at the last review exists as
+**EXF-714** (the missing Auto-Assign test); priority set to Low; nothing blocks it. The person has
+not answered the round-110 check-in.
+
+**Started:**
+- **Deploy D29** (`p_516e428ce4884aebb8cfc56181b7d973`): ships main `0fefc6c`, expects the one
+  migration `20261116101300_plan_imports.sql`; `gated_commit` `40b4497` (its tree equals main's,
+  compared now). Its checks on live: 81 tools; the card's payment status through REST and MCP; on
+  the Plan page the PAYMENT button and dialog, the payment pill, the Payment card in the "enough"
+  and "overspent categories" states, Record Payment opening the card's page, Auto-Assign's
+  Underfunded for a ticked payment row, and the page at 1024×700; then an export, a dry-run import,
+  a real import and a second export of its own two test plans, compared file by file.
+  - **A trap I wrote the brief around:** an import without `name` takes its plan's name from the
+    file's name, which has no hyphen (`ZZ TEST D29 check`), so the prefixed purge would not find it
+    and it would be counted beside the owner's plan. Every import call carries
+    `name` = `ZZ-TEST D29 imported`.
+  - Where I do not know what the app shows (the pill's colour in the overspent state; the card's
+    state after assigning straight to the payment category while a category is still overspent),
+    the brief says so and asks for a report, not a pass.
+- **Reconcile, third Build** (`p_8d9e0864404e426d946c60c989a6c4a2`, EXF-533 with EXF-664): merges
+  `cb25396` onto main `0fefc6c`.
+  - **I merged it and ran everything first.** The merge is clean, but **`pnpm check` fails 32 tests
+    and the browser suite 2 specs**, both from this Build's new account column meeting code merged
+    since: the plan import writes account rows by position (every import answers 500, `13 values
+    for 14 columns`), and `e2e/sidebar-groups.spec.ts` stubs accounts without the new field. One
+    line each; with both, the failing tests pass (tried). The brief gives the Implementer both as
+    its first job and asks the Reviewer to search for more statements that list columns by position
+    (the third of this kind).
+  - **My decisions on the last Designer's measurements, written into the brief so that no design
+    round is spent on them:** Reconcile stays disabled on a closed account (a known difference from
+    the source: what it does there past the popover is unknown, and an adjustment would give a
+    closed account a new transaction); the ask popover and the bank-balance step as measured; the
+    Difference step becomes the same popover widened to 323px, not a centred modal.
+  - **The source:** instead of a ban I name the one action that must not happen and why (nobody
+    presses Next, Create Adjustment or Finish: the session signed out 36 seconds after the last
+    Designer pressed Next), and say that nothing is left to measure without those buttons.
+  - The Reviewer reviews all of it (never reviewed); the Tester takes a fresh screenshot per state
+    and size.
+
+**Why both at once:** a Deploy and a Build share no file, and the Deploy is done long before the
+Build's card (no approval while it releases). By the two earlier pauses the allowance carried about
+three Builds for three hours; this window (from 04:00Z) has carried one. If the limit comes all the
+same, the Build's code is on its branch and I carry it over again.
+
+**Not started:** flows 3, 4 and 10 wait for the Deploy. Everything else needs the account page or
+the register (the Reconcile Build), a shared module, or the person's word. Reviews: Build 9, Deploy
+7, Discover 2, Test user flow 2 since each template's last review; the Build review starts after
+the next finished Build.
+
+Declared for the tree: the Deploy; the Reconcile Build; flows 3, 4 and 10; a Deploy and flow 6
+after Reconcile; the Build template review.
+
+Ticket writes: 2 (EXF-714 priority; a comment on EXF-533).
