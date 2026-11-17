@@ -315,6 +315,13 @@ const CALLS: [string, (c: Ctx) => Json][] = [
       create_adjustment: true,
     }),
   ],
+  ["get_account_view_settings", (c) => ({ budget_id: c.bid, account_id: c.checking })],
+  [
+    "update_account_view_settings",
+    (c) => ({ budget_id: c.bid, account_id: c.checking, show_flags: false }),
+  ],
+  ["get_all_accounts_view_settings", (c) => ({ budget_id: c.bid })],
+  ["update_all_accounts_view_settings", (c) => ({ budget_id: c.bid, show_flags: false })],
   ["list_scheduled_transactions", (c) => ({ budget_id: c.bid })],
   ["get_scheduled_transaction", (c) => ({ budget_id: c.bid, id: c.sched })],
   [

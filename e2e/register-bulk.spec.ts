@@ -4,6 +4,7 @@ import { expect, test } from "./fixtures";
 import { accountBalance, accountRows, rewriteList, seedBulk } from "./support/bulk-seed";
 import { call, realClick, TODAY } from "./support/register-seed";
 import { mmddyyyy } from "./support/scheduled-seed";
+import { setViewSettings } from "./support/view-settings";
 
 const rowOf = (page: Page, payee: string) =>
   page.locator(".register-table tbody tr[data-tx]").filter({ hasText: payee });
@@ -298,6 +299,8 @@ test("a reconciled row asks first; Delete sends confirm_reconciled (EXF-520 AC7)
   request,
 }) => {
   const s = await seedBulk(request);
+  // Reconciled rows are hidden by default (EXF-529): this case shows them first.
+  await setViewSettings(request, s.plan, s.checking, { show_reconciled: true });
   await rewriteList(page, (t) => (t.id === s.pay ? { cleared: "reconciled" } : null));
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await expect(rowOf(page, "ZZ Fee")).toBeVisible();

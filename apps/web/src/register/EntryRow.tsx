@@ -49,6 +49,7 @@ import {
 import { localToday } from "./format";
 import { ClearedFilledIcon, ClearedOutlineIcon, LockIcon } from "./icons";
 import { PayeeField } from "./PayeeField";
+import { useRegisterView } from "./register-view";
 import { SplitDialog } from "./SplitDialog";
 import { SplitLines } from "./SplitLines";
 
@@ -322,7 +323,9 @@ export function EntryRow({
     if (draft.category.kind === "none" && c && !noCategory) patch({ category: c });
   };
 
-  const colCount = (plan ? 1 : 0) + (showCategory ? 1 : 0) + 8;
+  const { showFlags, showBalance } = useRegisterView();
+  const colCount =
+    (plan ? 1 : 0) + (showCategory ? 1 : 0) + 6 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
   const parentAmount = draftAmount(draft);
 
   const autoDistributeLines = () => {
@@ -350,7 +353,7 @@ export function EntryRow({
         <td className="cell-check">
           <Box state label="Select transaction" tabIndex={-1} onClick={() => {}} />
         </td>
-        <td className="cell-flag" />
+        {showFlags && <td className="cell-flag" />}
         {plan && (
           <td data-field="account">
             <AccountField
@@ -459,6 +462,7 @@ export function EntryRow({
             }
           />
         </td>
+        {showBalance && <td className="num cell-balance" />}
         <td className="cell-cleared">
           {isScheduledEdit ? null : draft.cleared === "reconciled" ? (
             <button
@@ -492,7 +496,8 @@ export function EntryRow({
           total={parentAmount}
           payees={payeesQ.data ?? []}
           month={monthQ.data}
-          lead={2 + (plan ? 1 : 0)}
+          lead={1 + (showFlags ? 1 : 0) + (plan ? 1 : 0)}
+          showBalance={showBalance}
           showCategory={showCategory}
           onChange={patchLine}
           onRemove={removeLine}

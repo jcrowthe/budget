@@ -17,7 +17,7 @@ type Listed = { transactions: { id: string; cleared: string }[] };
 export const listTransactions = async (budgetId: string, accountId: string) =>
   (
     await apiFetch(
-      `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}/transactions`,
+      `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}/transactions?include=running_balance`,
       { schema: TransactionListResponse },
     )
   ).data;
@@ -82,27 +82,67 @@ export const usePlanTransactions = (budgetId: string, enabled = true) =>
     enabled,
   });
 
-/** Toggles a row between uncleared and cleared; the balances (page, sidebar) refetch when it settles. */
+type Balances = { cleared: number; uncleared: number; working: number };
+type Held = { amount: number; account_id: string; cleared: string };
+type AccountBalance = { cleared_balance: number; uncleared_balance: number };
+
+/** `useIsMutating` filter for the register's clear toggles of a plan (EXF-724). */
+export const setClearedKey = (budgetId: string) => ["set-cleared", budgetId] as const;
+
+/**
+ * Toggles a row between uncleared and cleared. The row, the account's cleared and uncleared balances (the header
+ * and the reconcile bar read them) and the list's balances change at once; everything refetches when it settles.
+ */
 export function useSetCleared(budgetId: string, key: readonly unknown[]) {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: setClearedKey(budgetId),
     mutationFn: (v: { id: string; cleared: "uncleared" | "cleared" }) =>
       updateTransaction(budgetId, v.id, { cleared: v.cleared }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<Listed>(key);
+      const previous = qc.getQueryData<Listed & { balances?: Balances }>(key);
+      const row = previous?.transactions.find((t) => t.id === v.id) as Held | undefined;
+      let accountKey: readonly unknown[] | undefined;
+      let previousAccount: AccountBalance | undefined;
       if (previous) {
-        qc.setQueryData<Listed>(key, {
+        const moved = row && row.cleared !== v.cleared && row.cleared !== "reconciled";
+        // The balance moves by the row's amount: into cleared on a clear, back out on an unclear.
+        const delta = moved ? (v.cleared === "cleared" ? row.amount : -row.amount) : 0;
+        qc.setQueryData(key, {
           ...previous,
           transactions: previous.transactions.map((t) =>
             t.id === v.id ? { ...t, cleared: v.cleared } : t,
           ),
+          ...(previous.balances
+            ? {
+                balances: {
+                  ...previous.balances,
+                  cleared: previous.balances.cleared + delta,
+                  uncleared: previous.balances.uncleared - delta,
+                },
+              }
+            : {}),
         });
+        if (row && delta !== 0) {
+          accountKey = ["accounts", budgetId, row.account_id];
+          await qc.cancelQueries({ queryKey: accountKey });
+          previousAccount = qc.getQueryData<AccountBalance>(accountKey);
+          if (previousAccount) {
+            qc.setQueryData(accountKey, {
+              ...previousAccount,
+              cleared_balance: previousAccount.cleared_balance + delta,
+              uncleared_balance: previousAccount.uncleared_balance - delta,
+            });
+          }
+        }
       }
-      return { previous };
+      return { previous, accountKey, previousAccount };
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+      if (ctx?.accountKey && ctx.previousAccount)
+        qc.setQueryData(ctx.accountKey, ctx.previousAccount);
     },
     onSettled: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });

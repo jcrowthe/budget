@@ -1,5 +1,6 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { SolidCardIcon } from "../account/icons";
+import { Tooltip } from "../account/Tooltip";
 import {
   CaretDownIcon,
   FileUpIcon,
@@ -10,6 +11,7 @@ import {
   UndoIcon,
 } from "./icons";
 import { Popover } from "./Popover";
+import { useRegisterView, ViewOptionsPopover } from "./register-view";
 
 // Toolbar widths (px) below which buttons move into the More button. Source (measured): everything is inline at a
 // 1280px window; Undo and Redo overflow at 1150-1200; Record Payment, Undo and Redo overflow at 1024-1100. The
@@ -26,6 +28,7 @@ export function RegisterToolbar({
   closed = false,
   onRecordPayment,
   paymentDisabled = false,
+  viewScope,
 }: {
   name: string;
   onAdd: () => void;
@@ -33,7 +36,12 @@ export function RegisterToolbar({
   /** A credit account's page only (EXF-539). */
   onRecordPayment?: () => void;
   paymentDisabled?: boolean;
+  /** An account's page, or All Accounts (no Running Balance option). */
+  viewScope: "account" | "all";
 }) {
+  const view = useRegisterView();
+  const viewBtn = useRef<HTMLButtonElement>(null);
+  const [viewOpen, setViewOpen] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
   const moreBtn = useRef<HTMLButtonElement>(null);
   const [width, setWidth] = useState(Number.POSITIVE_INFINITY);
@@ -138,15 +146,26 @@ export function RegisterToolbar({
         ) : null}
       </div>
       <div className="toolbar-group right">
-        <button
-          type="button"
-          className="toolbar-button"
-          title="Set view options like date range, reconciliation status, and more."
-          data-ticket="EXF-529"
+        <Tooltip
+          content="Set view options like date range, reconciliation status, and more."
+          placement="above"
+          align="end"
         >
-          View
-          <CaretDownIcon />
-        </button>
+          {(tip) => (
+            <button
+              type="button"
+              ref={viewBtn}
+              className="toolbar-button is-view"
+              aria-haspopup="dialog"
+              aria-expanded={viewOpen}
+              onClick={() => setViewOpen((o) => !o)}
+              {...tip}
+            >
+              View
+              <CaretDownIcon />
+            </button>
+          )}
+        </Tooltip>
         <span className="search-box">
           <SearchIcon />
           <input
@@ -157,6 +176,17 @@ export function RegisterToolbar({
           />
         </span>
       </div>
+      {viewOpen && viewBtn.current ? (
+        <ViewOptionsPopover
+          anchor={viewBtn.current}
+          scope={viewScope}
+          settings={view.settings}
+          firstMonth={view.firstMonth}
+          today={view.today}
+          onSave={view.save}
+          onClose={() => setViewOpen(false)}
+        />
+      ) : null}
       {menu && inMenu.length > 0 && moreBtn.current ? (
         <Popover
           anchor={moreBtn.current}
