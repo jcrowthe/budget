@@ -9886,3 +9886,39 @@ template's last review: Build 9, Deploy 8, Discover 2, Test user flow 3.
 **Next plan:** nothing beside the Reconcile Build: the next small Build (EXF-720 with EXF-714 and
 the rest of EXF-674, all on the Plan page) touches no file of Reconcile's, so it could run beside
 it; I decide in the plan by the rate-limit window (it resets at 09:00Z).
+
+### 2026-11-17 · Plan round 114
+
+Children used 129 of 200. Nothing started; the Reconcile Build is running
+(`p_8d9e0864404e426d946c60c989a6c4a2`, in its design round). Main and live `0fefc6c`. The flow
+test's ticket EXF-720 is triaged (Medium). The person has not answered the round-110 check-in.
+
+**What comes next, chosen now from the 45 feature tickets in the backlog:**
+- **EXF-509, the Plan page's Activity popover** (a category's transactions for the month; Medium),
+  with **EXF-720** (the unreadable `Got it!` button) and **EXF-714** (the missing Auto-Assign
+  test) in the same Build: all three are Plan-page files. Why this one: the person asked for
+  "historical tracking of all past transactions and assigned lines", and this is the Plan page's
+  way to the transactions behind a figure; it is small; and it shares no file with Reconcile if its
+  read lives in new Worker files (the brief will say so: Reconcile holds
+  `repositories/transactions.ts`, `services/transactions.ts`, their route and tool).
+- **EXF-468, plan formats** (High) waits for Reconcile's merge: it changes how every amount and
+  date is written, and Reconcile brings the one shared formatter for screens.
+- The rest of EXF-674 touches the register: after Reconcile.
+- Parked on the person's word, unchanged: EXF-477's and EXF-476's dialogs, EXF-463, 461, 460, 471,
+  480, 510.
+
+**Why not started now, although it could run beside Reconcile:** the rate limit. By my rough count
+this window (04:00Z to 09:00Z) has carried about three Build-hours of children and many long turns
+of mine, against about seven or eight before the two earlier pauses came. A second Build now would
+raise the chance of a pause before 09:00Z, and a pause would cost both Builds, one of them nearly
+done. The count is a guess; the losses it guards against were real. I start the Build when
+Reconcile ends, close to the reset.
+
+**Reviews:** Build 9, Deploy 8, Discover 2, Test user flow 3 since each template's last review.
+Reconcile will be the tenth Build: the Build review and the template-ticket sweep (due about now)
+start then.
+
+Declared for the tree: the Reconcile Build; the Activity popover Build; a Deploy and flow 6 after
+Reconcile; the Build review and the sweep; plan formats.
+
+Ticket writes: 0.
