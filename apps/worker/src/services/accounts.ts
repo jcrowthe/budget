@@ -22,6 +22,7 @@ import {
   CLOSED_ACCOUNT_MEMO,
   MANUAL_ADJUSTMENT_PAYEE,
 } from "@budget/schema/accounts";
+import type { PayeeSystem } from "@budget/schema/payees";
 import type { AccountBalances, Transaction } from "@budget/schema/transactions";
 import { type SQL, sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
@@ -135,6 +136,7 @@ export function accountToApi(
     bank_account_id: row.bankAccountId,
     linked: row.bankAccountId !== null,
     import_start_date: row.importStartDate,
+    last_reconciled_at: row.lastReconciledAt,
     can_delete: b.canDelete ?? true,
     unapproved_count: b.unapproved ?? 0,
     needs_attention_count: b.attention ?? 0,
@@ -165,6 +167,7 @@ export async function createAccount(
       deletedAt: null,
       bankAccountId: null,
       importStartDate: null,
+      lastReconciledAt: null,
     };
     // Log first, both guarded on "this sort_order is still the next free one": a lost race writes neither.
     const [, result] = await db.batch([
@@ -305,15 +308,15 @@ export async function updateAccount(
   throw new Conflict("Account");
 }
 
-type BatchItem = Parameters<Db["batch"]>[0][number];
+export type BatchItem = Parameters<Db["batch"]>[0][number];
 
 /** The system payee row of a kind, as found or as new; `stmts` create it (with their log row) when new. */
-function systemPayee(
+export function systemPayee(
   db: Db,
   actor: string,
   budgetId: string,
   existing: payeesRepo.PayeeRow | undefined,
-  system: "starting_balance" | "manual_adjustment",
+  system: PayeeSystem,
   name: string,
   now: string,
 ): { sys: payeesRepo.PayeeRow; stmts: BatchItem[] } {
@@ -350,13 +353,14 @@ function systemPayee(
 }
 
 /** The adjustment's row: cleared, approved, to Ready to Assign for on-plan accounts, no category. */
-function adjustmentRow(
+export function adjustmentRow(
   row: accountsRepo.AccountRow,
   sys: payeesRepo.PayeeRow,
   amount: number,
   date: string,
   memo: string | null,
   now: string,
+  opts: { payeeName?: string; cleared?: "cleared" | "reconciled" } = {},
 ): txRepo.TransactionRow {
   return {
     id: crypto.randomUUID(),
@@ -364,12 +368,12 @@ function adjustmentRow(
     accountId: row.id,
     date,
     payeeId: sys.id,
-    payeeName: MANUAL_ADJUSTMENT_PAYEE,
+    payeeName: opts.payeeName ?? MANUAL_ADJUSTMENT_PAYEE,
     categoryId: null,
     inflowToReadyToAssign: row.onBudget,
     memo,
     amount,
-    cleared: "cleared",
+    cleared: opts.cleared ?? "cleared",
     approved: true,
     createdAt: now,
     deletedAt: null,
@@ -509,6 +513,7 @@ export async function closeAccount(
       starred: false,
       bankAccountId: null,
       importStartDate: null,
+      lastReconciledAt: null,
     };
     const after = accountToApi(afterRow, {
       cleared: facts.cleared - working,
@@ -795,6 +800,7 @@ export async function insertAccountWithStartingBalance(
       deletedAt: null,
       bankAccountId: spec.bankAccountId,
       importStartDate: spec.importStartDate,
+      lastReconciledAt: null,
     };
     const { sys, stmts: payeeStmts } = systemPayee(
       db,

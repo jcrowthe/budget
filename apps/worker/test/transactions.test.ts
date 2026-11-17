@@ -308,7 +308,7 @@ describe("refusals", () => {
     await noChange(bid, tx, log);
   });
 
-  it("reconciled rows cannot change or go", async () => {
+  it("reconciled rows refuse an amount change and a delete, and save a memo", async () => {
     const bid = await plan();
     const aid = await account(bid);
     const r = await createTransaction(env, actor, {
@@ -320,12 +320,14 @@ describe("refusals", () => {
     });
     const tx = await count("transactions", bid);
     const log = await count("change_log", bid);
-    const p = await patch(bid, r.id, { memo: "x" });
+    const p = await patch(bid, r.id, { amount: -2000 });
     expect(p.status).toBe(409);
     expect(await errName(p)).toBe("transaction_reconciled");
     const d = await send(`/api/v1/budgets/${bid}/transactions/${r.id}`, "DELETE");
     expect(d.status).toBe(409);
     await noChange(bid, tx, log);
+    // A memo saves without asking (D4) and the row stays reconciled.
+    expect((await patch(bid, r.id, { memo: "x" })).status).toBe(200);
   });
 
   it("a credit Starting Balance keeps its payee, category and account", async () => {

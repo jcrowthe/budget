@@ -107,7 +107,7 @@ test("C clears two uncleared rows and C again unclears them (EXF-520 AC2)", asyn
   const s = await seedBulk(request);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await expect(balance(page, "cleared")).toHaveText("$901.00");
-  await expect(balance(page, "uncleared")).toHaveText("-$160.00");
+  await expect(balance(page, "uncleared")).toHaveText("−$160.00");
   await tick(page, "ZZ Rent", "ZZ Gas");
   await expect(barButton(page, "Clear")).toBeVisible();
   await page.keyboard.press("c");
@@ -121,7 +121,7 @@ test("C clears two uncleared rows and C again unclears them (EXF-520 AC2)", asyn
   await page.keyboard.press("Escape");
   await page.keyboard.press("c");
   await expect(balance(page, "cleared")).toHaveText("$901.00");
-  await expect(balance(page, "uncleared")).toHaveText("-$160.00");
+  await expect(balance(page, "uncleared")).toHaveText("−$160.00");
 });
 
 test("Memo sets both memos (EXF-520 AC3)", async ({ page, request }) => {
@@ -219,7 +219,7 @@ test("a tracking account row cannot take a category: the refusal is readable (Le
   // EXF-637: the alert names the row (payee, date, amount), never its id.
   const alert = page.getByRole("alert").filter({ hasText: "tracking account" });
   await expect(alert).toHaveText(
-    `ZZ Fee on ${mmddyyyy(TODAY)} (-$4.50): ZZ Asset is a tracking account, so its transactions can't have a category. Remove the category first.`,
+    `ZZ Fee on ${mmddyyyy(TODAY)} (−$4.50): ZZ Asset is a tracking account, so its transactions can't have a category. Remove the category first.`,
   );
   expect(await alert.textContent()).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
   await expect(rowOf(page, "ZZ Fee")).toHaveCount(1);

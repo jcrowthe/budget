@@ -1,8 +1,9 @@
-import { formatMoney } from "@budget/core/money";
 import type { Account, AccountType } from "@budget/schema/accounts";
 import { isCredit } from "@budget/schema/card-payments";
+import { reconciledAgo, reconciledTitle } from "@budget/schema/reconcile";
+import { screenMoney } from "@budget/schema/screen-money";
 import type { AccountBalances } from "@budget/schema/transactions";
-import { Fragment, type ReactNode, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useState } from "react";
 import { useAccountSummary, useSetStarred } from "../api/accounts";
 import { ClearedFilledIcon, ClearedOutlineIcon } from "../register/icons";
 import { SelectedTotal } from "../register/selection";
@@ -19,6 +20,7 @@ import {
   StarOutlineIcon,
 } from "./icons";
 import { PaymentBalance } from "./PaymentBalance";
+import { ReconcileButton } from "./ReconcileButton";
 import { Tooltip } from "./Tooltip";
 import "./account-header.css";
 
@@ -68,7 +70,7 @@ export function BalanceRow({
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: each amount is focusable to show its tooltip
                 <div className="acct-balance" data-balance={b.key} tabIndex={0} {...tip}>
                   <span className={`acct-amount${v !== undefined && v < 0 ? " is-negative" : ""}`}>
-                    {v === undefined ? "" : formatMoney(v)}
+                    {v === undefined ? "" : screenMoney(v)}
                   </span>
                   <span className="acct-label">
                     {b.icon}
@@ -99,6 +101,22 @@ function badgeIcon(type: AccountType): ReactNode {
     default:
       return <ChartDownIcon />;
   }
+}
+
+/** The lock and "Not Yet Reconciled", or "Reconciled <relative time>" with the exact time in its title. */
+function ReconciledLabel({ at }: { at: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    setNow(Date.now());
+    const t = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+  return (
+    <span className="acct-info-item" title={at ? reconciledTitle(at) : undefined}>
+      <LockIcon />
+      {at ? `Reconciled ${reconciledAgo(at, now)}` : "Not Yet Reconciled"}
+    </span>
+  );
 }
 
 function Star({ account }: { account: Account }) {
@@ -140,10 +158,7 @@ export function AccountHeader({ account }: { account?: Account }) {
               {badgeIcon(account.type)}
               {badge}
             </span>
-            <span className="acct-info-item">
-              <LockIcon />
-              Not Yet Reconciled
-            </span>
+            <ReconciledLabel at={account.last_reconciled_at} />
           </div>
         </div>
         <div className="acct-actions">
@@ -160,23 +175,7 @@ export function AccountHeader({ account }: { account?: Account }) {
               </button>
             )}
           </Tooltip>
-          <Tooltip
-            delayed={false}
-            align="end"
-            content={
-              <>
-                <span className="acct-tip-label">Reconcile</span>
-                <kbd>shift</kbd>
-                <kbd>E</kbd>
-              </>
-            }
-          >
-            {(tip) => (
-              <button type="button" className="acct-reconcile" data-ticket="EXF-533" {...tip}>
-                Reconcile
-              </button>
-            )}
-          </Tooltip>
+          <ReconcileButton />
         </div>
       </div>
       <hr className="acct-rule" />

@@ -18,6 +18,7 @@ export const accounts = sqliteTable(
     deletedAt: text("deleted_at"),
     bankAccountId: text("bank_account_id"),
     importStartDate: text("import_start_date"),
+    lastReconciledAt: text("last_reconciled_at"),
   },
   (t) => [
     index("accounts_budget").on(t.budgetId),

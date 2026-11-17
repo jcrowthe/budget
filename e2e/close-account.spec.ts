@@ -87,7 +87,7 @@ test("closing an on-plan account with a balance, and Cancel changes nothing", as
   await realClick(page, dbutton(page, "Close Account"));
   const d = dialog(page, "Close Account");
   await expect(
-    d.getByText("An adjustment transaction will be created for -$33.33.", { exact: false }),
+    d.getByText("An adjustment transaction will be created for −$33.33.", { exact: false }),
   ).toBeVisible();
   await expect(
     d.getByText("The money in this account will be removed from your plan.", { exact: false }),
@@ -122,7 +122,7 @@ test("closing an Asset shows no info box and leaves Ready to Assign", async ({ p
   await openFromHeader(page);
   await realClick(page, dbutton(page, "Close Account"));
   const d = dialog(page, "Close Account");
-  await expect(d.getByText("-$22.22", { exact: false })).toBeVisible();
+  await expect(d.getByText("−$22.22", { exact: false })).toBeVisible();
   await expect(
     d.getByText("The money in this account will be removed", { exact: false }),
   ).toHaveCount(0);

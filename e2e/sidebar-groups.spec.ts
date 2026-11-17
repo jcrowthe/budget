@@ -52,6 +52,7 @@ function fx(p: Record<string, unknown>) {
     bank_account_id: null,
     linked: false,
     import_start_date: null,
+    last_reconciled_at: null,
     can_delete: false,
     ...p,
   };

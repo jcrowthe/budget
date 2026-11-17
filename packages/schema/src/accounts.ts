@@ -54,6 +54,10 @@ export const Account = z
       description:
         "The first date a bank import may bring in (YYYY-MM-DD); null when the account is not linked",
     }),
+    last_reconciled_at: z.string().nullable().openapi({
+      description:
+        "When the account was last reconciled (ISO 8601 UTC); null before the first reconcile",
+    }),
     can_delete: z.boolean().openapi({
       description:
         "True when DELETE would succeed: an open account whose only transaction is its Starting Balance (or none), a closed account with no transactions",

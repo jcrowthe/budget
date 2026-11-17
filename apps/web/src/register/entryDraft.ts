@@ -76,7 +76,8 @@ export type Draft = {
   memo: string;
   outflowText: string;
   inflowText: string;
-  cleared: "uncleared" | "cleared";
+  /** A reconciled row keeps its state in the editor (the lock is never toggled). */
+  cleared: "uncleared" | "cleared" | "reconciled";
   /** The calendar's Repeat select; "never" for a real row. */
   frequency: Frequency;
 };
@@ -126,7 +127,7 @@ export function draftFromTx(tx: TransactionDetail): Draft {
     memo: tx.memo ?? "",
     outflowText: tx.amount < 0 ? formatAmountEntry(-tx.amount) : "",
     inflowText: tx.amount > 0 ? formatAmountEntry(tx.amount) : "",
-    cleared: tx.cleared === "cleared" ? "cleared" : "uncleared",
+    cleared: tx.cleared,
     frequency: "never",
   };
 }
@@ -215,7 +216,7 @@ export function draftToCreate(
     account_id: accountId,
     date,
     amount: draftAmount(d),
-    cleared: d.cleared,
+    cleared: d.cleared === "cleared" ? "cleared" : "uncleared",
     approved: true,
     ...(memo ? { memo } : {}),
     ...(d.transferAccountId
@@ -267,6 +268,11 @@ export function draftToPatch(
     patch.subtransactions = [];
   }
   return patch;
+}
+
+/** True when saving this patch changes what a reconciled row is locked on: amount, date or account. */
+export function touchesLocked(patch: TransactionUpdateRequest): boolean {
+  return patch.amount !== undefined || patch.date !== undefined || patch.account_id !== undefined;
 }
 
 /** The body of a new schedule: the date is the series' first date. */

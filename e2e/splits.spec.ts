@@ -86,7 +86,7 @@ for (const size of [
     const dialog = page.getByRole("dialog", { name: "Something Doesn't Add Up" });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText(
-      "The total is -$100.00, but the splits add up to -$85.00. How would you like to handle the unassigned -$15.00?",
+      "The total is −$100.00, but the splits add up to −$85.00. How would you like to handle the unassigned −$15.00?",
     );
     // Adjust Manually and Escape close it.
     await realClick(page, button(page, "Adjust Manually"));
@@ -154,7 +154,7 @@ test("a saved split: lines count in their categories, the chevron and the S key"
   const parent = data.transactions.find((t) => t.subtransactions.length === 3);
   expect(parent?.amount).toBe(-100000);
   expect(parent?.subtransactions.map((l) => l.payee_name)).toEqual([null, null, "D4 Toy Shop"]);
-  await expect(balance(page, "uncleared")).toHaveText("-$220.00");
+  await expect(balance(page, "uncleared")).toHaveText("−$220.00");
 
   // Saved display: the chevron, three line rows, payee only on the line that has one.
   const lineRows = page.locator("tr.split-line-row");

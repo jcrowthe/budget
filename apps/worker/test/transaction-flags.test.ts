@@ -33,12 +33,13 @@ describe("flag_color", () => {
     expect(await logs(b)).toBe(before + 1);
   });
 
-  it("a flag with another field is a normal edit (a reconciled row is refused)", async () => {
+  it("a flag with another field is a normal edit (on a reconciled row an amount is refused, a memo is not)", async () => {
     const b = await plan();
     const a = await account(b);
     const r = await tx(b, { account_id: a, date: DAY, amount: -1 });
     await setSql(r.id, "cleared = 'reconciled'");
-    expect((await patch(b, r.id, { flag_color: "red", memo: "x" })).status).toBe(409);
+    expect((await patch(b, r.id, { flag_color: "red", amount: -2 })).status).toBe(409);
+    expect((await patch(b, r.id, { flag_color: "red", memo: "x" })).status).toBe(200);
     const ok = await tx(b, { account_id: a, date: DAY, amount: -1 });
     expect((await patch(b, ok.id, { flag_color: "red", memo: "x" })).status).toBe(200);
     expect(await get(b, ok.id)).toMatchObject({ flag_color: "red", memo: "x" });

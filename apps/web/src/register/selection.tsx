@@ -1,6 +1,6 @@
-import { formatMoney } from "@budget/core/money";
 import { rangeIds, selectedTotal } from "@budget/schema/register-selection";
 import type { ScheduledTransaction } from "@budget/schema/scheduled-transactions";
+import { screenMoney } from "@budget/schema/screen-money";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import {
   createContext,
@@ -217,7 +217,7 @@ export function SelectedTotal() {
   if (count < 2) return null;
   return (
     <div className="acct-balance acct-selected-total" data-balance="selected">
-      <span className={`acct-amount${total < 0 ? " is-negative" : ""}`}>{formatMoney(total)}</span>
+      <span className={`acct-amount${total < 0 ? " is-negative" : ""}`}>{screenMoney(total)}</span>
       <span className="acct-label">Selected Total ({count})</span>
     </div>
   );

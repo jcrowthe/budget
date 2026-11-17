@@ -1,4 +1,3 @@
-import { formatMoney } from "@budget/core/money";
 import type { Account } from "@budget/schema/accounts";
 import { paymentDisplay } from "@budget/schema/card-payments";
 import { exportFileName } from "@budget/schema/register-export";
@@ -10,6 +9,7 @@ import {
   type SelAccount,
   type SelRow,
 } from "@budget/schema/register-selection";
+import { screenMoney } from "@budget/schema/screen-money";
 import type { FlagColor } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -125,7 +125,7 @@ export function ActionBar({
     const payee =
       (side ? paymentDisplay(side, other)?.payee : undefined) ??
       (r.transfer_account_name ? transferCellText(r.transfer_account_name) : r.payee_name);
-    const rest = `on ${registerDate(r.date)} (${formatMoney(r.amount)})`;
+    const rest = `on ${registerDate(r.date)} (${screenMoney(r.amount)})`;
     return payee ? `${payee} ${rest}` : `The transaction ${rest}`;
   };
   const refusalText = (e: unknown) =>

@@ -14,7 +14,7 @@ test("551-1 example data, all dates", async ({ page, request }) => {
   await openReport(page, id, "net-worth");
   await expect(total(page)).toHaveText("$19,299.26");
   await expect(page.getByTestId("nw-assets")).toHaveText("$24,049.26");
-  await expect(page.getByTestId("nw-debts")).toHaveText("-$4,750.00");
+  await expect(page.getByTestId("nw-debts")).toHaveText("−$4,750.00");
   await expect(page.getByTestId("nw-change")).toHaveText("+$18,799.26");
   await expect(page.getByTestId("nw-change")).toHaveClass(/positive/);
   await expect(page.getByTestId("nw-change-pct")).toHaveText("↑ 3,759.9%");
@@ -62,7 +62,7 @@ test("551-2 custom ranges", async ({ page, request }) => {
   await custom("Sep 2026 – Nov 2026", "Jul 2026", "Sep 2026");
   await expect(total(page)).toHaveText("$16,054.26");
   await expect(page.getByTestId("nw-assets")).toHaveText("$21,054.26");
-  await expect(page.getByTestId("nw-debts")).toHaveText("-$5,000.00");
+  await expect(page.getByTestId("nw-debts")).toHaveText("−$5,000.00");
   await expect(page.getByTestId("nw-change")).toHaveText("+$5,719.26");
   await expect(page.getByTestId("nw-change-pct")).toHaveText("↑ 55.3%");
   // The first row's change uses the month before the range.
@@ -79,7 +79,7 @@ test("551-3 a cash account below zero counts as debt", async ({ page, request })
   await addTx(request, id, sav, "2026-11-02", -1000000);
   await openReport(page, id, "net-worth");
   await expect(page.getByTestId("nw-assets")).toHaveText("$23,349.26");
-  await expect(page.getByTestId("nw-debts")).toHaveText("-$5,050.00");
+  await expect(page.getByTestId("nw-debts")).toHaveText("−$5,050.00");
 });
 
 test("551-4 tooltip and chart", async ({ page, request }) => {
@@ -131,7 +131,7 @@ test("551-5 deselecting the tracking accounts", async ({ page, request }) => {
   // EXF-591: the header and the chart tooltip agree for the same month, and no zero is written negative.
   await page.locator('rect[data-month="2026-11-01"]').hover();
   await expect(page.getByRole("tooltip")).toContainText(/Debts\s*\$0\.00/);
-  await expect(page.locator("body")).not.toContainText("-$0");
+  await expect(page.locator("body")).not.toContainText("−$0");
   await expect(row(page, "2026-06-01").locator("td").nth(1)).toHaveText("$2,500.00");
 });
 
