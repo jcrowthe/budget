@@ -102,7 +102,7 @@ does. With both, the present code answers 500 on account create and on import; w
 
 ### C. Finished import rows (point 8)
 
-**Built:** call 1's batch (single-call path and stepped path) gains one statement,
+**Designed, not built (see "As built": the purge broke `plan-import-hidden.test.ts`, so finished rows are a known issue).** call 1's batch (single-call path and stepped path) gains one statement,
 `delete from plan_imports where state in ('done','abandoned') and r2_key is null and updated_at < <now − 24 h>`
 (`repo.purgeEndedStmt`). It rides in a batch that already exists: **no D1 call added** (call 1 stays ≤ 3, R2 ≤ 2).
 Abandoned rows are included: they too stay for ever today, hold no file and answer only 409. A `done` row whose R2
