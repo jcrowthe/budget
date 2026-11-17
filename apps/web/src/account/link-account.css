@@ -1,0 +1,46 @@
+/* Link Account (EXF-461): the bank accounts to choose from. Tokens only. */
+.link-account-group h3 {
+  margin: var(--space-3) 0 var(--space-1);
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-account-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--inputBorderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.link-account-row + .link-account-row {
+  margin-top: var(--space-1);
+}
+.link-account-row:hover:not(:disabled) {
+  border-color: var(--actionPrimary);
+}
+.link-account-row:disabled {
+  color: var(--labelTertiary);
+  cursor: default;
+}
+.link-account-new {
+  margin-top: var(--space-3);
+  color: var(--actionPrimary);
+}
+.link-account .field-error {
+  margin-top: var(--space-2);
+}
+.link-account .bank-link-intro {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

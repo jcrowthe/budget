@@ -6,6 +6,7 @@ import {
   type AccountsFromBankRequest as AccountsFromBankRequestInput,
   type AccountType,
 } from "@budget/schema/accounts";
+import { defaultAccountName, planAccountType } from "@budget/schema/bank-link";
 import type { Transaction } from "@budget/schema/transactions";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
@@ -24,43 +25,17 @@ import {
 } from "./accounts";
 import { getBudgetEnvironment } from "./budgets";
 
+export { planAccountType };
+
 const MAX_ATTEMPTS = 5;
 
 type BatchItem = Parameters<Db["batch"]>[0][number];
-
-/** Plaid (type, subtype) → plan account type; see docs/account-links-design.md. */
-export function planAccountType(type: string, subtype: string | null): AccountType {
-  const t = type.toLowerCase();
-  const s = (subtype ?? "").toLowerCase();
-  if (t === "depository") {
-    if (s === "savings" || s === "money market" || s === "cd" || s === "hsa") return "savings";
-    return "checking";
-  }
-  if (t === "credit") return "creditCard";
-  if (t === "loan") {
-    if (s === "mortgage") return "mortgage";
-    if (s === "auto") return "autoLoan";
-    if (s === "student") return "studentLoan";
-    return "personalLoan";
-  }
-  return "otherAsset";
-}
 
 /** UTC calendar arithmetic on YYYY-MM-DD. */
 export function minusDays(date: string, n: number): string {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - n);
   return d.toISOString().slice(0, 10);
-}
-
-/** The bank account's name, or (when Plaid's is blank) its type and mask, so the name is never empty. */
-function defaultName(bank: bankRepo.BankAccountRow): string {
-  const name = bank.name.trim().slice(0, 100);
-  if (name !== "") return name;
-  return (
-    `${bank.subtype ?? bank.type}${bank.mask ? ` ${bank.mask}` : ""}`.trim().slice(0, 100) ||
-    "Account"
-  );
 }
 
 const utcToday = () => new Date().toISOString().slice(0, 10);
@@ -90,14 +65,18 @@ export async function createAccountsFromBank(
   const db = getDb(env);
   const environment = await planEnvironment(env, budgetId);
   const today = v.today ?? utcToday();
-  const plans: { bank: bankRepo.BankAccountRow; name: string; type: AccountType }[] = [];
+  const plans: {
+    bank: NonNullable<Awaited<ReturnType<typeof bankRepo.findBankAccountInEnvironment>>>;
+    name: string;
+    type: AccountType;
+  }[] = [];
   for (const id of v.bank_account_ids) {
     const bank = await bankRepo.findBankAccountInEnvironment(db, environment, id);
     if (!bank) throw new NotFound("Bank account");
     const o = v.overrides?.[id];
     plans.push({
       bank,
-      name: o?.name ?? defaultName(bank),
+      name: o?.name ?? defaultAccountName(bank),
       type: o?.type ?? planAccountType(bank.type, bank.subtype),
     });
   }
@@ -129,6 +108,10 @@ export async function createAccountsFromBank(
           date: today,
           bankAccountId: p.bank.id,
           importStartDate: today,
+          link: {
+            connectionStatus: p.bank.connectionStatus,
+            connectionSyncedAt: p.bank.connectionSyncedAt,
+          },
         }),
       );
     } catch (e) {
@@ -175,7 +158,13 @@ export async function linkAccount(
     const reconciled = await accountsRepo.latestReconciledDate(db, accountId);
     const importStartDate = reconciled ? minusDays(reconciled, 3) : today;
     const balances = await balancesOf(db, budgetId, before);
-    const after = { ...before, bankAccountId: bank.id, importStartDate };
+    const after = {
+      ...before,
+      bankAccountId: bank.id,
+      importStartDate,
+      connectionStatus: bank.connectionStatus,
+      connectionSyncedAt: bank.connectionSyncedAt,
+    };
     const [, result] = await db.batch([
       changeLogInsertIf(
         db,

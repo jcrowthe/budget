@@ -106,3 +106,80 @@
 .dialog.form.edit-account .dialog-footer .primary:hover:not(:disabled) {
   background: var(--actionPrimary);
 }
+
+/* Bank Connection (EXF-461): Link, Sync Now, Unlink. The box never outgrows the window (1024×700). */
+.dialog.form.edit-account {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+}
+.edit-account .form-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.dialog.form.edit-account select.field:disabled {
+  color: var(--labelSecondary);
+  cursor: default;
+}
+.edit-account .link-helper {
+  margin: 0 0 var(--space-2);
+}
+.edit-account .link-button-row {
+  margin-bottom: var(--space-3);
+}
+.edit-account-link-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.edit-account-link-status[data-status="connected"] {
+  color: var(--labelSecondary);
+}
+.edit-account-link-status:not([data-status="connected"]) {
+  color: var(--labelNegative);
+}
+.edit-account-link-line {
+  margin: 0 0 var(--space-1);
+  overflow: hidden;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.edit-account-link-buttons {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-1);
+}
+.edit-account .sync-line {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+.edit-account .sync-line.is-error {
+  color: var(--labelNegative);
+}
+
+/* In-body secondary buttons (Sync Now, Unlink Account, Link Account): the footer's secondary look. */
+.dialog.form.edit-account .form-body .secondary {
+  height: 32px;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.dialog.form.edit-account .form-body .secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.dialog.form.edit-account .form-body .secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

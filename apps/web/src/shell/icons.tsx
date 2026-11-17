@@ -161,3 +161,16 @@ export const SidebarOpenIcon = (p: SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+
+/** A linked account whose connection works: a check mark (12×12). */
+export const LinkedCheckIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" width="12" height="12" aria-hidden="true" {...p}>
+    <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0Zm-1 8.6L2.6 6.2l.9-.9L5 6.8l3.5-3.5.9.9L5 8.6Z" />
+  </svg>
+);
+/** A linked account whose connection needs attention: a plain warning mark (12×12). */
+export const LinkWarningIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" width="12" height="12" aria-hidden="true" {...p}>
+    <path d="M6 0a6 6 0 1 0 0 12A6 6 0 0 0 6 0Zm-.6 2.8h1.2v4H5.4v-4Zm0 5h1.2V9H5.4V7.8Z" />
+  </svg>
+);

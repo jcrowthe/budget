@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link, Navigate, Outlet } from "react-router";
 import { useMarkOpened } from "../api/budgets";
+import { usePlanOpenSync } from "./bank-link-sync";
 import { planPath } from "./planPaths";
 import { useCurrentPlan, useDocumentTitle } from "./useCurrentPlan";
 
@@ -27,6 +28,7 @@ export function PlanScope() {
       mark.mutate(plan.id);
     }
   }, [plan?.id]);
+  usePlanOpenSync(plan?.id);
   if (isLoading) return null;
   if (error) return <div className="card">Could not load plans.</div>;
   if (!plan) return <PlanNotFound />;

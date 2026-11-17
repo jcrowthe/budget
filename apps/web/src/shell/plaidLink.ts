@@ -64,6 +64,8 @@ export interface LinkState {
   link_token: string;
   budget_id: string;
   query: string;
+  /** Set when Link was opened from an account's Link Account: /plaid/oauth then links that account. */
+  link_account_id?: string;
 }
 
 /** Kept in sessionStorage so /plaid/oauth can resume Link after an OAuth bank's redirect. */
@@ -83,7 +85,12 @@ export function takeLinkState(): LinkState | null {
     if (!raw) return null;
     const v = JSON.parse(raw) as Partial<LinkState>;
     if (typeof v.link_token !== "string" || typeof v.budget_id !== "string") return null;
-    return { link_token: v.link_token, budget_id: v.budget_id, query: String(v.query ?? "") };
+    return {
+      link_token: v.link_token,
+      budget_id: v.budget_id,
+      query: String(v.query ?? ""),
+      ...(typeof v.link_account_id === "string" ? { link_account_id: v.link_account_id } : {}),
+    };
   } catch {
     return null;
   }

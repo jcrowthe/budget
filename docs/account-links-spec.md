@@ -64,7 +64,7 @@ export function setLinkIfStmt(db: Db, before: AccountRow, bankAccountId: string,
 export function unlinkHolds(db: Db, before: AccountRow) // SELECT 1 where id, deleted_at null, bank_account_id = before.bankAccountId
 export function unlinkIfStmt(db: Db, before: AccountRow) // UPDATE set both null, same where
 export async function linkedToConnection(db: Db, connectionId: string): Promise<AccountRow[]> // every account row (any plan) whose bank_account_id is one of the connection's bank accounts
-export function unlinkByConnectionStmt(db: Db, connectionId: string) // UPDATE set both null where bank_account_id in (select id from bank_accounts where bank_connection_id = ?)
+export function noLinksToConnection(connectionId: string) // NOT EXISTS condition the removal's deletes are guarded on
 ```
 
 `linkCondition(before, bankAccountId)` is private and follows `starCondition`. It requires: id, deleted_at
@@ -115,7 +115,7 @@ export function minusDays(date: string, n: number): string // UTC calendar arith
 export async function createAccountsFromBank(env: Env, actor: string, budgetId: string, input: AccountsFromBankRequest): Promise<{ created: { account: Account; starting_balance: Transaction }[] }>
 export async function linkAccount(env: Env, actor: string, budgetId: string, accountId: string, input: AccountLinkRequest): Promise<Account>
 export async function unlinkAccount(env: Env, actor: string, budgetId: string, accountId: string): Promise<Account>
-export async function unlinkForConnectionStmts(db: Db, actor: string, connectionId: string): Promise<BatchItem[]> // log rows + unlinkByConnectionStmt
+export async function unlinkForConnectionStmts(db: Db, actor: string, connectionId: string): Promise<BatchItem[]> // per account: a guarded log row and unlinkIfStmt(db, row)
 ```
 
 - Plan: `budgetsRepo.findActive`, else `NotFound("Plan")`. Environment: `getBudgetEnvironment` (services/budgets).
@@ -137,9 +137,10 @@ export async function unlinkForConnectionStmts(db: Db, actor: string, connection
   retry.
 - `unlinkForConnectionStmts`: for each row of `linkedToConnection`, a
   `changeLogInsertIf({ budgetId: row.budgetId, actor, action: "update", entityType: "account", entityId: row.id, before, after }, unlinkHolds(db, row))`
-  with balances from `txRepo.balancesByAccount(db, row.budgetId, row.id)`. Then one
-  `unlinkByConnectionStmt`. The log rows come first. Type the return as Drizzle's `BatchItem<"sqlite">`
-  (import from `drizzle-orm/batch`) or whatever `db.batch` accepts. Check against `getDb`'s type.
+  with balances from `txRepo.balancesByAccount(db, row.budgetId, row.id)`; then `unlinkIfStmt(db, row)`, guarded on
+  `unlinkHolds`. There is no bulk UPDATE. `removeBankConnection` guards its deletes with
+  `repo.removalHolds(db, id, accountsRepo.noLinksToConnection(id))`. Type the return as Drizzle's
+  `BatchItem<"sqlite">` (import from `drizzle-orm/batch`) or whatever `db.batch` accepts. Check against `getDb`'s type.
 - Verify: Task 9 tests 1–7, 10 and 12.
 
 ## Task 7: bank connection reads and removal (`services/bank-connections.ts`)
@@ -150,7 +151,7 @@ export async function unlinkForConnectionStmts(db: Db, actor: string, connection
   Their change_log `before`/`after` snapshots use the same map.
 - `removeBankConnection`: replace the marked comment with `...(await unlinkForConnectionStmts(db, actor, row.id))`,
   placed before `repo.deleteAccountsStmt`. Read the statements **after** the Plaid call, just before the
-  batch. Keep the order: connection log, unlink logs + unlink update, delete bank accounts, delete
+  batch. Keep the order: connection log, per-account unlink log and update pairs, delete bank accounts, delete
   connection, delete token.
 - Verify: `bank-connections*.test.ts` pass; Task 9 tests 6 and 9.
 

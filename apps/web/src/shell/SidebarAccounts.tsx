@@ -1,12 +1,25 @@
 import { type SidebarSection, sidebarSections } from "@budget/core/account-types";
 
 import type { Account } from "@budget/schema/accounts";
+import { connectionLabel, linkStatus } from "@budget/schema/bank-link";
 import { NavLink, useMatch } from "react-router";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { SIDEBAR_LABELS } from "./accountTypeLabels";
+import { LinkStatusIcon } from "./bank-link-status";
 import { ChevronDownIcon, ChevronRightIcon, PencilIcon } from "./icons";
 import { usePlanFormatter } from "./plan-formats-context";
 import { accountPath } from "./planPaths";
+
+/** A linked account's connection mark: a check mark while connected, a warning otherwise. */
+function LinkedStatus({ account }: { account: Account }) {
+  const s = linkStatus(account);
+  if (!s) return null;
+  return (
+    <span className="nav-link-status" data-status={s} title={connectionLabel(s)}>
+      <LinkStatusIcon status={s} />
+    </span>
+  );
+}
 
 const sign = (n: number) => (n < 0 ? "negative" : n === 0 ? "zero" : "positive");
 
@@ -82,12 +95,23 @@ export function SidebarAccounts({
                       <PencilIcon />
                     </button>
                     <NavLink className="nav-account-link" to={accountPath(budgetId, a.id)}>
-                      <span className="slot-left" />
+                      <span className="slot-left">
+                        {a.unapproved_count > 0 ? (
+                          <span
+                            className="nav-unapproved-dot"
+                            role="img"
+                            title="Unapproved transactions"
+                            aria-label="Unapproved transactions"
+                          />
+                        ) : null}
+                      </span>
                       <span className="name" title={a.name}>
                         {a.name}
                       </span>
                       <span className={`value ${sign(a.balance)}`}>{fmt.money(a.balance)}</span>
-                      <span className="slot-right" />
+                      <span className="slot-right">
+                        <LinkedStatus account={a} />
+                      </span>
                     </NavLink>
                   </div>
                 ))}
