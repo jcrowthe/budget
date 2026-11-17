@@ -11105,3 +11105,42 @@ Discover 2, Test user flow 3.
 **Next plan:** start the bank-linking screens Build again (same brief); a flow test of flows 2, 3
 and 4 on live `8e54173` (one plan in a non-default format); EXF-463's register screens beside the
 Build if I can keep their files apart; EXF-558 raised.
+
+### 2026-11-17 · Plan round 126
+
+Children used 143 of 200 (141 before this plan; two started). Main and live are both `8e54173`.
+
+**The ticket filed at the last review exists: EXF-751** (the bank sync job runs once a day);
+priority Medium. **EXF-558** (run the browser suite on the system Chrome) raised to Medium with
+today's evidence: the browser download failed in two boxes.
+
+**Started 1: the bank-linking screens Build again** (`p_e8c64873b67341c39fd61bdf62633a2d`, for
+EXF-461), with the brief of round 125 unchanged but for one line (the Clerk tries the browser
+download a second time and then says so). The first one lost its box at intake.
+
+**Started 2: Test user flow for flows 2, 3 and 4 on live** (`p_7fe8174a2d3e40838a84c82548c99c85`,
+prefix `ZZ-TEST F126`).
+- Flow 2 (the register, fifth run), flow 3 (targets, Auto-Assign, next month; third run) and
+  flow 4 (the five payment states; fourth run), each with the steps and figures of its last run,
+  which were all right then. So this is a regression walk of the default formats after the
+  widest change so far, and it gives flow 4 a verdict word after EXF-720's fix.
+- One new step (flow 3, step 8): the plan is set to Euro, `123.456,78`, After amount,
+  `DD.MM.YYYY` through REST; Ready to Assign must read `1.940,00€` (3,000 − 1,060), with no `$`
+  and no MM/DD/YYYY date left on the Plan page or the register.
+- The known list is brought up to date (EXF-728, 745, 746 added; EXF-664, 714, 529, 533 are done
+  and taken out). The plan menu is not opened; no bank connection.
+
+**Not started, and why:**
+- **EXF-463's register screens** wait for the next plan. Two Builds side by side from 17:40Z
+  would both sit in a pause of more than twenty minutes if the rate limit were reached before the
+  window turns at about 19:00Z; one Build and one flow test is what I risk. I write that brief
+  next and start it late in the window.
+- No Deploy: live equals main.
+- No template review: Build 5, Deploy 2, Discover 2, Test user flow 3 finished since each
+  template's last review.
+
+Declared for the tree: the two above; EXF-463's screens; Manage Bank Connections with the
+statuses and Repair (EXF-460, EXF-465); the six-hourly job (EXF-751, alone); a Deploy and flow 5
+with a Sandbox bank linked from the screen.
+
+Ticket writes: 4 (EXF-751 priority; EXF-558 priority and comment; EXF-461 comment).
