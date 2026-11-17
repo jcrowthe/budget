@@ -9974,3 +9974,46 @@ flow 3: the Build review is due.**
 **Next plan:** one Deploy (`ZZ-TEST D30`) for the Reconcile merge; the Activity popover Build
 (EXF-509 with EXF-720 and EXF-714) beside it; the Build template review and the template-ticket
 sweep; flow 6 after the Deploy. The rate-limit window resets at 09:00Z.
+
+### 2026-11-17 · Plan round 115
+
+Children used 130 of 200. Started one: the Build template review. Main `d005439`, live `0fefc6c`
+(one merge and one migration behind). The two tickets filed at the last review exist as **EXF-721**
+(Reconcile on a closed account) and **EXF-722** (the missing Escape test); both set to Low; nothing
+blocks them. The person has not answered the round-110 check-in.
+
+**Started: Improve templates, a review of Build feature** (`p_72015a8168514f0fbd6e78217ab08c9d`)
+on the ten Builds finished since its last review: `p_8baa…`, `p_b719…`, `p_c4fd…`, `p_a270…`,
+`p_2717…`, `p_51a1…`, `p_5480…`, `p_d551…`, `p_2798…`, `p_8d9e…` (ten Builds for three pieces of
+work: three merges, seven losses, none caused by the work). What I asked it, in order:
+1. the rate-limit pauses that replace boxes; how `p_5480…` still landed; whether a carry-over can
+   resume from a step;
+2. the source check failing on a stale sign-in tab in Builds that use no source, and why a card's
+   note did not reach the step;
+3. the Designer in the source: three bans ignored, one named action kept, and whether the
+   Architect's copy into the design carried it;
+4. the Tester that does not look (76 and 47 seconds; EXF-720), and a floor code can check;
+5. the three breaks I found by merging and running before a Build started: should a code step do
+   that, and should the conventions forbid inserts by column position;
+6. what worked (three real faults found in review, each with a test that fails on the old code);
+7. what a card answer can and cannot do; 8. cost.
+With the standing line: "Post evidence for an existing ticket with comment_ticket or in your
+report; never file stand-in tickets." It may not open the source, the live clone, or a source
+screenshot.
+
+**Not started yet, on purpose: the Deploy for the Reconcile merge and the Activity popover Build.**
+The rate-limit window resets at 09:00Z and it is 08:40Z. A pause in the middle of a release is the
+one loss I cannot carry over. The review is read-only, loses nothing if paused, and should end
+about when the window resets; its end brings my next plan, where I start both with a full
+allowance. Cost of waiting: about 25 minutes.
+
+**The template-ticket sweep** (due about now) follows this review, so that it sees the tickets the
+review files.
+
+Declared for the tree: the review; Deploy D30; the Activity popover Build (EXF-509 with EXF-720
+and EXF-714); flow 6; the sweep; plan formats (EXF-468).
+
+Reviews: Build 0 after this one, Deploy 8, Discover 2, Test user flow 3 since each template's last
+review.
+
+Ticket writes: 2 (priorities of EXF-721 and EXF-722).
