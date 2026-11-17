@@ -27,6 +27,7 @@ import {
 import { BankAccountOptions, LinkExistingAccount } from "./manage-connections-bank-account";
 import { ConfirmConnectionDialog } from "./manage-connections-confirm";
 import { ConnectionDetail } from "./manage-connections-detail";
+import { ConnectionLogo } from "./manage-connections-logo";
 import { useConnectionRelink } from "./manage-connections-relink";
 import { usePlanFormatter } from "./plan-formats-context";
 import "./manage-connections.css";
@@ -54,19 +55,6 @@ export function ManageConnectionsDialog({
 }) {
   if (!budgetId) return null;
   return <Host budgetId={budgetId} onClose={onClose} />;
-}
-
-function ConnectionLogo({ c }: { c: BankConnection }) {
-  return (
-    <span className="mc-logo">
-      {c.institution_logo ? (
-        <img src={`data:image/png;base64,${c.institution_logo}`} alt="" />
-      ) : (
-        <BankIcon />
-      )}
-      <span className="mc-dot" data-status={connectionGroup(c.status)} />
-    </span>
-  );
 }
 
 function ConnectionRow({ c, onOpen }: { c: BankConnection; onOpen: () => void }) {

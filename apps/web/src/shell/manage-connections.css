@@ -53,8 +53,9 @@
   text-align: left;
   cursor: pointer;
 }
-.mc-row:hover:not(:disabled) {
-  background: var(--menuHover);
+/* Hover as the bank search's .institution-row (source hover rgb(163,172,255) = --buttonGhostLabel): no fill, the name changes colour. */
+.mc-row:hover:not(:disabled) .mc-name {
+  color: var(--buttonGhostLabel);
 }
 .mc-row:disabled {
   opacity: 0.5;
@@ -178,17 +179,20 @@
   gap: var(--space-1);
   height: 32px;
   margin-top: var(--space-1);
-  padding: 0 var(--space-3);
+  padding: 6px var(--space-3);
   border: 0;
   border-radius: var(--radius-lg);
   font-family: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: 500;
   cursor: pointer;
 }
 .manage-connections .secondary:not(.large) {
   background: var(--buttonSecondaryBackground);
   color: var(--buttonSecondaryLabel);
+}
+.manage-connections .secondary:not(.large):hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
 }
 .manage-connections .destructive:not(.large) {
   background: var(--statusNegative);
@@ -198,7 +202,9 @@
   opacity: 0.5;
   cursor: default;
 }
-.manage-connections button svg {
+.manage-connections .mc-actions button svg,
+.manage-connections .mc-banner button svg,
+.manage-connections .mc-wide svg {
   width: 14px;
   height: 14px;
 }

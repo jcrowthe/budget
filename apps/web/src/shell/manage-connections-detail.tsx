@@ -16,6 +16,7 @@ import {
   LinkWarningIcon,
   TrashIcon,
 } from "./icons";
+import { ConnectionLogo } from "./manage-connections-logo";
 import { usePlanFormatter } from "./plan-formats-context";
 
 const REPAIR_TEXT = "Your bank needs you to sign in again before new transactions can be imported.";
@@ -147,6 +148,7 @@ export function ConnectionDetail({
                   aria-label={label}
                   onClick={() => onBankAccount(a.id)}
                 >
+                  <ConnectionLogo c={connection} dot={false} />
                   <span className="mc-lines">
                     <span className="mc-line mc-name" title={label}>
                       {label}
