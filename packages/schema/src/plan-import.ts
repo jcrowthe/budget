@@ -920,6 +920,13 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     if (e.split && onBudget[acct]) {
       splits++;
       splitLines += e.rows.length;
+      if (r.date > exportDate) {
+        warn(
+          "scheduled_not_supported",
+          "split",
+          "A split or a transfer dated after the export date is imported as a transaction, not as a schedule",
+        );
+      }
       const parentIx = out.length;
       const lineRows = e.rows.map((ri) => rows[ri] as RegRow);
       const firstPayee = lineRows[0]?.payee ?? "";

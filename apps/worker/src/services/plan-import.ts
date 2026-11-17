@@ -1,5 +1,6 @@
 import {
   buildImportPlan,
+  IMPORT_LIMITS,
   type ImportPlan,
   type ImportSummary,
   type PlanImportCancelResult,
@@ -119,8 +120,8 @@ async function readPlan(
   serverToday: string,
 ): Promise<{ plan: ImportPlan; summary: ImportSummary }> {
   const total = upload.files.reduce((n, f) => n + f.bytes.length, 0);
-  const max = 20 * 2 ** 20;
-  if (total > max) throw new ImportError("too_large", "The upload is larger than 20 MiB");
+  if (total > IMPORT_LIMITS.uploadBytes)
+    throw new ImportError("too_large", "The upload is larger than 20 MiB");
   let zipName: string | null = null;
   let texts: NamedText[];
   const first = upload.files[0];

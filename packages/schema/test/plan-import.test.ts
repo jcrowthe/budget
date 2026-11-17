@@ -407,6 +407,17 @@ describe("rules and edges", () => {
     expect(warnCodes(p)).toContain("scheduled_not_supported");
   });
 
+  it("a split dated after the export date warns that it is not scheduled", () => {
+    const p = build(
+      regOf(
+        '"A","","12/14/2026","P","","","","Split (1/2) a",$1.00,$0.00,"Uncleared"',
+        '"A","","12/14/2026","P","","","","Split (2/2) b",$1.00,$0.00,"Uncleared"',
+      ),
+    );
+    expect(p.counts).toMatchObject({ splits: 1, scheduled: 0 });
+    expect(warnCodes(p)).toContain("scheduled_not_supported");
+  });
+
   it("name and export_date options win; without file names the defaults warn", () => {
     const p = build(SAMPLE_REGISTER, SAMPLE_PLAN, { name: "Mine", export_date: "2026-11-01" });
     expect(p.name).toBe("Mine");
