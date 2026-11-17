@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { accountOf, readyToAssign, rowsOf, seedWorked } from "./support/reconcile-seed";
 import { call, realClick } from "./support/register-seed";
+import { setViewSettings } from "./support/view-settings";
 
 // EXF-533. Nobody opened the source app for this feature: every screen here is built from the ticket's text and
 // is "not compared" with the source.
@@ -70,6 +71,8 @@ test("Yes reconciles at once: the art, the lock and the header label (AC2)", asy
   request,
 }) => {
   const w = await seedWorked(request);
+  // Reconciled rows are hidden by default (EXF-529): this case shows them.
+  await setViewSettings(request, w.plan, w.savings, { show_reconciled: true });
   await goto(page, w.plan, w.savings);
   await expect(head(page).getByText("Not Yet Reconciled")).toBeVisible();
   await realClick(page, header(page));
@@ -101,6 +104,8 @@ test("No: the difference, the live bar, finish, edit a locked row, the adjustmen
   request,
 }) => {
   const w = await seedWorked(request);
+  // Reconciled rows are hidden by default (EXF-529): cases 5-7 look at the rows after Finish.
+  await setViewSettings(request, w.plan, w.checking, { show_reconciled: true });
   await goto(page, w.plan, w.checking);
   await enterBalance(page, "655.50");
   const modal = page.getByRole("dialog", { name: "Reconcile", exact: true });
@@ -300,3 +305,111 @@ test("a closed account's Reconcile button is disabled, and shift+E opens nothing
   expect(res.status()).toBe(422);
   expect((await res.json()).error.name).toBe("account_closed");
 });
+
+// EXF-724. Reconcile mode: a click on a cleared icon moves the header and the bar in the icon's render, and the
+// bar's button waits for the server's figures. Every API answer is held back 500 ms, so only an update that does
+// not wait for the server can pass the 300 ms checks.
+test("a click on a cleared icon moves the header and the bar at once (EXF-724)", async ({
+  page,
+  request,
+}) => {
+  const w = await seedWorked(request);
+  await goto(page, w.plan, w.checking);
+  await enterBalance(page, "655.50");
+  await realClick(
+    page,
+    page.getByRole("dialog", { name: "Reconcile", exact: true }).getByRole("button", {
+      name: "Next",
+      exact: true,
+    }),
+  );
+  await expect(bar(page).getByText(/\$100\.00 higher than your actual account\.$/)).toBeVisible();
+
+  const sent = { patch: 0, accountGets: 0, viewSettings: 0 };
+  await page.route("**/api/v1/budgets/**", (r) => {
+    const req = r.request();
+    if (req.method() === "PATCH") sent.patch++;
+    if (req.method() === "GET" && /\/accounts\/[^/?]+$/.test(req.url())) sent.accountGets++;
+    if (req.url().includes("view_settings")) sent.viewSettings++;
+    setTimeout(() => r.continue(), 500);
+  });
+  const finish = (name: string) => bar(page).getByRole("button", { name, exact: true });
+  const clearedBtn = (text: string) => row(page, text).locator(".cleared-button");
+
+  // Clear the -100.00 transfer.
+  await realClick(page, row(page, "Transfer").first().locator(".cleared-button"));
+  await expect(amount(page, "cleared")).toHaveText("$655.50", { timeout: 300 });
+  await expect(amount(page, "uncleared")).toHaveText("−$160.00", { timeout: 300 });
+  await expect(
+    bar(page).getByText(
+      "This account's cleared balance in Budget is the same as your actual account.",
+    ),
+  ).toBeVisible({ timeout: 300 });
+  await expect(finish("Finish Reconciliation")).toBeDisabled({ timeout: 300 });
+  await expect(finish("Finish Reconciliation")).toBeEnabled({ timeout: 5000 });
+  await expect.poll(() => sent.patch).toBe(1);
+  expect(sent.accountGets).toBeGreaterThanOrEqual(1);
+
+  // Unclear ZZ Fuel (+20.00 in the cleared balance).
+  await realClick(page, clearedBtn("ZZ Fuel"));
+  await expect(bar(page).getByText(/\$20\.00 higher than your actual account\.$/)).toBeVisible({
+    timeout: 300,
+  });
+  await expect(amount(page, "cleared")).toHaveText("$675.50", { timeout: 300 });
+  await expect(finish("Create Adjustment & Finish")).toBeDisabled({ timeout: 300 });
+  await expect(finish("Create Adjustment & Finish")).toBeEnabled({ timeout: 5000 });
+  await expect.poll(() => sent.patch).toBe(2);
+  expect(sent.viewSettings).toBe(0);
+  // The server agrees with the figures the page showed.
+  const acct = await accountOf(request, w.plan, w.checking);
+  expect(acct.cleared_balance).toBe(675500);
+  await expect(amount(page, "cleared")).toHaveText("$675.50");
+});
+
+// EXF-722. The Yes request is held back; the person closes the popover; the answer arrives: nothing opens.
+for (const [how, close] of [
+  ["Escape", (page: Page) => page.keyboard.press("Escape")],
+  [
+    "a click outside",
+    (page: Page) => realClick(page, page.getByRole("heading", { name: "ZZ-TEST Savings" })),
+  ],
+] as const) {
+  test(`Yes, then ${how} while the request runs: no popover opens when it is answered (EXF-722)`, async ({
+    page,
+    request,
+  }) => {
+    const w = await seedWorked(request);
+    await setViewSettings(request, w.plan, w.savings, { show_reconciled: true });
+    await goto(page, w.plan, w.savings);
+    let release!: () => void;
+    const held = new Promise<void>((r) => {
+      release = r;
+    });
+    await page.route("**/accounts/*/reconcile", async (r) => {
+      await held;
+      await r.continue();
+    });
+    await realClick(page, header(page));
+    await realClick(page, button(page, "Yes"));
+    await expect(popover(page)).toBeVisible();
+    await close(page);
+    await expect(popover(page)).toHaveCount(0);
+    const answered = page.waitForResponse(/\/reconcile$/);
+    release();
+    await answered;
+    await page.waitForTimeout(500);
+    await expect(popover(page)).toHaveCount(0);
+    await expect(head(page).getByText(/^Reconciled a few seconds ago$/)).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          (await rowsOf(request, w.plan, w.savings)).find(
+            (r) => r.payee_name === "Starting Balance",
+          )?.cleared,
+      )
+      .toBe("reconciled");
+    await expect(
+      row(page, "Starting Balance").locator(".cleared-button.is-reconciled"),
+    ).toBeVisible();
+  });
+}

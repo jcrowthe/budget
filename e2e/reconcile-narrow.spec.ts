@@ -2,6 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { seedReconcileCard } from "./support/reconcile-seed";
 import { realClick } from "./support/register-seed";
+import { setViewSettings } from "./support/view-settings";
 
 // EXF-533, case 18. Built from the ticket; "not compared" with the source (nobody opened it for this feature).
 
@@ -37,6 +38,8 @@ for (const [w, h] of [
   test(`the header, Reconcile and its states at ${w}x${h}`, async ({ page, request }) => {
     await page.setViewportSize({ width: w, height: h });
     const s = await seedReconcileCard(request);
+    // Reconciled rows are hidden by default (EXF-529): this case needs the locked ZZ Market row.
+    await setViewSettings(request, s.plan, s.visa, { show_reconciled: true });
     await page.goto(`/${s.plan}/accounts/${s.visa}`);
     await expect(button(page, "Add Transaction")).toBeVisible();
     const top = page.locator(".acct-head-top");
