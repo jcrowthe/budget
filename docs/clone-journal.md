@@ -11757,3 +11757,48 @@ review: Build 8, Deploy 3, Discover 2, Test user flow 5.
 the Approval panel, the banner, View; the four narrow-window fixes); the Build for EXF-774 (the
 register's files are free; it must stay off the shell and the account dialog, which the running
 Build holds).
+
+### 2026-11-17 · Plan round 133
+
+Children used 149 of 200 (148 before this plan; one started). Main is `5bee02f`; live is
+`9ecd379`. The person has not answered the check-in.
+
+**The ticket filed at the last review exists: EXF-780** (the split editor's remaining line in
+other formats); priority Low.
+
+**Status of the running child (22:46Z):** the Manage Bank Connections Build
+(`p_49508f8bd85642faaf0d95e701fdecb7`) is at its acceptance step, no open card.
+
+**Started: Build feature for EXF-774 with EXF-780** (`p_4333153b783043d392848313d6d594a0`): a
+linked account's import can be made to start earlier.
+- **Why now:** it is High, the register's files are free since the last merge, and it is what
+  makes a first real link useful (weeks of transactions, not only a balance).
+- **Read before writing:** the import design skips a row dated before `import_start_date` or
+  before the Starting Balance row's date, and starts the feed again when an account's
+  `import_start_date` changes. So the rule is one statement beside the transaction's edit; the
+  brief says so and asks the Build to check it in the code.
+- **Decided by me, against my own ticket text:** the Starting Balance's **amount is not touched**
+  (the ticket proposed recomputing it). The source's help lets the person edit amount and date;
+  I believe it leaves the amount to the person and have not verified that. An automatic change
+  of an amount the person typed would be a rule of mine, not the source's. The cost: after older
+  rows arrive the balance is off by their sum until the person corrects the Starting Balance;
+  the design must say so.
+- Moved later: nothing imported is deleted; the import start follows. No choice on the Add
+  Accounts step yet (the owner's word is needed).
+- **The source section says what may be read** (the style rules in the test plan's tab, probe
+  elements in a tab of one's own, no navigation), with the named actions and reasons as before:
+  the lesson of the last review, applied.
+- **Why it may run beside the Manage Bank Connections Build:** that Build's manifest holds the
+  shell, `apps/web/src/account/**`, the menu's registry file and its own new files; this one's
+  ground is the Worker's transaction edit and import start, the register's web files and
+  `api/transactions.ts`. Each lists the other's as out of bounds. No migration; neither touches
+  `paths.always_overlap`; this one touches no shared module.
+
+**Not started, and why:**
+- **Deploy D35 waits for the Manage Bank Connections merge** (its card is due within the hour):
+  one release and one verification for two merges saves a child, and I approve no Build while a
+  Deploy is releasing. Cost: the register screens reach live about an hour later.
+- No flow test (flow 5 runs again after D35); no template review (Build 8, Deploy 3, Discover 2,
+  Test user flow 5).
+
+Ticket writes: 4 (EXF-780 priority and state; EXF-774 state and comment).
