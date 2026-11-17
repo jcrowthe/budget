@@ -9568,3 +9568,37 @@ Reconcile Build; flows 3, 4 and 10 after the Deploy, flow 6 after Reconcile. The
 round is the check-in.
 
 Ticket writes: 1 comment (EXF-537).
+
+### 2026-11-17 · Review round 110 (check-in)
+
+Children used 126 of 200. Nothing ended since the plan of this round; the Plan-page Build
+(`p_27986a1771a440a3b5efdec4bd06865a`) is in its Clerk step (05:14Z). Main `8b3e9a7`, live `49012cd`
+(read by me at 05:14Z); one migration pending on live (`20261116101300_plan_imports.sql`).
+
+**Since the check-in of round 100, counted from the children list:** eleven children started (115
+to 126): eight Builds, one Deploy, one flow test, one template review.
+- **Went live** (Deploy D28, live `49012cd`): Export Plan through REST and MCP; the card's Payment
+  pill and Record Payment; shift+click ranges and Move to Account in the register; readable bulk
+  refusals.
+- **Merged, not live:** the plan import through REST and MCP (`8b3e9a7`), on its third Build.
+- **Lost, none for a fault of its work, seven Builds:** three to the first rate-limit pause
+  (`p_8baa…`, `p_b719…`, `p_c4fd…`), one to a box replaced while an escalated card waited
+  (`p_a270…`), two to a tab left at the source's sign-in page (`p_2717…`, `p_51a1…`), one to the
+  second rate-limit pause (`p_d551…`).
+- **In flight:** the Plan page (fourth Build, approved code, acceptance and gate left); Reconcile
+  (code complete on `cb25396`, third Build not started).
+
+**Check-in sent** (round 110). Its points: the state above; that the rate limit now decides what
+lands, and what I ask about it; the Designers in the source (eight of eight; the sign-out at
+00:01Z; my reading of the person's Retry); the open questions, ranked, with two new ones (may a
+child download the test plan's export from the source to check the importer; the Cloudflare plan,
+which now matters for the import's first step); that 74 children will not reach parity at this
+loss rate, and the order I work in; my own errors of these rounds.
+
+**Ticket writes:** 0. **Backlog:** 51 open feature tickets (48 done; 2 in progress). Gap: twelve
+open, seven in progress. Template: forty open (Urgent EXF-573, 611, 612). Flow verdicts: 1
+`parity_known_gaps`; 2, 3, 4 `new_gaps`; 5, 7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not
+run. Finished since each template's last review: Build 8, Deploy 7, Discover 2, Test user flow 2.
+
+**Next plan:** nothing to start while the Plan-page Build runs; then one Deploy for both merges,
+then the Reconcile Build.
