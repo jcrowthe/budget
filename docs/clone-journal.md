@@ -10602,3 +10602,53 @@ Declared for the tree: the Build; this review; a Deploy and a register flow test
 plan formats with EXF-726; the plans list and New Plan dialog.
 
 Ticket writes: 0.
+
+### 2026-11-17 · Review round 121
+
+Children used 137 of 200. One ended: **the Deploy template review completed**
+(`p_cdb0214708904792a520429beb80d1a6`, 14 minutes). The register's View options Build is running.
+Main and live `13cfcae` (read by me at 11:52Z).
+
+**What I approved, all of it posted:** eleven evidence comments, no new ticket, nothing closed. The
+tracker shows the eleven tickets updated between 11:50:24Z and 11:50:54Z (EXF-612, 582, 611, 618,
+580, 581, 617, 583, 584, 585, 619). Nothing approved was left unfiled, so I file nothing.
+
+**What it found, by the step records:**
+- **The three Deploys of 16 Nov that did not release lost hand-off files within seconds, with no
+  idle wait, in two directions:** in two the gate had passed and printed its whole summary to the
+  transcript, and the box was replaced 17 and 24 seconds later; in one the agent's file was gone
+  before the gate read it. Nothing in the records explains why: four Deploys released that same
+  day between the failures at the same loads, and today's three are no different. A replaced box
+  can be told by the date of `/workspace` (a cheap check for code).
+- **In `p_2062…` the template passed a typed-in record with `result: failed` on to the release
+  step;** only my card text stopped `release.env` being written. One condition in the template
+  would stop it (EXF-582).
+- The verifier's own script failures: six of seven runs, seconds each (about 6.5 of 38 verifier
+  minutes). The one doubled row came from a rerun that re-ran setup inside the same command; one
+  verifier avoided it by itself with a setup guarded by a state file.
+- **Screenshots: 73 kept, 27 opened**; three verifiers misreported how many they had opened.
+- The DIFFERS rule was used correctly four times and no check was bent; five of seven verifiers
+  reported things beyond their brief unasked (among them the payee fault, since fixed).
+- The `plaid credentials:` line is in no summary; it reaches a verifier only if it greps the raw
+  log.
+- About 11 minutes and 0.91 dollars per released Deploy; the four recorder steps take more than
+  twice the release's own time.
+
+**Where I was wrong (accepted):** the gate of `p_2062…` printed `RESULT=passed`; the "timeout" I
+quoted on EXF-612 was the recorder's placeholder. Its box was replaced 24 seconds after the gate
+finished, not "three minutes after the first step". My count of screenshots a verifier left
+unopened (seven) came from the verifier's own sentence; the records say ten.
+
+**What I change in the next Deploy briefs:** the setup is one script that refuses to run when its
+state file exists and prints each id as it is created; the report carries separate lines DIFFERS,
+NOT CHECKED and OBSERVED; "which screenshots did you not open" is asked as a list, since the
+sentence was wrong three times. The platform-files paragraph and the import-name rule stay.
+
+**The register's View options Build** (`p_5b0c6eac7fb9459881ccfe507ef9a190`), 84 minutes in: the
+View specs, the reconcile tests and a polish list of twelve items are committed (`3c2070e`).
+
+**Ticket writes:** 0 by me. **Backlog:** unchanged: 48 open feature tickets (51 done; 1 in
+progress). Gap: seventeen open, two in progress. Template: thirty-nine open (Urgent EXF-573, 611,
+612). Finished since each template's last review: Build 2, Deploy 0, Discover 2, Test user flow 3.
+
+**Next plan:** nothing beside the Build.
