@@ -10131,3 +10131,70 @@ Declared for the tree: the three running; flow 6; plan formats; a Deploy and a f
 Activity popover.
 
 Ticket writes: 6 (EXF-509, EXF-720, EXF-714 to In Progress, each with a comment).
+
+### 2026-11-17 · Review round 116
+
+Children used 133 of 200. One ended: **Deploy D30 completed**
+(`p_d84176d3eb4c4ba6b3a14a3615996ee4`, 13 minutes). **Live is `d005439`** at
+https://budget.doxen.dev (read by me at 09:10Z), equal to main; no migration is pending. Running:
+the Activity popover Build and the template-ticket sweep (its card answered at 09:09Z; it is
+posting).
+
+**Deploy D30: released; every check ran; one result differs from my brief, and the verifier found
+two things I had not asked about.**
+- Gate passed (tree equal to gated `8b415ab`; checks 212 s). Release: the D1 bookmark phase ran;
+  `20261116101400_account_reconciled_at.sql` applied; smoke ok. Health gives the whole sha; 401
+  without credentials; **82 MCP tools**. The box kept its files.
+- **Reconcile on live, as the design's worked example says:** the refused difference (409,
+  −100,000, nothing written); the Yes path; `shift+E`; the bank-balance step; the Difference step
+  with U+2212; the bar; Finish with seven locked rows; the confirmation on a reconciled row's
+  amount and none for a memo; the adjustment row and Ready to Assign back to 790,000; refusals; the
+  tool; the closed account; five states inside the window at 1024×700. No console error, no
+  failing request of the page's own.
+- **The import survives the new column on live** (201, done): the break I found before the merge
+  did not ship.
+- **DIFFERS (step 6):** after a click on a row's cleared icon in reconcile mode, the header's
+  balances and the bar still showed the old figures 700 ms later; they had caught up by the next
+  click. The design says "live both ways". Filed through this review (Low): it needs measuring.
+- **Found by the verifier beyond the brief:** in the plan imported from its own export, the
+  adjustment row's payee reads "Manual Balance Adjustment". **I read the cause in the code:**
+  `apps/worker/src/services/plan-export.ts` writes every system payee other than the starting
+  balance under that one name, and the import knows two system payees; Reconcile added a third
+  (`reconciliation_adjustment`). The round-trip test has no reconciled adjustment, so nothing
+  caught it. **The owner's real export will hold such rows.** Filed through this review (Medium).
+  Also read there, and by the file format: `last_reconciled_at` and a closed account's state do
+  not come back through an export and import (the format has no place for them).
+- A finished import's session row stays (its DELETE answers 409 `import_finished` and it has no
+  read); the plan it made is gone with the purge. Noted on the ticket below.
+- After Finish, the transfer's other side stays uncleared on the other account.
+- Plans not starting with `ZZ-TEST`: 1; the purge left 0 of the run's two plans.
+- The verifier opened most of its 23 screenshots and named the seven it did not.
+
+**Flow 6 (reconcile, search, import):** I do not start it now. Its reconcile part was walked on
+live by this Deploy with a screenshot of every state; its other parts (the register's search
+tokens, EXF-528; file import, EXF-531) are not built. A child for the same walk an hour later
+would add little. Recorded as: reconcile walked by D30, as the tickets say, with the two findings
+above; verdict word not given (no flow test ran).
+
+**The template-ticket sweep, what I approved at its card (posting now; I check it at the next
+review):** fourteen comments; EXF-554 closed into EXF-479; EXF-612's title replaced; EXF-575 and
+EXF-585 to High. I accepted three corrections of my reading: idle is one trigger of the lost
+boxes, not the only one (four Deploys on 16 Nov lost theirs within minutes with no idle); a named
+action in the source has held once and failed three times; my "nine blanket bans" mixed two
+counts (seven bans ignored, two obeyed). Its five changes that would have saved the most: EXF-612
+(about 115 dollars and 30 hours of lost Builds, five Deploys refused), EXF-575, EXF-563, EXF-576,
+EXF-564. Of its seven items of app work, three are in EXF-631 and EXF-674; one I file here
+(inserts by column position); one went onto EXF-631 as a comment; two I do not file (each needs a
+Build of its own).
+
+**Activity popover Build** (`p_4b3e4d16b0784c8a9090ea68151e465d`): no commit pushed yet at 09:10Z
+(13 minutes in).
+
+**Ticket writes:** 2 (the live note on EXF-533; the profile's purge line on EXF-631). Three
+tickets filed through this review. **Backlog:** 49 open feature tickets (50 done; 1 in progress).
+Gap: sixteen open, two in progress, plus the three filed here. Template: thirty-nine open after
+the sweep's closure (Urgent EXF-573, 611, 612). Flow verdicts unchanged. Finished since each
+template's last review: Build 0, Deploy 9, Discover 2, Test user flow 3.
+
+**Next plan:** nothing beside the Build (one Build at a time on the Plan page; plan formats
+touches the same amounts). Set the three new tickets' priorities.
