@@ -9736,3 +9736,49 @@ Declared for the tree: the Deploy; the Reconcile Build; flows 3, 4 and 10; a Dep
 after Reconcile; the Build template review.
 
 Ticket writes: 2 (EXF-714 priority; a comment on EXF-533).
+
+### 2026-11-17 · Review round 112
+
+Children used 128 of 200. One ended: **Deploy D29 completed**
+(`p_516e428ce4884aebb8cfc56181b7d973`). **Live is `0fefc6c`** at https://budget.doxen.dev (read by
+me at 06:58Z), equal to main; no migration is pending. One Build is running (Reconcile).
+
+**Deploy D29: released, every check passed, nothing differs from the brief.**
+- Gate passed (the tree equals gated `40b4497`, so the browser run was skipped; checks 211 s).
+  Release: the D1 bookmark phase ran; `20261116101300_plan_imports.sql` applied; smoke ok. The box
+  kept its files from start to end.
+- Health gives the whole sha of `0fefc6c`; without credentials 401; **81 MCP tools**.
+- **The Plan page's card payments on live, at both sizes:** the PAYMENT button and dialog; the pill
+  green (`positive`) at $120.00, yellow (`cautious`) while a category is overspent on the card; the
+  Payment card "enough" and "Overspent Categories" with the right sentences and figures; Record
+  Payment opens the card's page with the row open; Auto-Assign's Underfunded $50.00 applied
+  (assigned 50000, Ready to Assign 650000); the plan-wide card lists Underfunded at $0.00. At
+  1024×700: names start at one x (305), the panel is 320 px, no sideways scroll, dark scrollbars;
+  long names are cut after their first word with an ellipsis.
+- **What I had not predicted, now known:** after assigning straight to the payment category while a
+  category is still overspent, the card reads "enough" and keeps a separate "Overspent Categories
+  $50.00" row. Not compared with the source.
+- **The import on live:** export, dry-run import (2 accounts, 14 categories, 4 transactions, no
+  warning, nothing written), real import (201), export again: both Plan files and both Register
+  files identical by `cmp`; the imported plan's figures equal the original's; cancel of a finished
+  import 409 `import_finished`; the MCP tool gives the same preview; `now` two days ahead refused
+  with 422 (EXF-670).
+- **Plans not starting with `ZZ-TEST`: 1** (the owner's); the purge left 0 of the run's two plans.
+- The verifier's own slip, reported by it: it re-ran its setup script once and made a duplicate
+  transaction in its own test plan; deleted and re-read before the later checks.
+- The "enough" card's first sentence on live is "You have enough money to pay off your current
+  balance!" followed by "You can make this payment anytime."; my brief quoted only the second.
+
+**Reconcile Build** (`p_8d9e0864404e426d946c60c989a6c4a2`): merged clean (`6eeb333`); the Architect
+wrote the second carry-over section (`282c64a`); the Implementer is on the two breaks.
+
+**Ticket writes:** 2 (live notes on EXF-537 and EXF-477). No new ticket. **Backlog:** 50 open
+feature tickets (49 done; 1 in progress). Gap: thirteen open (with EXF-714), one in progress.
+Template: forty open (Urgent EXF-573, 611, 612). Finished since each template's last review: Build
+9, Deploy 8, Discover 2, Test user flow 2.
+
+**Not yet proven on live, unchanged:** the 03:00 UTC job entering a due schedule by itself (it ran
+at 03:00Z today with no due schedule of mine on live); multi-run bank sync.
+
+**Next plan:** flows 3 and 4 on live (the Plan page and the card, every state at both sizes), and
+flow 10 with the import; they can run beside the Build (no Deploy starts until they end).
