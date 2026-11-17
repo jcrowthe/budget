@@ -11445,3 +11445,46 @@ review: Build 7, Deploy 2, Discover 2, Test user flow 4.
 
 **Next plan (round 130):** when Deploy D34 has ended, flow 5 on live with a Sandbox bank linked
 from the screen. The review of round 130 is the check-in.
+
+### 2026-11-17 · Plan round 130
+
+Children used 147 of 200 (146 before this plan; one started). Main is `9ecd379`. **Live became
+`9ecd379` at 20:36Z** (I polled the health read; Deploy D34 is at its verify step). No ticket was
+filed at the last review.
+
+**Status of the running children, read at 20:34Z:** the carry-over Build
+(`p_0625567f614e4952b9e62e5260678009`) is at its build step, no open card; Deploy D34
+(`p_2ac3e7ea2a91451c8d3ccca602474904`) was at its deploy step and has since released.
+
+**Started: Test user flow, flow 5 on live** (`p_01b401478049441db6b36fa23ad34e14`, prefix
+`ZZ-TEST F130`): one bank of Plaid's public Sandbox, connected once through the app, its accounts
+made **from the screen**.
+- Eighteen steps, each sentence taken from the Build's design: the Add Accounts step, Edit, the
+  summary and `Add 2 Accounts`; the sync the app sends by itself; the status mark and the
+  header's label; Sync Now; the dot for unapproved rows; Link Account for an existing account;
+  the 409 for a bank account linked twice; Unlink; a cash account; no sync on opening within six
+  hours; the dialogs in a Euro plan; **the connection removed at the end, whatever happens**; no
+  token in any answer.
+- **One thing I worked out while writing it:** an account added from the screen gets its Starting
+  Balance today, so, as in the source, the first sync brings nothing older. The flow says so and
+  asks what the sync reports (rows skipped). To have rows to approve, one account is made through
+  MCP with a start date 60 days back, as the earlier run did. **For the owner this means: on the
+  day he links a real bank he will see balances and no transactions; they come as the bank posts
+  new ones.** The ticket says the start date can be moved earlier by editing the Starting
+  Balance; whether the clone does that is not known to me. I ask the flow nothing about it and
+  check the code at the review.
+- The flow makes no second connection, so the `Linked` mark on the Add Accounts step and
+  `Add a New Bank Connection` stay unchecked on live; listed as such.
+- **A wrong reference caught before sending:** I had named the earlier flow 5 run from memory;
+  the Thread I named was flows 2 and 9. Read from the Thread list: the right one is
+  `p_1a06c903df354fd0ad9f020e918dccac`.
+- It runs while the Deploy's verifier is still on live with its own test plan: different
+  prefixes, different plans; each counts only plans that are not test plans.
+
+**Not started:** no second Build beside the register Build (the next bank Build, EXF-460 with
+EXF-465, changes the shell and the account dialog and waits for flow 5's findings). No template
+review (Build 7, Deploy 2, Discover 2, Test user flow 4).
+
+**This round's review is the check-in.**
+
+Ticket writes: none.
