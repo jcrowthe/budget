@@ -1,6 +1,8 @@
+import { formatsFromImport } from "@budget/schema/plan-formats-catalogue";
 import {
   buildImportPlan,
   IMPORT_LIMITS,
+  type ImportFormats,
   type ImportPlan,
   type ImportSummary,
   type PlanImportCancelResult,
@@ -151,6 +153,17 @@ interface Built {
   rows: number;
 }
 
+/** The four plan format columns of what the file's formats say (design: "Files"). */
+function importedFormatColumns(f: ImportFormats) {
+  const s = formatsFromImport(f);
+  return {
+    currencyIsoCode: s.iso_code,
+    numberFormat: s.example_format,
+    symbolPlacement: s.symbol_placement,
+    dateFormat: s.date_format,
+  };
+}
+
 /** Ids and timestamps of every row; each row's time is the start plus its position in the Register, in ms. */
 function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
   const startMs = Date.parse(started);
@@ -165,6 +178,7 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
     deletedAt: null,
     lastOpenedAt: null,
     bankEnvironment: "production",
+    ...importedFormatColumns(plan.formats),
   };
   const id = () => crypto.randomUUID();
   const accountIds = plan.accounts.map(id);
@@ -522,6 +536,7 @@ async function stepOf(
               deletedAt: null,
               lastOpenedAt: null,
               bankEnvironment: "production",
+              ...importedFormatColumns(summary.formats),
             },
             row.actor,
             row.id,
