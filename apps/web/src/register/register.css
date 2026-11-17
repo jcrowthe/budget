@@ -829,3 +829,19 @@
 .toolbar-divider + .toolbar-more {
   margin-left: 0;
 }
+
+/* BALANCE (EXF-529): 10% as in the source (measured: the balance cell's width, 10% of the grid). Amount columns keep a
+   minimum width so "−$99,999.99" is never cut at 1024px; the text columns give way. */
+.register-table .col-balance {
+  width: 10%;
+}
+.register-table .col-amount,
+.register-table .col-balance {
+  min-width: 96px;
+}
+.register-table td.cell-balance.is-negative {
+  color: var(--labelNegative);
+}
+.register-table tr.is-checked td.cell-balance.is-negative {
+  color: var(--labelPrimary);
+}

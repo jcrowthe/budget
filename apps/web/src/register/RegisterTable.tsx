@@ -8,10 +8,13 @@ import {
   type SortDir,
   sortTransactions,
 } from "@budget/schema/register";
+import { registerVisible } from "@budget/schema/register-view";
+import { screenMoney } from "@budget/schema/screen-money";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useReconcile } from "../account/ReconcileContext";
 import { useAccounts } from "../api/accounts";
 import {
   useAccountTransactions,
@@ -36,12 +39,13 @@ import {
   TransferIcon,
 } from "./icons";
 import { useOpenAccounts } from "./openAccounts";
+import { useRegisterView } from "./register-view";
 import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
 import { useSelection } from "./selection";
 
 const CLEARED_TIP = "Marking a transaction as 'cleared' means it has posted to your bank account.";
 
-type Row = TransactionDetail & { account_name?: string };
+type Row = TransactionDetail & { account_name?: string; running_balance?: number };
 
 type Header = { column: PlanSortColumn; label: string; numeric?: boolean };
 
@@ -119,13 +123,23 @@ export function RegisterTable({
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
     (h) => showCategory || h.column !== "category",
   );
-  const colCount = columns.length + 3;
+  const view = useRegisterView();
+  const { showFlags, showBalance } = view;
+  const colCount = columns.length + 2 + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
   const data = q.data;
   const scheduledRows = useScheduledRows(budgetId, account?.id, sort);
-  const rows = useMemo(
-    () => (data ? sortTransactions<Row>(data.transactions, sort.column, sort.dir) : []),
-    [data, sort],
-  );
+  const reconcileMode = useReconcile()?.step === "mode";
+  const { rows, hidden } = useMemo(() => {
+    if (!data) return { rows: [] as Row[], hidden: 0 };
+    const shown = registerVisible<Row>(
+      data.transactions,
+      view.settings,
+      view.today,
+      view.firstMonth,
+      reconcileMode,
+    );
+    return { rows: sortTransactions<Row>(shown.rows, sort.column, sort.dir), hidden: shown.hidden };
+  }, [data, sort, view.settings, view.today, view.firstMonth, reconcileMode]);
 
   // The selection and the bar read the rows as shown; ids that left the list drop out of the selection.
   useEffect(() => setRows(rows), [rows, setRows]);
@@ -256,12 +270,14 @@ export function RegisterTable({
               onClick={(e) => pick("real", tx.id, e.shiftKey ? "rangeAdd" : "toggle")}
             />
           </td>
-          <td className="cell-flag">
-            <FlagCell
-              color={tx.flag_color}
-              onPick={(color) => setFlag.mutate({ id: tx.id, color })}
-            />
-          </td>
+          {showFlags && (
+            <td className="cell-flag">
+              <FlagCell
+                color={tx.flag_color}
+                onPick={(color) => setFlag.mutate({ id: tx.id, color })}
+              />
+            </td>
+          )}
           {plan && (
             <td data-field="account" title={tx.account_name}>
               {tx.account_name}
@@ -339,6 +355,14 @@ export function RegisterTable({
           <td data-field="inflow" className="num">
             {tx.amount > 0 ? registerMoney(tx.amount) : null}
           </td>
+          {showBalance && (
+            <td
+              className={`num cell-balance${(tx.running_balance ?? 0) < 0 ? " is-negative" : ""}`}
+              data-field="balance"
+            >
+              {tx.running_balance === undefined ? null : screenMoney(tx.running_balance)}
+            </td>
+          )}
           <td className="cell-cleared">
             <ClearedCell
               tx={tx}
@@ -362,7 +386,7 @@ export function RegisterTable({
               {...rowProps}
             >
               <td className="cell-check" />
-              <td className="cell-flag" />
+              {showFlags && <td className="cell-flag" />}
               {plan && <td />}
               <td />
               <td data-field="payee" title={l.payee_name ?? undefined}>
@@ -392,6 +416,7 @@ export function RegisterTable({
               <td data-field="inflow" className="num">
                 {l.amount > 0 ? registerMoney(l.amount) : null}
               </td>
+              {showBalance && <td className="num cell-balance" />}
               <td className="cell-cleared" />
             </tr>
           ))}
@@ -404,11 +429,11 @@ export function RegisterTable({
       <table
         className={`register-table${showCategory ? "" : " no-category"}${scheduledRows.length > 0 ? " has-scheduled" : ""}`}
         aria-label={`${account?.name ?? "All Accounts"} transactions`}
-        aria-busy={q.isPending}
+        aria-busy={q.isPending || !view.ready}
       >
         <colgroup>
           <col className="col-check" />
-          <col className="col-flag" />
+          {showFlags && <col className="col-flag" />}
           {plan && <col className="col-account" />}
           <col className="col-date" />
           <col className="col-payee" />
@@ -416,6 +441,7 @@ export function RegisterTable({
           <col className="col-memo" />
           <col className="col-amount" />
           <col className="col-amount" />
+          {showBalance && <col className="col-balance" />}
           <col className="col-cleared" />
         </colgroup>
         <thead>
@@ -423,9 +449,11 @@ export function RegisterTable({
             <th className="cell-check">
               <Box state={allState} label="Select all transactions" onClick={toggleAll} />
             </th>
-            <th className="cell-flag" aria-label="Flag">
-              <FlagFilledIcon />
-            </th>
+            {showFlags && (
+              <th className="cell-flag" aria-label="Flag">
+                <FlagFilledIcon />
+              </th>
+            )}
             {columns.map((h) => {
               const active = sort.column === h.column;
               return (
@@ -450,6 +478,7 @@ export function RegisterTable({
                 </th>
               );
             })}
+            {showBalance && <th className="num cell-balance">BALANCE</th>}
             <th className="cell-cleared" title={CLEARED_TIP} aria-label="Cleared">
               <ClearedFilledIcon width={14} height={16} />
             </th>
@@ -485,11 +514,12 @@ export function RegisterTable({
           accounts={openAccounts}
         />
         {q.isPending ||
+        !view.ready ||
         (q.isError && !data) ||
-        (rows.length === 0 && scheduledRows.length === 0 && !open) ? (
+        (rows.length === 0 && hidden === 0 && scheduledRows.length === 0 && !open) ? (
           <tbody>
             <tr>
-              {q.isPending ? (
+              {q.isPending || !view.ready ? (
                 <td colSpan={colCount} className="register-message" role="status">
                   Loading transactions…
                 </td>
@@ -529,6 +559,22 @@ export function RegisterTable({
               />
             )}
             {editAt >= 0 && <tbody>{rows.slice(editAt + 1).map(dataRow)}</tbody>}
+            {hidden > 0 && (
+              <tbody className="register-footer">
+                <tr>
+                  <td colSpan={colCount}>
+                    <p>Some transactions are hidden by filters.</p>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => view.save({ preset: "all_dates", show_reconciled: true })}
+                    >
+                      View All
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            )}
           </>
         )}
       </table>

@@ -1,0 +1,172 @@
+/* View Options (EXF-529). Source (measured, getComputedStyle, dark theme): popover 632px wide, padding 0 14px 14px,
+   radius 6.4px; title 16px/600 with 16px padding; pills 4px 12px, radius 1000px, 14px/500; selects 32px tall on
+   --inputBackground with a 1px --inputBorder, radius 4px; checkbox rows 28.8px apart; actions gap 8px, 32px tall. */
+.bulk-popover-body.view-options-body {
+  padding: 0 14px 14px;
+  background: var(--backgroundTertiary);
+}
+.bulk-popover.view-options .bulk-popover-arrow {
+  fill: var(--backgroundTertiary);
+}
+.view-title {
+  margin: 0;
+  padding: var(--space-3) 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--labelPrimary);
+}
+.view-presets,
+.view-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.view-presets {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+.view-presets li {
+  padding-right: var(--space-2);
+}
+.view-pill {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 1000px;
+  background: transparent;
+  color: var(--actionPrimary);
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.view-pill:hover {
+  background: var(--buttonSecondaryBackground);
+}
+.view-pill.is-active {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.view-hr {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--borderSubtle);
+}
+.view-range {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+.view-range-label {
+  font-weight: 600;
+  color: var(--labelPrimary);
+  white-space: pre;
+}
+.view-range-label::after {
+  content: " ";
+}
+.view-range-label.is-to {
+  margin-left: 12px;
+}
+.view-select {
+  position: relative;
+  display: inline-block;
+  margin-right: 6px;
+}
+.view-select select {
+  box-sizing: border-box;
+  width: 105px;
+  height: 32px;
+  padding: 4px 24px 4px 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  appearance: none;
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+}
+.view-select.is-year select {
+  width: 68px;
+}
+.view-select::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 8px;
+  border: 6px solid transparent;
+  border-top-color: var(--inputBorder);
+  pointer-events: none;
+}
+.view-checks {
+  padding: var(--space-2) 0;
+}
+.view-checks li {
+  display: flex;
+  align-items: center;
+  height: 28.8px;
+}
+.view-check-label {
+  padding: 0 0 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.view-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+}
+.view-actions button {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.view-actions .secondary {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.view-actions .primary {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+
+/* The footer under the rows when a filter hides some (EXF-529). */
+.register-footer td {
+  padding: var(--space-3) 0;
+  border-bottom: 0;
+  background: transparent;
+  text-align: center;
+  cursor: default;
+}
+.register-footer p {
+  margin: 0 0 var(--space-2);
+  color: var(--labelSecondary);
+  font-weight: 500;
+}
+.register-footer .secondary {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.register-footer .secondary:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
