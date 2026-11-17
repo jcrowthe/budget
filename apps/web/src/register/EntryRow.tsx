@@ -339,6 +339,7 @@ export function EntryRow({
     const spread = autoDistribute(
       unbalanced.total,
       draft.lines.map((l) => lineAmount(l, fmt)),
+      fmt.digits,
     );
     setDraft((d) => ({
       ...d,
