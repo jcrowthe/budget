@@ -1,0 +1,3 @@
+# Plan formats polish list (EXF-468 with EXF-726)
+
+- P1 [applied] `.cell-activity` plain amount span (payment categories, zero amounts, Uncategorized row) wrapped at 1024×700: it now shares the `.activity-button` rule (inline-block, max-width 100%, overflow hidden, ellipsis, nowrap), and the Uncategorized Activity span carries a `title` holding the amount. Compared live: the source's Activity spans are display block, nowrap, overflow hidden, ellipsis. Scoped to the plan grid's `.cell-activity` (not shared). Test: `e2e/plan-formats-narrow.spec.ts` (Uncategorized, 13 characters).

@@ -323,7 +323,9 @@ export function UncategorizedRow({ u }: { u: NonNullable<MonthDetail["uncategori
         </div>
       </div>
       <div className="cell-activity" role="cell">
-        <span className={amountClass(u.activity)}>{fmt.money(u.activity)}</span>
+        <span className={amountClass(u.activity)} title={fmt.money(u.activity)}>
+          {fmt.money(u.activity)}
+        </span>
       </div>
       <div className="cell-available" role="cell">
         <AvailablePill amount={u.available} interactive={false} />

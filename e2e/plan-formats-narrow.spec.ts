@@ -277,3 +277,35 @@ test("EXF-726: fourteen characters in another format never wrap; they are cut on
     ),
   ).toBe(true);
 });
+
+test("EXF-726 polish P1: an Uncategorized Activity of thirteen characters stays on one line with a title", async ({
+  page,
+  request,
+}) => {
+  const plan = await seedWide(request);
+  const acct = (await call(request, "GET", `/api/v1/budgets/${plan}/accounts`)).accounts[0]
+    .id as string;
+  await call(request, "POST", `/api/v1/budgets/${plan}/transactions`, {
+    account_id: acct,
+    date: TODAY,
+    amount: -9777777760,
+    payee_name: "ZZ Payee",
+  });
+  await page.goto(`/${plan}/budget`);
+  await expect(page.getByRole("treegrid", { name: "Plan" })).toBeVisible();
+  const span = page.locator(".uncategorized-row .cell-activity > span");
+  await expect(span).toHaveText("−$9,777,777.76");
+  // Source: every Activity amount span is display block, nowrap, overflow hidden, ellipsis (measured live, 1024 and 1440).
+  const r = await span.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return {
+      h: el.getBoundingClientRect().height,
+      ws: cs.whiteSpace,
+      ov: cs.overflow,
+      to: cs.textOverflow,
+      title: el.title,
+    };
+  });
+  expect(r).toMatchObject({ ws: "nowrap", ov: "hidden", to: "ellipsis", title: "−$9,777,777.76" });
+  expect(r.h).toBeLessThan(20);
+});

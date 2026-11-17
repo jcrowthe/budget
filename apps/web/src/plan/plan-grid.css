@@ -488,7 +488,8 @@
 .cell-activity {
   text-align: right;
 }
-.activity-button {
+.activity-button,
+.cell-activity > span {
   display: inline-block;
   max-width: 100%;
   margin: 0;
