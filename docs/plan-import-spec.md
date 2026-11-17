@@ -349,3 +349,32 @@ manifest, stop and report it.
 - **Report** (Implementer): the case-10 line from `npx vitest run test/plan-import-calls.test.ts --silent=false`
   in `apps/worker` (busiest invocation's D1 and R2, invocations, slowest step and time), and the criteria list of the
   design's Carry-over with any test added here.
+
+## Task 13: thousands separators (design § Second carry-over; the only code change)
+
+Files: `packages/schema/src/plan-import-read.ts`, `packages/schema/src/plan-import.ts`, their tests,
+`apps/worker/test/plan-import.test.ts`, `packages/schema/test/plan-export.test.ts`. No Worker source, no D1 call.
+
+```ts
+export const GROUPING_CHARS: readonly string[];      // [",", ".", " ", "\u00a0", "\u202f", "'", "\u2019"]
+export function detectDecimal(cell: string): string | null;
+export function parseAmount(cell: string, decimal?: string | null): ParsedAmount | null;
+// ParsedAmount gains `grouping: string | null` (the grouping char, null when none); `separator` stays the decimal.
+```
+
+- `parseAmount` with `decimal` undefined or null: **exactly today's behaviour** (the existing unit tests stay as they
+  are, `1,234.56` → null). With `decimal` set: the design's rule (old rule with the 3-digit grouping exception, else
+  the grouped form). The whole-part 12-digit bound counts digits only. `milliunits` never `-0`.
+- `detectDecimal`: trims, takes the span from the first to the last digit, applies the design's two revealing forms;
+  null otherwise (no separator, one separator followed by 3 digits, one char repeated).
+- `buildImportPlan`: after `readDelimited` of both files and before the Plan loop, `decimal =
+  options.currency_format?.decimal_separator ?? first non-null detectDecimal(...)` over `r[4] r[5] r[6]` of Plan rows
+  then `r[8] r[9]` of Register rows (stop at the first hit; skip the header rows). The `amount` helper passes
+  `decimal` to `parseAmount`; its error message is unchanged. `formats.decimal_separator = cf.decimal_separator ??
+  decimal ?? f?.separator ?? "."`. The `currency_inconsistent` warning is unchanged.
+- Tests: the design's case 15, each form and each refusal in `plan-import-read.test.ts`; the `,` TSV pair in
+  `plan-import.test.ts` (schema); the Worker test in `apps/worker/test/plan-import.test.ts` with totals compared to
+  constants computed by hand in the test (not by the parser); the export assertion in `plan-export.test.ts`.
+- Verify: `npx vitest run test/plan-import-read.test.ts test/plan-import.test.ts test/plan-export.test.ts` in
+  `packages/schema`, `npx vitest run test/plan-import.test.ts test/plan-import-calls.test.ts --silent=false` in
+  `apps/worker` (case 10 line unchanged: ≤ 3 D1, ≤ 2 R2), then `pnpm check`. Quote each passing.

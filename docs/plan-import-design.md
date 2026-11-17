@@ -286,6 +286,43 @@ R2 2` (logs need `--silent=false`). New work is spec task 12; the points of the 
    nothing under `apps/web/` or `e2e/`. Task 12 adds tests only; if one fails because of an out-of-bounds file
    or of code outside the manifest (e.g. `services/scheduled-transactions.ts`, `services/plaid-sync.ts`), stop and report the file and why rather than change it.
 
+### Second carry-over (2026-11-17): amounts with thousands separators (spec task 13)
+
+Merged `d427fbb` onto main `49012cd` (fast-forward, 36 files, +6,970 −15); main had not moved, so the design and the
+point-5 conflict are unchanged (the Plan-page Build has not merged). The only new work is the amount rule below; the
+export keeps writing no separator (`exportFormat().amount`, unchanged).
+
+**Decision.** The file's **decimal separator** is fixed before any amount is read: `currency_format.decimal_separator`
+if given, else the first amount cell (Plan Assigned, Activity, Available, then Register Outflow, Inflow, in file order)
+that reveals it: a number with two different non-digits where the last one occurs once and is one of `. , - /` (it is
+the decimal), or with one non-digit occurring once followed by 1 or 2 digits. No cell reveals it → `null`, and every
+amount is read by the old rule. With a known decimal `d`, an amount is accepted when it is:
+- the old rule (no non-digit, or one followed by 1–3 digits), **except** a single non-digit `g ≠ d` from the grouping
+  set followed by exactly 3 digits, which is grouping (`$1,234` in a `.` file → 1234000; `1.234€` in a `,` file →
+  1234000; `1.234` in a `.` file stays 1.234, a three-decimal currency);
+- or **grouped**: groups joined by one grouping char `g ≠ d` used throughout, first group 1–3 digits, every later
+  group exactly 3 digits, at least two groups, then optionally `d` and 1–3 digits. Grouping set: `,` `.` space,
+  U+00A0, U+202F, `'`, `’`.
+
+So `$1,234.56` → 1234560, `-$12,345.00` → −12345000, `$1,000,000.00` → 1000000000 (`.` file); `1.234,56€` → 1234560,
+`1 234,56 €` → 1234560 (`,` file). **Still refused** (422 `bad_amount`, the existing message `<Plan|Register> file line
+<n>, column <col>: "<text>" is not an amount`): `1,23.45`, `12,3456.00`, `1234,567.00` (first group of 4), `1,234,56`,
+`1,234.5678`, mixed grouping chars (`1,234 567.00`), a grouping char equal to the decimal, two decimals; and any
+grouped amount when no cell reveals the decimal (`1,234,567` alone). `formats.decimal_separator` = option, else the
+detected decimal, else the first amount's, else `.`. The pre-scan is string work only: no D1 or R2 call is added, and
+the calls of case 10 stay at ≤ 3 D1 / 2 R2.
+
+**15. Thousands separators (acceptance).** Unit (`plan-import-read.test.ts`): `parseAmount(cell, ".")` on `$1,234.56`,
+`-$12,345.00`, `$1,234`, `$1,000,000.00`, `1.234` (→ 1234); `parseAmount(cell, ",")` on `1.234,56€`, `1 234,56 €`,
+`1.234€`; refusals listed above → null; `detectDecimal` on `$0.00` → `.`, `1.234,56€` → `,`, `$1,234` → null; the
+no-argument behaviour unchanged (`1,234.56` → null). Schema (`plan-import.test.ts`): a `,`-decimal TSV pair with
+`1.234,56€` imports 1234560 and reports `decimal_separator` `,`. Worker (`plan-import.test.ts`): a hand-written `.csv`
+pair whose Plan has Assigned `$1,234.56` and Activity `-$12,345.00`, and whose Register has outflows `$12,345.00`
+and an inflow `$1,000,000.00` → 201; in D1 the plan's `month_categories.assigned` and `sum(transactions.amount)` equal
+the hand-computed milliunits exactly, `mismatch_count` 0; the same pair with one cell `$1,23.45` → 422 whose message
+holds `Register file line`, the column and `$1,23.45`, and D1 row counts unchanged. Export unit
+(`plan-export.test.ts`): 1234560 written `$1234.56`.
+
 ## Manifest
 
 touches: [packages/schema/src/zip.ts, packages/schema/test/zip.test.ts, packages/schema/src/plan-import.ts, packages/schema/src/plan-import-read.ts, packages/schema/test/plan-import*.test.ts, packages/schema/src/plan-export.ts, packages/schema/test/plan-export.test.ts, apps/worker/migrations/20261116101300_plan_imports.sql, apps/worker/src/db/schema/plan-imports.ts, apps/worker/src/repositories/plan-import.ts, apps/worker/src/services/plan-import.ts, apps/worker/src/services/plan-import-compare.ts, apps/worker/src/services/plan-clock.ts, apps/worker/src/services/plan-export.ts, apps/worker/src/routes/plan-import.ts, apps/worker/src/routes/plan-export.ts, apps/worker/src/mcp/tools/plan-import.ts, apps/worker/src/mcp/tools/plan-export.ts, apps/worker/test/plan-import*.test.ts, apps/worker/test/plan-import-helpers.ts, apps/worker/test/plan-export*.test.ts, apps/worker/test/plan-export-helpers.ts, apps/worker/test/mcp-coverage/budgets.ts, apps/worker/test/mcp-timestamps.test.ts, docs/plan-import-design.md, docs/plan-import-spec.md, docs/plan-export-design.md, docs/README.md]
