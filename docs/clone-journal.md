@@ -11598,3 +11598,72 @@ is removed; no token in 273 saved answers and page bodies; no new gap filed. EXF
 Deploy 3, Discover 2, Test user flow 5 finished since each template's last review).
 
 Ticket writes: 5 (EXF-774 priority; EXF-460 and EXF-773 to In Progress, each with a comment).
+
+### 2026-11-17 · Review round 131
+
+Children used 148 of 200. One ended: **flow 5 completed**
+(`p_01b401478049441db6b36fa23ad34e14`, 23 minutes, on live `9ecd379`). Main and live are both
+`9ecd379`.
+
+**Status of the running children (21:10Z):** the register screens Build
+(`p_0625567f614e4952b9e62e5260678009`) at its polish step, no open card; the Manage Bank
+Connections Build (`p_49508f8bd85642faaf0d95e701fdecb7`) at its plan step after two minutes, no
+open card (its Clerk and the preflight went through).
+
+**Flow 5 (link a bank), third run: `parity_known_gaps`.** Every step walked except the five I
+had listed as not to be done. The verdict means the clone does what EXF-461, EXF-459 and my
+brief say; nothing was compared with the source.
+- **The path a person takes works on live with Plaid's Sandbox:** Add Account, the bank's
+  sign-in window, the Add Accounts step with the bank's fourteen accounts (cards and loans shown
+  negative), Edit, the summary, `Add 2 Accounts` (one request), the sync the app sends by
+  itself, the status mark and the header's `Connected`, Sync Now ("Synced: nothing new."), the
+  dot for unapproved rows and its disappearance, Link Account for an existing account, the 409
+  for a second link with a readable message, Unlink with its confirmation, no section on a cash
+  account, no sync on opening within six hours, the dialogs in a Euro plan.
+- **The sync table** (seven calls, 0.4 to 3.7 s each, all `connected`): the first sync after Add
+  added 0 and skipped 293, as I had worked out (the Starting Balance is dated today); the account
+  made through MCP with a start 60 days back got 4 rows ("Synced: 4 new, 338 skipped.").
+- The connection it made is removed (`deleted: true`, Plaid's side removed; the read answers
+  404). No token in 38 answers and 235 page bodies. Purge `remaining 0`; plans that are not test
+  plans: 1.
+- **Differs from my brief, each my wording:** the sync line names the skipped rows too; the Link
+  Account list and the connection list hold the two Sandbox connections of 16 Nov (the design; I
+  had already learnt it from the Deploy but the flow's brief was written before); searching
+  `platypus` lists ten other banks first.
+- **No new gap filed.** Matched: EXF-773 (measured), the register's narrow-window tickets,
+  EXF-463.
+
+**Seen and not filed by the walker; my reading of each:**
+- **The bank is chosen twice.** After the bank is picked in the app's search, Plaid's window
+  opens on its own search and the bank must be found again. The connection design says so
+  ("the link-token flow has no institution pre-select"). I have not checked that statement
+  against Plaid's documentation. For the owner it is the first thing he will notice when linking;
+  I keep it for a ticket once I know whether Plaid allows a pre-selected bank.
+- Link Account offers bank accounts of every type for any plan account (a loan for a checking
+  account). No rule forbids it; a wrong choice can be undone with Unlink. Not filed; into the
+  brief of EXF-465's Build as a question.
+- A home equity line maps to Personal Loan, and HSA and CD to Savings: the ticket's mapping does
+  not name them. Left.
+- The register's search placeholder is cut ("Search ZZ Bank Checki"): belongs to the register
+  at 1024 px; I tell the register Build's review.
+- "Syncing…" shifts the Unlink button: in the Manage Bank Connections Build's brief (EXF-773).
+
+**What this run shows about what the owner can do tonight:** connect a bank and add its accounts
+from the screen, sync on demand, see the status, link and unlink. The production path was not
+run (no child may create a production connection).
+
+**What I learned:**
+- A flow brief written from the design's sentences came back with every sentence confirmed; the
+  three differences were places where I wrote from memory.
+- The walker's "seen, not filed" list is where the owner's first annoyances are. I read it as
+  carefully as the gaps.
+
+**Ticket writes:** none.
+**Backlog:** 45 open feature tickets (54 done; EXF-463 and EXF-460 in progress). Gap: twenty-four
+open (five in progress: EXF-680, 681, 728, 760, 773; EXF-774 High, waiting).
+Template: thirty-nine open.
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps`; 3 `parity`; 4 `parity`;
+5 `parity_known_gaps`; 7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run as a flow.
+Finished since each template's last review: Build 7, Deploy 3, Discover 2, Test user flow 5.
+
+**Next plan:** nothing to start beside the two Builds (EXF-774 waits for the register Build).
