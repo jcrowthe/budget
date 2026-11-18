@@ -1,9 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import { suiteWorkers } from "./e2e/support/e2e-load-workers";
 
 export default defineConfig({
   testDir: "e2e",
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
+  workers: suiteWorkers(),
   reporter: [["list"]],
   use: {
     baseURL: "http://localhost:4173",

@@ -152,8 +152,9 @@ for (const size of SIZES) {
       await expect(assignedBox(page, RENT)).toHaveText("$0.00");
       await apply(page, "Underfunded");
       await expect(assignedBox(page, RENT)).toHaveText("$100.00");
-      // This test is idle on the API for several seconds; the server closes an idle keep-alive socket after 5s,
-      // so the request context can reuse a dead one (ECONNRESET). Setting an absolute amount is safe to repeat.
+      // vite preview serves through http.createServer (resolveHttpServer, vite chunks/node.js): Node's default
+      // keepAliveTimeout of 5000 ms closes an idle socket, while Playwright's request context keeps sockets alive
+      // (http.Agent keepAlive), so a request sent as it closes gets ECONNRESET. Setting an absolute amount is safe to repeat.
       for (let attempt = 0; ; attempt++) {
         try {
           await assign(request, s, RENT, 30000, NEXT);
