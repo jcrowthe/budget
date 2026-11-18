@@ -13215,3 +13215,40 @@ Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test 
 whether to stop at 200, so each one is weighed: a second run of flow 2 on live (its verdict is
 the oldest and its gaps were fixed since) can run beside the Builds, since neither touches live;
 nothing else is due until a Build ends.
+
+### 2026-11-18 · Plan round 148
+
+Children used 164 of 200 (none started this turn; the warning comes at 180). Main and live
+`b0240a5`. No ticket was filed at the last review, so none to check.
+
+**Running (10:14Z), both a few minutes old, no manifest and no card yet:**
+- Build `p_cdc277966a444b7f959e82759994d667`: EXF-727 with EXF-745 (the Plan page).
+- Build `p_6d02018d422f4e9a80bd2a3e6d826ace`: EXF-866 with EXF-867 (the connection statuses).
+When each manifest arrives I check it against the other's: the briefs keep them apart
+(`apps/web/src/plan/**` and two specs against the Worker, the shell's connection files and
+`apps/web/src/account/**`), and `docs/README.md` is the one file both will touch.
+
+**Started: nothing, on purpose.**
+- **Flow 2's second run, which I named at the last review: not started.** I read my own
+  decision of round 140 again and it still holds: every figure of flow 2's last run matched,
+  and each of its gaps but EXF-679 has since been measured as fixed on live by a Deploy's
+  checks (EXF-760 in D35; EXF-680 and EXF-681 in D37). A run now would change the verdict's
+  word from `new_gaps` to `parity_known_gaps` and prove nothing that is not proved. With 36
+  children left and no word from the person on the limit, that is not worth one. It runs when
+  EXF-679 (the Move to Account submenu) is built, so that the run can end in `parity`.
+- No third Build: the children share one host, and each Build's gate runs the whole browser
+  suite; two gates beside each other is what the measured worker count allows for.
+- No Deploy: nothing new on main.
+- No template review is due (finished since each template's last review: Build 4, Deploy 7,
+  Discover 2, Test user flow 8; the review starts at 10).
+
+**What the 36 children left are for, in order:** the Deploy after these two Builds (D39,
+with the migration); then what stands between the owner and his real banks: EXF-751 (how often
+the app syncs; it holds `wrangler.jsonc`, so alone), EXF-845, and the production Plaid path once
+he answers; then the plan-menu dialogs (EXF-476, EXF-477, EXF-510, EXF-480). The template
+reviews of Deploy and of Test user flow come due on the way.
+
+**Ticket writes:** 0.
+
+**Still waiting on the person** (check-in 140, no answer): the eight questions listed there.
+The next check-in is at the review of round 150.
