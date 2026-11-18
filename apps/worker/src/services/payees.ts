@@ -7,11 +7,13 @@ import {
   type PayeeSystem,
   type PayeeTransaction,
 } from "@budget/schema/payees";
+import { checkRuleText, foldRuleText } from "@budget/schema/rename-rules";
 import {
   TRANSFER_PAYEE_PREFIX,
   transferPayeeId,
   transferPayeeName,
 } from "@budget/schema/transfers";
+import { sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { type Db as DbT, getDb } from "../db/client";
 import type { Env } from "../env";
@@ -201,8 +203,29 @@ export async function updatePayee(
     return payeeToApi(row, row.lastCategoryId, row.lastInflowToReadyToAssign);
   const now = new Date().toISOString();
   const same = payeesRepo.unchangedSql(budgetId, row.id, row);
+  // A rename of a payee whose old name came from a bank import adds the rule `is <old name>` (before the update).
+  const learn =
+    name !== row.name && checkRuleText(row.name).ok
+      ? rulesRepo.addIfMissingStmts(
+          db,
+          { budgetId, actor, action: "create", entityType: "payee_rename_rule", createdAt: now },
+          {
+            id: crypto.randomUUID(),
+            budgetId,
+            payeeId: row.id,
+            kind: "is",
+            text: row.name.trim(),
+            matchText: foldRuleText(row.name),
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          },
+          sql`${same} and exists (select 1 from transactions t where t.budget_id = ${budgetId} and t.payee_id = ${row.id} and t.deleted_at is null and t.import_payee_name = ${row.name})`,
+        )
+      : [];
   try {
     const res = await db.batch([
+      ...learn,
       changeLogInsertIf(
         db,
         {
@@ -217,9 +240,9 @@ export async function updatePayee(
         whenQuery(db, same),
       ),
       payeesRepo.updateStmt(db, budgetId, row.id, { name, hidden }, now, row),
-    ]);
+    ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
     // The guard failed (a rename, hide or delete got there first): nothing was written.
-    if (((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
+    if (((res[res.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
     }
   } catch (e) {

@@ -6,11 +6,12 @@ import {
   RENAME_RULE_ERRORS,
   type RenameRuleKind,
 } from "@budget/schema/rename-rules";
+import { type SQLWrapper, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
-import { whenQuery } from "../repositories/guards";
+import { type LogBase, whenQuery } from "../repositories/guards";
 import * as rulesRepo from "../repositories/payee-rename-rules";
 import { PayeeRefused, pathPayee, requirePlan } from "./payees";
 
@@ -185,4 +186,62 @@ export async function deleteRenameRule(
   if (((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0)
     throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
   return ruleToApi(before);
+}
+
+export type AutoRule = {
+  budgetId: string;
+  actor: string;
+  now: string;
+  /** The payee the row now has. */
+  payeeId: string;
+  /** The row's `import_payee_name`. */
+  importName: string;
+  /** `learn`: the owner moved the row to another payee; `undo`: to the payee named as imported. */
+  mode: "learn" | "undo";
+};
+
+/** The rule `is <imported name>` on the payee, as a row (no write). */
+function autoRow(a: AutoRule, text: string): rulesRepo.RuleRow {
+  return {
+    id: crypto.randomUUID(),
+    budgetId: a.budgetId,
+    payeeId: a.payeeId,
+    kind: "is",
+    text,
+    matchText: foldRuleText(text),
+    createdAt: a.now,
+    updatedAt: a.now,
+    deletedAt: null,
+  };
+}
+
+/**
+ * The statements of the rules a row's payee change makes by itself, in the change's own batch, each under `guard`
+ * (the batch's condition) and with its history row by the change's actor: no read, no round trip.
+ * Learn: `is <name>` on the new payee unless it has it. Undo: every other payee's `is <name>` goes, and if a
+ * `contains` rule of another payee still matches the name, the new payee gets `is <name>` so that it holds.
+ * Empty when the imported name cannot be a rule's text (blank, over 200 characters).
+ */
+export function autoRuleStmts(db: ReturnType<typeof getDb>, a: AutoRule, guard: SQLWrapper) {
+  const checked = checkRuleText(a.importName);
+  if (!checked.ok) return [];
+  const cond = sql`exists ${guard}`;
+  const base: LogBase = {
+    budgetId: a.budgetId,
+    actor: a.actor,
+    action: "create",
+    entityType: "payee_rename_rule",
+    createdAt: a.now,
+  };
+  const row = autoRow(a, checked.text);
+  if (a.mode === "learn") return [...rulesRepo.addIfMissingStmts(db, base, row, cond)];
+  return [
+    ...rulesRepo.removeIsRulesStmts(db, base, a.budgetId, row.matchText, a.payeeId, cond),
+    ...rulesRepo.addIfMissingStmts(
+      db,
+      base,
+      row,
+      sql`${cond} and ${rulesRepo.containsMatchSql(a.budgetId, row.matchText, a.payeeId)}`,
+    ),
+  ];
 }
