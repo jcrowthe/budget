@@ -12466,3 +12466,31 @@ Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test 
 **Next plan (round 140; its review is a check-in):** live is free now. Flow 2's re-run on live
 `2370e08` (its three narrow-window tickets are fixed and live; EXF-679 stays known), in the short
 form. The next Build still waits for the plans Build's gate.
+
+### 2026-11-18 · Plan round 140
+
+Children used 155 of 200 (none started in this plan). Main and live `2370e08`. The person has
+said nothing new. No ticket was filed at the last review. **This round's review is a check-in.**
+
+**Status of the running child (01:11Z):** the plans Build
+(`p_b52eb423142440f396ed4e810ac45000`) is at the checks after its polish fixes, no card; review,
+acceptance and the final gate are still to come.
+
+**Started: nothing, and a change of mind about flow 2.**
+- I had planned flow 2's re-run for this round. I read its last run again: every figure matched,
+  and its one new gap (EXF-760, the CATEGORY column at 1024 px) was measured as fixed on live by
+  Deploy D35. What is left unproven on live from that flow is two tooltips at 1024 px (EXF-680,
+  EXF-681). That does not need a child of its own with 45 left: **it rides in the next Deploy's
+  check list** (D37, after the plans Build), and flow 2's verdict is updated from that.
+- No Build beside the plans Build. What I found today about the gate, posted on EXF-807: the
+  browser suite sets no worker count, so Playwright starts 8 workers (half of the 16 CPUs a box
+  sees) on a quota of 5 CPUs (`cpu.max`), and the load average in a box is the whole host's (my
+  idle box read 9.5 over fifteen minutes). Sibling children share one host; a second Build would
+  run its checks through the plans Build's gate. The gate gets the machine to itself.
+- **Order after the plans Build's card:** Deploy D37 (no `/plans` and no Open Plan submenu on
+  live; EXF-680 and EXF-681 in its list); then **EXF-807 with EXF-727, EXF-747 and EXF-783 as the
+  next Build, alone** (it holds `playwright.config.ts`), because every later gate depends on it;
+  then EXF-465 and EXF-464 side by side.
+
+Ticket writes: 1 (the three facts on EXF-807).
+Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 7.
