@@ -196,7 +196,7 @@ export function ActionBar({
     });
   };
   const doMatch = () => {
-    if (!ma.match?.enabled) return;
+    if (!ma.match?.enabled || matcher.isPending) return;
     close();
     void guard(async () => {
       await matcher.mutateAsync(ids);
@@ -205,7 +205,7 @@ export function ActionBar({
   };
   const doUnmatch = () => {
     const one = sel[0];
-    if (!ma.unmatch?.enabled || !one) return;
+    if (!ma.unmatch?.enabled || !one || unmatcher.isPending) return;
     close();
     void guard(async () => {
       await unmatcher.mutateAsync(one.id);

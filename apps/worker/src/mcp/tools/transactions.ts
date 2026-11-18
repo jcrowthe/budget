@@ -87,7 +87,10 @@ export const tools: McpToolDef[] = [
   {
     name: "match_transactions",
     description: `Match an unapproved bank import to a transaction entered by hand, as one transaction (ids: exactly two transactions of one open account, one the import and one the hand entry). The hand entry keeps its payee, memo, date, category and flag, and takes the bank's amount, the import's id and bank fields (imported_payee, bank_description and the bank's date, amount and payee, shown as match_details), cleared (a reconciled entry stays reconciled) and approved; the import's own row is deleted. Dates may be any distance apart and amounts may differ: only this tool, the owner's word, matches such rows; the bank sync matches only equal amounts within 10 days. Refused as a tool error, with nothing written: rows of two accounts, a closed account, a row already matched (not_matchable), two imports or two hand entries, an approved, split or transfer import, a split or transfer entry whose amount differs from the bank's (not_matchable), a reconciled import or a reconciled entry whose amount would change (transaction_reconciled); an unknown id is not found. ${MONEY} Returns { transaction, removed }: the matched transaction and the import's row as it was, each as get_transaction returns it. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
-    inputSchema: z.object({ budget_id: Id, ids: z.array(Id).length(2) }),
+    inputSchema: z.object({
+      budget_id: Id,
+      ids: z.array(Id).length(2, "Select exactly two different transactions to match"),
+    }),
     run: async (input: { budget_id: string; ids: string[] }, { env, actor }) =>
       matchTransactions(env, actor, input.budget_id, input.ids),
   },

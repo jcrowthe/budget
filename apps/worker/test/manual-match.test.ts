@@ -325,8 +325,12 @@ describe("match by hand (EXF-464)", () => {
     expect((await data(ok)).transaction).toMatchObject({ cleared: "reconciled", matched: true });
     // 0: unknown ids and the same id twice
     expect((await post(MATCH(plan), { ids: [e3.id, "nope"] })).status).toBe(404);
-    expect((await post(MATCH(plan), { ids: [e3.id, e3.id] })).status).toBe(422);
-    expect((await post(MATCH(plan), { ids: [e3.id] })).status).toBe(422);
+    const words = "Select exactly two different transactions to match";
+    for (const ids of [[e3.id, e3.id], [e3.id], [e3.id, e2.id, e1.id]]) {
+      const bad = await post(MATCH(plan), { ids });
+      expect(bad.status).toBe(422);
+      expect((((await bad.json()) as Json).error as Json).detail).toBe(words);
+    }
     // 2: a closed account
     const e4 = await mkEntry("ZZ Four");
     const i10 = await sqlImport(plan, account);

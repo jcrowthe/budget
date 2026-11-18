@@ -348,7 +348,7 @@ export const TransactionMatchRequest = z
   .object({
     ids: z
       .array(z.string().min(1))
-      .length(2)
+      .length(2, "Select exactly two different transactions to match")
       .refine((a) => a[0] !== a[1], "Select exactly two different transactions to match")
       .describe("The two transactions to match: one unapproved import and one hand entry"),
   })
