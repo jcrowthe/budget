@@ -27,7 +27,14 @@ export function useCreateBudget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createBudget,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["budgets"] }),
+    // Append the answer when the list is loaded (no refetch); otherwise let the next reader fetch it.
+    onSuccess: (b) => {
+      if (qc.getQueryData<Budget[]>(["budgets"])) {
+        qc.setQueryData<Budget[]>(["budgets"], (list) => (list ? [...list, b] : list));
+      } else {
+        return qc.invalidateQueries({ queryKey: ["budgets"] });
+      }
+    },
   });
 }
 
