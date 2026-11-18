@@ -11,6 +11,7 @@ export const UI_STATE_FIELDS = {
   snooze_tip_seen: z.boolean(),
   hide_register_export_dialog: z.boolean(),
   hide_reconcile_difference_dialog: z.boolean(),
+  hide_plan_export_dialog: z.boolean(),
 };
 export type UiStateKey = keyof typeof UI_STATE_FIELDS;
 export const UiState = z.object(UI_STATE_FIELDS).partial().openapi("UiState");
