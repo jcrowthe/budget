@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
-import { matchTransactions } from "../src/services/manual-match";
+import { matchTransactions, unmatchTransaction } from "../src/services/manual-match";
 import {
   getTransaction,
   listAccountTransactions,
@@ -45,6 +45,19 @@ describe("D1 calls of a manual match (EXF-464)", () => {
     }
     expect(counts[0]).toBe(counts[1]);
     expect(counts[0]).toBeLessThanOrEqual(7);
+  });
+
+  it("unmatch: the same calls for 10 and for 100 rows, at most 8", async () => {
+    const counts: number[] = [];
+    for (const n of [10, 100]) {
+      const a = await account(n);
+      await matchTransactions(env, REST_ACTOR, a.plan, [a.entry, a.imp]);
+      const c = countingEnv();
+      await unmatchTransaction(c.env, REST_ACTOR, a.plan, a.entry);
+      counts.push(c.calls.d1);
+    }
+    expect(counts[0]).toBe(counts[1]);
+    expect(counts[0]).toBeLessThanOrEqual(8);
   });
 
   it("the single and list reads make the same calls after a match as before", async () => {

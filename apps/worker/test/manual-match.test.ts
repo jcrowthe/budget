@@ -9,6 +9,7 @@ import {
   post,
   snapshot,
   sqlImport,
+  UNMATCH,
 } from "./manual-match-helpers";
 import { plaidTxn } from "./plaid-stub";
 import {
@@ -348,5 +349,199 @@ describe("match by hand (EXF-464)", () => {
     const before = await snapshot(plan);
     expect((await post(MATCH(plan), { ids: [e.id, i.id] })).status).toBe(404);
     expect(await snapshot(plan)).toEqual(before);
+  });
+});
+
+describe("unmatch (EXF-464)", () => {
+  it("2: 12.34 and 13.00 come back, the import unapproved", async () => {
+    const { plan, account, cat, entry, imp, b0 } = await pairWorld();
+    expect((await post(MATCH(plan), { ids: [entry.id, imp.id] })).status).toBe(200);
+    const res = await post(UNMATCH(plan, entry.id));
+    expect(res.status).toBe(200);
+    const out = (await data(res)) as Json;
+    // the entry has the amount it had before the match, and its own fields
+    expect(out.transaction).toMatchObject({
+      id: entry.id,
+      amount: -12340,
+      cleared: "uncleared",
+      approved: true,
+      payee_name: "ZZ Cafe",
+      memo: "ZZ memo",
+      date: "2026-03-12",
+      category_id: cat,
+      flag_color: "red",
+      import_id: null,
+      matched: false,
+      match_details: null,
+    });
+    // the import: the bank's date, amount and payee, unapproved, no category
+    expect(out.imported).toMatchObject({
+      amount: -13000,
+      date: "2026-04-01",
+      payee_name: "ZZ Bank Cafe",
+      approved: false,
+      cleared: "cleared",
+      source: "plaid",
+      import_id: "ZZ-BANK-1",
+      category_id: null,
+      matched: false,
+      match_details: null,
+    });
+    expect(out.imported.id).not.toBe(entry.id);
+    expect(await balanceOf(plan, account)).toBe(b0 - 25340);
+    expect(await live(account)).toHaveLength(3);
+    const log = await q(
+      "select entity_id, action, actor from change_log where entity_id in (?, ?) order by rowid",
+      entry.id,
+      out.imported.id,
+    );
+    expect(log.filter((l) => l.action === "update" && l.actor === REST_ACTOR).length).toBe(3); // flag, match, unmatch
+    expect(log.find((l) => l.entity_id === out.imported.id)).toMatchObject({
+      action: "create",
+      actor: REST_ACTOR,
+    });
+    // matched again: the pair can be matched once more
+    expect((await post(MATCH(plan), { ids: [entry.id, out.imported.id] })).status).toBe(200);
+  });
+
+  it("an automatic match unmatches to the entry's own amount (462-13 setup)", async () => {
+    const { plan, conn, account } = await world1();
+    const e = (
+      await data(
+        await hand(plan, {
+          account_id: account,
+          date: "2026-03-10",
+          amount: -12340,
+          payee_name: "ZZ Hand",
+        }),
+      )
+    ).transaction as Json;
+    feed.pages = [
+      {
+        added: [
+          plaidTxn({
+            transaction_id: "ZZ-AUTO",
+            amount: 12.34,
+            date: "2026-03-13",
+            name: "ZZ Bank Name",
+          }),
+        ],
+      },
+    ];
+    expect(await syncOne(plan, conn)).toMatchObject({ matched: 1, added: 0 });
+    const res = await post(UNMATCH(plan, e.id));
+    expect(res.status).toBe(200);
+    const out = (await data(res)) as Json;
+    expect(out.transaction).toMatchObject({
+      amount: -12340,
+      payee_name: "ZZ Hand",
+      cleared: "uncleared",
+      matched: false,
+    });
+    expect(out.imported).toMatchObject({
+      amount: -12340,
+      date: "2026-03-13",
+      payee_name: "ZZ Bank Name",
+      import_id: "ZZ-AUTO",
+      approved: false,
+    });
+  });
+
+  it("refusals change nothing, and the pure rule agrees", async () => {
+    const { plan, account } = await world1();
+    const e = (
+      await data(
+        await hand(plan, {
+          account_id: account,
+          date: "2026-03-12",
+          amount: -1000,
+          payee_name: "ZZ Plain",
+        }),
+      )
+    ).transaction as Json;
+    const refuse = async (id: string, status: number, name: string) => {
+      const before = await snapshot(plan);
+      const res = await post(UNMATCH(plan, id));
+      expect(res.status).toBe(status);
+      expect((await res.clone().json()).error.name).toBe(name);
+      expect(await snapshot(plan)).toEqual(before);
+      await agrees(plan, [id], res);
+    };
+    await refuse(e.id, 422, "not_matched");
+    // a matched row: reconciled, closed, no record of the bank
+    const i = await sqlImport(plan, account, { amount: -1000 });
+    expect((await post(MATCH(plan), { ids: [e.id, i.id] })).status).toBe(200);
+    await q("update transactions set import_date = null where id = ?", e.id);
+    await refuse(e.id, 422, "not_matched");
+    await q(
+      "update transactions set import_date = '2026-03-20', cleared = 'reconciled' where id = ?",
+      e.id,
+    );
+    await refuse(e.id, 409, "transaction_reconciled");
+    await q("update transactions set cleared = 'cleared' where id = ?", e.id);
+    await q("update accounts set closed = 1 where id = ?", account);
+    await refuse(e.id, 422, "account_closed");
+    expect((await post(UNMATCH(plan, "nope"))).status).toBe(404);
+  });
+
+  it("6: a matched split and a matched transfer keep their amount, lines and other side", async () => {
+    const { plan, account } = await world1();
+    const m = await data(await json(`/api/v1/budgets/${plan}/months/2026-03-01`));
+    const [c1, c2] = m.groups.flatMap((g: Json) => g.categories).map((c: Json) => c.id);
+    const sp = (
+      await data(
+        await hand(plan, {
+          account_id: account,
+          date: "2026-03-12",
+          amount: -13000,
+          payee_name: "ZZ Split",
+          subtransactions: [
+            { amount: -5000, category_id: c1 },
+            { amount: -8000, category_id: c2 },
+          ],
+        }),
+      )
+    ).transaction as Json;
+    const i = await sqlImport(plan, account, { amount: -13000 });
+    expect((await post(MATCH(plan), { ids: [sp.id, i.id] })).status).toBe(200);
+    const res = await post(UNMATCH(plan, sp.id));
+    expect(res.status).toBe(200);
+    const out = (await data(res)) as Json;
+    expect(out.transaction).toMatchObject({ amount: -13000, cleared: "uncleared", matched: false });
+    expect(out.transaction.subtransactions.map((l: Json) => l.amount)).toEqual([-5000, -8000]);
+    const lines = await q(
+      "select cleared from transactions where parent_transaction_id = ? and deleted_at is null",
+      sp.id,
+    );
+    expect(lines).toEqual([{ cleared: "uncleared" }, { cleared: "uncleared" }]);
+
+    const sav = (
+      await data(
+        await json(
+          `/api/v1/budgets/${plan}/accounts`,
+          { method: "POST" },
+          { name: "ZZ Sav", type: "savings", balance: 0, date: "2026-03-10" },
+        ),
+      )
+    ).account.id as string;
+    const tr = (
+      await data(
+        await hand(plan, {
+          account_id: account,
+          date: "2026-03-12",
+          amount: -7000,
+          transfer_account_id: sav,
+        }),
+      )
+    ).transaction as Json;
+    const other = await q("select * from transactions where id = ?", tr.transfer_transaction_id);
+    const i2 = await sqlImport(plan, account, { amount: -7000 });
+    expect((await post(MATCH(plan), { ids: [tr.id, i2.id] })).status).toBe(200);
+    const r2 = await post(UNMATCH(plan, tr.id));
+    expect(r2.status).toBe(200);
+    expect((await data(r2)).transaction).toMatchObject({ amount: -7000, transfer_account_id: sav });
+    expect(await q("select * from transactions where id = ?", tr.transfer_transaction_id)).toEqual(
+      other,
+    );
   });
 });
