@@ -22,7 +22,7 @@ export function NewPayeeSection({
   return (
     <section className="mp-new-payee" aria-label="New payee section">
       <h3>New payee</h3>
-      <p>{usingSentence(count)}</p>
+      <em className="mp-using">{usingSentence(count)}</em>
       <select
         className="mp-select"
         aria-label="New payee"
@@ -36,7 +36,7 @@ export function NewPayeeSection({
           </option>
         ))}
       </select>
-      <div className="mp-buttons">
+      <div className="mp-buttons mp-left">
         <button type="button" className="mp-button secondary" disabled={pending} onClick={onCancel}>
           Cancel
         </button>

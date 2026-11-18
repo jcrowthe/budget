@@ -78,50 +78,54 @@ export function TransactionsPopover({
           <CloseIcon width={16} height={16} />
         </button>
       </div>
-      <table className="mp-table">
-        <thead>
-          <tr>
-            {COLS.map((c2) => (
-              <th key={c2.id} className={c2.id === "amount" ? "is-amount" : undefined}>
-                <button
-                  type="button"
-                  className={sort.col === c2.id ? "is-sorting" : undefined}
-                  onClick={() =>
-                    setSort((s) =>
-                      s.col === c2.id
-                        ? { col: c2.id, dir: s.dir === "asc" ? "desc" : "asc" }
-                        : {
-                            col: c2.id,
-                            dir: c2.id === "date" || c2.id === "amount" ? "desc" : "asc",
-                          },
-                    )
-                  }
-                >
-                  {c2.label}
-                </button>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((t) => (
-            <tr key={`${t.kind}-${t.id}`}>
-              <td title={t.account_name}>{t.account_name}</td>
-              <td>{fmt.date(t.date)}</td>
-              <td title={categoryOf(t)}>{categoryOf(t)}</td>
-              <td title={t.memo ?? undefined}>{t.memo ?? ""}</td>
-              <td className="is-amount">{fmt.money(t.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="mp-popover-content">
+        <div className="mp-table-body">
+          <table className="mp-table">
+            <thead>
+              <tr>
+                {COLS.map((c2) => (
+                  <th key={c2.id} className={c2.id === "amount" ? "is-amount" : undefined}>
+                    <button
+                      type="button"
+                      className={sort.col === c2.id ? "is-sorting" : undefined}
+                      onClick={() =>
+                        setSort((s) =>
+                          s.col === c2.id
+                            ? { col: c2.id, dir: s.dir === "asc" ? "desc" : "asc" }
+                            : {
+                                col: c2.id,
+                                dir: c2.id === "date" || c2.id === "amount" ? "desc" : "asc",
+                              },
+                        )
+                      }
+                    >
+                      {c2.label}
+                    </button>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((t) => (
+                <tr key={`${t.kind}-${t.id}`}>
+                  <td title={t.account_name}>{t.account_name}</td>
+                  <td>{fmt.date(t.date)}</td>
+                  <td title={categoryOf(t)}>{categoryOf(t)}</td>
+                  <td title={t.memo ?? undefined}>{t.memo ?? ""}</td>
+                  <td className="is-amount">{fmt.money(t.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {total > PAYEE_TRANSACTIONS_LIMIT ? (
         <p className="mp-popover-note">
           Showing the newest {PAYEE_TRANSACTIONS_LIMIT} of {total}.
         </p>
       ) : null}
       <div className="mp-buttons">
-        <button type="button" className="mp-button secondary" onClick={onClose}>
+        <button type="button" className="mp-button mp-primary" onClick={onClose}>
           Close
         </button>
       </div>

@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { invalidatePayeeViews, usePayees } from "../api/payees";
+import { SearchIcon } from "../register/icons";
 import { CloseIcon } from "../shell/icons";
 import { useManagePayeesFocus } from "./manage-payees-focus";
 import { type GroupKey, PayeeList } from "./manage-payees-list";
@@ -102,7 +103,8 @@ export function ManagePayeesDialog({
       </div>
       <div className="mp-body">
         <div className="mp-left-pane">
-          <div className="mp-search">
+          <div className={`mp-search${text !== "" ? " has-clear-button" : ""}`}>
+            <SearchIcon className="mp-search-icon" width={16} height={16} />
             <input
               ref={search}
               type="text"
@@ -122,7 +124,12 @@ export function ManagePayeesDialog({
                   search.current?.focus();
                 }}
               >
-                <CloseIcon width={12} height={12} />
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm3 8.8-.7.7L8 8.7 5.7 11l-.7-.7L7.3 8 5 5.7l.7-.7L8 7.3 10.3 5l.7.7L8.7 8 11 10.3Z"
+                  />
+                </svg>
               </button>
             ) : null}
           </div>
@@ -188,7 +195,7 @@ export function ManagePayeesDialog({
             Redo
           </button>
         </div>
-        <button type="button" className="mp-button primary" onClick={onClose}>
+        <button type="button" className="mp-button mp-primary" onClick={onClose}>
           Done
         </button>
       </div>

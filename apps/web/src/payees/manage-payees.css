@@ -13,6 +13,9 @@
      and --buttonDestructiveBackground / --buttonDestructiveLabel (dark #6a1020 / #feedeb). */
   --mp-negative-bg: #6a1020;
   --mp-destructive-label: #feedeb;
+  /* The source's dark --buttonDestructiveBackgroundActive, and --labelHeading. */
+  --mp-destructive-hover: #912333;
+  --mp-label-heading: #f1f1ff;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -34,7 +37,7 @@
   box-sizing: border-box;
   height: 48px;
   padding: 0 var(--space-3);
-  border-bottom: 1px solid var(--separatorStandard);
+  border-bottom: 1px solid var(--borderSubtle);
 }
 .mp-head h2 {
   margin: 0;
@@ -58,6 +61,8 @@
   outline-offset: 2px;
 }
 .mp-body {
+  font-weight: 500;
+  line-height: 1.5;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -67,7 +72,7 @@
   flex: 0 0 293px;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--separatorStandard);
+  border-right: 1px solid var(--borderSubtle);
   overflow: hidden;
 }
 .mp-search {
@@ -80,13 +85,23 @@
   box-sizing: border-box;
   width: 100%;
   height: 32px;
-  padding: 0 28px;
+  padding: 0 0 0 28px;
   border: 1px solid var(--inputBorder);
   border-radius: var(--radius-xs);
   background: var(--backgroundPrimary);
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+}
+.mp-search.has-clear-button input {
+  padding-right: 28px;
+}
+.mp-search-icon {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  color: var(--labelTertiary);
+  pointer-events: none;
 }
 .mp-search input:focus {
   outline: none;
@@ -99,12 +114,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 32px;
   height: 32px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--labelSecondary);
+  color: var(--labelTertiary);
   cursor: pointer;
 }
 .mp-clear:hover {
@@ -164,12 +179,12 @@
   appearance: none;
   box-sizing: border-box;
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   margin: 0;
   border: 1px solid var(--inputBorder);
   border-radius: 3px;
-  background: transparent center / 11px 11px no-repeat;
+  background: transparent center / 10px 10px no-repeat;
   cursor: pointer;
 }
 .mp-check input:checked,
@@ -214,7 +229,6 @@
   box-sizing: border-box;
   height: 33px;
   padding: 0 var(--space-3);
-  border-top: 1px solid var(--separatorStandard);
 }
 .mp-link {
   padding: 0;
@@ -266,8 +280,8 @@
 .mp-card h2 {
   margin: 0;
   padding: var(--space-3);
-  border-bottom: 1px solid var(--separatorStandard);
-  color: var(--labelPrimary);
+  border-bottom: 1px solid var(--borderSubtle);
+  color: var(--mp-label-heading);
   font-size: var(--font-size-sm);
   font-weight: 600;
   line-height: 1.5;
@@ -282,7 +296,7 @@
   padding: 4px 8px;
   border: 1px solid var(--inputBorder);
   border-radius: var(--radius-xs);
-  background: var(--backgroundPrimary);
+  background: var(--inputBackground);
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
 }
@@ -358,15 +372,24 @@
   color: var(--mp-destructive-label);
 }
 .mp-button.destructive:hover:not(:disabled) {
-  background: var(--statusNegative);
+  background: var(--mp-destructive-hover);
   color: #fff;
 }
-.mp-button.primary:hover:not(:disabled) {
+.mp-button.mp-primary:hover:not(:disabled) {
   background: var(--actionPrimary);
 }
 .mp-button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+/* Source button, disabled: #292b3d, #9b9caa, full opacity. */
+.mp-pane .mp-button:disabled {
+  background: var(--menuHover);
+  color: var(--labelTertiary);
+  opacity: 1;
+}
+.mp-primary {
+  font-size: var(--font-size-md);
 }
 .mp-note {
   margin: var(--space-3) 0 0;
@@ -377,7 +400,7 @@
 .mp-heading {
   margin: 0 0 var(--space-3);
   padding: 0 var(--space-1);
-  color: var(--labelPrimary);
+  color: var(--mp-label-heading);
   font-size: var(--font-size-sm);
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -393,16 +416,25 @@
   color: var(--labelSecondary);
 }
 .mp-deleting .mp-card {
-  opacity: 0.5;
+  opacity: 0.3;
 }
 .mp-new-payee h3 {
-  margin: 0 0 var(--space-2);
-  font-size: var(--font-size-md);
-  font-weight: 600;
+  margin: 4.8px 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
 }
-.mp-new-payee p {
-  margin: 0 0 var(--space-2);
+.mp-using {
+  display: block;
+  margin-bottom: var(--space-2);
   color: var(--labelSecondary);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.mp-new-payee .mp-buttons {
+  margin-top: var(--space-2);
+  padding: var(--space-3) 0;
 }
 .mp-select {
   box-sizing: border-box;
@@ -412,7 +444,7 @@
   padding: 4px 8px;
   border: 1px solid var(--inputBorder);
   border-radius: var(--radius-xs);
-  background: var(--backgroundPrimary);
+  background: var(--inputBackground);
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
 }
@@ -423,7 +455,7 @@
   justify-content: flex-end;
   gap: var(--space-2);
   padding: var(--space-3);
-  border-top: 1px solid var(--separatorStandard);
+  border-top: 1px solid var(--borderSubtle);
 }
 .mp-undo {
   display: flex;
@@ -452,12 +484,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) 0;
+  padding: var(--space-3) 0 0;
 }
 .mp-popover-head h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+}
+.mp-popover-content {
+  padding: 1.6px 8px 4px;
+}
+.mp-table-body {
+  max-height: 192px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--separatorStandard);
 }
 .mp-table {
   width: 100%;
@@ -478,7 +518,7 @@
   padding: 4px var(--space-2);
   border: 0;
   background: transparent;
-  color: var(--labelSecondary);
+  color: var(--labelPrimary);
   font: inherit;
   font-size: 12px;
   font-weight: 500;
@@ -509,4 +549,28 @@
 }
 .mp-popover .mp-buttons {
   padding-top: 12px;
+}
+
+.mp-table th {
+  position: sticky;
+  top: 0;
+  background: var(--backgroundTertiary);
+  border-right: 1px solid var(--separatorStandard);
+}
+.mp-table th:last-child {
+  border-right: 0;
+}
+.mp-table th:first-child button,
+.mp-table td:first-child {
+  padding-left: 0;
+}
+.mp-table th:last-child button,
+.mp-table td:last-child {
+  padding-right: 0;
+}
+.mp-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.mp-popover .mp-table {
+  margin-top: 7px;
 }
