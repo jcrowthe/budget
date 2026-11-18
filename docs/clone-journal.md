@@ -13335,3 +13335,61 @@ Finished since each template's last review: Build 5, Deploy 7, Discover 2, Test 
 **Next plan:** set the new ticket's priority. No Deploy yet for an 18-line change on its own:
 D39 ships it together with the connection statuses and their migration when that Build merges.
 Nothing else to start beside a Build whose gate is still to come.
+
+### 2026-11-18 · Plan round 149
+
+Children used 165 of 200 (one started this turn; the warning comes at 180). Main `170f4db`,
+live `b0240a5`.
+
+**The ticket filed at the last review exists:** EXF-874 (the outside press that still acts on
+what is under it; title read from the list in this turn). Priority set to Medium. No blocking
+link: it is a small Plan-page Build of its own.
+
+**A time of mine corrected:** the last review's entry and my comment on EXF-866 say "11:56Z";
+the box's clock read 11:51Z when that review began and 11:53Z when this plan began. I wrote a
+time I had not read. The comment's content stands.
+
+**Running (11:53Z):** the Build for EXF-866 with EXF-867 (`p_6d02018d422f4e9a80bd2a3e6d826ace`),
+15 visits, at its polish fixes; PR 74 open; no card.
+
+**Started: Build `p_67b2dc2acd404028888247acb64ab7d9`, EXF-477 with EXF-476** (from main
+`170f4db`): the two screens for a plan's file.
+- **Why this one:** EXF-477 is the only High feature ticket open, and it is what lets the owner
+  bring his years of history over: the API half has been live since 17 Nov, but only a script
+  or an agent can call it. I had parked the screen half "until the owner says whether Builds
+  may look at the source's plan menu". Reading the ticket again: **the source has no plan
+  import, so the dialog needs nothing from the source**, and the plans page it opens from
+  exists since EXF-471. The wait was mine, not the work's. EXF-476's dialog is in the source's
+  plan menu, which nobody opens; its ticket holds what was seen of it, and the entry is
+  switched on by one action file.
+- **Decided in the brief:** Import opens from one button on the plans page, not from the plan
+  menu (the menu's entries are the source's own; its file is never edited). Preview by dry run
+  only; import with progress through `continue`; cancel; a failed step offers `Try again`; the
+  result opens the new plan. Tests against the real local server with real files; one spec
+  takes a seeded plan out through the Export dialog and back in through the Import dialog and
+  compares three figures. "Don't show again" is a new interface-state key beside the register
+  export's. No Worker change expected; no migration.
+- **Kept apart from the running Build:** this one may not edit any file under
+  `apps/web/src/shell/**` (the other holds it), nor `apps/web/src/account/**`, nor the Worker
+  outside the import's own three files. Its ground is new folders (`plan-import`, `plan-export`),
+  `apps/web/src/plans/**`, one action file, one line in `packages/schema/src/ui-state.ts`. If it
+  finds it needs the shell, it stops and says so.
+- **In the source:** style rules, loaded script files, probe elements; **no click at all**
+  (the last Build's sub-agent clicked a row; this brief names it).
+- Eight states to look at, sixteen screenshots. If it runs long: Export, the file step with a
+  consistent file's preview, and the import itself must be whole.
+- **A limit I wrote on the ticket:** no test opens the plans page on live (it shows the
+  owner's plans by name), so a Deploy's verifier cannot prove this dialog; the Build's specs
+  and the owner do.
+
+**Not started:** a Deploy (D39 waits for the connection-status Build, so that one Deploy ships
+`170f4db` and the migration together); EXF-874 (it would hold `apps/web/src/plan/**`, free now,
+but a third Build's gate on the shared host is one too many); flow 2's second run (as decided
+at round 148).
+
+**Tickets:** EXF-874 to Medium; EXF-477 and EXF-476 to In Progress with a comment each.
+**Ticket writes:** 5.
+Finished since each template's last review: Build 5, Deploy 7, Discover 2, Test user flow 8.
+
+**Still waiting on the person** (check-in 140, no answer): the eight questions listed there.
+The check-in of round 150 is the next review.
