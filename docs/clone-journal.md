@@ -14211,3 +14211,58 @@ template review due (Build 9, Deploy 0, Discover 2, Test user flow 8).
 **Ticket writes:** 0. **Children left: 27.**
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 157
+
+Children used 173 of 200 (the warning comes at 180). One ended: **the Build for EXF-874
+completed and merged** (`p_b4c926009b32431f826d65b571ba1db0`, PR 78, about an hour and a half).
+**Main is `e32ebed`** (its tree equals the gated head `0cddfd4`); **live is `639e60d`** (read at
+19:27Z); no migration. The journal branch holds main (merge `9fc4cda`).
+
+**Status of the running child (19:27Z):** the Build for EXF-510
+(`p_3d140515a4c34b64a7efbf1baf338ce1`): all six parts built, `pnpm check` green (2,213 tests),
+tools 89 to 94, the fifteen polish items applied at 19:25Z; review, acceptance and the gate are
+ahead. No card. On course. One thing its Implementer caught itself: its first rename statement
+was not tied to its row and renamed every payee of the plan; a test caught it before a commit.
+
+**EXF-874 as merged** (card answered in a side turn: approve).
+- An option of the hook, set by the month picker and the month note: the outside press closes
+  and does nothing else, focus returns to the opening button, the rest of that press is stopped
+  until the next press or key. Clicks made by code pass (the Reviewer's one finding: a download
+  started by code could have been lost; fixed with a spec). Reflect's popovers unchanged.
+- **Both popovers were compared in the source** with the presses the brief listed; the note
+  uses the press up too.
+- Acceptance 9 of 9; the new spec failed first and passed 90 of 90 at the gate.
+- **The gate's full runs were the least clean so far: 695 of 705, then 694 of 705 twice**,
+  fifteen specs failing in a full run and passing alone. I searched each of their ten files for
+  any use of the month picker or note: none; the new path runs only while one of them is open.
+  The Manage Payees Build was running its checks and specs on the same host through this gate.
+  **Trend, from the cards of today:** 673 of 673 three times (13:24Z, a light Build beside it);
+  690 and 686 of 692 (15:33Z, alone); my own run 695 of 697 with 2 skipped and none failed
+  (17:44Z, alone, at the memory limit); 695 and 694 of 705 (19:22Z, a heavy Build beside it).
+  The suite grows by a dozen tests a Build and the failures with it. EXF-877's first point (the
+  measurement) is now the thing most worth a child after the features in hand.
+
+**Looked at and written down, not filed:**
+- The Tester took 16 captures where the brief asked for four, and opened 5; it said so. The
+  short LOOK form holds in Deploys and slipped here: the Build template still asks its own
+  steps for captures by theme, which the brief cannot switch off.
+- **The source, again a little past the brief:** the Architect's sub-agent also made a
+  right-click on empty space and scrolled with the wheel, neither on my list of presses.
+  Nothing changed in the test plan. Three Builds in a row a sub-agent has gone one step past a
+  list; the list form ("these and no other") narrows it but does not close it. Evidence for
+  EXF-573 at the Build template's review, which is due now.
+- Known differences accepted: the wheel still scrolls the page behind an open picker; no
+  browser menu after a right-click outside.
+
+**Tickets:** EXF-874 to Done with what merged and what differs. **Ticket writes:** 2.
+No new ticket.
+**Backlog:** 33 open feature tickets, one In Progress (EXF-510). Gap: 16 open. Not recounted.
+**Flow verdicts:** unchanged.
+Finished since each template's last review: **Build 10**, Deploy 0, Discover 2, Test user
+flow 8.
+
+**Next plan:** the Build template's review (ten Builds since its last one: `p_b52eb423…`,
+`p_72cf9bb6…`, `p_75b76b1b…`, `p_f67df692…`, `p_cdc27796…`, `p_6d02018d…` abandoned,
+`p_79c7d0a7…`, `p_67b2dc2a…`, `p_da6a4b23…`, `p_b4c92600…`). No Deploy for `e32ebed` alone: it
+ships with Manage Payees when that merges.
