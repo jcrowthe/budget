@@ -1,5 +1,6 @@
 import {
   type FlagColor,
+  MatchResponse,
   PlanTransactionListResponse,
   type TransactionBulkRequest,
   TransactionBulkResponse,
@@ -8,6 +9,7 @@ import {
   TransactionResponse,
   TransactionsResponse,
   type TransactionUpdateRequest,
+  UnmatchResponse,
 } from "@budget/schema/transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
@@ -189,6 +191,43 @@ export function useApproveReject(budgetId: string) {
   return useMutation({
     mutationFn: (v: { action: "approve" | "reject"; ids: string[] }) =>
       idsCall(budgetId, v.action, v.ids),
+    onSuccess: () => invalidatePlan(qc, budgetId),
+  });
+}
+
+/** Matches an unapproved import and a hand entry (EXF-464): one request. */
+export const matchTransactions = async (budgetId: string, ids: string[]) =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/transactions/match`, {
+      method: "POST",
+      body: { ids },
+      idempotencyKey: crypto.randomUUID(),
+      schema: MatchResponse,
+    })
+  ).data;
+export const unmatchTransaction = async (budgetId: string, id: string) =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/transactions/${id}/unmatch`, {
+      method: "POST",
+      idempotencyKey: crypto.randomUUID(),
+      schema: UnmatchResponse,
+    })
+  ).data;
+
+/** Match two selected rows; every query of the plan refetches once (as a bulk action does). */
+export function useMatchTransactions(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => matchTransactions(budgetId, ids),
+    onSuccess: () => invalidatePlan(qc, budgetId),
+  });
+}
+
+/** Unmatch one matched row; every query of the plan refetches once. */
+export function useUnmatchTransaction(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unmatchTransaction(budgetId, id),
     onSuccess: () => invalidatePlan(qc, budgetId),
   });
 }
