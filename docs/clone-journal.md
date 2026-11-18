@@ -12080,3 +12080,41 @@ REST and the register; **the Build template review** with the ten Threads `p_4b3
 `p_164aad44…`, `p_5b0c6eac…`, `p_a45bb554…`, `p_20723ffe…`, `p_e8c64873…`, `p_436014a9…`,
 `p_0625567f…`, `p_49508f8b…`, `p_4333153b…`; set the new ticket's priority. The Deploy's brief
 forbids the two connections that are not ours and says nothing about `/plans` yet (not merged).
+
+### 2026-11-18 · Plan round 136
+
+Children used 153 of 200 (152 before this plan; one started). Main `2370e08`; live `2d9cde7`
+(read at 00:27Z). The person has said nothing new.
+
+**The ticket filed at the last review exists:** EXF-807 (the full browser suite fails 7 to 8
+specs per run on a loaded box); set to Medium.
+
+**Status of every running child (00:27Z):**
+- Flow 5, fourth run (`p_8e7994fbe6064c20bab5cd335a4940a8`): walking, 32 minutes in, no card.
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its build step, no card. Its cost
+  and token count did not move between 00:24Z and 00:27Z; read again at the review.
+
+**Started: the Build template review** (`p_f56a4f28283c47ada683261077398d50`, Improve templates,
+mode review) over the ten Builds that ended since the last one: `p_4b3e4d16…`, `p_164aad44…`,
+`p_5b0c6eac…`, `p_a45bb554…`, `p_20723ffe…`, `p_e8c64873…`, `p_436014a9…`, `p_0625567f…`,
+`p_49508f8b…`, `p_4333153b…` (eight merged, two lost to the platform). What I asked for, in
+order: a lost child says nothing to its parent (EXF-612); the Designer and the source under the
+two wordings of the brief (EXF-573); a stand-in that invents the server's shape (the logo,
+EXF-798; new); whether the "Looking" lists were done (EXF-684); the gate with thirteen flakes
+(EXF-576); the card's screenshot list that is mostly other Builds' files; what worked; the
+intake's environment; cost and time. The notes carry the stand-in sentence and the ban on the
+source, the live clone and screenshots named `source`.
+
+**Held: Deploy D36 for `2370e08`.** The flow test is walking on live with a bank connection of
+its own; a release under it would swap the app's files in the middle of its steps and could
+show as faults that are not there. The Deploy starts at the plan after the flow test ends.
+Its brief: the import start through REST and in the register without a bank (a Deploy makes no
+connection), the split editor's remaining line in a Euro plan, the two connections that are not
+ours left alone.
+
+**Not started:** another Build (the plans Build holds the shell; EXF-807 with the three flaky
+specs needs `playwright.config.ts`, an always-overlap file, and so runs alone after it).
+
+Ticket writes: 1 (EXF-807 priority).
+Finished since each template's last review: Build 0 (review running), Deploy 4, Discover 2, Test
+user flow 5.
