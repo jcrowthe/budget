@@ -6,6 +6,7 @@ import {
   type BudgetUpdate,
 } from "@budget/schema/budgets";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { apiFetch } from "./client";
 
 export const listBudgets = async () =>
@@ -27,7 +28,15 @@ export function useCreateBudget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createBudget,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["budgets"] }),
+    // Append the answer when the list is loaded (no refetch); otherwise let the next reader fetch it.
+    onSuccess: async (b) => {
+      await qc.cancelQueries({ queryKey: ["budgets"] });
+      if (qc.getQueryData<Budget[]>(["budgets"])) {
+        qc.setQueryData<Budget[]>(["budgets"], (list) => (list ? [...list, b] : list));
+      } else {
+        return qc.invalidateQueries({ queryKey: ["budgets"] });
+      }
+    },
   });
 }
 
@@ -63,5 +72,24 @@ export function useUpdateBudget() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: BudgetUpdate }) => updateBudget(id, patch),
     onSuccess: replace,
+  });
+}
+
+export const deleteBudget = async (id: string) =>
+  apiFetch(`/api/v1/budgets/${id}`, {
+    method: "DELETE",
+    idempotencyKey: crypto.randomUUID(),
+    schema: z.object({ data: z.object({ deleted: z.literal(true) }) }),
+  });
+
+/** Deletes one plan; on success it leaves the plans list in the cache (no refetch). */
+export function useDeleteBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteBudget,
+    onSuccess: async (_res, id) => {
+      await qc.cancelQueries({ queryKey: ["budgets"] });
+      qc.setQueryData<Budget[]>(["budgets"], (list) => list?.filter((b) => b.id !== id));
+    },
   });
 }

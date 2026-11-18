@@ -6,11 +6,7 @@ import { BankIcon } from "./icons";
 export function ConnectionLogo({ c, dot = true }: { c: BankConnection; dot?: boolean }) {
   return (
     <span className="mc-logo">
-      {c.institution_logo ? (
-        <img src={`data:image/png;base64,${c.institution_logo}`} alt="" />
-      ) : (
-        <BankIcon />
-      )}
+      {c.institution_logo ? <img src={c.institution_logo} alt="" /> : <BankIcon />}
       {dot ? <span className="mc-dot" data-status={connectionGroup(c.status)} /> : null}
     </span>
   );

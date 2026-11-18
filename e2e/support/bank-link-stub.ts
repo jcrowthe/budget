@@ -40,7 +40,7 @@ export type FakeConnection = {
   institution_name?: string;
   /** When the connection was last reset (default: never). */
   last_reset_at?: string | null;
-  /** The bank's logo as base64 (default: none). */
+  /** The bank's logo, base64; served as the Worker serves it (`services/bank-connections.ts:123`) (default: none). */
   logo?: string | null;
 };
 type Refusal = { status: number; name: string; detail: string };
@@ -144,7 +144,7 @@ export async function stubBankLink(
     environment: "sandbox",
     institution_id: "ins_test_1",
     institution_name: c.institution_name ?? c.nickname,
-    institution_logo: c.logo ?? null,
+    institution_logo: c.logo ? `data:image/png;base64,${c.logo}` : null,
     nickname: c.nickname,
     status: c.status,
     provider: "Plaid",
