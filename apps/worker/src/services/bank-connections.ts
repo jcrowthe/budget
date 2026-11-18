@@ -14,6 +14,7 @@ import {
 } from "../plaid/client";
 import type { PlaidInstitution } from "../plaid/institutions";
 import { deleteAccessToken, getAccessToken, storeAccessToken } from "../plaid/tokens";
+import type { PlaidAccount } from "../plaid/transactions";
 import * as accountsRepo from "../repositories/accounts";
 import * as repo from "../repositories/bank-connections";
 import { unlinkForConnectionStmts } from "./account-links";
@@ -76,16 +77,24 @@ export async function createLinkToken(env: Env, budgetId: string) {
   return { link_token: res.link_token, expiration: res.expiration };
 }
 
-interface PlaidAccount {
-  account_id: string;
-  name: string;
-  mask?: string | null;
-  type: string;
-  subtype?: string | null;
-  balances: {
-    current?: number | null;
-    available?: number | null;
-    last_updated_datetime?: string | null;
+/** A bank account row from Plaid's account (at creation and when a sync finds a new one). */
+export function bankAccountRow(
+  connectionId: string,
+  a: PlaidAccount,
+  now: string,
+): repo.BankAccountRow {
+  return {
+    id: crypto.randomUUID(),
+    bankConnectionId: connectionId,
+    plaidAccountId: a.account_id,
+    name: a.name,
+    mask: a.mask ?? null,
+    type: a.type,
+    subtype: a.subtype ?? null,
+    currentBalance: plaidToMilliunits(a.balances.current),
+    availableBalance: plaidToMilliunits(a.balances.available),
+    balanceUpdatedAt: a.balances.last_updated_datetime ?? now,
+    createdAt: now,
   };
 }
 
@@ -129,19 +138,7 @@ export async function createBankConnection(
     await storeAccessToken(env, id, accessToken);
     const db = getDb(env);
     const now = new Date().toISOString();
-    const accountRows: repo.BankAccountRow[] = got.accounts.map((a) => ({
-      id: crypto.randomUUID(),
-      bankConnectionId: id,
-      plaidAccountId: a.account_id,
-      name: a.name,
-      mask: a.mask ?? null,
-      type: a.type,
-      subtype: a.subtype ?? null,
-      currentBalance: plaidToMilliunits(a.balances.current),
-      availableBalance: plaidToMilliunits(a.balances.available),
-      balanceUpdatedAt: a.balances.last_updated_datetime ?? now,
-      createdAt: now,
-    }));
+    const accountRows = got.accounts.map((a) => bankAccountRow(id, a, now));
     for (let attempt = 0; ; attempt++) {
       const row: repo.BankConnectionRow = {
         id,

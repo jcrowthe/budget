@@ -15,6 +15,7 @@ import { bankAccounts } from "../db/schema/bank-accounts";
 import { bankConnections } from "../db/schema/bank-connections";
 import { secrets } from "../db/schema/secrets";
 import { accessTokenSecretName } from "../plaid/tokens";
+import { insertSelect } from "./insert-select";
 
 export type BankConnectionRow = typeof bankConnections.$inferSelect;
 export type BankAccountRow = typeof bankAccounts.$inferSelect;
@@ -52,6 +53,47 @@ export function insertConnectionStmt(db: Db, row: BankConnectionRow) {
 
 export function insertAccountStmt(db: Db, row: BankAccountRow) {
   return db.insert(bankAccounts).values(row);
+}
+
+/** Adds a bank account the bank lists while `guard` holds; a row for the same Plaid account stays as it is. */
+export function insertAccountIfStmt(db: Db, row: BankAccountRow, guard: SQLWrapper) {
+  return insertSelect(
+    db,
+    bankAccounts,
+    {
+      id: row.id,
+      bankConnectionId: row.bankConnectionId,
+      plaidAccountId: row.plaidAccountId,
+      name: row.name,
+      mask: row.mask,
+      type: row.type,
+      subtype: row.subtype,
+      currentBalance: row.currentBalance,
+      availableBalance: row.availableBalance,
+      balanceUpdatedAt: row.balanceUpdatedAt,
+      createdAt: row.createdAt,
+    },
+    sql`where exists ${guard}`,
+  ).onConflictDoNothing();
+}
+
+/** Removes bank accounts the bank no longer lists that no plan account is linked to, while `guard` holds. */
+export function deleteUnlistedStmt(
+  db: Db,
+  connectionId: string,
+  bankAccountIds: string[],
+  guard: SQLWrapper,
+) {
+  return db
+    .delete(bankAccounts)
+    .where(
+      and(
+        eq(bankAccounts.bankConnectionId, connectionId),
+        inArray(bankAccounts.id, bankAccountIds),
+        sql`not exists (select 1 from accounts a where a.bank_account_id = ${bankAccounts.id})`,
+        sql`exists ${guard}`,
+      ),
+    );
 }
 
 export async function getInEnvironment(
@@ -142,10 +184,16 @@ export function updateBalancesStmt(
   bankAccountId: string,
   b: { current: number | null; available: number | null; at: string },
   guard?: SQLWrapper,
+  names?: { name: string; mask: string | null },
 ) {
   return db
     .update(bankAccounts)
-    .set({ currentBalance: b.current, availableBalance: b.available, balanceUpdatedAt: b.at })
+    .set({
+      currentBalance: b.current,
+      availableBalance: b.available,
+      balanceUpdatedAt: b.at,
+      ...(names ?? {}),
+    })
     .where(and(eq(bankAccounts.id, bankAccountId), guard ? sql`exists ${guard}` : undefined));
 }
 
@@ -163,7 +211,7 @@ export async function listDue(db: Db, before: string): Promise<BankConnectionRow
     .orderBy(bankConnections.createdAt, bankConnections.id);
 }
 
-/** Records the time of a nightly check that got an error (the one write of a refused check). */
+/** Records the time of a scheduled check that got an error (the one write of a refused check). */
 export function checkedStmt(db: Db, id: string, at: string) {
   return db
     .update(bankConnections)

@@ -119,6 +119,12 @@ export async function stubBankLink(
     afterSync?: SyncAnswer;
     fromBank?: Refusal;
     link?: Refusal;
+    /**
+     * Connection id → bank accounts the bank lists after a connected connection's next sync. The Worker's final
+     * batch adds each one the connection has no row for, unlinked (`plaid-sync.ts` `syncConnection`), and serves it
+     * as `toApi` does (`services/bank-connections.ts:42-52`).
+     */
+    bankAdds?: Record<string, FakeBankAccount[]>;
     /** Manage Bank Connections (EXF-460): refusals of the rename, the removal and the update-mode token. */
     rename?: Refusal;
     remove?: Refusal;
@@ -206,6 +212,9 @@ export async function stubBankLink(
       if (connectionId && c.id !== connectionId) continue;
       if (c.status !== "connected") continue;
       c.last_synced_at = new Date().toISOString();
+      for (const add of opts.bankAdds?.[c.id] ?? []) {
+        if (!c.accounts.some((x) => x.id === add.id)) c.accounts.push(add);
+      }
     }
     for (const [bank, n] of Object.entries(opts.afterSync?.unapproved ?? {})) {
       for (const [acc, b] of links) if (b === bank) unapproved.set(acc, n);
