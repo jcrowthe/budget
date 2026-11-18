@@ -111,9 +111,7 @@ for (const size of [
       await expect(monthButton(page)).toBeFocused();
       await expect(option(page)).toBeEnabled();
       expect(posts).toHaveLength(0);
-      const answered = page.waitForResponse((r) =>
-        isAutoAssign(r.request().method(), r.url(), id),
-      );
+      const answered = page.waitForResponse((r) => isAutoAssign(r.request().method(), r.url(), id));
       await realClick(page, option(page));
       await answered;
       await expect.poll(() => posts.length).toBe(1);
