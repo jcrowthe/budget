@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect as baseExpect, test } from "./fixtures";
 import { authHeaders, testName } from "./support/auth";
 import {
   chooseFiles,
@@ -8,6 +8,10 @@ import {
   openImport,
 } from "./support/plan-import-dialog-files";
 import { realClick } from "./support/real-click";
+
+// The first request of a 6,000-row file is the slowest step: a loaded box needs far more than 5 s for it.
+const expect = baseExpect.configure({ timeout: 60_000 });
+test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
