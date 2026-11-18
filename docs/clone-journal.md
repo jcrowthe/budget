@@ -12739,3 +12739,52 @@ page and the sidebar, with the notes posted on it; holds the shell and the accou
 EXF-464 (manual match and unmatch; Worker and register), each with a rider where it fits
 (EXF-824 with the one that holds the account links service; EXF-816 with the register one).
 The template-ticket sweep is due about round 146.
+
+### 2026-11-18 · Plan round 143
+
+Children used 159 of 200 (157 before this plan; two started). Main `b39c8cd`; live `1979d9d`
+(nothing of the app differs between them). The person has said nothing new.
+
+**The tickets filed at the last review exist** (identifiers taken from the ticket list in this
+turn): EXF-844 (boxes share a host's CPU and disk; template; Medium) and EXF-845 (the test
+server's memory growth; gap; Low).
+
+**Started, side by side, with disjoint ground:**
+1. **Build `p_75b76b1b3c754b55b22028b8305599a4`: EXF-465 with EXF-824.** A linked account says
+   on its own page when its bank needs the owner: a strip with `Repair` (through the flow that
+   already works in the modal), strips for a broken connection and for a delay over three days,
+   a popup on the sidebar's mark by mouse and keyboard, the two notes of the live test (the
+   modal's dimmed page; a closed sign-in is a notice, not an error). **Narrowed: the four stored
+   statuses stay;** the ticket's other four are tabled by the Build and filed afterwards. Rider in
+   the Worker: a deleted plan leaves no bank links behind. Why now: a real bank asks for a new
+   sign-in every few months, and today only a small mark says that imports have stopped.
+2. **Build `p_f67df6924cb740b29568b5f4a63c844f`: EXF-464 with EXF-816.** Manual match of an
+   import to a hand entry, and unmatch, through REST, two MCP tools and the register (link icon,
+   details, `Match` and `Unmatch` in the bar). The automatic rule is untouched. Left out: the
+   search's "Is: Matched" (EXF-528 is not built). Rider: the open row's Category tooltip. Why now:
+   with real imports the owner will get two rows for one purchase whenever the amounts differ,
+   and cannot undo a wrong automatic match.
+- **Disjoint by construction:** the first holds the shell, `account/**`, the bank link and
+  connection files, `plaid-sync.ts`, the budgets and account-links services and the accounts
+  repository; the second holds `register/**`, the transactions service, routes, repository and
+  tool, and the imports repository. Each brief lists the other's files as out of bounds. Only the
+  second may need a migration (`20261116101600_manual_match.sql`, if unmatch cannot get the hand
+  entry's earlier amount from the stored copies). I check both manifests when they arrive.
+- **Side by side again,** after last round's finding that holding a Build does not give the
+  other a quiet host. Both briefs tell the steps how to tell a stall from a fault.
+- **New in both briefs:** what may be read in the source now names the static script files as
+  well as the style rules, and forbids the sidebar's header text; "nobody but the Clerk runs the
+  Clerk's commands; a step that runs them has opened the source and says so"; the stand-in rule
+  (the server's shape; a real value in a looked-at state); a fixed number of "Looking" states,
+  each opened (fourteen and twelve screenshots); never the whole browser suite from an agent's
+  shell (ten-minute limit).
+- What I read for them: the status mapping (`syncStatusForError`, `NEEDS_REPAIR`, the early
+  return for a connection that needs repair), the status label and badge code, the Repair hook,
+  the import design's matching section and stored copies, the bar's code, both tickets.
+
+**Not started:** a Deploy (nothing of the app is unreleased); the template-ticket sweep (about
+round 146); a Build for EXF-727 (after these two: it is on the Plan page, which neither holds,
+but two Builds at once is what I can review well).
+
+Ticket writes: 8 (two priorities, four tickets to In Progress, two notes).
+Finished since each template's last review: Build 2, Deploy 6, Discover 2, Test user flow 7.
