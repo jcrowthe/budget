@@ -160,6 +160,8 @@ test("Repeat Monthly shows a repeat icon with the tooltip `Repeats monthly` (497
     date: "2026-11-20",
     repeat: "monthly",
   });
+  // The add row closes after the plan's queries refetch, moving the rows up; hover once it has closed (EXF-783).
+  await expect(page.locator(".entry-body")).toHaveCount(0);
   await expect(schedRows(page)).toHaveCount(1);
   const icon = schedRows(page).first().getByRole("img", { name: "Repeats monthly", exact: true });
   await expect(icon).toBeVisible();
