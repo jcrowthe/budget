@@ -13988,3 +13988,62 @@ schedule; the Deploy count reaches 10 with it). Beside it two Builds on disjoint
 EXF-874 (the outside press; `apps/web/src/plan/**`) and EXF-515 (remembered category per payee;
 the Worker's payees and transactions, the register's entry row), after reading EXF-515 for its
 manifest.
+
+### 2026-11-18 · Plan round 155
+
+Children used 172 of 200 (three started this turn; the warning comes at 180). Main `639e60d`,
+live `07e3715`, no migration pending. No ticket was filed at the last review.
+
+**Started, side by side (a Deploy and two Builds on disjoint ground):**
+
+1. **Deploy D41, `p_d7e6241b693f49e8adc6b70fa062ce8c`**, for `639e60d` (Worker only, no
+   migration; run prefix `ZZ-TEST D41`).
+   - **`gated_commit` is `063e422`, and the reason is in its brief:** the platform's gate
+     result for this merge was lost; in its place stand my own `pnpm check` and one full
+     browser run on that head, whose tree equals main's. So the Deploy's gate runs `pnpm check`
+     and skips the browser run as for a gated commit. I chose that over a browser run inside
+     the Deploy: one failing spec there refuses the release and costs a child.
+   - It quotes the deployed Worker's schedule from the deploy output (I expect
+     `0 3,9,15,21 * * *`), or reads it with one read-only call. It starts no sync; what a sync
+     now does with a bank's list cannot be seen without one, and the brief says so.
+   - No screenshot asked for; one page load as a smoke check.
+2. **Build `p_b4c926009b32431f826d65b571ba1db0`, EXF-874** (the outside press): narrowed to
+   the month picker and the month note, which can be compared in the source with a few named
+   presses that act on nothing. Reflect's popovers unchanged. Ground: four files of
+   `apps/web/src/plan/`. Two states to look at.
+3. **Build `p_3d140515a4c34b64a7efbf1baf338ce1`, EXF-510** (Manage Payees).
+   - **Why this and not EXF-515, which I named at the last review:** I read both. EXF-515's
+     card lives in the Manage Payees dialog, which does not exist, and its engine replaces a
+     rule that already works (a new row takes the payee's last category). EXF-510 is the gap a
+     bank user meets first: **the payees API is one read; nothing can rename, hide or delete a
+     payee**, and imports bring names nobody chose. EXF-510 also unblocks EXF-515, EXF-467 and
+     EXF-512.
+   - Built: the operations with their tools, the dialog (groups, search, selection, rename,
+     Show N Transactions, hide, delete with reassignment, unused payees, several selected), two
+     ways in, the skipped payee-picker test unskipped. Not built: the Categorization and
+     Renaming cards and Combine (their own tickets); Undo and Redo shown disabled.
+   - The source's dialog is not opened; looks and words from style rules and loaded scripts.
+   - Seven states to look at. D1 calls pinned, among them a delete with 1 and with 500
+     transactions at the same count. "Tests stay light" from the dialogs Build's gates.
+   - If it runs long: the API, rename and hide must be whole.
+
+**Kept apart:** the two Builds list each other's ground as out of bounds; EXF-510 may not even
+import `useDismiss`, which EXF-874 changes. Neither touches `paths.always_overlap`.
+`docs/README.md` is the one shared file.
+
+**Timing:** the Deploy ships main as it is when it starts; neither Build can reach its
+pull-request card before the Deploy has released.
+
+**A thought I did not act on:** the bank sign-in redirect (`https://budget.doxen.dev/plaid/oauth`)
+must be registered in the Plaid dashboard before the owner can link a bank that signs in on its
+own site, and most large ones do. The owner logged me into that dashboard for this project; I
+asked at two check-ins whether I may register it and have no answer. I still leave it: it is a
+change in his account that he was asked about, and no child template is made for it. It stays
+question 2, and the first thing I ask when the child limit is reached.
+
+**Tickets:** EXF-874 and EXF-510 to In Progress with a comment each. **Ticket writes:** 4.
+Finished since each template's last review: Build 9, Deploy 9, Discover 2, Test user flow 8.
+When D41 ends the Deploy count is 10 and its template review is due; the next Build to end
+makes 10 Builds. **Children left: 28.**
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
