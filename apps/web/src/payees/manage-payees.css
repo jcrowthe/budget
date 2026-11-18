@@ -578,3 +578,62 @@
 .mp-table tbody tr:last-child td {
   border-bottom: 0;
 }
+
+/* Renaming rules (EXF-467): the card under Payee Name takes that card's frame, input and error bar. */
+.mp-rules h2.mp-rules-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.mp-rules-intro {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.mp-rule {
+  margin-bottom: var(--space-2);
+}
+.mp-rule-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: var(--space-2);
+}
+.mp-rule-kind {
+  width: 100%;
+}
+.mp-rule-button {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.mp-rule-button:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.mp-rule-button:focus-visible {
+  outline: auto 2px var(--actionPrimary);
+  outline-offset: 2px;
+}
+.mp-rule-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mp-deleting .mp-rule-row {
+  pointer-events: none;
+}
+.mp-rules-slot {
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--labelSecondary);
+}
