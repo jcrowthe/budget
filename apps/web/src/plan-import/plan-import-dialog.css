@@ -1,0 +1,175 @@
+/* Import Plan dialog: this app's own look; theme variables only. */
+.dialog.form.plan-import-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 640px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  outline: none;
+}
+.plan-import-dialog .dialog-head {
+  flex: none;
+}
+.plan-import-dialog .dialog-footer {
+  flex: none;
+  border-top: 1px solid var(--borderSubtle);
+}
+.plan-import-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: var(--space-3);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.plan-import-dialog-body p {
+  margin: 0 0 var(--space-2);
+}
+.plan-import-dialog-lead {
+  line-height: 1.5;
+}
+.plan-import-dialog-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 140px;
+  border: 2px dashed var(--borderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.plan-import-dialog-drop:hover,
+.plan-import-dialog-drop:focus-visible {
+  border-color: var(--actionPrimary);
+  outline: none;
+}
+.plan-import-dialog-drop-main {
+  font-size: 16px;
+  font-weight: 600;
+}
+.plan-import-dialog-drop-sub {
+  color: var(--labelSecondary);
+}
+.plan-import-dialog-error {
+  margin-top: var(--space-2);
+  color: var(--labelNegative);
+}
+.plan-import-dialog-more {
+  color: var(--labelSecondary);
+  font-size: 13px;
+}
+.plan-import-dialog-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.plan-import-dialog-fields.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.plan-import-dialog-fields > div {
+  min-width: 0;
+}
+.plan-import-dialog .field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  background: var(--backgroundSecondary);
+  color: var(--labelPrimary);
+  border: 1px solid var(--borderSubtle);
+}
+.plan-import-dialog-section h3 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: 14px;
+  font-weight: 600;
+}
+.plan-import-dialog-accounts {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-xs);
+}
+.plan-import-dialog-accounts table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.plan-import-dialog-accounts th,
+.plan-import-dialog-accounts td {
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.plan-import-dialog-accounts th {
+  position: sticky;
+  top: 0;
+  background: var(--backgroundTertiary);
+  font-weight: 600;
+}
+.plan-import-dialog-accounts td small {
+  display: block;
+  color: var(--labelSecondary);
+}
+.plan-import-dialog-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-import-dialog-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+}
+.plan-import-dialog-counts dt {
+  color: var(--labelSecondary);
+}
+.plan-import-dialog-counts dd {
+  margin: 0;
+  font-weight: 600;
+}
+.plan-import-dialog-list {
+  margin: 0;
+  padding-left: var(--space-3);
+}
+.plan-import-dialog-question {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--actionPrimary);
+  border-radius: var(--radius-xs);
+}
+.plan-import-dialog-question legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+.dialog.form .plan-import-dialog-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 4px 0;
+  font-weight: 400;
+}
+.plan-import-dialog-bar {
+  height: 8px;
+  margin: var(--space-2) 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--backgroundTertiary);
+}
+.plan-import-dialog-bar > div {
+  height: 100%;
+  background: var(--actionPrimary);
+  transition: width 0.2s;
+}
+.plan-import-dialog-step,
+.plan-import-dialog-done {
+  font-weight: 600;
+}
+.plan-import-dialog-confirm {
+  margin-top: var(--space-2);
+  font-weight: 600;
+}
