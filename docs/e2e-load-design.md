@@ -239,3 +239,19 @@ file; `scripts/deploy.sh` (its gate runs `pnpm e2e`, so it follows the config by
 touches: [playwright.config.ts, scripts/e2e-load.sh, scripts/e2e-load-bg.sh, scripts/e2e-load-report.mjs, scripts/e2e-load-sample.sh, scripts/e2e-load-stamp.mjs, e2e/support/e2e-load-workers.ts, e2e/e2e-load-workers.spec.ts, e2e/scheduled-transactions.spec.ts, e2e/support/register-seed.ts, e2e/auto-assign.spec.ts, docs/e2e-load-design.md, docs/e2e-load-spec.md, docs/README.md, docs/conventions.md]
 shared: []
 migrations: 0
+
+## Implementer's runs (final head `fac72a0`, 4 workers; full runs used by the Implementer: 4 of 5; 8 of 10 overall)
+
+| run | load | wall s | passed/total (1 skipped) | failed | server answers ≥ 1 s, max ms |
+|---|---|---|---|---|---|
+| I1 | on | 614 | 616/617 | 0 | 1, 1,161 |
+| I2 | on | 663 | 615/617 | 1: `month-nav.spec.ts:127` → `:157` (EXF-727) | 5, 1,627 |
+| I3 | on | 649 | 616/617 | 0 | 1, 1,507 |
+| I4 | off | 403 | 616/617 | 0 | 0, 838 |
+
+Quiet wall time: 409 s at 8 workers, 403 s at 4. Loaded: 527 to 548 s at 8, 614 to 663 s at 4 (slower, but no
+stall-induced failure). A Build's gate (3 runs) costs about 20 min quiet; a Deploy's gate about 7 min.
+EXF-783 (`scheduled-transactions.spec.ts:151`): 20/20 before and 20/20 after under load (not reproduced at 4
+workers). EXF-727 reproduced without a stall: targeted run `I-rec` 3 of 20 failed (`:157`, slowest answer 953
+ms), and I2; the cause remains unexplained (traces under `/workspace/scratch/e2e-load/I-rec/test-results/`).
+EXF-747 (`reconcile.spec.ts:102`): 20/20 under load.
