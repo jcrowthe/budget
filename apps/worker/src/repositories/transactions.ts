@@ -690,3 +690,24 @@ export async function groupNameOfCategory(db: Db, categoryId: string): Promise<s
     .limit(1);
   return r?.name ?? null;
 }
+
+/** Points the live transactions of `fromIds` at another payee (or none), with the fallback name, while `guard` holds. */
+export function movePayeeStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  toId: string | null,
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(transactions)
+    .set({
+      payeeId: toId,
+      payeeName: toId === null ? null : sql`(select name from payees where id = ${toId})`,
+      updatedAt: now,
+    })
+    .where(
+      sql`${transactions.budgetId} = ${budgetId} and ${transactions.payeeId} in (select value from json_each(${JSON.stringify(fromIds)})) and ${transactions.deletedAt} is null and ${guard}`,
+    );
+}

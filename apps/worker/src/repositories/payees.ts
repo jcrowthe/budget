@@ -2,26 +2,46 @@ import type { PayeeSystem } from "@budget/schema/payees";
 import { and, eq, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { payees } from "../db/schema/payees";
+import { type LogBase, logSelectStmt } from "./guards";
 import { insertSelect } from "./insert-select";
 
 export type PayeeRow = typeof payees.$inferSelect;
 export type PayeeListRow = PayeeRow & {
   lastCategoryId: string | null;
   lastInflowToReadyToAssign: boolean;
+  transactionCount: number;
+  scheduledCount: number;
 };
 
-/** Non-deleted payees of the plan, with the category of each one's latest transaction. */
+/** `col in (select value from json_each(?))`: any number of ids ride one bound parameter. */
+export function idsIn(col: SQLWrapper, ids: readonly string[]): SQL {
+  return sql`${col} in (select value from json_each(${JSON.stringify(ids)}))`;
+}
+
+/**
+ * Non-deleted payees of the plan, with the category of each one's latest transaction. With `counts`, also how many
+ * live transactions and scheduled transactions name each one (still one D1 call). `ids` narrows the rows.
+ */
 export async function listForPlan(
   db: Db,
   budgetId: string,
-  opts: { includeHidden: boolean },
+  opts: { includeHidden: boolean; counts?: boolean; ids?: readonly string[] },
 ): Promise<PayeeListRow[]> {
   const conds = [eq(payees.budgetId, budgetId), isNull(payees.deletedAt)];
   if (!opts.includeHidden) conds.push(eq(payees.hidden, false));
+  if (opts.ids) conds.push(idsIn(payees.id, opts.ids));
   const latestId = sql`(select t.id from transactions t
         where t.payee_id = payees.id and t.deleted_at is null and t.parent_transaction_id is null
         and not exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null)
         order by t.date desc, t.created_at desc, t.id desc limit 1)`;
+  const tc = opts.counts
+    ? sql<number>`(select count(*) from transactions t join accounts a on a.id = t.account_id and a.deleted_at is null
+        where t.payee_id = payees.id and t.budget_id = ${budgetId} and t.deleted_at is null)`
+    : sql<number>`0`;
+  const sc = opts.counts
+    ? sql<number>`(select count(*) from scheduled_transactions s join accounts a on a.id = s.account_id and a.deleted_at is null
+        where s.payee_id = payees.id and s.budget_id = ${budgetId} and s.deleted_at is null)`
+    : sql<number>`0`;
   const rows = await db
     .select({
       p: payees,
@@ -29,6 +49,8 @@ export async function listForPlan(
         string | null
       >`(select c.id from categories c where c.id = (select category_id from transactions where id = ${latestId}) and c.deleted_at is null)`,
       rta: sql<number>`case when payees.system is null then coalesce((select inflow_to_ready_to_assign from transactions where id = ${latestId}), 0) else 0 end`,
+      tc,
+      sc,
     })
     .from(payees)
     .where(and(...conds));
@@ -36,6 +58,8 @@ export async function listForPlan(
     ...r.p,
     lastCategoryId: r.live ?? null,
     lastInflowToReadyToAssign: Number(r.rta) === 1,
+    transactionCount: Number(r.tc),
+    scheduledCount: Number(r.sc),
   }));
 }
 
@@ -178,4 +202,165 @@ export function missingByNameGuard(budgetId: string, name: string): SQLWrapper {
 /** A scalar subquery for a `payee_id` value: the plan's live ordinary payee with that name. */
 export function ordinaryIdByNameSql(budgetId: string, name: string): SQL {
   return sql`(select p.id from payees p where p.budget_id = ${budgetId} and p.name = ${name} and p.system is null and p.deleted_at is null)`;
+}
+
+const ordinaryAmong = (budgetId: string, ids: readonly string[]) =>
+  sql`payees.budget_id = ${budgetId} and ${idsIn(sql`payees.id`, ids)} and payees.deleted_at is null and payees.system is null`;
+
+/** A condition: all of `ids` are still live ordinary payees of the plan. */
+export function liveOrdinaryCountSql(budgetId: string, ids: readonly string[]): SQL {
+  return sql`(select count(*) from payees where ${ordinaryAmong(budgetId, ids)}) = ${ids.length}`;
+}
+
+/** A condition: `id` is a live ordinary payee of the plan. */
+export function liveOrdinarySql(budgetId: string, id: string): SQL {
+  return sql`exists (select 1 from payees where id = ${id} and budget_id = ${budgetId} and deleted_at is null and system is null)`;
+}
+
+/** Renames and/or hides one payee, only while it still reads as `before`. */
+export function updateStmt(
+  db: Db,
+  budgetId: string,
+  id: string,
+  patch: { name?: string; hidden?: boolean },
+  now: string,
+  before: { name: string; hidden: boolean },
+) {
+  return db
+    .update(payees)
+    .set({ ...patch, updatedAt: now })
+    .where(and(eq(payees.id, id), unchangedSql(budgetId, id, before)));
+}
+
+/** A condition: the payee is live, ordinary and still reads as `before`. */
+export function unchangedSql(
+  budgetId: string,
+  id: string,
+  before: { name: string; hidden: boolean },
+): SQL {
+  return sql`exists (select 1 from payees where id = ${id} and budget_id = ${budgetId} and deleted_at is null and system is null and name = ${before.name} and hidden = ${before.hidden ? 1 : 0})`;
+}
+
+/** Sets `hidden` on the live ordinary payees among `ids` whose value differs, when `guard` holds. */
+export function setHiddenStmt(
+  db: Db,
+  budgetId: string,
+  ids: readonly string[],
+  hidden: boolean,
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(payees)
+    .set({ hidden, updatedAt: now })
+    .where(sql`${ordinaryAmong(budgetId, ids)} and payees.hidden = ${hidden ? 0 : 1} and ${guard}`);
+}
+
+export function logHiddenStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  ids: readonly string[],
+  hidden: boolean,
+  guard: SQL,
+) {
+  const obj = (h: boolean) =>
+    sql`json_object('id', id, 'name', name, 'hidden', json(${h ? "true" : "false"}))`;
+  return logSelectStmt(
+    db,
+    base,
+    sql`select id, name from payees where ${ordinaryAmong(budgetId, ids)} and hidden = ${hidden ? 0 : 1} and ${guard}`,
+    { entityId: sql`id`, before: obj(!hidden), after: obj(hidden) },
+  );
+}
+
+export function softDeleteStmt(
+  db: Db,
+  budgetId: string,
+  ids: readonly string[],
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(payees)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(sql`${ordinaryAmong(budgetId, ids)} and ${guard}`);
+}
+
+/** One `delete` history row per payee: before its name and counts, after the replacement and what moved. */
+export function logDeleteStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  ids: readonly string[],
+  replacementId: string | null,
+  counts: Record<string, { t: number; s: number }>,
+  guard: SQL,
+) {
+  const list = JSON.stringify(Object.entries(counts).map(([id, c]) => ({ id, ...c })));
+  const num = (k: "t" | "s") =>
+    sql`coalesce((select json_extract(j.value, ${`$.${k}`}) from json_each(${list}) j where json_extract(j.value, '$.id') = pid), 0)`;
+  return logSelectStmt(
+    db,
+    base,
+    sql`select id, id as pid, name, hidden from payees where ${ordinaryAmong(budgetId, ids)} and ${guard}`,
+    {
+      entityId: sql`id`,
+      before: sql`json_object('id', id, 'name', name, 'hidden', json(case when hidden then 'true' else 'false' end), 'transaction_count', ${num("t")}, 'scheduled_count', ${num("s")})`,
+      after: sql`json_object('id', id, 'deleted', json('true'), 'replacement_payee_id', ${replacementId}, 'transactions_moved', ${num("t")}, 'scheduled_moved', ${num("s")})`,
+    },
+  );
+}
+
+export type PayeeTransactionRow = {
+  id: string;
+  account_id: string;
+  account_name: string;
+  date: string;
+  category_id: string | null;
+  category_name: string | null;
+  inflow: number;
+  is_split: number;
+  memo: string | null;
+  amount: number;
+  created_at: string;
+  total: number;
+};
+
+/** Live transactions (parents and lines) of the payee, newest first, with the full count in `total`. */
+export function transactionsOf(
+  db: Db,
+  budgetId: string,
+  payeeId: string,
+  limit: number,
+): Promise<PayeeTransactionRow[]> {
+  return db.all<PayeeTransactionRow>(sql`
+    select t.id, t.account_id, a.name as account_name, t.date, t.category_id, c.name as category_name,
+      t.inflow_to_ready_to_assign as inflow,
+      exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null) as is_split,
+      t.memo, t.amount, t.created_at, count(*) over () as total
+    from transactions t
+    join accounts a on a.id = t.account_id and a.deleted_at is null
+    left join categories c on c.id = t.category_id
+    where t.budget_id = ${budgetId} and t.payee_id = ${payeeId} and t.deleted_at is null
+    order by t.date desc, t.created_at desc, t.id
+    limit ${limit}`);
+}
+
+export function scheduledOf(
+  db: Db,
+  budgetId: string,
+  payeeId: string,
+  limit: number,
+): Promise<PayeeTransactionRow[]> {
+  return db.all<PayeeTransactionRow>(sql`
+    select s.id, s.account_id, a.name as account_name, s.date_next as date, s.category_id, c.name as category_name,
+      s.inflow_to_ready_to_assign as inflow, 0 as is_split,
+      s.memo, s.amount, s.created_at, count(*) over () as total
+    from scheduled_transactions s
+    join accounts a on a.id = s.account_id and a.deleted_at is null
+    left join categories c on c.id = s.category_id
+    where s.budget_id = ${budgetId} and s.payee_id = ${payeeId} and s.deleted_at is null
+    order by s.date_next desc, s.created_at desc, s.id
+    limit ${limit}`);
 }
