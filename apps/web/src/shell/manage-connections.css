@@ -286,3 +286,16 @@
   margin-right: var(--space-1);
   vertical-align: -2px;
 }
+
+/* Reauthorize: the source's info box (rgba(117,131,255,.2), white text, key icon rgb(84,91,254), primary button), measured in the connection editor's banner. */
+.mc-banner[data-kind="reauthorize"] {
+  background: var(--calloutPrimarySubtleBackground);
+  color: var(--labelPrimary);
+}
+.mc-banner[data-kind="reauthorize"] > svg {
+  color: var(--buttonPrimaryBackground);
+}
+.manage-connections .mc-banner[data-kind="reauthorize"] button {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}

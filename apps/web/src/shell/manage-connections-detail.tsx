@@ -16,7 +16,7 @@ import { errorDetail } from "../api/bank-link";
 import { renameBankConnection, setConnectionInCache } from "../api/manage-connections";
 import { localToday } from "../api/today";
 import { useBankSubline } from "./bank-link-accounts";
-import { DiamondAlertIcon } from "./connection-status-icon";
+import { DiamondAlertIcon, KeyIcon, OctagonAlertIcon } from "./connection-status-icon";
 import {
   ArrowsCircleIcon,
   ChevronRightIcon,
@@ -104,8 +104,20 @@ export function ConnectionDetail({
     <>
       <div className="account-modal-body">
         {badge ? (
-          <div className="mc-banner" role="note" data-kind={delayedLook ? "delayed" : "repair"}>
-            {delayedLook ? <ClockIcon /> : <LinkWarningIcon />}
+          <div
+            className="mc-banner"
+            role="note"
+            data-kind={badge === "Reauthorize" ? "reauthorize" : delayedLook ? "delayed" : "repair"}
+          >
+            {badge === "Unavailable" ? (
+              <OctagonAlertIcon width={12} height={12} />
+            ) : badge === "Reauthorize" ? (
+              <KeyIcon width={12} height={12} />
+            ) : badge === "Delayed" ? (
+              <ClockIcon />
+            ) : (
+              <LinkWarningIcon />
+            )}
             <div className="mc-banner-text">
               <strong>{statusLabel(connection.status, connection.status_reason)}</strong>
               <span>{bannerText(connection.status, connection.status_reason)}</span>

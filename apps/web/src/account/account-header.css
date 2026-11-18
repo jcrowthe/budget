@@ -340,9 +340,6 @@
   width: 12px;
   height: 12px;
 }
-.acct-link-status[data-status]:not([data-status="connected"]) {
-  color: var(--labelNegative);
-}
 /* A long status name is cut with an ellipsis (its title holds the whole name), never past the window. */
 .acct-link-status {
   min-width: 0;
