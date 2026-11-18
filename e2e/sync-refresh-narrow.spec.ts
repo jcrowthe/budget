@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { dialogNamed, openDetail } from "./support/manage-connections-seed";
+import { dialogNamed, openDetail, posts } from "./support/manage-connections-seed";
 import { realClick } from "./support/real-click";
 import { refreshState, syncs } from "./support/sync-refresh-state";
 
@@ -21,7 +21,12 @@ test("18 at 1024×700 the new bank account's row and the Link Account choice lie
   const s = await refreshState(page, request, {}, true);
   await expect.poll(() => syncs(s).length).toBe(1);
   const detail = await openDetail(page, "ZZ Bank");
-  await inside(detail.getByRole("button", { name: "ZZ Rewards – 4321", exact: true }));
+  const row = detail.getByRole("button", { name: "ZZ Rewards – 4321", exact: true });
+  await inside(row);
+  await realClick(page, row);
+  const options = dialogNamed(page, "ZZ Rewards – 4321");
+  await inside(options.getByRole("button", { name: "Link to an Existing Account", exact: true }));
+  await inside(options.getByRole("button", { name: "Add as a new Account", exact: true }));
   await page.goto(`/${s.plan}/accounts/${s.linked}`);
   await realClick(
     page,
@@ -29,5 +34,11 @@ test("18 at 1024×700 the new bank account's row and the Link Account choice lie
   );
   const dialog = dialogNamed(page, "Link Account");
   await expect(dialog).toBeVisible();
-  await inside(dialog.getByRole("button", { name: /ZZ Rewards/ }));
+  const choice = dialog.getByRole("button", { name: /ZZ Rewards/ });
+  await inside(choice);
+  await realClick(page, choice);
+  const link = () => posts(s.stub.requests, "POST", /\/accounts\/[^/]+\/link$/);
+  await expect.poll(() => link().length).toBe(1);
+  expect(link()[0]?.body).toMatchObject({ bank_account_id: s.rewards.id });
+  await expect(page.locator(".acct-connection-strip")).toHaveCount(0);
 });

@@ -20,6 +20,10 @@ test("15 a bank account the bank now lists shows in the connection's detail with
   const detail = await openDetail(page, "ZZ Bank");
   const row = detail.getByRole("button", { name: "ZZ Rewards – 4321", exact: true });
   await expect(row).toBeVisible();
+  // The new account is the last bank-account row of the detail.
+  await expect(detail.getByRole("button", { name: / – \d{4}$/ }).last()).toHaveAccessibleName(
+    "ZZ Rewards – 4321",
+  );
   await expect(row).not.toContainText("Linked to");
   await realClick(page, row);
   const options = dialogNamed(page, "ZZ Rewards – 4321");

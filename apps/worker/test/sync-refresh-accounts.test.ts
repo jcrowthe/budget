@@ -11,7 +11,6 @@ import {
   A,
   data,
   type Json,
-  linked,
   logCount,
   q,
   setupPlaid,
@@ -127,6 +126,8 @@ describe("a connection's bank accounts follow the bank's list (EXF-875)", () => 
     const w = await world1();
     withList("acc-sav", "acc-new");
     await runSync(env, w.conn);
+    const marked = (await data(await json(`${A(w.plan)}/${w.account}`))).account as Json;
+    expect(marked.link_missing_since).not.toBeNull();
     const fresh = (await bankRows(w.conn)).find((r) => r.plaid_account_id === "acc-new") as Json;
     const res = await json(
       `${A(w.plan)}/${w.account}/link`,
@@ -176,6 +177,5 @@ describe("a connection's bank accounts follow the bank's list (EXF-875)", () => 
     const before = await logCount("bank_connection");
     await runSync(env, w.conn);
     expect(await logCount("bank_connection")).toBe(before);
-    void linked;
   });
 });
