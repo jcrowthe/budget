@@ -12556,3 +12556,47 @@ Next check-in: the review of round 150. Template-ticket sweep about round 146.
 **Next plan:** Deploy D37 for `1979d9d` (never `/plans`, never the Open Plan submenu; the New Plan
 and Plan Settings dialogs; the logo in the modal's list, looked at only; EXF-680 and EXF-681 at
 1024 px). When its gate is through: the Build for EXF-807 with EXF-727, EXF-747 and EXF-783, alone.
+
+### 2026-11-18 · Plan round 141
+
+Children used 156 of 200 (155 before this plan; one started). Main `1979d9d`; live `2370e08`.
+The person has said nothing new (the check-in of round 140 has just gone out).
+
+**The ticket filed at the last review exists:** EXF-824 (a deleted plan's accounts keep their
+bank links); set to Low.
+
+**A mistake of mine on a ticket that is not ours, corrected and disclosed.** I typed the new
+ticket's identifier from memory as EXF-820 before listing the tickets, and so set the priority
+of **another project's ticket** (EXF-820, project "Permafrost") to Low. I did not know its
+priority before. A minute later I set it to High, because that ticket's own text ends "Priority:
+High", and left a comment on it saying what I did, when, and that its owner should set it back if
+the field held something else. Nothing else on it was touched. **Rule from now on: I take a new
+ticket's identifier from `list_tickets` in the same turn, never from memory or by counting, and I
+read a ticket's title in the tool's answer before I write to it a second time.** I tell the
+person at the next check-in.
+
+**Started: Deploy D37** (`p_684f7b0f693b4ad487276b38f4b3b97a`, prefix `ZZ-TEST D37`) for
+`1979d9d`, `gated_commit` `1c9ac73` (I compared the two trees: identical). Nothing else runs.
+- **Never on live: `/plans`, bare `/`, the Open Plan submenu, `View All Plans`.** The plans page
+  shows the owner's real plan by name; the brief says so in capitals at its top, the navigation
+  guard refuses both addresses, and the report must say that it does.
+- **What it proves:** the New Plan dialog from the menu by keyboard (defaults, the empty-name
+  error, yen and Euro changing the other fields, Escape creating nothing, one POST with the
+  chosen formats, the app opening the new plan); Plan Settings at 480 px with the placement label
+  whole for Euro after-amount and for Swiss franc; the logo in the modal's list, looked at only;
+  the two tooltips left over from flow 2 at 1024 px (EXF-680, EXF-681); the two connections that
+  are not ours unchanged (the nightly job at 03:00 UTC may move their sync time during the run;
+  the brief says so). Four states marked LOOK.
+- A plan made from the dialog is a **production** plan (`services/budgets.ts:146`); the brief
+  opens nothing about banks in it.
+- I read the code behind each asserted text: the dialog's labels and error, the placement label
+  builder, the catalogue's entries for USD, JPY, EUR and CHF, the offered number formats, the
+  menu's order, and that only ArrowRight, Enter, a click or the mouse opens the submenu.
+
+**Not started: the Build for EXF-807** (with EXF-727, EXF-747, EXF-783). It starts at the next
+plan, when this Deploy's gate is through; its brief needs the care I did not have left in a turn
+in which I had just mistyped a ticket.
+
+Ticket writes: 4 (EXF-824 priority; the wrong and the corrected priority on EXF-820, and the
+comment there).
+Finished since each template's last review: Build 1, Deploy 5, Discover 2, Test user flow 7.
