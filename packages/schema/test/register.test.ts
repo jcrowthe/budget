@@ -30,6 +30,7 @@ function tx(over: Partial<TransactionDetail>): TransactionDetail {
     payee_id: null,
     payee_system: null,
     updated_at: "x",
+    match_details: null,
     transfer_account_id: null,
     transfer_transaction_id: null,
     transfer_account_name: null,

@@ -67,7 +67,7 @@ type Stmts = Parameters<ReturnType<typeof getDb>["batch"]>[0];
 const stmts = (list: unknown[]) => list as unknown as Stmts;
 
 /** The payee's insert and its change_log row, for a batch that creates it with a transaction. */
-function payeeInsert(db: Db, actor: string, p: payeesRepo.PayeeRow) {
+export function payeeInsert(db: Db, actor: string, p: payeesRepo.PayeeRow) {
   return [
     payeesRepo.insertStmt(db, p),
     changeLogInsert(db, {
@@ -148,7 +148,7 @@ export async function createTransaction(
   throw new Conflict("Payee");
 }
 
-const MAX_ATTEMPTS = 5;
+export const MAX_ATTEMPTS = 5;
 
 /** A plain transaction from a schedule: its insert and its create log row, both written only while `guard` holds. */
 export function enteredTransactionWrites(
@@ -213,6 +213,7 @@ export function transactionDetailToApi(
   row: txRepo.TransactionDetailRow,
   lines: readonly txRepo.LineRow[] = [],
 ): TransactionDetail {
+  const matched = (row.importId ?? null) !== null && (row.source ?? null) === null;
   return {
     ...transactionToApi(row),
     category_name: row.categoryName,
@@ -223,6 +224,14 @@ export function transactionDetailToApi(
     transfer_account_name: row.transferAccountName,
     subtransactions: lines.map(lineToApi),
     updated_at: row.updatedAt,
+    match_details:
+      matched && row.importDate != null && row.importAmount != null
+        ? {
+            date: row.importDate,
+            amount: row.importAmount,
+            payee_name: row.importPayeeName ?? null,
+          }
+        : null,
   };
 }
 
@@ -265,25 +274,25 @@ async function withLineNames(
 
 type Db = ReturnType<typeof getDb>;
 
-async function activePlan(db: Db, budgetId: string) {
+export async function activePlan(db: Db, budgetId: string) {
   const row = await budgetsRepo.findActive(db, budgetId);
   if (!row) throw new NotFound("Plan");
   return row;
 }
 
-async function activeAccount(db: Db, budgetId: string, accountId: string) {
+export async function activeAccount(db: Db, budgetId: string, accountId: string) {
   const a = await accountsRepo.findActive(db, budgetId, accountId);
   if (!a) throw new NotFound("Account");
   return a;
 }
 
-async function detailOf(db: Db, budgetId: string, id: string): Promise<TransactionDetail> {
+export async function detailOf(db: Db, budgetId: string, id: string): Promise<TransactionDetail> {
   const row = await txRepo.findDetail(db, budgetId, id);
   if (!row) throw new NotFound("Transaction");
   return transactionDetailToApi(row, await txRepo.listLines(db, budgetId, { parentId: id }));
 }
 
-function linesByParent(lines: readonly txRepo.LineRow[]) {
+export function linesByParent(lines: readonly txRepo.LineRow[]) {
   const map = new Map<string, txRepo.LineRow[]>();
   for (const l of lines) {
     const key = l.parentTransactionId as string;
@@ -1289,7 +1298,7 @@ async function linksOf(db: Db, budgetId: string, rows: readonly txRepo.Transacti
 }
 
 /** The rows as the API shows them, read with two set queries. */
-async function detailsOf(db: Db, budgetId: string, ids: readonly string[]) {
+export async function detailsOf(db: Db, budgetId: string, ids: readonly string[]) {
   const rows = await readAll(db, budgetId, ids);
   const lines = linesByParent(await txRepo.listLines(db, budgetId, { parentIds: ids }));
   return rows.map((r) => transactionDetailToApi(r, lines.get(r.id) ?? []));

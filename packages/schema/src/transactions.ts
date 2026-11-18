@@ -108,6 +108,12 @@ export const SubTransaction = z
   .openapi("SubTransaction");
 export type SubTransaction = z.infer<typeof SubTransaction>;
 
+/** What the bank sent for a matched transaction, as imported. */
+export const MatchDetails = z
+  .object({ date: IsoDate, amount: Milliunits, payee_name: z.string().nullable() })
+  .describe("What the bank sent for a matched transaction")
+  .openapi("MatchDetails");
+
 export const TransactionDetail = Transaction.extend({
   category_name: z.string().nullable(),
   category_group_name: z.string().nullable(),
@@ -117,6 +123,11 @@ export const TransactionDetail = Transaction.extend({
   transfer_account_name: z.string().nullable(),
   subtransactions: z.array(SubTransaction),
   updated_at: z.string(),
+  match_details: MatchDetails.nullable()
+    .default(null)
+    .describe(
+      "The bank's date, amount and payee as imported, for a matched transaction; else null",
+    ),
 }).openapi("TransactionDetail");
 
 export const AccountBalances = z
@@ -332,6 +343,33 @@ export const TransactionBulkResult = z
   .openapi("TransactionBulkResult");
 export type TransactionBulkResult = z.infer<typeof TransactionBulkResult>;
 export const TransactionBulkResponse = dataEnvelope(TransactionBulkResult);
+
+export const TransactionMatchRequest = z
+  .object({
+    ids: z
+      .array(z.string().min(1))
+      .length(2)
+      .refine((a) => a[0] !== a[1], "Select exactly two different transactions to match")
+      .describe("The two transactions to match: one unapproved import and one hand entry"),
+  })
+  .strict()
+  .openapi("TransactionMatchRequest");
+export const MatchResult = z
+  .object({
+    transaction: TransactionDetail.describe("The surviving transaction (the hand entry's row)"),
+    removed: TransactionDetail.describe("The import's row as it was, now deleted"),
+  })
+  .openapi("MatchResult");
+export const UnmatchResult = z
+  .object({
+    transaction: TransactionDetail.describe("The hand entry, with its own amount again"),
+    imported: TransactionDetail.describe("The import, as a new unapproved transaction"),
+  })
+  .openapi("UnmatchResult");
+export const MatchResponse = dataEnvelope(MatchResult);
+export const UnmatchResponse = dataEnvelope(UnmatchResult);
+export type MatchResult = z.infer<typeof MatchResult>;
+export type UnmatchResult = z.infer<typeof UnmatchResult>;
 
 export const TransactionResponse = dataEnvelope(z.object({ transaction: TransactionDetail }));
 /** A row of an account's list; `running_balance` only with `include=running_balance`. */

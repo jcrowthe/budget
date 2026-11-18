@@ -35,6 +35,7 @@ export const transactions = sqliteTable(
     importAmount: integer("import_amount"),
     importPayeeName: text("import_payee_name"),
     flagColor: text("flag_color", { enum: FLAG_COLORS }),
+    matchEntryAmount: integer("match_entry_amount"),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),
