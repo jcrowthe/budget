@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useRef } from "react";
 
 const FOCUSABLE =
-  'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const DEFAULT_RETURN = () => document.querySelector<HTMLElement>(".plan-button, .rail-logo");
 
