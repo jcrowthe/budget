@@ -11,3 +11,6 @@ Compared: read from the source's style rules (card, thumbnail, hover, delete but
 - P7 trash button: no border, no background, white 0.8em icon, 8px corner; focus ring kept [applied]
 - P8 Create card: green icon (`--statusPositive`), hover `--labelPositiveActive` (new token), 16px gap, no hover background [applied]
 - P9 red Delete in this dialog only (`.plans-list-delete-dialog`), `edit-account.css` untouched [scoped]
+- P9 (again) the red Delete wins at rest: selector raised to `.dialog.form.edit-account.plans-list-delete-dialog .dialog-footer .destructive` and its `:hover`; `edit-account.css` untouched [scoped]
+- P10 focus ring above the hover overlay: `.plans-list-open::after` z-index 2 (trash 3) [applied]
+- P11 trash icon 12px above the card's bottom: `bottom: calc(var(--space-2) + var(--space-1))` [applied]

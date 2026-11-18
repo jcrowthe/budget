@@ -59,6 +59,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 2;
   border-radius: 12px;
 }
 .plans-list-open:focus-visible {
@@ -101,8 +102,8 @@
 .plans-list-delete {
   position: absolute;
   right: var(--space-2);
-  bottom: var(--space-2);
-  z-index: 2;
+  bottom: calc(var(--space-2) + var(--space-1));
+  z-index: 3;
   display: flex;
   padding: 0;
   border: 0;
@@ -145,11 +146,11 @@
   overflow-wrap: anywhere;
 }
 
-.plans-list-delete-dialog .dialog-footer .destructive {
+.dialog.form.edit-account.plans-list-delete-dialog .dialog-footer .destructive {
   background: var(--buttonDestructiveBackground);
   color: var(--buttonDestructiveLabel);
 }
-.plans-list-delete-dialog .dialog-footer .destructive:hover:not(:disabled) {
+.dialog.form.edit-account.plans-list-delete-dialog .dialog-footer .destructive:hover:not(:disabled) {
   background: var(--buttonDestructiveBackgroundActive);
   color: var(--labelPrimary);
 }
