@@ -12678,3 +12678,64 @@ no box with tests, but I start it after this Build's measured runs, not during t
 
 Ticket writes: 5 (four tickets to In Progress, one note on EXF-807).
 Finished since each template's last review: Build 1, Deploy 6, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 142
+
+Children used 157 of 200. One ended: **the browser-suite-under-load Build completed**
+(`p_72cf9bb61a7b4a33aff2708600849975`, 3 h 20 min, $8.21), merged as **`b39c8cd`** (EXF-807,
+EXF-747 and EXF-783 moved to Done; **EXF-727 back to Backlog, still unexplained**). Main is
+`b39c8cd`; live is `1979d9d`, and nothing needs a Deploy (no file of the app changed). The
+journal branch holds main. Nothing is running.
+
+**What the Build measured (card answered in a side turn: approve; I read its design).**
+- Eight full runs with every failing line, the test server's request log and per-second samples
+  of the box. On main with 8 workers: 4 failures quiet, then 2, 0 and 8 under the made load.
+  Every failure was a wait that ran out; none a 409 or 5xx.
+- **The cause of most: the one test server stops answering for 6 to 11 seconds.** Trigger one:
+  the box at its memory cap (8 workers in 5 GiB). Trigger two: the host's disk busy with other
+  boxes. My reading (too many workers for five CPUs) was half right: it was the memory, and the
+  CPU quota only adds a steady cost.
+- **About my approval of the import-start pull request:** the register failures of that gate
+  were reproduced here on main, in stall windows. The evidence points away from that Build's
+  change. My check then was still too narrow; the outcome was not wrong.
+- **My brief was wrong on one premise, and the Architect said so:** "the host is quiet apart from
+  you". With its box idle and no sibling of mine running, the host's load was 6 to 14. Other
+  people's Threads share the host. I cannot give a Build a quiet machine by holding my own.
+- EXF-783: the spec hovered before the add row had closed; fixed in the spec. EXF-747: the
+  server's stall; the spec waits rightly. **EXF-727: reproduced 3 of 20 times without a stall;
+  "the listener comes too late" ruled out by a probe; cause not known; a person might meet it.**
+- **Changed:** workers from the box's CPU quota and memory limit (4, was 8); the seeding retry
+  removed (no 409 or 5xx in about 93,000 answers); the `ECONNRESET` retry kept with its confirmed
+  cause. No retry, no longer limit, no skipped test. Gate: 616 of 616 three times. A quiet full
+  run takes the same time (403 s); a loaded one is slower (614 to 663 s, was 527 to 548 s).
+- Used 8 of the 10 full runs I allowed. The shell stops any command at ten minutes, so my
+  "foreground with a thirty-minute timeout" could not be done; the Build wrote a
+  detach-and-wait wrapper and said so.
+- The Tester ran its own loaded run, as briefed. No step opened the source app.
+
+**Filed through this review:** one template ticket (boxes share a host's CPU and disk, so a
+gate's result depends on strangers; Medium) and one gap ticket (the test server's memory grows
+from about 195 to 960 MiB over a full run; Low).
+
+**What I learned, and what changes in my scheduling:**
+- Holding a second Build to keep the host quiet bought less than I thought: the host is never
+  quiet. With the memory cause gone, **two Builds with disjoint manifests run side by side
+  again**, as the scheduling rule allows. I still avoid starting a child in the minutes when a
+  Build's status reads `final_gate`.
+- A gate flake now has a test: was the server silent for more than five seconds at that moment
+  (`scripts/e2e-load.sh` keeps the evidence). A failure outside a stall is a fault until shown
+  otherwise. The month picker is the one such case known.
+- A measurement brief with a run budget worked: causes came with lines under them, and what
+  was not explained was called that.
+
+**Ticket writes:** 10 (three to Done, one back to Backlog, notes on EXF-807, 727, 747, 783, 631
+and 576).
+**Backlog:** 41 open feature tickets (58 done). Gap: seventeen open (EXF-727 Medium among them),
+plus the one filed here. Template: forty open, plus the one filed here.
+Finished since each template's last review: Build 2, Deploy 6, Discover 2, Test user flow 7.
+
+**Next plan:** two Builds side by side: EXF-465 (connection status and Repair on the account's
+page and the sidebar, with the notes posted on it; holds the shell and the account files) and
+EXF-464 (manual match and unmatch; Worker and register), each with a rider where it fits
+(EXF-824 with the one that holds the account links service; EXF-816 with the register one).
+The template-ticket sweep is due about round 146.
