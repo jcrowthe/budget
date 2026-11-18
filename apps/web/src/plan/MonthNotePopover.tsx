@@ -16,7 +16,7 @@ export function MonthNotePopover({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [text, setText] = useState(note ?? "");
-  useDismiss(ref, onClose, triggerRef);
+  useDismiss(ref, onClose, triggerRef, { consumeOutsidePress: true });
   const save = () => {
     const next = text.trim() || null;
     onClose();
