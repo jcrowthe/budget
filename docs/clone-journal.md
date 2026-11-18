@@ -14108,8 +14108,8 @@ list of children as printed in this session, in order of their start: `p_cca7951
   verifier's report, belong in the template or the profile.
 - **It is asked to check my statements against the step records and say where one is wrong.**
   One I already know to be loose: the notes say the verifier of D39 met wrong figures of mine;
-  its figures held (the wrong figure was in a flow test's brief). I left it for the review to
-  find, since finding such things is what I asked of it.
+  its figures held (the wrong figure was in a flow test's brief). I saw this after the child had
+  started; the notes ask it to find such things, and I say here that this one is mine.
 
 **Not started:** a third Build (two are running and both are young); a Deploy (main is live);
 a flow run.
