@@ -4,6 +4,7 @@ import { placeStatusPopup, popupFor } from "@budget/schema/connection-status";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useAccountConnection } from "../api/bank-link";
 import { LinkStatusIcon } from "./bank-link-status";
+import { WarningTriangleIcon } from "./connection-status-icon";
 import { resetReason } from "./manage-connections-detail";
 import { useConnectionRelink } from "./manage-connections-relink";
 import { usePlanFormatter } from "./plan-formats-context";
@@ -33,7 +34,7 @@ export function ConnectionStatusMark({
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [pos, setPos] = useState<ReturnType<typeof placeStatusPopup> | null>(null);
   const { connection } = useAccountConnection(
     budgetId,
     account.bank_account_id,
@@ -136,7 +137,11 @@ export function ConnectionStatusMark({
           }
         }}
       >
-        <LinkStatusIcon status={s} />
+        {s === "login_required" || s === "broken" ? (
+          <WarningTriangleIcon width={12} height={12} />
+        ) : (
+          <LinkStatusIcon status={s} />
+        )}
       </button>
       {open ? (
         // biome-ignore lint/a11y/noStaticElementInteractions: hover and Escape keep a non-modal popup open or close it
@@ -152,8 +157,14 @@ export function ConnectionStatusMark({
           onBlur={onBlur}
           onKeyDown={onKeyDown}
         >
+          <span
+            className="status-popup-arrow"
+            data-side={pos?.side ?? "right"}
+            style={{ top: pos?.arrowTop ?? 0 }}
+          />
           <strong>{popup.title}</strong>
-          <p>{popup.line}</p>
+          <p className="status-popup-line">{popup.line}</p>
+          {popup.details ? <p className="status-popup-details">{popup.details}</p> : null}
           {popup.action === "repair" ? (
             <span className="status-popup-action" title={reason ?? undefined}>
               <button

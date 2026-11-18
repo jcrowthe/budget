@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   BROKEN_TEXT,
   DELAY_LINE,
-  DELAYED_TEXT,
   delayedOverThreeDays,
   lastCheckedText,
+  POPUP_DELAYED_DETAILS,
+  POPUP_REPAIR_DETAILS,
   placeStatusPopup,
   popupFor,
   REPAIR_STRIP,
-  REPAIR_TEXT,
   stripFor,
 } from "../src/connection-status";
 
@@ -71,36 +71,37 @@ describe("lastCheckedText and popupFor", () => {
     expect(lastCheckedText(ago(H), NOW)).toBe("Last checked an hour ago");
     expect(lastCheckedText(ago(3 * 24 * H), NOW)).toBe("Last checked 3 days ago");
   });
-  it("gives each status its title, line and action", () => {
+  it("gives each status its title, line, details and action", () => {
     expect(popupFor("connected", ago(H), NOW)).toEqual({
       title: "Connected",
       line: "Last checked an hour ago",
+      details: null,
       action: null,
     });
-    expect(popupFor("login_required", null, NOW)).toEqual({
+    expect(popupFor("login_required", ago(H), NOW)).toEqual({
       title: "Connection Repair Needed",
-      line: REPAIR_TEXT,
+      line: "Last attempted an hour ago",
+      details: POPUP_REPAIR_DETAILS,
       action: "repair",
     });
     expect(popupFor("delayed", null, NOW)).toEqual({
       title: "Imports Delayed",
-      line: DELAYED_TEXT,
+      line: "Not checked yet",
+      details: POPUP_DELAYED_DETAILS,
       action: null,
     });
-    expect(popupFor("broken", null, NOW)).toEqual({
-      title: "Connection Repair Needed",
-      line: BROKEN_TEXT,
-      action: null,
-    });
+    expect(popupFor("broken", ago(H), NOW).details).toBe(BROKEN_TEXT);
   });
 });
 
 describe("placeStatusPopup", () => {
   const size = { width: 292, height: 160 };
   const mark = { left: 200, top: 300, right: 220, bottom: 320 };
-  it("sits 8 px right of the mark, centred, at 1440x900 and 1024x700", () => {
-    expect(placeStatusPopup(mark, size, 1440, 900)).toEqual({ left: 228, top: 230 });
-    expect(placeStatusPopup(mark, size, 1024, 700)).toEqual({ left: 228, top: 230 });
+  // The source's arrow is 30x15 (1.875rem x 0.9375rem) (measured by the Designer in the test plan's style rules).
+  it("sits 15 px right of the mark (the arrow's depth), centred, at 1440x900 and 1024x700", () => {
+    const want = { left: 235, top: 230, side: "right", arrowTop: 65 };
+    expect(placeStatusPopup(mark, size, 1440, 900)).toEqual(want);
+    expect(placeStatusPopup(mark, size, 1024, 700)).toEqual(want);
   });
   it("is kept inside the window near the bottom and the top", () => {
     const low = { left: 200, top: 690, right: 220, bottom: 700 };
@@ -110,6 +111,8 @@ describe("placeStatusPopup", () => {
   });
   it("goes left of the mark when there is no room on the right", () => {
     const right = { left: 900, top: 300, right: 920, bottom: 320 };
-    expect(placeStatusPopup(right, size, 1024, 700).left).toBe(900 - 8 - 292);
+    const p = placeStatusPopup(right, size, 1024, 700);
+    expect(p.left).toBe(900 - 15 - 292);
+    expect(p.side).toBe("left");
   });
 });

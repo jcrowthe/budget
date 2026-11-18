@@ -3,7 +3,8 @@ import { linkStatus } from "@budget/schema/bank-link";
 import { stripFor } from "@budget/schema/connection-status";
 import { useEffect, useState } from "react";
 import { useAccountConnection } from "../api/bank-link";
-import { ClockIcon, LinkWarningIcon } from "../shell/icons";
+import { WarningTriangleIcon } from "../shell/connection-status-icon";
+import { ClockIcon } from "../shell/icons";
 import { resetReason } from "../shell/manage-connections-detail";
 import { ManageConnectionsDialog } from "../shell/manage-connections-dialog";
 import { useConnectionRelink } from "../shell/manage-connections-relink";
@@ -33,13 +34,26 @@ export function ConnectionStrip({ account }: { account: Account }) {
   if (!strip) return null;
   const reason = connection ? resetReason(connection, fmt) : null;
   const disabled = !connection || relink.running || reason !== null;
+  const act = () => (strip.kind === "repair" ? void relink.start() : setManaging(true));
+  const actionable = strip.kind === "repair" ? !disabled : strip.kind === "broken" && !!connection;
   return (
     <>
-      <div className="acct-connection-strip" data-kind={strip.kind} role="note">
+      {/* A click anywhere on the strip runs its button's action; the button stays the keyboard target. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: the strip's button is the keyboard and screen reader target */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: the strip's button is the keyboard and screen reader target */}
+      <div
+        className="acct-connection-strip"
+        data-kind={strip.kind}
+        data-actionable={actionable}
+        role="note"
+        onClick={(e) => {
+          if (actionable && !(e.target as HTMLElement).closest("button")) act();
+        }}
+      >
         {strip.kind === "delayed" ? (
           <ClockIcon width={16} height={16} />
         ) : (
-          <LinkWarningIcon width={16} height={16} />
+          <WarningTriangleIcon width={16} height={16} />
         )}
         <span className="acct-connection-text" title={strip.text}>
           {strip.text}
