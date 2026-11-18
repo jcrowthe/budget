@@ -121,7 +121,7 @@ function Frame({ onClose, children }: { onClose: () => void; children: React.Rea
         <div className="dialog-head">
           <h2 id="plan-export-title">Export Plan</h2>
           <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
-            <CloseIcon width={20} height={20} />
+            <CloseIcon width={16} height={16} />
           </button>
         </div>
         {children}

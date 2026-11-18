@@ -7,15 +7,63 @@
 .plan-export-dialog .dialog-footer {
   align-items: center;
 }
-.plan-export-dialog-check {
+.dialog.form .plan-export-dialog-check {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-right: auto;
+  gap: var(--space-1);
+  padding: 2px;
+  margin: 0 auto 0 0;
   font-size: 0.9rem;
   font-weight: 400;
+  line-height: var(--line-height);
   color: var(--labelSecondary);
+}
+.plan-export-dialog-check input {
+  appearance: none;
+  box-sizing: border-box;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  border: 1px solid var(--inputBorder);
+  border-radius: 3px;
+  background: transparent center / 11px 11px no-repeat;
+}
+.plan-export-dialog-check input:checked {
+  border-color: var(--buttonPrimaryBackground);
+  background-color: var(--buttonPrimaryBackground);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'%3E%3Cpath d='M2 5.6 4.4 8 9 3' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.plan-export-dialog-check input:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 1px;
 }
 .plan-export-dialog .form-body {
   padding-bottom: var(--space-1);
+}
+
+/* Polish: close button, button hover and focus ring (source: .dialog-close 16x16 in actionPrimary; the source button hover and :focus-visible). */
+.plan-export-dialog .dialog-head .icon-button,
+.plan-import-dialog .dialog-head .icon-button {
+  display: flex;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.plan-export-dialog .dialog-footer button,
+.plan-import-dialog .dialog-footer button {
+  transition: background-color 0.15s;
+}
+.plan-export-dialog .dialog-footer .secondary:hover:not(:disabled),
+.plan-import-dialog .dialog-footer .secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.plan-export-dialog .dialog-footer .primary:hover:not(:disabled),
+.plan-import-dialog .dialog-footer .primary:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.plan-export-dialog .dialog-footer button:focus-visible,
+.plan-import-dialog .dialog-footer button:focus-visible {
+  outline: auto 2px var(--actionPrimary);
+  outline-offset: 2px;
 }

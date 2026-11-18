@@ -234,7 +234,7 @@ export function PlanImportDialog({
         <div className="dialog-head">
           <h2 id="plan-import-title">Import Plan</h2>
           <button type="button" className="icon-button" aria-label="Close" onClick={closeAsked}>
-            <CloseIcon width={20} height={20} />
+            <CloseIcon width={16} height={16} />
           </button>
         </div>
         <div className="form-body plan-import-dialog-body">
