@@ -14,6 +14,8 @@ const EURO = {
   date_format: { format: "DD.MM.YYYY" },
 };
 const dotted = (daysBack: number) => daysAgo(daysBack).split("-").reverse().join(".");
+const parent = (page: Page, field: string) =>
+  page.locator(`.entry-row:not(.split-line) [data-field="${field}"] input`);
 const rowOf = (page: Page, payee: string) =>
   page.locator(".register-table tbody tr[data-tx]").filter({ hasText: payee });
 
@@ -44,8 +46,9 @@ for (const size of [
     await expect(rowOf(page, "ZZ New Bare").locator("td[data-field=outflow]")).toHaveText("5,00€");
     await expect(rowOf(page, "ZZ Ok One").locator("td[data-field=date]")).toHaveText(dotted(9));
 
-    // The remaining line uses the plan's separators (comma decimals) without the currency symbol, as observed live;
-    // case 15 only asks to report it.
+    // Decided in EXF-780 (docs/import-start-design.md): the remaining line is a computed amount in the plan's
+    // separators and digits, without the currency symbol and without a sign (the source writes it with
+    // includeSymbol:false). The three amounts are asserted in e2e/import-start-split.spec.ts.
     await page.getByRole("button", { name: "Add Transaction", exact: true }).click();
     await page.locator('.entry-row:not(.split-line) [data-field="outflow"] input').fill("100");
     await page.locator('.entry-row:not(.split-line) [data-field="category"] input').click();
@@ -57,5 +60,13 @@ for (const size of [
     await expect(page.getByText("Amount remaining to assign:", { exact: true })).toBeVisible();
     await expect(page.locator('[data-field="remaining-outflow"]')).toHaveText("100,00");
     await expect(page.locator('[data-field="remaining-inflow"]')).toHaveText("0,00");
+    for (const [typed, want] of [
+      ["1,00", "1,00"],
+      ["1.000,00", "1.000,00"],
+      ["1.234,56", "1.234,56"],
+    ]) {
+      await parent(page, "outflow").fill(typed as string);
+      await expect(page.locator('[data-field="remaining-outflow"]')).toHaveText(want as string);
+    }
   });
 }
