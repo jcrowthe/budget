@@ -12022,3 +12022,61 @@ and Repair already works from the modal.
 the import-start Build ends (it is the tenth since the last review).
 
 Ticket writes: 9 (EXF-798 priority; four tickets to In Progress, each with a comment).
+
+### 2026-11-18 · Review round 135
+
+Children used 152 of 200. One ended: **the import-start Build completed**
+(`p_4333153b783043d392848313d6d594a0`, 96 minutes), merged as **`2370e08`** (EXF-774 with EXF-780).
+Main is `2370e08`; live is still `2d9cde7`. The journal branch holds main.
+
+**Status of the running children (00:24Z):**
+- Flow 5, fourth run (`p_8e7994fbe6064c20bab5cd335a4940a8`): walking, 28 minutes in, no card.
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its build step, no card. Its manifest
+  has arrived and is on its ground (the shell's `NewPlanDialog`, `PlanMenu`, `Sidebar`,
+  `manage-connections-logo`, `tokens.css` for one token; `plan-settings/**`; a new `plans/`;
+  `pages/plans.tsx`, `pages/home.tsx`; `menu-actions/view-all-plans.ts`; `api/budgets.ts`; one
+  pure file in the schema package; the stand-in; no Worker source, no migration). No other
+  Build runs, so the scheduling rule has nothing to decide.
+
+**The import-start Build (card answered in a side turn: approve).**
+- What merged: moving a linked account's Starting Balance to an earlier date moves
+  `import_start_date` in the same batch, with the account's history row; the next sync reads the
+  feed again from that date (the sync needed no change); the amount is never touched; the
+  register sends one plan sync after such a save. D1 calls of the edit: 7, or 10 when a linked
+  start moved. Seventeen files, all on its ground; one existing spec's expectations extended (a
+  listed departure).
+- **EXF-780, a departure from my expectation, accepted:** the "Amount remaining to assign" line
+  carries no currency symbol, because the source's own code writes it without; the `1,000,00`
+  reading was not reproduced in nine cases; the label got its ellipsis and tooltip.
+- The Designer and the Architect read the source's style rules and probed in a tab of their own,
+  as the brief now allows, and said so; nothing else was opened.
+- **The gate: thirteen specs failed only in full runs** (7 to 8 per run in three runs; each
+  passed alone 5 or 10 times) and the gate called them flakes. Eleven are in areas the Build did
+  not touch; the Reviewer had measured the box at load 13 on 5 CPUs; two other children of mine
+  started in that half hour. Of the two split specs, one exercises the changed label, and I read
+  the change against its assertion before approving. Until now one spec at a time had failed
+  this way (EXF-727, EXF-747, EXF-783). Evidence posted on EXF-576 (the template's gate rule);
+  a gap ticket for the suite under load is filed below.
+
+**Filed through this review (one gap ticket, Medium):** the full browser suite fails 7 to 8 specs
+per run on a loaded box.
+
+**What I learned:**
+- Starting two children while a Build is at its final gate may have cost that gate its CPU. I do
+  not know that the boxes share a host; the ticket asks for the measurement. Until it is known, I
+  avoid starting children while a Build's status reads `final_gate`, when waiting costs nothing.
+- "Passed alone" is what the gate reports for a flake; whether the flake touches the Build's own
+  files is what the card should say, and today I have to work it out by hand.
+
+**Ticket writes:** 5 (EXF-774 and EXF-780 to Done with a comment each; evidence on EXF-576).
+**Backlog:** 43 open feature tickets (EXF-469 and EXF-471 in progress; 56 done). Gap: nineteen
+open (EXF-746 and EXF-798 in progress), plus the one filed here. Template: thirty-nine open.
+Flow verdicts unchanged (flow 5's fourth run is walking).
+Finished since each template's last review: **Build 10 (review due)**, Deploy 4, Discover 2, Test
+user flow 5.
+
+**Next plan:** a Deploy (`ZZ-TEST D36`) for `2370e08`, with a check of the import start through
+REST and the register; **the Build template review** with the ten Threads `p_4b3e4d16…`,
+`p_164aad44…`, `p_5b0c6eac…`, `p_a45bb554…`, `p_20723ffe…`, `p_e8c64873…`, `p_436014a9…`,
+`p_0625567f…`, `p_49508f8b…`, `p_4333153b…`; set the new ticket's priority. The Deploy's brief
+forbids the two connections that are not ours and says nothing about `/plans` yet (not merged).
