@@ -32,10 +32,14 @@ fi
 
 start=$(date +%s)
 # DEBUG=pw:webserver prints the test server's stdout too (its stderr is printed anyway), so 500s are counted.
+# Every line gets the wall time it was printed at (stamp.mjs), so a slow answer can be set beside a test.
 DEBUG=pw:webserver PLAYWRIGHT_JSON_OUTPUT_NAME="$out/report.json" \
-  pnpm exec playwright test --reporter=list,json "$@" >"$out/run.log" 2>&1
-status=$?
+  pnpm exec playwright test --reporter=list,json "$@" 2>&1 | node scripts/e2e-load-stamp.mjs >"$out/run.log"
+status=${PIPESTATUS[0]}
 end=$(date +%s)
+# Playwright empties test-results at the next run: keep this run's traces of failed tests.
+rm -rf "$out/test-results"
+[ -d test-results ] && cp -r test-results "$out/test-results"
 
 for p in "${pids[@]}"; do kill "$p" 2>/dev/null; done
 for p in "${pids[@]}"; do wait "$p" 2>/dev/null; done
