@@ -59,11 +59,9 @@ export async function listBankConnections(env: Env, budgetId: string): Promise<B
   const e = await getBudgetEnvironment(env, budgetId);
   const db = getDb(env);
   const found = await repo.listByEnvironment(db, e);
-  const links = await accountsRepo.linksForPlan(
-    db,
-    budgetId,
-    found.flatMap((r) => r.accounts.map((a) => a.id)),
-  );
+  const links = found.some((r) => r.accounts.length > 0)
+    ? await accountsRepo.linksInEnvironment(db, budgetId, e)
+    : new Map<string, string>();
   return found.map((r) => toApi(r.row, r.accounts, links));
 }
 
@@ -225,12 +223,14 @@ async function scoped(env: Env, budgetId: string, id: string) {
   return found;
 }
 
-async function linksOf(env: Env, budgetId: string, accounts: repo.BankAccountRow[]) {
-  return accountsRepo.linksForPlan(
-    getDb(env),
-    budgetId,
-    accounts.map((a) => a.id),
-  );
+async function linksOf(
+  env: Env,
+  budgetId: string,
+  connectionId: string,
+  accounts: repo.BankAccountRow[],
+) {
+  if (accounts.length === 0) return new Map<string, string>();
+  return accountsRepo.linksOfConnection(getDb(env), budgetId, connectionId);
 }
 
 export async function getBankConnection(
@@ -239,7 +239,7 @@ export async function getBankConnection(
   id: string,
 ): Promise<BankConnection> {
   const { row, accounts } = await scoped(env, budgetId, id);
-  return toApi(row, accounts, await linksOf(env, budgetId, accounts));
+  return toApi(row, accounts, await linksOf(env, budgetId, id, accounts));
 }
 
 export async function renameBankConnection(
@@ -248,7 +248,7 @@ export async function renameBankConnection(
   input: { budget_id: string; id: string; nickname: string },
 ): Promise<BankConnection> {
   const { row, accounts } = await scoped(env, input.budget_id, input.id);
-  const links = await linksOf(env, input.budget_id, accounts);
+  const links = await linksOf(env, input.budget_id, input.id, accounts);
   const trimmed = input.nickname.trim();
   const nickname = trimmed === "" ? row.institutionName.slice(0, 100) : trimmed;
   const before = toApi(row, accounts, links);
@@ -309,7 +309,7 @@ export async function finishReset(
   id: string,
 ): Promise<BankConnection> {
   const { row, accounts } = await scoped(env, budgetId, id);
-  const links = await linksOf(env, budgetId, accounts);
+  const links = await linksOf(env, budgetId, id, accounts);
   const db = getDb(env);
   const now = new Date().toISOString();
   await db.batch([
@@ -387,7 +387,7 @@ export async function removeBankConnection(
           action: "delete",
           entityType: "bank_connection",
           entityId: row.id,
-          before: toApi(row, accounts, await linksOf(env, budgetId, accounts)),
+          before: toApi(row, accounts, await linksOf(env, budgetId, row.id, accounts)),
           after: null,
         },
         holds,

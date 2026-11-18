@@ -59,6 +59,8 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
 
 A request that handles many rows makes a number of D1 calls that does not grow with the rows: read with set queries, write with one batch (a batch counts as one call; the Free plan allows 50 calls per invocation). Such a handler has a test that counts its calls for 10 and for 100 rows.
 
+No `IN` list built from rows of the database without a stated bound (D1 refuses more than 100 bound parameters in a statement): use a join, a sub-select or `idsIn` (`repositories/payees.ts`, one parameter for any number of ids).
+
 ## Statements: name the columns
 
 No statement depends on a table's column order: every insert or copy names its columns. Use `insertSelect` (`repositories/insert-select.ts`) for `insert … select`; Drizzle's `insert(t).select(...)` lists every column of `t` and is refused by `scripts/test/positional-inserts.test.ts`. `insert(t).values({...})` names them and is fine.
