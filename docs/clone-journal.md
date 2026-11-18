@@ -14047,3 +14047,43 @@ When D41 ends the Deploy count is 10 and its template review is due; the next Bu
 makes 10 Builds. **Children left: 28.**
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 155
+
+Children used 172 of 200 (the warning comes at 180). One ended: **Deploy D41 released**
+(`p_d7e6241b693f49e8adc6b70fa062ce8c`, nine minutes). **Live is `639e60d`** at
+https://budget.doxen.dev (the health check read by me at 18:04Z); main is `639e60d`; no
+migration pending.
+
+**Status of the running children (18:04Z):** the Build for EXF-874
+(`p_b4c926009b32431f826d65b571ba1db0`) and the Build for EXF-510
+(`p_3d140515a4c34b64a7efbf1baf338ce1`), both a few minutes in, 6 visits each, no design yet,
+no card.
+
+**D41.**
+- Gate: `pnpm check` 269 s; the browser run skipped on `gated_commit` `063e422`, as its brief
+  explained. Release: the D1 bookmark, no migration, smoke ok.
+- **The schedule of the deployed Worker, from the deploy output: `schedule: 0 3,9,15,21 * * *`.**
+  The first change of the Worker's schedule since the first release went out as written.
+- 89 tools; the tool's sentence about the bank's list as merged; the reads and one page load
+  without an error; nothing under DIFFERS. No screenshot asked for, none taken.
+- The two connections that are not ours: 14 and 2 bank accounts, last synced 03:00Z, the same
+  before and after. **The first run at the new hours is 21:00Z.** It is also the first sync of
+  those two connections with the code that adds and removes bank accounts: if their counts
+  change then, the bank's list had moved since they were made. The next child that reads the
+  list reports the times and the counts.
+- Observed by it and right: opening an account page sends the app's own `enter-due` for
+  scheduled transactions and reads the plans list and `/me`; its recorder kept no body.
+
+**Tickets:** live notes on EXF-751 (with the schedule as quoted) and EXF-875.
+**Ticket writes:** 2. No new ticket.
+**Backlog:** 33 open feature tickets, one In Progress (EXF-510). Gap: 17 open, one In Progress
+(EXF-874). Not recounted in this turn.
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 9, **Deploy 10**, Discover 2, Test user
+flow 8.
+
+**Next plan:** the Deploy template's review is due (ten Deploys since its last one, D32 to
+D41: `p_cca7951c…`, `p_80111cfe…`, `p_2ac3e7ea…`, `p_0968d3d2…`, `p_1cc11da7…`, `p_684f7b0f…`,
+`p_97546c23…`, `p_c390c4d9…`, `p_a950a3ca…`, `p_d7e6241b…`; I check the ids against the list
+of children before I start it). Nothing else: two Builds are running.
