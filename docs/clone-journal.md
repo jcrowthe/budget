@@ -12950,3 +12950,46 @@ EXF-866 with EXF-867 in the shell and the Worker; I start them when the Deploy's
 
 Ticket writes: 0.
 Finished since each template's last review: Build 4, Deploy 6, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 145
+
+Children used 160 of 200. One ended: **Deploy D38 completed**
+(`p_97546c23d86040e0a1cd1f5e50ab4e06`, 11 minutes). **Live is `b0240a5`** at
+https://budget.doxen.dev (read by me at 09:44Z), equal to main; **the migration
+`20261116101600_manual_match.sql` is applied** and nothing is pending (read by me). Nothing is
+running.
+
+**Deploy D38: released; one difference from the brief, of no weight.**
+- Gate passed (tree equal to gated `186fe1b`; checks 280 s, `LOAD=4.26/16`); the release took the
+  database's bookmark, applied the one migration, smoke ok; 401 without credentials; **89 MCP
+  tools** with the two new ones; `plaid credentials: sandbox set, production set`. The box had
+  its platform files.
+- **Proved without a bank:** `match_details` null on every plain row; the four refusals through
+  REST with their names and wording to the character (the row label reads
+  `ZZ Grocer on 11/18/2026 (−$12.34)`), each changing nothing, and the same message through the
+  tool; the bar's `Match` disabled with its reason as tip for two hand entries, neither button
+  for one plain row; no icon and no strip on an unlinked account; the open row's Category
+  tooltip at 1024 px (EXF-816).
+- The one "DIFFERS": the same id twice answers with the name `unprocessable_entity`; I had only
+  asked for the name to be reported.
+- **Not checked, by my own wording:** the sidebar row's status mark. The verifier would not read
+  anything in the sidebar because the standing rule says to read no sidebar text, while my step
+  named a sidebar element. The rule is about the sidebar's **header**; the next brief says "the
+  account rows of the sidebar may be read by the elements a step names".
+- The verifier started after the release, so the pending list before it comes from the release's
+  own summary (`MIGRATIONS_PENDING_BEFORE` the one file), not from a second run.
+- The two connections that are not ours: identical in three reads.
+- Plans that are not test plans: 1; purge `deleted 1 remaining 0`.
+- **Two LOOK states, two screenshots, both opened.** Third Deploy in a row.
+
+**Ticket writes:** 2 (live notes on EXF-464 and EXF-465).
+**Backlog:** 40 open feature tickets (60 done). Gap: seventeen open. Template: forty-one open.
+**Flow verdicts:** unchanged. Flow 5 is due again: match and unmatch with an import, the mark's
+popup on a connected account.
+Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 7.
+
+**Next plan:** flow 5, sixth run, short, on live `b0240a5` (a hand entry and a Sandbox import of
+different amounts matched from the bar, the details panel and its click-through, unmatch, a sync
+that changes nothing; an automatic match by entering a hand entry before the import; the mark's
+popup by mouse and keyboard; EXF-867 seen or not). Beside it the template-ticket sweep (it reads
+tickets and Threads only). Then the two Builds: EXF-727, and EXF-866 with EXF-867.
