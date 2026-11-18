@@ -13718,3 +13718,74 @@ and open); its branch head is still `73491a9`; the gate comes next. No card.
 **Ticket writes:** 0.
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 152
+
+Children used 167 of 200 (the warning comes at 180). One ended: **the Build for EXF-477 with
+EXF-476 completed and merged** (`p_67b2dc2acd404028888247acb64ab7d9`, 3 h 39 min, 54 visits,
+PR 75). **Main is `07e3715`** (its tree equals the gated head `13704fd`); **live is `ecfbc8f`**
+(read at 15:37Z); no migration pending. The journal branch holds main (merge `43d1b95`).
+Nothing is running.
+
+**What merged:** the Import Plan dialog on the plans page (file, preview by dry run, the
+import with progress, cancel, a failed step, the result with Open Plan) and the plan menu's
+Export Plan dialog with "Don't show again". Web only: 32 files, none in the shell, the Worker
+or a shared module; one new interface-state key.
+
+**How it went, with the two cards I answered in side turns:**
+- **The review card (proceed):** three review rounds. The first two found one real fault twice
+  over (a cancel during the import's first request did not cancel; then, when that request
+  finished the import, the dialog still closed after saying nothing was kept). Fixed, with two
+  specs. The third found a race in a spec the branch added, fixed after the round. I read the
+  run and cancel module before answering.
+- **Three gate attempts failed before the fourth passed.** Each time the failures were in this
+  Build's own import specs under load (a page crash when a 21 MB file went through the test's
+  file chooser; waits of 5 s too short for the first request of a 6,000-row file), and each
+  time the Implementer changed specs only: the big file is built in the page; the dialog specs
+  got a 60 s expect limit and a 150 s test limit; a same-row layout check became next-card
+  order. What the specs assert did not change. The app's code did not change after acceptance
+  (I compared `73491a9` with `13704fd`: seven spec files).
+- **The pull-request card (approve).** Gate: check passed; changed specs 320 of 320 over ten
+  repeats; **the full suite 690 of 692 once and 686 of 692 twice**, six specs of other features
+  failing in a full run and passing alone. I checked the one that looked related
+  (`sidebar-collapse.spec.ts:207`): the interface state is per plan and that test is about a
+  width. Three of the six were in gate lists before this Build existed.
+- **What I do not know and wrote on the card:** whether this Build's heavy specs make every
+  later gate slower and flakier. The carry-over's gate two hours earlier was 673 of 673 three
+  times; this one, with 19 more tests and no other child of mine running, was not clean, and
+  three attempts before it failed outright at a load of 5 to 7 on a 5-CPU quota. The host is
+  shared with other people's Threads, so I cannot tell the suite's own weight from theirs
+  without a measurement. It is a point of the ticket filed below, to be measured with
+  `scripts/e2e-load.sh`, not guessed.
+- Acceptance 15 of 15, sixteen screenshots opened. The Export dialog was measured against the
+  source's style rules (five polish items, rechecked); the Import dialog is this app's own.
+- In the source: style rules, loaded scripts, probe elements in tabs of their own; no click.
+  The rule "no click at all" held.
+
+**Filed at this review (one gap ticket, Low):** the dialog's leftovers: the progress bar shows
+nothing at "Writing step 1 of 3" (its width is done/count, so 0); the preview's
+`Transactions` header wraps mid-word at 1440; after a cancel that the server had already
+answered by removing the import, the dialog says "could not be cancelled" with Try again
+instead of the server's words; a file whose currency symbol the app does not know is stored as
+the first currency with the same decimals, with no way to choose in the preview; and the
+weight of the import specs (several 6,000-row imports, 60 s limits in six spec files).
+
+**What I learned:**
+- A Build that adds heavy browser specs pays for them at its own gate, three times here. A
+  brief that asks for "a file large enough for several steps" should also say: one such
+  import in the whole suite, and the rest at the smallest size that shows the state.
+- When review rounds run out with a finding fixed but unreviewed, the gate with ten repeats of
+  the changed specs is the right next check; it was.
+
+**Tickets:** EXF-477 and EXF-476 to Done, a comment on each. **Ticket writes:** 4.
+**Backlog:** 33 open feature tickets (the 35 counted at round 150, less these two; none In
+Progress). Gap: 18 open, plus the one filed here. Template: not counted in this turn.
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 8, Deploy 8, Discover 2, Test user flow 8.
+
+**Next plan:** set the new ticket's priority. Start Deploy D40 for `07e3715` (web only, no
+migration): the Export Plan entry and dialog on live in a test plan (the download's name and
+its two entries, "Don't show again"); the Import dialog cannot be opened by a test on live
+(no test opens the plans page), so its check is the API's dry run as before and nothing more.
+Beside it, the Build for EXF-875 (a connection's bank accounts refreshed), with EXF-874 (the
+outside press) as a second Build on the Plan page if the host allows; EXF-751 after EXF-875.
