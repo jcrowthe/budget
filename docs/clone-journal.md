@@ -13511,3 +13511,80 @@ to another project's ticket (EXF-820, round 141); the wrong bank figure in a liv
 the Build I had to end for my own reserved-migration line and its cost (one child, about an
 hour and a half); what is live and proved; what the 34 children left are for; and the eight
 open questions again, with the child limit first.
+
+### 2026-11-18 · Review round 150 (check-in)
+
+Children used 166 of 200 (the warning comes at 180). One ended: **the carry-over Build for
+EXF-866 with EXF-867 completed and merged** (`p_79c7d0a7b7d44cb1ad223a5eac018cd3`, 50 minutes
+from start to merge, PR 76). **Main is `ecfbc8f`** (its tree equals the gated head `fa8a425`);
+**live is `b0240a5`** (read at 13:27Z); one migration is pending on live
+(`20261116101700_connection_link_status.sql`). The journal branch holds main (merge `675f6e2`).
+
+**Status of the running child (13:27Z):** the Build for EXF-477 with EXF-476
+(`p_67b2dc2acd404028888247acb64ab7d9`), 1 h 30 min in, at its second review. Its Reviewer found
+a real fault twice over: cancelling an import while its first request is still out did not
+cancel (first: no delete was sent; after the fix: when that request finishes the import, the
+dialog still closes and the plan appears after the person was told nothing was kept). Back with
+the Implementer. No card. It is on course.
+
+**The carry-over (card answered in a side turn: approve).**
+- Gate: check passed; the whole browser suite **673 of 673 three times, no flake**; the
+  migration accepted with the empty reserved list ("no number reserved"). Acceptance 17 of 17.
+  The other Build was running its own specs on the same host during this gate.
+- Its own changes after the reviewed `c953b12`: the name `Linked Account Not Found` from one
+  function in every place; a broken connection's list badge reads `Connection Lost`. The
+  migration is byte for byte the first Build's.
+- **Before approving I read the Worker half of the whole change against main** (I had not at
+  the first Build's cards, which never reached a pull-request card): the sync's last batch, the
+  nightly loop, the repositories, the relink rule, the stored reason. Nothing to object to.
+- One file outside the manifest: a setup line in an existing schedule test, declared by the
+  first Build.
+- The carry-over form worked as written: each step told what it does and does not do; 27
+  visits against the first Build's 37; no step opened the source.
+
+**Found by these two Builds and filed at this review (two gap tickets):**
+- **A connection's bank accounts are written once, when the connection is made**
+  (`services/bank-connections.ts:173` is the only insert; I checked). An account the owner adds
+  at the bank later, or ticks at a later sign-in, never appears under the connection, so it can
+  never be linked; and a `Linked Account Not Found` can only be relinked to an account the
+  connection already knew. Medium: it matters once real banks are linked.
+- **Dialog buttons in every dialog:** no hover fill, the browser's own focus ring, and a
+  disabled primary button at half opacity where the source has its own dimmed colours (measured
+  by the dialogs Build's Designer against the source's style rules; that Build fixed it for its
+  own two dialogs only, because the rule lives in the shell). Low.
+Looked at and not filed: at 1024×700 the connection detail's `Reset` and `Remove` are reached
+by scrolling inside the dialog.
+
+**Counts corrected, counted from the tracker in this turn:** open feature tickets are **35**
+(33 in Backlog, 2 In Progress), not the 40 my last entries carried; open gap tickets are **16**
+(18 with the two filed now), not 15. The old figures were carried forward from entry to entry
+and never recounted. From now on the backlog line is counted from the list in the turn that
+writes it, or it says "not counted".
+
+**Check-in sent** (the report is in the answer): what is live and what waits for a Deploy; what
+landed since round 140; what went wrong and was mine (a write to another project's ticket; a
+wrong bank figure in a live test's brief; a Build ended at its gate for my own request line,
+one child and about an hour and a half; figures and times stated without counting or reading
+them); what the 34 children left are for; eight questions, the child limit first.
+
+**What I learned:**
+- A carry-over is cheap when the brief says what each step does not do.
+- A permission a later step may need goes into the brief; no note sent later arrives.
+- Numbers carried from the last entry are not counts.
+
+**Tickets:** EXF-866 and EXF-867 to Done, a comment on each. **Ticket writes:** 4.
+**Backlog (counted now):** 35 open feature tickets, 2 of them In Progress (EXF-477, EXF-476).
+Gap: 16 open, plus the two filed here. Template: not counted in this turn (41 at the sweep of
+round 146, none filed or closed since).
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps` (old; its gaps but EXF-679 fixed on
+live); 3, 4 `parity`; 5 `parity_known_gaps` (its known gap, EXF-867, is merged, not live);
+7 `parity_known_gaps`; 8 to 11 `parity`; 6 not run as a flow.
+Finished since each template's last review: Build 7, Deploy 7, Discover 2, Test user flow 8.
+Next check-in: the review of round 160.
+
+**Next plan:** set the two new tickets' priorities. **Deploy D39** for `ecfbc8f` (two merges,
+one migration; run prefix `ZZ-TEST D39`): the migration applied; the account and connection
+reads carry the new fields, null for a healthy link; the month picker closes on a press on the
+disabled "Next month" arrow; the Activity popover's amount column; the status popup pinned by a
+click closes on a resize. The dialogs Build goes on beside it (a Deploy's gate and a Build's
+steps have shared the host before).
