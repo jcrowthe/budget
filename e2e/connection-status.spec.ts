@@ -6,6 +6,7 @@ import {
   dialogNamed,
   newPlan,
   oneAccountBank,
+  openDetail,
   posts,
   setup,
   sidebar,
@@ -190,4 +191,20 @@ test("7 no strip for a connected, an unlinked or a closed account, nor on All Ac
   await expect(page.getByRole("heading", { name: "All Accounts", exact: true })).toBeVisible();
   await expect(strip(page)).toHaveCount(0);
   await expect(sidebar(page)).toBeVisible();
+});
+
+test("11 Manage Bank Connections: a closed Repair sign-in is a notice, not an alert", async ({
+  page,
+  request,
+}) => {
+  await stubPlaidLink(page, CLOSED);
+  await setup(page, request, (z) => [z.connection], {
+    zz: { status: "login_required", last_synced_at: hoursAgo(1) },
+  });
+  const detail = await openDetail(page, "ZZ Bank");
+  await realClick(page, detail.getByRole("button", { name: "Repair", exact: true }));
+  await expect(detail.getByRole("status")).toHaveText(
+    "The bank sign-in was closed. Nothing was changed.",
+  );
+  await expect(detail.getByRole("alert")).toHaveCount(0);
 });
