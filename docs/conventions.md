@@ -152,3 +152,13 @@ Live flow tests reach the clone with `scripts/access-browser.mjs`.
 **Plan menu entries.** The plan menu's entries are fixed in `apps/web/src/shell/planMenuEntries.ts`. An entry is enabled by adding one file `apps/web/src/menu-actions/<entry-id>.ts(x)` that exports `action: PlanMenuAction` (`{ entry, run(ctx) }` or `{ entry, Dialog }`). The shell collects it with `import.meta.glob`; never edit the shell to enable an entry. Unregistered entries are shown disabled.
 
 **Timestamps in tool results.** A tool whose result holds a timestamp names it with timestamps([...], [nullable]) from mcp/tool-text.ts, and dates with dates(...). A new tool adds its call to CALLS (or a reason to NOT_CALLED) in apps/worker/test/mcp-timestamps.test.ts.
+
+## Browser suite: workers and load
+
+- The worker count comes from `e2e/support/e2e-load-workers.ts`: the cgroup CPU quota minus 1, and a memory limit of
+  (memory − 2 GiB) / 512 MiB, never above Playwright's default (half the visible CPUs). `E2E_WORKERS=<n>` overrides;
+  `--workers` wins. A 5-CPU, 5 GiB box runs 4 workers.
+- Why: 8 workers there reached the memory cap and stalled the test server for 6 to 11 s ([design](e2e-load-design.md)).
+- Measure under the made load (four busy loops): `bash scripts/e2e-load.sh <label> on [playwright args]`; past the
+  shell's 10 minutes, `bash scripts/e2e-load-bg.sh start|wait|stop <label> on`. The table line and every failed test
+  are in `/workspace/scratch/e2e-load/<label>/summary.md`.
