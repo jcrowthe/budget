@@ -13,16 +13,7 @@ export async function call(
   path: string,
   data?: unknown,
 ) {
-  // A busy server (other specs share its D1) may answer 409 or 5xx once: seeding retries those.
-  let res = await request.fetch(path, { method, headers: await authHeaders(), data });
-  for (
-    let attempt = 0;
-    attempt < 4 && !res.ok() && (res.status() === 409 || res.status() >= 500);
-    attempt++
-  ) {
-    await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
-    res = await request.fetch(path, { method, headers: await authHeaders(), data });
-  }
+  const res = await request.fetch(path, { method, headers: await authHeaders(), data });
   expect(res.ok(), `${method} ${path} -> ${res.status()}`).toBe(true);
   return (await res.json()).data;
 }
