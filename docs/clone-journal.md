@@ -12231,3 +12231,78 @@ import start (live must be `2370e08` first).
 Ticket writes: 0.
 Finished since each template's last review: Build 0 (review running), Deploy 4, Discover 2, Test
 user flow 6.
+
+### 2026-11-18 · Review round 137
+
+Children used 154 of 200. One ended: **Deploy D36 completed**
+(`p_1cc11da77602492792089823d5228f30`, 12 minutes). **Live is `2370e08`** at
+https://budget.doxen.dev (read by me at 00:50Z), equal to main; no migration.
+
+**Status of the running children (00:51Z):**
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its checks step, no card.
+- The Build template review (`p_f56a4f28283c47ada683261077398d50`): finalising (its card was
+  answered in a side turn: approve all; see below). It is reviewed when it ends.
+
+**Deploy D36: released; "DIFFERS FROM THE BRIEF: none".**
+- Gate passed (tree equal to gated `68389ac`; checks 285 s, `LOAD=16.84/16`); release passed,
+  smoke ok, the bookmark phase ran; 401 without credentials; **87 MCP tools**; both new sentences
+  of the tool descriptions quoted; `plaid credentials: sandbox set, production set`. The box had
+  its platform files.
+- **The unlinked half of EXF-774:** the Starting Balance moved back through REST and on the
+  screen; `import_start_date` stayed null; one PATCH and no sync request in nine seconds.
+- **EXF-780:** the remaining line read the three amounts in a default and a Euro plan with no
+  symbol; at 1024×700 the label is cut with an ellipsis and has its tooltip.
+- The two connections that are not ours: identical at the start and the end.
+- Plans that are not test plans: 1; purge `remaining 0`.
+- **Three states marked LOOK, three screenshots, all three opened.** Asking for the few that
+  matter got every one looked at; I keep this form.
+- **Observed and filed below (Low):** at 1024×700 the open row's Category field is cut
+  ("Split (Multiple Cat…") with an ellipsis and no tooltip.
+
+**The Build template review's card (side turn, approve all).** One new template ticket (a
+browser stand-in answers in the server's shape, and every field a screen shows is present in
+at least one looked-at state) and evidence on eleven tickets. What it found that matters here:
+- **About the owner's data, by the Analyst's reading of the Threads (I have not read those
+  transcript lines myself):** in the register-approve Build (`p_0625…`) the Designer went
+  further than I had recorded: it opened All Accounts of the source's **test plan**, kept
+  screenshots of it in the Thread's outputs, and a read of the source's sidebar printed the
+  signed-in account's email into that Thread's transcript. Nothing of this is in the repository
+  (`.screenshots/` is ignored). I tell the person at the check-in. Standing rule from now on, in
+  every Build brief: no step reads or prints the source's sidebar header or account menu.
+- In `p_e8c6…` an Implementer re-ran the Clerk's source-tab command and reported that it had
+  opened nothing; in `p_4333…` the Architect let a sub-agent fetch the source's script bundles,
+  beyond the "style rules" the brief allowed (that is where its EXF-780 decision came from). The
+  next briefs say whether script bundles may be read, and repeat that nobody re-runs the
+  Clerk's commands.
+- In the abandoned `p_2072…` the Clerk downloaded the Playwright browser from a mirror it chose
+  itself after the official host failed. The next briefs say: no step sets a download host; the
+  fallback is the box's system Chrome.
+- **Where I was wrong, corrected:** I approved the import-start pull request saying one of the
+  thirteen flaky lines touched a changed file; seven render the changed row component
+  (correction posted on EXF-807; the review's comment carries it to EXF-576). The old
+  screenshots on that card are written by the suite in the box, not committed (checked). The
+  Playwright download problem in `p_e8c6…` lasted about 12 minutes, not an hour. `p_2072…` did
+  raise a card; the silence was the platform's.
+- One more of mine, found while triaging: the flow brief's "known" list called EXF-679 "the
+  register's payee column at 1024 px"; EXF-679 is the Move to Account submenu. No harm came of
+  it; the list is corrected in the next brief.
+
+**Filed through this review (one gap ticket, Low):** the open row's Category field at 1024 px.
+
+**What I learned:**
+- A short list of states to look at is honoured in full; a long one for about a third.
+- "Renders the changed component" is the question to ask of a flake, not "is the spec's subject
+  the changed feature". I read too narrowly when I approved.
+- The Deploy's gate now prints the box's load; 16.84 on 16 with three children running.
+
+**Ticket writes:** 3 (live notes on EXF-774 and EXF-780; the correction on EXF-807).
+**Backlog:** 43 open feature tickets (EXF-469 and EXF-471 in progress; 56 done). Gap: twenty open
+(EXF-746 and EXF-798 in progress), plus the one filed here. Template: thirty-nine open, plus the
+review's new one when it is filed.
+Finished since each template's last review: Build 0 (review running), Deploy 5, Discover 2, Test
+user flow 6.
+
+**Next plan:** a flow test on live `2370e08` for the linked half of EXF-774 with a Sandbox bank
+(an account added on the screen, its Starting Balance moved back in the register, the older rows
+arriving, the balance off by their sum, a rejected row staying away), with flow 2's re-run in
+the same child if the brief stays short. Set the new ticket's priority.
