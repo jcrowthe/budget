@@ -41,7 +41,7 @@ export function suiteWorkers(): number | undefined {
   return workersFor({
     cpuMax: read("/sys/fs/cgroup/cpu.max"),
     memoryMax: read("/sys/fs/cgroup/memory.max"),
-    cpus: os.availableParallelism(),
+    cpus: os.cpus().length,
     override: process.env.E2E_WORKERS,
   });
 }
