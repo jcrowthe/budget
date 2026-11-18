@@ -84,7 +84,7 @@ test("11c sign-in closed: its sentence, no reset call", async ({ page, request }
     page,
     dialogNamed(page, "Reset Bank Connection").getByRole("button", { name: "Reset", exact: true }),
   );
-  await expect(dialogNamed(page, "ZZ Bank").getByRole("alert")).toHaveText(
+  await expect(dialogNamed(page, "ZZ Bank").getByRole("status")).toHaveText(
     "The bank sign-in was closed. Nothing was changed.",
   );
   expect(posts(stub.requests, "POST", /\/reset$/)).toHaveLength(0);
@@ -208,7 +208,7 @@ test("11e a Reset message stays with its connection", async ({ page, request }) 
     page,
     dialogNamed(page, "Reset Bank Connection").getByRole("button", { name: "Reset", exact: true }),
   );
-  await expect(dialogNamed(page, "ZZ Bank").getByRole("alert")).toBeVisible();
+  await expect(dialogNamed(page, "ZZ Bank").getByRole("status")).toBeVisible();
   await realClick(page, dialogNamed(page, "ZZ Bank").getByRole("button", { name: "Back" }));
   await realClick(
     page,
@@ -218,5 +218,5 @@ test("11e a Reset message stays with its connection", async ({ page, request }) 
     }),
   );
   await expect(dialogNamed(page, "ZZ Other")).toBeVisible();
-  await expect(dialogNamed(page, "ZZ Other").getByRole("alert")).toHaveCount(0);
+  await expect(dialogNamed(page, "ZZ Other").getByRole("status")).toHaveCount(0);
 });

@@ -40,6 +40,8 @@ export type FakeConnection = {
   institution_name?: string;
   /** When the connection was last reset (default: never). */
   last_reset_at?: string | null;
+  /** When the connection was made, served as `created_at` (`services/bank-connections.ts:39`) (default 2030-01-01). */
+  created_at?: string;
   /** The bank's logo, base64; served as the Worker serves it (`services/bank-connections.ts:123`) (default: none). */
   logo?: string | null;
 };
@@ -151,7 +153,7 @@ export async function stubBankLink(
     last_synced_at: c.last_synced_at,
     last_reset_at: c.last_reset_at ?? null,
     sync_failed_at: null,
-    created_at: "2030-01-01T00:00:00Z",
+    created_at: c.created_at ?? "2030-01-01T00:00:00Z",
     accounts: c.accounts.map((a) => ({
       id: a.id,
       bank_connection_id: c.id,
@@ -178,10 +180,15 @@ export async function stubBankLink(
       unapproved_count: unapproved.get(a.id as string) ?? 0,
     };
   };
-  /** After a sync: the connection is synced now and the rows it "brought" count as unapproved. */
+  /**
+   * After a sync: a connected connection is synced now and the rows it "brought" count as unapproved. A
+   * connection in any other status did not sync (the Worker returns at once for one that needs repair,
+   * `plaid-sync.ts:187`, and a delayed one is still failing), so its last_synced_at stays.
+   */
   const applySync = (connectionId?: string) => {
     for (const c of connections) {
       if (connectionId && c.id !== connectionId) continue;
+      if (c.status !== "connected") continue;
       c.last_synced_at = new Date().toISOString();
     }
     for (const [bank, n] of Object.entries(opts.afterSync?.unapproved ?? {})) {

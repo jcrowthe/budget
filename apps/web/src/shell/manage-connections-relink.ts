@@ -1,10 +1,9 @@
+import { CLOSED_NOTICE } from "@budget/schema/connection-status";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { errorDetail, invalidateBankLink, syncConnection } from "../api/bank-link";
 import { createUpdateLinkToken, finishReset } from "../api/manage-connections";
 import { loadPlaidLink, PlaidLoadError, plaidExitMessage } from "./plaidLink";
-
-const CLOSED = "The bank sign-in was closed. Nothing was changed.";
 
 /**
  * Repair and Reset (both): the bank's sign-in again for one connection.
@@ -19,6 +18,7 @@ export function useConnectionRelink(
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const busy = useRef(false);
 
   async function start(): Promise<void> {
@@ -26,6 +26,7 @@ export function useConnectionRelink(
     busy.current = true;
     setRunning(true);
     setError(null);
+    setNotice(null);
     const finish = () => {
       busy.current = false;
       setRunning(false);
@@ -50,7 +51,9 @@ export function useConnectionRelink(
               .finally(finish);
           },
           onExit: (err) => {
-            setError(plaidExitMessage(err) ?? CLOSED);
+            const message = plaidExitMessage(err);
+            if (message) setError(message);
+            else setNotice(CLOSED_NOTICE);
             finish();
           },
         })
@@ -61,5 +64,14 @@ export function useConnectionRelink(
     }
   }
 
-  return { start, running, error, clearError: () => setError(null) };
+  return {
+    start,
+    running,
+    error,
+    notice,
+    clearError: () => {
+      setError(null);
+      setNotice(null);
+    },
+  };
 }

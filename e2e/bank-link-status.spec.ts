@@ -42,13 +42,16 @@ test("12 sidebar icons, the unapproved dot and the header's status", async ({ pa
   });
   await page.goto(`/${plan}/accounts/${ok}`);
   const row = (name: string) => sidebar(page).locator(".nav-account-row").filter({ hasText: name });
-  await expect(row("ZZ Fine").locator(".nav-link-status")).toHaveAttribute("title", "Connected");
+  await expect(row("ZZ Fine").locator(".nav-link-status")).toHaveAttribute(
+    "aria-label",
+    "Connected",
+  );
   await expect(row("ZZ Slow").locator(".nav-link-status")).toHaveAttribute(
-    "title",
+    "aria-label",
     "Imports Delayed",
   );
   await expect(row("ZZ Lost").locator(".nav-link-status")).toHaveAttribute(
-    "title",
+    "aria-label",
     "Connection Repair Needed",
   );
   await expect(row("ZZ Plain").locator(".nav-link-status")).toHaveCount(0);

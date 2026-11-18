@@ -1,0 +1,74 @@
+.acct-connection-strip {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--calloutStripBackground);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-md);
+  font-weight: 400;
+}
+.acct-connection-strip > svg {
+  flex: none;
+}
+.acct-connection-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.acct-connection-action {
+  flex: none;
+}
+.acct-connection-button {
+  box-sizing: border-box;
+  height: 32px;
+  min-width: 84px;
+  flex: none;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.acct-connection-button:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.acct-connection-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.acct-connection-button:focus-visible {
+  outline: 2px solid var(--labelPrimary);
+  outline-offset: 2px;
+}
+.acct-connection-notice,
+.acct-connection-error {
+  text-align: center;
+  margin: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.acct-connection-notice {
+  background: var(--calloutPrimarySubtleBackground);
+}
+.acct-connection-error {
+  --calloutNegativeSubtleBackground: #4c0814;
+  background: var(--calloutNegativeSubtleBackground);
+  color: var(--labelPrimary);
+}
+
+/* A strip with an action is clickable as a whole and lights up on hover (source: rgb(84,91,254)). */
+.acct-connection-strip[data-actionable="true"] {
+  cursor: pointer;
+}
+.acct-connection-strip[data-actionable="true"]:hover {
+  background: var(--calloutPrimaryProminentBackgroundEmphasis);
+}

@@ -1,5 +1,6 @@
 import type { BankConnection } from "@budget/schema/bank-connections";
 import { bankAccountLabel, planAccountType } from "@budget/schema/bank-link";
+import { BROKEN_TEXT, DELAYED_TEXT, REPAIR_TEXT } from "@budget/schema/connection-status";
 import { connectionBadge, resetAvailableAt, statusLabel } from "@budget/schema/manage-connections";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -19,12 +20,6 @@ import {
 import { ConnectionLogo } from "./manage-connections-logo";
 import { usePlanFormatter } from "./plan-formats-context";
 
-const REPAIR_TEXT = "Your bank needs you to sign in again before new transactions can be imported.";
-const BROKEN_TEXT =
-  "This bank connection cannot be repaired. Remove it and connect the bank again.";
-const DELAYED_TEXT =
-  "Your bank or the import service did not answer the last time Budget asked. Budget tries again on its own, so new transactions may arrive late.";
-
 export const timeOfDay = (iso: string) =>
   new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 
@@ -34,7 +29,12 @@ export const syncedLine = (fmt: Fmt, iso: string | null) =>
     ? `Last synced ${fmt.date(localToday(new Date(iso)))} at ${timeOfDay(iso)}`
     : "Not synced yet";
 
-type Relink = { start: () => Promise<void>; running: boolean; error: string | null };
+type Relink = {
+  start: () => Promise<void>;
+  running: boolean;
+  error: string | null;
+  notice: string | null;
+};
 
 /** The reason Reset (and Repair) cannot be pressed, or null. */
 export function resetReason(c: BankConnection, fmt: Fmt): string | null {
@@ -205,6 +205,10 @@ export function ConnectionDetail({
       {error ? (
         <p className="error-bar mc-error" role="alert">
           {error}
+        </p>
+      ) : relink.notice ? (
+        <p className="mc-notice" role="status">
+          {relink.notice}
         </p>
       ) : null}
       <div className="account-modal-footer">

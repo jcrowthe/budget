@@ -49,12 +49,15 @@ const LIST_TITLE = "Manage Bank Connections";
 export function ManageConnectionsDialog({
   budgetId,
   onClose,
+  initialConnectionId,
 }: {
   budgetId: string | null;
   onClose: () => void;
+  /** Opens on this connection's detail instead of the list (Back and Escape still go to the list). */
+  initialConnectionId?: string;
 }) {
   if (!budgetId) return null;
-  return <Host budgetId={budgetId} onClose={onClose} />;
+  return <Host budgetId={budgetId} onClose={onClose} initialConnectionId={initialConnectionId} />;
 }
 
 function ConnectionRow({ c, onOpen }: { c: BankConnection; onOpen: () => void }) {
@@ -88,13 +91,23 @@ function ConnectionRow({ c, onOpen }: { c: BankConnection; onOpen: () => void })
   );
 }
 
-function Host({ budgetId, onClose }: { budgetId: string; onClose: () => void }) {
+function Host({
+  budgetId,
+  onClose,
+  initialConnectionId,
+}: {
+  budgetId: string;
+  onClose: () => void;
+  initialConnectionId?: string;
+}) {
   const qc = useQueryClient();
   const fmt = usePlanFormatter();
   const connections = useBankConnections(budgetId);
   const accounts = useAccounts(budgetId);
   const sandbox = useBudgets().data?.find((b) => b.id === budgetId)?.bank_environment === "sandbox";
-  const [view, setView] = useState<View>({ v: "list" });
+  const [view, setView] = useState<View>(
+    initialConnectionId ? { v: "detail", id: initialConnectionId } : { v: "list" },
+  );
   const linking = useRef(false);
   const id = "id" in view ? view.id : "";
   const relink = useConnectionRelink(budgetId, id, (open) => {
