@@ -1,6 +1,8 @@
 import type { Budget } from "@budget/schema/budgets";
 import { useRef, useState } from "react";
 import { useBudgets } from "../api/budgets";
+import { PlanImportDialog } from "../plan-import/plan-import-dialog";
+import { ImportPlanIcon } from "../plan-import/plan-import-dialog-icon";
 import { PlusCircleIcon } from "../shell/icons";
 import { NewPlanDialog } from "../shell/NewPlanDialog";
 import { recentOtherPlans, useDocumentTitle } from "../shell/useCurrentPlan";
@@ -14,7 +16,9 @@ export function PlansListPage() {
   const { data, isLoading, error } = useBudgets();
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Budget | null>(null);
+  const [importing, setImporting] = useState(false);
   const createRef = useRef<HTMLButtonElement>(null);
+  const importRef = useRef<HTMLButtonElement>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   if (isLoading) return null;
   if (error) return <div className="card">Could not load plans.</div>;
@@ -47,7 +51,21 @@ export function PlansListPage() {
             <span>Create New Plan</span>
           </button>
         </li>
+        <li>
+          <button
+            type="button"
+            ref={importRef}
+            className="plans-list-create plan-import-dialog-open"
+            onClick={() => setImporting(true)}
+          >
+            <ImportPlanIcon />
+            <span>Import Plan</span>
+          </button>
+        </li>
       </ul>
+      {importing ? (
+        <PlanImportDialog onClose={() => setImporting(false)} returnTo={() => importRef.current} />
+      ) : null}
       {creating ? (
         <NewPlanDialog
           onClose={() => {
