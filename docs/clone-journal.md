@@ -12494,3 +12494,65 @@ acceptance and the final gate are still to come.
 
 Ticket writes: 1 (the three facts on EXF-807).
 Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 140 (check-in)
+
+Children used 155 of 200. One ended: **the plans Build completed**
+(`p_b52eb423142440f396ed4e810ac45000`, 2 h 26 min, $9.58), merged as **`1979d9d`** (EXF-469,
+EXF-471, EXF-746, EXF-798; all four moved to Done). Main is `1979d9d`; live is still `2370e08`
+(read at 02:27Z). The journal branch holds main. Nothing is running.
+
+**The plans Build (card answered in a side turn: approve).**
+- What merged: the New Plan dialog with currency and formats; `/plans` with open, create and
+  delete after a confirmation; `View All Plans`; the Open Plan row always shown; bare `/` with no
+  plan shows the plans page; Plan Settings at 480 px with Currency Placement on its own row; the
+  bank logo fix with the stand-in in the Worker's shape. Web only, 33 files, all on its ground.
+- **Gate: three full runs at 609 of 609, no flake.** No other child ran its checks beside it
+  (I had held the next Build). One data point for the load explanation on EXF-807, not a proof.
+- I read the delete path before approving: the trash button only opens the confirmation; one
+  DELETE; nothing closes the dialog while it runs (a Reviewer's nit, fixed).
+- The Reviewer's findings were real (a late list reload could bring a deleted card back; closed
+  dialogs hid a failed delete), both fixed; neither got a spec of its own (the Implementer said so).
+- The Tester looked at all ten states at both sizes. The Designer and Architect read the
+  source's style rules and probed in a tab of their own on the test plan, as the brief allows,
+  and reported it; the plan menu and the plans address of the source were not opened.
+- Departures accepted: the delete confirmation is a dialog; the two selects are stacked;
+  `plan-menu.spec.ts` tests 7 and 8; EXF-746's spec measures text width.
+- **Read and not changed, verified by me on main `1979d9d`:** deleting a plan leaves its accounts'
+  bank links in place. `noLinksToConnection` (`repositories/accounts.ts:505`) has no plan filter,
+  so removing a connection also unlinks accounts of deleted plans and writes history rows there;
+  the sync itself keeps only live plans' accounts (`plaid-sync.ts:205-213`). The nightly balance
+  read for such a connection is the same as for a connection with no link at all, which is by
+  design. Filed below (Low).
+- My note on EXF-471 had one loose sentence about what a Deploy can prove of `/plans`; corrected
+  by a second comment (it opens `/plans` never).
+
+**Filed through this review (one gap ticket, Low):** a deleted plan's accounts keep their bank
+links.
+
+**Check-in sent** (the report is in the answer): what is live and what is merged but not live;
+what landed since round 130 (the register's approve screens, Manage Bank Connections, the earlier
+import start, the plans page); the bank path proven end to end with a Sandbox bank in three flow
+runs; what went wrong (a Build parked unseen for 90 minutes, the logo fault that reached live, a
+gate I approved on too narrow a reading, and three things about the owner's data and the boxes
+that he should know: an account email in one child's transcript with screenshots of the test
+plan's All Accounts page in its outputs, a verifier's recorder that held the plan list's body for
+two minutes, a browser taken from a download mirror); eight questions.
+
+**What I learned:**
+- A gate alone on the host was clean; I schedule gates apart until EXF-807 is built.
+- Holding a second Build cost about 85 minutes of wall time for one clean gate. That is the
+  price; EXF-807 is what removes it, so it goes next.
+
+**Ticket writes:** 7 (four tickets to Done, two notes, one correction).
+**Backlog:** 41 open feature tickets (58 done). Gap: nineteen open, plus the one filed here.
+Template: forty open (Urgent EXF-573, 611, 612).
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps` (its tickets fixed; two tooltips to be
+read in the next Deploy); 3, 4 `parity`; 5 `parity_known_gaps`; 7 `parity_known_gaps`; 8, 9, 10,
+11 `parity`; 6 not run as a flow.
+Finished since each template's last review: Build 1, Deploy 5, Discover 2, Test user flow 7.
+Next check-in: the review of round 150. Template-ticket sweep about round 146.
+
+**Next plan:** Deploy D37 for `1979d9d` (never `/plans`, never the Open Plan submenu; the New Plan
+and Plan Settings dialogs; the logo in the modal's list, looked at only; EXF-680 and EXF-681 at
+1024 px). When its gate is through: the Build for EXF-807 with EXF-727, EXF-747 and EXF-783, alone.
