@@ -13919,3 +13919,72 @@ EXF-874 (the outside press, Plan page) and the next feature by weight for daily 
 **Ticket writes:** 0.
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 154
+
+Children used 169 of 200 (the warning comes at 180). One ended: **the Build for EXF-875 with
+EXF-751 completed and merged** (`p_da6a4b23ba4245dbb499515a2a0cc866`, 2 h 2 min, 30 visits,
+PR 77). **Main is `639e60d`** (its tree equals the head `063e422` that I checked); **live is
+`07e3715`** (read at 17:49Z); no migration pending. The journal branch holds main (merge
+`1e6cb37`). Nothing is running.
+
+**What merged.**
+- EXF-751: the cron is `0 3,9,15,21 * * *` (the one changed line of `wrangler.jsonc`), and the
+  scheduled run has its own five-hour due rule; a plan's opening keeps six. The trap I had put
+  in the brief was real: the test failed first because the 09:00 run passed over the
+  connection the 03:00 run had synced. The scheduler enters nothing twice in a day; the
+  sign-in check stays once a day; a run with nothing due makes 3 D1 calls.
+- EXF-875: a bank account the bank newly lists is added in the sync's last batch, unlinked,
+  never twice; a changed name or mask is followed; an unlisted account with no link is removed
+  (the design's choice of the two I offered; a linked one stays, `Linked Account Not Found`).
+  One mapping function for creation and sync. No new Plaid call, no migration, one sync still
+  13 D1 calls.
+
+**The two cards, both answered in side turns.**
+- **A help card from the relay step (17:29Z):** the gate's two files were not in its box. Its
+  listing showed a box made at 17:28Z. The gate had run about 24 minutes with no agent step,
+  and the step after it came up elsewhere; no pause or rate limit came between (evidence on
+  EXF-612). I gave it the text I used on 17 Nov: a rebuilt digest that says what it is, with
+  the head, the base and the listing, and nothing invented.
+- **The pull-request card (approve), on my own check of the head** `063e422`, 17:33Z to 17:45Z
+  in a throwaway checkout (removed after): `pnpm check` exit 0; the whole browser suite once at
+  four workers, **695 of 697 passed, 0 failed, 2 skipped**, 386 s, slowest request 285 ms; the
+  two new specs five times, 20 of 20. One full run where the gate makes three; I said so on the
+  card. I read the whole Worker diff and looked for anything that refers to bank account rows
+  before accepting the removal (nothing does but the plan accounts, which the statement checks).
+- Acceptance 17 of 18 on named tests (the eighteenth is `pnpm check`, which the Tester did not
+  run and I did). No step opened the source.
+
+**A measurement that came with my run** (posted on EXF-845): the box's memory limit was hit
+2,699 times, in 58 different seconds, peak 5,005 MiB, and nothing failed. A full run sits at
+the box's memory limit as a matter of course now; that alone does not fail a test.
+
+**Two more figures of mine corrected by me within minutes** (comments on EXF-612 and EXF-845):
+I wrote that four Builds had passed the gate-to-relay point today (three had; one of the four
+I named never passed its gate), and that the suite had grown "from 651" since the load design
+measured it (that design's suite was about 640). **I had the rule and did not use it: before a
+number goes into a ticket I look at where it comes from.** From now on a comment of mine that
+holds a count or a time carries its source in the same sentence (a Thread id, a command's
+output), or the number is left out.
+
+**Looked at and not filed:** the Tester's note that an unlinked bank account's row sits under
+`Linked in this plan`: the detail has one heading for its whole list, as designed.
+
+**What I learned:**
+- A late help card (after acceptance) is answered with a rebuilt digest and my own run of the
+  checks; it costs me twelve minutes and no child. An early one still means a carry-over.
+- A trap named in the brief with the test that would show it got built and proved in the first
+  half hour.
+
+**Tickets:** EXF-875 and EXF-751 to Done with a comment each; evidence on EXF-612 and EXF-845,
+each with its correction. **Ticket writes:** 8. No new ticket.
+**Backlog:** 33 open feature tickets (not recounted; none closed since). Gap: 17 open (the 19 of
+round 152 less these two).
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 9, Deploy 9, Discover 2, Test user flow 8.
+
+**Next plan:** Deploy D41 for `639e60d` (no migration; the first Deploy to quote the Worker's
+schedule; the Deploy count reaches 10 with it). Beside it two Builds on disjoint ground:
+EXF-874 (the outside press; `apps/web/src/plan/**`) and EXF-515 (remembered category per payee;
+the Worker's payees and transactions, the register's entry row), after reading EXF-515 for its
+manifest.
