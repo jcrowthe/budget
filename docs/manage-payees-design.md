@@ -141,7 +141,7 @@ Tools: 89 today, 94 after. Exact words in the spec.
   close, focus returns to the payee input (its list reopens as on any focus); **the row's draft is untouched.** No
   shell file changes.
 - **Sizes:** 1024×700 → dialog 921.6 × 630, left 293, right ≈ 628; 1440×900 → 1136 × 810, right ≈ 843.
-- **2,000 payees:** memoised model, ~40 rows in the DOM; budgets open ≤ 1,500 ms (menu click → first row), filter
+- **2,000 payees:** memoised model, ~40 rows in the DOM; budgets open ≤ 1,500 ms on an idle box (the spec allows 2,500 ms under load; menu click → first row), filter
   ≤ 300 ms (typed letter → filtered list); figures printed and reported.
 
 ## Downstream effects

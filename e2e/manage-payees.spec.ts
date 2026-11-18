@@ -176,6 +176,8 @@ test("2 and 9 from the payee field: the row stays; a hidden payee is no longer o
   const field = page.getByRole("combobox", { name: "Payee", exact: true });
   await realClick(page, page.getByRole("button", { name: "Add Transaction", exact: true }));
   await field.fill("ZZ");
+  // The payee list loads after the field opens: click the footer once the list has settled.
+  await expect(page.getByRole("option", { name: "ZZ Cafe A", exact: true })).toBeVisible();
   await realClick(page, page.getByRole("button", { name: "Manage Payees", exact: true }));
   const d = page.getByRole("dialog", { name: "Manage Payees", exact: true });
   await expect(d).toBeVisible();
@@ -183,6 +185,7 @@ test("2 and 9 from the payee field: the row stays; a hidden payee is no longer o
   await expect(d).toHaveCount(0);
   await expect(field).toHaveValue("ZZ");
   await expect(field).toBeFocused();
+  await expect(page.getByRole("option", { name: "ZZ Cafe A", exact: true })).toBeVisible();
   await realClick(page, page.getByRole("button", { name: "Manage Payees", exact: true }));
   await realClick(page, pick(d, "ZZ Cafe A"));
   await realClick(page, btn(d, "Hide"));
