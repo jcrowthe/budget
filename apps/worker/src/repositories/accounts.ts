@@ -358,24 +358,51 @@ export function existsStmt(db: Db, id: string) {
   return db.select({ x: sql`1` }).from(accounts).where(eq(accounts.id, id));
 }
 
-/** bank account id → account id, for the plan's active accounts linked to one of `bankAccountIds`. */
+/**
+ * bank account id → account id, for the plan's active accounts linked to one of `bankAccountIds`.
+ * `bankAccountIds` is the request's list, at most 50 (`AccountsFromBankRequest`), so 51 parameters.
+ */
 export async function linksForPlan(
   db: Db,
   budgetId: string,
   bankAccountIds: string[],
 ): Promise<Map<string, string>> {
+  if (bankAccountIds.length === 0) return new Map();
+  return linksWhere(db, budgetId, inArray(accounts.bankAccountId, bankAccountIds));
+}
+
+/** bank account id → account id: the plan's live accounts linked to a bank account of `environment`. Binds 2 parameters. */
+export async function linksInEnvironment(
+  db: Db,
+  budgetId: string,
+  environment: "production" | "sandbox",
+): Promise<Map<string, string>> {
+  return linksWhere(
+    db,
+    budgetId,
+    sql`${accounts.bankAccountId} in (select ${bankAccounts.id} from ${bankAccounts} join ${bankConnections} on ${bankConnections.id} = ${bankAccounts.bankConnectionId} where ${bankConnections.environment} = ${environment})`,
+  );
+}
+
+/** The same for the bank accounts of one connection. Binds 2 parameters. */
+export async function linksOfConnection(
+  db: Db,
+  budgetId: string,
+  connectionId: string,
+): Promise<Map<string, string>> {
+  return linksWhere(
+    db,
+    budgetId,
+    sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`,
+  );
+}
+
+async function linksWhere(db: Db, budgetId: string, cond: SQL): Promise<Map<string, string>> {
   const out = new Map<string, string>();
-  if (bankAccountIds.length === 0) return out;
   const rows = await db
     .select({ id: accounts.id, bank: accounts.bankAccountId })
     .from(accounts)
-    .where(
-      and(
-        eq(accounts.budgetId, budgetId),
-        isNull(accounts.deletedAt),
-        inArray(accounts.bankAccountId, bankAccountIds),
-      ),
-    );
+    .where(and(eq(accounts.budgetId, budgetId), isNull(accounts.deletedAt), cond));
   for (const r of rows) if (r.bank) out.set(r.bank, r.id);
   return out;
 }

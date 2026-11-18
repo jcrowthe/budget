@@ -20,7 +20,7 @@ import { insertSelect } from "./insert-select";
 export type BankConnectionRow = typeof bankConnections.$inferSelect;
 export type BankAccountRow = typeof bankAccounts.$inferSelect;
 
-/** Newest first; the accounts come from one extra query. */
+/** Newest first; the accounts come from one extra query, a sub-select on the environment (no parameter per connection). */
 export async function listByEnvironment(
   db: Db,
   environment: "production" | "sandbox",
@@ -35,10 +35,7 @@ export async function listByEnvironment(
     .select()
     .from(bankAccounts)
     .where(
-      inArray(
-        bankAccounts.bankConnectionId,
-        rows.map((r) => r.id),
-      ),
+      sql`${bankAccounts.bankConnectionId} in (select ${bankConnections.id} from ${bankConnections} where ${bankConnections.environment} = ${environment})`,
     )
     .orderBy(bankAccounts.createdAt, bankAccounts.name);
   return rows.map((row) => ({

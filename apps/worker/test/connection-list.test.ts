@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { json } from "./helpers";
 import { linkAccount, seedConnections } from "./connection-list-helpers";
+import { json } from "./helpers";
 
 interface Listed {
   id: string;

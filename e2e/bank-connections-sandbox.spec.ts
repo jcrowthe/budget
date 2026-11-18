@@ -12,6 +12,46 @@ test.skip(
   "Plaid Sandbox credentials are not in the environment: real round trip skipped",
 );
 
+// What this run made, so the hook below can remove it whether the test passed or failed.
+let plan: string | undefined;
+let made: string[] = [];
+
+test.beforeEach(() => {
+  plan = undefined;
+  made = [];
+});
+
+// Removes both connections through the API (which also removes the Item at Plaid) and the plan.
+// Never throws, and never prints an id, token or credential: a refusal is only noted.
+test.afterEach(async ({ request }) => {
+  if (!plan) return;
+  const note = (text: string) => {
+    console.warn(`cleanup: ${text}`);
+    test.info().annotations.push({ type: "cleanup", description: text });
+  };
+  const failure = async (res: { status(): number; json(): Promise<unknown> }) => {
+    const body = (await res.json().catch(() => null)) as { error?: { name?: string } } | null;
+    return `HTTP ${res.status()}, ${body?.error?.name ?? "no error name"}`;
+  };
+  const headers = await authHeaders();
+  for (const id of made) {
+    try {
+      const res = await request.delete(`/api/v1/bank-connections/${id}?budget_id=${plan}`, {
+        headers,
+      });
+      if (!res.ok()) note(`a Sandbox connection was not removed (${await failure(res)})`);
+    } catch (err) {
+      note(`a Sandbox connection was not removed (${err instanceof Error ? err.name : "error"})`);
+    }
+  }
+  try {
+    const res = await request.delete(`/api/v1/budgets/${plan}`, { headers });
+    if (!res.ok()) note(`the plan was not deleted (HTTP ${res.status()})`);
+  } catch (err) {
+    note(`the plan was not deleted (${err instanceof Error ? err.name : "error"})`);
+  }
+});
+
 test("real Sandbox: two connections to the same bank, search and popular", async ({ request }) => {
   const headers = await authHeaders();
   const put = await request.put("/api/v1/plaid/credentials", {
@@ -19,7 +59,7 @@ test("real Sandbox: two connections to the same bank, search and popular", async
     data: { environment: "sandbox", client_id: CLIENT_ID, secret: SECRET },
   });
   expect(put.status()).toBe(200);
-  const plan = (
+  plan = (
     await (
       await request.post("/api/v1/budgets", {
         headers,
@@ -27,6 +67,7 @@ test("real Sandbox: two connections to the same bank, search and popular", async
       })
     ).json()
   ).data.budget.id as string;
+  const planId = plan;
 
   const created: Json[] = [];
   for (let i = 0; i < 2; i++) {
@@ -43,14 +84,16 @@ test("real Sandbox: two connections to the same bank, search and popular", async
     const { public_token } = (await pt.json()) as { public_token: string };
     const res = await request.post("/api/v1/bank-connections", {
       headers,
-      data: { budget_id: plan, public_token, institution_id: "ins_109508" },
+      data: { budget_id: planId, public_token, institution_id: "ins_109508" },
     });
     expect(res.status()).toBe(201);
-    created.push((await res.json()).data.bank_connection);
+    const conn = (await res.json()).data.bank_connection as Json;
+    made.push(conn.id);
+    created.push(conn);
   }
 
   const list = (
-    await (await request.get(`/api/v1/bank-connections?budget_id=${plan}`, { headers })).json()
+    await (await request.get(`/api/v1/bank-connections?budget_id=${planId}`, { headers })).json()
   ).data.bank_connections as Json[];
   const mine = list.filter((c) => created.some((x) => x.id === c.id));
   expect(mine).toHaveLength(2);
@@ -68,12 +111,14 @@ test("real Sandbox: two connections to the same bank, search and popular", async
   expect(text.includes("access-sandbox")).toBe(false);
   expect(text.includes("public-sandbox")).toBe(false);
 
-  const search = await request.get(`/api/v1/institutions?budget_id=${plan}&query=plat`, {
+  const search = await request.get(`/api/v1/institutions?budget_id=${planId}&query=plat`, {
     headers,
   });
   expect(search.status()).toBe(200);
   expect(((await search.json()).data.institutions as Json[]).length).toBeLessThanOrEqual(10);
-  const popular = await request.get(`/api/v1/institutions/popular?budget_id=${plan}`, { headers });
+  const popular = await request.get(`/api/v1/institutions/popular?budget_id=${planId}`, {
+    headers,
+  });
   expect(((await popular.json()).data.institutions as Json[]).map((i) => i.institution_id)).toEqual(
     ["ins_109508", "ins_109509", "ins_109510", "ins_109511", "ins_109512"],
   );
