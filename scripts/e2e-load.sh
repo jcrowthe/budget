@@ -30,6 +30,8 @@ if [ "$load" = on ]; then
   done
 fi
 
+bash scripts/e2e-load-sample.sh "$out/cgroup.tsv" &
+sampler=$!
 start=$(date +%s)
 # DEBUG=pw:webserver prints the test server's stdout too (its stderr is printed anyway), so 500s are counted.
 # Every line gets the wall time it was printed at (stamp.mjs), so a slow answer can be set beside a test.
@@ -41,6 +43,7 @@ end=$(date +%s)
 rm -rf "$out/test-results"
 [ -d test-results ] && cp -r test-results "$out/test-results"
 
+kill "$sampler" 2>/dev/null
 for p in "${pids[@]}"; do kill "$p" 2>/dev/null; done
 for p in "${pids[@]}"; do wait "$p" 2>/dev/null; done
 left=0

@@ -76,6 +76,27 @@ for (const m of [...server409, ...server5xx])
   console.log(
     `- server answered ${m[3]}: ${m[1]} ${m[2].replace(/[0-9a-f-]{36}/g, ":id")} (${m[4]}ms)`,
   );
+// The box's cgroup over the run (scripts/e2e-load-sample.sh): memory at its limit, socket throttling, stalls.
+if (existsSync(`${dir}/cgroup.tsv`)) {
+  const rows = readFileSync(`${dir}/cgroup.tsv`, "utf8")
+    .trim()
+    .split("\n")
+    .slice(1)
+    .map((l) => l.split(" "));
+  if (rows.length > 1) {
+    const [a, b] = [rows[0], rows.at(-1)];
+    const d = (i) => Number(b[i]) - Number(a[i]);
+    const peak = Math.max(...rows.map((r) => Number(r[1])));
+    console.log(
+      `cgroup: memory peak ${peak} MiB; memory.max hits +${d(2)}; sock_throttled +${d(3)}; memory stall (full) +${d(4)} ms; cpu stall (full) +${d(5)} ms`,
+    );
+    const hits = rows.filter((r, i) => i > 0 && Number(r[2]) > Number(rows[i - 1][2]));
+    if (hits.length)
+      console.log(
+        `seconds with memory.max hits: ${hits.map((r) => r[0]).join(" ")}`.slice(0, 2000),
+      );
+  }
+}
 console.log("");
 for (const f of failed)
   console.log(
