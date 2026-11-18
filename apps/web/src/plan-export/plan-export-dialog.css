@@ -1,0 +1,21 @@
+.plan-export-dialog p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.plan-export-dialog .dialog-footer {
+  align-items: center;
+}
+.plan-export-dialog-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--labelSecondary);
+}
+.plan-export-dialog .form-body {
+  padding-bottom: var(--space-1);
+}
