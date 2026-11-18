@@ -1,7 +1,13 @@
 import type { Account } from "@budget/schema/accounts";
-import { connectionLabel, linkStatus } from "@budget/schema/bank-link";
-import { placeStatusPopup, popupFor } from "@budget/schema/connection-status";
+import {
+  placeStatusPopup,
+  popupFor,
+  shownLabel,
+  shownStatus,
+} from "@budget/schema/connection-status";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { LinkAccountDialog } from "../account/link-account-dialog";
+import { UnlinkAccountDialog } from "../account/link-account-unlink";
 import { useAccountConnection } from "../api/bank-link";
 import { LinkStatusIcon } from "./bank-link-status";
 import { WarningTriangleIcon } from "./connection-status-icon";
@@ -25,7 +31,7 @@ export function ConnectionStatusMark({
   budgetId: string;
   account: Account;
 }) {
-  const s = linkStatus(account);
+  const s = shownStatus(account);
   const fmt = usePlanFormatter();
   const popupId = useId();
   const markRef = useRef<HTMLButtonElement>(null);
@@ -33,17 +39,20 @@ export function ConnectionStatusMark({
   const timer = useRef<number | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [dialog, setDialog] = useState<"link" | "unlink" | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [pos, setPos] = useState<ReturnType<typeof placeStatusPopup> | null>(null);
   const { connection } = useAccountConnection(
     budgetId,
     account.bank_account_id,
-    open && s === "login_required",
+    open && (s === "login_required" || s === "reauthorize"),
   );
   const relink = useConnectionRelink(budgetId, connection?.id ?? "", noop);
-  const sticky = pinned || relink.running || !!relink.error || !!relink.notice;
-  const stickyRef = useRef(sticky);
-  stickyRef.current = sticky;
+  const held = relink.running || !!relink.error || !!relink.notice;
+  const sticky = pinned || held;
+  const stickyRef = useRef(held);
+  // A pin survives the pointer leaving; only a running Repair or a held message survives a scroll or a resize.
+  stickyRef.current = held;
 
   const cancelClose = useCallback(() => window.clearTimeout(timer.current), []);
   const show = useCallback(() => {
@@ -131,7 +140,7 @@ export function ConnectionStatusMark({
         type="button"
         className="nav-link-status"
         data-status={s}
-        aria-label={connectionLabel(s)}
+        aria-label={shownLabel(s)}
         aria-expanded={open}
         aria-controls={open ? popupId : undefined}
         onPointerEnter={show}
@@ -175,7 +184,7 @@ export function ConnectionStatusMark({
           <strong>{popup.title}</strong>
           <p className="status-popup-line">{popup.line}</p>
           {popup.details ? <p className="status-popup-details">{popup.details}</p> : null}
-          {popup.action === "repair" ? (
+          {popup.action === "repair" || popup.action === "reauthorize" ? (
             <span className="status-popup-action" title={reason ?? undefined}>
               <button
                 type="button"
@@ -184,7 +193,31 @@ export function ConnectionStatusMark({
                 aria-busy={relink.running}
                 onClick={() => void relink.start()}
               >
-                Repair
+                {popup.action === "reauthorize" ? "Reauthorize" : "Repair"}
+              </button>
+            </span>
+          ) : null}
+          {popup.action === "relink" ? (
+            <span className="status-popup-action status-popup-actions">
+              <button
+                type="button"
+                className="status-popup-button"
+                onClick={() => {
+                  closeAndReset();
+                  setDialog("link");
+                }}
+              >
+                Relink
+              </button>
+              <button
+                type="button"
+                className="status-popup-button secondary"
+                onClick={() => {
+                  closeAndReset();
+                  setDialog("unlink");
+                }}
+              >
+                Unlink
               </button>
             </span>
           ) : null}
@@ -198,6 +231,22 @@ export function ConnectionStatusMark({
             </p>
           ) : null}
         </div>
+      ) : null}
+      {dialog === "link" ? (
+        <LinkAccountDialog
+          budgetId={budgetId}
+          account={account}
+          onBack={() => setDialog(null)}
+          onLinked={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog === "unlink" ? (
+        <UnlinkAccountDialog
+          budgetId={budgetId}
+          account={account}
+          onCancel={() => setDialog(null)}
+          onUnlinked={() => setDialog(null)}
+        />
       ) : null}
     </>
   );

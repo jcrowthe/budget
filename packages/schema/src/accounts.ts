@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { STATUS_REASONS } from "./plaid-import";
 import { AccountBalances, isCalendarDate, Transaction } from "./transactions";
 
 // Repeats core's ACCOUNT_TYPES (schema does not depend on core); a Worker test asserts they are equal.
@@ -80,6 +81,14 @@ export const Account = z
     last_synced_at: z.string().nullable().default(null).openapi({
       description:
         "When the linked account's bank connection last synced (ISO 8601 UTC); null when not linked or never synced",
+    }),
+    connection_reason: z.enum(STATUS_REASONS).nullable().default(null).openapi({
+      description:
+        "Why the linked account's bank connection is in its status, for the words only: unavailable (delayed: the bank cannot be reached through the import service for now), unsupported (delayed: the import service no longer supports the bank), reauthorize (login_required: the bank asks the owner to authorize again); null otherwise, and null when not linked",
+    }),
+    link_missing_since: z.string().nullable().default(null).openapi({
+      description:
+        "When the bank first stopped listing this linked account's bank account (ISO 8601 UTC): the account reads Linked Account Not Found and imports to it have stopped. Null when the bank lists it, and null when the account is not linked",
     }),
   })
   .openapi("Account");

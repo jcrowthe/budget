@@ -1,5 +1,7 @@
 // Pure rules of the Manage Bank Connections screens (EXF-460): the groups, the labels, the Reset wait.
 import { connectionLabel, type LinkStatus } from "./bank-link";
+import { shownLabel } from "./connection-status";
+import type { StatusReason } from "./plaid-import";
 
 export type ConnectionGroup = "attention" | "delayed" | "others";
 
@@ -18,15 +20,22 @@ export function connectionGroup(status: string): ConnectionGroup {
 
 const KNOWN: LinkStatus[] = ["connected", "delayed", "login_required", "broken"];
 
-export function statusLabel(status: string): string {
-  return KNOWN.includes(status as LinkStatus)
-    ? connectionLabel(status as LinkStatus)
-    : "Connection Repair Needed";
+/** The connection's name: its reason's words when it has one, else its status's. */
+export function statusLabel(status: string, reason: StatusReason | null = null): string {
+  if (!KNOWN.includes(status as LinkStatus)) return "Connection Repair Needed";
+  return reason ? shownLabel(reason) : connectionLabel(status as LinkStatus);
 }
 
-export function connectionBadge(status: string): "Repair" | "Delayed" | null {
+export function connectionBadge(
+  status: string,
+  reason: StatusReason | null = null,
+): "Repair" | "Reauthorize" | "Connection Lost" | "Delayed" | "Unavailable" | null {
   const g = connectionGroup(status);
-  return g === "attention" ? "Repair" : g === "delayed" ? "Delayed" : null;
+  if (status === "broken") return "Connection Lost";
+  if (g === "attention") return reason === "reauthorize" ? "Reauthorize" : "Repair";
+  if (g === "delayed")
+    return reason === "unavailable" || reason === "unsupported" ? "Unavailable" : "Delayed";
+  return null;
 }
 
 export function accountCountLabel(n: number): string {

@@ -62,7 +62,7 @@ describe("labels", () => {
     expect(connectionLabel("connected")).toBe("Connected");
     expect(connectionLabel("delayed")).toBe("Imports Delayed");
     expect(connectionLabel("login_required")).toBe("Connection Repair Needed");
-    expect(connectionLabel("broken")).toBe("Connection Repair Needed");
+    expect(connectionLabel("broken")).toBe("Connection Lost");
     expect(connectionLabel("not_set_up")).toBe("Bank connections are not set up");
   });
   it("reads a linked account without a status as broken, an unlinked one as none", () => {

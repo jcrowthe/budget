@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { BankEnvironment } from "./budgets";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
-import { SYNC_STATUSES } from "./plaid-import";
+import { STATUS_REASONS, SYNC_STATUSES } from "./plaid-import";
 
 export const BankAccount = z
   .object({
@@ -34,6 +34,10 @@ export const BankConnection = z
     status: z.string().openapi({
       description:
         "connected, delayed (the bank or Plaid did not answer, or the last sync failed in Budget, see sync_failed_at; it is retried), login_required (the bank needs a new sign-in), broken (the connection is lost) or not_set_up",
+    }),
+    status_reason: z.enum(STATUS_REASONS).nullable().default(null).openapi({
+      description:
+        "Why the connection is in its status, for the words only: unavailable (delayed: the bank cannot be reached through the import service for now; Budget tries again), unsupported (delayed: the import service no longer supports the bank; imports will not resume), reauthorize (login_required: the bank asks the owner to authorize again, with Reauthorize in the app); null otherwise",
     }),
     provider: z.string().openapi({ description: "Plaid" }),
     last_synced_at: z.string().nullable(),
