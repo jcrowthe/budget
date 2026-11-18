@@ -56,10 +56,7 @@ describe("EXF-881: the list's answer keeps its shape", () => {
     const mine = all.filter((c) => c.id === older.id || c.id === newer.id);
     expect(mine).toEqual([conn(newer, 1), conn(older, 0)]);
     const got = await json(`/api/v1/bank-connections/${older.id}?budget_id=${s.plan}`);
-    const one = ((await got.json()) as { data: { bank_connection: unknown } }).data;
-    expect(JSON.stringify(one)).toContain(older.id);
-    expect(mine[1]).toEqual(
-      (one as { bank_connection?: unknown }).bank_connection ?? (one as unknown),
-    );
+    const one = ((await got.json()) as { data: { bank_connection: unknown } }).data.bank_connection;
+    expect(mine[1]).toEqual(one);
   });
 });
