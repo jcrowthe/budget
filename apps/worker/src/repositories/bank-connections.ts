@@ -16,6 +16,7 @@ import { bankConnections } from "../db/schema/bank-connections";
 import { secrets } from "../db/schema/secrets";
 import { accessTokenSecretName } from "../plaid/tokens";
 import { insertSelect } from "./insert-select";
+import { idsIn } from "./payees";
 
 export type BankConnectionRow = typeof bankConnections.$inferSelect;
 export type BankAccountRow = typeof bankAccounts.$inferSelect;
@@ -86,7 +87,7 @@ export function deleteUnlistedStmt(
     .where(
       and(
         eq(bankAccounts.bankConnectionId, connectionId),
-        inArray(bankAccounts.id, bankAccountIds),
+        idsIn(bankAccounts.id, bankAccountIds),
         sql`not exists (select 1 from accounts a where a.bank_account_id = ${bankAccounts.id})`,
         sql`exists ${guard}`,
       ),

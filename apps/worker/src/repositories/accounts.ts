@@ -18,6 +18,7 @@ import { budgets } from "../db/schema/budgets";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 import { insertSelect } from "./insert-select";
+import { idsIn } from "./payees";
 import { countsInBalance } from "./transactions";
 
 export type AccountRow = typeof accounts.$inferSelect;
@@ -611,12 +612,7 @@ export function markMissingStmt(
   guard: SQLWrapper,
 ) {
   const missing =
-    missingBankIds.length > 0
-      ? sql`${accounts.bankAccountId} in (${sql.join(
-          missingBankIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})`
-      : sql`0`;
+    missingBankIds.length > 0 ? idsIn(accounts.bankAccountId, missingBankIds) : sql`0`;
   return db
     .update(accounts)
     .set({
