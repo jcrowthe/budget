@@ -13789,3 +13789,63 @@ its two entries, "Don't show again"); the Import dialog cannot be opened by a te
 (no test opens the plans page), so its check is the API's dry run as before and nothing more.
 Beside it, the Build for EXF-875 (a connection's bank accounts refreshed), with EXF-874 (the
 outside press) as a second Build on the Plan page if the host allows; EXF-751 after EXF-875.
+
+### 2026-11-18 · Plan round 153
+
+Children used 169 of 200 (two started this turn; the warning comes at 180). Main `07e3715`,
+live `ecfbc8f`, no migration pending.
+
+**The ticket filed at the last review exists:** EXF-877 (the Import Plan dialog's leftovers and
+its specs' weight; title read from the list in this turn), set to Low. No blocking link.
+
+**Started, side by side (a Deploy and one Build; no second Build):**
+
+1. **Deploy D40, `p_a950a3ca290c4d38a924a49920cbdc0a`**, for `07e3715` (`gated_commit`
+   `13704fd`; I compared the two trees: identical). Web only, no migration. Run prefix
+   `ZZ-TEST D40`.
+   - It checks the plan menu's `Export Plan` entry by keyboard only (the mouse parked, never
+     the Open Plan row), the dialog's words, Cancel, an export with its file name and two
+     entries, "Don't show again" with its one saved key, the dialog at 1024×700, and a **dry
+     run** of the downloaded zip through the import API (it writes nothing).
+   - **It cannot check the Import Plan dialog:** that is on the plans page, which no test opens
+     on live. The brief says so and asks for it under NOT CHECKED.
+   - **Changed in the standing text after D39:** every screenshot is clipped to exclude the
+     sidebar from the first one on (no full-window capture); the line that asked the verifier
+     to run the pending list before the release is gone (it starts after the release; the
+     summary's line is the evidence).
+2. **Build `p_da6a4b23ba4245dbb499515a2a0cc866`, EXF-875 with EXF-751**, from main `07e3715`:
+   what the sync needs before real banks.
+   - **One Build for both, running alone:** EXF-751 changes the cron line of
+     `apps/worker/wrangler.jsonc`, a file of `paths.always_overlap`, and both tickets live in
+     the same sync files. One child instead of two; no Build beside it.
+   - **A trap I found reading the code for the brief:** the schedule's rule is "last synced
+     six hours ago or more". A connection synced by the 03:00 run finishes a few seconds after
+     03:00, so a 09:00 run would pass it over: with a six-hourly cron alone each connection
+     would be synced twice a day, not four times. The brief asks for a shorter rule for the
+     scheduled run (I expect five hours) with a test at 03:00, 09:00 and 09:10. The ticket's
+     text did not have this; noted on it.
+   - EXF-875: a bank account in the list `/accounts/get` already returns and not among the
+     connection's rows is added in the sync's last batch; the unique index it needs exists
+     (checked: `db/schema/bank-accounts.ts`), so no migration; the mapping at creation and in
+     the sync becomes one function.
+   - Also asked: the scheduler enters nothing twice in a day; the sign-in check stays once a
+     day; the calls of one run; **no other Plaid endpoint added** (some are billed per call).
+   - **No step opens the source.** Two states to look at, four screenshots.
+   - **From the last Build's gates:** "no spec uploads or imports a large file, and none raises
+     a time limit for a whole file".
+   - `"reserved_migrations": []`, with the reason, in the Clerk's first step.
+
+**Timing:** the Deploy ships main as it is when it starts; the Build cannot reach its
+pull-request card before the Deploy has released (a Deploy takes about a quarter of an hour, a
+Build more than an hour).
+
+**Not started:** EXF-874 (a Build that edits `wrangler.jsonc` runs with no Build beside it);
+flow runs (as decided).
+
+**Tickets:** EXF-877 to Low; EXF-875 and EXF-751 to In Progress with a comment each.
+**Ticket writes:** 5.
+Finished since each template's last review: Build 8, Deploy 8, Discover 2, Test user flow 8.
+**With these two the Build and the Deploy counts reach 9 each;** their template reviews come
+due at 10, so two of the 31 children left are spoken for.
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
