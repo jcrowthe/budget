@@ -19,7 +19,7 @@ export const POPUP_REPAIR_DETAILS =
   "We're having trouble connecting to this bank. Attempt to repair your bank connection to continue importing transactions.";
 export const POPUP_DELAYED_DETAILS =
   "We're connected to your bank, but transaction imports may take longer than expected. This issue usually resolves itself.";
-/** Account Not Found: the bank no longer lists the linked bank account (the strip's and the popup's words). */
+/** Linked Account Not Found: the bank no longer lists the linked bank account (the strip's and the popup's words). */
 export const RELINK_STRIP = "Relink your account to continue importing transactions.";
 export const RELINK_DETAILS =
   "Your linked account is not found. Relink to continue importing transactions.";
@@ -32,13 +32,13 @@ export const UNSUPPORTED_TEXT =
   "The import service no longer supports this bank, so new transactions will not be imported.";
 export const CLOSED_NOTICE = "The bank sign-in was closed. Nothing was changed.";
 
-/** What an account shows: its connection's status, or Account Not Found over a connected or delayed one. */
+/** What an account shows: its connection's status, or Linked Account Not Found over a connected or delayed one. */
 export type ShownStatus = LinkStatus | "not_found" | "reauthorize" | "unavailable" | "unsupported";
 
 /**
  * The one rule for what a linked account shows (mark, popup, header, strip). A connection that needs a
  * sign-in or is broken shows first (after a repair the next sync knows the bank's list again); otherwise a
- * link the bank no longer lists reads Account Not Found, whatever the connection's other status.
+ * link the bank no longer lists reads Linked Account Not Found, whatever the connection's other status.
  */
 export function shownStatus(a: {
   linked: boolean;
@@ -60,7 +60,7 @@ export function shownStatus(a: {
 }
 
 const SHOWN_LABELS = {
-  not_found: "Account Not Found",
+  not_found: "Linked Account Not Found",
   reauthorize: "Reauthorization Needed",
   unavailable: "Direct Import is Temporarily Unavailable",
   unsupported: "Connection Unavailable",

@@ -88,7 +88,7 @@ export const Account = z
     }),
     link_missing_since: z.string().nullable().default(null).openapi({
       description:
-        "When the bank first stopped listing this linked account's bank account (ISO 8601 UTC): the account reads Account Not Found and imports to it have stopped. Null when the bank lists it, and null when the account is not linked",
+        "When the bank first stopped listing this linked account's bank account (ISO 8601 UTC): the account reads Linked Account Not Found and imports to it have stopped. Null when the bank lists it, and null when the account is not linked",
     }),
   })
   .openapi("Account");

@@ -77,7 +77,7 @@ describe("shownStatus", () => {
 
 describe("words", () => {
   it("gives each shown status its label", () => {
-    expect(shownLabel("not_found")).toBe("Account Not Found");
+    expect(shownLabel("not_found")).toBe("Linked Account Not Found");
     expect(shownLabel("reauthorize")).toBe("Reauthorization Needed");
     expect(shownLabel("unavailable")).toBe("Direct Import is Temporarily Unavailable");
     expect(shownLabel("unsupported")).toBe("Connection Unavailable");
@@ -120,7 +120,7 @@ describe("words", () => {
   });
   it("gives the popup of each new status", () => {
     expect(popupFor("not_found", ago(2), NOW)).toEqual({
-      title: "Account Not Found",
+      title: "Linked Account Not Found",
       line: "Last attempted 2 hours ago",
       details: RELINK_DETAILS,
       action: "relink",

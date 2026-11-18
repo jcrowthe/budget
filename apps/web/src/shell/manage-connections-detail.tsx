@@ -5,6 +5,7 @@ import {
   DELAYED_TEXT,
   REAUTHORIZE_STRIP,
   REPAIR_TEXT,
+  shownLabel,
   UNAVAILABLE_TEXT,
   UNSUPPORTED_TEXT,
 } from "@budget/schema/connection-status";
@@ -184,9 +185,9 @@ export function ConnectionDetail({
                       </span>
                     ) : null}
                     {plan?.link_missing_since ? (
-                      <span className="mc-line mc-not-found" title="Account Not Found">
+                      <span className="mc-line mc-not-found" title={shownLabel("not_found")}>
                         <DiamondAlertIcon width={12} height={12} />
-                        Account Not Found
+                        {shownLabel("not_found")}
                       </span>
                     ) : null}
                   </span>

@@ -20,6 +20,6 @@ describe("the bank connection tools say what each status asks of the owner", () 
     expect(d).toContain("reauthorize with Reauthorize in the app");
     const accounts = accountTools.find((t) => t.name === "list_accounts")?.description ?? "";
     expect(accounts).toContain("link_missing_since");
-    expect(accounts).toContain("Account Not Found");
+    expect(accounts).toContain("Linked Account Not Found");
   });
 });

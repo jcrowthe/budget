@@ -189,7 +189,7 @@ export async function linkAccount(
     if (!bank) throw new NotFound("Bank account");
     if (before.type === "cash") throw notLinkable("cash");
     if (before.closed) throw notLinkable("closed");
-    // A link whose bank account the bank no longer lists (Account Not Found) may be replaced.
+    // A link whose bank account the bank no longer lists (Linked Account Not Found) may be replaced.
     if (before.bankAccountId !== null && before.linkMissingSince === null) {
       throw new LinkRefused(
         409,

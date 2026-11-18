@@ -48,12 +48,12 @@ test("4 an account whose bank account was not found: the header, and the strip w
 }) => {
   const s = await missingState(page, request);
   await page.goto(`/${s.plan}/accounts/${s.linked}`);
-  await expect(page.locator(".acct-link-status")).toHaveText("Account Not Found");
+  await expect(page.locator(".acct-link-status")).toHaveText("Linked Account Not Found");
   await expect(strip(page).locator(".acct-connection-text")).toHaveText(RELINK);
   await expect(strip(page).getByRole("button", { name: "Relink", exact: true })).toBeEnabled();
   await expect(strip(page).getByRole("button", { name: "Unlink", exact: true })).toBeEnabled();
   // The sidebar's mark reads the same, and no connection was asked for.
-  await expect(mark(page, "ZZ Linked")).toHaveAttribute("aria-label", "Account Not Found");
+  await expect(mark(page, "ZZ Linked")).toHaveAttribute("aria-label", "Linked Account Not Found");
   expect(s.stub.requests.filter((r) => /\/bank-connections\/[^/?]+\?/.test(r.url))).toHaveLength(0);
 });
 
@@ -97,7 +97,7 @@ test("5 the mark by the keyboard: Tab opens Account Not Found with Relink and Un
   const s = await missingState(page, request);
   await page.goto(`/${s.plan}/accounts/${s.linked}`);
   const target = mark(page, "ZZ Linked");
-  await expect(target).toHaveAttribute("aria-label", "Account Not Found");
+  await expect(target).toHaveAttribute("aria-label", "Linked Account Not Found");
   await sidebar(page)
     .locator(".nav-account-row")
     .filter({ hasText: "ZZ Linked" })
@@ -105,7 +105,7 @@ test("5 the mark by the keyboard: Tab opens Account Not Found with Relink and Un
     .focus();
   await page.keyboard.press("Tab");
   await expect(target).toBeFocused();
-  const dialog = page.getByRole("dialog", { name: "Account Not Found", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Linked Account Not Found", exact: true });
   await expect(dialog).toContainText(RELINK_POPUP);
   await page.keyboard.press("Tab");
   await expect(dialog.getByRole("button", { name: "Relink", exact: true })).toBeFocused();
@@ -126,7 +126,7 @@ test("6 which wins: a connection that needs a sign-in shows first; a delayed one
   await expect(strip(page).getByRole("button", { name: "Repair", exact: true })).toBeVisible();
   const b = await missingState(page, request, { status: "delayed" });
   await page.goto(`/${b.plan}/accounts/${b.linked}`);
-  await expect(page.locator(".acct-link-status")).toHaveText("Account Not Found");
+  await expect(page.locator(".acct-link-status")).toHaveText("Linked Account Not Found");
 });
 
 test("7 Manage Bank Connections: the bank account not found says so, the connected one does not", async ({
@@ -147,7 +147,7 @@ test("7 Manage Bank Connections: the bank account not found says so, the connect
   await expect(sidebar(page).getByRole("link", { name: /ZZ Linked/ })).toBeVisible();
   const detail = await openDetail(page, "ZZ Bank");
   const rowOf = (label: string) => detail.getByRole("button", { name: label });
-  await expect(rowOf("ZZ Checking – 0000")).toContainText("Account Not Found");
+  await expect(rowOf("ZZ Checking – 0000")).toContainText("Linked Account Not Found");
   await expect(rowOf("ZZ Savings – 1111")).not.toContainText("Account Not Found");
 });
 
