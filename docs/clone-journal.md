@@ -13636,3 +13636,59 @@ EXF-751 share the sync's files and run one after the other); flow 2's second run
 Finished since each template's last review: Build 7, Deploy 7, Discover 2, Test user flow 8.
 
 **Still waiting on the person:** the eight questions of the check-in sent at the review of round 150 (that turn began at 13:27Z).
+
+### 2026-11-18 · Review round 151
+
+Children used 167 of 200 (the warning comes at 180). One ended: **Deploy D39 released**
+(`p_c390c4d9ed0c4f08b43934550e58eb30`). **Live is `ecfbc8f`** at https://budget.doxen.dev (the
+health check read by me at 14:00Z); main is `ecfbc8f`; no migration is pending
+(`scripts/migrations-pending.sh` prints nothing in my box).
+
+**Status of the running child (14:00Z):** the Build for EXF-477 with EXF-476
+(`p_67b2dc2acd404028888247acb64ab7d9`), 34 visits, PR 75 open, the acceptance report not yet
+written; no card.
+
+**D39.**
+- Gate: `pnpm check` 268 s; the browser run skipped because the tree equals the gated
+  `fa8a425`. Release: the D1 Time Travel bookmark first, then the migration
+  `20261116101700_connection_link_status.sql` applied ("Executed 4 commands"), smoke ok.
+  `plaid credentials: sandbox set, production set`.
+- **Every check as the brief expected; nothing under DIFFERS but that the verifier, starting
+  after the release, could not run the pending list before it** (it quotes the summary's
+  line; that sentence of my standing text asks for something the verify step cannot do).
+- 89 tools; the two descriptions name `status_reason` and `link_missing_since` with
+  `Linked Account Not Found`. The three new fields present and null on an unlinked account;
+  both existing connections `connected` with `status_reason` null, unchanged after; closing an
+  account wrote through the new column (200).
+- The Activity popover: the three amounts whole at both sizes (104 of 104 px), titles equal,
+  the popover inside the window at 1024×700. The month picker and the month note close on a
+  click on the disabled "Next month" arrow in December; nothing else changes.
+- My figures held: balance 199111120, activity −800888880.
+- Three LOOK screenshots, all opened; none besides.
+- **One incident, reported at the top of its report:** its first full-window screenshot showed
+  the sidebar header's identity label, and it opened that image before noticing. It retook
+  every kept screenshot clipped from x = 260 and overwrote the first ones; no label text was
+  printed or recorded. In a service-token session that label is the access token's name, not
+  the owner's address (looked at in round 146). **The standing text gains: "every screenshot is
+  clipped to exclude the sidebar (x from 260) from the first one on; never take a full-window
+  screenshot."** The mask-or-crop sentence I had was about what is kept, not about what is
+  taken and opened.
+- Observed by it, both right: December's Ready to Assign is 199,111.12 where November's is
+  1,000,000.00 (the cash overspending of the month before comes off the next month); the
+  popover's account column is cut with its ellipsis (it is the column that gives way).
+- Still not provable on live by a test: `Linked Account Not Found`, reauthorization,
+  `Connection Lost`, the nightly check, the pinned popup's closing on a resize.
+
+**What I learned:** a rule about screenshots must speak of the taking, not only of the keeping.
+And one line of my Deploy text asks the verifier for a reading it cannot take (the pending list
+before the release); it goes out of the standing text, the summary's line is the evidence.
+
+**Tickets:** live notes on EXF-727, EXF-745 and EXF-866. **Ticket writes:** 3. No new ticket.
+**Backlog:** not recounted in this turn; nothing was filed or closed since the count of the
+last review (35 open feature tickets, 2 In Progress; 18 open gap tickets).
+**Flow verdicts:** unchanged. Flow 5's known gap (EXF-867) is live now; its verdict stays
+`parity_known_gaps` until a run sees it.
+Finished since each template's last review: Build 7, Deploy 8, Discover 2, Test user flow 8.
+
+**Next plan:** nothing to deploy. The dialogs Build is at or near its gate, so no new Build
+starts beside it this round; when its card comes I read the gate and the diff.
