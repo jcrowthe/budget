@@ -12918,3 +12918,35 @@ REST and in the bar; the open row's Category tooltip; a test plan deleted throug
 (the unlink path with no linked account); the mark's popup cannot be shown (no linked account
 without a bank). Then the flow test with a Sandbox bank for match, unmatch, the strip's absence
 on a connected account and the mark's popup.
+
+### 2026-11-18 · Plan round 145
+
+Children used 160 of 200 (159 before this plan; one started). Main `b0240a5`; live `1979d9d`
+(read at 09:32Z), with one migration pending (`20261116101600_manual_match.sql`). The person has
+said nothing new. No ticket was filed at the last review.
+
+**Started: Deploy D38** (`p_97546c23d86040e0a1cd1f5e50ab4e06`, prefix `ZZ-TEST D38`) for
+`b0240a5`, `gated_commit` `186fe1b` (I compared the two trees: identical). It ships three merges:
+the suite's worker count (nothing of the app), the connection-status strip and popup with the
+plan-delete change, and manual match with its migration.
+- **The migration:** the brief says exactly one file is pending before the release and none
+  after, and asks for the release's line for it.
+- **What it can prove without a bank:** 89 tools with the two new ones; `match_details` null on
+  plain rows; the refusals' status, name and wording through REST (two hand entries, two
+  accounts, the same id twice, unmatch of a row that is not matched) and through the tool; the
+  bar's `Match` disabled with its reason for two hand entries; no icon, strip or mark on an
+  unlinked account; the open row's Category tooltip at 1024 px; a plan's delete at the purge.
+- **What it cannot prove:** a match, an unmatch, the strip, the popup. Each needs an import or a
+  linked account: the flow test after the release.
+- Two states marked LOOK. No plan menu and no bank modal in this check; `/plans` never.
+- I read the code behind each asserted text: the match texts and the row label's form
+  (`<payee> on <date> (<amount>)` in the plan's format), the bar's rule (`Match` shows for
+  exactly two rows, `aria-disabled` with the refusal as its tip), the read's field, the count of
+  tools in the repository (89).
+
+**Not started:** the template-ticket sweep (next round, as planned for about round 146); the
+flow test (live must be `b0240a5` first); a Build (the next two are EXF-727 on the Plan page and
+EXF-866 with EXF-867 in the shell and the Worker; I start them when the Deploy's gate is through).
+
+Ticket writes: 0.
+Finished since each template's last review: Build 4, Deploy 6, Discover 2, Test user flow 7.
