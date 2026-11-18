@@ -25,14 +25,20 @@ export interface SyncPage {
   has_more: boolean;
 }
 
-export interface BalanceAccount {
+/** One account of Plaid's /accounts/get answer. */
+export interface PlaidAccount {
   account_id: string;
+  name: string;
+  mask?: string | null;
+  type: string;
+  subtype?: string | null;
   balances: {
     current?: number | null;
     available?: number | null;
     last_updated_datetime?: string | null;
   };
 }
+export type BalanceAccount = PlaidAccount;
 
 const pick = (t: RawTxn): PlaidTxn => ({
   transaction_id: t.transaction_id,

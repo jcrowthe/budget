@@ -43,7 +43,7 @@ import * as bankRepo from "../repositories/bank-connections";
 import * as importsRepo from "../repositories/imports";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
-import { toApi } from "./bank-connections";
+import { bankAccountRow, toApi } from "./bank-connections";
 import { batchCount, runGroups } from "./batch-groups";
 import { getBudgetEnvironment } from "./budgets";
 import { CallBudget, countedEnv, countedPlaid, SyncBudgetTooSmall } from "./sync-budget";
@@ -718,14 +718,29 @@ async function syncConnection(
           at: got.balances.last_updated_datetime ?? finished,
         },
         guard,
+        got.name !== b.name || (got.mask ?? null) !== b.mask
+          ? { name: got.name, mask: got.mask ?? null }
+          : undefined,
       ),
     );
+  }
+  // The list follows the bank: a bank account it newly lists is added, unlinked. Sync state like the balances: no history row.
+  const known = new Set(bankAccounts.map((b) => b.plaidAccountId));
+  for (const a of balances) {
+    if (known.has(a.account_id)) continue;
+    final.push(bankRepo.insertAccountIfStmt(db, bankAccountRow(row.id, a, finished), guard));
   }
   // Only this good list marks anything: a link whose bank account the bank no longer lists reads Linked Account Not Found.
   if (linkedRows.length > 0) {
     const missing = bankAccounts.filter((b) => !byPlaidId.has(b.plaidAccountId)).map((b) => b.id);
     final.push(accountsRepo.markMissingStmt(db, row.id, missing, finished, guard));
   }
+  // A bank account the bank no longer lists and no plan account is linked to goes (a linked one stays, marked above).
+  const unlisted =
+    balances.length > 0
+      ? bankAccounts.filter((b) => !byPlaidId.has(b.plaidAccountId)).map((b) => b.id)
+      : [];
+  if (unlisted.length > 0) final.push(bankRepo.deleteUnlistedStmt(db, row.id, unlisted, guard));
   final.push(
     bankRepo.updateConnectionStmt(
       db,
