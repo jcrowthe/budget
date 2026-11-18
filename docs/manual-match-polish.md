@@ -10,3 +10,4 @@ All items compared: read from the source's style rules or script files.
 - P6 [applied] `.is-match` radius is `--radius-xs` (4px).
 - P7 [applied] The `.match-link:hover` colour is removed; the focus ring stays.
 - P8 [applied] Match and Unmatch move after Clear, before the separator and More (the source's template order); the design and spec lines are corrected.
+- P9 [applied] The panel's outer box passes clicks through (`.bulk-popover.is-match { pointer-events: none }`, body and arrow take them), so a click beside a short panel reaches the register, as the source's transparent layer does; scoped to the feature's own class. Compared: read from the source's modal structure.

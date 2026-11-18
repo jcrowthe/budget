@@ -98,6 +98,7 @@ export function MatchCell({ budgetId, tx }: { budgetId: string; tx: TransactionD
             role="dialog"
             label="Matched Transactions"
             width={Math.min(512, window.innerWidth - 16)}
+            className="is-match"
             bodyClass="is-match"
             onClose={close}
           >

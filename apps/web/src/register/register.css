@@ -1097,6 +1097,15 @@
 }
 /* Source (.modal-account-match-transaction--matched .modal, getComputedStyle): width max-content, min-width 20rem,
    max-width 32rem, overflow visible, radius 4px. */
+/* Source (modal structure): only the modal box takes a click; the layer around it is transparent and a click on it
+   closes the dropdown. The outer box stays as wide as the Popover sets it, so it passes clicks through. */
+.bulk-popover.is-match {
+  pointer-events: none;
+}
+.bulk-popover.is-match .bulk-popover-body,
+.bulk-popover.is-match .bulk-popover-arrow {
+  pointer-events: auto;
+}
 .bulk-popover-body.is-match {
   width: max-content;
   min-width: 320px;
