@@ -159,14 +159,14 @@ describe("a connection's bank accounts follow the bank's list (EXF-875)", () => 
     await syncOne(w.plan, w.conn);
     const list = await json(`/api/v1/bank-connections?budget_id=${w.plan}`);
     const conn = ((await data(list)).bank_connections as Json[]).find((c) => c.id === w.conn);
-    const rewards = (conn?.accounts as Json[]).find((x) => x.name === "ZZ Rewards");
+    const rewards = ((conn as Json).accounts as Json[]).find((x) => x.name === "ZZ Rewards");
     expect(rewards?.linked_account_id).toBeNull();
     const tool = tools.find((t) => t.name === "list_bank_connections");
     const out = (await tool?.run({ budget_id: w.plan } as never, { env } as never)) as {
       bank_connections: Json[];
     };
     const viaTool = out.bank_connections.find((c) => c.id === w.conn);
-    expect((viaTool?.accounts as Json[]).some((x) => x.name === "ZZ Rewards")).toBe(true);
+    expect(((viaTool as Json).accounts as Json[]).some((x) => x.name === "ZZ Rewards")).toBe(true);
   });
 
   it("14 an added bank account writes no history row", async () => {
