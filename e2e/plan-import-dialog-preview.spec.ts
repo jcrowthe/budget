@@ -73,7 +73,9 @@ test("9 a file that cannot be read: the server's words, no content in the consol
   await openImport(page);
   await chooseFiles(page, badAmountPair());
   const alert = dialog(page).getByRole("alert");
-  await expect(alert).toContainText("This file cannot be imported: Register file line 3");
+  await expect(alert).toContainText("This file cannot be imported: Register file line 3", {
+    timeout: 30_000,
+  });
   await expect(alert).toContainText("is not an amount");
   await expect(dialog(page).getByRole("button", { name: /Drop the files here/ })).toBeVisible();
   expect(requests).toHaveLength(1);

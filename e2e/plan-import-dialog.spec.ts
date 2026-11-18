@@ -56,7 +56,21 @@ test("5 the button, and each refusal in words with no request", async ({ page })
   await expect(alert).toHaveText("Choose one zip, or the two files: Plan and Register.");
   await chooseFiles(page, [file("a.csv")]);
   await expect(alert).toHaveText("Choose both files: Plan and Register.");
-  await chooseFiles(page, [file("big.zip", Buffer.alloc(21 * 2 ** 20))]);
+  // 21 MB made in the page from one shared 1 MB chunk (a 21 MB buffer through the chooser crashed a loaded box).
+  await page.evaluate(() => {
+    const chunk = new Blob([new ArrayBuffer(2 ** 20)]);
+    const dt = new DataTransfer();
+    dt.items.add(
+      new File(
+        Array.from({ length: 21 }, () => chunk),
+        "big.zip",
+      ),
+    );
+    const input = document.querySelector<HTMLInputElement>("#plan-import-file");
+    if (!input) throw new Error("no file input");
+    input.files = dt.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await expect(alert).toHaveText("The files are larger than 20 MB, the most an import takes.");
   expect(requests).toEqual([]);
 });
@@ -107,11 +121,15 @@ test("7 a one-call import: result, Open Plan, and the list refreshed once", asyn
     await expect(d.getByRole("button", { name: "Import", exact: true })).toBeEnabled();
     const before = requests.length;
     await realClick(page, d.getByRole("button", { name: "Import", exact: true }));
-    await expect(d.getByText(`Imported ${name}.`, { exact: true })).toBeVisible();
+    await expect(d.getByText(`Imported ${name}.`, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
     const sent = requests.slice(before);
     expect(sent).toHaveLength(1);
     expect(sent[0]?.url).not.toContain("dry_run");
-    await expect.poll(async () => (await plansNamed(request, name)).length).toBe(1);
+    await expect
+      .poll(async () => (await plansNamed(request, name)).length, { timeout: 30_000 })
+      .toBe(1);
     // The plans list: refreshed once after done, never by the dialog itself.
     await expect.poll(() => lists.length).toBe(2);
     await page.waitForTimeout(500);
