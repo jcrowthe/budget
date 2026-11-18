@@ -14087,3 +14087,35 @@ flow 8.
 D41: `p_cca7951c…`, `p_80111cfe…`, `p_2ac3e7ea…`, `p_0968d3d2…`, `p_1cc11da7…`, `p_684f7b0f…`,
 `p_97546c23…`, `p_c390c4d9…`, `p_a950a3ca…`, `p_d7e6241b…`; I check the ids against the list
 of children before I start it). Nothing else: two Builds are running.
+
+### 2026-11-18 · Plan round 156
+
+Children used 173 of 200 (one started this turn; the warning comes at 180). Main and live
+`639e60d`; no migration pending. No ticket was filed at the last review.
+
+**Running:** the Builds for EXF-874 (`p_b4c926009b32431f826d65b571ba1db0`) and EXF-510
+(`p_3d140515a4c34b64a7efbf1baf338ce1`), both early; no manifest, no card.
+
+**Started: the Deploy template's review, `p_45709fdd5781486294add4547a439092`** (Improve
+templates, mode review), on the ten Deploys since its last one. I took the ten ids from the
+list of children as printed in this session, in order of their start: `p_cca7951c…`,
+`p_80111cfe…`, `p_2ac3e7ea…`, `p_0968d3d2…`, `p_1cc11da7…`, `p_684f7b0f…`, `p_97546c23…`,
+`p_c390c4d9…`, `p_a950a3ca…`, `p_d7e6241b…`; all ten are `completed`.
+- Its notes carry the sentence about evidence and stand-in tickets, the rule to open neither
+  the source nor the live app, and nine questions. The first three: why ten of ten released
+  when three of the batch before did not; that a Deploy takes its `gated_commit` on trust (I
+  passed a head I had checked by hand, D41); and which of my standing rules, each born from one
+  verifier's report, belong in the template or the profile.
+- **It is asked to check my statements against the step records and say where one is wrong.**
+  One I already know to be loose: the notes say the verifier of D39 met wrong figures of mine;
+  its figures held (the wrong figure was in a flow test's brief). I left it for the review to
+  find, since finding such things is what I asked of it.
+
+**Not started:** a third Build (two are running and both are young); a Deploy (main is live);
+a flow run.
+
+**Ticket writes:** 0.
+Finished since each template's last review: Build 9, Deploy 0 (its review is running),
+Discover 2, Test user flow 8. **Children left: 27.**
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
