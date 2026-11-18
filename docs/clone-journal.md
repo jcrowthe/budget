@@ -12306,3 +12306,43 @@ user flow 6.
 (an account added on the screen, its Starting Balance moved back in the register, the older rows
 arriving, the balance off by their sum, a rejected row staying away), with flow 2's re-run in
 the same child if the brief stays short. Set the new ticket's priority.
+
+### 2026-11-18 · Plan round 138
+
+Children used 155 of 200 (154 before this plan; one started). Main and live `2370e08` (read at
+00:52Z). The person has said nothing new.
+
+**The tickets filed at the last review exist:** EXF-816 (the open row's Category field at
+1024 px), set to Low. The Build template review's new ticket is EXF-815 (a browser stand-in
+answers in the server's shape), set to High: the fault it would have caught reached live.
+
+**Status of every running child (00:53Z):**
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its polish step, no card (not at its
+  final gate).
+- The Build template review (`p_f56a4f28283c47ada683261077398d50`) **ended** at 00:52Z; its
+  comments are on the eleven tickets and EXF-815 is filed. It is reviewed at this round's review.
+
+**Started: flow 5, fifth run, short** (`p_883186d9f2b74f73b82820ad0da7f87f`, prefix
+`ZZ-TEST F138`), on live `2370e08`: the linked half of EXF-774 with a Plaid Sandbox bank. Two
+accounts added on the screen; the savings account's Starting Balance moved back 20 days (two
+rows arrive by themselves after one PATCH and one sync), one row rejected and one categorized,
+moved back to 60 days (two more arrive; the rejected one stays away; the categorized one is
+there once, unchanged), the amount corrected as a person would (no sync after an amount-only
+edit), moved later (nothing deleted; the import start is the later date); the same move through
+MCP on the second account; Remove on the screen at the end.
+- **Figures worked out by hand, twice**, from the four rows Plaid's Sandbox returned on 17 and
+  18 Nov: balances 189220, 185000, 164220, and 210000 after the Starting Balance is set to
+  255.78; D20 = 29 Oct, D41 = 8 Oct, D60 = 19 Sep. The brief says to recompute if the rows differ.
+- I read the design's case table for every rule asserted (earlier: the new date; later: the
+  later of the two; unlink clears the start; one sync for a move in either direction; none for
+  an amount-only edit).
+- **Standing rules, new in this brief:** the navigation helper refuses any path outside the test
+  plan; the recorder never keeps the plan list's or the identity read's body; no download host
+  is set by a step (system Chrome is the fallback); **four states marked LOOK and no other
+  screenshot asked**; the "known" list corrected (EXF-679 is the Move to Account submenu).
+
+**Not started:** flow 2's re-run (after this one, in a round of its own); another Build (the
+plans Build holds the shell; EXF-807 with the three flaky specs runs alone after it).
+
+Ticket writes: 2 (priorities of EXF-816 and EXF-815).
+Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 6.
