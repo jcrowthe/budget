@@ -14,6 +14,8 @@ test("15 keyboard: the list is one stop; Space ticks, Enter selects alone, Escap
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   const d = await openManagePayees(page, s.name);
   await expect(d.getByRole("textbox", { name: "Search Payees", exact: true })).toBeFocused();
+  // The list loads after the dialog opens: wait for its rows before using the keys.
+  await expect(d.locator(".mp-name")).toHaveCount(5);
   await page.keyboard.press("Tab");
   const list = d.getByRole("listbox", { name: "Payees", exact: true });
   await expect(list).toBeFocused();
