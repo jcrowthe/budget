@@ -14585,3 +14585,68 @@ Next check-in: the review of round 170.
 
 **Next plan:** nothing to start beside the running Build unless the check-in is answered; then,
 by weight, EXF-467 with EXF-515 on the new dialog once EXF-881's gate is through.
+
+### 2026-11-18 · Plan round 161
+
+Children used 177 of 200 (one started this turn; the warning comes at 180, three more).
+Main and live `f9f1281`, no migration pending. No answer to the check-in of round 160. No
+ticket was filed at the last review.
+
+**Running: the Build for EXF-881** (`p_58cf6bb7e3ac4eb9b1697caf69254eb3`), at its build step
+(read 22:13Z). Its design is on its branch, and I read it:
+- **My inference holds.** The Architect ran the probe: the list answers 500, the cause is
+  `D1_ERROR: too many SQL variables`, `linksForPlan` works with 99 ids and fails with 100.
+- The list's D1 calls: 4 with connections, 2 for an empty environment, the same after the fix.
+- **Its table found more than I asked about:**
+  - The sync's last batch binds one connection's unlisted bank accounts once and its missing
+    ones twice, so about 95 unlisted or about 47 missing accounts would fail the whole batch
+    on every run. Fixed in this Build.
+  - `livePlanIds` has no bound. Fixed in this Build.
+  - **Category deletes:** by its count of placeholders (not run), deleting a group fails from
+    roughly 30 categories in the group, and the usage read of a group from about 49. **That is
+    nearer to an ordinary plan than a hundred bank accounts.** Not in this Build's ground; a
+    ticket at this round's review.
+  - The Worker logs only the error's name for a 500 (`middleware/errors.ts`, a shared module),
+    which is why the cause was not in the server log. A ticket at this round's review.
+- **Manifest:** `repositories/accounts.ts`, `repositories/bank-connections.ts`,
+  `repositories/imports.ts`, `services/bank-connections.ts`, its tests, the Sandbox spec,
+  `docs/conventions.md`, its documents, `docs/README.md`. No shared module, no migration.
+
+**Started: the Build for EXF-467, payee renaming rules**
+(`p_b2eded0336ae43d0b212526947b082e3`), beside it.
+- **Why this one:** with bank imports live, a renamed payee comes back with the next import
+  (the Manage Payees Build's finding). It is the first thing the owner meets after using the
+  new dialog.
+- **Why alone and not with EXF-515:** the two would make one Build larger than Manage Payees
+  (3 h 35 min). EXF-515 follows on the same pane.
+- **The scheduling rule:** its ground is the payees' and the transactions' files, the sync
+  service, the dialog and the register's payee cell. **The files of EXF-881's manifest that it
+  could want are closed to it by name in the brief** (the three repositories, the
+  bank-connections service, the Sandbox spec); in common are only `docs/conventions.md` and
+  `docs/README.md`, where a rebase keeps both sides' lines. No file of `paths.always_overlap`,
+  no shared module (routes and tools are collected by a glob; I read that in `app.ts` after
+  first writing that the route file "is mounted", which was a guess).
+- **Read before writing:** the import finds a payee by name (`plaid-sync.ts`); the row already
+  stores `import_payee_name`, `imported_payee` and `bank_description`; the last two are on
+  the resource. The one migration is `20261116101800_payee_rename_rules.sql`, named in the
+  text; `"reserved_migrations": []`.
+- **Four decisions of mine, not observed in the source,** written as such and to be listed
+  under "Departures to check": `is` before `contains`; a rename in Manage Payees adds
+  `is <old name>` when the old name came from the bank; undoing a rename removes the `is`
+  rules and guards against a `contains` rule; where the info button sits. One public help page
+  read (the source's own support site): it says an edit of a row's payee makes a rule and says
+  nothing of the rest.
+- **The source is closed to every step** and no step starts a sub-agent. Looks follow the
+  clone's own neighbouring cards and popovers; words come from EXF-467 and EXF-510.
+- Tests stay light, said with the 2,000-payee spec named as the thing not to repeat.
+- If it runs long: everything but the tooltip and `Bank Import Details` must be whole.
+
+**Not started:** no Deploy (main is live); no flow run; no template review due (Build 1,
+Deploy 1, Discover 2, Test user flow 8).
+
+**Ticket writes:** 2 (EXF-467 to In Progress and its comment).
+
+**For this round's review:** file the two tickets named above (category deletes beyond about
+30 categories in a group; the 500's cause not logged).
+
+**Still waiting on the person:** the eight questions; the child limit first (23 left).
