@@ -14650,3 +14650,68 @@ Deploy 1, Discover 2, Test user flow 8).
 30 categories in a group; the 500's cause not logged).
 
 **Still waiting on the person:** the eight questions; the child limit first (23 left).
+
+### 2026-11-18 · Review round 161
+
+Children used 177 of 200 (the warning comes at 180; 23 left). One ended: **the Build for
+EXF-881 completed and merged** (`p_58cf6bb7e3ac4eb9b1697caf69254eb3`; 6,215 s and $4.02 by its
+status, PR 80). **Main is `deb0f99`**; its tree equals the gated head's tree (`31b4a1d`; both
+read this turn). **Live is `f9f1281`**, so one merge waits for a Deploy; no migration in it.
+The journal branch holds main (merge `5dfa7a9`).
+
+**The Build (card answered in a side turn: approve).**
+- Gate, from the card's own line and the step list: one attempt, passed, no gate fix;
+  722/722 three times; the Sandbox spec ten times 10/10; no flake.
+- **My inferred cause held:** the list answered 500, `D1_ERROR: too many SQL variables`,
+  `linksForPlan` worked with 99 ids and failed with 100. The first commit is the failing test
+  with its line quoted.
+- The fix is sub-selects on the environment for the list's two reads; the sync's last batch
+  and `livePlanIds` take their ids as one parameter. The Sandbox spec removes what it makes.
+- I read the whole source diff and the spec's diff at the card.
+- **Something nobody had reviewed, accepted by me and named in my answer:** the Build's
+  test-writing step runs after the Reviewer. It added a test that pins the number of IN-list
+  sites per file in the Worker's repositories and services; a later Build that adds or
+  removes one fails `pnpm check` until it updates the count and the table in this Build's
+  design. It is a guard for the new rule and its message says what to do. **I checked the
+  running Build's branch for it this turn** (`4764093`): it has added no such site, so it
+  does not trip today.
+- One acceptance case PARTIAL (the Tester did not re-run the failing lines before the fix);
+  covered by the first commit's quoted line and by a later test that pins the cause.
+
+**Running (23:31Z): the Build for EXF-467** (`p_b2eded0336ae43d0b212526947b082e3`), at its
+first review, 16 visits; design, manifest and polish list written; PR 81 open as a draft.
+- **The scheduling rule on its manifest:** the rules' own new files, the payees' repository,
+  service and tools, `services/plaid-sync.ts`, the transactions' service and repository,
+  three schema files and four schema tests, the dialog, `RegisterTable.tsx` with one new
+  file and `register.css`, its specs and documents; one migration; no shared module. It
+  names none of the five files I closed to it, and the Build it ran beside has merged.
+  Nothing else is building.
+- It will meet a moved base at its gate (`deb0f99`); the rebase touches `docs/README.md`
+  only by its manifest, and `docs/conventions.md` is not in it.
+
+**Filed with this review (two gap tickets, both from EXF-881's "Found, not fixed"):**
+1. Category-group deletes and the group's history read bind one parameter per category
+   several times: by the Build's count a group delete fails from roughly 30 categories in a
+   group, the read from about 49. Counted, not run; the ticket asks for the evidence first
+   and allows "it does not fail". It also asks that `docs/conventions.md` name the audit
+   test, so a Build learns of it before its gate.
+2. A 500 leaves no cause in the Worker's log: `onError` logs only the error's name (read by
+   me in `middleware/errors.ts`). The ticket asks for the cause chain without any bound value.
+
+**What I learned:**
+- An inference written down as an inference, with "read the server's error first", cost one
+  probe and was confirmed in the Architect's step; the same Build then found two worse
+  places than the one I had seen.
+- A step that runs after the Reviewer can add a rule for every later Build. I read what the
+  test-writing step adds at every card from now on, as I do a gate fix.
+
+**Tickets:** EXF-881 to Done with a comment. **Ticket writes:** 2.
+**Backlog:** feature: 32 open, one of them In Progress (EXF-467); counted at round 159, one
+state change since. Gap: 17 open after EXF-881, 19 with the two filed now. Template: not
+recounted (44 at the last count).
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 2, Deploy 1, Discover 2, Test user flow 8.
+
+**Next plan:** set the two new tickets' priorities. No Deploy for `deb0f99` alone: it ships
+with EXF-467 in one Deploy and saves a child. Nothing else to start beside the running Build.
+**Still waiting on the person:** the eight questions; the child limit first.
