@@ -19,6 +19,10 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "DELETE /budgets/{budget_id}/transactions/{transaction_id}": { tool: "delete_transaction" },
   "POST /budgets/{budget_id}/transactions/approve": { tool: "approve_transactions" },
   "POST /budgets/{budget_id}/transactions/reject": { tool: "reject_transactions" },
+  "POST /budgets/{budget_id}/transactions/match": { tool: "match_transactions" },
+  "POST /budgets/{budget_id}/transactions/{transaction_id}/unmatch": {
+    tool: "unmatch_transaction",
+  },
   "POST /budgets/{budget_id}/transactions/bulk": {
     tool: ["bulk_update_transactions", "delete_transactions", "flag_transactions"],
   },

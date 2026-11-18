@@ -42,6 +42,7 @@ import {
   LockIcon,
   TransferIcon,
 } from "./icons";
+import { MatchCell } from "./manual-match-details";
 import { useOpenAccounts } from "./openAccounts";
 import { useRegisterView } from "./register-view";
 import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
@@ -186,7 +187,7 @@ export function RegisterTable({
   ]);
 
   // Source: the attention column is display:none when no listed row needs approval.
-  const attentionCol = rows.some((r) => !r.approved);
+  const attentionCol = rows.some((r) => !r.approved || r.matched);
   const colCount =
     columns.length + 2 + (attentionCol ? 1 : 0) + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
 
@@ -328,7 +329,11 @@ export function RegisterTable({
           </td>
           {attentionCol && (
             <td className="cell-attention">
-              <AttentionCell budgetId={budgetId} tx={tx} />
+              {!tx.approved ? (
+                <AttentionCell budgetId={budgetId} tx={tx} />
+              ) : tx.matched && tx.match_details ? (
+                <MatchCell budgetId={budgetId} tx={tx} />
+              ) : null}
             </td>
           )}
           {showFlags && (

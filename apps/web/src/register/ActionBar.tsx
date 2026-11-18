@@ -1,5 +1,6 @@
 import type { Account } from "@budget/schema/accounts";
 import { paymentDisplay } from "@budget/schema/card-payments";
+import { matchActions } from "@budget/schema/manual-match";
 import { exportFileName } from "@budget/schema/register-export";
 import {
   barActions,
@@ -14,10 +15,17 @@ import type { FlagColor } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Tooltip } from "../account/Tooltip";
 import { useAccounts } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { useScheduledBulk } from "../api/scheduledTransactions";
-import { downloadExport, useApproveReject, useBulkTransactions } from "../api/transactions";
+import {
+  downloadExport,
+  useApproveReject,
+  useBulkTransactions,
+  useMatchTransactions,
+  useUnmatchTransaction,
+} from "../api/transactions";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { useCurrentPlan } from "../shell/useCurrentPlan";
@@ -26,7 +34,14 @@ import { Tip } from "./BarTip";
 import { BulkCategorize } from "./BulkCategorize";
 import { DeleteDialog, ExportDialog, MemoDialog } from "./BulkDialogs";
 import { FlagMenu } from "./FlagMenu";
-import { CategorizeIcon, CloseSmallIcon, FlagFilledIcon, MoreDotsIcon } from "./icons";
+import {
+  CategorizeIcon,
+  CloseSmallIcon,
+  FlagFilledIcon,
+  LinkBrokenIcon,
+  LinkIcon,
+  MoreDotsIcon,
+} from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import { useOpenAccounts } from "./openAccounts";
 import { ScheduledBar } from "./ScheduledBar";
@@ -89,6 +104,8 @@ export function ActionBar({
   const saveUi = useSaveUiState(budgetId);
   const bulk = useBulkTransactions(budgetId);
   const review = useApproveReject(budgetId);
+  const matcher = useMatchTransactions(budgetId);
+  const unmatcher = useUnmatchTransaction(budgetId);
   const scheduledBulk = useScheduledBulk(budgetId);
   const box = useRegisterBox();
   const [menu, setMenu] = useState<null | "more" | "flag" | "categorize">(null);
@@ -108,6 +125,7 @@ export function ActionBar({
     return m;
   }, [accountsQ.data]);
   const actions = barActions(sel, (id) => accountById.get(id) ?? null);
+  const ma = matchActions(sel, (id) => accountById.get(id) ?? null, fmt);
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   // D9: on All Accounts the one account that holds every selected row is not a target.
   const onlyAccount = (id: string) => sel.length > 0 && sel.every((r) => r.account_id === id);
@@ -174,6 +192,23 @@ export function ActionBar({
     close();
     void guard(async () => {
       await review.mutateAsync({ action: "reject", ids });
+      clear();
+    });
+  };
+  const doMatch = () => {
+    if (!ma.match?.enabled || matcher.isPending) return;
+    close();
+    void guard(async () => {
+      await matcher.mutateAsync(ids);
+      clear();
+    });
+  };
+  const doUnmatch = () => {
+    const one = sel[0];
+    if (!ma.unmatch?.enabled || !one || unmatcher.isPending) return;
+    close();
+    void guard(async () => {
+      await unmatcher.mutateAsync(one.id);
       clear();
     });
   };
@@ -413,6 +448,48 @@ export function ActionBar({
                       </button>
                     )}
                   </Tip>
+                )}
+                {ma.match && (
+                  <Tooltip
+                    placement="above"
+                    align="center"
+                    delayed={false}
+                    content={ma.match.reason ?? "Match"}
+                  >
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        aria-disabled={ma.match?.enabled ? undefined : "true"}
+                        onClick={doMatch}
+                      >
+                        <LinkIcon />
+                        Match
+                      </button>
+                    )}
+                  </Tooltip>
+                )}
+                {ma.unmatch && (
+                  <Tooltip
+                    placement="above"
+                    align="center"
+                    delayed={false}
+                    content={ma.unmatch.reason ?? "Unmatch"}
+                  >
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        aria-disabled={ma.unmatch?.enabled ? undefined : "true"}
+                        onClick={doUnmatch}
+                      >
+                        <LinkBrokenIcon />
+                        Unmatch
+                      </button>
+                    )}
+                  </Tooltip>
                 )}
                 <hr />
                 <button

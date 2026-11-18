@@ -1067,3 +1067,122 @@
 .attention-chip:hover {
   background: var(--register-menu-hover);
 }
+
+/* EXF-464: a matched row's link icon and its panel. Source (read from its style rules): the icon sits in the
+   notification column as a 16x16 button with margin-top 3px holding a 14x14 icon, colour --iconFillSecondary;
+   the panel has 16px padding, a 16px/600 title and a DATE | PAYEE | MEMO | AMOUNT table. Built from the ticket
+   otherwise. */
+.match-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--iconFillSecondary);
+  cursor: pointer;
+}
+.match-link:focus-visible {
+  outline: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.match-link svg {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+/* Source (.modal-account-match-transaction--matched .modal, getComputedStyle): width max-content, min-width 20rem,
+   max-width 32rem, overflow visible, radius 4px. */
+/* Source (modal structure): only the modal box takes a click; the layer around it is transparent and a click on it
+   closes the dropdown. The outer box stays as wide as the Popover sets it, so it passes clicks through. */
+.bulk-popover.is-match {
+  pointer-events: none;
+}
+.bulk-popover.is-match .bulk-popover-body,
+.bulk-popover.is-match .bulk-popover-arrow {
+  pointer-events: auto;
+}
+.bulk-popover-body.is-match {
+  width: max-content;
+  min-width: 320px;
+  max-width: 100%;
+  overflow: visible;
+  border-radius: var(--radius-xs);
+}
+.match-panel {
+  padding: 16px;
+}
+/* Source (.modal-header): padding 8px 0 12px, line-height 1.2. */
+.match-panel h2 {
+  margin: 0;
+  padding: var(--space-2) 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: var(--line-height);
+}
+.match-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.match-table th,
+.match-table td {
+  max-width: 192px;
+  padding: 8px 12px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--separatorStandard);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match-table th {
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  line-height: var(--line-height);
+  text-transform: uppercase;
+  border-top: 1px solid var(--separatorStandard);
+}
+.match-table th + th {
+  border-left: 1px solid var(--separatorStandard);
+}
+.match-table td {
+  line-height: var(--line-height);
+}
+.match-table .match-amount {
+  text-align: right;
+}
+/* Source (its secondary button, getComputedStyle): --buttonSecondaryBackground, --buttonSecondaryLabel, no border,
+   radius 8px, 16px/500, line-height 1.2, padding 8px 24px; hover --buttonSecondaryBackgroundHover. */
+.match-unmatch {
+  display: block;
+  margin: 12px 0 0 auto;
+  padding: 8px 24px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: var(--line-height);
+  cursor: pointer;
+}
+.match-unmatch:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.match-error {
+  margin: 8px 0 0;
+  color: var(--labelNegative);
+  font-size: var(--font-size-sm);
+  text-align: right;
+}
+.action-bar-button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}

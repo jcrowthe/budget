@@ -20,6 +20,7 @@ const base: PlanTransaction = {
   approved: true,
   created_at: "x",
   updated_at: "x",
+  match_details: null,
   import_id: null,
   source: null,
   imported_payee: null,

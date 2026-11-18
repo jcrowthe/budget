@@ -2,6 +2,7 @@ import { IsoDate } from "@budget/schema/common/dates";
 import { ErrorBody } from "@budget/schema/common/envelope";
 import { PLAN_SORT_COLUMNS, REGISTER_SORT_COLUMNS } from "@budget/schema/register";
 import {
+  MatchResponse,
   PlanTransactionListResponse,
   TRANSACTION_NEEDS,
   TransactionBulkRequest,
@@ -9,13 +10,16 @@ import {
   TransactionCreateRequest,
   TransactionIdsRequest,
   TransactionListResponse,
+  TransactionMatchRequest,
   TransactionResponse,
   TransactionsResponse,
   TransactionUpdateRequest,
+  UnmatchResponse,
 } from "@budget/schema/transactions";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
+import { matchTransactions, unmatchTransaction } from "../services/manual-match";
 import {
   addTransaction,
   approveTransactions,
@@ -318,6 +322,80 @@ export default app
       return refusals(c, async () => {
         const transactions = await approveTransactions(c.env, actor, budget_id, ids);
         return c.json({ data: { transactions } }, 200);
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/transactions/match",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id") }),
+        body: {
+          content: { "application/json": { schema: TransactionMatchRequest } },
+          required: true,
+        },
+      },
+      responses: {
+        200: json(
+          MatchResponse,
+          "The hand entry as it is now (its payee, memo, date, category and flag, with the bank's amount, import id and bank fields, cleared and approved) and the import's row as it was, now deleted. Dates may be any distance apart and amounts may differ: only this call, the owner's word, matches such rows",
+        ),
+        404: json(ErrorBody, "Plan, account or transaction not found"),
+        409: json(
+          ErrorBody,
+          "transaction_reconciled: the import is reconciled, or the entry is reconciled and its amount would change; or the rows changed concurrently",
+        ),
+        422: json(
+          ErrorBody,
+          "not_matchable: the rows are of two accounts, already matched, two imports or two hand entries, the import is approved, split or a transfer, or the entry is a split or a transfer and its amount differs; account_closed; unprocessable_entity: not two different ids",
+        ),
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      const { ids } = c.req.valid("json");
+      const actor = c.get("identity").actor;
+      return refusals(c, async () => {
+        const data = await matchTransactions(c.env, actor, budget_id, ids);
+        return c.json({ data }, 200);
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/transactions/{transaction_id}/unmatch",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: param("budget_id"),
+          transaction_id: param("transaction_id"),
+        }),
+      },
+      responses: {
+        200: json(
+          UnmatchResponse,
+          "The hand entry with the amount it had before the match (uncleared, its own fields kept) and the import as a new unapproved transaction with the bank's date, amount and payee and the same import id, which no sync matches or imports again",
+        ),
+        404: json(ErrorBody, "Plan, account or transaction not found"),
+        409: json(
+          ErrorBody,
+          "transaction_reconciled: the matched transaction is reconciled; or changed concurrently",
+        ),
+        422: json(
+          ErrorBody,
+          "not_matched: the transaction is not matched, or has no record of the bank's transaction; account_closed",
+        ),
+      },
+    }),
+    async (c) => {
+      const { budget_id, transaction_id } = c.req.valid("param");
+      const actor = c.get("identity").actor;
+      return refusals(c, async () => {
+        const data = await unmatchTransaction(c.env, actor, budget_id, transaction_id);
+        return c.json({ data }, 200);
       });
     },
   )

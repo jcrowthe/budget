@@ -40,7 +40,8 @@ type LinkCols =
   | "importDate"
   | "importAmount"
   | "importPayeeName"
-  | "flagColor";
+  | "flagColor"
+  | "matchEntryAmount";
 /** The link columns are optional so a plain row can be built without them (they insert as null). */
 export type TransactionRow = Omit<Sel, LinkCols> & Partial<Pick<Sel, LinkCols>>;
 
@@ -505,6 +506,7 @@ export type TxSet = Partial<
     | "importAmount"
     | "importPayeeName"
     | "flagColor"
+    | "matchEntryAmount"
   >
 > & { payeeId?: string | null | SQL };
 
