@@ -16,8 +16,11 @@ export function DeletePlanDialog({
   onDeleted: () => void;
 }) {
   const del = useDeleteBudget();
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
+  // Nothing closes the dialog while the DELETE is pending: a failure must show its message.
+  const closeRef = useRef(() => {});
+  closeRef.current = () => {
+    if (!del.isPending) onClose();
+  };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeRef.current();
@@ -40,6 +43,7 @@ export function DeletePlanDialog({
             className="icon-button"
             aria-label="Close"
             title="Close"
+            disabled={del.isPending}
             onClick={onClose}
           >
             <CloseIcon />
@@ -54,7 +58,7 @@ export function DeletePlanDialog({
           ) : null}
         </div>
         <div className="dialog-footer">
-          <button type="button" className="secondary" onClick={onClose}>
+          <button type="button" className="secondary" disabled={del.isPending} onClick={onClose}>
             Cancel
           </button>
           <button

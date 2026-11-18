@@ -29,7 +29,8 @@ export function useCreateBudget() {
   return useMutation({
     mutationFn: createBudget,
     // Append the answer when the list is loaded (no refetch); otherwise let the next reader fetch it.
-    onSuccess: (b) => {
+    onSuccess: async (b) => {
+      await qc.cancelQueries({ queryKey: ["budgets"] });
       if (qc.getQueryData<Budget[]>(["budgets"])) {
         qc.setQueryData<Budget[]>(["budgets"], (list) => (list ? [...list, b] : list));
       } else {
@@ -86,7 +87,9 @@ export function useDeleteBudget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteBudget,
-    onSuccess: (_res, id) =>
-      qc.setQueryData<Budget[]>(["budgets"], (list) => list?.filter((b) => b.id !== id)),
+    onSuccess: async (_res, id) => {
+      await qc.cancelQueries({ queryKey: ["budgets"] });
+      qc.setQueryData<Budget[]>(["budgets"], (list) => list?.filter((b) => b.id !== id));
+    },
   });
 }

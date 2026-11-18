@@ -9,7 +9,7 @@ import {
 } from "../plan-settings/new-plan-format-fields";
 
 /** New Plan: a name and the plan's currency and formats. Escape and Cancel close it; there is no close X. */
-export function NewPlanDialog({ onClose }: { onClose: () => void; budgetId?: string | null }) {
+export function NewPlanDialog({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [values, setValues] = useState<FormatValues>(DEFAULT_FORMAT_VALUES);
   const [nameError, setNameError] = useState<string | null>(null);
