@@ -3,7 +3,15 @@ import { PAYEE_ERRORS } from "@budget/schema/payees";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
 import { changeLog } from "../src/db/schema/change-log";
-import { buildPayeeDeleteBatch } from "../src/services/payees";
+import type { Env } from "../src/env";
+import {
+  applyToPayees,
+  buildPayeeDeleteBatch,
+  deletePayee,
+  updatePayee,
+} from "../src/services/payees";
+import { createScheduled } from "../src/services/scheduled-transactions";
+import { addTransaction } from "../src/services/transactions";
 import { DAY, data, send, tool } from "./account-helpers";
 import { type Json, P, payeeWorld } from "./manage-payees-helpers";
 import { apiPaths, listedToolNames } from "./surface";
@@ -312,5 +320,93 @@ describe("Manage Payees: the worker (EXF-510)", () => {
       (await j("bulk_update_payees", { payee_ids: [b], action: "delete" })).out.deleted,
     ).toHaveLength(1);
     expect(DAY).toBeTruthy();
+  });
+
+  it("a write that races the payee's delete commits nothing (a lost lookup becomes a refusal)", async () => {
+    const w = await payeeWorld();
+    await w.tx("ZZ Doomed");
+    const doomed = await w.id("ZZ Doomed");
+    // A DB whose first batch is preceded by the payee's delete: the lookup saw it live, the write finds it gone.
+    const racing = (): Env => {
+      let first = true;
+      const DB = new Proxy(env.DB, {
+        get(target, prop) {
+          if (prop === "batch") {
+            return async (list: D1PreparedStatement[]) => {
+              if (first) {
+                first = false;
+                await deletePayee(env, "t", w.bid, doomed, null);
+              }
+              return target.batch(list);
+            };
+          }
+          const v = Reflect.get(target, prop, target);
+          return typeof v === "function" ? v.bind(target) : v;
+        },
+      });
+      return { ...env, DB } as Env;
+    };
+    await expect(
+      addTransaction(racing(), "t", w.bid, {
+        account_id: w.acct,
+        date: DAY,
+        amount: -500,
+        payee_id: doomed,
+      }),
+    ).rejects.toMatchObject({ status: 422 });
+    await expect(
+      createScheduled(racing(), "t", w.bid, {
+        account_id: w.acct,
+        date_first: "2099-03-01",
+        frequency: "monthly",
+        amount: -500,
+        payee_id: doomed,
+      }),
+    ).rejects.toBeTruthy();
+    const live = await env.DB.prepare(
+      "select count(*) n from transactions where payee_id = ? and deleted_at is null",
+    )
+      .bind(doomed)
+      .first<{ n: number }>();
+    expect(live?.n).toBe(0);
+    const sched = await env.DB.prepare(
+      "select count(*) n from scheduled_transactions where payee_id = ? and deleted_at is null",
+    )
+      .bind(doomed)
+      .first<{ n: number }>();
+    expect(sched?.n).toBe(0);
+  });
+
+  it("rename and bulk hide report a lost guard as 409", async () => {
+    const w = await payeeWorld();
+    await w.tx("ZZ A");
+    const a = await w.id("ZZ A");
+    const racing = (victim: string): Env => {
+      let first = true;
+      const DB = new Proxy(env.DB, {
+        get(target, prop) {
+          if (prop === "batch") {
+            return async (list: D1PreparedStatement[]) => {
+              if (first) {
+                first = false;
+                await deletePayee(env, "t", w.bid, victim, null);
+              }
+              return target.batch(list);
+            };
+          }
+          const v = Reflect.get(target, prop, target);
+          return typeof v === "function" ? v.bind(target) : v;
+        },
+      });
+      return { ...env, DB } as Env;
+    };
+    await expect(updatePayee(racing(a), "t", w.bid, a, { name: "ZZ A2" })).rejects.toMatchObject({
+      status: 409,
+    });
+    await w.tx("ZZ B");
+    const b = await w.id("ZZ B");
+    await expect(
+      applyToPayees(racing(b), "t", w.bid, { ids: [b], action: "hide" }),
+    ).rejects.toMatchObject({ status: 409 });
   });
 });

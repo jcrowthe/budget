@@ -229,10 +229,18 @@ test("10 and 11 delete: an unused payee at once; a used one asks for a new payee
 
 test("12 Select N Unused Payees", async ({ page, request }) => {
   const s = await seedPayees(request);
+  let d = await open(page, s);
+  // With the seed alone: one unused payee, and the link ticks it alone.
+  await expect(btn(d, "Select 1 Unused Payee")).toBeVisible();
+  await realClick(page, btn(d, "Select 1 Unused Payee"));
+  await expect(d.getByText("Payees (1)", { exact: true })).toBeVisible();
+  await expect(tick(d, "ZZ Unused")).toBeChecked();
+  await realClick(page, btn(d, "Done"));
+  // A payee whose only transaction was deleted joins it.
   await s
     .tx("ZZ Spare")
     .then((t) => call(request, "DELETE", `/api/v1/budgets/${s.plan}/transactions/${t.id}`));
-  const d = await open(page, s);
+  d = await openManagePayees(page, s.name);
   await expect(btn(d, "Select 2 Unused Payees")).toBeVisible();
   await d.getByRole("textbox", { name: "Search Payees", exact: true }).fill("Spare");
   await expect(btn(d, "Select 1 Unused Payee")).toBeVisible();
@@ -241,6 +249,20 @@ test("12 Select N Unused Payees", async ({ page, request }) => {
   await expect(d.getByText("Payees (2)", { exact: true })).toBeVisible();
   await expect(tick(d, "ZZ Spare")).toBeChecked();
   await expect(tick(d, "ZZ Unused")).toBeChecked();
+});
+
+test("11 delete with [No Payee] leaves the payee cell empty", async ({ page, request }) => {
+  const s = await seedPayees(request);
+  const d = await open(page, s);
+  await realClick(page, pick(d, "ZZ Cafe A"));
+  await realClick(page, btn(d, "Delete"));
+  await realClick(page, btn(d, "Delete"));
+  await expect(pick(d, "ZZ Cafe A")).toHaveCount(0);
+  await realClick(page, btn(d, "Done"));
+  const rows = page.getByRole("row").filter({ hasText: "third" });
+  await expect(rows).toHaveCount(1);
+  await expect(rows).not.toContainText("ZZ Cafe");
+  await expect(page.getByRole("row").filter({ hasText: "ZZ Cafe A" })).toHaveCount(0);
 });
 
 test("13 several selected: the names, Hide All, Delete All with the summed count", async ({

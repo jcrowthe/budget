@@ -1,6 +1,7 @@
 import type { PayeeSystem } from "@budget/schema/payees";
 import { and, eq, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
+import { changeLog } from "../db/schema/change-log";
 import { payees } from "../db/schema/payees";
 import { type LogBase, logSelectStmt } from "./guards";
 import { insertSelect } from "./insert-select";
@@ -363,4 +364,40 @@ export function scheduledOf(
     where s.budget_id = ${budgetId} and s.payee_id = ${payeeId} and s.deleted_at is null
     order by s.date_next desc, s.created_at desc, s.id
     limit ${limit}`);
+}
+
+/**
+ * A statement for the end of a write batch: it fails the whole batch (NOT NULL on `change_log.actor`) unless every
+ * given payee is still live, so a write that raced a payee's delete commits nothing. `isPayeeGone` recognises it.
+ */
+export function livePayeesCheck(
+  db: Db,
+  budgetId: string,
+  ids: readonly (string | null | undefined)[],
+) {
+  const want = [...new Set(ids.filter((i): i is string => !!i))];
+  if (want.length === 0) return [];
+  return [
+    insertSelect(
+      db,
+      changeLog,
+      {
+        id: sql`'payee-gone'`,
+        budgetId,
+        actor: sql`null`,
+        action: sql`'update'`,
+        entityType: sql`'payee'`,
+        entityId: sql`'payee-gone'`,
+        createdAt: sql`''`,
+      },
+      sql`where (select count(*) from payees where budget_id = ${budgetId} and deleted_at is null and ${idsIn(sql`payees.id`, want)}) < ${want.length}`,
+    ),
+  ];
+}
+
+export function isPayeeGone(e: unknown): boolean {
+  for (let x: unknown = e; x instanceof Error; x = x.cause) {
+    if (x.message.includes("NOT NULL constraint failed: change_log.actor")) return true;
+  }
+  return false;
 }

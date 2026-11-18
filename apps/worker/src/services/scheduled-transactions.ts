@@ -265,6 +265,7 @@ export async function createScheduled(
       ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
       repo.insertStmt(db, base),
       changeLogInsert(db, logEntry(actor, "create", null, row)),
+      ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
     ];
     let txId: string | null = null;
     if (place.kind === "enterAndSchedule") {
@@ -278,6 +279,7 @@ export async function createScheduled(
       await db.batch(stmts(writes));
     } catch (e) {
       if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
     return {
@@ -402,11 +404,15 @@ export async function updateScheduled(
       txId = tx.id;
       writes.push(...enteredTransactionWrites(db, actor, tx, namesOfRow(after), guard));
     }
+    writes.push(
+      ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
+    );
     let results: { meta: { changes?: number } }[];
     try {
       results = (await db.batch(stmts(writes))) as unknown as typeof results;
     } catch (e) {
       if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
     if ((results[payeeWrites.length]?.meta.changes ?? 0) === 0) {

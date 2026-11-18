@@ -199,7 +199,7 @@ export async function updatePayee(
   const now = new Date().toISOString();
   const same = payeesRepo.unchangedSql(budgetId, row.id, row);
   try {
-    await db.batch([
+    const res = await db.batch([
       changeLogInsertIf(
         db,
         {
@@ -215,6 +215,10 @@ export async function updatePayee(
       ),
       payeesRepo.updateStmt(db, budgetId, row.id, { name, hidden }, now, row),
     ]);
+    // The guard failed (a rename, hide or delete got there first): nothing was written.
+    if (((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
+      throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
+    }
   } catch (e) {
     if (payeesRepo.isUniqueViolation(e))
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
@@ -334,10 +338,12 @@ export async function applyToPayees(
       entityType: "payee",
       createdAt: now,
     };
-    await db.batch([
+    const res = await db.batch([
       payeesRepo.logHiddenStmt(db, base, budgetId, ids, hidden, guard),
       payeesRepo.setHiddenStmt(db, budgetId, ids, hidden, now, guard),
     ]);
+    const done = (res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0;
+    if (done < changing.length) throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
   }
   return {
     payees: rows.map((r) =>

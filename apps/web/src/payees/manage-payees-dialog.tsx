@@ -2,7 +2,7 @@ import { manageGroups, NO_PAYEES, type Payee, unusedIds, unusedLabel } from "@bu
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { invalidatePayeeViews, usePayees } from "../api/payees";
+import { usePayees } from "../api/payees";
 import { SearchIcon } from "../register/icons";
 import { CloseIcon } from "../shell/icons";
 import { useManagePayeesFocus } from "./manage-payees-focus";
@@ -210,7 +210,5 @@ export function ManagePayeesDialog({
       ) : null}
     </div>
   );
-  // After a fault the list may be stale: keep the list fresh when the dialog is left.
-  useEffect(() => () => void (b && invalidatePayeeViews(qc, b)), [b, qc]);
   return createPortal(<div className="mp-backdrop">{body}</div>, document.body);
 }

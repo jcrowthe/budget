@@ -100,7 +100,7 @@ export function PayeeField({
             className="entry-footer-button"
             data-ticket="EXF-510"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
+            onClick={() => {
               // The field's combobox still has the focus (mousedown was cancelled): the dialog gives it back on close.
               inputRef.current = document.activeElement as HTMLElement | null;
               setManaging(true);
