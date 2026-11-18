@@ -76,6 +76,11 @@ describe("sync runs (EXF-462)", () => {
     const old = await make(7 * H);
     const recent = await make(1 * H);
     const repair = await make(null, "login_required");
+    // EXF-866: the nightly run now checks a sign-in once a day; this one was checked an hour ago, so the
+    // schedule still leaves it alone (the check itself is link-status-check.test.ts).
+    await env.DB.prepare("update bank_connections set login_checked_at = ? where id = ?")
+      .bind(new Date(Date.now() - H).toISOString(), repair)
+      .run();
     const before = Object.fromEntries(
       await Promise.all(
         [never, old, recent, repair].map(async (c) => [c, (await connRow(c)).last_synced_at]),

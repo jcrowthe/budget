@@ -27,10 +27,14 @@
 }
 /* A badge only when the owner must act (the source's isDirectImportUserActionable). */
 .nav-account-row .nav-link-status[data-status="login_required"],
+.nav-account-row .nav-link-status[data-status="reauthorize"],
+.nav-account-row .nav-link-status[data-status="not_found"],
 .nav-account-row .nav-link-status[data-status="broken"] {
   background: var(--buttonSubtleBackground);
 }
 .nav-account-row .nav-link-status[data-status="login_required"]:hover,
+.nav-account-row .nav-link-status[data-status="reauthorize"]:hover,
+.nav-account-row .nav-link-status[data-status="not_found"]:hover,
 .nav-account-row .nav-link-status[data-status="broken"]:hover {
   background: var(--statusMarkHover);
 }
@@ -121,4 +125,16 @@
 }
 .status-popup .status-popup-error {
   color: var(--labelNegative);
+}
+/* Two actions in the popup (Relink, Unlink): full width, one under the other. */
+.status-popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.status-popup-button.secondary {
+  background: var(--buttonSecondaryBackground);
+}
+.status-popup-button.secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
 }

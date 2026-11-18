@@ -28,4 +28,4 @@ export function dates(...fields: string[]): string {
 
 /** Describes the two fields every account read carries from its bank connection (EXF-461). */
 export const LINK_STATE =
-  "connection_status (connected, delayed, login_required or broken; null when not linked) and last_synced_at (when its bank connection last synced; null when not linked or never synced)";
+  "connection_status (connected, delayed, login_required or broken; null when not linked), connection_reason (the connection's status_reason: unavailable, unsupported or reauthorize; null otherwise and when not linked), last_synced_at (when its bank connection last synced; null when not linked or never synced) and link_missing_since (when the bank stopped listing this account's bank account, ISO 8601 UTC; null when it is listed or the account is not linked). A set link_missing_since is Linked Account Not Found: imports to the account have stopped, and the owner relinks it with Link Account (which replaces this link) or unlinks it; when connection_status is login_required or broken, that is shown first)";

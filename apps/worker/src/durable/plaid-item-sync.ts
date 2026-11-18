@@ -12,15 +12,18 @@ export class PlaidItemSync extends DurableObject<Env> {
 
   override async fetch(request: Request): Promise<Response> {
     let id: unknown;
+    let check = false;
     try {
-      id = ((await request.json()) as { connection_id?: unknown }).connection_id;
+      const body = (await request.json()) as { connection_id?: unknown; check?: unknown };
+      id = body.connection_id;
+      check = body.check === true;
     } catch {
       id = null;
     }
     if (typeof id !== "string" || id === "") {
       return Response.json({ error: "bad_request" }, { status: 400 });
     }
-    this.running ??= runSync(this.env, id).finally(() => {
+    this.running ??= runSync(this.env, id, { check }).finally(() => {
       this.running = null;
     });
     try {

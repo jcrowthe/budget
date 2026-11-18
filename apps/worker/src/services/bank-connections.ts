@@ -1,4 +1,5 @@
 import type { BankConnection, BankConnectionCreate } from "@budget/schema/bank-connections";
+import { statusReason } from "@budget/schema/plaid-import";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsert, changeLogInsertIf } from "../history/change-log";
@@ -32,6 +33,7 @@ export function toApi(
     institution_logo: row.institutionLogo,
     nickname: row.nickname,
     status: row.status,
+    status_reason: statusReason(row.status, row.syncErrorCode),
     provider: row.provider,
     last_synced_at: row.lastSyncedAt,
     last_reset_at: row.lastResetAt,
@@ -159,6 +161,8 @@ export async function createBankConnection(
         syncAccounts: null,
         syncLoopCursor: null,
         syncFailedAt: null,
+        syncErrorCode: null,
+        loginCheckedAt: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -322,7 +326,7 @@ export async function finishReset(
         entityId: row.id,
         before: toApi(row, accounts, links),
         after: toApi(
-          { ...row, status: "connected", lastResetAt: now, updatedAt: now },
+          { ...row, status: "connected", syncErrorCode: null, lastResetAt: now, updatedAt: now },
           accounts,
           links,
         ),
@@ -331,6 +335,7 @@ export async function finishReset(
     ),
     repo.updateConnectionStmt(db, row.id, {
       status: "connected",
+      syncErrorCode: null,
       lastResetAt: now,
       updatedAt: now,
     }),
