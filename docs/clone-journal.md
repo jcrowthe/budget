@@ -13252,3 +13252,86 @@ reviews of Deploy and of Test user flow come due on the way.
 
 **Still waiting on the person** (check-in 140, no answer): the eight questions listed there.
 The next check-in is at the review of round 150.
+
+### 2026-11-18 · Review round 148
+
+Children used 164 of 200 (the warning comes at 180). One ended: **the Build for EXF-727 with
+EXF-745 completed and merged** (`p_cdc277966a444b7f959e82759994d667`, PR 73, 1 h 41 min from
+start to merge). **Main is now `170f4db`** (its tree equals the gated head `54a3a27`); live is
+still `b0240a5`; no migration in it. The journal branch holds main again (merge `e73003a`).
+
+**Status of the running child (11:56Z):** the Build for EXF-866 with EXF-867
+(`p_6d02018d422f4e9a80bd2a3e6d826ace`), 1 h 45 min in: all six parts built and committed,
+`pnpm check` green (2178 Worker tests), the Designer has answered with four polish items, the
+polish fixes are next; review, acceptance and the gate are still to come. PR 74 is open. No card.
+
+**EXF-727: the cause was found, which is what I asked for.**
+- From logged runs: the press outside the picker landed on a **disabled** button (an
+  Auto-Assign option whose preview had not arrived). Chromium sends a disabled button
+  `pointerdown` and `pointerup` and no `mousedown`; the hook listened for `mousedown` on the
+  document, so it never ran. One natural failure in 390 repeats under the made load (the 3 in
+  20 measured by the earlier Build were not met again), and 3 of 3 with the preview held back.
+- A person meets it: at the furthest month, open the picker and click the disabled "Next
+  month" arrow.
+- The fix is one event name (`pointerdown`) in `apps/web/src/plan/useDismiss.ts`; the month
+  note and Reflect's three popovers share it. Five new cases failed before the fix and again
+  when the Reviewer took the fix out. No retry, pause or longer limit; spec 6 unchanged.
+- **What made this work where two Builds before had not:** the brief asked for the events at
+  the press in a failing run before any fix, and named "not found" as an accepted end. The
+  Architect logged `pointerdown` beside `mousedown`, and the difference was the answer.
+
+**EXF-745:** the amount column is 104 px with a `title`; the spec failed first at 103 > 96.
+Not compared with the source's popover (the test plan has no transactions to open it with).
+
+**The card (answered in a side turn: approve).** No full browser run of the gate was clean:
+638, 645 and 645 of 651, with 18 specs failing in a full run and passing alone, while the
+other Build ran its own specs on the same host. Seventeen render none of the changed code.
+One does (`e2e/spending-breakdown.spec.ts:103` opens Reflect's date range and filter popovers);
+I read it: it closes them by their own buttons, where the two events take the same path; it
+passed 10 of 10 alone and the Reflect specs passed 62 of 62 twice. **I could not see the gate's
+failure messages or a stall line from where I sit**, so that reading rests on the code and the
+repeats (EXF-844 and EXF-576 ask for exactly that evidence on the card).
+
+**Seen in this Build, and what I do with each:**
+- **A difference with the source, filed below:** in the source the press that closes the
+  month picker is taken by an overlay and does nothing else, and focus returns to the month
+  button. In the clone the same click also acts on what is under it: in spec 6 it can apply
+  "Assigned Last Month". A person who clicks away from the picker can assign money without
+  meaning to. Five popovers share the hook.
+- **A step went past the brief in the source:** the Architect's sub-agent clicked one row's
+  name in the test plan (the row was selected and its amount field took focus; two Escapes
+  undid it; nothing was typed) to see whether a click reaches a row. The brief allowed the
+  picker and the Activity popover and "nothing else". Nothing changed in the owner's test plan.
+  The next brief that allows any click in the source says "these clicks and no other, a row
+  included" in the list of never-actions.
+- **Two measures of the source picker's height disagree:** the Architect and the Designer
+  read 197 px (equal to the clone's), the Tester 181 px. Two against one, and the Designer's
+  was measured side by side; not followed further.
+- The Tester did not run case 4's repeats under load; the Implementer had (40 of 40).
+
+**The other Build's manifest has arrived** (one migration; the Worker's sync, repositories and
+tools; the schema files of bank links; `apps/web/src/account/**`; the shell's connection
+files). Nothing else is running, so nothing to check it against but `docs/README.md`, which
+the merge of PR 73 also touched: its gate rebases and keeps both lines. It names four files
+outside the ground I gave (`services/budgets.ts`, `mcp/tool-text.ts`, `mcp/tools/reconcile.ts`,
+`apps/worker/test/accounts.test.ts`), each with a reason in its design; none is in
+`paths.always_overlap` or a shared module. I read them at its card.
+- **A decision of mine sent to it** (a comment on EXF-866, which its steps read): the status's
+  name is the source's own, **`Linked Account Not Found`**, which the Architect found in the
+  source's loaded script; my ticket's shorter name was wrong. If the comment comes too late
+  for its code steps, I decide at the card.
+
+**What I learned:** asking for the evidence before the fix, with "not found" allowed, got a
+cause in 25 minutes that two earlier Builds had circled for days. I use that form for the
+next unexplained failure (EXF-845, the test server's memory).
+
+**Tickets:** EXF-727 and EXF-745 to Done with what was proved; the comment on EXF-866.
+**Ticket writes:** 5. **Filed at this review:** one gap ticket (the outside press).
+**Backlog:** 40 open feature tickets (60 done), EXF-866 In Progress. Gap: fifteen open
+(EXF-867 In Progress), sixteen with the one filed now. Template: forty-one open (Urgent:
+EXF-563, EXF-573, EXF-611).
+Finished since each template's last review: Build 5, Deploy 7, Discover 2, Test user flow 8.
+
+**Next plan:** set the new ticket's priority. No Deploy yet for an 18-line change on its own:
+D39 ships it together with the connection statuses and their migration when that Build merges.
+Nothing else to start beside a Build whose gate is still to come.
