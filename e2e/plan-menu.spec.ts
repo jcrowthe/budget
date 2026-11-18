@@ -213,11 +213,15 @@ test.describe("1440×900", () => {
     for (let i = 0; i < 5; i++)
       await expect(rows.nth(i)).toHaveAttribute("href", `/${expected[i]?.id}/budget`);
     await expect(sub(page).getByRole("separator")).toHaveCount(1);
-    await expect(rows.nth(5)).toHaveAttribute("aria-disabled", "true");
+    // EXF-471: View All Plans is enabled (menu-actions/view-all-plans.ts).
+    await expect(rows.nth(5)).not.toHaveAttribute("aria-disabled", "true");
     await expect(sub(page).getByText(fake[5]?.name ?? "", { exact: true })).toHaveCount(0);
   });
 
-  test("8 EXF-470: a single plan has no Open Plan", async ({ page, request }) => {
+  test("8 EXF-470/EXF-471: a single plan has Open Plan with only View All Plans", async ({
+    page,
+    request,
+  }) => {
     const { b } = await newPlan(request).then((x) => ({ b: x }));
     await page.route("**/api/v1/budgets", async (route) => {
       if (route.request().method() !== "GET") return route.fallback();
@@ -228,11 +232,21 @@ test.describe("1440×900", () => {
     });
     await page.goto(`/${b.id}/budget`);
     await mouseClick(page, planButton(page, b.name));
-    await expect(item(page, "Open Plan")).toHaveCount(0);
+    // EXF-471: the Open Plan row always shows; with no other plan its submenu holds only View All Plans.
+    await expect(item(page, "Open Plan")).toHaveCount(1);
     const np = item(page, "New Plan");
+    // The section after the one holding Open Plan starts with a separator.
     expect(
-      await np.evaluate((el) => el.parentElement?.nextElementSibling?.firstElementChild?.tagName),
+      await item(page, "Open Plan").evaluate(
+        (el) => el.parentElement?.nextElementSibling?.firstElementChild?.tagName,
+      ),
     ).toBe("HR");
+    await expect(np).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(menu(page)).toBeHidden();
+    await hoverIntoSubmenu(page, b.name);
+    await expect(sub(page).getByRole("menuitem")).toHaveText(["View All Plans"]);
+    await expect(sub(page).getByText("Recent Plans", { exact: true })).toHaveCount(0);
   });
 
   test("9 EXF-470: close paths and New Plan", async ({ page, request }) => {
