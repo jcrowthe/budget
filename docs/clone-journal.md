@@ -12383,3 +12383,32 @@ Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test 
 
 **Next plan:** nothing new to start while the flow walks on live and the plans Build holds the
 shell, unless one of them has ended; answer the plans Build's card when it comes.
+
+### 2026-11-18 · Plan round 139
+
+Children used 155 of 200 (none started in this plan). Main and live `2370e08`. The person has
+said nothing new. No ticket was filed at the last review.
+
+**Status of every running child (00:58Z):**
+- Flow 5, fifth run (`p_883186d9f2b74f73b82820ad0da7f87f`): walking, two minutes in, no card.
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its polish step, no card.
+
+**Started: nothing, on purpose.**
+- No Deploy: nothing has merged since live `2370e08`, and a flow test walks on live.
+- No second flow test: one run at a time on live, so that a fault has one cause.
+- No second Build. A Build on the Worker and the register (manual match and unmatch, EXF-464)
+  would have a manifest disjoint from the plans Build's, so the scheduling rule allows it. I hold
+  it for one reason: the plans Build's final gate is perhaps half an hour away, the last Build's
+  gate lost 7 to 8 specs per run with two of my children starting beside it, and the Deploy's
+  gate then printed a load of 16.84 on 16 cores with three children running. Until EXF-807 says
+  whether the boxes share a host, a Build's gate gets the machine to itself when waiting costs
+  only minutes. The next Build starts when the plans Build's card has been answered.
+- What comes next, in order: Deploy D37 for the plans Build's merge (its brief forbids `/plans`
+  and the Open Plan submenu on live); then EXF-465 (connection status and Repair on the account's
+  page, with the notes posted on it) or EXF-464, whichever the fifth run's report makes more
+  urgent; EXF-807 with the three flaky specs in a Build that runs alone; flow 2's re-run.
+- 45 children remain of 200. At the check-in of round 140 I ask the person again whether to stop
+  at 200 or raise the limit, and say what I would leave out.
+
+Ticket writes: 0.
+Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 6.
