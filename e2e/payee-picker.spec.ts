@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { call, payeeList, seed, TODAY } from "./support/register-seed";
 
@@ -6,14 +6,14 @@ const payee = (page: Page) => page.getByRole("combobox", { name: "Payee", exact:
 const option = (page: Page, name: string) => page.getByRole("option", { name, exact: true });
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 
-test("an empty plan shows the hint and Manage Payees disabled", async ({ page, request }) => {
+test("an empty plan shows the hint and Manage Payees enabled", async ({ page, request }) => {
   const s = await seed(request, false);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await button(page, "Add Transaction").click();
   await payee(page).click();
   await expect(page.getByText("Saved Payees", { exact: true })).toBeVisible();
   await expect(page.getByText("Start typing to add a payee.", { exact: true })).toBeVisible();
-  await expect(button(page, "Manage Payees")).toBeDisabled();
+  await expect(button(page, "Manage Payees")).toBeEnabled();
 });
 
 test("system payees are never offered", async ({ page, request }) => {
@@ -26,12 +26,10 @@ test("system payees are never offered", async ({ page, request }) => {
   expect(list.find((p) => p.name === "Starting Balance")?.system).toBe("starting_balance");
 });
 
-// Skipped: hiding a payee needs a write to the served D1 from a second process (EXF-510 adds the API), and that
-// write locks the file long enough to make the server answer 500 to other specs saving at the same moment
-// (gate run: register-entry.spec.ts:129, "Couldn't save the transaction. Internal error"). The behaviour is
-// covered by the payeeMenu unit test (packages/schema/test/payees.test.ts) and the Worker test
-// "uses a hidden payee and leaves it hidden" (apps/worker/test/payees.test.ts).
-test.skip("a hidden payee is not listed; its exact name offers it and saving keeps it hidden", async ({
+const hidePayee = (request: APIRequestContext, plan: string, id: string) =>
+  call(request, "PATCH", `/api/v1/budgets/${plan}/payees/${id}`, { hidden: true });
+
+test("a hidden payee is not listed; its exact name offers it and saving keeps it hidden", async ({
   page,
   request,
 }) => {
@@ -43,7 +41,7 @@ test.skip("a hidden payee is not listed; its exact name offers it and saving kee
     payee_name: "ZZ Hidden",
   });
   const id = (await payeeList(request, s.plan)).find((p) => p.name === "ZZ Hidden")?.id as string;
-  // hidePayee(id) was here.
+  await hidePayee(request, s.plan, id);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await button(page, "Add Transaction").click();
   await payee(page).click();

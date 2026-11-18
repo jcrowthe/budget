@@ -1,0 +1,512 @@
+/* Manage Payees (EXF-510). Measurements read from the source's style rules (dark theme); tokens only otherwise. */
+.mp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay);
+}
+.manage-payees-dialog {
+  /* The two colours tokens.css lacks: the source's --calloutNegativeProminentBackground (dark #6a1020)
+     and --buttonDestructiveBackground / --buttonDestructiveLabel (dark #6a1020 / #feedeb). */
+  --mp-negative-bg: #6a1020;
+  --mp-destructive-label: #feedeb;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(1136px, 90vw);
+  height: 90vh;
+  max-height: 1200px;
+  border-radius: var(--radius-lg);
+  background: var(--backgroundTertiary);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+}
+.mp-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.mp-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.mp-x {
+  display: flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.mp-x:focus-visible,
+.mp-link:focus-visible,
+.mp-button:focus-visible,
+.mp-clear:focus-visible {
+  outline: auto 2px var(--actionPrimary);
+  outline-offset: 2px;
+}
+.mp-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.mp-left-pane {
+  display: flex;
+  flex: 0 0 293px;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--separatorStandard);
+  overflow: hidden;
+}
+.mp-search {
+  position: relative;
+  flex: none;
+  height: 32px;
+  margin: var(--space-2) var(--space-3) 0;
+}
+.mp-search input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 28px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: var(--backgroundPrimary);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.mp-search input:focus {
+  outline: none;
+  border-color: var(--actionPrimary);
+}
+.mp-clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelSecondary);
+  cursor: pointer;
+}
+.mp-clear:hover {
+  color: var(--actionPrimary);
+}
+.mp-list {
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  overflow-y: auto;
+}
+.mp-list:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: -2px;
+}
+.mp-row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 33px;
+  padding: 0 var(--space-3);
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+.mp-payee {
+  cursor: pointer;
+}
+.mp-payee:hover {
+  background: var(--backgroundSecondary);
+}
+.mp-row.is-active {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: -2px;
+}
+.mp-chevron {
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelSecondary);
+  cursor: pointer;
+}
+.mp-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 2px;
+  margin: 0;
+  font-weight: 600;
+}
+.mp-check input {
+  appearance: none;
+  box-sizing: border-box;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border: 1px solid var(--inputBorder);
+  border-radius: 3px;
+  background: transparent center / 11px 11px no-repeat;
+  cursor: pointer;
+}
+.mp-check input:checked,
+.mp-check input:indeterminate {
+  border-color: var(--buttonPrimaryBackground);
+  background-color: var(--buttonPrimaryBackground);
+}
+.mp-check input:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'%3E%3Cpath d='M2 5.6 4.4 8 9 3' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.mp-check input:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'%3E%3Cpath d='M2.5 5.5h6' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.mp-header-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mp-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.mp-hidden .mp-name,
+.mp-payee.is-hidden .mp-name {
+  color: var(--labelSecondary);
+}
+.mp-unused {
+  display: flex;
+  flex: none;
+  align-items: center;
+  box-sizing: border-box;
+  height: 33px;
+  padding: 0 var(--space-3);
+  border-top: 1px solid var(--separatorStandard);
+}
+.mp-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.mp-link:hover {
+  color: var(--buttonGhostLabel);
+}
+.mp-no-payees {
+  margin: var(--space-3);
+  color: var(--labelSecondary);
+}
+.mp-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-3);
+  overflow: auto;
+  background: var(--backgroundPrimary);
+}
+.mp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--labelSecondary);
+  text-align: center;
+}
+.mp-empty p {
+  margin: 48px 0 0;
+  color: var(--labelPrimary);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+.mp-illustration {
+  margin: 0 auto 24px;
+}
+.mp-card {
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+  color: var(--labelSecondary);
+}
+.mp-card h2 {
+  margin: 0;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--separatorStandard);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.mp-card-body {
+  padding: var(--space-3);
+}
+.mp-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: var(--backgroundPrimary);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+}
+.mp-input:focus {
+  outline: none;
+  border-color: var(--actionPrimary);
+}
+.mp-error {
+  box-sizing: border-box;
+  padding: var(--space-2);
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  background: var(--mp-negative-bg);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.mp-fault {
+  margin-top: var(--space-2);
+  border-radius: var(--radius-xs);
+}
+.mp-show {
+  margin-top: var(--space-2);
+}
+.mp-none {
+  color: var(--labelSecondary);
+}
+.mp-names {
+  display: block;
+  line-height: 1.5;
+}
+.mp-selected-name {
+  display: inline-block;
+  max-width: 240px;
+  overflow: hidden;
+  vertical-align: bottom;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mp-buttons {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+.mp-buttons.mp-left {
+  justify-content: flex-start;
+}
+.mp-button {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.mp-foot .mp-button {
+  font-size: var(--font-size-md);
+}
+.mp-button.secondary {
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.mp-button.secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.mp-button.destructive {
+  background: var(--mp-negative-bg);
+  color: var(--mp-destructive-label);
+}
+.mp-button.destructive:hover:not(:disabled) {
+  background: var(--statusNegative);
+  color: #fff;
+}
+.mp-button.primary:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.mp-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mp-note {
+  margin: var(--space-3) 0 0;
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.mp-heading {
+  margin: 0 0 var(--space-3);
+  padding: 0 var(--space-1);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.mp-info {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--calloutPrimarySubtleBackground);
+  color: var(--labelPrimary);
+}
+.mp-mixed {
+  margin: 0;
+  color: var(--labelSecondary);
+}
+.mp-deleting .mp-card {
+  opacity: 0.5;
+}
+.mp-new-payee h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+.mp-new-payee p {
+  margin: 0 0 var(--space-2);
+  color: var(--labelSecondary);
+}
+.mp-select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  margin-bottom: var(--space-3);
+  padding: 4px 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: var(--backgroundPrimary);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+}
+.mp-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--separatorStandard);
+}
+.mp-undo {
+  display: flex;
+  gap: var(--space-2);
+  margin-right: auto;
+}
+.mp-popover {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  padding: 0 14px 14px;
+  border-radius: 6.4px;
+  background: var(--backgroundTertiary);
+  box-shadow: var(--shadowMenu);
+  max-width: calc(100% - 32px);
+}
+.mp-popover-arrow {
+  position: absolute;
+  bottom: 100%;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-bottom-color: var(--backgroundTertiary);
+}
+.mp-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+}
+.mp-popover-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.mp-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.mp-table thead tr {
+  border-top: 1px solid var(--separatorStandard);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.mp-table th {
+  padding: 0;
+  text-align: left;
+  letter-spacing: 0.6px;
+}
+.mp-table th button {
+  width: 100%;
+  padding: 4px var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--labelSecondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.mp-table th button.is-sorting {
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.mp-table td {
+  padding: var(--space-2);
+  overflow: hidden;
+  border-bottom: 1px solid var(--separatorStandard);
+  color: var(--labelPrimary);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mp-table .is-amount {
+  text-align: right;
+}
+.mp-popover-note {
+  margin: var(--space-2) 0 0;
+  color: var(--labelSecondary);
+  font-size: 12px;
+}
+.mp-popover .mp-buttons {
+  padding-top: 12px;
+}

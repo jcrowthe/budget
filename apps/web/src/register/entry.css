@@ -191,7 +191,7 @@ button.needs-category {
   opacity: 0.5;
   cursor: not-allowed;
 }
-/* Manage Payees is a plain text button (disabled until EXF-510). */
+/* Manage Payees is a plain text button; it opens the Manage Payees dialog (EXF-510). */
 .entry-footer-button[data-ticket="EXF-510"] {
   width: auto;
   height: auto;
@@ -199,6 +199,11 @@ button.needs-category {
   background: transparent;
   color: var(--actionPrimary);
   text-align: left;
+}
+/* Hover as the bank list's rows: the label takes --buttonGhostLabel. */
+.entry-footer-button[data-ticket="EXF-510"]:hover {
+  color: var(--buttonGhostLabel);
+  cursor: pointer;
 }
 .entry-heading {
   margin-top: 4px;
