@@ -14715,3 +14715,50 @@ Finished since each template's last review: Build 2, Deploy 1, Discover 2, Test 
 **Next plan:** set the two new tickets' priorities. No Deploy for `deb0f99` alone: it ships
 with EXF-467 in one Deploy and saves a child. Nothing else to start beside the running Build.
 **Still waiting on the person:** the eight questions; the child limit first.
+
+### 2026-11-18 · Plan round 162
+
+Children used 178 of 200 (one started this turn; the warning comes at 180, two more).
+Main `deb0f99`, live `f9f1281`: one merge waits for a Deploy (no migration). No answer to the
+check-in of round 160.
+
+**The two tickets filed at the last review exist** (titles read from the list this turn):
+EXF-883 (category lists) and EXF-884 (the error log), both set to Medium. No blocking link.
+
+**Running (23:35Z): the Build for EXF-467** (`p_b2eded0336ae43d0b212526947b082e3`), fixing
+its first review's findings; 17 visits, $12.98 by its status.
+
+**Started: one Build for EXF-883 with EXF-884** (`p_0395bb1b09614e11b3d4186ef8a0bb41`), beside it.
+- **Why these, with 22 left:** both are faults on the live app that holds real data. One is
+  a delete that would answer 500 on a large enough category group. The other is that such a
+  500 leaves nothing in the log to find it by; I met exactly that today. **Two tickets in
+  one child**, because both are small, both are Worker only, and their grounds do not meet.
+- **The scheduling rule:** EXF-467's manifest (read at the last review) is the payees' and
+  transactions' files, the sync service, the schema package, the web, one migration, no
+  shared module. This Build's ground is the category repositories and the delete service,
+  `repositories/guards.ts`, `middleware/errors.ts`, `scheduled.ts`, the audit test and three
+  documents. **Disjoint; the other Build's files are closed to this one by name.** In common:
+  `docs/README.md` only. **This Build edits a shared module (`middleware/errors.ts`) by my
+  word; no other Build touches a shared module now.** No file of `paths.always_overlap`.
+- **Read before writing, and one thing found:** `idList` in `repositories/guards.ts` renders
+  one placeholder per id and is what the category statements use, so the smallest fix may be
+  in that one helper. **`scheduled.ts` line 26 logs the whole error object**, the opposite of
+  the handler's fault: it may put bound values into the scheduled job's log. Not checked by
+  me; the Build reads what the library puts in an error first. Noted on EXF-884.
+- **Evidence first for the category counts** ("it does not fail" allowed): they come from
+  counting placeholders, not from a run.
+- **For the log: no bound value, ever**, with a test that plants a marker in a parameter of a
+  statement that really fails.
+- The source is closed to every step; no sub-agent; `"reserved_migrations": []`.
+- If it runs long: the category part whole comes first.
+
+**Not started:**
+- No Deploy for `deb0f99` alone: it ships with the two running Builds' merges in one Deploy.
+- EXF-515 (remembered category) waits for EXF-467: same pane, same service files.
+- No flow run; no template review due (Build 2, Deploy 1, Discover 2, Test user flow 8).
+
+**Ticket writes:** 6 (two priorities, two states, two comments).
+
+**At 180 the warning starts.** The two children before it go, as things stand, to the Deploy
+for these merges and to EXF-515.
+**Still waiting on the person:** the eight questions; the child limit first.
