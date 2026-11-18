@@ -11954,3 +11954,71 @@ Finished since each template's last review: Build 9, Deploy 4, Discover 2, Test 
 
 **Next plan:** flow 5, fourth run, on live `2d9cde7`. Then choose the next Build from the whole
 backlog.
+
+### 2026-11-18 · Plan round 135
+
+Children used 152 of 200 (150 before this plan; two started). Live is `2d9cde7`, equal to main
+(read at 23:53Z). The person has said nothing new (no answer to the check-in of round 130).
+
+**The ticket filed at the last review exists:** EXF-798 (a bank's logo is a broken image in
+Manage Bank Connections); set to Medium.
+
+**Status of every running child (00:03Z):**
+- Build `p_4333153b783043d392848313d6d594a0` (EXF-774 earlier import start, EXF-780): at its final
+  gate, no open card. Its branch changes seventeen files, all on its ground (the Worker's
+  transaction edit, account links and accounts repository, two tool descriptions, three register
+  files, tests, specs, documents).
+- Flow test `p_8e7994fbe6064c20bab5cd335a4940a8`: walking.
+- Build `p_b52eb423142440f396ed4e810ac45000`: showed `parked`, reason `runner_required`, for its
+  first two minutes (waiting for a box); read again at 00:03Z it is running, at intake.
+
+**Started 1: flow 5, fourth run** (`p_8e7994fbe6064c20bab5cd335a4940a8`, prefix `ZZ-TEST F135`), on
+live `2d9cde7`. What it proves that only stand-ins have shown so far: connecting a Sandbox bank
+from the modal's `Add a New Bank Connection`; the modal's rename (also to an empty name), a bank
+account's options (add as new, link to an existing account, unlink), Reset with the sign-in
+closed and with the sign-in finished (then the 24-hour rule and the 409), Remove; the register's
+banner, the Approval panel, **Reject of a row a bank really sent** and that a sync does not bring
+it back, Approve, the View chip; EXF-773 at 1024×700; the logo (EXF-798) measured. Before writing
+it I read the two designs and specs and the code behind each sentence I assert (the reject
+service and its tombstone, `canReject`, the sync line's builder, the edit dialog's connection
+line, the modal's sentences). Two things I worked out by hand and marked as the Lead's
+expectation, not as fact: after the last unapproved row is approved without a category, the
+"i" column and the sidebar dot go but the banner still counts 1 (the banner counts rows that are
+unapproved **or** lack a category); and the counts 4, 3, 2, 1 through the steps for the four
+rows the third run imported.
+- **The two Sandbox connections that are not ours** (Chase, Tartan Bank) are still expected on
+  live. The brief forbids clicking, syncing or changing them, has them recorded first and
+  compared field by field at the end.
+- Brief changes from the last Deploy's report: "read no text node of the sidebar's header"; the
+  report lists the screenshots not opened.
+
+**Started 2: Build `p_b52eb423142440f396ed4e810ac45000`: EXF-469 and EXF-471 with the riders
+EXF-746 and EXF-798.** The New Plan dialog with currency and formats; the plans page `/plans`
+(open, create, delete after a confirmation); `View All Plans` in the menu; the Plan Settings
+dialog's cut placement label; the logo. **Why this one, from the whole backlog:** "multiple
+separate budgets" is the first thing the person listed, and on the screen a plan can still only
+be made with a name, reached through the menu's short list, and never deleted. The server side
+exists (list with `last_opened_at`, create with formats, soft delete), so the Build is web only.
+I looked at the tracking and loan rules ticket (EXF-547) as I had planned: it is a rules module
+whose account types already exist in the app (the Add Accounts step maps loans and assets), so
+it waits for a flow with real linked loan accounts to show what is missing. EXF-465 (connection
+status and Repair on the account's page) comes after this Build: both hold `apps/web/src/shell/**`,
+and Repair already works from the modal.
+- **Decided in the brief:** the four format fields are one component for both dialogs; the Open
+  Plan row always shows (with one plan its submenu holds only View All Plans); bare `/` with no
+  plan shows the plans page; the trash button also shows on keyboard focus; delete only through
+  the confirmation, one DELETE; no Worker source changes; what a deleted plan leaves behind
+  (bank links, the nightly job) is read and reported, not changed.
+- **Privacy:** in the source, the plan menu and `/users/budgets` list the owner's other plans, so
+  nothing is compared ("not compared: built from the ticket"); style rules may be read as before.
+  **On live the plans page shows the owner's real plan, so no child will ever open `/plans`
+  there: the Build's Tester is the only eye on it, and the brief says so.** The next Deploy's
+  brief must forbid `/plans` and keep the plan menu to the keyboard.
+- **Beside the import-start Build:** manifests disjoint by construction (this one: no Worker
+  source, no `register/**`, no `api/transactions.ts`; that one: no shell, no pages, no
+  plan-settings). The shell is a shared module and only this Build holds it.
+
+**Not started:** a Deploy (nothing merged since `2d9cde7`). The Build template review starts when
+the import-start Build ends (it is the tenth since the last review).
+
+Ticket writes: 9 (EXF-798 priority; four tickets to In Progress, each with a comment).
