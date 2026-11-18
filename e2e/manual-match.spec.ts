@@ -114,7 +114,9 @@ test("Match, then Unmatch, each with one request", async ({ page, request }) => 
   const before = stub.listGets();
   await realClick(page, bar(page, "Match"));
   await expect.poll(() => stub.posts.length).toBe(1);
-  expect((stub.posts[0]?.body as { ids: string[] }).ids.sort()).toEqual([s.entry, s.imp].sort());
+  expect(((stub.posts[0]?.body ?? { ids: [] }) as { ids: string[] }).ids.sort()).toEqual(
+    [s.entry, s.imp].sort(),
+  );
   expect(stub.posts[0]?.url).toContain("/transactions/match");
   await expect(rows(page)).toHaveCount(total - 1);
   await expect(row(page, "ZZ Bank Cafe")).toHaveCount(0);
