@@ -456,6 +456,38 @@ export function unlinkIfStmt(db: Db, before: AccountRow) {
     .where(unlinkCondition(before));
 }
 
+function importStartCondition(before: AccountRow, value: string | null) {
+  return and(
+    eq(accounts.id, before.id),
+    isNull(accounts.deletedAt),
+    before.bankAccountId === null
+      ? isNull(accounts.bankAccountId)
+      : eq(accounts.bankAccountId, before.bankAccountId),
+    value === null ? isNull(accounts.importStartDate) : eq(accounts.importStartDate, value),
+  );
+}
+
+/** SELECT 1 while the account is live, linked to before.bankAccountId and has before.importStartDate (IS). */
+export function importStartHolds(db: Db, before: AccountRow) {
+  return db
+    .select({ x: sql`1` })
+    .from(accounts)
+    .where(importStartCondition(before, before.importStartDate));
+}
+
+/** SELECT 1 while the account is live, linked to before.bankAccountId and has import_start_date = value. */
+export function importStartIs(db: Db, before: AccountRow, value: string) {
+  return db.select({ x: sql`1` }).from(accounts).where(importStartCondition(before, value));
+}
+
+/** UPDATE accounts SET import_start_date = next while the account holds as read and the guard does. */
+export function setImportStartIfStmt(db: Db, before: AccountRow, next: string, guard: SQLWrapper) {
+  return db
+    .update(accounts)
+    .set({ importStartDate: next })
+    .where(and(importStartCondition(before, before.importStartDate), sql`exists ${guard}`));
+}
+
 const ofConnection = (connectionId: string) =>
   sql`select ${bankAccounts.id} from ${bankAccounts} where ${bankAccounts.bankConnectionId} = ${connectionId}`;
 

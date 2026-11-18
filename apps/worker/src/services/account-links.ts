@@ -8,6 +8,7 @@ import {
 } from "@budget/schema/accounts";
 import { defaultAccountName, planAccountType } from "@budget/schema/bank-link";
 import type { Transaction } from "@budget/schema/transactions";
+import type { SQLWrapper } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
@@ -126,6 +127,46 @@ export async function createAccountsFromBank(
 
 async function balancesOf(db: Db, budgetId: string, row: accountsRepo.AccountRow) {
   return (await accountFacts(db, budgetId, row.id))(row);
+}
+
+/** The import start after a linked account's Starting Balance moves from `from` to `to` (YYYY-MM-DD). */
+export function importStartAfterMove(current: string | null, from: string, to: string): string {
+  if (to < from) return to;
+  if (to > from) return current !== null && current > to ? current : to;
+  return current ?? to;
+}
+
+/** Statements that move a linked account's import start inside another service's batch (none when unchanged). */
+export async function importStartStmts(
+  db: Db,
+  actor: string,
+  budgetId: string,
+  account: accountsRepo.AccountRow,
+  next: string,
+  guard: SQLWrapper,
+): Promise<{ stmts: BatchItem[]; holds: SQLWrapper; written: SQLWrapper } | null> {
+  if (account.bankAccountId === null || next === account.importStartDate) return null;
+  const b = (await accountFacts(db, budgetId, account.id))(account);
+  return {
+    stmts: [
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "update",
+          entityType: "account",
+          entityId: account.id,
+          before: accountToApi(account, b),
+          after: accountToApi({ ...account, importStartDate: next }, b),
+        },
+        guard,
+      ),
+      accountsRepo.setImportStartIfStmt(db, account, next, guard),
+    ],
+    holds: accountsRepo.importStartHolds(db, account),
+    written: accountsRepo.importStartIs(db, account, next),
+  };
 }
 
 export async function linkAccount(

@@ -30,6 +30,7 @@ import * as categoriesRepo from "../repositories/categories";
 import * as importsRepo from "../repositories/imports";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
+import { importStartAfterMove, importStartStmts } from "./account-links";
 import { runGroups, type StatementGroup } from "./batch-groups";
 import { formatsOfRow } from "./budgets";
 import { resolvePayee } from "./payees";
@@ -869,17 +870,46 @@ async function mutate(
     });
     // Every statement runs only while the rows read above are unchanged; the row's own write comes last and
     // only succeeds when the other side's write did, so a lost race changes nothing and is retried.
+    const moved =
+      kind === "update" &&
+      before.payeeSystem === "starting_balance" &&
+      plan.after.accountId === before.accountId &&
+      plan.after.date !== before.date &&
+      beforeAccount.bankAccountId !== null;
+    const next = moved
+      ? importStartAfterMove(beforeAccount.importStartDate, before.date, plan.after.date)
+      : null;
+    // The new import start, only when it differs from the one read.
+    const importNext = next !== null && next !== beforeAccount.importStartDate ? next : null;
     const guards = [
       txRepo.holdsAt(db, before),
       ...plan.others.flatMap((o) => (o.kind === "insert" ? [] : [txRepo.holdsAt(db, o.before)])),
+      ...(importNext !== null ? [accountsRepo.importStartHolds(db, beforeAccount)] : []),
     ];
     const guard = guards.length > 1 ? txRepo.allHold(guards) : (guards[0] as SQLWrapper);
+    // A linked Starting Balance's date move also moves the account's import start, in this same batch.
+    const imp =
+      importNext !== null
+        ? await importStartStmts(db, actor, budgetId, beforeAccount, importNext, guard)
+        : null;
     const lastOther = plan.others[plan.others.length - 1];
-    const selfGuard = lastOther
-      ? txRepo.allHold([txRepo.holdsAt(db, before), txRepo.writtenAt(db, lastOther.row.id, now)])
-      : guard;
+    const selfGuard =
+      lastOther || imp
+        ? txRepo.allHold([
+            txRepo.holdsAt(db, before),
+            ...(lastOther ? [txRepo.writtenAt(db, lastOther.row.id, now)] : []),
+            ...(imp ? [imp.written] : []),
+          ])
+        : guard;
     const w0 = planWrites(db, { budgetId, actor, id, kind, plan, now, guard, selfGuard });
-    const statements: unknown[] = [...w0.payees, ...w0.logs, ...w0.rest, w0.self];
+    const statements: unknown[] = [
+      ...w0.payees,
+      ...w0.logs,
+      ...(imp ? [imp.stmts[0]] : []),
+      ...w0.rest,
+      ...(imp ? [imp.stmts[1]] : []),
+      w0.self,
+    ];
     let results: Awaited<ReturnType<typeof db.batch>>;
     try {
       results = await db.batch(stmts(statements));

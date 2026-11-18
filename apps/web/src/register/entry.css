@@ -434,12 +434,15 @@ button.needs-category {
   outline: 0;
   box-shadow: 0 0 0 2px var(--actionPrimary);
 }
-/* Source: --labelPrimary, 14/500, right-aligned. */
+/* Source: --labelPrimary, 14/500, right-aligned, with an ellipsis and a tooltip when it is cut
+   (the memo cell of the source's editing split row, read from its loaded style rules). */
 .register-table .entry-body .split-remaining .split-remaining-label {
   color: var(--labelPrimary);
   font-weight: 500;
   text-align: right;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* Source: the number ends 5.0px from the cell's right edge. The selector must beat the entry row's
    `td:not(.cell-check):not(.cell-cleared)` padding rule. */
