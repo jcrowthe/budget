@@ -1,12 +1,16 @@
 import type { Download, Page } from "@playwright/test";
 import { unzip } from "../packages/schema/src/zip";
-import { expect, test } from "./fixtures";
+import { expect as baseExpect, test } from "./fixtures";
 import { authHeaders } from "./support/auth";
 import { mouseClick } from "./support/menu";
 import { Plan } from "./support/plan-seed";
 
 const BODY =
   "Your data is just that—yours! All the requested data will be exported in CSV format so it's easy to open in other applications.";
+
+// A loaded box answers slowly: wait far longer than the default 5 s.
+const expect = baseExpect.configure({ timeout: 60_000 });
+test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 

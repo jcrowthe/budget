@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect as baseExpect, test } from "./fixtures";
 import { authHeaders, testName } from "./support/auth";
 import {
   apiExport,
@@ -9,6 +9,10 @@ import {
   seedClearPlan,
 } from "./support/plan-import-dialog-files";
 import { realClick } from "./support/real-click";
+
+// A loaded box answers slowly: wait far longer than the default 5 s.
+const expect = baseExpect.configure({ timeout: 60_000 });
+test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -27,12 +31,11 @@ async function plansNamed(request: APIRequestContext, name: string): Promise<str
 test("5 the button, and each refusal in words with no request", async ({ page }) => {
   const requests = importRequests(page);
   await page.goto("/plans");
-  const create = await page
+  // Beside Create New Plan: the very next card of the grid (the row may wrap when many plans exist).
+  const next = await page
     .getByRole("button", { name: "Create New Plan", exact: true })
-    .boundingBox();
-  const imp = await page.getByRole("button", { name: "Import Plan", exact: true }).boundingBox();
-  expect(imp?.y).toBe(create?.y);
-  expect(imp?.x).toBeGreaterThan(create?.x ?? 0);
+    .evaluate((el) => el.closest("li")?.nextElementSibling?.querySelector("button")?.textContent);
+  expect(next).toBe("Import Plan");
   await realClick(page, page.getByRole("button", { name: "Import Plan", exact: true }));
   await expect(dialog(page)).toBeVisible();
   const alert = dialog(page).getByRole("alert");

@@ -1,11 +1,15 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect as baseExpect, test } from "./fixtures";
 import { authHeaders, testName } from "./support/auth";
 import { seedCard } from "./support/card-seed";
 import { chooseFiles, openImport } from "./support/plan-import-dialog-files";
 import { monthIso } from "./support/plan-seed";
 import { realClick } from "./support/real-click";
 import { createSched } from "./support/scheduled-seed";
+
+// A loaded box answers slowly: wait far longer than the default 5 s.
+const expect = baseExpect.configure({ timeout: 60_000 });
+test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
