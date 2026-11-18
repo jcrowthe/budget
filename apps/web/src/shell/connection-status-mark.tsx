@@ -42,6 +42,8 @@ export function ConnectionStatusMark({
   );
   const relink = useConnectionRelink(budgetId, connection?.id ?? "", noop);
   const sticky = pinned || relink.running || !!relink.error || !!relink.notice;
+  const stickyRef = useRef(sticky);
+  stickyRef.current = sticky;
 
   const cancelClose = useCallback(() => window.clearTimeout(timer.current), []);
   const show = useCallback(() => {
@@ -87,7 +89,15 @@ export function ConnectionStatusMark({
       if (markRef.current?.contains(t) || popupRef.current?.contains(t)) return;
       closeAndReset();
     };
-    const away = () => closeAndReset();
+    // A running Repair or a message keeps the popup open; only the sidebar's own scroll closes it.
+    const away = (e: Event) => {
+      if (stickyRef.current) return;
+      if (e.type === "scroll") {
+        const t = e.target as Element | Document;
+        if (!(t instanceof Element) || !t.contains(markRef.current)) return;
+      }
+      closeAndReset();
+    };
     document.addEventListener("pointerdown", outside, true);
     document.addEventListener("scroll", away, true);
     window.addEventListener("resize", away);

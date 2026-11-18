@@ -77,10 +77,10 @@ export function useAccountConnection(
   budgetId: string,
   bankAccountId: string | null,
   enabled: boolean,
-): { connection: BankConnection | undefined; isLoading: boolean } {
+): { connection: BankConnection | undefined; isLoading: boolean; isError: boolean } {
   const q = useBankConnections(budgetId, enabled && bankAccountId !== null);
   const connection = q.data?.find((c) => c.accounts.some((b) => b.id === bankAccountId));
-  return { connection, isLoading: q.isLoading };
+  return { connection, isLoading: q.isLoading, isError: q.isError };
 }
 
 /** Every query of the plan (accounts, register, months) and its connections may have changed. */

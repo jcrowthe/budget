@@ -24,7 +24,7 @@ export function ConnectionStrip({ account }: { account: Account }) {
     return () => window.clearInterval(t);
   }, []);
   const [managing, setManaging] = useState(false);
-  const { connection } = useAccountConnection(
+  const { connection, isError } = useAccountConnection(
     account.budget_id,
     account.bank_account_id,
     account.linked && !account.closed && s !== null && s !== "connected",
@@ -32,7 +32,11 @@ export function ConnectionStrip({ account }: { account: Account }) {
   const relink = useConnectionRelink(account.budget_id, connection?.id ?? "", noop);
   const strip = stripFor(account, connection?.created_at, now);
   if (!strip) return null;
-  const reason = connection ? resetReason(connection, fmt) : null;
+  const reason = connection
+    ? resetReason(connection, fmt)
+    : isError
+      ? "Bank connections could not be loaded."
+      : null;
   const disabled = !connection || relink.running || reason !== null;
   const act = () => (strip.kind === "repair" ? void relink.start() : setManaging(true));
   const actionable = strip.kind === "repair" ? !disabled : strip.kind === "broken" && !!connection;
@@ -76,6 +80,7 @@ export function ConnectionStrip({ account }: { account: Account }) {
             type="button"
             className="acct-connection-button"
             disabled={!connection}
+            title={!connection && isError ? (reason ?? undefined) : undefined}
             onClick={() => setManaging(true)}
           >
             Open Bank Connections
