@@ -13692,3 +13692,29 @@ Finished since each template's last review: Build 7, Deploy 8, Discover 2, Test 
 
 **Next plan:** nothing to deploy. The dialogs Build is at or near its gate, so no new Build
 starts beside it this round; when its card comes I read the gate and the diff.
+
+### 2026-11-18 · Plan round 152
+
+Children used 167 of 200 (none started this turn; the warning comes at 180). Main and live
+`ecfbc8f`; no migration pending. No ticket was filed at the last review.
+
+**Running (14:01Z):** the Build for EXF-477 with EXF-476
+(`p_67b2dc2acd404028888247acb64ab7d9`), 34 visits, at acceptance (sixteen screenshots to take
+and open); its branch head is still `73491a9`; the gate comes next. No card.
+
+**Started: nothing, on purpose.**
+- No Deploy: main is live.
+- No Build beside it now: a new Build's install and first specs would fall into this Build's
+  gate, and its gate is the one check its last, unreviewed fix still has to pass (a race in a
+  spec). Children are the limit, not hours: 33 are left.
+- **What starts when its card is answered, in this order:** EXF-875 (a connection's bank
+  accounts refreshed from the list each sync already reads; Worker, no migration expected),
+  then EXF-751 (sync frequency; it holds `wrangler.jsonc`, so alone). Both are what real banks
+  need. EXF-874 (the outside press) can ride beside EXF-875: Plan page against Worker.
+- No flow on live: flow 5's seventh run would only move its verdict's word (EXF-867 is live);
+  flow 2 as decided at round 148.
+- No template review due (Build 7, Deploy 8, Discover 2, Test user flow 8; each starts at 10).
+
+**Ticket writes:** 0.
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
