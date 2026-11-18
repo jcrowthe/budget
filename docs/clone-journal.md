@@ -12412,3 +12412,57 @@ said nothing new. No ticket was filed at the last review.
 
 Ticket writes: 0.
 Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 6.
+
+### 2026-11-18 · Review round 139
+
+Children used 155 of 200. One ended: **flow 5, fifth run, completed**
+(`p_883186d9f2b74f73b82820ad0da7f87f`, 13 minutes, on live `2370e08`): verdict
+**`parity_known_gaps`**, no new gap, no ticket filed, every step run, "DIFFERS FROM THE BRIEF:
+none". Main and live `2370e08`.
+
+**Status of the running child (01:10Z):** the plans Build
+(`p_b52eb423142440f396ed4e810ac45000`) is at the checks after its polish fixes, no card.
+
+**The linked half of EXF-774 is proven on live with a real Sandbox bank.** I read the whole
+report.
+- Starting Balance moved back 20 days in the register: one PATCH, one plan sync by itself two
+  seconds later (`added` 2), the two older rows there without a reload, the banner; the import
+  start followed; the amount stayed.
+- One row rejected, one categorized; moved back to 60 days: `added` 2; **the rejected row stayed
+  away, the categorized one was there once and unchanged**; no shared `import_id`.
+- An amount-only edit sent no sync. Moved later: nothing deleted; the import start is the later
+  date. Through MCP on the second account: the start followed and 5 rows arrived, none before it.
+- **Every figure I worked out beforehand was read as written** (added 2, 2, 0; balances 189220,
+  185000, 164220, 210000; the three dates).
+- Remove on the screen worked again; the two connections that are not ours are identical before
+  and after; no navigation outside the test plan (the new guard logged 0); the plan list's and
+  the identity read's bodies were never kept; plans that are not test plans: 1; purge
+  `remaining 0`.
+- **Looking:** the four LOOK states were opened and described. The verifier still took 17 other
+  screenshots "as the walk template asks" and did not open them, and said so: the template's own
+  instruction outweighs my "no other screenshot". Evidence for EXF-684's sibling in the flow
+  template at its next review; no harm.
+
+**Seen beyond the brief, none filed:**
+- A newly imported row arrived already categorized from the payee's last category (the import
+  design's rule, `last_category_id`), still unapproved. By design.
+- Only the Manage Bank Connections detail shows the bank's balance; the account's page and edit
+  dialog do not. After moving a Starting Balance back, the person has to know to correct it. No
+  ticket asks for more; I tell the person at the check-in and ask whether he wants the bank's
+  balance on the account's page.
+- A saved row stays selected, so the next single click on its date opens it.
+
+**What I learned:** a short brief with figures checked twice and four named states came back in
+13 minutes with nothing to correct. This is the form for a re-run after a merge.
+
+**Ticket writes:** 1 (the live proof on EXF-774).
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps` (its tickets fixed since, not re-run);
+3, 4 `parity`; **5 `parity_known_gaps` (fifth run; known: EXF-798 being fixed, EXF-464, 465, 466,
+467, 751)**; 7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run as a flow.
+**Backlog:** 43 open feature tickets (EXF-469 and EXF-471 in progress; 56 done). Gap: twenty-one
+open (EXF-746 and EXF-798 in progress). Template: forty open.
+Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 7.
+
+**Next plan (round 140; its review is a check-in):** live is free now. Flow 2's re-run on live
+`2370e08` (its three narrow-window tickets are fixed and live; EXF-679 stays known), in the short
+form. The next Build still waits for the plans Build's gate.
