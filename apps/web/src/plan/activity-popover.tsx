@@ -88,7 +88,10 @@ export function ActivityPopover({
                   <td>{fmt.date(t.date)}</td>
                   <td title={t.payee_name ?? undefined}>{t.payee_name}</td>
                   <td title={t.memo ?? undefined}>{t.memo}</td>
-                  <td className={`num ${amountClass(t.amount)}${t.amount < 0 ? " negative" : ""}`}>
+                  <td
+                    className={`num ${amountClass(t.amount)}${t.amount < 0 ? " negative" : ""}`}
+                    title={fmt.money(t.amount)}
+                  >
                     {fmt.money(t.amount)}
                   </td>
                 </tr>

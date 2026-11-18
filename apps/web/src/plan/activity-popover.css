@@ -25,8 +25,10 @@
 .activity-table .col-date {
   width: 88px;
 }
+/* EXF-745: twelve wide characters ("−$888,888.88" 95 px, "−888.888,88€" 96 px, Figtree 500 14px tabular) plus 8 px
+   of padding; the account, payee and memo columns give way. */
 .activity-table .col-amount {
-  width: 96px;
+  width: 104px;
 }
 .activity-table .col-account {
   width: 30%;
