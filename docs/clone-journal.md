@@ -14517,3 +14517,71 @@ gate and for the check-in, with 24 children left.
 
 **The review of this round is a check-in.** Still waiting on the person: the eight questions
 of the round-150 check-in; the child limit comes first.
+
+### 2026-11-18 · Review round 160 (check-in)
+
+Children used 176 of 200 (the warning comes at 180; 24 left). One ended: **Deploy D42
+completed** (`p_ffad27d486774a628c6acee2a7683859`; 606 s and $0.64 by its status). **Main and
+live are `f9f1281`** (live read by me at 21:54Z and by the verifier), no migration pending.
+
+**D42, from its report and summaries:**
+- Gate passed (check only; the browser run skipped because the tree equals the gated
+  `c67d749`); release passed; the Time Travel bookmark phase ran; migrations none before, none
+  applied; smoke ok. Health carries the full `f9f1281…`; without credentials 401 on health and
+  `/mcp`.
+- **MCP tools: 94**, the five new payee tools all listed.
+- **Manage Payees on live, in a test plan:** the list's counts through REST as expected; the
+  dialog (opened from the payee field; left 392, width 1136 at 1920 px, as the style rule
+  gives); `Show 3 Transactions` with its three rows; the refused rename (409, the alert's
+  words); hide; delete of an unused payee; delete with a replacement and `Show 5 Transactions`;
+  5 register rows afterwards; the list through REST again as expected; the MCP tool returns 4
+  transactions and 1 scheduled, `total_count` 5.
+- **The outside press on live:** a click on an Auto-Assign option with the month picker open
+  closed the picker and sent nothing; the next click sent one request (200).
+- **The first scheduled run on the six-hourly schedule did its work:** two Sandbox
+  connections, both `connected`, **both with a last sync at or after 21:00Z**; their bank
+  accounts number 2 and 14, the same at the second read. (Numbers only, as the new rule says.)
+- **One DIFFERS:** 700 ms after Enter on the rename to `ZZ Cafe Z` the list still read
+  `ZZ Cafe A` and an alert element was still counted (perhaps the empty live region); the next
+  steps showed the new name and worked on it. The verifier puts it to its own fixed wait, "not
+  confirmed". Not ticketed: the browser test waits on the server for the same rename and
+  passes. I note it for the next look at the dialog.
+- Observed by it: the seeded transactions show the banner `6 new transactions to approve or
+  categorize.` (they are made unapproved by the API's default; as built).
+- Cleanup: `deleted 2 remaining 0`; one plan left that is not a test plan (the owner's).
+- **A line of my brief was wrong or the form differs:** I wrote that a thing removed with its
+  plan is `with_parent` in the ledger; the verifier says the form has no such value and put
+  those ten things in prose. Evidence posted on EXF-585; my text now says "use the values the
+  form lists; the rest in the report's text".
+- Its first browser run failed on its own script (two `Close` buttons) before any write; it
+  said so and which run each statement is from.
+
+**Running (21:55Z):** the Build for EXF-881 (`p_58cf6bb7e3ac4eb9b1697caf69254eb3`), at its plan
+step, 6 visits. No manifest yet; nothing else is building.
+
+**Check-in sent** (the report is in the answer): what is live; what landed since round 150
+(four Deploys, four merged Builds of which one was started before round 150, two template
+reviews, one Build running); what went wrong
+and was mine; the backlog; what the 24 children left are for; the eight questions, the child
+limit and the Plaid redirect first.
+
+**What I learned:**
+- A figure read from the code before it goes into a Deploy brief holds: D42 had one DIFFERS,
+  and it was a wait of the verifier's, against 11 of 15 that were mine in the batch the review
+  counted.
+- Opening a dialog from a second way in (the payee field) kept the plan menu closed on live
+  for the whole check.
+- The answer form is something I have never read myself; I passed on a review's reading of it
+  as a fact.
+
+**Tickets:** a comment on EXF-585. **Ticket writes:** 1.
+**Backlog:** 32 open feature tickets (counted at the last review; none changed since). Gap: 18
+open, one of them In Progress (EXF-881). Template: not recounted (44 at the last count).
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps` (old); 3, 4 `parity`; 5
+`parity_known_gaps` (its known gap is fixed and live; not re-run); 7 `parity_known_gaps`; 8 to
+11 `parity`; 6 not run as a flow.
+Finished since each template's last review: Build 1, Deploy 1, Discover 2, Test user flow 8.
+Next check-in: the review of round 170.
+
+**Next plan:** nothing to start beside the running Build unless the check-in is answered; then,
+by weight, EXF-467 with EXF-515 on the new dialog once EXF-881's gate is through.
