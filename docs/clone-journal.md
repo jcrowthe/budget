@@ -13588,3 +13588,51 @@ reads carry the new fields, null for a healthy link; the month picker closes on 
 disabled "Next month" arrow; the Activity popover's amount column; the status popup pinned by a
 click closes on a resize. The dialogs Build goes on beside it (a Deploy's gate and a Build's
 steps have shared the host before).
+
+### 2026-11-18 · Plan round 151
+
+Children used 167 of 200 (one started this turn; the warning comes at 180). Main `ecfbc8f`,
+live `b0240a5`, one migration pending.
+
+**The two tickets filed at the last review exist** (titles read from the list in this turn):
+**EXF-875** (a connection's bank accounts are never refreshed), set to Medium; **EXF-876**
+(dialog buttons' hover, focus ring and disabled look), set to Low. No blocking link; EXF-875
+shares files with EXF-751, so they run one after the other.
+
+**Running:** the Build for EXF-477 with EXF-476 (`p_67b2dc2acd404028888247acb64ab7d9`). Its
+card "the Reviewer still has blocking findings after three rounds" came at 13:44Z and I answered
+**proceed** in a side turn: the first two rounds found a real fault (a cancel during the
+import's first request did not cancel), fixed, and I read the run module at `73491a9`; the
+third round's finding was a race in a spec the branch added, fixed after that review (the test
+waits for the button and holds the later requests on a gate, where it had a 700 ms delay). That
+last fix is not reviewed; the gate runs the changed specs ten times, and I read its result and
+the diff at the pull-request card. It is at acceptance now.
+
+**Started: Deploy D39, `p_c390c4d9ed0c4f08b43934550e58eb30`**, for `ecfbc8f`
+(`gated_commit` `fa8a425`; I compared the two trees: identical). Run prefix `ZZ-TEST D39`.
+- Two merges (EXF-727 with EXF-745; EXF-866 with EXF-867) and the migration
+  `20261116101700_connection_link_status.sql`.
+- **What it checks:** the migration applied and nothing pending; 89 tools and the two changed
+  descriptions; the three new fields present and null on an unlinked account's read; the
+  connections' `status_reason` (read only, twice); a write through the new column (closing an
+  account); the Activity popover's three amounts whole at both sizes, with their titles; the
+  month picker and the month note closing on a press on the disabled "Next month" arrow in
+  December; nothing about banks on an unlinked account. Three states marked LOOK.
+- **What it cannot check, said in the brief:** `Linked Account Not Found`, reauthorization,
+  `Connection Lost`, the nightly check and the popup's closing on a resize need a linked
+  account, and a Deploy links none.
+- Figures worked twice: 1,000,000.00 − 888.88 + 88,888.88 − 888,888.88 = 199,111.12
+  (199111120); the category's activity −800,888.88 (−800888880). The expected cell texts are
+  quoted from the Build's own spec, not from my memory.
+- **Timing against the Build:** the Deploy ships main as it is when it starts. The Build's
+  gate is still ahead of it (acceptance first, then about 35 minutes); if its pull-request card
+  comes while the Deploy is between gate and release, I hold my answer until the Deploy has
+  released.
+
+**Not started:** EXF-874, EXF-875, EXF-751 (after the dialogs Build's gate; EXF-875 and
+EXF-751 share the sync's files and run one after the other); flow 2's second run.
+
+**Ticket writes:** 2 (the priorities).
+Finished since each template's last review: Build 7, Deploy 7, Discover 2, Test user flow 8.
+
+**Still waiting on the person:** the eight questions of the check-in sent an hour ago.
