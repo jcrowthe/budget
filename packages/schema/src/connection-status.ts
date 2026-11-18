@@ -18,9 +18,39 @@ export const POPUP_REPAIR_DETAILS =
   "We're having trouble connecting to this bank. Attempt to repair your bank connection to continue importing transactions.";
 export const POPUP_DELAYED_DETAILS =
   "We're connected to your bank, but transaction imports may take longer than expected. This issue usually resolves itself.";
+/** Account Not Found: the bank no longer lists the linked bank account (the strip's and the popup's words). */
+export const RELINK_STRIP = "Relink your account to continue importing transactions.";
+export const RELINK_DETAILS =
+  "Your linked account is not found. Relink to continue importing transactions.";
 export const CLOSED_NOTICE = "The bank sign-in was closed. Nothing was changed.";
 
-export type Strip = { kind: "repair" | "broken" | "delayed"; text: string } | null;
+/** What an account shows: its connection's status, or Account Not Found over a connected or delayed one. */
+export type ShownStatus = LinkStatus | "not_found";
+
+/**
+ * The one rule for what a linked account shows (mark, popup, header, strip). A connection that needs a
+ * sign-in or is broken shows first (after a repair the next sync knows the bank's list again); otherwise a
+ * link the bank no longer lists reads Account Not Found, whatever the connection's other status.
+ */
+export function shownStatus(a: {
+  linked: boolean;
+  connection_status: LinkStatus | null;
+  link_missing_since?: string | null;
+}): ShownStatus | null {
+  const s = linkStatus(a);
+  if (s === null) return null;
+  if (s === "login_required" || s === "broken") return s;
+  return a.link_missing_since ? "not_found" : s;
+}
+
+export function shownLabel(s: ShownStatus): string {
+  return s === "not_found" ? "Account Not Found" : connectionLabel(s);
+}
+
+export type Strip = {
+  kind: "repair" | "not_found" | "broken" | "delayed";
+  text: string;
+} | null;
 
 /**
  * True when the last successful sync (or, for a connection never synced, its creation) is more than 72 hours
@@ -45,13 +75,15 @@ export function stripFor(
     closed: boolean;
     connection_status: LinkStatus | null;
     last_synced_at: string | null;
+    link_missing_since?: string | null;
   },
   connectionCreatedAt: string | undefined,
   nowMs: number,
 ): Strip {
   if (a.closed) return null;
-  const s = linkStatus(a);
+  const s = shownStatus(a);
   if (s === null || s === "connected") return null;
+  if (s === "not_found") return { kind: "not_found", text: RELINK_STRIP };
   if (s === "login_required") return { kind: "repair", text: REPAIR_STRIP };
   if (s === "broken") return { kind: "broken", text: BROKEN_TEXT };
   return delayedOverThreeDays(a.last_synced_at, connectionCreatedAt, nowMs)
@@ -73,7 +105,7 @@ export type Popup = {
   line: string;
   /** The explanation in its own box, or null. */
   details: string | null;
-  action: "repair" | null;
+  action: "repair" | "relink" | null;
 };
 
 const lastAttemptedText = (lastSyncedAt: string | null, nowMs: number) =>
@@ -82,14 +114,16 @@ const lastAttemptedText = (lastSyncedAt: string | null, nowMs: number) =>
     : `Last attempted ${reconciledAgo(lastSyncedAt, nowMs)}`;
 
 /** The sidebar mark's popup: the status's name, the last check or attempt, the explanation and the action. */
-export function popupFor(s: LinkStatus, lastSyncedAt: string | null, nowMs: number): Popup {
-  const title = connectionLabel(s);
+export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: number): Popup {
+  const title = shownLabel(s);
   const line = lastAttemptedText(lastSyncedAt, nowMs);
   switch (s) {
     case "connected":
       return { title, line: lastCheckedText(lastSyncedAt, nowMs), details: null, action: null };
     case "login_required":
       return { title, line, details: POPUP_REPAIR_DETAILS, action: "repair" };
+    case "not_found":
+      return { title, line, details: RELINK_DETAILS, action: "relink" };
     case "delayed":
       return { title, line, details: POPUP_DELAYED_DETAILS, action: null };
     case "broken":

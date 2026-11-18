@@ -9,6 +9,7 @@ import { errorDetail } from "../api/bank-link";
 import { renameBankConnection, setConnectionInCache } from "../api/manage-connections";
 import { localToday } from "../api/today";
 import { useBankSubline } from "./bank-link-accounts";
+import { DiamondAlertIcon } from "./connection-status-icon";
 import {
   ArrowsCircleIcon,
   ChevronRightIcon,
@@ -157,6 +158,12 @@ export function ConnectionDetail({
                     {linked ? (
                       <span className="mc-line" title={linked}>
                         {linked}
+                      </span>
+                    ) : null}
+                    {plan?.link_missing_since ? (
+                      <span className="mc-line mc-not-found" title="Account Not Found">
+                        <DiamondAlertIcon width={12} height={12} />
+                        Account Not Found
                       </span>
                     ) : null}
                   </span>

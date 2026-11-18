@@ -72,3 +72,11 @@
 .acct-connection-strip[data-actionable="true"]:hover {
   background: var(--calloutPrimaryProminentBackgroundEmphasis);
 }
+
+/* A second, plainer button beside the first (Relink, Unlink). */
+.acct-connection-button.secondary {
+  background: var(--buttonSecondaryBackground);
+}
+.acct-connection-button.secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover, var(--buttonSecondaryBackground));
+}

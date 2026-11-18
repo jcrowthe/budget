@@ -1,10 +1,16 @@
 import type { Account } from "@budget/schema/accounts";
-import { connectionLabel, linkStatus } from "@budget/schema/bank-link";
-import { placeStatusPopup, popupFor } from "@budget/schema/connection-status";
+import {
+  placeStatusPopup,
+  popupFor,
+  shownLabel,
+  shownStatus,
+} from "@budget/schema/connection-status";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { LinkAccountDialog } from "../account/link-account-dialog";
+import { UnlinkAccountDialog } from "../account/link-account-unlink";
 import { useAccountConnection } from "../api/bank-link";
 import { LinkStatusIcon } from "./bank-link-status";
-import { WarningTriangleIcon } from "./connection-status-icon";
+import { DiamondAlertIcon, WarningTriangleIcon } from "./connection-status-icon";
 import { resetReason } from "./manage-connections-detail";
 import { useConnectionRelink } from "./manage-connections-relink";
 import { usePlanFormatter } from "./plan-formats-context";
@@ -25,7 +31,7 @@ export function ConnectionStatusMark({
   budgetId: string;
   account: Account;
 }) {
-  const s = linkStatus(account);
+  const s = shownStatus(account);
   const fmt = usePlanFormatter();
   const popupId = useId();
   const markRef = useRef<HTMLButtonElement>(null);
@@ -33,6 +39,7 @@ export function ConnectionStatusMark({
   const timer = useRef<number | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [dialog, setDialog] = useState<"link" | "unlink" | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [pos, setPos] = useState<ReturnType<typeof placeStatusPopup> | null>(null);
   const { connection } = useAccountConnection(
@@ -133,7 +140,7 @@ export function ConnectionStatusMark({
         type="button"
         className="nav-link-status"
         data-status={s}
-        aria-label={connectionLabel(s)}
+        aria-label={shownLabel(s)}
         aria-expanded={open}
         aria-controls={open ? popupId : undefined}
         onPointerEnter={show}
@@ -151,6 +158,8 @@ export function ConnectionStatusMark({
       >
         {s === "login_required" || s === "broken" ? (
           <WarningTriangleIcon width={12} height={12} />
+        ) : s === "not_found" ? (
+          <DiamondAlertIcon width={12} height={12} />
         ) : (
           <LinkStatusIcon status={s} />
         )}
@@ -190,6 +199,30 @@ export function ConnectionStatusMark({
               </button>
             </span>
           ) : null}
+          {popup.action === "relink" ? (
+            <span className="status-popup-action status-popup-actions">
+              <button
+                type="button"
+                className="status-popup-button"
+                onClick={() => {
+                  closeAndReset();
+                  setDialog("link");
+                }}
+              >
+                Relink
+              </button>
+              <button
+                type="button"
+                className="status-popup-button secondary"
+                onClick={() => {
+                  closeAndReset();
+                  setDialog("unlink");
+                }}
+              >
+                Unlink
+              </button>
+            </span>
+          ) : null}
           {relink.error ? (
             <p className="status-popup-error" role="alert">
               {relink.error}
@@ -200,6 +233,22 @@ export function ConnectionStatusMark({
             </p>
           ) : null}
         </div>
+      ) : null}
+      {dialog === "link" ? (
+        <LinkAccountDialog
+          budgetId={budgetId}
+          account={account}
+          onBack={() => setDialog(null)}
+          onLinked={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog === "unlink" ? (
+        <UnlinkAccountDialog
+          budgetId={budgetId}
+          account={account}
+          onCancel={() => setDialog(null)}
+          onUnlinked={() => setDialog(null)}
+        />
       ) : null}
     </>
   );

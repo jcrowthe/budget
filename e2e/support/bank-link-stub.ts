@@ -42,6 +42,12 @@ export type FakeConnection = {
   last_reset_at?: string | null;
   /** When the connection was made, served as `created_at` (`services/bank-connections.ts:39`) (default 2030-01-01). */
   created_at?: string;
+  /**
+   * Why the connection is in its status (the Worker's `statusReason`, `packages/schema/src/plaid-import.ts`),
+   * served as `status_reason` (`services/bank-connections.ts` `toApi`) and on a linked account as
+   * `connection_reason` (`services/accounts.ts` `accountToApi`). Default: none.
+   */
+  reason?: "unavailable" | "unsupported" | "reauthorize" | null;
   /** The bank's logo, base64; served as the Worker serves it (`services/bank-connections.ts:123`) (default: none). */
   logo?: string | null;
 };
@@ -101,6 +107,12 @@ export async function stubBankLink(
     newConnection?: FakeConnection;
     popular?: boolean;
     links?: Record<string, string>;
+    /**
+     * Account id → ISO time since when the bank no longer lists its bank account. Served as the account's
+     * `link_missing_since` (`accountToApi`, `services/accounts.ts`; the Worker writes an ISO time with
+     * milliseconds, `plaid-sync.ts` `finished`). A link or an unlink of the account clears it.
+     */
+    missing?: Record<string, string>;
     /** What a linked account reports while its bank account is in no listed connection (yet). */
     orphanSyncedAt?: string;
     unapproved?: Record<string, number>;
@@ -120,6 +132,7 @@ export async function stubBankLink(
   const requests: RecordedRequest[] = [];
   const connections = [...opts.connections];
   const links = new Map(Object.entries(opts.links ?? {}));
+  const missing = new Map(Object.entries(opts.missing ?? {}));
   const unapproved = new Map(Object.entries(opts.unapproved ?? {}));
   const json = (route: Route, status: number, body: unknown) =>
     route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -149,6 +162,7 @@ export async function stubBankLink(
     institution_logo: c.logo ? `data:image/png;base64,${c.logo}` : null,
     nickname: c.nickname,
     status: c.status,
+    status_reason: c.reason ?? null,
     provider: "Plaid",
     last_synced_at: c.last_synced_at,
     last_reset_at: c.last_reset_at ?? null,
@@ -177,6 +191,8 @@ export async function stubBankLink(
       import_start_date: bank ? "2030-01-01" : null,
       connection_status: conn?.status ?? (bank ? "connected" : null),
       last_synced_at: conn ? conn.last_synced_at : bank ? (opts.orphanSyncedAt ?? null) : null,
+      connection_reason: conn?.reason ?? null,
+      link_missing_since: bank ? (missing.get(a.id as string) ?? null) : null,
       unapproved_count: unapproved.get(a.id as string) ?? 0,
     };
   };
@@ -334,6 +350,7 @@ export async function stubBankLink(
       } else {
         links.delete(accountId);
       }
+      missing.delete(accountId);
       const res = await request.get(`/api/v1/budgets/${opts.budgetId}/accounts/${accountId}`, {
         headers: await authHeaders(),
       });
