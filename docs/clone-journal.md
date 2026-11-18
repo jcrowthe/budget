@@ -13895,3 +13895,27 @@ Finished since each template's last review: Build 8, Deploy 9, Discover 2, Test 
 
 **Next plan:** nothing to deploy. The sync Build runs alone (it edits `wrangler.jsonc`), so no
 other Build starts. Nothing else is due: wait for its card.
+
+### 2026-11-18 · Plan round 154
+
+Children used 169 of 200 (none started this turn; the warning comes at 180). Main and live
+`07e3715`; no migration pending. No ticket was filed at the last review.
+
+**Running (15:54Z):** the Build for EXF-875 with EXF-751
+(`p_da6a4b23ba4245dbb499515a2a0cc866`), 9 minutes in, at its design; no manifest, no card.
+
+**Started: nothing.**
+- No Deploy: main is live.
+- No Build: the running one edits `apps/worker/wrangler.jsonc`, a file of
+  `paths.always_overlap`, so the scheduling rule allows no Build beside it.
+- No flow run: as decided at rounds 148 and 152 (a run now would change a verdict's word only).
+- No template review due: Build 8, Deploy 9, Discover 2, Test user flow 8 (each starts at 10).
+
+**When its card is answered:** its Deploy (the first whose report quotes the Worker's
+schedule), which brings the Deploy count to 10 and with it the Deploy template's review; then
+EXF-874 (the outside press, Plan page) and the next feature by weight for daily use, EXF-515
+(remembered category per payee), on disjoint ground.
+
+**Ticket writes:** 0.
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
