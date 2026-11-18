@@ -36,6 +36,10 @@
   --tooltipBackground: #3c3e53;
   --tooltipLabel: #ededf5;
   --tooltipShadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  --scrimCardHover: rgba(0, 0, 0, 0.66);
+  --calloutPrimarySubtleBackground: rgba(117, 131, 255, 0.2);
+  --calloutPrimaryProminentBackgroundEmphasis: #545bfe;
+  --labelPositiveActive: #93d53e;
   --separatorStandard: rgba(255, 255, 255, 0.1);
 
   --sidebar-width: 260px;
