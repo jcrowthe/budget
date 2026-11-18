@@ -14373,3 +14373,37 @@ Finished since each template's last review: Build 0, Deploy 0, Discover 2, Test 
 
 **Next plan:** set the new ticket's priority. Nothing to start: Manage Payees is still in its
 Build and main is one small merge ahead of live.
+
+### 2026-11-18 · Plan round 159
+
+Children used 174 of 200 (none started this turn; the warning comes at 180). Main `e32ebed`,
+live `639e60d`, no migration pending.
+
+**The ticket filed at the last review exists:** EXF-881 (the bank connections list beyond about
+a hundred bank accounts, and the Sandbox spec's leftover connections; title read from the list
+in this turn), set to Medium. No blocking link.
+
+**Running (20:01Z):** the Build for EXF-510 (`p_3d140515a4c34b64a7efbf1baf338ce1`), two hours in.
+- Its Reviewer found a real fault and it is fixed: with payees now deletable, a transaction
+  written while its payee was being deleted ended up live on the deleted payee (the check and
+  the write were apart). Each such write now fails its batch unless the payee is still live,
+  with a test that failed first. **This took the Build outside its ground**, into
+  `apps/worker/src/services/transactions.ts` and `services/scheduled-transactions.ts`, on the
+  Reviewer's word and for a reason I accept; I read those lines at its card.
+- Seventeen polish items applied over two rounds; the second review, acceptance and the gate
+  are ahead. No card.
+
+**Started: nothing.**
+- **EXF-881 is the next Build, when this one's gate is through.** Its ground (the accounts and
+  bank-connections repositories, the bank-connections service, one spec, `docs/conventions.md`)
+  does not meet Manage Payees', so it could run beside it; I hold it only for the gate: the
+  Manage Payees gate is the next thing to pass, the suite is at its least clean, and a new
+  Build's install and Worker tests would fall into it. Its brief gives the source to no step
+  and names no sub-agent, after the review's finding.
+- No Deploy for `e32ebed` alone; no flow run; no template review due (Build 0, Deploy 0,
+  Discover 2, Test user flow 8).
+
+**Ticket writes:** 1. **Children left: 26.**
+
+**Still waiting on the person:** the eight questions of the round-150 check-in. The next
+check-in is the review of round 160.
