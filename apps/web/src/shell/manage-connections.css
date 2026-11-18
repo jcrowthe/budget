@@ -299,3 +299,8 @@
   background: var(--buttonPrimaryBackground);
   color: var(--labelPrimary);
 }
+/* Source: the primary button's hover is --buttonPrimaryBackgroundActive, rgb(117,131,255) in dark, white text. */
+.manage-connections .mc-banner[data-kind="reauthorize"] button:hover:not(:disabled) {
+  background: var(--actionPrimary);
+  color: var(--labelPrimary);
+}

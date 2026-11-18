@@ -124,7 +124,7 @@ export function ConnectionDetail({
               {(badge === "Repair" || badge === "Reauthorize") && connection.status !== "broken" ? (
                 <button
                   type="button"
-                  className="secondary"
+                  className={badge === "Reauthorize" ? undefined : "secondary"}
                   disabled={waiting || relink.running}
                   title={waiting ? (reason ?? undefined) : undefined}
                   onClick={() => void relink.start()}
