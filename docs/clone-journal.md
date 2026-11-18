@@ -13393,3 +13393,78 @@ Finished since each template's last review: Build 5, Deploy 7, Discover 2, Test 
 
 **Still waiting on the person** (check-in 140, no answer): the eight questions listed there.
 The check-in of round 150 is the next review.
+
+### 2026-11-18 · Review round 149
+
+Children used 165 of 200 (the warning comes at 180). One ended: **the Build for EXF-866 with
+EXF-867 was abandoned by me at its gate** (`p_6d02018d422f4e9a80bd2a3e6d826ace`, 2 h 21 min,
+37 visits). Main `170f4db`, live `b0240a5`. **Its work is whole and is carried over at the next
+plan.**
+
+**Status of the running child (12:33Z):** the Build for EXF-477 with EXF-476
+(`p_67b2dc2acd404028888247acb64ab7d9`), 35 minutes in, design written, manifest arrived, no card.
+
+**What happened to the connection-status Build, and it is my mistake.**
+- The work: all six parts built; reviewed and approved at `c953b12` (three nits, each fixed
+  with a test: a relink across connections carried the old connection's reason); five polish
+  items found against the source's style rules and applied (among them: the header's status
+  label was red since EXF-461 and is grey in the source); acceptance 16 of 16, twelve
+  screenshots opened; rebased on `170f4db`.
+- The gate refused its one migration: "does not use a reserved number". The gate takes the
+  first 14 characters of a new migration's name and looks for them in the request's
+  `reserved_migrations`. **My brief had the Clerk write the whole file name there.** In every
+  earlier Build I wrote an empty list (my own standing text says "there is no number to
+  reserve") and the gate only noted it. For this brief I changed that line to "reserve" the
+  name, without reading what reads the field.
+- The step that fixes a gate failure may not edit the request (my own rule about
+  `/workspace/.exfab`), so it answered blocked. **Card 1 (side turn): retry**, with the
+  instruction to empty the list in my answer. The note shows in the Thread's trace; the step
+  did not get it and answered blocked again 20 seconds later. **Card 2 (side turn): abandon.**
+  A third retry would have failed the same way; escalating would have left the card waiting
+  while the box was lost.
+- **Rule: a line of a brief that worked is not changed without reading the code that reads
+  it.** And the standing text for a Build with a migration is again: `"reserved_migrations":
+  []`, the file's name given in the brief's text.
+
+**Two things this Build showed about reaching a running Build** (evidence posted on EXF-682 and
+EXF-559, both open template tickets):
+- My comment on EXF-866 (the status is named `Linked Account Not Found`, as the source's own
+  script has it; the Architect had asked) was read by no later step: five steps after it kept
+  `Account Not Found`, and one wrote a test for the old name. Only the first Implementer visit
+  looks for Lead comments.
+- A note with `retry` on a gate card does not reach the gate-fix step.
+So between a Build's start and its pull-request card I have no way in. **What I do with that:**
+a question I can foresee is decided in the brief; a design answer that asks me something is
+answered only at the pull-request card, by Request changes, or left for a follow-up; I do not
+count on a comment.
+
+**A figure of mine corrected within minutes, again:** my comment on EXF-559 said the Build
+"would have merged at 12:35Z" with the list right. It would only have started its gate at
+12:29Z. Corrected by a second comment. I had just written the rule about counting; a guess
+dressed as a time is the same fault.
+
+**The other Build's manifest has arrived** (EXF-477 with EXF-476): `apps/web/src/menu-actions/
+export-plan.tsx`, the new folders `plan-export` and `plan-import`, two files of
+`apps/web/src/plans/`, two new api files, `packages/schema/src/ui-state.ts`, its specs,
+`e2e/plan-menu.spec.ts`, its documents; no shared module, no migration. **Disjoint from the
+connection-status branch's 49 files** but for `docs/README.md`; neither touches
+`paths.always_overlap`. So the carry-over can run beside it.
+
+**Found by the abandoned Build, not fixed, to ticket when its work merges:** a broken
+connection's badge in the Manage Bank Connections list still reads `Repair`; a connection's
+bank-account list is not refreshed after a sign-in that adds accounts at the bank; at 1024×700
+the detail's `Reset` and `Remove` lie under a scroll.
+
+**Tickets:** EXF-866 and EXF-867 stay In Progress (a comment on EXF-866 with the state of the
+work and the reason); evidence on EXF-559 (with its correction) and EXF-682.
+**Ticket writes:** 4 comments. No new ticket.
+**Backlog:** 40 open feature tickets (60 done), three In Progress (EXF-866, EXF-477, EXF-476).
+Gap: sixteen open (EXF-867 In Progress; EXF-874 new, Medium). Template: forty-one open (Urgent:
+EXF-563, EXF-573, EXF-611).
+Finished since each template's last review: Build 6 (one abandoned), Deploy 7, Discover 2,
+Test user flow 8.
+
+**Next plan:** the carry-over Build for EXF-866 with EXF-867 from branch
+`exfab/p_6d02018d422f4e9a80bd2a3e6d826ace` at `c953b12`: an empty reserved list, the one
+rename, then review of the change, acceptance and the gate. No Deploy until it merges. The
+review after that is round 150, a check-in.
