@@ -88,7 +88,7 @@ if (existsSync(`${dir}/cgroup.tsv`)) {
     const d = (i) => Number(b[i]) - Number(a[i]);
     const peak = Math.max(...rows.map((r) => Number(r[1])));
     console.log(
-      `cgroup: memory peak ${peak} MiB; memory.max hits +${d(2)}; sock_throttled +${d(3)}; memory stall (full) +${d(4)} ms; cpu stall (full) +${d(5)} ms`,
+      `cgroup: memory peak ${peak} MiB; memory.max hits +${d(2)}; sock_throttled +${d(3)}; memory stall (full) +${d(4)} ms; cpu stall (full) +${d(5)} ms; io stall (full) +${d(9)} ms; anonymous memory peak ${Math.max(...rows.map((r) => Number(r[10]) || 0))} MiB`,
     );
     const hits = rows.filter((r, i) => i > 0 && Number(r[2]) > Number(rows[i - 1][2]));
     if (hits.length)
