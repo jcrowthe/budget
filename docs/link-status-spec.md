@@ -45,7 +45,7 @@ export type ShownStatus = LinkStatus | "not_found" | "reauthorize" | "unavailabl
 export function shownStatus(a: { linked: boolean; connection_status: LinkStatus | null;
   connection_reason: StatusReason | null; link_missing_since: string | null }): ShownStatus | null;
 export function shownLabel(s: ShownStatus): string;
-// connectionLabel for the four; not_found "Account Not Found"; reauthorize "Reauthorization Needed";
+// connectionLabel for the four; not_found "Linked Account Not Found"; reauthorize "Reauthorization Needed";
 // unavailable "Direct Import is Temporarily Unavailable"; unsupported "Connection Unavailable"
 export const RELINK_STRIP = "Relink your account to continue importing transactions.";
 export const RELINK_DETAILS = "Your linked account is not found. Relink to continue importing transactions.";
@@ -111,7 +111,7 @@ export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: num
 5. **Departures** (listed in the report): `e2e/bank-link-status.spec.ts:53-56`, `:68`; `packages/schema/test/bank-link.test.ts:65`; `packages/schema/test/manage-connections.test.ts:21`; and any other `broken` assertion that `grep -rn "Connection Repair Needed" e2e packages apps/*/test` finds.
 - **Verify:** `pnpm check`; `pnpm e2e e2e/link-status-popup.spec.ts e2e/connection-status-sidebar.spec.ts e2e/connection-status.spec.ts e2e/bank-link-status.spec.ts e2e/manage-connections-reset.spec.ts`.
 
-## Part 2: migration and Account Not Found in the Worker
+## Part 2: migration and Linked Account Not Found in the Worker
 
 1. **The failing test, new `apps/worker/test/link-status-not-found.test.ts`.** Use `setupPlaid` and `stubBank` with an `/accounts/get` override listing three accounts (`acc-chk`, `acc-sav`, `acc-ira`) filtered by a module variable `present` (default all), then `world` and `linked` twice (Checking, Savings); `acc-ira` stays unlinked.
    - With `present = ["acc-chk"]`, `syncOne` → on `GET …/accounts/{savings}`, `link_missing_since` is an ISO string, and checking's is null. Both read `connection_status` `connected`, and `connRow` reads `status` `connected`.
@@ -149,7 +149,7 @@ export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: num
   - `bank-link-calls.test.ts` `MEASURED` unchanged (list 5, get 5, link 10, unlink 6);
   - `test/schema-drift.test.ts` passes.
 
-## Part 3: Account Not Found on the screens
+## Part 3: Linked Account Not Found on the screens
 
 1. **Icons** (`apps/web/src/shell/connection-status-icon.tsx`): `KeyIcon`, `DiamondAlertIcon`, `OctagonAlertIcon`. They are 16×16 `currentColor` and Budget's own drawing.
    - `LinkStatusIcon({ status: ShownStatus })` in `bank-link-status.tsx` maps: not_found → diamond, reauthorize → key, unavailable and unsupported → octagon; the rest as today.
@@ -167,7 +167,7 @@ export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: num
    - the badge background shows for `login_required`, `reauthorize` and `not_found` (CSS `[data-status]` in `connection-status.css`);
    - popup action `relink` gives two full-width buttons, `Relink` (primary) and `Unlink` (secondary). Each closes the popup and opens its dialog, which the mark renders (state `dialog: "link" | "unlink" | null`);
    - the Tab order is mark → `Relink` → `Unlink`.
-5. **Modal row** (`shell/manage-connections-detail.tsx`): in the bank-account row, `plan?.link_missing_since` adds `<span className="mc-line mc-not-found" title="Account Not Found"><DiamondAlertIcon/>Account Not Found</span>`.
+5. **Modal row** (`shell/manage-connections-detail.tsx`): in the bank-account row, `plan?.link_missing_since` adds `<span className="mc-line mc-not-found" title="Linked Account Not Found"><DiamondAlertIcon/>Linked Account Not Found</span>`.
 6. **Spec, new `e2e/link-status.spec.ts`:**
    - acceptance cases 4, 5, 6 (missing with `login_required`, and with `delayed`) and 7, from the design's states 1, 2 and 6;
    - state 1's `Relink` → choose `ZZ Savings` → `expect.poll` one POST `…/accounts/<id>/link` → the strip has count 0.
@@ -227,7 +227,7 @@ export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: num
    - add `status_reason` to the list;
    - "status_reason refines status: unavailable (delayed: the bank cannot be reached through the import service for now; Budget tries again; nothing to do), unsupported (delayed: the import service no longer supports this bank; imports will not resume; the owner may remove the connection), reauthorize (login_required: the owner must reauthorize with Reauthorize in the app; an agent cannot do it); null otherwise";
    - broken reads "broken (Connection Lost: …)".
-2. **`mcp/tool-text.ts` `LINK_STATE`:** add "connection_reason (the connection's status_reason) and link_missing_since (when the bank stopped listing this account's bank account, Account Not Found: imports to it have stopped; the owner relinks it with Link Account, which may replace this link, or unlinks it; when connection_status is login_required or broken, that is shown first)".
+2. **`mcp/tool-text.ts` `LINK_STATE`:** add "connection_reason (the connection's status_reason) and link_missing_since (when the bank stopped listing this account's bank account, Linked Account Not Found: imports to it have stopped; the owner relinks it with Link Account, which may replace this link, or unlinks it; when connection_status is login_required or broken, that is shown first)".
 3. **`mcp/tools/accounts.ts`:**
    - `link_account`: "an account whose link_missing_since is set may be linked to another bank account without unlinking first";
    - in every account tool, and in `mcp/tools/reconcile.ts`, every `timestamps([...], [...])` holding `last_synced_at` adds `link_missing_since` to both lists.
@@ -244,3 +244,34 @@ export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: num
 
 ## What the Implementer reports
 The failing lines before each fix (EXF-867 A and B, parts 2, 4, 5), every edited expectation, the measured D1 counts, and each part as done or "not done".
+
+## Carry-over (second Build): two tasks
+
+Parts 1 to 6 above are built (`c953b12`). This Build does only the two tasks below, each committed by itself, in this order; design: "Carry-over (second Build)". **Never edit the migration file.** Open nothing in the source app.
+
+### Task 1: the name `Linked Account Not Found`
+1. **Expectations first** (edit, then run `pnpm exec vitest run packages/schema/test/link-status.test.ts apps/worker/test/connection-status-mcp.test.ts` once against the old label; quote one failing line, e.g. `expected 'Account Not Found' to be 'Linked Account Not Found'`):
+   - `packages/schema/test/link-status.test.ts:80` (`shownLabel("not_found")`) and `:123` (the popup's `title`);
+   - `apps/worker/test/connection-status-mcp.test.ts:23` → `toContain("Linked Account Not Found")`;
+   - `e2e/link-status.spec.ts:51, 56, 100, 108, 129, 150` (`:151` stays). Test titles stay.
+2. **Code:**
+   - `packages/schema/src/connection-status.ts`: `SHOWN_LABELS.not_found = "Linked Account Not Found"`;
+   - `apps/web/src/shell/manage-connections-detail.tsx` (~187): text and `title` from `shownLabel("not_found")` (import from `@budget/schema/connection-status`); no literal left;
+   - `apps/worker/src/mcp/tool-text.ts` `LINK_STATE`, `apps/worker/src/mcp/tools/accounts.ts` `link_account`, `packages/schema/src/accounts.ts` `link_missing_since`: the words `Account Not Found` → `Linked Account Not Found`. Comments may follow.
+3. **Narrow (`e2e/link-status-narrow.spec.ts`, new expectations, not departures):**
+   - test 2: the popup's `strong` has text `Linked Account Not Found` and `scrollWidth <= clientWidth` (or, if it wraps, lies inside the popup);
+   - new test `6 Manage Bank Connections: the row's Linked Account Not Found and a broken connection's badge fit at 1024x700`: the plan of design case 7 plus `oneAccountBank("ZZ Gone", "broken", …)`; `openList` → `ZZ Gone`'s `.mc-badge` is whole (`scrollWidth <= clientWidth`) and inside its row's box; `openDetail(page, "ZZ Bank")` → `.mc-not-found` reads `Linked Account Not Found`, is whole or has `text-overflow: ellipsis` with `title` equal to the name, and lies inside the dialog. Use `realClick` for clicks.
+4. **Verify:** `grep -rn "Account Not Found" apps packages e2e --include=*.ts --include=*.tsx | grep -v "Linked Account Not Found"` prints only comments, test titles and `link-status.spec.ts:151`; the two vitest files pass.
+
+### Task 2: the broken badge `Connection Lost`
+1. **Failing test first:** `packages/schema/test/link-status.test.ts` "names a connection and its badge from the reason" gains `expect(connectionBadge("broken")).toBe("Connection Lost")` and `expect(connectionBadge("weird")).toBe("Repair")`; run it once, quote the failing line (`expected 'Repair' to be 'Connection Lost'`).
+2. **`packages/schema/src/manage-connections.ts` `connectionBadge`:** return type `"Repair" | "Reauthorize" | "Connection Lost" | "Delayed" | "Unavailable" | null`; `if (status === "broken") return "Connection Lost";` before the attention branch. `connectionGroup` unchanged.
+3. **`apps/web/src/shell/manage-connections-dialog.tsx`:** `data-kind={badge === "Connection Lost" ? "lost" : badge.toLowerCase()}`; `BadgeIcon` unchanged (it falls through to `LinkWarningIcon`).
+4. **`apps/web/src/shell/manage-connections-detail.tsx`:** check the banner still gets `data-kind="repair"`, `LinkWarningIcon`, title `Connection Lost`, and no button for broken (it does, by the present expressions; change nothing unless `pnpm check` asks).
+5. **New e2e test** in `e2e/link-status.spec.ts`: `C2 the Bank Connections list: a broken connection's badge reads Connection Lost` (`setup` with `z.connection`, `oneAccountBank("ZZ Gone", "broken", …)`, `oneAccountBank("ZZ Locked", "login_required", …)`; assertions as in design C2; `toHaveText` exact; `realClick` on `ZZ Gone` → the detail's `.mc-banner strong` reads `Connection Lost`, and no `Repair` button). Run it once before step 2 and quote its failing line too.
+
+### Task 3: checks
+`pnpm check`; `pnpm e2e e2e/link-status.spec.ts e2e/link-status-narrow.spec.ts e2e/link-status-popup.spec.ts e2e/connection-status*.spec.ts e2e/bank-link*.spec.ts e2e/manage-connections*.spec.ts` (expand the globs with `ls` if the runner does not). `git diff c953b12 -- apps/worker/migrations` prints nothing; no file outside the design's manifest or inside its "Out of bounds" list changed.
+
+### What the Implementer reports (this Build)
+Every file changed; the failing lines quoted for tasks 1 and 2; each edited expectation as a departure (the design's list); how the name fits at 1024×700 in the header, the popup and the row; the badge's word; the commands run with their results; that it opened nothing in the source app.
