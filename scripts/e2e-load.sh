@@ -12,6 +12,7 @@ case "$load" in on | off) ;; *) echo "load must be on or off" >&2; exit 2 ;; esa
 root="$(cd "$(dirname "$0")/.." && pwd)"
 out="${E2E_LOAD_DIR:-/workspace/scratch/e2e-load}/$label"
 mkdir -p "$out"
+rm -f "$out/exit"
 cd "$root"
 
 stat_of() { awk -v k="$1" '$1 == k { print $2 }' /sys/fs/cgroup/cpu.stat 2>/dev/null || echo "?"; }
@@ -57,4 +58,5 @@ node scripts/e2e-load-report.mjs "$out" \
   "$label" "$commit" "$load" "$((end - start))" "$la_before" "$la_after" \
   "$thr_before" "$thr_after" "$usec_before" "$usec_after" | tee "$out/summary.md"
 echo "busy loops started: ${#pids[@]}, still alive: $left; playwright exit $status"
+echo "$status" >"$out/exit"
 exit "$status"
