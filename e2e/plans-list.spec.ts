@@ -66,8 +66,7 @@ test("AC471-3 the trash shows on hover and on keyboard focus", async ({ page, re
   const trash = c.getByRole("button", { name: "Delete Plan", exact: true });
   await page.mouse.move(0, 0);
   await expect(trash).toBeHidden();
-  const b = await c.boundingBox();
-  await page.mouse.move((b?.x ?? 0) + 20, (b?.y ?? 0) + 20);
+  await c.hover({ position: { x: 20, y: 20 } });
   await expect(trash).toBeVisible();
   await page.mouse.move(0, 0);
   await expect(trash).toBeHidden();

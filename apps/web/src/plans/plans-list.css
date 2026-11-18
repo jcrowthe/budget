@@ -6,8 +6,8 @@
   box-sizing: border-box;
 }
 .plans-list h1 {
-  margin: 0 0 var(--space-3);
-  font-size: 24px;
+  margin: var(--space-3) var(--space-2) var(--space-2) 0;
+  font-size: var(--font-size-xl);
   font-weight: 700;
 }
 .plans-list-grid {
@@ -25,17 +25,33 @@
   width: 208px;
   border-radius: 12px;
   padding: var(--space-2);
-  background: var(--backgroundTertiary);
+  background: var(--backgroundSecondary);
+  text-align: center;
 }
-.plans-list-card:hover,
-.plans-list-card:focus-within,
-.plans-list-create:hover {
-  background: var(--sidebarHover);
+.plans-list-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 11px;
+  background: var(--scrimCardHover);
+  pointer-events: none;
+  visibility: hidden;
+}
+.plans-list-card:hover::before,
+.plans-list-card:focus-within::before {
+  visibility: visible;
+}
+.plans-list-card:hover .plans-list-used,
+.plans-list-card:focus-within .plans-list-used {
+  position: relative;
+  z-index: 2;
+  color: var(--labelPrimary);
 }
 .plans-list-open {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 0;
   color: inherit;
   text-decoration: none;
 }
@@ -54,16 +70,18 @@
 }
 .plans-list-thumb {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   height: 144px;
   border-radius: var(--radius-xs);
-  background: var(--backgroundSecondary);
-  color: var(--labelTertiary);
+  margin-bottom: var(--space-2);
+  background: var(--calloutPrimarySubtleBackground);
+  color: var(--calloutPrimaryProminentBackgroundEmphasis);
 }
 .plans-list-thumb svg {
-  width: 48px;
-  height: 48px;
+  width: 60%;
+  height: auto;
+  margin-top: calc(var(--space-3) + var(--space-2));
 }
 .plans-list-name {
   overflow: hidden;
@@ -73,6 +91,9 @@
   white-space: nowrap;
 }
 .plans-list-used {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--labelSecondary);
   font-size: 14px;
   font-weight: 500;
@@ -81,21 +102,18 @@
   position: absolute;
   right: var(--space-2);
   bottom: var(--space-2);
-  z-index: 1;
+  z-index: 2;
   display: flex;
-  padding: var(--space-1);
-  border-radius: var(--radius-lg);
-  background: var(--buttonSubtleBackground);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--labelPrimary);
   cursor: pointer;
   visibility: hidden;
 }
-.plans-list-delete:hover {
-  background: var(--buttonSubtleBackgroundHover);
-}
 .plans-list-delete svg {
-  width: 18px;
-  height: 18px;
+  width: 0.8em;
+  height: 0.8em;
 }
 .plans-list-card:hover .plans-list-delete,
 .plans-list-card:focus-within .plans-list-delete {
@@ -106,7 +124,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-height: 100%;
   height: 100%;
   border: 0;
@@ -118,8 +136,20 @@
 .plans-list-create svg {
   width: 32px;
   height: 32px;
-  color: var(--actionPrimary);
+  color: var(--statusPositive);
+}
+.plans-list-create:hover svg {
+  color: var(--labelPositiveActive);
 }
 .plans-list-delete-dialog .close-text {
   overflow-wrap: anywhere;
+}
+
+.plans-list-delete-dialog .dialog-footer .destructive {
+  background: var(--buttonDestructiveBackground);
+  color: var(--buttonDestructiveLabel);
+}
+.plans-list-delete-dialog .dialog-footer .destructive:hover:not(:disabled) {
+  background: var(--buttonDestructiveBackgroundActive);
+  color: var(--labelPrimary);
 }
