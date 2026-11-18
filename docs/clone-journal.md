@@ -12788,3 +12788,60 @@ but two Builds at once is what I can review well).
 
 Ticket writes: 8 (two priorities, four tickets to In Progress, two notes).
 Finished since each template's last review: Build 2, Deploy 6, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 143
+
+Children used 159 of 200. One ended: **the connection-status Build completed**
+(`p_75b76b1b3c754b55b22028b8305599a4`, 2 h 25 min, $10.42), merged as **`879f169`** (EXF-465 in
+its narrowed scope, and EXF-824; both moved to Done). Main is `879f169`; live is `1979d9d`. The
+journal branch holds main.
+
+**Status of the running child (08:58Z):** the manual-match Build
+(`p_f67df6924cb740b29568b5f4a63c844f`) is at its final gate, no open card yet. Its manifest has
+arrived: the Worker's transactions files and a new `manual-match` service, the register, the
+schema's transactions file, **one migration** (`20261116101600_manual_match.sql`); no shared
+module. Disjoint from what merged. Its gate ran on `b39c8cd`; main has moved, so its card will
+say so and I choose Refresh or Regate there.
+
+**The connection-status Build (card answered in a side turn: approve).**
+- Built: the strip on a linked account's page (Repair through the modal's flow; broken; delayed
+  over three days), the sidebar mark as a button with a popup by mouse and keyboard, a closed
+  sign-in as a notice, the tool's wording; deleting a plan unlinks its accounts in the same batch.
+  Gate 636 of 636 three times, no flake, with the other Build running beside it.
+- **Looking: seven states, fourteen screenshots, all opened.**
+- The source: style rules read and probes in a tab of its own, as the brief allows; reported.
+- **One of my notes was wrong:** the modal does dim the page (the same 33% scrim as every
+  dialog, faint on the dark theme). The live test's observation, which I passed on as a note,
+  was mistaken, and the Architect measured before changing anything. Nothing was changed.
+- **Read and left:** a connection that needs a sign-in is never asked again by the nightly job
+  until the owner repairs or resets it.
+- **The design's table of statuses** shows one thing that matters for real banks: **a linked bank
+  account that disappears from the bank's list is not detected and still reads Connected.**
+- **Merged with one known defect** (the Reviewer's): a popup pinned by a click stays open through
+  a sidebar scroll or a resize. One line; I did not send the whole round again for it. Also the
+  Tester's note: a broken connection's header still reads "Connection Repair Needed".
+- A plan with more than 90 linked accounts cannot be deleted (a parameter limit); noted on EXF-824.
+- Two files outside the ground I had named, each named in the design with its reason
+  (`repositories/budgets.ts`; a new stylesheet in the shell).
+
+**Filed through this review:** one feature ticket (the connection statuses left from EXF-465:
+Account Not Found first; Medium) and one gap ticket (the pinned popup and the broken
+connection's header label; Low).
+
+**What I learned:**
+- An observation from a live test is a claim until measured: "no backdrop" was a faint one.
+- Two Builds side by side, each with its gate clean. The suite at 4 workers holds so far.
+- I approved with a known one-line defect. It is filed and will ride; if it is still open at
+  the next Deploy's brief, the verifier is told so.
+
+**Ticket writes:** 4 (two to Done, two notes).
+**Backlog:** 40 open feature tickets (EXF-464 in progress; 59 done), plus the one filed here. Gap:
+seventeen open (EXF-816 in progress; EXF-824 done), plus the one filed here. Template: forty-one
+open.
+Finished since each template's last review: Build 3, Deploy 6, Discover 2, Test user flow 7.
+
+**Next plan:** nothing to start while the manual-match Build is at its gate (a Deploy now would
+run its checks beside that gate, and one release for both merges is better). When its card is
+answered and it has merged: Deploy D38 for both, with what can be proved on live without a bank
+for the strip (nothing: no status but `connected` can be made there) and for match (manual match
+needs an import: a flow test with a Sandbox bank).
