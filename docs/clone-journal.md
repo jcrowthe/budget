@@ -14407,3 +14407,56 @@ in this turn), set to Medium. No blocking link.
 
 **Still waiting on the person:** the eight questions of the round-150 check-in. The next
 check-in is the review of round 160.
+
+### 2026-11-18 · Review round 159
+
+Children used 174 of 200 (the platform's line this turn; none running; warning at 180).
+Main `f9f1281`, live `639e60d` (read from `/api/v1/health` at 21:38Z), no migration between them.
+
+**Ended: the Manage Payees Build** (`p_3d140515a4c34b64a7efbf1baf338ce1`, EXF-510), merged as
+`f9f1281` (PR 79). The child's summary gives 17:59:57Z to 21:35:06Z and 45 visits. The merged
+tree equals the gated head's tree (`c67d749`; both read with `git rev-parse …^{tree}` this turn).
+- **Gate, from the card's own line:** base `e32ebed`, head `c67d749`, 722/722 three times,
+  changed specs ×10 320/320, no migration, no flakes, 21:29Z. **It was the second attempt.** The
+  step list shows the first gate failed (step 34) and a gate fix followed (step 35). I read the
+  fix commit, not the first gate's output: two waits added to `e2e/manage-payees.spec.ts`, and
+  **one bound raised**, the 2,000-payee spec's open time from 1,500 to 2,500 ms (the file says:
+  1,556 ms in one of ten repeats under load). The card did not name it; I found it because the
+  rule from the dialogs Build is to read every gate fix. Accepted and named in my answer.
+- **Outside its manifest**, read line by line at the card: `services/transactions.ts`,
+  `services/scheduled-transactions.ts`, `services/manual-match.ts` each gained one statement
+  (`payeesRepo.livePayeesCheck`) in the existing write batch and one branch round the existing
+  bounded retry. The statement fails the batch when a named payee is no longer live.
+- **What is on main now:** rename, hide, delete with a replacement, bulk, a payee's
+  transactions, counts on the list, with their MCP tools (the Build says 94 tools; not counted
+  by me); the dialog from the plan menu and from the payee field; no skipped test left in
+  `e2e/payee-picker.spec.ts`. Browser tests: 722 (the gate's figure).
+
+**Mine, to say plainly:** my brief asked for a 2,000-payee measurement and also said tests stay
+light. The Build met the first with a spec that sends 2,000 requests and sets 240 s for its one
+test. I did not see the two lines meet when I wrote them. Its weight in a full run is not
+measured; noted on EXF-877.
+
+**Tickets (6 writes):** EXF-510 to Done with a comment. Comments on EXF-512 (several-selected
+`Show N Transactions`; what to build on), EXF-467 (no `has_rules`, no Renaming card; **a rename
+does not hold against the next import**, the Build's own finding, not checked by me) and
+EXF-877 (the raised bound, the heavy spec). EXF-467 raised to Medium for that reason. One new
+gap ticket filed with this review: Manage Payees leftovers (transfer payees as a replacement;
+a draft row whose payee was deleted in the dialog; the dialog's Undo and Redo; looks not
+compared with the source; the unmatch guard's missing test).
+
+**Backlog, counted from the tracker this turn:** 32 feature tickets open, 17 gap tickets open
+(18 with the one filed now); template tickets not recounted (44 at the last count).
+
+**Template counts since each last review:** Build 1, Deploy 0, Discover 2, Test user flow 8.
+
+**For the next plan:**
+1. Deploy D42 for `f9f1281` (EXF-874 and EXF-510 together), prefix `ZZ-TEST D42`, with the
+   standing text as corrected by the Deploy review; checks for the outside press and Manage
+   Payees; the two Sandbox connections after the 21:00Z run reported as same or different and
+   counts only.
+2. The Build for EXF-881 (Worker only, no source for any step).
+3. Then, by weight: EXF-467 with EXF-515 on the new dialog.
+
+The next review, round 160, is a check-in. Still waiting on the person: the eight questions of
+the round-150 check-in.
