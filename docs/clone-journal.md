@@ -13635,4 +13635,4 @@ EXF-751 share the sync's files and run one after the other); flow 2's second run
 **Ticket writes:** 2 (the priorities).
 Finished since each template's last review: Build 7, Deploy 7, Discover 2, Test user flow 8.
 
-**Still waiting on the person:** the eight questions of the check-in sent an hour ago.
+**Still waiting on the person:** the eight questions of the check-in sent at the review of round 150 (that turn began at 13:27Z).
