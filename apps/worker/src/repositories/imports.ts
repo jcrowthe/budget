@@ -6,6 +6,7 @@ import { categoryGroups } from "../db/schema/category-groups";
 import { importTombstones } from "../db/schema/import-tombstones";
 import { transactions } from "../db/schema/transactions";
 import { insertSelect } from "./insert-select";
+import { idsIn } from "./payees";
 import type { TransactionRow } from "./transactions";
 
 /** D1 allows 100 bound parameters a statement. */
@@ -77,7 +78,7 @@ export async function livePlanIds(db: Db, budgetIds: readonly string[]): Promise
   const rows = await db
     .select({ id: budgets.id })
     .from(budgets)
-    .where(and(inArray(budgets.id, [...budgetIds]), isNull(budgets.deletedAt)));
+    .where(and(idsIn(budgets.id, budgetIds), isNull(budgets.deletedAt)));
   return new Set(rows.map((r) => r.id));
 }
 
