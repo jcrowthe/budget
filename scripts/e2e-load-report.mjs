@@ -24,7 +24,7 @@ const walk = (suite) => {
         else if (r.status === "skipped") skipped++;
         else {
           const msg = (r.error?.message ?? r.errors?.[0]?.message ?? "").replace(
-            /\u001b\[[0-9;]*m/g,
+            new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g"),
             "",
           );
           const first = msg.split("\n").find((l) => l.trim()) ?? "";
