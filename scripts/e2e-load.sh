@@ -33,6 +33,7 @@ fi
 
 bash scripts/e2e-load-sample.sh "$out/cgroup.tsv" &
 sampler=$!
+trap 'kill "$sampler" "${pids[@]}" 2>/dev/null' EXIT
 start=$(date +%s)
 # DEBUG=pw:webserver prints the test server's stdout too (its stderr is printed anyway), so 500s are counted.
 # Every line gets the wall time it was printed at (stamp.mjs), so a slow answer can be set beside a test.

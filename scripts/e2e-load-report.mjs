@@ -28,14 +28,13 @@ const walk = (suite) => {
             "",
           );
           const first = msg.split("\n").find((l) => l.trim()) ?? "";
-          const all = msg;
-          const kind = /-> (409)\b/.test(all)
+          const kind = /-> (409)\b/.test(msg)
             ? "server 409"
-            : /-> 5\d\d\b/.test(all)
+            : /-> 5\d\d\b/.test(msg)
               ? "server 5xx"
-              : /Timeout|timed out|Timed out/i.test(all)
+              : /Timeout|timed out|Timed out/i.test(msg)
                 ? "wait ran out"
-                : /Expected|Received/.test(all)
+                : /Expected|Received/.test(msg)
                   ? "wrong value"
                   : "other";
           const loc = r.error?.location ?? r.errors?.[0]?.location;
