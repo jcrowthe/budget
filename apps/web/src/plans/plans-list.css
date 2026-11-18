@@ -150,7 +150,9 @@
   background: var(--buttonDestructiveBackground);
   color: var(--buttonDestructiveLabel);
 }
-.dialog.form.edit-account.plans-list-delete-dialog .dialog-footer .destructive:hover:not(:disabled) {
+.dialog.form.edit-account.plans-list-delete-dialog
+  .dialog-footer
+  .destructive:hover:not(:disabled) {
   background: var(--buttonDestructiveBackgroundActive);
   color: var(--labelPrimary);
 }
