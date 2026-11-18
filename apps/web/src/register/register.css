@@ -1186,3 +1186,83 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* EXF-467: an imported row's payee cell. Not compared with the source: the name beside an info button that takes the
+   look of .transfer-link; it shows while the row is hovered, selected, focused or its popover is open. */
+.import-payee {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.import-payee-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bank-import-info {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--iconFillSecondary);
+  cursor: pointer;
+  opacity: 0;
+}
+.register-table tbody tr:hover .bank-import-info,
+.register-table tbody tr.is-checked .bank-import-info,
+.bank-import-info:focus-visible,
+.bank-import-info[aria-expanded="true"] {
+  opacity: 1;
+}
+.bank-import-info:focus-visible {
+  outline: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.bank-import-panel {
+  padding: 16px;
+}
+.bank-import-panel h2 {
+  margin: 0;
+  padding: var(--space-2) 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: var(--line-height);
+}
+.bank-import-panel h3 {
+  margin: 0 0 4px;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.bank-import-panel section {
+  margin-bottom: 12px;
+}
+.bank-import-panel p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-md);
+}
+.bank-import-link {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--actionPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.bank-import-link:hover {
+  text-decoration: underline;
+}
+.bank-import-panel .match-error {
+  margin-top: 8px;
+}
