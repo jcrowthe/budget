@@ -1,8 +1,8 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import {
-  addAmount,
   type AmountSeed,
+  addAmount,
   removeAmountPlan,
   seedAmounts,
 } from "./support/activity-amount-seed";
