@@ -6,7 +6,7 @@ import { requestSync, syncDueConnections } from "./services/plaid-sync";
 import { enterDue } from "./services/scheduled-transactions";
 
 /**
- * The daily job: enter what is due, then the bank sync. The scheduler's day is the day before the server's
+ * The scheduled job, every six hours (03, 09, 15, 21 UTC): enter what is due, then the bank sync. The scheduler's day is the day before the server's
  * UTC date, which has begun everywhere on earth, so it never enters a transaction dated in the owner's
  * future. Its D1 calls (at most SCHEDULER_CRON_CALLS) come off the sync's budget of runs.
  */
