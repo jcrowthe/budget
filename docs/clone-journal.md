@@ -14184,3 +14184,30 @@ that paragraph in every review's notes.
 Finished since each template's last review: Build 9, Deploy 0, Discover 2, Test user flow 8.
 
 **Next plan:** nothing to start: two Builds are running and main is live.
+
+### 2026-11-18 · Plan round 157
+
+Children used 173 of 200 (none started this turn; the warning comes at 180). Main and live
+`639e60d`; no migration pending. No ticket was filed by me at the last review (the review child
+filed EXF-878; its priority is set).
+
+**Running (18:20Z):** the Builds for EXF-874 (`p_b4c926009b32431f826d65b571ba1db0`) and EXF-510
+(`p_3d140515a4c34b64a7efbf1baf338ce1`), both with design and manifest now; no card.
+
+**The scheduling rule, applied to the two manifests:**
+- EXF-874: `apps/web/src/plan/useDismiss.ts`, `MonthPicker.tsx`, `MonthNotePopover.tsx`, one new
+  spec, its documents.
+- EXF-510: the Worker's payees route, service, repository and tools with their coverage and
+  timestamps files, one statement each in the transactions' and the scheduled transactions'
+  repositories, `packages/schema/src/payees.ts`, the new `apps/web/src/payees/**`, the action
+  file, `apps/web/src/api/payees.ts`, the register's `PayeeField.tsx` and `entry.css`, its
+  specs, `e2e/payee-picker.spec.ts`, `e2e/plan-menu.spec.ts`, its documents. No migration.
+- **In common: `docs/README.md` only.** Neither names a shared module or a file of
+  `paths.always_overlap`. Both go on.
+
+**Started: nothing.** No Deploy (main is live); no third Build beside two; no flow run; no
+template review due (Build 9, Deploy 0, Discover 2, Test user flow 8).
+
+**Ticket writes:** 0. **Children left: 27.**
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
