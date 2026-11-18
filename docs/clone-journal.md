@@ -12118,3 +12118,80 @@ specs needs `playwright.config.ts`, an always-overlap file, and so runs alone af
 Ticket writes: 1 (EXF-807 priority).
 Finished since each template's last review: Build 0 (review running), Deploy 4, Discover 2, Test
 user flow 5.
+
+### 2026-11-18 · Review round 136
+
+Children used 153 of 200. One ended: **flow 5, fourth run, completed**
+(`p_8e7994fbe6064c20bab5cd335a4940a8`, 37 minutes, on live `2d9cde7`): verdict
+**`parity_known_gaps`**, no new gap, no ticket filed, every step run. Main `2370e08`; live
+`2d9cde7` (the Deploy was held for this run and starts at the next plan).
+
+**Status of the running children (00:34Z):**
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its build step, no card; its cost
+  moved again since the plan (it was not stuck).
+- The Build template review (`p_f56a4f28283c47ada683261077398d50`): analysing, 5 minutes in.
+
+**Flow 5, fourth run: no expectation of the brief failed.** I read the whole report.
+- **The modal's writes, with a real Sandbox bank:** connecting from `Add a New Bank Connection`
+  (one connection, one `from-bank`, one plan sync, back on the modal's list); the detail with no
+  `GET /bank-connections/{id}` in the whole run; rename (an empty name falls back to the bank's);
+  Add as a new Account, Link to an Existing Account (exactly the one eligible account offered),
+  Unlink; Reset with the sign-in closed (the sentence, no reset call) and finished (link-token,
+  reset, sync in that order; Reset disabled with the 24-hour note in the plan's date format; 409
+  `reset_too_soon` through REST; links and transaction counts unchanged); Remove on the screen
+  (one DELETE; 404; accounts and transactions stay). At 1024×700 everything inside the window.
+- **The register with four rows the bank sent:** banner 4, 3, 2, 1; **Reject** removed the row,
+  the balance fell by exactly 4.22, and the next sync said "nothing new"; Approve; categorizing
+  approves; View listed the one remaining row and left the stored settings alone. **Both things I
+  had worked out by hand held:** after the last row was approved without a category the "i"
+  column and the dot went and the banner still counted 1, until the row got a category.
+- **EXF-773** is fixed on live with a really linked account (boxes and ten samples given).
+- **EXF-798 measured:** two of three Sandbox banks have a logo; each shows broken on the list row
+  and on all fourteen account rows; 29 console messages, and no other console error in the run.
+- **The two connections that are not ours** read the same before and after, field by field; none
+  of their rows was clicked.
+- Sync table: eight syncs, none with an error, 1.6 to 3.9 seconds each.
+- Plans that are not test plans: 1; purge `remaining 0`; the connection it made reads 404.
+
+**Two slips the verifier reported itself, both about the owner's plan name, neither reaching
+any output:**
+1. A shell variable did not expand and the browser went to a path without a plan id
+   (`//accounts/<its own account id>`, redirected to `/accounts/<id>`). The app loaded its own
+   plan list there; the verifier read only the address and two empty lists, deleted the
+   screenshot unopened, and added a guard that refuses any path not under its own plan.
+2. For about two minutes its request recorder kept the bodies of the app's first three
+   `GET /api/v1/budgets` answers, which hold the owner's plan name. It did not read or print
+   them and replaced them with "(not kept)".
+**Both go into the standing rules of every flow and Deploy brief from now on:** the navigation
+helper refuses any address that does not start with `/<own plan id>/`, written before the first
+page load; a request recorder never keeps the body of an answer to `GET /api/v1/budgets` or
+`GET /api/v1/me`, from its first line.
+
+**Looking: 44 of 71 screenshots were not opened** (the report lists them; their states are
+described from the page's elements). The ones opened are the states I marked. The Deploy before
+it left 11 of 19 unopened. A list of states "to look at" is honoured for about a third; I keep
+the list short and name the few that matter, and I ask the template review what a floor could be.
+
+**Seen, not filed (no written rule broken); noted on EXF-465 for its Build:** the modal has no
+dimmed backdrop; the neutral "sign-in was closed" sentence shows in the red error bar. Also: the
+sidebar's dot hides while its row is hovered (the pencil takes its place); a time of day stays in
+the browser's 12-hour form in a DD.MM.YYYY plan (by design).
+
+**What I learned:**
+- Reading the code behind every asserted sentence paid: no "DIFFERS FROM THE BRIEF" on wording
+  for the first time in four runs; the only differences were inside Plaid's own window.
+- Plaid's update mode goes straight to the bank's login; a test can drive it.
+- Holding the Deploy for the flow was right: the run would have crossed a release.
+
+**Ticket writes:** 5 (live notes on EXF-460, EXF-463, EXF-798, EXF-773; Build notes on EXF-465).
+**Flow verdicts:** 1 `parity_known_gaps`; 2 `new_gaps` (its tickets fixed since, not re-run);
+3, 4 `parity`; **5 `parity_known_gaps` (fourth run; known: EXF-798, EXF-774 until deployed,
+EXF-464, 465, 466, 467, 751)**; 7 `parity_known_gaps`; 8, 9, 10, 11 `parity`; 6 not run as a flow.
+**Backlog:** 43 open feature tickets (EXF-469 and EXF-471 in progress; 56 done). Gap: twenty open
+(EXF-746 and EXF-798 in progress; EXF-807 new, Medium). Template: thirty-nine open.
+Finished since each template's last review: Build 0 (review running), Deploy 4, Discover 2, Test
+user flow 6.
+
+**Next plan:** Deploy D36 for `2370e08` (nothing walks on live now), with the two new standing
+rules. After it, a flow test of the import start with a real Sandbox bank (the Starting Balance
+moved back on the screen) can ride with flow 2's re-run.
