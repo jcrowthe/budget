@@ -13080,3 +13080,71 @@ Next template-ticket sweep about round 176.
 **Next plan:** the two Builds side by side, neither touching live: EXF-727 (the month picker's
 click outside, on the Plan page) and EXF-866 with EXF-867 (the connection statuses left over;
 the shell, the account files and the Worker's sync).
+
+### 2026-11-18 · Plan round 147
+
+Children used 164 of 200 (two started this turn; the warning comes at 180). Main and live
+`b0240a5`; nothing merged since the last review, so no Deploy is due.
+
+**Started, side by side, both from main `b0240a5`, neither touching live:**
+
+1. **Build `p_cdc277966a444b7f959e82759994d667` (10:09Z): EXF-727 with EXF-745**, on the Plan
+   page only, no Worker file, no migration.
+   - EXF-727 is asked as a question first, not as a fix: get at least two failing runs of
+     `e2e/month-nav.spec.ts` "6 month picker" under the made load (`scripts/e2e-load.sh`, twenty
+     repeats at a time, up to eighty), each with a temporary log of every `mousedown`, `mouseup`
+     and `click` at the press, whether the dismiss handler ran and what it decided, and every
+     change of the picker's open state. Then the cause in one sentence, and the fix where the
+     cause is: in the app if a person could meet it (with a test that fails first), in the spec
+     only if the spec does what no person does. Never a retry, a pause or a longer limit.
+     "Not found, and this is ruled out now" is an accepted end and leaves the ticket open.
+   - The hook `useDismiss` is shared with the month note and three Reflect popovers; a fix
+     there runs their specs too.
+   - EXF-745 as its ticket says (the Activity popover's amount column holds twelve wide
+     characters; longer is cut with an ellipsis and a tooltip).
+   - In the source it may open, with the mouse, the test plan's month picker and one category's
+     Activity popover (both show only the test plan's own months and transactions), and nothing
+     else; no typing, no change, no sidebar header, no account page.
+   - Three states to look at, six screenshots.
+2. **Build `p_6d02018d422f4e9a80bd2a3e6d826ace` (10:11Z): EXF-866 with EXF-867**, the Worker's
+   sync, the shell's status files and the account page; one additive migration reserved,
+   `20261116101700_connection_link_status.sql`.
+   - **Decided in the brief, after reading the sync code:** Plaid's `/accounts/get` is already
+     called on every sync (`fetchBalances`), so the bank's present account list is in hand with
+     no further call. Account Not Found is one nullable column on the plan account, written in
+     the sync's last batch from that list, cleared when the bank account is back, on a new link
+     and on unlink; only a good answer's list marks anything. A connection that itself needs a
+     sign-in or is broken shows that first.
+   - The nightly loop alone checks a `login_required` connection once a day: one Plaid call, a
+     "last tried" column, healthy connections first so that a dead one never takes a healthy
+     one's turn. A plan's opening and Sync Now keep returning at once. `broken` is never checked.
+   - Unavailable and Reauthorize are words over the four stored statuses, from a stored reason
+     (Plaid's error code, never its message text). "Update Needed" is not built.
+   - EXF-867: the pinned popup closes on scroll and resize; a broken connection has one name
+     (I suggested "Connection Lost").
+   - The source: style rules, already-loaded script files and probe elements only; never a
+     linked account. Six states to look at, twelve screenshots.
+   - **If it runs long, parts 1 to 3 of its order must be whole** (EXF-867, Account Not Found
+     in the Worker and on the screens); the rest is reported as not done and I ticket it.
+
+**Kept apart:** Build 1 holds `apps/web/src/plan/**` and its two specs; Build 2 holds the
+Worker, the shell's connection files, `apps/web/src/account/**` and the schema files of bank
+links. Each brief lists the other's ground as out of bounds, and neither may touch a file of
+`paths.always_overlap`. Both will add a line to `docs/README.md`; the second to merge keeps
+both sides.
+
+**Flow 5, sixth run** (`p_79fd030ed9aa48c597133b5856c5e52a`) ended at 10:05Z, completed, no
+ticket filed by it. Its report is read at the next review (live proof of a real match and
+unmatch and of the status popup; evidence to post on EXF-464, EXF-465, EXF-867). With it, Test
+user flow has 8 finished since its last template review.
+
+**Tickets:** EXF-727, EXF-745, EXF-866, EXF-867 moved to In Progress (each title read in the
+tool's answer before the next write); a comment on EXF-727 and one on EXF-866 naming the Build
+and what the brief decided. **Ticket writes:** 6.
+
+**Not started, and why:** a Deploy (nothing new on main); a second flow on live (flow 5's
+report is not read yet; one at a time); EXF-751 (touches `wrangler.jsonc`, so it runs alone).
+
+**Still waiting on the person** (asked at check-in 140, no answer): the eight questions listed
+there. The next check-in is at the review of round 150; it will also tell of my wrong write to
+EXF-820.
