@@ -428,7 +428,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     (c) => ({
       budget_id: c.bid,
       payee_id: c.payee,
-      rule_id: (results.get("create_payee_rename_rule")?.rule as Json).id,
+      rule_id: ((results.get("create_payee_rename_rule") as Json).rule as Json).id,
       kind: "is",
     }),
   ],
@@ -437,7 +437,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     (c) => ({
       budget_id: c.bid,
       payee_id: c.payee,
-      rule_id: (results.get("create_payee_rename_rule")?.rule as Json).id,
+      rule_id: ((results.get("create_payee_rename_rule") as Json).rule as Json).id,
     }),
   ],
   [

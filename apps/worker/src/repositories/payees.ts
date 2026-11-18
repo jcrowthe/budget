@@ -211,6 +211,11 @@ export function ordinaryIdByNameSql(budgetId: string, name: string): SQL {
   return sql`(select p.id from payees p where p.budget_id = ${budgetId} and p.name = ${name} and p.system is null and p.deleted_at is null)`;
 }
 
+/** A scalar subquery for a `payee_id` value: that payee's id while it is a live ordinary payee of the plan, else null. */
+export function liveOrdinaryIdSql(budgetId: string, id: string): SQL {
+  return sql`(select p.id from payees p where p.id = ${id} and p.budget_id = ${budgetId} and p.system is null and p.deleted_at is null)`;
+}
+
 const ordinaryAmong = (budgetId: string, ids: readonly string[]) =>
   sql`payees.budget_id = ${budgetId} and ${idsIn(sql`payees.id`, ids)} and payees.deleted_at is null and payees.system is null`;
 
