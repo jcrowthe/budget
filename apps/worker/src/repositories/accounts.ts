@@ -24,6 +24,7 @@ export type AccountRow = typeof accounts.$inferSelect;
 /** An account with its bank connection's status and last sync (null when not linked), read in the same statement. */
 export type AccountReadRow = AccountRow & {
   connectionStatus: string | null;
+  connectionErrorCode: string | null;
   connectionSyncedAt: string | null;
 };
 
@@ -33,6 +34,7 @@ function selectWithLink(db: Db) {
     .select({
       ...getTableColumns(accounts),
       connectionStatus: bankConnections.status,
+      connectionErrorCode: bankConnections.syncErrorCode,
       connectionSyncedAt: bankConnections.lastSyncedAt,
     })
     .from(accounts)

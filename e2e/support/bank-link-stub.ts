@@ -274,6 +274,7 @@ export async function stubBankLink(
       }
       if (tail === "/reset" && method === "POST") {
         target.status = "connected";
+        target.reason = null;
         target.last_reset_at = new Date().toISOString();
         return json(route, 200, { data: { bank_connection: connectionJson(target) } });
       }

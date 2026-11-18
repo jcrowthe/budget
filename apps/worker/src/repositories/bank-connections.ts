@@ -94,6 +94,8 @@ export function updateConnectionStmt(
       | "syncAccounts"
       | "syncLoopCursor"
       | "syncFailedAt"
+      | "syncErrorCode"
+      | "loginCheckedAt"
     >
   >,
   guard?: SQLWrapper,

@@ -1,6 +1,13 @@
 import type { BankConnection } from "@budget/schema/bank-connections";
 import { bankAccountLabel, planAccountType } from "@budget/schema/bank-link";
-import { BROKEN_TEXT, DELAYED_TEXT, REPAIR_TEXT } from "@budget/schema/connection-status";
+import {
+  BROKEN_TEXT,
+  DELAYED_TEXT,
+  REAUTHORIZE_STRIP,
+  REPAIR_TEXT,
+  UNAVAILABLE_TEXT,
+  UNSUPPORTED_TEXT,
+} from "@budget/schema/connection-status";
 import { connectionBadge, resetAvailableAt, statusLabel } from "@budget/schema/manage-connections";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -49,6 +56,15 @@ export function resetReason(c: BankConnection, fmt: Fmt): string | null {
   return null;
 }
 
+/** The banner's sentence: the reason's own words when the connection has one. */
+function bannerText(status: string, reason: BankConnection["status_reason"]): string {
+  if (reason === "reauthorize") return REAUTHORIZE_STRIP;
+  if (reason === "unavailable") return UNAVAILABLE_TEXT;
+  if (reason === "unsupported") return UNSUPPORTED_TEXT;
+  if (status === "delayed") return DELAYED_TEXT;
+  return status === "broken" ? BROKEN_TEXT : REPAIR_TEXT;
+}
+
 export function ConnectionDetail({
   budgetId,
   connection,
@@ -77,7 +93,8 @@ export function ConnectionDetail({
       setDraft(c.nickname);
     },
   });
-  const badge = connectionBadge(connection.status);
+  const badge = connectionBadge(connection.status, connection.status_reason);
+  const delayedLook = badge === "Delayed" || badge === "Unavailable";
   const anyLinked = connection.accounts.some((a) => a.linked_account_id !== null);
   const reason = resetReason(connection, fmt);
   const waiting = resetAvailableAt(connection.last_reset_at) !== null;
@@ -87,18 +104,12 @@ export function ConnectionDetail({
     <>
       <div className="account-modal-body">
         {badge ? (
-          <div className="mc-banner" role="note" data-kind={badge.toLowerCase()}>
-            {badge === "Delayed" ? <ClockIcon /> : <LinkWarningIcon />}
+          <div className="mc-banner" role="note" data-kind={delayedLook ? "delayed" : "repair"}>
+            {delayedLook ? <ClockIcon /> : <LinkWarningIcon />}
             <div className="mc-banner-text">
-              <strong>{statusLabel(connection.status)}</strong>
-              <span>
-                {badge === "Delayed"
-                  ? DELAYED_TEXT
-                  : connection.status === "broken"
-                    ? BROKEN_TEXT
-                    : REPAIR_TEXT}
-              </span>
-              {badge === "Repair" && connection.status !== "broken" ? (
+              <strong>{statusLabel(connection.status, connection.status_reason)}</strong>
+              <span>{bannerText(connection.status, connection.status_reason)}</span>
+              {(badge === "Repair" || badge === "Reauthorize") && connection.status !== "broken" ? (
                 <button
                   type="button"
                   className="secondary"
@@ -106,7 +117,7 @@ export function ConnectionDetail({
                   title={waiting ? (reason ?? undefined) : undefined}
                   onClick={() => void relink.start()}
                 >
-                  Repair
+                  {badge === "Reauthorize" ? "Reauthorize" : "Repair"}
                 </button>
               ) : null}
               {connection.status === "broken" ? (

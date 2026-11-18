@@ -1,4 +1,5 @@
 import { connectionLabel, type LinkStatus, linkStatus } from "./bank-link";
+import type { StatusReason } from "./plaid-import";
 import { reconciledAgo } from "./reconcile";
 
 /** A delayed connection gets its own line after this long without a successful sync. */
@@ -22,10 +23,17 @@ export const POPUP_DELAYED_DETAILS =
 export const RELINK_STRIP = "Relink your account to continue importing transactions.";
 export const RELINK_DETAILS =
   "Your linked account is not found. Relink to continue importing transactions.";
+export const REAUTHORIZE_STRIP =
+  "Reauthorize your bank connection to continue importing transactions.";
+/** The import service cannot reach the bank for now (not compared with the source). */
+export const UNAVAILABLE_TEXT =
+  "The import service cannot reach this bank at the moment. Budget tries again on its own.";
+export const UNSUPPORTED_TEXT =
+  "The import service no longer supports this bank, so new transactions will not be imported.";
 export const CLOSED_NOTICE = "The bank sign-in was closed. Nothing was changed.";
 
 /** What an account shows: its connection's status, or Account Not Found over a connected or delayed one. */
-export type ShownStatus = LinkStatus | "not_found";
+export type ShownStatus = LinkStatus | "not_found" | "reauthorize" | "unavailable" | "unsupported";
 
 /**
  * The one rule for what a linked account shows (mark, popup, header, strip). A connection that needs a
@@ -35,20 +43,37 @@ export type ShownStatus = LinkStatus | "not_found";
 export function shownStatus(a: {
   linked: boolean;
   connection_status: LinkStatus | null;
+  connection_reason?: StatusReason | null;
   link_missing_since?: string | null;
 }): ShownStatus | null {
   const s = linkStatus(a);
   if (s === null) return null;
-  if (s === "login_required" || s === "broken") return s;
-  return a.link_missing_since ? "not_found" : s;
+  if (s === "login_required") return a.connection_reason === "reauthorize" ? "reauthorize" : s;
+  if (s === "broken") return s;
+  if (a.link_missing_since) return "not_found";
+  if (s === "delayed") {
+    return a.connection_reason === "unavailable" || a.connection_reason === "unsupported"
+      ? a.connection_reason
+      : s;
+  }
+  return s;
 }
 
+const SHOWN_LABELS = {
+  not_found: "Account Not Found",
+  reauthorize: "Reauthorization Needed",
+  unavailable: "Direct Import is Temporarily Unavailable",
+  unsupported: "Connection Unavailable",
+} as const;
+
 export function shownLabel(s: ShownStatus): string {
-  return s === "not_found" ? "Account Not Found" : connectionLabel(s);
+  return s in SHOWN_LABELS
+    ? SHOWN_LABELS[s as keyof typeof SHOWN_LABELS]
+    : connectionLabel(s as LinkStatus);
 }
 
 export type Strip = {
-  kind: "repair" | "not_found" | "broken" | "delayed";
+  kind: "repair" | "reauthorize" | "not_found" | "broken" | "delayed";
   text: string;
 } | null;
 
@@ -75,6 +100,7 @@ export function stripFor(
     closed: boolean;
     connection_status: LinkStatus | null;
     last_synced_at: string | null;
+    connection_reason?: StatusReason | null;
     link_missing_since?: string | null;
   },
   connectionCreatedAt: string | undefined,
@@ -83,7 +109,9 @@ export function stripFor(
   if (a.closed) return null;
   const s = shownStatus(a);
   if (s === null || s === "connected") return null;
+  if (s === "unsupported") return null;
   if (s === "not_found") return { kind: "not_found", text: RELINK_STRIP };
+  if (s === "reauthorize") return { kind: "reauthorize", text: REAUTHORIZE_STRIP };
   if (s === "login_required") return { kind: "repair", text: REPAIR_STRIP };
   if (s === "broken") return { kind: "broken", text: BROKEN_TEXT };
   return delayedOverThreeDays(a.last_synced_at, connectionCreatedAt, nowMs)
@@ -105,7 +133,7 @@ export type Popup = {
   line: string;
   /** The explanation in its own box, or null. */
   details: string | null;
-  action: "repair" | "relink" | null;
+  action: "repair" | "reauthorize" | "relink" | null;
 };
 
 const lastAttemptedText = (lastSyncedAt: string | null, nowMs: number) =>
@@ -122,6 +150,12 @@ export function popupFor(s: ShownStatus, lastSyncedAt: string | null, nowMs: num
       return { title, line: lastCheckedText(lastSyncedAt, nowMs), details: null, action: null };
     case "login_required":
       return { title, line, details: POPUP_REPAIR_DETAILS, action: "repair" };
+    case "reauthorize":
+      return { title, line, details: REAUTHORIZE_STRIP, action: "reauthorize" };
+    case "unavailable":
+      return { title, line, details: UNAVAILABLE_TEXT, action: null };
+    case "unsupported":
+      return { title, line, details: UNSUPPORTED_TEXT, action: null };
     case "not_found":
       return { title, line, details: RELINK_DETAILS, action: "relink" };
     case "delayed":

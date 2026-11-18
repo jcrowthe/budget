@@ -29,7 +29,12 @@ export function ConnectionStrip({ account }: { account: Account }) {
   const { connection, isError } = useAccountConnection(
     account.budget_id,
     account.bank_account_id,
-    account.linked && !account.closed && s !== null && s !== "connected" && s !== "not_found",
+    account.linked &&
+      !account.closed &&
+      s !== null &&
+      s !== "connected" &&
+      s !== "not_found" &&
+      s !== "unsupported",
   );
   const relink = useConnectionRelink(account.budget_id, connection?.id ?? "", noop);
   const strip = stripFor(account, connection?.created_at, now);
@@ -40,16 +45,16 @@ export function ConnectionStrip({ account }: { account: Account }) {
       ? "Bank connections could not be loaded."
       : null;
   const disabled = !connection || relink.running || reason !== null;
+  const signIn = strip.kind === "repair" || strip.kind === "reauthorize";
   const act = () =>
-    strip.kind === "repair"
+    signIn
       ? void relink.start()
       : strip.kind === "not_found"
         ? setDialog("link")
         : setManaging(true);
-  const actionable =
-    strip.kind === "repair"
-      ? !disabled
-      : strip.kind === "not_found" || (strip.kind === "broken" && !!connection);
+  const actionable = signIn
+    ? !disabled
+    : strip.kind === "not_found" || (strip.kind === "broken" && !!connection);
   return (
     <>
       {/* A click anywhere on the strip runs its button's action; the button stays the keyboard target. */}
@@ -74,7 +79,7 @@ export function ConnectionStrip({ account }: { account: Account }) {
         <span className="acct-connection-text" title={strip.text}>
           {strip.text}
         </span>
-        {strip.kind === "repair" ? (
+        {signIn ? (
           <span title={reason ?? undefined} className="acct-connection-action">
             <button
               type="button"
@@ -83,7 +88,7 @@ export function ConnectionStrip({ account }: { account: Account }) {
               aria-busy={relink.running}
               onClick={() => void relink.start()}
             >
-              Repair
+              {strip.kind === "reauthorize" ? "Reauthorize" : "Repair"}
             </button>
           </span>
         ) : null}

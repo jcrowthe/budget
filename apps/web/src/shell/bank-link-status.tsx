@@ -1,12 +1,16 @@
 import type { Account } from "@budget/schema/accounts";
 import { type ShownStatus, shownLabel, shownStatus } from "@budget/schema/connection-status";
-import { DiamondAlertIcon } from "./connection-status-icon";
+import { DiamondAlertIcon, KeyIcon, OctagonAlertIcon } from "./connection-status-icon";
 import { ClockIcon, LinkedCheckIcon, LinkWarningIcon } from "./icons";
 
-/** The check mark of a working connection, a clock for a delay, a diamond for a link the bank no longer lists, a plain warning mark for every other status. */
+/** The check mark of a working connection, a clock for a delay, a diamond for a link the bank no longer lists, a key for a reauthorization, an octagon when the bank cannot be reached, a plain warning mark for every other status. */
 export function LinkStatusIcon({ status }: { status: ShownStatus }) {
   if (status === "connected") return <LinkedCheckIcon />;
-  if (status === "not_found") return <DiamondAlertIcon />;
+  if (status === "not_found") return <DiamondAlertIcon width={12} height={12} />;
+  if (status === "reauthorize") return <KeyIcon width={12} height={12} />;
+  if (status === "unavailable" || status === "unsupported") {
+    return <OctagonAlertIcon width={12} height={12} />;
+  }
   return status === "delayed" ? <ClockIcon /> : <LinkWarningIcon />;
 }
 

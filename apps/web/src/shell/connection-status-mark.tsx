@@ -10,7 +10,7 @@ import { LinkAccountDialog } from "../account/link-account-dialog";
 import { UnlinkAccountDialog } from "../account/link-account-unlink";
 import { useAccountConnection } from "../api/bank-link";
 import { LinkStatusIcon } from "./bank-link-status";
-import { DiamondAlertIcon, WarningTriangleIcon } from "./connection-status-icon";
+import { WarningTriangleIcon } from "./connection-status-icon";
 import { resetReason } from "./manage-connections-detail";
 import { useConnectionRelink } from "./manage-connections-relink";
 import { usePlanFormatter } from "./plan-formats-context";
@@ -45,7 +45,7 @@ export function ConnectionStatusMark({
   const { connection } = useAccountConnection(
     budgetId,
     account.bank_account_id,
-    open && s === "login_required",
+    open && (s === "login_required" || s === "reauthorize"),
   );
   const relink = useConnectionRelink(budgetId, connection?.id ?? "", noop);
   const held = relink.running || !!relink.error || !!relink.notice;
@@ -158,8 +158,6 @@ export function ConnectionStatusMark({
       >
         {s === "login_required" || s === "broken" ? (
           <WarningTriangleIcon width={12} height={12} />
-        ) : s === "not_found" ? (
-          <DiamondAlertIcon width={12} height={12} />
         ) : (
           <LinkStatusIcon status={s} />
         )}
@@ -186,7 +184,7 @@ export function ConnectionStatusMark({
           <strong>{popup.title}</strong>
           <p className="status-popup-line">{popup.line}</p>
           {popup.details ? <p className="status-popup-details">{popup.details}</p> : null}
-          {popup.action === "repair" ? (
+          {popup.action === "repair" || popup.action === "reauthorize" ? (
             <span className="status-popup-action" title={reason ?? undefined}>
               <button
                 type="button"
@@ -195,7 +193,7 @@ export function ConnectionStatusMark({
                 aria-busy={relink.running}
                 onClick={() => void relink.start()}
               >
-                Repair
+                {popup.action === "reauthorize" ? "Reauthorize" : "Repair"}
               </button>
             </span>
           ) : null}

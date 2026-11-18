@@ -22,6 +22,7 @@ import {
   SYNC_UNIT_SIZE,
   type SyncStatus,
   skipReason,
+  storedErrorCode,
   syncStatusForError,
 } from "@budget/schema/plaid-import";
 import { and, type SQLWrapper, sql } from "drizzle-orm";
@@ -75,9 +76,16 @@ async function storeStatus(
   accounts: bankRepo.BankAccountRow[],
   status: SyncStatus,
   now: string,
+  code: string | null,
 ) {
   const syncErrorSince = row.syncErrorSince ?? now;
-  if (row.status === status && row.syncErrorSince === syncErrorSince) return;
+  const syncErrorCode = storedErrorCode(code);
+  if (
+    row.status === status &&
+    row.syncErrorSince === syncErrorSince &&
+    row.syncErrorCode === syncErrorCode
+  )
+    return;
   const guard = bankRepo.cursorIs(db, row.id, row.syncCursor);
   await db.batch([
     changeLogInsertIf(
@@ -89,11 +97,16 @@ async function storeStatus(
         entityType: "bank_connection",
         entityId: row.id,
         before: toApi(row, accounts),
-        after: toApi({ ...row, status, updatedAt: now }, accounts),
+        after: toApi({ ...row, status, syncErrorCode, updatedAt: now }, accounts),
       },
       guard,
     ),
-    bankRepo.updateConnectionStmt(db, row.id, { status, syncErrorSince, updatedAt: now }, guard),
+    bankRepo.updateConnectionStmt(
+      db,
+      row.id,
+      { status, syncErrorSince, syncErrorCode, updatedAt: now },
+      guard,
+    ),
   ]);
 }
 
@@ -163,14 +176,17 @@ async function recordFailure(
         entityType: "bank_connection",
         entityId: row.id,
         before: toApi(row, accounts),
-        after: toApi({ ...row, status: "delayed", syncFailedAt: now, updatedAt: now }, accounts),
+        after: toApi(
+          { ...row, status: "delayed", syncFailedAt: now, syncErrorCode: null, updatedAt: now },
+          accounts,
+        ),
       },
       guard,
     ),
     bankRepo.updateConnectionStmt(
       db,
       row.id,
-      { status: "delayed", syncFailedAt: now, updatedAt: now },
+      { status: "delayed", syncFailedAt: now, syncErrorCode: null, updatedAt: now },
       guard,
     ),
   ]);
@@ -191,7 +207,7 @@ async function syncConnection(
 
   const token = await getAccessToken(env, row.id);
   if (!token) {
-    await storeStatus(db, row, bankAccounts, "broken", now);
+    await storeStatus(db, row, bankAccounts, "broken", now, null);
     return empty(row, "broken");
   }
   let plaid: Awaited<ReturnType<typeof plaidFor>>;
@@ -227,7 +243,7 @@ async function syncConnection(
   } catch (e) {
     if (!(e instanceof PlaidApiError)) throw e;
     const status = syncStatusForError(e.status, e.errorCode);
-    await storeStatus(db, row, bankAccounts, status, now);
+    await storeStatus(db, row, bankAccounts, status, now, e.errorCode);
     return empty(row, status);
   }
 
@@ -649,6 +665,7 @@ async function syncConnection(
     status: "connected",
     lastSyncedAt: finished,
     syncFailedAt: null,
+    syncErrorCode: null,
     updatedAt: finished,
   };
   const byPlaidId = new Map(balances.map((b) => [b.account_id, b]));
@@ -696,7 +713,13 @@ async function syncConnection(
       db,
       row.id,
       stopped
-        ? { lastSyncedAt: finished, status: "connected", syncFailedAt: null, updatedAt: finished }
+        ? {
+            lastSyncedAt: finished,
+            status: "connected",
+            syncFailedAt: null,
+            syncErrorCode: null,
+            updatedAt: finished,
+          }
         : {
             ...(pages
               ? {
@@ -709,6 +732,7 @@ async function syncConnection(
             status: "connected",
             syncErrorSince: null,
             syncFailedAt: null,
+            syncErrorCode: null,
             updatedAt: finished,
           },
       guard,

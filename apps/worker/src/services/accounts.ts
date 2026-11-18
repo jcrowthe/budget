@@ -23,6 +23,7 @@ import {
   MANUAL_ADJUSTMENT_PAYEE,
 } from "@budget/schema/accounts";
 import type { PayeeSystem } from "@budget/schema/payees";
+import { statusReason } from "@budget/schema/plaid-import";
 import type { AccountBalances, Transaction } from "@budget/schema/transactions";
 import { type SQL, sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
@@ -113,7 +114,12 @@ const asStatus = (s: string | null | undefined) => CONNECTION_STATUSES.find((c) 
 
 export function accountToApi(
   row: accountsRepo.AccountRow &
-    Partial<Pick<accountsRepo.AccountReadRow, "connectionStatus" | "connectionSyncedAt">>,
+    Partial<
+      Pick<
+        accountsRepo.AccountReadRow,
+        "connectionStatus" | "connectionSyncedAt" | "connectionErrorCode"
+      >
+    >,
   b: {
     cleared: number;
     uncleared: number;
@@ -146,6 +152,10 @@ export function accountToApi(
     needs_attention_count: b.attention ?? 0,
     connection_status: row.bankAccountId === null ? null : asStatus(row.connectionStatus),
     last_synced_at: row.bankAccountId === null ? null : (row.connectionSyncedAt ?? null),
+    connection_reason:
+      row.bankAccountId === null
+        ? null
+        : statusReason(row.connectionStatus ?? "", row.connectionErrorCode ?? null),
     link_missing_since: row.bankAccountId === null ? null : row.linkMissingSince,
   };
 }
