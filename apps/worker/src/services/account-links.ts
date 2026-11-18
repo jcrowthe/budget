@@ -17,6 +17,7 @@ import { bankBalanceToPlan } from "../plaid/amounts";
 import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as budgetsRepo from "../repositories/budgets";
+import * as importsRepo from "../repositories/imports";
 import {
   accountFacts,
   accountToApi,
@@ -274,8 +275,16 @@ export async function unlinkForConnectionStmts(
   connectionId: string,
 ): Promise<BatchItem[]> {
   const rows = await accountsRepo.linkedToConnection(db, connectionId);
+  // A plan deleted before EXF-824 may still hold a link: it is unlinked, with no history row on the deleted plan.
+  const live = rows.length
+    ? await importsRepo.livePlanIds(db, [...new Set(rows.map((r) => r.budgetId))])
+    : new Set<string>();
   const stmts: BatchItem[] = [];
   for (const row of rows) {
+    if (!live.has(row.budgetId)) {
+      stmts.push(accountsRepo.unlinkIfStmt(db, row));
+      continue;
+    }
     const balances = await balancesOf(db, row.budgetId, row);
     stmts.push(
       changeLogInsertIf(
