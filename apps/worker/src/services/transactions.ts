@@ -922,9 +922,12 @@ async function mutate(
       ...payeesRepo.livePayeesCheck(
         db,
         budgetId,
-        kind === "delete" || plan.payeeCreates.some((c) => c.id === plan.after?.payeeId)
+        kind === "delete"
           ? []
-          : [plan.after?.payeeId],
+          : [
+              plan.after?.payeeId,
+              ...(plan.lines.mode === "replace" ? plan.lines.rows : []).map((r) => r.payeeId),
+            ].filter((id) => !plan.payeeCreates.some((c) => c.id === id)),
       ),
       ...w0.payees,
       ...w0.logs,

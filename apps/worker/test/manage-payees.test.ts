@@ -11,7 +11,7 @@ import {
   updatePayee,
 } from "../src/services/payees";
 import { createScheduled } from "../src/services/scheduled-transactions";
-import { addTransaction } from "../src/services/transactions";
+import { addTransaction, updateTransaction } from "../src/services/transactions";
 import { DAY, data, send, tool } from "./account-helpers";
 import { type Json, P, payeeWorld } from "./manage-payees-helpers";
 import { apiPaths, listedToolNames } from "./surface";
@@ -327,7 +327,7 @@ describe("Manage Payees: the worker (EXF-510)", () => {
     await w.tx("ZZ Doomed");
     const doomed = await w.id("ZZ Doomed");
     // A DB whose first batch is preceded by the payee's delete: the lookup saw it live, the write finds it gone.
-    const racing = (): Env => {
+    const racing = (victim = doomed): Env => {
       let first = true;
       const DB = new Proxy(env.DB, {
         get(target, prop) {
@@ -335,7 +335,7 @@ describe("Manage Payees: the worker (EXF-510)", () => {
             return async (list: D1PreparedStatement[]) => {
               if (first) {
                 first = false;
-                await deletePayee(env, "t", w.bid, doomed, null);
+                await deletePayee(env, "t", w.bid, victim, null);
               }
               return target.batch(list);
             };
@@ -363,12 +363,41 @@ describe("Manage Payees: the worker (EXF-510)", () => {
         payee_id: doomed,
       }),
     ).rejects.toBeTruthy();
+    // Replacing a split's lines with one that names the doomed payee.
+    const month = await data(await send(`/api/v1/budgets/${w.bid}/months/2026-11-01`, "GET"));
+    const category = month.groups[0].categories[0].id as string;
+    const parent = await w.tx("ZZ Parent", { amount: -1000, category_id: category });
+    // The same edit without a race is valid.
+    await w.tx("ZZ Other");
+    const other = await w.id("ZZ Other");
+    await updateTransaction(env, "t", w.bid, parent.id, {
+      subtransactions: [
+        { amount: -600, category_id: category, payee_id: other },
+        { amount: -400, category_id: category },
+      ],
+    });
+    await w.tx("ZZ Doomed Line");
+    const doomedLine = await w.id("ZZ Doomed Line");
+    await expect(
+      updateTransaction(racing(doomedLine), "t", w.bid, parent.id, {
+        subtransactions: [
+          { amount: -600, category_id: category, payee_id: doomedLine },
+          { amount: -400, category_id: category },
+        ],
+      }),
+    ).rejects.toMatchObject({ status: 422, message: "Payee not found in this plan" });
     const live = await env.DB.prepare(
       "select count(*) n from transactions where payee_id = ? and deleted_at is null",
     )
       .bind(doomed)
       .first<{ n: number }>();
     expect(live?.n).toBe(0);
+    const lines = await env.DB.prepare(
+      "select count(*) n from transactions where payee_id = ? and deleted_at is null",
+    )
+      .bind(doomedLine)
+      .first<{ n: number }>();
+    expect(lines?.n).toBe(0);
     const sched = await env.DB.prepare(
       "select count(*) n from scheduled_transactions where payee_id = ? and deleted_at is null",
     )
