@@ -12993,3 +12993,40 @@ different amounts matched from the bar, the details panel and its click-through,
 that changes nothing; an automatic match by entering a hand entry before the import; the mark's
 popup by mouse and keyboard; EXF-867 seen or not). Beside it the template-ticket sweep (it reads
 tickets and Threads only). Then the two Builds: EXF-727, and EXF-866 with EXF-867.
+
+### 2026-11-18 · Plan round 146
+
+Children used 162 of 200 (160 before this plan; two started). Main and live `b0240a5`. The
+person has said nothing new. No ticket was filed at the last review.
+
+**Started 1: flow 5, sixth run, short** (`p_79fd030ed9aa48c597133b5856c5e52a`, prefix
+`ZZ-TEST F146`), on live `b0240a5`: match and unmatch with a real Sandbox import. One account
+added on the screen; two purchases entered by hand before the bank reports them (one with the
+bank's amount a day earlier, one a unit off on the same day); the Starting Balance moved back 20
+days so the bank's five rows arrive: **one merges by itself, four are new**; the bar's refusal
+for a matched row; a manual match at different amounts from the bar; the details panel (and the
+click beside it that no spec asserts); unmatch from the panel, then of the automatic match from
+the bar; a sync after each that changes nothing; the sidebar mark's popup by mouse and keyboard,
+and the pinned popup of EXF-867; the panel at 1024×700; Remove at the end.
+- **Figures worked out by hand, and again by a script:** 91600 after the two hand entries;
+  −318730 after the bank's rows; −305730 after the manual match; −318730 after its unmatch;
+  −324130 after the automatic match is undone; banner counts 4, 3, 4, 5.
+- I read the code behind each asserted text and rule: the automatic rule (`pickMatch`: same
+  amount, within ten days), the match texts and the row label, the icon's name, the panel's title
+  and the Unmatch tooltip, the popup's "Last checked" line, the bar's rule.
+- **Brief changes:** the sidebar's account rows may be read by the elements a step names (the
+  last Deploy's verifier would not read a row's mark); `/plans` named beside bare `/`; five
+  states marked LOOK.
+
+**Started 2: the template-ticket sweep** (`p_c0b672648fb44d8cb00b4575483fd468`, Improve
+templates, mode sweep; the third, thirty rounds after the second). It reads tickets only. Asked:
+duplicates around the new EXF-844 and EXF-815; one ordered list with the five changes that would
+save the most from here on; priorities; out-of-date text; and which practices my briefs carry by
+hand in every child that a template could carry instead.
+
+**Not started:** the two Builds (EXF-727 on the Plan page; EXF-866 with EXF-867). Neither touches
+live, so they could run beside the flow; I hold them one round only because four briefs in one
+turn is where I made my last mistake with a ticket's identifier. They start at the next plan.
+
+Ticket writes: 0.
+Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 7.
