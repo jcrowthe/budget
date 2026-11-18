@@ -13148,3 +13148,70 @@ report is not read yet; one at a time); EXF-751 (touches `wrangler.jsonc`, so it
 **Still waiting on the person** (asked at check-in 140, no answer): the eight questions listed
 there. The next check-in is at the review of round 150; it will also tell of my wrong write to
 EXF-820.
+
+### 2026-11-18 · Review round 147
+
+Children used 164 of 200 (the warning comes at 180). One ended: **flow 5, sixth run, completed**
+(`p_79fd030ed9aa48c597133b5856c5e52a`, 17 minutes, about $1.9). Main and live `b0240a5`.
+
+**Status of the running children (10:12Z):** both Builds are minutes old: EXF-727 with EXF-745
+(`p_cdc277966a444b7f959e82759994d667`, 6 visits) and EXF-866 with EXF-867
+(`p_6d02018d422f4e9a80bd2a3e6d826ace`, 2 visits); no manifest yet, no card.
+
+**Flow 5 (match a bank import to a hand entry, and undo it): `parity_known_gaps`**, all 15
+steps run, no new ticket; the one known gap is EXF-867. Proved on live with real Sandbox imports:
+- the automatic match at the sync (`added 4, matched 1`), with the icon and `match_details`;
+- the bar: `Unmatch` for one matched row; `Match` disabled with its reason for a matched row
+  with another; `Match` enabled for two free rows;
+- a match on the person's word with different amounts (−13.00 entry, −12.00 bank): one request,
+  one row with the entry's payee, memo and category and the bank's amount; balance +13.00;
+- the panel `Matched Transactions` by mouse and by keyboard, and a click outside it;
+- unmatch from the panel and from the bar, each one request; a Sync Now after each adds nothing
+  and does not match the pair again;
+- the sidebar mark's popup for a connected account by mouse and keyboard (EXF-465);
+- 1024×700: bar and panel inside the window; Remove of the connection (404 after), the account
+  unlinked with its transactions kept; the two connections that are not ours unchanged in
+  every saved field; 0 errors in 162 page requests.
+- It opened all five LOOK screenshots and took one more that it did not open (step 10d).
+
+**A wrong figure of mine again.** The brief gave the bank's fifth row as −894.00; it is −89.40
+(−89400 milliunits; I shifted the point by two places instead of three when I wrote the brief).
+Every balance the test read was my figure plus 804.60 (894.00 − 89.40), and every change the
+brief named was exact: the app's sums are right, my brief was wrong. The verifier reported it
+under DIFFERS and went on, which is what that section is for. **Corrected here for later
+briefs: `Plaid Checking – 0000` on 18 Nov: Uber 11-10 −5.40; United Airlines 11-08 +500.00;
+McDonald's 11-07 −12.00; Starbucks 11-07 −4.33; SparkFun ("FUN") 11-06 −89.40.** Rule: a
+bank figure in a brief is copied from the report that read it, in milliunits, with the report's
+Thread id beside it; I do not retype it in another unit.
+
+**Seen by the flow and looked at, none filed:**
+- After saving the Starting Balance's date the row stays selected: so it does in the source
+  after an edit is saved; not a gap.
+- The sync counts (`skipped 146`, then `141` with `added 4, matched 1`; later `0`): they add
+  up (146 rows in all on a fresh cursor; nothing on an advanced cursor).
+- The panel's `Unmatch` tip is the browser's own `title` while the bar's are the styled tips;
+  the bar offers `Clear` with an uncleared entry selected. Both noted on EXF-464; too small for
+  tickets of their own, and the next Build that touches the register's panel can take the first.
+- A `PATCH` of the plan when Add Account starts: harmless.
+- **The nightly job ran on live:** both older Sandbox connections read `last_synced_at`
+  2026-11-18T03:00Z.
+- The box had no Playwright browser and the verifier used `playwright-core` from its scratch
+  directory with the system's Chrome, as the walks before it did (EXF-619 holds this).
+
+**Evidence posted:** EXF-464 (the live proof, and my wrong figure), EXF-465 (the popup on live;
+what cannot be proved on live), EXF-867 (point 1 seen on live after a resize; the scroll case
+not tried because the list could not scroll). **Ticket writes:** 3 comments.
+
+**Flow verdicts now:** 1 `parity_known_gaps`; 2 `new_gaps` (old: every gap of it but EXF-679 is
+fixed on live since; not run again); 3, 4 `parity`; 5 `parity_known_gaps` (sixth run; EXF-867);
+7 `parity_known_gaps`; 8 to 11 `parity`; 6 not run as a flow.
+
+**Backlog:** 40 open feature tickets (60 done), one In Progress (EXF-866). Gap: seventeen open,
+three In Progress (EXF-727, EXF-745, EXF-867). Template: forty-one open (Urgent: EXF-563,
+EXF-573, EXF-611).
+Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 8.
+
+**Next plan:** the two Builds run. Thirty-six children are left and the person has not said
+whether to stop at 200, so each one is weighed: a second run of flow 2 on live (its verdict is
+the oldest and its gaps were fixed since) can run beside the Builds, since neither touches live;
+nothing else is due until a Build ends.
