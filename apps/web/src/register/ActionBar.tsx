@@ -404,48 +404,6 @@ export function ActionBar({
                     )}
                   </Tip>
                 )}
-                {ma.match && (
-                  <Tooltip
-                    placement="above"
-                    align="center"
-                    delayed={false}
-                    content={ma.match.reason ?? "Match"}
-                  >
-                    {(tip) => (
-                      <button
-                        {...tip}
-                        type="button"
-                        className="action-bar-button"
-                        aria-disabled={ma.match?.enabled ? undefined : "true"}
-                        onClick={doMatch}
-                      >
-                        <LinkIcon />
-                        Match
-                      </button>
-                    )}
-                  </Tooltip>
-                )}
-                {ma.unmatch && (
-                  <Tooltip
-                    placement="above"
-                    align="center"
-                    delayed={false}
-                    content={ma.unmatch.reason ?? "Unmatch"}
-                  >
-                    {(tip) => (
-                      <button
-                        {...tip}
-                        type="button"
-                        className="action-bar-button"
-                        aria-disabled={ma.unmatch?.enabled ? undefined : "true"}
-                        onClick={doUnmatch}
-                      >
-                        <LinkBrokenIcon />
-                        Unmatch
-                      </button>
-                    )}
-                  </Tooltip>
-                )}
                 {actions.categorize && (
                   <Tip text="Categorize" keys={["K"]}>
                     {(tip) => (
@@ -490,6 +448,48 @@ export function ActionBar({
                       </button>
                     )}
                   </Tip>
+                )}
+                {ma.match && (
+                  <Tooltip
+                    placement="above"
+                    align="center"
+                    delayed={false}
+                    content={ma.match.reason ?? "Match"}
+                  >
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        aria-disabled={ma.match?.enabled ? undefined : "true"}
+                        onClick={doMatch}
+                      >
+                        <LinkIcon />
+                        Match
+                      </button>
+                    )}
+                  </Tooltip>
+                )}
+                {ma.unmatch && (
+                  <Tooltip
+                    placement="above"
+                    align="center"
+                    delayed={false}
+                    content={ma.unmatch.reason ?? "Unmatch"}
+                  >
+                    {(tip) => (
+                      <button
+                        {...tip}
+                        type="button"
+                        className="action-bar-button"
+                        aria-disabled={ma.unmatch?.enabled ? undefined : "true"}
+                        onClick={doUnmatch}
+                      >
+                        <LinkBrokenIcon />
+                        Unmatch
+                      </button>
+                    )}
+                  </Tooltip>
                 )}
                 <hr />
                 <button

@@ -299,7 +299,7 @@ measurements" and "Match popover" (`/workspace/scratch/source/manual-match/notes
   - `doMatch` runs `if (!ma.match?.enabled) return;`, then `guard(async () => { await match.mutateAsync(ids);
     clear(); })`;
   - `doUnmatch` does the same with `sel[0].id`.
-- Render them after the Reject button:
+- Render them after the Clear button, before the separator and More (the source's order):
   ```tsx
   {ma.match && (
     <Tooltip placement="above" align="center" delayed={false} content={ma.match.reason ?? "Match"}>

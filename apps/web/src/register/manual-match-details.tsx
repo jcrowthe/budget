@@ -120,7 +120,7 @@ export function MatchCell({ budgetId, tx }: { budgetId: string; tx: TransactionD
               <button
                 ref={unmatchBtn}
                 type="button"
-                className="secondary match-unmatch"
+                className="match-unmatch"
                 title={UNMATCH_TITLE}
                 onClick={() => void doUnmatch()}
               >

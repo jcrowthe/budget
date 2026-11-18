@@ -216,7 +216,7 @@ MCP.
     the reason, and no request.
   - Exactly one matched row → `Unmatch`, disabled the same way when refused.
   - **Departure:** the source hides them; the brief prefers the reason.
-  - Placed after Reject. No shortcut.
+  - Placed after Clear, before the separator and More (the source's template order). No shortcut.
   - Success clears the selection; a refusal shows in the bar's alert line.
 - **Requests.** One POST each, then `invalidatePlan` as the bulk action does (register, balance, sidebar dot,
   banner). Nothing else is fetched.
