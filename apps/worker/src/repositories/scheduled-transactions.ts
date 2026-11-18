@@ -204,3 +204,21 @@ export async function categoryNames(
     ? { name: r.name, groupName: r.groupName ?? null, kind: r.kind, accountId: r.accountId }
     : undefined;
 }
+
+/** Points the live scheduled transactions of `fromIds` at another payee (or none); `token` renews their write token. */
+export function movePayeeStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  toId: string | null,
+  now: string,
+  token: string,
+  guard: SQL,
+) {
+  return db
+    .update(st)
+    .set({ payeeId: toId, updatedAt: now, writeToken: token })
+    .where(
+      sql`${st.budgetId} = ${budgetId} and ${st.payeeId} in (select value from json_each(${JSON.stringify(fromIds)})) and ${st.deletedAt} is null and ${guard}`,
+    );
+}

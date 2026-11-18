@@ -13,6 +13,11 @@ const MONTH = "2026-11-01";
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
 type Ctx = {
+  payee: string;
+  payeeDel: string;
+  payeeBulkA: string;
+  payeeBulkB: string;
+  payeeRepl: string;
   bid: string;
   spare: string;
   other: string;
@@ -121,6 +126,24 @@ async function seed(): Promise<Ctx> {
     (await send(`${A(bid)}/${checking}/adjust-balance`, "POST", { balance: 90000 })).status,
   ).toBe(200);
 
+  // Payees the payee tools act on (each has a transaction, so delete moves rows).
+  const payeeNames = [
+    "ZZ Timestamps Payee",
+    "ZZ Pay Delete",
+    "ZZ Pay Bulk A",
+    "ZZ Pay Bulk B",
+    "ZZ Pay Repl",
+  ];
+  for (const payee_name of payeeNames) {
+    await mk({ account_id: checking, date: DAY, amount: -100, payee_name });
+  }
+  const payeeList = (await data(await send(`/api/v1/budgets/${bid}/payees`, "GET"))).payees as {
+    id: string;
+    name: string;
+  }[];
+  const [payee = "", payeeDel = "", payeeBulkA = "", payeeBulkB = "", payeeRepl = ""] =
+    payeeNames.map((n) => payeeList.find((p) => p.name === n)?.id as string);
+
   const now = new Date().toISOString();
   const conn = crypto.randomUUID();
   await env.DB.prepare(
@@ -167,6 +190,11 @@ async function seed(): Promise<Ctx> {
   const sched = await mkSched("one");
   const sched2 = await mkSched("two");
   return {
+    payee,
+    payeeDel,
+    payeeBulkA,
+    payeeBulkB,
+    payeeRepl,
     sched,
     sched2,
     bid,
@@ -228,6 +256,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["get_account_balances", (c) => ({ budget_id: c.bid, account_id: c.checking })],
   ["get_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.tx })],
   ["list_payees", (c) => ({ budget_id: c.bid })],
+  ["list_payee_transactions", (c) => ({ budget_id: c.bid, payee_id: c.payee })],
   ["list_bank_connections", (c) => ({ budget_id: c.bid })],
   ["get_bank_connection", (c) => ({ budget_id: c.bid, bank_connection_id: c.conn })],
   ["get_plan_month", (c) => ({ budget_id: c.bid, month: MONTH })],
@@ -372,6 +401,23 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["unmatch_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.matchEntry })],
   ["reject_transactions", (c) => ({ budget_id: c.bid, ids: [c.importTx] })],
   ["delete_transactions", (c) => ({ budget_id: c.bid, ids: [c.bulkTx] })],
+  [
+    "rename_payee",
+    (c) => ({
+      budget_id: c.bid,
+      payee_id: c.payee,
+      name: `ZZ Renamed ${crypto.randomUUID().slice(0, 8)}`,
+    }),
+  ],
+  ["set_payee_hidden", (c) => ({ budget_id: c.bid, payee_id: c.payee, hidden: true })],
+  [
+    "delete_payee",
+    (c) => ({ budget_id: c.bid, payee_id: c.payeeDel, replacement_payee_id: c.payeeRepl }),
+  ],
+  [
+    "bulk_update_payees",
+    (c) => ({ budget_id: c.bid, payee_ids: [c.payeeBulkA, c.payeeBulkB], action: "hide" }),
+  ],
   [
     "set_category_target",
     (c) => ({

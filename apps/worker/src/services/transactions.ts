@@ -609,10 +609,15 @@ export async function addTransaction(
               before: null,
               after: logShape({ ...row, categoryName: null, groupName: null }, lineRows),
             }),
+            ...payeesRepo.livePayeesCheck(db, budgetId, [
+              row.payeeId,
+              ...rows.map((r) => r.payeeId),
+            ]),
           ]),
         );
       } catch (e) {
         if ((payee?.create || payeeCreates.length > 0) && payeesRepo.isUniqueViolation(e)) continue;
+        if (payeesRepo.isPayeeGone(e)) continue;
         throw e;
       }
       return detailOf(db, budgetId, row.id);
@@ -633,11 +638,13 @@ export async function addTransaction(
             before: null,
             after: logShape({ ...row, ...names }),
           }),
+          ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
         ]),
       );
     } catch (e) {
-      // Another request created the same payee first: the next pass finds it.
+      // Another request created the same payee first, or deleted the one found: the next pass looks again.
       if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
     return detailOf(db, budgetId, row.id);
@@ -912,6 +919,16 @@ async function mutate(
         : guard;
     const w0 = planWrites(db, { budgetId, actor, id, kind, plan, now, guard, selfGuard });
     const statements: unknown[] = [
+      ...payeesRepo.livePayeesCheck(
+        db,
+        budgetId,
+        kind === "delete"
+          ? []
+          : [
+              plan.after?.payeeId,
+              ...(plan.lines.mode === "replace" ? plan.lines.rows : []).map((r) => r.payeeId),
+            ].filter((id) => !plan.payeeCreates.some((c) => c.id === id)),
+      ),
       ...w0.payees,
       ...w0.logs,
       ...(imp ? [imp.stmts[0]] : []),
@@ -924,6 +941,7 @@ async function mutate(
       results = await db.batch(stmts(statements));
     } catch (e) {
       if (plan.payeeCreates.length > 0 && payeesRepo.isUniqueViolation(e)) continue;
+      if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
     const w = results[results.length - 1] as { meta: { changes?: number } };
