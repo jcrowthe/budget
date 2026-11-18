@@ -12,6 +12,7 @@ export type PayeeListRow = PayeeRow & {
   lastInflowToReadyToAssign: boolean;
   transactionCount: number;
   scheduledCount: number;
+  hasRules: boolean;
 };
 
 /** `col in (select value from json_each(?))`: any number of ids ride one bound parameter. */
@@ -43,6 +44,9 @@ export async function listForPlan(
     ? sql<number>`(select count(*) from scheduled_transactions s join accounts a on a.id = s.account_id and a.deleted_at is null
         where s.payee_id = payees.id and s.budget_id = ${budgetId} and s.deleted_at is null)`
     : sql<number>`0`;
+  const hr = opts.counts
+    ? sql<number>`exists (select 1 from payee_rename_rules r where r.payee_id = payees.id and r.deleted_at is null)`
+    : sql<number>`0`;
   const rows = await db
     .select({
       p: payees,
@@ -52,6 +56,7 @@ export async function listForPlan(
       rta: sql<number>`case when payees.system is null then coalesce((select inflow_to_ready_to_assign from transactions where id = ${latestId}), 0) else 0 end`,
       tc,
       sc,
+      hr,
     })
     .from(payees)
     .where(and(...conds));
@@ -61,6 +66,7 @@ export async function listForPlan(
     lastInflowToReadyToAssign: Number(r.rta) === 1,
     transactionCount: Number(r.tc),
     scheduledCount: Number(r.sc),
+    hasRules: Number(r.hr) === 1,
   }));
 }
 

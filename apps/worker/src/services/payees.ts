@@ -20,6 +20,7 @@ import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import { allOf, type LogBase, whenQuery } from "../repositories/guards";
+import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as transactionsRepo from "../repositories/transactions";
@@ -29,7 +30,7 @@ type Db = ReturnType<typeof getDb>;
 
 export function payeeToApi(
   row: payeesRepo.PayeeRow &
-    Partial<Pick<payeesRepo.PayeeListRow, "transactionCount" | "scheduledCount">>,
+    Partial<Pick<payeesRepo.PayeeListRow, "transactionCount" | "scheduledCount" | "hasRules">>,
   lastCategoryId: string | null = null,
   lastInflow = false,
 ): Payee {
@@ -43,6 +44,7 @@ export function payeeToApi(
     transfer_account_id: null,
     transaction_count: row.transactionCount ?? 0,
     scheduled_count: row.scheduledCount ?? 0,
+    has_rules: row.hasRules ?? false,
   };
 }
 
@@ -69,6 +71,7 @@ export async function listPayees(
     transfer_account_id: a.id,
     transaction_count: 0,
     scheduled_count: 0,
+    has_rules: false,
   }));
   const needle = opts.q?.toLowerCase() ?? "";
   return [
@@ -155,12 +158,12 @@ export class PayeeRefused extends Error {
 const forbidden = (m: string) => new PayeeRefused(403, "forbidden", m);
 const unprocessable = (m: string) => new PayeeRefused(422, "unprocessable_entity", m);
 
-async function requirePlan(db: DbT, budgetId: string) {
+export async function requirePlan(db: DbT, budgetId: string) {
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
 }
 
 /** The payee a path names: a transfer entry or a system payee is refused (403), a missing one is 404. */
-async function pathPayee(db: DbT, budgetId: string, payeeId: string, withCounts: boolean) {
+export async function pathPayee(db: DbT, budgetId: string, payeeId: string, withCounts: boolean) {
   if (payeeId.startsWith(TRANSFER_PAYEE_PREFIX)) throw forbidden(PAYEE_ERRORS.transfer);
   const [row] = await payeesRepo.listForPlan(db, budgetId, {
     includeHidden: true,
@@ -242,7 +245,7 @@ export interface PayeeDeletePlan {
   counts: Record<string, { t: number; s: number }>;
 }
 
-/** The statements of one delete, four whatever the rows. A test appends a failing statement to prove atomicity. */
+/** The statements of one delete, six whatever the rows. A test appends a failing statement to prove atomicity. */
 export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"sqlite">[] {
   const { budgetId, ids, replacementId } = p;
   const guard = allOf(
@@ -268,6 +271,7 @@ export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"s
       crypto.randomUUID(),
       guard,
     ),
+    ...rulesRepo.removeForPayeesStmts(db, base, budgetId, ids, guard),
     payeesRepo.softDeleteStmt(db, budgetId, ids, p.now, guard),
   ];
 }

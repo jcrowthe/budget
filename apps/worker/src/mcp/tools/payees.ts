@@ -14,7 +14,7 @@ export const tools: McpToolDef[] = [
   {
     name: "list_payees",
     description:
-      "List the plan's payees. Returns { payees }: each with id, name, hidden, system (starting_balance, manual_adjustment, reconciliation_adjustment, or null for ordinary payees), last_category_id (the category of the payee's latest transaction, or null), last_inflow_to_ready_to_assign (true when that latest transaction was an inflow to Ready to Assign: last_category_id is then null, and the pair means \"Ready to Assign\"; null with false means no remembered category; split transactions do not count as a payee's latest transaction), transfer_account_id, transaction_count (live transactions, split lines included, in the plan's accounts) and scheduled_count (live scheduled transactions); the two counts are plain numbers, 0 for transfer entries. System payees (Starting Balance, Manual Balance Adjustment, and the reconciliation adjustment) are always included and marked by a non-null system. The app sets them: they cannot be given as payee_id for a new transaction (tool error), but every transaction's payee_id can be found in this list. An entry named 'Transfer : <account>' with a transfer_account_id stands for an open account of the plan (id 'transfer:<account id>'): it is not a real payee, so do not pass its id as payee_id; give transfer_account_id to create_transaction or update_transaction instead. Sorted by name, case-insensitive. Hidden payees only with include_hidden: true. q filters by case-insensitive substring. Use an id as payee_id in create_transaction/update_transaction, or pass payee_name to match or create one. " +
+      "List the plan's payees. Returns { payees }: each with id, name, hidden, system (starting_balance, manual_adjustment, reconciliation_adjustment, or null for ordinary payees), last_category_id (the category of the payee's latest transaction, or null), last_inflow_to_ready_to_assign (true when that latest transaction was an inflow to Ready to Assign: last_category_id is then null, and the pair means \"Ready to Assign\"; null with false means no remembered category; split transactions do not count as a payee's latest transaction), transfer_account_id, transaction_count (live transactions, split lines included, in the plan's accounts) and scheduled_count (live scheduled transactions), has_rules (true when the payee has renaming rules, see list_payee_rename_rules; false for transfer entries); the two counts are plain numbers, 0 for transfer entries. System payees (Starting Balance, Manual Balance Adjustment, and the reconciliation adjustment) are always included and marked by a non-null system. The app sets them: they cannot be given as payee_id for a new transaction (tool error), but every transaction's payee_id can be found in this list. An entry named 'Transfer : <account>' with a transfer_account_id stands for an open account of the plan (id 'transfer:<account id>'): it is not a real payee, so do not pass its id as payee_id; give transfer_account_id to create_transaction or update_transaction instead. Sorted by name, case-insensitive. Hidden payees only with include_hidden: true. q filters by case-insensitive substring. Use an id as payee_id in create_transaction/update_transaction, or pass payee_name to match or create one. " +
       MONEY,
     inputSchema: z.object({
       budget_id: Id,
@@ -31,7 +31,7 @@ export const tools: McpToolDef[] = [
   {
     name: "rename_payee",
     description:
-      "Rename an ordinary payee. Every transaction shows the new name at once. A name that differs only by case from another payee is accepted; an exact duplicate is a tool error, and so are an empty name, a system payee and a transfer entry. Returns { payee }: the payee as list_payees gives it. " +
+      "Rename an ordinary payee. Every transaction shows the new name at once. A name that differs only by case from another payee is accepted; an exact duplicate is a tool error, and so are an empty name, a system payee and a transfer entry. If the payee's old name came from a bank import (some of its transactions were imported under that name), the rule 'is <old name>' is added to it so later imports are renamed to the new name. Returns { payee }: the payee as list_payees gives it. " +
       MONEY,
     inputSchema: z.object({ budget_id: Id, payee_id: Id, name: z.string().max(200) }),
     run: async (input: { budget_id: string; payee_id: string; name: string }, { env, actor }) => ({
@@ -56,7 +56,7 @@ export const tools: McpToolDef[] = [
   {
     name: "delete_payee",
     description:
-      "Delete an ordinary payee. Its transactions and scheduled transactions move to replacement_payee_id (an ordinary payee of the plan, hidden or not), or to no payee when it is omitted; both happen in one step. Transfer entries and system payees cannot be deleted. Returns { deleted }: id, name, replacement_payee_id, transactions_moved and scheduled_moved. " +
+      "Delete an ordinary payee. Its transactions and scheduled transactions move to replacement_payee_id (an ordinary payee of the plan, hidden or not), or to no payee when it is omitted; both happen in one step. The payee's renaming rules are deleted too (the replacement does not inherit them). Transfer entries and system payees cannot be deleted. Returns { deleted }: id, name, replacement_payee_id, transactions_moved and scheduled_moved. " +
       MONEY,
     inputSchema: z.object({
       budget_id: Id,
@@ -78,7 +78,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "bulk_update_payees",
-    description: `Hide, unhide or delete several ordinary payees at once (at most ${PAYEE_BULK_MAX} ids; all or none). delete moves their transactions and scheduled transactions to replacement_payee_id (an ordinary payee of the plan not among the ids) or to no payee when it is omitted. Returns { payees, deleted }: payees holds the payees after hide or unhide; deleted lists id, name, replacement_payee_id, transactions_moved and scheduled_moved for delete. ${MONEY}`,
+    description: `Hide, unhide or delete several ordinary payees at once (at most ${PAYEE_BULK_MAX} ids; all or none). delete moves their transactions and scheduled transactions to replacement_payee_id (an ordinary payee of the plan not among the ids) or to no payee when it is omitted. Deleting also deletes the payees' renaming rules. Returns { payees, deleted }: payees holds the payees after hide or unhide; deleted lists id, name, replacement_payee_id, transactions_moved and scheduled_moved for delete. ${MONEY}`,
     inputSchema: z.object({
       budget_id: Id,
       payee_ids: z.array(Id).min(1).max(PAYEE_BULK_MAX),

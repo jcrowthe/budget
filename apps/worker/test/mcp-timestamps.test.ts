@@ -419,6 +419,28 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     (c) => ({ budget_id: c.bid, payee_ids: [c.payeeBulkA, c.payeeBulkB], action: "hide" }),
   ],
   [
+    "create_payee_rename_rule",
+    (c) => ({ budget_id: c.bid, payee_id: c.payee, kind: "contains", text: "zz rename rule" }),
+  ],
+  ["list_payee_rename_rules", (c) => ({ budget_id: c.bid, payee_id: c.payee })],
+  [
+    "update_payee_rename_rule",
+    (c) => ({
+      budget_id: c.bid,
+      payee_id: c.payee,
+      rule_id: (results.get("create_payee_rename_rule")?.rule as Json).id,
+      kind: "is",
+    }),
+  ],
+  [
+    "delete_payee_rename_rule",
+    (c) => ({
+      budget_id: c.bid,
+      payee_id: c.payee,
+      rule_id: (results.get("create_payee_rename_rule")?.rule as Json).id,
+    }),
+  ],
+  [
     "set_category_target",
     (c) => ({
       budget_id: c.bid,
