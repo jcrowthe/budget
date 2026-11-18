@@ -223,6 +223,7 @@ export async function updatePayee(
           sql`${same} and exists (select 1 from transactions t where t.budget_id = ${budgetId} and t.payee_id = ${row.id} and t.deleted_at is null and t.import_payee_name = ${row.name})`,
         )
       : [];
+  let ruleAdded = false;
   try {
     const res = await db.batch([
       ...learn,
@@ -245,13 +246,17 @@ export async function updatePayee(
     if (((res[res.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
     }
+    // The rule's insert is the last statement of `learn`.
+    if (learn.length > 0)
+      ruleAdded =
+        ((res[learn.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) > 0;
   } catch (e) {
     if (payeesRepo.isUniqueViolation(e))
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
     throw e;
   }
   return payeeToApi(
-    { ...after, updatedAt: now },
+    { ...after, hasRules: row.hasRules || ruleAdded, updatedAt: now },
     row.lastCategoryId,
     row.lastInflowToReadyToAssign,
   );

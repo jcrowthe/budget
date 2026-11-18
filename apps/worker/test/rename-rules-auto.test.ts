@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { tool } from "./account-helpers";
 import { json } from "./helpers";
-import { type Json, q, setupPlaid, TX } from "./plaid-sync-helpers";
+import { data, type Json, q, setupPlaid, TX } from "./plaid-sync-helpers";
 import { liveRules, ruleLogs } from "./rename-rules-helpers";
 import { PAYEES, setup, txn } from "./rename-rules-sync-helpers";
 
@@ -22,6 +22,7 @@ describe("renaming rules made by themselves (EXF-467)", () => {
     const id = (await s.row("ZZ-1")).payee_id as string;
     const res = await json(`${PAYEES(s.plan)}/${id}`, { method: "PATCH" }, { name: "ZZ Cafe" });
     expect(res.status).toBe(200);
+    expect(((await res.json()) as Json).data.payee.has_rules).toBe(true);
     expect(await rulesOf(s.plan)).toEqual(["is:ZZ BANK CAFE 12"]);
     const [log] = await ruleLogs(s.plan);
     expect(log).toMatchObject({ actor: USER, action: "create" });
@@ -108,15 +109,17 @@ describe("renaming rules made by themselves (EXF-467)", () => {
     const other = await s.payee("ZZ-TEST Other");
     const cleared = await patch(s.plan, (await s.row("ZZ-1")).id, { payee_id: null });
     expect(cleared.status).toBe(200);
-    const [acct2] = await q(
-      "select id from accounts where budget_id = ? and id <> ? and deleted_at is null limit 1",
-      s.plan,
-      s.account,
-    );
-    if (acct2) {
-      const t = await patch(s.plan, (await s.row("ZZ-2")).id, { transfer_account_id: acct2.id });
-      expect(t.status).toBe(200);
-    }
+    const acct2 = (
+      await data(
+        await json(
+          `/api/v1/budgets/${s.plan}/accounts`,
+          { method: "POST" },
+          { name: "ZZ Savings", type: "savings", balance: 0 },
+        ),
+      )
+    ).account.id as string;
+    const t = await patch(s.plan, (await s.row("ZZ-2")).id, { transfer_account_id: acct2 });
+    expect(t.status).toBe(200);
     const r3 = await s.row("ZZ-3");
     const split = await patch(s.plan, r3.id, {
       amount: r3.amount,
