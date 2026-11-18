@@ -12645,3 +12645,36 @@ Finished since each template's last review: Build 1, Deploy 6, Discover 2, Test 
 `playwright.config.ts`). Its brief: reproduce under a made load on the base and on a head,
 keep every failing line, set the worker count from the box's quota if the evidence says so,
 three clean full runs under load.
+
+### 2026-11-18 · Plan round 142
+
+Children used 157 of 200 (156 before this plan; one started). Main and live `1979d9d`. The
+person has said nothing new. No ticket was filed at the last review.
+
+**Started: the Build for the browser suite under load** (`p_72cf9bb61a7b4a33aff2708600849975`):
+EXF-807 with EXF-727, EXF-747 and EXF-783, and item 2 of EXF-631 (the `ECONNRESET` retry in a
+spec). All four tickets moved to In Progress. **It runs alone:** it holds `playwright.config.ts`
+(an always-overlap file), and I start nothing beside it, so that what it measures is its own.
+- **Why now:** every later gate depends on it. One gate lost 7 to 8 specs per run and I approved
+  it on a reading that was too narrow; the next gate, alone on the host, was clean. Until this is
+  measured I hold every second Build, which cost 85 minutes last round.
+- **The brief is a measurement brief.** The Architect runs the suite on main once quiet and
+  twice under a made load (four busy loops in a box whose quota is five CPUs) and keeps every
+  failing line, the worker count, the wall time and the box's throttling counters; a cause is
+  named only with a failing line under it. Then: the worker count from the quota if the evidence
+  supports it; a spec that acts too early fixed in the spec; a small race in the app fixed in
+  the app with a test that fails first, a larger one reported and not fixed; no retries, no
+  longer timeout alone; at most ten full runs before the gate; the Tester runs one loaded run
+  itself. "Not reproduced; here are the timings" is an acceptable end; a cause nobody saw is not.
+- **The source app:** nothing is opened or read by any step; the Build has no screen.
+- **What I read for it:** `playwright.config.ts` (no `workers`), `scripts/e2e-serve.sh`,
+  `e2e/global-setup.ts`, the two work-arounds in `e2e/support/register-seed.ts` and
+  `e2e/auto-assign.spec.ts`, the four tickets and EXF-631. The suite is 95 files and 609 tests.
+- Its gate will take longer if the worker count falls; the brief asks for the minutes.
+
+**Not started:** anything else. EXF-465 and EXF-464 follow when this Build's card is answered.
+The template-ticket sweep is due about round 146; it reads tickets and Threads only and loads
+no box with tests, but I start it after this Build's measured runs, not during them.
+
+Ticket writes: 5 (four tickets to In Progress, one note on EXF-807).
+Finished since each template's last review: Build 1, Deploy 6, Discover 2, Test user flow 7.
