@@ -14460,3 +14460,60 @@ compared with the source; the unmatch guard's missing test).
 
 The next review, round 160, is a check-in. Still waiting on the person: the eight questions of
 the round-150 check-in.
+
+### 2026-11-18 · Plan round 160
+
+Children used 176 of 200 (two started this turn; the warning comes at 180, four more).
+Main `f9f1281`, live `639e60d` (read at 21:38Z), no migration between them.
+
+**The ticket filed at the last review exists:** EXF-882 (Manage Payees leftovers; title read
+from the list this turn), set to Low. No blocking link: only its Undo point waits for EXF-530
+or EXF-504, and the ticket says so.
+
+**Started, both from main `f9f1281`:**
+1. **Deploy D42** (`p_ffad27d486774a628c6acee2a7683859`), `expect_commit` `f9f1281`,
+   `gated_commit` `c67d749` (the two trees compared again this turn: identical). It ships
+   EXF-874 and EXF-510. Its checks:
+   - Manage Payees in a test plan seeded exactly as the Build's own seed file seeds: the payee
+     list's counts through REST; the dialog opened **from the payee field, not the plan menu**
+     (so no step opens the menu on live); `Show 3 Transactions`, the refused rename, a rename,
+     hide, delete of an unused payee, delete with a replacement, `Show 5 Transactions`; the
+     list through REST again; one MCP call; 94 tools (89 read on live by D41, five counted by
+     me in `mcp/tools/payees.ts`).
+   - The outside press in a second, empty test plan: a click on an Auto-Assign option with the
+     month picker open closes the picker and sends no request; the next click sends one.
+   - **The two Sandbox connections after the 21:00Z run, as numbers only:** how many
+     connections, how many `connected`, how many synced at or after 21:00Z, and the counts of
+     bank accounts. I do not know these figures and the brief says so.
+   - **Every expected figure in it I read this turn** from the spec, the seed, the schema or the
+     style sheet; where I did not (the dialog's left edge at 1920 px, the tool's field names,
+     the focus after `Done`), the brief says "not read by the Lead" and a different value is an
+     observation, not a difference.
+   - **The standing text as the Deploy review corrected it:** the lost-files paragraph is one
+     line for the verifier (BOX REPLACED); the connection list goes to a scratch file and only
+     numbers are printed; test plans only by the script; NOT CHECKED never under DIFFERS; the
+     guard allows every plan id of the ledger; the answer form's two traps named; the browser
+     installed first; the app's own reads of the plans list on every page load named.
+   - The dialog steps run at 1920×1080: there the dialog (1136 px wide, by its style rule) lies
+     right of x=260, so a screenshot clipped to leave out the sidebar still holds all of it.
+2. **The Build for EXF-881** (`p_58cf6bb7e3ac4eb9b1697caf69254eb3`). Worker and one spec; no web
+   file, no migration, no shared module, no file of `paths.always_overlap`. Nothing else is
+   building, so the scheduling rule has nothing to weigh.
+   - **Evidence first, and "not found" allowed:** the Implementer's first act is the Worker
+     test with 140 bank accounts in one environment on the unfixed code, with the server's
+     error quoted. My cause is an inference and the brief says so.
+   - **A trap named with its reason:** the spec is not run six times on the unfixed code; each
+     run leaves two Items at Plaid's Sandbox that nothing removes.
+   - The source is closed to every step and no step starts a sub-agent (the Build review's
+     finding).
+   - `"reserved_migrations": []`, as always.
+   - If it runs long: the list's fix with its tests and the spec's cleanup must be whole.
+
+**Not started:** no flow run (flows wait for D42); no template review due (Build 1, Deploy 0,
+Discover 2, Test user flow 8); the next features (EXF-467 with EXF-515) wait for this Build's
+gate and for the check-in, with 24 children left.
+
+**Ticket writes:** 3 (EXF-882 priority; EXF-881 to In Progress and its comment).
+
+**The review of this round is a check-in.** Still waiting on the person: the eight questions
+of the round-150 check-in; the child limit comes first.
