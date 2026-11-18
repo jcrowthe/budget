@@ -14299,3 +14299,77 @@ Finished since each template's last review: Build 0 (its review is running), Dep
 Discover 2, Test user flow 8. **Children left: 26.**
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 158
+
+Children used 174 of 200 (the warning comes at 180). One ended: **the Build template's review
+completed** (`p_50d7fef0296249bdaf486c36afdb91fa`). Main `e32ebed`, live `639e60d`.
+
+**Status of the running child (19:55Z):** the Build for EXF-510
+(`p_3d140515a4c34b64a7efbf1baf338ce1`), 23 visits, PR 79 open, acceptance not yet written; no
+card.
+
+**The review (card answered in a side turn: approve all).** Two new tickets, **EXF-879** (the
+gate and intake read `reserved_migrations` entries by the profile's prefix width; set to High:
+it is the cheapest change and would have saved a whole Build) and **EXF-880** (a review loop
+that ends on an unreviewed fix runs one review of it and shows it on the card; Medium), and
+twelve evidence comments. Its figures for the ten Builds: $86.79 and 23.2 hours; the Architect
+38% of the money; the final gate 21% of the time.
+
+**It checked my statements first, as asked, and corrected eleven.** The two that matter:
+1. **The gate of the sync Build (`p_da6a…`) had run and passed, and its line was in the
+   Thread's record** (695 of 696, then 696 of 696 twice) when I answered its help card "I do
+   not know whether the gate ran" and wrote on the approval card and on two tickets that my
+   hand run was "one full run where the gate makes three". I had read the agents' messages and
+   never the code steps' output. My hand check was not wasted, but what I said about it was
+   wrong.
+2. **The manual-match Build's gate (`p_f67d…`) was not clean:** a first attempt failed in its
+   first full run; I called the gate clean from the second attempt's line, and the sweep
+   repeated it on two tickets.
+The rest are the same fault in small (a count taken from a Tester's own claim; six spec files
+where there were seven; one wheel scroll where there were two; the time of a listing).
+**Rule, sharper than the one I had: a figure I pass on carries where I read it; what a step
+says of itself is "the step says", not a count.**
+
+**A real fault found by following one line of that lost gate result.** The line listed
+`e2e/bank-connections-sandbox.spec.ts:15` as `3/5`; the review could find neither the legend
+nor the error. I ran the spec on main `e32ebed` in a throwaway checkout (removed after), six
+times on one worker, 19:56Z to 19:57Z: **three passes, then three failures**, each a TypeError
+at the spec's read of the connections list.
+- What I infer, from the code and the arithmetic, not from the server's error (which I did not
+  read): each run leaves two Sandbox connections of 14 bank accounts in the local database;
+  `linksForPlan` (`apps/worker/src/repositories/accounts.ts`) binds one parameter per bank
+  account of the whole bank environment; D1 allows 100 per statement; seven connections are 98
+  ids plus one, eight are 112. The failures begin exactly at the eighth.
+- **So the bank connections list answers an error once an environment holds about a hundred
+  bank accounts**, and with it Manage Bank Connections and Link Account. The code is of 15 Nov,
+  not of today's Builds. An owner with a few banks is far from it; live's Sandbox environment
+  holds 16 bank accounts today. Filed below as a gap ticket (Medium), with the spec's leftover
+  connections.
+- **And `3/5` was three passes in five runs alone, passed by the gate as a flake.** Posted on
+  EXF-576 with what I saw and, in a second comment, what I only inferred.
+- The path I feared (connection creation, changed by that Build and live since 18:03Z) passed
+  in all six runs up to the list: the creation itself is sound.
+
+**What I change at once, from the review:**
+- **No sub-agent in the source.** A list of allowed presses copied word for word into a
+  sub-agent's prompt did not bind it. A brief now either closes the source to a Build
+  altogether or opens it to the main step only, and says "send no sub-agent to the source".
+  And it names the kinds nobody had named: no theme switching, no forced hover, no copy of a
+  loaded script kept on disk.
+- **At a card after a gate I read the gate's own line in the Thread's record**, not only the
+  agents' messages; if my tools do not show it, I say "not read", not "not known whether".
+- **A gate-fix that raises a time limit or changes an assertion is named on the card or I ask
+  for it**: at the dialogs Build I approved seven spec files with raised limits on the
+  Implementer's summary.
+
+**Tickets:** EXF-879 to High, EXF-880 to Medium (both filed by the review; titles read in its
+output); two comments on EXF-576. **Ticket writes:** 4 (mine); the review made 14.
+**Filed at this review:** one gap ticket (the list's parameter limit; the spec's leftovers).
+**Backlog:** 33 open feature tickets, one In Progress. Gap: 16 open, plus the one filed here.
+Template: 44 open with EXF-878, EXF-879 and EXF-880 (not recounted).
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 0, Deploy 0, Discover 2, Test user flow 8.
+
+**Next plan:** set the new ticket's priority. Nothing to start: Manage Payees is still in its
+Build and main is one small merge ahead of live.
