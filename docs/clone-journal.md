@@ -12875,3 +12875,46 @@ connected account. Then EXF-727 (the month picker) on the Plan page, and EXF-866
 
 Ticket writes: 2 (the two priorities).
 Finished since each template's last review: Build 3, Deploy 6, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 144
+
+Children used 159 of 200. One ended: **the manual-match Build completed**
+(`p_f67df6924cb740b29568b5f4a63c844f`, 2 h 57 min, $14.05), merged as **`b0240a5`** (EXF-464 and
+EXF-816; both moved to Done). Main is `b0240a5`; live is `1979d9d`, two merges and **one
+migration** behind (`20261116101600_manual_match.sql`, read as pending by
+`scripts/migrations-pending.sh`). The journal branch holds main. Nothing is running.
+
+**The manual-match Build (card answered in a side turn: approve).**
+- Built: match and unmatch through REST and two tools, `match_details` on the reads, the link
+  icon, the details panel and the bar's two buttons; the open row's Category tooltip.
+- Its gate ran on `879f169`, after the other Build's merge, and was clean (642 of 642 three
+  times); no Refresh was needed, against what I had expected.
+- The design tables every pair: what matches and what is refused, with its message. I accepted
+  its decisions (an approved import is refused; a split or transfer entry matches only at equal
+  amounts; unmatch leaves the entry uncleared and the import unapproved).
+- **One migration, as the brief allowed:** one nullable column for the hand entry's amount
+  before a match. The Clerk had written no reserved migration; the design named the file; the
+  gate noted "no number reserved". Accepted as I said I would.
+- The source: style rules and static script files read, probes in a tab of its own, reported;
+  the panel's words and the refusal sentences come from there.
+- The Tester looked at the six states; it noted that it ran under a load of about 11 on 5 CPUs
+  and passed first time. The Reviewer's one note: no spec asserts the panel's click-through.
+- Two Builds side by side, both gates clean, 2 h 25 min and 2 h 57 min. The scheduling as it
+  was meant to be.
+
+**What I learned:** telling a Build what it may decide and what departure I will accept (the
+migration) saved a round: nobody stopped to ask.
+
+**Ticket writes:** 3 (two to Done, one note).
+**Backlog:** 40 open feature tickets (EXF-866 new; 60 done). Gap: seventeen open (EXF-867 new;
+EXF-727 Medium). Template: forty-one open.
+Finished since each template's last review: Build 4, Deploy 6, Discover 2, Test user flow 7.
+Template-ticket sweep due about round 146.
+
+**Next plan:** Deploy D38 for `b0240a5` (two merges, one migration: the pending list must show
+exactly that file before the release and nothing after). Its checks without a bank: the two new
+tools and `match_details` null on plain rows; a refusal's wording for two hand entries through
+REST and in the bar; the open row's Category tooltip; a test plan deleted through the script
+(the unlink path with no linked account); the mark's popup cannot be shown (no linked account
+without a bank). Then the flow test with a Sandbox bank for match, unmatch, the strip's absence
+on a connected account and the mark's popup.
