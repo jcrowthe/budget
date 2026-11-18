@@ -70,7 +70,7 @@ export function CategoryField({
       initialActive={current ? 0 : typed === null ? -1 : 0}
       disabled={disabled && fixedText === undefined}
       readOnly={fixedText !== undefined}
-      title={fixedText ?? title}
+      title={fixedText ?? title ?? ((typed ?? shown) || undefined)}
       startOpen={startOpen && fixedText === undefined}
       width={400}
       listLabel="Categories"
