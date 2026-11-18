@@ -26,9 +26,9 @@ async function cleanup(request: APIRequestContext, name: string) {
 }
 
 /** Opens the dialog with a file of 6,000 rows, the name set, and the continue answers slowed (they still reach the server). */
-async function ready(page: Page, name: string, delayMs = 400) {
+async function ready(page: Page, name: string, delayMs = 400, gate?: Promise<void>) {
   await page.route("**/budgets/import/*/continue", async (route) => {
-    await new Promise((r) => setTimeout(r, delayMs));
+    await (gate ?? new Promise((r) => setTimeout(r, delayMs)));
     await route.fallback();
   });
   await openImport(page);
@@ -93,9 +93,16 @@ test("11 cancel: asks once, Keep importing goes on, yes removes everything", asy
   const name = testName("cancel");
   try {
     const requests = importRequests(page);
-    await ready(page, name, 700);
+    // The continues are held on a gate the test opens, so the import stays in "writing" for every step below.
+    let open = () => {};
+    const gate = new Promise<void>((r) => {
+      open = r;
+    });
+    await ready(page, name, 0, gate);
     await realClick(page, button(page, "Import"));
     await expect(dialog(page).getByRole("progressbar")).toBeVisible();
+    // Cancel import is disabled until the start request has answered.
+    await expect(button(page, "Cancel import")).toBeEnabled();
     // Keep importing: the question goes away and the import carries on.
     await realClick(page, button(page, "Cancel import"));
     await expect(
@@ -113,6 +120,7 @@ test("11 cancel: asks once, Keep importing goes on, yes removes everything", asy
     // Yes: one DELETE, nothing kept.
     await realClick(page, button(page, "Cancel import"));
     await realClick(page, button(page, "Cancel import"));
+    open();
     await expect(
       dialog(page).getByText("The import was cancelled. Nothing was kept.", { exact: true }),
     ).toBeVisible();
