@@ -13849,3 +13849,49 @@ Finished since each template's last review: Build 8, Deploy 8, Discover 2, Test 
 due at 10, so two of the 31 children left are spoken for.
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 153
+
+Children used 169 of 200 (the warning comes at 180). One ended: **Deploy D40 released**
+(`p_a950a3ca290c4d38a924a49920cbdc0a`). **Live is `07e3715`** at https://budget.doxen.dev (the
+health check read by me at 15:53Z); main is `07e3715`; no migration pending.
+
+**Status of the running child (15:53Z):** the Build for EXF-875 with EXF-751
+(`p_da6a4b23ba4245dbb499515a2a0cc866`), 8 minutes in, 6 visits, no design yet, no card.
+
+**D40.**
+- Gate: `pnpm check` 272 s, the browser run skipped (tree equal to the gated `13704fd`).
+  Release: the D1 bookmark, no migration, smoke ok. `plaid credentials: sandbox set,
+  production set`.
+- **Every check as expected.** The plan menu by keyboard stops on `Export Plan`; the dialog's
+  words exact; Cancel sends nothing; Export sends one request and downloads
+  `Budget Export - ZZ TEST D40 check as of 2026-11-18 15-51.zip` with its two entries, the
+  Register's row as written; "Don't show again" saves exactly its one key and the next click
+  downloads with no dialog; the dialog whole inside the window at 1024×700; the downloaded zip
+  goes through the import's dry run with no warning; nothing imported; 89 tools.
+- Two LOOK screenshots, both clipped to exclude the sidebar and opened; none besides. **The
+  new rule about taking screenshots held on its first use.**
+- The navigation helper never met `/` or `/plans`; the submenu never opened; the two
+  connections that are not ours unchanged.
+- **Under DIFFERS, two things, neither a fault of the app:** it did not read the saved key back
+  after the fourth step (its own next step reset it first; the PUT's body and the missing
+  dialog show the value); and the app itself reads the plans list when the plan menu opens
+  (one `GET /api/v1/budgets` each time), which my brief's sentence "do not call it except for
+  the count" did not foresee. Its recorder kept method, path and status only, so no plan name
+  was recorded. **The standing text gains: "the app reads the plans list by itself when the
+  plan menu opens; that is expected; your recorder keeps no body of it".**
+- **Not checked, as planned:** the Import Plan dialog (the plans page is never opened on live).
+
+**What I learned:** the Deploy text now carries three rules that each came from one verifier's
+report (the navigation helper, the recorder without bodies, the clipped screenshots), and each
+held the next time. The verifiers report their own slips at the top; that is what makes the
+rules possible.
+
+**Tickets:** live notes on EXF-476 and EXF-477. **Ticket writes:** 2. No new ticket.
+**Backlog:** not recounted in this turn (33 open feature tickets; 19 open gap tickets, two of
+them In Progress: EXF-875, EXF-751).
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 8, Deploy 9, Discover 2, Test user flow 8.
+
+**Next plan:** nothing to deploy. The sync Build runs alone (it edits `wrangler.jsonc`), so no
+other Build starts. Nothing else is due: wait for its card.
