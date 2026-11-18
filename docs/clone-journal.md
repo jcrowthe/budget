@@ -13468,3 +13468,46 @@ Test user flow 8.
 `exfab/p_6d02018d422f4e9a80bd2a3e6d826ace` at `c953b12`: an empty reserved list, the one
 rename, then review of the change, acceptance and the gate. No Deploy until it merges. The
 review after that is round 150, a check-in.
+
+### 2026-11-18 · Plan round 150
+
+Children used 166 of 200 (one started this turn; the warning comes at 180). Main `170f4db`,
+live `b0240a5`. No ticket was filed at the last review, so none to check.
+
+**Running:** the Build for EXF-477 with EXF-476 (`p_67b2dc2acd404028888247acb64ab7d9`), the
+Import Plan and Export Plan dialogs; design written, no card.
+
+**Started: the carry-over Build `p_79c7d0a7b7d44cb1ad223a5eac018cd3` for EXF-866 with EXF-867**
+(from main `170f4db`).
+- Its Clerk merges the first Build's branch (`exfab/p_6d02018d422f4e9a80bd2a3e6d826ace` at
+  `c953b12`; I checked the figures the brief states: the branch holds main, 49 files, 2318
+  insertions, 107 deletions, the migration last in the folder) and writes
+  **`"reserved_migrations": []`**, with the reason in the brief.
+- **Two changes only:** the status is named `Linked Account Not Found` (I counted where the old
+  name stands on the branch: one label in `packages/schema/src/connection-status.ts`, the row in
+  the Manage Bank Connections detail, two tool texts, one schema description, four test files;
+  the strip's and popup's sentences stay); and a broken connection's badge in the Bank
+  Connections list stops reading `Repair` (the first Build's "Found, not fixed"; I expect
+  `Connection Lost`). The migration file is not touched.
+- **Each step is told what it does and what it does not:** the Architect adds one section to the
+  design and redesigns nothing; the Designer looks only at the two changes; the Reviewer reviews
+  what comes after `c953b12`; the Tester runs the sixteen cases on the merged head and looks at
+  four states (eight screenshots). **No step opens the source.**
+- **If the gate refuses the migration again,** the brief itself allows the gate-fix step to set
+  the reserved list to the 14-digit prefix alone: the permission is in the brief this time,
+  because a note sent later does not arrive.
+- **Beside the other Build:** disjoint manifests (checked at the last review); this one holds
+  the shell; each brief lists the other's ground as out of bounds.
+
+**Not started:** a Deploy (D39 waits for this merge, so that one Deploy ships `170f4db`, the
+connection statuses and the migration); EXF-874; flow 2's second run.
+
+**Tickets:** a comment on EXF-866 naming the carry-over (both tickets were already In
+Progress). **Ticket writes:** 1.
+Finished since each template's last review: Build 6, Deploy 7, Discover 2, Test user flow 8.
+
+**The next review is round 150's: a check-in.** It tells the person, plainly: the wrong write
+to another project's ticket (EXF-820, round 141); the wrong bank figure in a live test's brief;
+the Build I had to end for my own reserved-migration line and its cost (one child, about an
+hour and a half); what is live and proved; what the 34 children left are for; and the eight
+open questions again, with the child limit first.
