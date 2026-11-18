@@ -66,11 +66,17 @@ export function markOpenedStmt(db: Db, id: string, at: string) {
     .where(and(eq(budgets.id, id), isNull(budgets.deletedAt)));
 }
 
-export function softDeleteStmt(db: Db, before: BudgetRow, at: string) {
-  return db.update(budgets).set({ deletedAt: at, updatedAt: at }).where(unchanged(before));
+export function softDeleteStmt(db: Db, before: BudgetRow, at: string, extra?: SQL) {
+  return db
+    .update(budgets)
+    .set({ deletedAt: at, updatedAt: at })
+    .where(extra ? and(unchanged(before), extra) : unchanged(before));
 }
 
 /** A `SELECT 1` on the unchanged row, for `changeLogInsertIf`. */
-export function existsUnchanged(db: Db, before: BudgetRow) {
-  return db.select({ x: sql`1` }).from(budgets).where(unchanged(before));
+export function existsUnchanged(db: Db, before: BudgetRow, extra?: SQL) {
+  return db
+    .select({ x: sql`1` })
+    .from(budgets)
+    .where(extra ? and(unchanged(before), extra) : unchanged(before));
 }

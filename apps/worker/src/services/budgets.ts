@@ -14,7 +14,9 @@ import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
+import * as accountsRepo from "../repositories/accounts";
 import * as repo from "../repositories/budgets";
+import { accountFacts, accountToApi } from "./accounts";
 import { defaultCategoryStmts } from "./default-categories";
 
 export function toApi(row: repo.BudgetRow): Budget {
@@ -237,10 +239,42 @@ export async function updateBudget(
   return toApi(after);
 }
 
+/**
+ * Deleting a plan unlinks its linked accounts in the same batch, each with its history row, so no hidden link
+ * is left (EXF-824). The plan's log row and delete hold only while no account is linked except the ones read;
+ * each unlink holds only while its account is still linked as read and the plan's deleted_at is this delete's
+ * time. A link made since the read therefore makes the whole delete write nothing (409).
+ */
 export async function deleteBudget(env: Env, actor: string, id: string): Promise<void> {
   const db = getDb(env);
-  const before = await repo.findActive(db, id);
+  const [before, linked] = await Promise.all([
+    repo.findActive(db, id),
+    accountsRepo.linkedInPlan(db, id),
+  ]);
   if (!before) throw new NotFound("Plan");
+  if (linked.length > accountsRepo.MAX_LINKS_AS_READ) throw new Conflict("Plan");
+  const at = new Date().toISOString();
+  const facts = linked.length ? await accountFacts(db, id) : null;
+  // Built first, so no unlink row is dated after the plan's delete row.
+  const unlinks = facts
+    ? linked.flatMap((row) => [
+        changeLogInsertIf(
+          db,
+          {
+            budgetId: id,
+            actor,
+            action: "update",
+            entityType: "account",
+            entityId: row.id,
+            before: accountToApi(row, facts(row)),
+            after: accountToApi({ ...row, bankAccountId: null, importStartDate: null }, facts(row)),
+          },
+          accountsRepo.unlinkAfterDeleteHolds(db, row, at),
+        ),
+        accountsRepo.unlinkAfterDeleteStmt(db, row, at),
+      ])
+    : [];
+  const guard = accountsRepo.linksAsRead(id, linked);
   const [, result] = await db.batch([
     changeLogInsertIf(
       db,
@@ -253,9 +287,10 @@ export async function deleteBudget(env: Env, actor: string, id: string): Promise
         before: toApi(before),
         after: null,
       },
-      repo.existsUnchanged(db, before),
+      repo.existsUnchanged(db, before, guard),
     ),
-    repo.softDeleteStmt(db, before, new Date().toISOString()),
+    repo.softDeleteStmt(db, before, at, guard),
+    ...unlinks,
   ]);
   if (result.meta.changes === 0) await lostRace(db, id);
 }

@@ -1,0 +1,124 @@
+/* The sidebar's connection mark (a button over the row's empty right slot) and its status popup (EXF-465). */
+.nav-account-row .nav-link-status {
+  position: absolute;
+  right: 8px; /* where .nav-account-link .slot-right sits */
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  cursor: pointer;
+}
+/* The source's mark is white for every status (--sidebarLabelPrimary). */
+.nav-account-row .nav-link-status {
+  --statusMarkHover: rgba(
+    255,
+    255,
+    255,
+    0.3
+  ); /* source badge hover, measured on the test plan's style rules */
+  color: var(--labelPrimary);
+}
+/* A badge only when the owner must act (the source's isDirectImportUserActionable). */
+.nav-account-row .nav-link-status[data-status="login_required"],
+.nav-account-row .nav-link-status[data-status="broken"] {
+  background: var(--buttonSubtleBackground);
+}
+.nav-account-row .nav-link-status[data-status="login_required"]:hover,
+.nav-account-row .nav-link-status[data-status="broken"]:hover {
+  background: var(--statusMarkHover);
+}
+.nav-account-row .nav-link-status:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 1px;
+}
+.status-popup {
+  position: fixed;
+  z-index: var(--z-menu);
+  box-sizing: border-box;
+  width: 292px;
+  padding: var(--space-3);
+  border-radius: 0.4rem;
+  background: var(--backgroundTertiary);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+  cursor: default;
+}
+.status-popup strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--labelPrimary);
+}
+.status-popup p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--labelSecondary);
+  overflow-wrap: anywhere;
+}
+.status-popup .status-popup-details {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--separatorStandard);
+  border-radius: 0.4rem;
+}
+/* The arrow: 30x15 (1.875rem x 0.9375rem), pointing at the mark, on the popup's left or right edge. */
+.status-popup-arrow {
+  position: absolute;
+  width: 15px;
+  height: 30px;
+  background: var(--backgroundTertiary);
+}
+.status-popup-arrow[data-side="right"] {
+  left: -15px;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+.status-popup-arrow[data-side="left"] {
+  right: -15px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.status-popup-action {
+  display: block;
+  margin-top: var(--space-3);
+}
+.status-popup-button {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+}
+.status-popup-button:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.status-popup-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.status-popup-button:focus-visible {
+  outline: 2px solid var(--labelPrimary);
+  outline-offset: 2px;
+}
+.status-popup .status-popup-notice,
+.status-popup .status-popup-error {
+  margin-top: var(--space-2);
+  text-align: center;
+}
+.status-popup .status-popup-error {
+  color: var(--labelNegative);
+}

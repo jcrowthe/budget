@@ -10,7 +10,7 @@ import { Id, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const FIELDS =
-  "id, display_id, institution_name, nickname, status, provider, last_synced_at, last_reset_at, sync_failed_at (when the last sync that failed in Budget ended, null once a sync finishes) and accounts (each with id, name, mask, type, subtype, current_balance and available_balance, null when unknown, and linked_account_id (the account of this plan linked to it, or null))";
+  "id, display_id, institution_name, nickname, status, provider, last_synced_at, last_reset_at, sync_failed_at (when the last sync that failed in Budget ended, null once a sync finishes) and accounts (each with id, name, mask, type, subtype, current_balance and available_balance, null when unknown, and linked_account_id (the account of this plan linked to it, or null)). status is connected; delayed (the bank did not answer, Budget tries again on its own; when last_synced_at is more than 3 days old, suggest Reset in Bank Connections); login_required (the owner must sign in to the bank again with Repair, in the app's Bank Connections or on the account's page; an agent cannot do it); or broken (cannot be repaired: the owner removes the connection in Bank Connections and connects the bank again)";
 
 export const tools: McpToolDef[] = [
   {

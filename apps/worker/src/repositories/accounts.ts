@@ -13,6 +13,7 @@ import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { bankAccounts } from "../db/schema/bank-accounts";
 import { bankConnections } from "../db/schema/bank-connections";
+import { budgets } from "../db/schema/budgets";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 import { insertSelect } from "./insert-select";
@@ -523,4 +524,56 @@ export function startingBalanceDateQuery(db: Db, accountId: string) {
 
 export async function startingBalanceDate(db: Db, accountId: string): Promise<string | null> {
   return (await startingBalanceDateQuery(db, accountId))[0]?.d ?? null;
+}
+
+/** The plan's live accounts linked to a bank account, with the link columns (as linkedToConnection). */
+export async function linkedInPlan(db: Db, budgetId: string): Promise<AccountReadRow[]> {
+  return selectWithLink(db).where(
+    and(
+      eq(accounts.budgetId, budgetId),
+      isNull(accounts.deletedAt),
+      sql`${accounts.bankAccountId} is not null`,
+    ),
+  );
+}
+
+/** D1 allows 100 bound parameters a statement; `linksAsRead` binds one per row plus the plan's id. */
+export const MAX_LINKS_AS_READ = 90;
+
+/**
+ * Holds while no live account of the plan is linked except the (id, bank account) pairs read: a link made
+ * since the read (or a link changed to another bank account) makes it false. At most MAX_LINKS_AS_READ rows.
+ */
+export function linksAsRead(
+  budgetId: string,
+  rows: Pick<AccountRow, "id" | "bankAccountId">[],
+): SQL {
+  const known = rows.length
+    ? sql` and (${accounts.id} || '|' || ${accounts.bankAccountId}) not in (${sql.join(
+        rows.map((r) => sql`${`${r.id}|${r.bankAccountId}`}`),
+        sql`, `,
+      )})`
+    : sql``;
+  return sql`not exists (select 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null and ${accounts.bankAccountId} is not null${known})`;
+}
+
+/** The unlink of a plan's delete holds while the account is still linked as read and the plan's deleted_at is `at`. */
+function unlinkAfterDeleteCondition(before: AccountRow, at: string) {
+  return and(
+    unlinkCondition(before),
+    sql`exists (select 1 from ${budgets} where ${budgets.id} = ${before.budgetId} and ${budgets.deletedAt} = ${at})`,
+  );
+}
+
+/** SELECT 1 while `before` is still linked as read and the plan's deleted_at = at. */
+export function unlinkAfterDeleteHolds(db: Db, before: AccountRow, at: string) {
+  return db.select({ x: sql`1` }).from(accounts).where(unlinkAfterDeleteCondition(before, at));
+}
+
+/** UPDATE accounts SET bank_account_id = NULL, import_start_date = NULL under the same condition. */
+export function unlinkAfterDeleteStmt(db: Db, before: AccountRow, at: string) {
+  return db
+    .update(accounts)
+    .set({ bankAccountId: null, importStartDate: null })
+    .where(unlinkAfterDeleteCondition(before, at));
 }
