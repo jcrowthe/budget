@@ -259,15 +259,25 @@ export async function findBankAccountInEnvironment(
   environment: "production" | "sandbox",
   bankAccountId: string,
 ): Promise<
-  (BankAccountRow & { connectionStatus: string; connectionSyncedAt: string | null }) | undefined
+  | (BankAccountRow & {
+      connectionStatus: string;
+      connectionSyncedAt: string | null;
+      connectionErrorCode: string | null;
+    })
+  | undefined
 > {
   const [r] = await db
-    .select({ a: bankAccounts, s: bankConnections.status, t: bankConnections.lastSyncedAt })
+    .select({
+      a: bankAccounts,
+      s: bankConnections.status,
+      t: bankConnections.lastSyncedAt,
+      e: bankConnections.syncErrorCode,
+    })
     .from(bankAccounts)
     .innerJoin(bankConnections, eq(bankConnections.id, bankAccounts.bankConnectionId))
     .where(and(eq(bankAccounts.id, bankAccountId), eq(bankConnections.environment, environment)))
     .limit(1);
-  return r && { ...r.a, connectionStatus: r.s, connectionSyncedAt: r.t };
+  return r && { ...r.a, connectionStatus: r.s, connectionSyncedAt: r.t, connectionErrorCode: r.e };
 }
 
 export async function findBankAccountById(db: Db, id: string): Promise<BankAccountRow | undefined> {

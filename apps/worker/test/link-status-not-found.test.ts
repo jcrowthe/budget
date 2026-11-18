@@ -128,4 +128,33 @@ describe("Account Not Found (EXF-866)", () => {
     expect(sav.bank_account_id).toBe(t.bank["ZZ Retirement"]);
     expect(await logs()).toBe(before + 1);
   });
+
+  it("a relink to a bank account of another connection carries that connection's reason", async () => {
+    const t = await two();
+    // a second connection of the plan, delayed with no code; the first is delayed as the bank is unavailable
+    const made = await json(
+      "/api/v1/bank-connections",
+      { method: "POST" },
+      { budget_id: t.plan, public_token: "public-sandbox-token", institution_id: "ins_109508" },
+    );
+    expect(made.status).toBe(201);
+    const other = ((await data(made)).bank_connection as Json).accounts as Json[];
+    const target = other.find((a) => a.name === "ZZ Retirement") as Json;
+    present = ["acc-chk"];
+    await syncOne(t.plan, t.conn);
+    await q(
+      "update bank_connections set status = 'delayed', sync_error_code = 'INSTITUTION_NOT_AVAILABLE' where id = ?",
+      t.conn,
+    );
+    await q("update bank_connections set status = 'delayed' where id <> ?", t.conn);
+    const res = await json(
+      `${A(t.plan)}/${t.sav}/link`,
+      { method: "POST" },
+      { bank_account_id: target.id },
+    );
+    expect(res.status).toBe(200);
+    const posted = ((await data(res)).account as Json).connection_reason;
+    expect(posted).toBeNull();
+    expect((await t.read(t.sav)).connection_reason).toBe(posted);
+  });
 });

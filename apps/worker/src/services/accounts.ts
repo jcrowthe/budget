@@ -798,7 +798,11 @@ export async function insertAccountWithStartingBalance(
     bankAccountId: string | null;
     importStartDate: string | null;
     /** The bank connection's state, for the answer and the log row (the row itself does not hold it). */
-    link?: { connectionStatus: string; connectionSyncedAt: string | null };
+    link?: {
+      connectionStatus: string;
+      connectionSyncedAt: string | null;
+      connectionErrorCode?: string | null;
+    };
   },
 ): Promise<{ account: Account; starting_balance: Transaction }> {
   const db = getDb(env);

@@ -204,8 +204,7 @@ For each state below, at 1440×900 and at 1024×700: the Tester drives the clone
 **If the Build runs long, parts 1 to 3 are the ones that must be whole;** say plainly in the report what of parts 4 to 6 is not done, and the Lead tickets it. A part half done is worse than a part left out.
 
 ## Departures (existing expectations that change)
-These assert the old label for `broken`, which is now `Connection Lost`:
-- `e2e/bank-link-status.spec.ts:53-56` (the `ZZ Lost` mark) and `:68` (its header);
+These assert the old label for `broken`, which is now `Connection Lost` (`e2e/bank-link-status.spec.ts` asserts `login_required`, so it is unchanged):
 - `packages/schema/test/bank-link.test.ts:65`;
 - `packages/schema/test/manage-connections.test.ts:21`.
 

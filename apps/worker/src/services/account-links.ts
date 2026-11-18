@@ -113,6 +113,7 @@ export async function createAccountsFromBank(
           link: {
             connectionStatus: p.bank.connectionStatus,
             connectionSyncedAt: p.bank.connectionSyncedAt,
+            connectionErrorCode: p.bank.connectionErrorCode,
           },
         }),
       );
@@ -208,6 +209,7 @@ export async function linkAccount(
       linkMissingSince: null,
       connectionStatus: bank.connectionStatus,
       connectionSyncedAt: bank.connectionSyncedAt,
+      connectionErrorCode: bank.connectionErrorCode,
     };
     const [, result] = await db.batch([
       changeLogInsertIf(
