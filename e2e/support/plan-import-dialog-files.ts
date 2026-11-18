@@ -216,3 +216,34 @@ export async function seedClearPlan(request: APIRequestContext, label = "imp") {
   });
   return { plan, checking, visa, groceries };
 }
+
+/**
+ * Records the text fields of every FormData the page sends to `/budgets/import*` (the browser does not show a
+ * multipart body to the test). Call before the first `goto`; read with `importForms`.
+ */
+export async function recordImportForms(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __importForms: Record<string, string>[] };
+    w.__importForms = [];
+    const real = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url =
+        typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes("/budgets/import") && init?.body instanceof FormData) {
+        const fields: Record<string, string> = {};
+        for (const [k, v] of init.body.entries()) if (typeof v === "string") fields[k] = v;
+        fields.__files = init.body
+          .getAll("file")
+          .map((f) => (f as File).name)
+          .join("|");
+        w.__importForms.push(fields);
+      }
+      return real(input, init);
+    };
+  });
+}
+
+export const importForms = (page: Page): Promise<Record<string, string>[]> =>
+  page.evaluate(
+    () => (window as unknown as { __importForms: Record<string, string>[] }).__importForms ?? [],
+  );
