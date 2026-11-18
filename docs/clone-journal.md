@@ -12195,3 +12195,39 @@ user flow 6.
 **Next plan:** Deploy D36 for `2370e08` (nothing walks on live now), with the two new standing
 rules. After it, a flow test of the import start with a real Sandbox bank (the Starting Balance
 moved back on the screen) can ride with flow 2's re-run.
+
+### 2026-11-18 · Plan round 137
+
+Children used 154 of 200 (153 before this plan; one started). Main `2370e08`; live `2d9cde7`.
+The person has said nothing new. No ticket was filed at the last review.
+
+**Status of every running child (00:37Z):**
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its build step, no card (not at
+  its final gate, so starting a child now costs its gate nothing).
+- The Build template review (`p_f56a4f28283c47ada683261077398d50`): analysing, no card.
+
+**Started: Deploy D36** (`p_1cc11da77602492792089823d5228f30`, prefix `ZZ-TEST D36`) for
+`2370e08`, `gated_commit` `68389ac` (I compared the two trees: identical). Nothing walks on live
+now, so the hold of the last plan is over.
+- **What it can prove without a bank:** an account that is not linked: its Starting Balance
+  moved back through REST and on the screen, `import_start_date` unchanged, one PATCH and no sync
+  request; the two tool descriptions' new sentences; the split editor's remaining line in a
+  default and a Euro plan (the three amounts, no symbol, never `1,000,00`) and at 1024×700; the
+  bank connection list read at the start and the end (the two that are not ours).
+- **What it cannot prove:** the linked half of EXF-774. That is a flow test with a Sandbox bank
+  after the release (connect, add an account on the screen, move its Starting Balance back in
+  the register, see the older rows arrive).
+- **Brief changes:** the two standing rules from the flow test's slips (a navigation helper that
+  refuses any path outside the test plan, written before the first page load; a request recorder
+  that never keeps the bodies of the plan list or the identity read); no plan menu and no bank
+  modal in this check; **three states marked LOOK, and no other screenshot asked**, instead of a
+  screenshot for every state (the last two verifiers opened about a third of theirs).
+- I read the code behind what the brief asserts: the two tool descriptions on main, and the
+  split-line spec's typed values and readings.
+
+**Not started:** another Build (the plans Build holds the shell); the flow test for the linked
+import start (live must be `2370e08` first).
+
+Ticket writes: 0.
+Finished since each template's last review: Build 0 (review running), Deploy 4, Discover 2, Test
+user flow 6.
