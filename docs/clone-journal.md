@@ -12346,3 +12346,40 @@ plans Build holds the shell; EXF-807 with the three flaky specs runs alone after
 
 Ticket writes: 2 (priorities of EXF-816 and EXF-815).
 Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 6.
+
+### 2026-11-18 · Review round 138
+
+Children used 155 of 200. One ended: **the Build template review completed**
+(`p_f56a4f28283c47ada683261077398d50`, 24 minutes). Main and live `2370e08`.
+
+**Status of the running children (00:57Z):**
+- Flow 5, fifth run (`p_883186d9f2b74f73b82820ad0da7f87f`): walking, just started, no card.
+- The plans Build (`p_b52eb423142440f396ed4e810ac45000`): at its polish step, no card.
+
+**The Build template review: everything I approved was done.** Twelve ticket writes: one ticket
+filed, **EXF-815** (a browser stand-in answers in the server's shape, and every field a screen
+shows is present in a looked-at state, fed with a value in the server's real format; High), and
+eleven comments posted (EXF-611, 612, 573, 684, 576, 567, 628, 575, 559, 682, 563). No duplicate
+closed. Nothing is left for me to file. Its findings and my corrections are in the entry of
+review round 137; its report adds nothing new to them.
+
+**Follow-ups that are mine, in every Build brief from now on:**
+- "What may be read" in the source says explicitly whether script bundles are included.
+- No step reads or prints the source's sidebar header or account menu.
+- No step sets a download host; the fallback is the box's system Chrome.
+- Nobody but the Clerk runs the Clerk's commands (already there; it was broken once).
+- A stand-in's answers are in the server's shape, and each field a screen shows has a value in at
+  least one state the Tester looks at (until EXF-815 is in the template).
+
+**For the check-in at round 140, to tell the person plainly:** a Designer's read of the source's
+sidebar put the signed-in account's email into one Thread's transcript, and that Thread's outputs
+hold screenshots of the test plan's All Accounts page; a Clerk took a browser executable from a
+download mirror of its own choosing in a Build that was then abandoned.
+
+**Ticket writes:** 0.
+**Backlog:** 43 open feature tickets (EXF-469 and EXF-471 in progress; 56 done). Gap: twenty-one
+open (EXF-746 and EXF-798 in progress). Template: forty open (EXF-815 new).
+Finished since each template's last review: Build 0, Deploy 5, Discover 2, Test user flow 6.
+
+**Next plan:** nothing new to start while the flow walks on live and the plans Build holds the
+shell, unless one of them has ended; answer the plans Build's card when it comes.
