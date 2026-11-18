@@ -7,10 +7,12 @@ let end: (() => void) | null = null;
 function swallowRestOfPress(start: PointerEvent, focusTo: HTMLElement | null): void {
   end?.();
   const stop = (e: Event) => {
+    if (!e.isTrusted) return;
     e.preventDefault();
     e.stopImmediatePropagation();
   };
   const up = (e: Event) => {
+    if (!e.isTrusted) return;
     e.stopImmediatePropagation();
     if (focusTo?.isConnected && document.activeElement !== focusTo) focusTo.focus();
   };

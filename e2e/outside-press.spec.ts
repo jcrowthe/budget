@@ -152,6 +152,35 @@ for (const size of [
   });
 }
 
+test.describe("outside press, code clicks", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("6. a click made by code after an outside press is not stopped", async ({
+    page,
+    request,
+  }) => {
+    const id = await newPlan(request);
+    await page.goto(`/${id}/budget`);
+    await realClick(page, monthButton(page));
+    await expect(picker(page)).toBeVisible();
+    await realClick(page, option(page));
+    await expect(picker(page)).toHaveCount(0);
+    const seen = await page.evaluate(() => {
+      const a = document.createElement("a");
+      let prevented: boolean | null = null;
+      a.addEventListener("click", (e) => {
+        prevented = e.defaultPrevented;
+        e.preventDefault();
+      });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      return prevented;
+    });
+    expect(seen).toBe(false);
+  });
+});
+
 test.describe("outside press, touch", () => {
   test.use({ viewport: { width: 1440, height: 900 }, hasTouch: true });
 
