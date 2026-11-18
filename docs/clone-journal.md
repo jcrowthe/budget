@@ -14266,3 +14266,36 @@ flow 8.
 `p_72cf9bb6…`, `p_75b76b1b…`, `p_f67df692…`, `p_cdc27796…`, `p_6d02018d…` abandoned,
 `p_79c7d0a7…`, `p_67b2dc2a…`, `p_da6a4b23…`, `p_b4c92600…`). No Deploy for `e32ebed` alone: it
 ships with Manage Payees when that merges.
+
+### 2026-11-18 · Plan round 158
+
+Children used 174 of 200 (one started this turn; the warning comes at 180). Main `e32ebed`,
+live `639e60d`, no migration pending. No ticket was filed at the last review.
+
+**Running:** the Build for EXF-510 (`p_3d140515a4c34b64a7efbf1baf338ce1`), built and polished;
+review, acceptance and the gate ahead; no card.
+
+**Started: the Build template's review, `p_50d7fef0296249bdaf486c36afdb91fa`** (Improve
+templates, mode review), on the ten Builds since its last one. The ids, taken from the list of
+children as printed earlier in this session: `p_b52eb423…`, `p_72cf9bb6…`, `p_75b76b1b…`,
+`p_f67df692…`, `p_cdc27796…`, `p_6d02018d…` (ended by me at its gate), `p_79c7d0a7…`,
+`p_67b2dc2a…`, `p_da6a4b23…`, `p_b4c92600…`.
+- Its notes carry the sentence about evidence and stand-in tickets and the rule to open neither
+  the source nor the live app.
+- **First ask: check my statements against the step records.** Every count and time in the
+  notes is marked as a claim to test.
+- Then, in order: the gates' full runs getting less clean and what a card would need to show;
+  gate attempts answered by longer waits; the gate that could never pass and my notes that did
+  not arrive; the gate result lost with its box; sub-agents going one step past a brief's list
+  in the source; the LOOK counts in Builds; review rounds that run out; what worked.
+- It reads transcripts only; the Manage Payees Build's gate is not disturbed by it.
+
+**Not started:** a Deploy for `e32ebed` alone (it ships with Manage Payees); a second Build
+(the next ones by weight, EXF-515 and EXF-467, both stand on the Manage Payees dialog that is
+still in its Build); a flow run.
+
+**Ticket writes:** 0.
+Finished since each template's last review: Build 0 (its review is running), Deploy 0,
+Discover 2, Test user flow 8. **Children left: 26.**
+
+**Still waiting on the person:** the eight questions of the round-150 check-in.
