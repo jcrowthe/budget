@@ -13030,3 +13030,53 @@ turn is where I made my last mistake with a ticket's identifier. They start at t
 
 Ticket writes: 0.
 Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 146
+
+Children used 162 of 200. One ended: **the template-ticket sweep completed**
+(`p_c0b672648fb44d8cb00b4575483fd468`, 13 minutes, $3.56). Main and live `b0240a5`.
+
+**Status of the running child (10:02Z):** flow 5, sixth run
+(`p_79fd030ed9aa48c597133b5856c5e52a`): walking, 14 minutes in, no card.
+
+**The sweep (card answered in a side turn: approve all).** It read all 41 open template tickets.
+- No duplicate left to close. Six pieces moved to the ticket that should own them (the gate's
+  box samples and stall line to EXF-576; the shell's ten-minute cap to EXF-563; "every shown
+  field filled in a looked-at state" and the verifier's `looks` to EXF-684, which now covers all
+  three templates; the codify rule to EXF-565; the source's private elements to EXF-555; the
+  `forbidden` skips to EXF-479). Eighteen comments posted; no new ticket.
+- **The five changes that would save the most from here on, in its order:** the wait helper
+  (EXF-563: about 4.5 hours of steps waiting on runs that had already finished; I had left it
+  out of my own list); the gate's evidence and stall line (EXF-576 with EXF-844); the park card
+  to the parent (EXF-611); the short LOOK list with a code check (EXF-684); the source rules
+  rendered by code (EXF-573).
+- **Priorities: the sweep could not set them, so I did** (identifiers and titles read from the
+  ticket list in this turn before each write): EXF-612 Urgent to High; EXF-563 High to Urgent;
+  EXF-844 Medium to High; EXF-584 Medium to High; EXF-575 High to Medium. Urgent now: EXF-563,
+  EXF-573, EXF-611.
+- **A figure of mine corrected in the card answer:** my notes said the short LOOK form got every
+  screenshot opened "in four Deploys and two flow tests". The record is three Deploys (D36, D37,
+  D38) and one flow test, and that flow test took 17 more screenshots that it did not open,
+  because the walk template asks for one per step. The ticket now carries the right figures
+  with the Thread ids.
+- **The two app matters it named, looked at:** (e) the sidebar's identity label shows the access
+  token's name in a service-token session: that is the identity the session has; not a gap.
+  (f) a plan imported without a name takes the export file's name: right for a person, and a
+  risk only for a test that imports without naming (its plan would lack the test prefix); the
+  guard belongs to the template (EXF-618) and my briefs forbid the import in live tests. Not
+  filed. (a) to (d) (recipe scripts, the test server's state directory, the conventions and
+  call counter, the stand-ins' shape): each waits on a template or platform change first;
+  nothing to file for the app now.
+
+**What I learned:** I state a count only after counting it from the Threads. This is the third
+time a number of mine was corrected by a child or by me within a day.
+
+**Ticket writes:** 5 (the priorities).
+**Backlog:** 40 open feature tickets (60 done). Gap: seventeen open. Template: forty-one open
+(Urgent: EXF-563, EXF-573, EXF-611).
+Finished since each template's last review: Build 4, Deploy 7, Discover 2, Test user flow 7.
+Next template-ticket sweep about round 176.
+
+**Next plan:** the two Builds side by side, neither touching live: EXF-727 (the month picker's
+click outside, on the Plan page) and EXF-866 with EXF-867 (the connection statuses left over;
+the shell, the account files and the Worker's sync).
