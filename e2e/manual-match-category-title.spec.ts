@@ -27,7 +27,9 @@ const read = (el: Locator) =>
   }));
 
 test("the open row's Category field has a title with its whole text", async ({ page, request }) => {
-  const { budget } = await call(request, "POST", "/api/v1/budgets", { name: testName("match-cat") });
+  const { budget } = await call(request, "POST", "/api/v1/budgets", {
+    name: testName("match-cat"),
+  });
   const plan = budget.id as string;
   const checking = (
     await call(request, "POST", `/api/v1/budgets/${plan}/accounts`, {
