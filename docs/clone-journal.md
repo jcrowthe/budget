@@ -14119,3 +14119,68 @@ Finished since each template's last review: Build 9, Deploy 0 (its review is run
 Discover 2, Test user flow 8. **Children left: 27.**
 
 **Still waiting on the person:** the eight questions of the round-150 check-in.
+
+### 2026-11-18 · Review round 156
+
+Children used 173 of 200 (the warning comes at 180). One ended: **the Deploy template's review
+completed** (`p_45709fdd5781486294add4547a439092`). Main and live `639e60d`.
+
+**Status of the running children (18:19Z):** the Build for EXF-874
+(`p_b4c926009b32431f826d65b571ba1db0`): design and manifest written (three files of
+`apps/web/src/plan/`, one new spec, its documents; no shared module, no migration). The Build
+for EXF-510 (`p_3d140515a4c34b64a7efbf1baf338ce1`): 6 visits, no design yet. **The first
+manifest stays on its own ground;** I check the second against it when it arrives. No card.
+
+**The review (card answered in a side turn: approve all).** One new ticket, **EXF-878** (the
+Thread record keeps every input in full and the prompt each agent step ran with; set to Medium
+now), and twelve evidence comments (EXF-585, 618, 581, 684, 584, 582, 612, 583, 619, 580, 617,
+567). No duplicate. Its figures for the ten Deploys: 119 minutes and $8.01 in all; gate 38% of
+the time, verifier 42%, recorders 13%, release 6%.
+
+**It checked my statements, as asked, and six were wrong or loose** (each with its Thread and
+step in the report):
+1. "Nine to fourteen minutes each": one took 17 min 57 s.
+2. "Did any step meet a missing file": one did. D33's box (`p_80111cfe…`) was replaced before
+   its verifier, which went on without the files. I had recorded that on EXF-612 on 17 Nov and
+   then wrote "ten of ten held".
+3. "The app reads the plan list when the plan menu opens": it reads it on every page load.
+4. D39's LOOK count: five captures written for three states.
+5. "Every verifier installs the browser": nine of ten.
+6. Wrong figures of mine in D39: none there. **But 11 of the 15 DIFFERS items of the batch were
+   my own wrong figures or asks a step could not meet**, in five other briefs.
+
+**What I change in my Deploy text now, from its findings:**
+- **The bank-connection list is not the plan's: it is the whole bank environment's.** I had six
+  verifiers save and print it (ids, nicknames, sync times of two connections the runs did not
+  make). They are Sandbox connections; in a production-environment plan the same read would
+  list the owner's banks. From now on: the list is written to scratch and only "same or
+  different" and a count are printed; it is never read for a plan whose bank environment is
+  production; a test plan is always made by the script (Sandbox), never through the dialog.
+- **The paragraph about lost platform files goes.** None of the 40 recorder steps ever ran its
+  command (they act on their template's prompt only), and for the verify step its advice was
+  wrong: in the one replaced box the verifier rightly went on. In its place, one line: "if
+  `/workspace/.exfab` lacks the deploy files, say BOX REPLACED at the top, go on from the
+  Thread's inputs, and put what only those files held under NOT CHECKED".
+- **A check the step cannot make is NOT CHECKED with the summary line that holds it, never
+  DIFFERS.**
+- **The navigation guard allows every plan id of the run's own ledger** (it once closed the
+  page on the app's redirect to a plan the run had just made).
+- **The answer form:** nine of ten first answers were refused (a `removed` value outside the
+  list; a missing `explanation`), three tries in four of them. The brief now says: "in the
+  ledger `removed` takes only the listed values; a thing removed with its plan is
+  `with_parent`; the answer needs its `explanation`".
+- **Install the test browser before the first browser script**, not after its first failure.
+- **Before I write a figure a verifier must find, I read it from the code or from a run.** The
+  eleven wrong asks are the largest single waste the review counted on my side.
+
+**What I learned:** asking a review to check my own statements found six in one batch. I keep
+that paragraph in every review's notes.
+
+**Tickets:** EXF-878 set to Medium (filed by the review; title read in its output).
+**Ticket writes:** 1 (mine); the review made 13.
+**Backlog:** 33 open feature tickets, one In Progress. Gap: 17 open, one In Progress. Template:
+42 open with EXF-878 (41 counted by the review before it).
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 9, Deploy 0, Discover 2, Test user flow 8.
+
+**Next plan:** nothing to start: two Builds are running and main is live.
