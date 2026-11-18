@@ -67,6 +67,41 @@ export function syncStatusForError(
   return "delayed";
 }
 
+/** A connection that needs a sign-in is checked again in the nightly run no sooner than this after its last check. */
+export const CHECK_AFTER_MS = 20 * 3600_000;
+
+/** Why a connection is in its status, for the words only (the stored status values stay four). */
+export type StatusReason = "unavailable" | "unsupported" | "reauthorize";
+export const STATUS_REASONS = ["unavailable", "unsupported", "reauthorize"] as const;
+
+/** `login_required` codes that ask the owner to authorize again (the sign-in is the same as Repair's). */
+export const REAUTHORIZE_CODES: ReadonlySet<string> = new Set([
+  "INVALID_MFA",
+  "INSUFFICIENT_CREDENTIALS",
+  "PENDING_EXPIRATION",
+  "PENDING_DISCONNECT",
+]);
+
+/**
+ * The reason behind a connection's status, from the Plaid error code stored with it: a delayed connection
+ * whose bank is not available, or no longer supported; a login_required one that needs a reauthorization.
+ * Anything else (and a connection that failed before the code was stored) has none.
+ */
+export function statusReason(status: string, code: string | null): StatusReason | null {
+  if (code === null) return null;
+  if (status === "delayed") {
+    if (code === "INSTITUTION_NOT_AVAILABLE") return "unavailable";
+    if (code === "INSTITUTION_NO_LONGER_SUPPORTED") return "unsupported";
+    return null;
+  }
+  return status === "login_required" && REAUTHORIZE_CODES.has(code) ? "reauthorize" : null;
+}
+
+/** The code as it is stored: an identifier of Plaid's, never its message. */
+export function storedErrorCode(code: string | null): string | null {
+  return code !== null && /^[A-Z0-9_]{1,64}$/.test(code) ? code : null;
+}
+
 interface Page {
   added: PlaidTxn[];
   modified: PlaidTxn[];

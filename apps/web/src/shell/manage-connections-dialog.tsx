@@ -16,6 +16,7 @@ import { useBudgets } from "../api/budgets";
 import { removeBankConnection } from "../api/manage-connections";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { BankLinkAccounts } from "./bank-link-accounts";
+import { KeyIcon, OctagonAlertIcon } from "./connection-status-icon";
 import {
   BankIcon,
   ChevronLeftIcon,
@@ -60,8 +61,14 @@ export function ManageConnectionsDialog({
   return <Host budgetId={budgetId} onClose={onClose} initialConnectionId={initialConnectionId} />;
 }
 
+function BadgeIcon({ badge }: { badge: NonNullable<ReturnType<typeof connectionBadge>> }) {
+  if (badge === "Unavailable") return <OctagonAlertIcon width={12} height={12} />;
+  if (badge === "Reauthorize") return <KeyIcon width={12} height={12} />;
+  return badge === "Delayed" ? <ClockIcon /> : <LinkWarningIcon />;
+}
+
 function ConnectionRow({ c, onOpen }: { c: BankConnection; onOpen: () => void }) {
-  const badge = connectionBadge(c.status);
+  const badge = connectionBadge(c.status, c.status_reason);
   const count = accountCountLabel(c.accounts.length);
   const id = `ID: ${c.display_id}`;
   return (
@@ -81,7 +88,7 @@ function ConnectionRow({ c, onOpen }: { c: BankConnection; onOpen: () => void })
         </span>
         {badge ? (
           <span className="mc-badge" data-kind={badge.toLowerCase()}>
-            {badge === "Delayed" ? <ClockIcon /> : <LinkWarningIcon />}
+            <BadgeIcon badge={badge} />
             {badge}
           </span>
         ) : null}
@@ -214,7 +221,7 @@ function Host({
   let back: (() => void) | null = null;
   if (view.v === "detail" && connection) {
     title = connection.nickname;
-    subtitle = statusLabel(connection.status);
+    subtitle = statusLabel(connection.status, connection.status_reason);
     back = () => setView({ v: "list" });
   } else if (view.v === "bank" && connection && bank) {
     title = bankAccountLabel(bank.name, bank.mask);

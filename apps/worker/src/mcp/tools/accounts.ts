@@ -29,7 +29,7 @@ import type { McpToolDef } from "../types";
 export const tools: McpToolDef[] = [
   {
     name: "list_accounts",
-    description: `List a plan's accounts in display order; closed accounts only when include_closed is true. ${MONEY} Debts are negative. Returns { accounts }: each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `List a plan's accounts in display order; closed accounts only when include_closed is true. ${MONEY} Debts are negative. Returns { accounts }: each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, include_closed: z.boolean().optional() }),
     run: async (input: { budget_id: string; include_closed?: boolean }, { env }) => ({
       accounts: await listAccounts(env, input.budget_id, { includeClosed: input.include_closed }),
@@ -37,7 +37,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_account",
-    description: `Read one account of a plan. ${MONEY} Debts are negative. Returns { account } with id, name, type, on_budget, starred, closed, group, cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `Read one account of a plan. ${MONEY} Debts are negative. Returns { account } with id, name, type, on_budget, starred, closed, group, cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id }),
     run: async (input: { budget_id: string; account_id: string }, { env }) => ({
       account: await getAccount(env, input.budget_id, input.account_id),
@@ -45,7 +45,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "update_account",
-    description: `Change an account; send only what changes. name must be unique among the plan's accounts ignoring case (a blank or taken name is a tool error); note is free text up to 500 characters (null or blank clears it); starred adds it to or removes it from the sidebar's STARRED group, and a closed account cannot be starred (tool error). ${MONEY} Returns { account } with id, name, note, type, starred, closed, group, cleared_balance, uncleared_balance, balance and can_delete. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])} Renaming a credit account renames its payment category.`,
+    description: `Change an account; send only what changes. name must be unique among the plan's accounts ignoring case (a blank or taken name is a tool error); note is free text up to 500 characters (null or blank clears it); starred adds it to or removes it from the sidebar's STARRED group, and a closed account cannot be starred (tool error). ${MONEY} Returns { account } with id, name, note, type, starred, closed, group, cleared_balance, uncleared_balance, balance and can_delete. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])} Renaming a credit account renames its payment category.`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id,
@@ -67,7 +67,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "adjust_account_balance",
-    description: `Set an open account's working balance by adding a cleared, approved "Manual Balance Adjustment" transaction for the difference. On-plan accounts (checking, savings, cash, creditCard, lineOfCredit) send it to Ready to Assign, so Ready to Assign changes by the same amount; tracking and loan accounts take no category and leave Ready to Assign unchanged. balance is the signed working balance (debts negative). No difference means no transaction. A closed account is refused (tool error). ${MONEY} ${dates("today", "date")} today is the adjustment's date and defaults to the UTC date. Returns { account, adjustment }: the account with its new balances, and the transaction (null when nothing changed). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `Set an open account's working balance by adding a cleared, approved "Manual Balance Adjustment" transaction for the difference. On-plan accounts (checking, savings, cash, creditCard, lineOfCredit) send it to Ready to Assign, so Ready to Assign changes by the same amount; tracking and loan accounts take no category and leave Ready to Assign unchanged. balance is the signed working balance (debts negative). No difference means no transaction. A closed account is refused (tool error). ${MONEY} ${dates("today", "date")} today is the adjustment's date and defaults to the UTC date. Returns { account, adjustment }: the account with its new balances, and the transaction (null when nothing changed). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id, ...accountAdjustFields }),
     run: async (
       input: { budget_id: string; account_id: string } & AccountAdjustBalanceRequest,
@@ -79,7 +79,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "close_account",
-    description: `Close an account. A non-zero balance is first zeroed by a cleared "Manual Balance Adjustment" with memo "Closed Account" (on-plan accounts send it to Ready to Assign, tracking and loan accounts take no category). The account is also unstarred and, when linked, unlinked from its bank account. A closed account is returned unchanged. ${MONEY} ${dates("today", "date")} today is the adjustment's date and defaults to the UTC date. Returns { account, adjustment } (adjustment null when the balance was zero). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `Close an account. A non-zero balance is first zeroed by a cleared "Manual Balance Adjustment" with memo "Closed Account" (on-plan accounts send it to Ready to Assign, tracking and loan accounts take no category). The account is also unstarred and, when linked, unlinked from its bank account. A closed account is returned unchanged. ${MONEY} ${dates("today", "date")} today is the adjustment's date and defaults to the UTC date. Returns { account, adjustment } (adjustment null when the balance was zero). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id, ...accountCloseFields }),
     run: async (
       input: { budget_id: string; account_id: string } & AccountCloseRequest,
@@ -91,7 +91,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "reopen_account",
-    description: `Re-open a closed account. The closing adjustment stays and the star is not restored; an open account is returned unchanged. ${MONEY} Returns { account } with id, name, closed, group, cleared_balance, uncleared_balance, balance and can_delete. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `Re-open a closed account. The closing adjustment stays and the star is not restored; an open account is returned unchanged. ${MONEY} Returns { account } with id, name, closed, group, cleared_balance, uncleared_balance, balance and can_delete. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id }),
     run: async (input: { budget_id: string; account_id: string }, { env, actor }) => ({
       account: await reopenAccount(env, actor, input.budget_id, input.account_id),
@@ -106,7 +106,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "create_account",
-    description: `Add an unlinked account with a Starting Balance transaction. ${MONEY} balance is entered as shown: for credit cards, lines of credit and other liabilities a positive number means money owed and is stored negative. Loan types are not supported yet. ${dates("date")} date defaults to today (UTC). Returns { account, starting_balance }: the new account with its balances, and the Starting Balance transaction. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
+    description: `Add an unlinked account with a Starting Balance transaction. ${MONEY} balance is entered as shown: for credit cards, lines of credit and other liabilities a positive number means money owed and is stored negative. Loan types are not supported yet. ${dates("date")} date defaults to today (UTC). Returns { account, starting_balance }: the new account with its balances, and the Starting Balance transaction. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
     inputSchema: z.object({ budget_id: Id, ...AccountCreateRequest.shape }),
     run: async (
       input: { budget_id: string } & z.input<typeof AccountCreateRequest>,
@@ -118,7 +118,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "create_accounts_from_bank",
-    description: `Add bank accounts of a connection as new linked accounts of a plan. Each gets a Starting Balance transaction (cleared, approved) dated today equal to the bank's current balance; ${MONEY} What is owed on a credit card or loan is negative; no balance from the bank gives 0. The account type follows the bank account's type (checking, savings, creditCard, a loan type, otherwise otherAsset); overrides, keyed by bank_account_id, may set a name and any type but cash. Cash accounts are refused (tool error). A bank account already linked in this plan, or a name already used, is an error and nothing is created. A bank account of a connection in another environment than the plan's is not found. ${dates("today", "import_start_date")} today is the link date and defaults to the UTC date; today also sets import_start_date: only the bank's transactions dated on or after it are imported. Returns { created: [{ account, starting_balance }] } in the order of bank_account_ids; each account has linked true, bank_account_id and import_start_date. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
+    description: `Add bank accounts of a connection as new linked accounts of a plan. Each gets a Starting Balance transaction (cleared, approved) dated today equal to the bank's current balance; ${MONEY} What is owed on a credit card or loan is negative; no balance from the bank gives 0. The account type follows the bank account's type (checking, savings, creditCard, a loan type, otherwise otherAsset); overrides, keyed by bank_account_id, may set a name and any type but cash. Cash accounts are refused (tool error). A bank account already linked in this plan, or a name already used, is an error and nothing is created. A bank account of a connection in another environment than the plan's is not found. ${dates("today", "import_start_date")} today is the link date and defaults to the UTC date; today also sets import_start_date: only the bank's transactions dated on or after it are imported. Returns { created: [{ account, starting_balance }] } in the order of bank_account_ids; each account has linked true, bank_account_id and import_start_date. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
     inputSchema: z.object({ budget_id: Id, ...accountsFromBankFields }),
     run: async (input: { budget_id: string } & AccountsFromBankRequest, { env, actor }) => {
       const { budget_id, ...rest } = input;
@@ -127,7 +127,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "link_account",
-    description: `Link an existing unlinked account of a plan to a bank account. Cash and closed accounts are refused (tool error); an account or bank account that is already linked is an error; a bank account of another environment than the plan's is not found. import_start_date becomes 3 days before the account's latest reconciled transaction, or today when none. No transaction changes. ${dates("today", "import_start_date")} today is the link date and defaults to the UTC date. Returns { account } with linked true, bank_account_id and import_start_date. ${MONEY} Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `Link an existing unlinked account of a plan to a bank account. Cash and closed accounts are refused (tool error); a bank account that is already linked is an error, and so is an account that is already linked, unless its link_missing_since is set (Account Not Found): that account may be linked to another bank account without unlinking first, which replaces the link; a bank account of another environment than the plan's is not found. import_start_date becomes 3 days before the account's latest reconciled transaction, or today when none. No transaction changes. ${dates("today", "import_start_date")} today is the link date and defaults to the UTC date. Returns { account } with linked true, bank_account_id and import_start_date. ${MONEY} Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id, ...accountLinkFields }),
     run: async (
       input: { budget_id: string; account_id: string } & AccountLinkRequest,
@@ -139,7 +139,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "unlink_account",
-    description: `Unlink an account from its bank account. Every transaction and the bank connection stay, and the bank account can be linked again. An account that is not linked is returned unchanged. ${MONEY} Returns { account } with linked false and bank_account_id and import_start_date null. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at"], ["last_reconciled_at", "last_synced_at"])}`,
+    description: `Unlink an account from its bank account. Every transaction and the bank connection stay, and the bank account can be linked again. An account that is not linked is returned unchanged. ${MONEY} Returns { account } with linked false and bank_account_id and import_start_date null. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id }),
     run: async (input: { budget_id: string; account_id: string }, { env, actor }) => ({
       account: await unlinkAccount(env, actor, input.budget_id, input.account_id),

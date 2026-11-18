@@ -94,6 +94,8 @@ export function updateConnectionStmt(
       | "syncAccounts"
       | "syncLoopCursor"
       | "syncFailedAt"
+      | "syncErrorCode"
+      | "loginCheckedAt"
     >
   >,
   guard?: SQLWrapper,
@@ -161,6 +163,41 @@ export async function listDue(db: Db, before: string): Promise<BankConnectionRow
     .orderBy(bankConnections.createdAt, bankConnections.id);
 }
 
+/** Records the time of a nightly check that got an error (the one write of a refused check). */
+export function checkedStmt(db: Db, id: string, at: string) {
+  return db
+    .update(bankConnections)
+    .set({ loginCheckedAt: at })
+    .where(and(eq(bankConnections.id, id), eq(bankConnections.status, "login_required")));
+}
+
+/**
+ * The connections that need a sign-in and may be checked again: never checked, or last checked at or before
+ * `before`. Never-checked first, then the oldest check.
+ */
+export async function listToCheck(
+  db: Db,
+  before: string,
+  limit: number,
+): Promise<BankConnectionRow[]> {
+  return db
+    .select()
+    .from(bankConnections)
+    .where(
+      and(
+        eq(bankConnections.status, "login_required"),
+        or(isNull(bankConnections.loginCheckedAt), lte(bankConnections.loginCheckedAt, before)),
+      ),
+    )
+    .orderBy(
+      sql`${bankConnections.loginCheckedAt} is not null`,
+      bankConnections.loginCheckedAt,
+      bankConnections.createdAt,
+      bankConnections.id,
+    )
+    .limit(limit);
+}
+
 /** Connections of the environment with a bank account linked to a live account of the plan. */
 export async function listForPlanLinks(
   db: Db,
@@ -222,15 +259,25 @@ export async function findBankAccountInEnvironment(
   environment: "production" | "sandbox",
   bankAccountId: string,
 ): Promise<
-  (BankAccountRow & { connectionStatus: string; connectionSyncedAt: string | null }) | undefined
+  | (BankAccountRow & {
+      connectionStatus: string;
+      connectionSyncedAt: string | null;
+      connectionErrorCode: string | null;
+    })
+  | undefined
 > {
   const [r] = await db
-    .select({ a: bankAccounts, s: bankConnections.status, t: bankConnections.lastSyncedAt })
+    .select({
+      a: bankAccounts,
+      s: bankConnections.status,
+      t: bankConnections.lastSyncedAt,
+      e: bankConnections.syncErrorCode,
+    })
     .from(bankAccounts)
     .innerJoin(bankConnections, eq(bankConnections.id, bankAccounts.bankConnectionId))
     .where(and(eq(bankAccounts.id, bankAccountId), eq(bankConnections.environment, environment)))
     .limit(1);
-  return r && { ...r.a, connectionStatus: r.s, connectionSyncedAt: r.t };
+  return r && { ...r.a, connectionStatus: r.s, connectionSyncedAt: r.t, connectionErrorCode: r.e };
 }
 
 export async function findBankAccountById(db: Db, id: string): Promise<BankAccountRow | undefined> {

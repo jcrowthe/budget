@@ -113,6 +113,7 @@ export async function createAccountsFromBank(
           link: {
             connectionStatus: p.bank.connectionStatus,
             connectionSyncedAt: p.bank.connectionSyncedAt,
+            connectionErrorCode: p.bank.connectionErrorCode,
           },
         }),
       );
@@ -188,7 +189,8 @@ export async function linkAccount(
     if (!bank) throw new NotFound("Bank account");
     if (before.type === "cash") throw notLinkable("cash");
     if (before.closed) throw notLinkable("closed");
-    if (before.bankAccountId !== null) {
+    // A link whose bank account the bank no longer lists (Account Not Found) may be replaced.
+    if (before.bankAccountId !== null && before.linkMissingSince === null) {
       throw new LinkRefused(
         409,
         "account_already_linked",
@@ -204,8 +206,10 @@ export async function linkAccount(
       ...before,
       bankAccountId: bank.id,
       importStartDate,
+      linkMissingSince: null,
       connectionStatus: bank.connectionStatus,
       connectionSyncedAt: bank.connectionSyncedAt,
+      connectionErrorCode: bank.connectionErrorCode,
     };
     const [, result] = await db.batch([
       changeLogInsertIf(
@@ -241,7 +245,12 @@ export async function unlinkAccount(
     if (!before) throw new NotFound("Account");
     const balances = await balancesOf(db, budgetId, before);
     if (before.bankAccountId === null) return accountToApi(before, balances);
-    const after = { ...before, bankAccountId: null, importStartDate: null };
+    const after = {
+      ...before,
+      bankAccountId: null,
+      importStartDate: null,
+      linkMissingSince: null,
+    };
     const [, result] = await db.batch([
       changeLogInsertIf(
         db,
@@ -296,7 +305,10 @@ export async function unlinkForConnectionStmts(
           entityType: "account",
           entityId: row.id,
           before: accountToApi(row, balances),
-          after: accountToApi({ ...row, bankAccountId: null, importStartDate: null }, balances),
+          after: accountToApi(
+            { ...row, bankAccountId: null, importStartDate: null, linkMissingSince: null },
+            balances,
+          ),
         },
         accountsRepo.unlinkHolds(db, row),
       ),

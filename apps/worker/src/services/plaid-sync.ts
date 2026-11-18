@@ -2,6 +2,7 @@ import { isLoanType, isOnBudget } from "@budget/core/account-types";
 import type { SyncResult } from "@budget/schema/bank-connections";
 import {
   bankDescriptionOf,
+  CHECK_AFTER_MS,
   categoryFor,
   DUE_AFTER_MS,
   isRecoveryDuplicate,
@@ -22,6 +23,7 @@ import {
   SYNC_UNIT_SIZE,
   type SyncStatus,
   skipReason,
+  storedErrorCode,
   syncStatusForError,
 } from "@budget/schema/plaid-import";
 import { and, type SQLWrapper, sql } from "drizzle-orm";
@@ -75,9 +77,16 @@ async function storeStatus(
   accounts: bankRepo.BankAccountRow[],
   status: SyncStatus,
   now: string,
+  code: string | null,
 ) {
   const syncErrorSince = row.syncErrorSince ?? now;
-  if (row.status === status && row.syncErrorSince === syncErrorSince) return;
+  const syncErrorCode = storedErrorCode(code);
+  if (
+    row.status === status &&
+    row.syncErrorSince === syncErrorSince &&
+    row.syncErrorCode === syncErrorCode
+  )
+    return;
   const guard = bankRepo.cursorIs(db, row.id, row.syncCursor);
   await db.batch([
     changeLogInsertIf(
@@ -89,11 +98,16 @@ async function storeStatus(
         entityType: "bank_connection",
         entityId: row.id,
         before: toApi(row, accounts),
-        after: toApi({ ...row, status, updatedAt: now }, accounts),
+        after: toApi({ ...row, status, syncErrorCode, updatedAt: now }, accounts),
       },
       guard,
     ),
-    bankRepo.updateConnectionStmt(db, row.id, { status, syncErrorSince, updatedAt: now }, guard),
+    bankRepo.updateConnectionStmt(
+      db,
+      row.id,
+      { status, syncErrorSince, syncErrorCode, updatedAt: now },
+      guard,
+    ),
   ]);
 }
 
@@ -127,7 +141,7 @@ const forExisting = (n: importsRepo.CategoryNames, id: string | null) => {
 export async function runSync(
   env: Env,
   connectionId: string,
-  opts: { maxUpdates?: number; maxPages?: number; callBudget?: number } = {},
+  opts: { maxUpdates?: number; maxPages?: number; callBudget?: number; check?: boolean } = {},
 ): Promise<SyncResult> {
   const budget = new CallBudget(opts.callBudget);
   const cenv = countedEnv(env, budget);
@@ -163,14 +177,17 @@ async function recordFailure(
         entityType: "bank_connection",
         entityId: row.id,
         before: toApi(row, accounts),
-        after: toApi({ ...row, status: "delayed", syncFailedAt: now, updatedAt: now }, accounts),
+        after: toApi(
+          { ...row, status: "delayed", syncFailedAt: now, syncErrorCode: null, updatedAt: now },
+          accounts,
+        ),
       },
       guard,
     ),
     bankRepo.updateConnectionStmt(
       db,
       row.id,
-      { status: "delayed", syncFailedAt: now, updatedAt: now },
+      { status: "delayed", syncFailedAt: now, syncErrorCode: null, updatedAt: now },
       guard,
     ),
   ]);
@@ -182,16 +199,20 @@ async function syncConnection(
   budget: CallBudget,
   row: bankRepo.BankConnectionRow,
   holder: { list: bankRepo.BankAccountRow[] },
-  opts: { maxUpdates?: number; maxPages?: number },
+  opts: { maxUpdates?: number; maxPages?: number; check?: boolean },
 ): Promise<SyncResult> {
-  if ((NEEDS_REPAIR as readonly string[]).includes(row.status)) return empty(row, row.status);
+  // Only the nightly check (`opts.check`) looks again at a connection that needs a sign-in; never a broken one.
+  const checking = opts.check === true && row.status === "login_required";
+  if ((NEEDS_REPAIR as readonly string[]).includes(row.status) && !checking) {
+    return empty(row, row.status);
+  }
   const bankAccounts = await bankRepo.accountsOf(db, row.id);
   holder.list = bankAccounts;
   const now = new Date().toISOString();
 
   const token = await getAccessToken(env, row.id);
   if (!token) {
-    await storeStatus(db, row, bankAccounts, "broken", now);
+    await storeStatus(db, row, bankAccounts, "broken", now, null);
     return empty(row, "broken");
   }
   let plaid: Awaited<ReturnType<typeof plaidFor>>;
@@ -200,6 +221,19 @@ async function syncConnection(
   } catch (e) {
     if (e instanceof PlaidNotSetUp) return empty(row, "not_set_up");
     throw e;
+  }
+
+  // The nightly check: one call. A refusal leaves everything as it is but the time of this try; a good
+  // answer is the bank's list, which the sync below reuses.
+  let checked: BalanceAccount[] | null = null;
+  if (checking) {
+    try {
+      checked = await fetchBalances(plaid, token);
+    } catch (e) {
+      if (!(e instanceof PlaidApiError)) throw e;
+      await bankRepo.checkedStmt(db, row.id, now);
+      return empty(row, "login_required");
+    }
   }
 
   // Links: the open accounts of live plans that are linked to a bank account of this connection.
@@ -223,11 +257,11 @@ async function syncConnection(
     if (open.length > 0) {
       pages = await fetchSyncPages(plaid, token, startCursor, loopCursor, opts);
     }
-    balances = await fetchBalances(plaid, token);
+    balances = checked ?? (await fetchBalances(plaid, token));
   } catch (e) {
     if (!(e instanceof PlaidApiError)) throw e;
     const status = syncStatusForError(e.status, e.errorCode);
-    await storeStatus(db, row, bankAccounts, status, now);
+    await storeStatus(db, row, bankAccounts, status, now, e.errorCode);
     return empty(row, status);
   }
 
@@ -649,6 +683,7 @@ async function syncConnection(
     status: "connected",
     lastSyncedAt: finished,
     syncFailedAt: null,
+    syncErrorCode: null,
     updatedAt: finished,
   };
   const byPlaidId = new Map(balances.map((b) => [b.account_id, b]));
@@ -686,12 +721,23 @@ async function syncConnection(
       ),
     );
   }
+  // Only this good list marks anything: a link whose bank account the bank no longer lists reads Account Not Found.
+  if (linkedRows.length > 0) {
+    const missing = bankAccounts.filter((b) => !byPlaidId.has(b.plaidAccountId)).map((b) => b.id);
+    final.push(accountsRepo.markMissingStmt(db, row.id, missing, finished, guard));
+  }
   final.push(
     bankRepo.updateConnectionStmt(
       db,
       row.id,
       stopped
-        ? { lastSyncedAt: finished, status: "connected", syncFailedAt: null, updatedAt: finished }
+        ? {
+            lastSyncedAt: finished,
+            status: "connected",
+            syncFailedAt: null,
+            syncErrorCode: null,
+            updatedAt: finished,
+          }
         : {
             ...(pages
               ? {
@@ -704,6 +750,7 @@ async function syncConnection(
             status: "connected",
             syncErrorSince: null,
             syncFailedAt: null,
+            syncErrorCode: null,
             updatedAt: finished,
           },
       guard,
@@ -882,11 +929,15 @@ function followBank(
 }
 
 /** One run through the connection's Durable Object: a request during a run shares that run. */
-export async function requestSync(env: Env, conn: bankRepo.BankConnectionRow): Promise<SyncResult> {
+export async function requestSync(
+  env: Env,
+  conn: bankRepo.BankConnectionRow,
+  opts: { check?: boolean } = {},
+): Promise<SyncResult> {
   const stub = env.PLAID_ITEM_SYNC.get(env.PLAID_ITEM_SYNC.idFromName(conn.plaidItemId));
   const res = await stub.fetch("https://plaid-item-sync/run", {
     method: "POST",
-    body: JSON.stringify({ connection_id: conn.id }),
+    body: JSON.stringify({ connection_id: conn.id, check: opts.check === true }),
   });
   if (!res.ok) throw new Error("sync failed");
   return (await res.json()) as SyncResult;
@@ -947,6 +998,24 @@ export async function syncDueConnections(
       }
     }
     active = next;
+  }
+  // What is left of the budget goes to the sign-ins that may have healed: a dead connection never takes a
+  // healthy one's run. One call each; an error leaves everything but its time.
+  if (runs < maxRuns && Date.now() - started < SCHEDULED_WALL_MS) {
+    const toCheck = await bankRepo.listToCheck(
+      getDb(env),
+      new Date(now.getTime() - CHECK_AFTER_MS).toISOString(),
+      maxRuns - runs,
+    );
+    for (const conn of toCheck) {
+      if (runs >= maxRuns || Date.now() - started >= SCHEDULED_WALL_MS) break;
+      runs++;
+      try {
+        out.push(await run(env, conn, { check: true }));
+      } catch {
+        console.error(`sync failed for connection ${conn.id}`);
+      }
+    }
   }
   return out;
 }
