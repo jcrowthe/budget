@@ -87,7 +87,10 @@ function ConnectionRow({ c, onOpen }: { c: BankConnection; onOpen: () => void })
           </span>
         </span>
         {badge ? (
-          <span className="mc-badge" data-kind={badge.toLowerCase()}>
+          <span
+            className="mc-badge"
+            data-kind={badge === "Connection Lost" ? "lost" : badge.toLowerCase()}
+          >
             <BadgeIcon badge={badge} />
             {badge}
           </span>

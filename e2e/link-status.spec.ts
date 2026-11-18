@@ -5,8 +5,11 @@ import {
   addAccount,
   dialogNamed,
   newPlan,
+  oneAccountBank,
   openDetail,
+  openList,
   posts,
+  setup,
   sidebar,
   zzBank,
 } from "./support/manage-connections-seed";
@@ -149,6 +152,32 @@ test("7 Manage Bank Connections: the bank account not found says so, the connect
   const rowOf = (label: string) => detail.getByRole("button", { name: label });
   await expect(rowOf("ZZ Checking – 0000")).toContainText("Linked Account Not Found");
   await expect(rowOf("ZZ Savings – 1111")).not.toContainText("Account Not Found");
+});
+
+test("C2 the Bank Connections list: a broken connection's badge reads Connection Lost", async ({
+  page,
+  request,
+}) => {
+  await setup(page, request, (z) => [
+    z.connection,
+    oneAccountBank("ZZ Gone", "broken", "7a8b9c"),
+    oneAccountBank("ZZ Locked", "login_required", "4a5b6c"),
+  ]);
+  const dialog = await openList(page);
+  const row = (name: string) => dialog.getByRole("button", { name, exact: true });
+  const gone = row("ZZ Gone").locator(".mc-badge");
+  await expect(gone).toHaveText("Connection Lost");
+  await expect(gone.locator("svg")).toHaveCount(1);
+  await expect(row("ZZ Locked").locator(".mc-badge")).toHaveText("Repair");
+  await expect(row("ZZ Bank").locator(".mc-badge")).toHaveCount(0);
+  await expect(dialog.locator(".account-modal-body h3")).toHaveText([
+    "Needs Attention",
+    "All Others",
+  ]);
+  await realClick(page, row("ZZ Gone"));
+  const detail = dialogNamed(page, "ZZ Gone");
+  await expect(detail.locator(".mc-banner strong")).toHaveText("Connection Lost");
+  await expect(detail.getByRole("button", { name: "Repair" })).toHaveCount(0);
 });
 
 const OK = {

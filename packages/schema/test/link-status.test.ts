@@ -146,6 +146,7 @@ describe("words", () => {
     expect(statusLabel("weird", "reauthorize")).toBe("Connection Repair Needed");
     expect(connectionBadge("login_required", "reauthorize")).toBe("Reauthorize");
     expect(connectionBadge("login_required")).toBe("Repair");
+    expect(connectionBadge("broken")).toBe("Connection Lost");
     expect(connectionBadge("delayed", "unavailable")).toBe("Unavailable");
     expect(connectionBadge("delayed", "unsupported")).toBe("Unavailable");
     expect(connectionBadge("delayed")).toBe("Delayed");

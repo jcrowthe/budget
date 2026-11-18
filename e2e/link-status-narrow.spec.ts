@@ -1,7 +1,17 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { stubBankLink } from "./support/bank-link-stub";
-import { addAccount, box, newPlan, sidebar, zzBank } from "./support/manage-connections-seed";
+import {
+  addAccount,
+  box,
+  newPlan,
+  oneAccountBank,
+  openDetail,
+  openList,
+  setup,
+  sidebar,
+  zzBank,
+} from "./support/manage-connections-seed";
 import { realClick } from "./support/real-click";
 
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
@@ -124,5 +134,50 @@ test("2 Account Not Found: the popup opened by the keyboard lies inside the wind
     .getByRole("link")
     .focus();
   await page.keyboard.press("Tab");
-  await popupInside(page, page.locator(".status-popup"));
+  const popup = page.locator(".status-popup");
+  await popupInside(page, popup);
+  // The title holds the whole name, on one line or wrapped inside the popup.
+  await expect(popup.locator("strong")).toHaveText("Linked Account Not Found");
+  expect(await popup.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
+test("6 the row's line and a broken connection's badge are whole at 1024x700", async ({
+  page,
+  request,
+}) => {
+  await setup(page, request, (z) => [z.connection, oneAccountBank("ZZ Gone", "broken", "7a8b9c")], {
+    missing: {},
+  });
+  const list = await openList(page);
+  const badge = list.getByRole("button", { name: "ZZ Gone", exact: true }).locator(".mc-badge");
+  await expect(badge).toHaveText("Connection Lost");
+  const row = await box(list.getByRole("button", { name: "ZZ Gone", exact: true }));
+  const b = await box(badge);
+  expect(b.x).toBeGreaterThanOrEqual(row.x);
+  expect(b.x + b.width).toBeLessThanOrEqual(row.x + row.width);
+  expect(await badge.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
+test("6 the detail's row line says Linked Account Not Found, whole or cut with a title", async ({
+  page,
+  request,
+}) => {
+  const z = zzBank({ status: "connected", last_synced_at: hoursAgo(1) });
+  const plan = await newPlan(request);
+  const lost = await addAccount(request, plan, "ZZ Linked", "checking");
+  await stubBankLink(page, request, {
+    budgetId: plan,
+    connections: [z.connection],
+    links: { [lost]: z.checking.id },
+    missing: { [lost]: hoursAgo(2) },
+  });
+  await page.goto(`/${plan}/budget`);
+  await expect(sidebar(page).getByRole("link", { name: /ZZ Linked/ })).toBeVisible();
+  const detail = await openDetail(page, "ZZ Bank");
+  const line = detail.locator(".mc-not-found");
+  await expect(line).toHaveText("Linked Account Not Found");
+  await expect(line).toHaveAttribute("title", "Linked Account Not Found");
+  const d = await box(detail);
+  const l = await box(line);
+  expect(l.x + l.width).toBeLessThanOrEqual(d.x + d.width);
 });

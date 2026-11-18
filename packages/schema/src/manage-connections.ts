@@ -29,8 +29,9 @@ export function statusLabel(status: string, reason: StatusReason | null = null):
 export function connectionBadge(
   status: string,
   reason: StatusReason | null = null,
-): "Repair" | "Reauthorize" | "Delayed" | "Unavailable" | null {
+): "Repair" | "Reauthorize" | "Connection Lost" | "Delayed" | "Unavailable" | null {
   const g = connectionGroup(status);
+  if (status === "broken") return "Connection Lost";
   if (g === "attention") return reason === "reauthorize" ? "Reauthorize" : "Repair";
   if (g === "delayed")
     return reason === "unavailable" || reason === "unsupported" ? "Unavailable" : "Delayed";
