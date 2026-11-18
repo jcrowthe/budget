@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { tool } from "./account-helpers";
 import { json } from "./helpers";
 import {
   agrees,
@@ -26,6 +27,7 @@ import {
   TX,
   world1,
 } from "./plaid-sync-helpers";
+import { apiPaths, listedToolNames } from "./surface";
 
 beforeEach(async () => {
   await setupPlaid();
@@ -254,7 +256,7 @@ describe("match by hand (EXF-464)", () => {
       const res = await post(MATCH(plan), { ids });
       expect(res.status).toBe(status);
       const copy = res.clone();
-      expect((await copy.json()).error.name).toBe(name);
+      expect(((await copy.json()) as Json).error.name).toBe(name);
       expect(await snapshot(plan)).toEqual(before);
       await agrees(plan, ids, res);
     };
@@ -463,7 +465,7 @@ describe("unmatch (EXF-464)", () => {
       const before = await snapshot(plan);
       const res = await post(UNMATCH(plan, id));
       expect(res.status).toBe(status);
-      expect((await res.clone().json()).error.name).toBe(name);
+      expect(((await res.clone().json()) as Json).error.name).toBe(name);
       expect(await snapshot(plan)).toEqual(before);
       await agrees(plan, [id], res);
     };
@@ -542,6 +544,64 @@ describe("unmatch (EXF-464)", () => {
     expect((await data(r2)).transaction).toMatchObject({ amount: -7000, transfer_account_id: sav });
     expect(await q("select * from transactions where id = ?", tr.transfer_transaction_id)).toEqual(
       other,
+    );
+  });
+});
+
+describe("the two tools (EXF-464)", () => {
+  it("7: match_transactions and unmatch_transaction do the same, with mcp: actors", async () => {
+    const { plan, account, cat, entry, imp, b0 } = await pairWorld();
+    const matched = await tool("match_transactions", { budget_id: plan, ids: [entry.id, imp.id] });
+    expect(matched.isError).toBeFalsy();
+    const m = matched.structuredContent as Json;
+    expect(m.transaction).toMatchObject({
+      id: entry.id,
+      amount: -13000,
+      payee_name: "ZZ Cafe",
+      category_id: cat,
+      matched: true,
+      match_details: { date: "2026-04-01", amount: -13000, payee_name: "ZZ Bank Cafe" },
+    });
+    expect(m.removed.id).toBe(imp.id);
+    expect(await balanceOf(plan, account)).toBe(b0 - 13000);
+    const log = await q(
+      "select entity_id, action, actor from change_log where entity_id in (?, ?) and actor like 'mcp:%' order by rowid",
+      entry.id,
+      imp.id,
+    );
+    expect(log.map((l) => `${l.entity_id === entry.id ? "entry" : "import"} ${l.action}`)).toEqual([
+      "entry update",
+      "import delete",
+    ]);
+
+    const un = await tool("unmatch_transaction", { budget_id: plan, transaction_id: entry.id });
+    expect(un.isError).toBeFalsy();
+    const u = un.structuredContent as Json;
+    expect(u.transaction).toMatchObject({ amount: -12340, cleared: "uncleared", matched: false });
+    expect(u.imported).toMatchObject({ amount: -13000, approved: false, import_id: "ZZ-BANK-1" });
+    expect(await balanceOf(plan, account)).toBe(b0 - 25340);
+    const after = await q(
+      "select action from change_log where actor like 'mcp:%' and entity_id in (?, ?) order by rowid",
+      entry.id,
+      u.imported.id,
+    );
+    expect(after.map((l) => l.action)).toEqual(["update", "update", "create"]);
+    // a refusal is a tool error, naming the rows and not an id
+    const bad = await tool("unmatch_transaction", { budget_id: plan, transaction_id: entry.id });
+    expect(bad.isError).toBe(true);
+    expect(JSON.stringify(bad)).toContain("is not matched");
+    expect(JSON.stringify(bad)).not.toContain(entry.id);
+  });
+
+  it("the paths and the tools exist", async () => {
+    expect(await apiPaths()).toEqual(
+      expect.arrayContaining([
+        "/api/v1/budgets/{budget_id}/transactions/match",
+        "/api/v1/budgets/{budget_id}/transactions/{transaction_id}/unmatch",
+      ]),
+    );
+    expect(await listedToolNames()).toEqual(
+      expect.arrayContaining(["match_transactions", "unmatch_transaction"]),
     );
   });
 });

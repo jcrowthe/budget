@@ -25,6 +25,8 @@ type Ctx = {
   spareTx: string;
   bulkTx: string;
   importTx: string;
+  matchEntry: string;
+  matchImport: string;
   conn: string;
   bankAccount: string;
   bankAccount2: string;
@@ -97,6 +99,24 @@ async function seed(): Promise<Ctx> {
   )
     .bind(importTx)
     .run();
+  // A hand entry and an unapproved import of the same account, for match_transactions and unmatch_transaction.
+  const matchEntry = await mk({
+    account_id: checking,
+    date: DAY,
+    amount: -250,
+    payee_name: "ZZ M",
+  });
+  const matchImport = await mk({
+    account_id: checking,
+    date: DAY,
+    amount: -260,
+    payee_name: "ZZ MI",
+  });
+  await env.DB.prepare(
+    "update transactions set import_id = 'zz-imp-2', source = 'plaid', approved = 0, cleared = 'cleared', imported_payee = 'ZZ MI', bank_description = 'ZZ MI', import_date = date, import_amount = amount, import_payee_name = 'ZZ MI' where id = ?",
+  )
+    .bind(matchImport)
+    .run();
   expect(
     (await send(`${A(bid)}/${checking}/adjust-balance`, "POST", { balance: 90000 })).status,
   ).toBe(200);
@@ -161,6 +181,8 @@ async function seed(): Promise<Ctx> {
     spareTx,
     bulkTx,
     importTx,
+    matchEntry,
+    matchImport,
     conn,
     bankAccount,
     bankAccount2,
@@ -346,6 +368,8 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ],
   ["delete_scheduled_transaction", (c) => ({ budget_id: c.bid, id: c.sched })],
   ["delete_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.spareTx })],
+  ["match_transactions", (c) => ({ budget_id: c.bid, ids: [c.matchEntry, c.matchImport] })],
+  ["unmatch_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.matchEntry })],
   ["reject_transactions", (c) => ({ budget_id: c.bid, ids: [c.importTx] })],
   ["delete_transactions", (c) => ({ budget_id: c.bid, ids: [c.bulkTx] })],
   [

@@ -9,6 +9,7 @@ import {
   transactionUpdateShape,
 } from "@budget/schema/transactions";
 import { z } from "zod";
+import { matchTransactions, unmatchTransaction } from "../../services/manual-match";
 import {
   addTransaction,
   approveTransactions,
@@ -31,7 +32,7 @@ type Update = z.input<typeof TransactionUpdateRequest>;
 export const tools: McpToolDef[] = [
   {
     name: "list_transactions",
-    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} since_date limits the rows, not the balances. With account_id and include "running_balance", each row also has running_balance: the account's balance after that row, adding oldest first (same-date rows by amount descending), counting every earlier row of the account, also those since_date leaves out; scheduled transactions have none. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name, subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. ${dates("date", "since_date") + " " + timestamps(["updated_at", "created_at"])}`,
+    description: `List a plan's transactions with balances. With account_id: that account's rows and balances. Without account_id: every account's rows (closed accounts included), each with account_name, and balances summed over the open accounts. Newest first, same-date by amount ascending. ${MONEY} since_date limits the rows, not the balances. With account_id and include "running_balance", each row also has running_balance: the account's balance after that row, adding oldest first (same-date rows by amount descending), counting every earlier row of the account, also those since_date leaves out; scheduled transactions have none. Returns { transactions, balances: { cleared, uncleared, working } }; each row has id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name, subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, bank_description and matched (true when an import was matched to a transaction entered by hand), match_details (for a matched transaction the bank's date, amount and payee_name as imported, else null), and updated_at. ${dates("date", "since_date") + " " + timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({
       budget_id: Id,
       account_id: Id.optional(),
@@ -82,6 +83,20 @@ export const tools: McpToolDef[] = [
     run: async (input: { budget_id: string; ids: string[] }, { env, actor }) => ({
       transactions: await rejectTransactions(env, actor, input.budget_id, input.ids),
     }),
+  },
+  {
+    name: "match_transactions",
+    description: `Match an unapproved bank import to a transaction entered by hand, as one transaction (ids: exactly two transactions of one open account, one the import and one the hand entry). The hand entry keeps its payee, memo, date, category and flag, and takes the bank's amount, the import's id and bank fields (imported_payee, bank_description and the bank's date, amount and payee, shown as match_details), cleared (a reconciled entry stays reconciled) and approved; the import's own row is deleted. Dates may be any distance apart and amounts may differ: only this tool, the owner's word, matches such rows; the bank sync matches only equal amounts within 10 days. Refused as a tool error, with nothing written: rows of two accounts, a closed account, a row already matched (not_matchable), two imports or two hand entries, an approved, split or transfer import, a split or transfer entry whose amount differs from the bank's (not_matchable), a reconciled import or a reconciled entry whose amount would change (transaction_reconciled); an unknown id is not found. ${MONEY} Returns { transaction, removed }: the matched transaction and the import's row as it was, each as get_transaction returns it. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({ budget_id: Id, ids: z.array(Id).length(2) }),
+    run: async (input: { budget_id: string; ids: string[] }, { env, actor }) =>
+      matchTransactions(env, actor, input.budget_id, input.ids),
+  },
+  {
+    name: "unmatch_transaction",
+    description: `Undo a match: the matched transaction becomes two again. The hand entry comes back with its amount from before the match (for a split or a transfer, the present amount), uncleared, with its own payee, memo, date, category and flag, and no import id. The import comes back as a new unapproved transaction with the bank's date, amount and payee and the same import id, which no later sync matches or imports again; it has no category, memo or flag. Refused as a tool error, with nothing written: a transaction that is not matched or has no record of the bank's transaction (not_matched), a closed account (account_closed), a reconciled transaction (transaction_reconciled); an unknown id is not found. ${MONEY} Returns { transaction, imported }, each as get_transaction returns it. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({ budget_id: Id, transaction_id: Id }),
+    run: async (input: { budget_id: string; transaction_id: string }, { env, actor }) =>
+      unmatchTransaction(env, actor, input.budget_id, input.transaction_id),
   },
   {
     name: "get_account_balances",

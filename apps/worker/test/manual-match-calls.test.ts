@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { Env } from "../src/env";
 import { matchTransactions, unmatchTransaction } from "../src/services/manual-match";
 import {
   getTransaction,
@@ -65,9 +66,9 @@ describe("D1 calls of a manual match (EXF-464)", () => {
     const reads = async () => {
       const out: number[] = [];
       for (const run of [
-        (e: typeof env) => getTransaction(e, a.plan, a.entry),
-        (e: typeof env) => listAccountTransactions(e, a.plan, a.account),
-        (e: typeof env) => listPlanTransactions(e, a.plan),
+        (e: Env) => getTransaction(e, a.plan, a.entry),
+        (e: Env) => listAccountTransactions(e, a.plan, a.account),
+        (e: Env) => listPlanTransactions(e, a.plan),
       ]) {
         const c = countingEnv();
         await run(c.env);
