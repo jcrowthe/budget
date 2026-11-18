@@ -4,6 +4,7 @@ import {
   eq,
   getTableColumns,
   inArray,
+  isNotNull,
   isNull,
   type SQL,
   type SQLWrapper,
@@ -90,6 +91,7 @@ export function insertIfSortStmt(db: Db, row: AccountRow) {
       bankAccountId: r.bankAccountId,
       importStartDate: r.importStartDate,
       lastReconciledAt: r.lastReconciledAt,
+      linkMissingSince: r.linkMissingSince,
     },
     sql`where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
   );
@@ -187,6 +189,7 @@ export function insertIfStmt(db: Db, row: AccountRow, guard: SQLWrapper) {
       bankAccountId: r.bankAccountId,
       importStartDate: r.importStartDate,
       lastReconciledAt: r.lastReconciledAt,
+      linkMissingSince: r.linkMissingSince,
     },
     sql`where exists ${guard}`,
   );
@@ -294,7 +297,13 @@ export function updateFieldsIfStmt(
 export function closeIfStmt(db: Db, before: AccountRow, extra: SQL) {
   return db
     .update(accounts)
-    .set({ closed: true, starred: false, bankAccountId: null, importStartDate: null })
+    .set({
+      closed: true,
+      starred: false,
+      bankAccountId: null,
+      importStartDate: null,
+      linkMissingSince: null,
+    })
     .where(and(holdsCondition(before), extra));
 }
 
@@ -338,7 +347,7 @@ export function softDeleteStartingBalanceStmt(
 export function softDeleteIfStmt(db: Db, before: AccountRow, at: string, extra: SQL) {
   return db
     .update(accounts)
-    .set({ deletedAt: at, bankAccountId: null, importStartDate: null })
+    .set({ deletedAt: at, bankAccountId: null, importStartDate: null, linkMissingSince: null })
     .where(and(holdsCondition(before), extra));
 }
 
@@ -410,7 +419,10 @@ function linkCondition(before: AccountRow, bankAccountId: string) {
   return and(
     eq(accounts.id, before.id),
     isNull(accounts.deletedAt),
-    isNull(accounts.bankAccountId),
+    // Free, or linked to a bank account the bank no longer lists (a relink replaces it).
+    before.bankAccountId === null
+      ? isNull(accounts.bankAccountId)
+      : and(eq(accounts.bankAccountId, before.bankAccountId), isNotNull(accounts.linkMissingSince)),
     eq(accounts.closed, false),
     eq(accounts.type, before.type),
     sql`exists (select 1 from ${bankAccounts} where ${bankAccounts.id} = ${bankAccountId})`,
@@ -431,7 +443,7 @@ export function setLinkIfStmt(
 ) {
   return db
     .update(accounts)
-    .set({ bankAccountId, importStartDate })
+    .set({ bankAccountId, importStartDate, linkMissingSince: null })
     .where(linkCondition(before, bankAccountId));
 }
 
@@ -453,7 +465,7 @@ export function unlinkHolds(db: Db, before: AccountRow) {
 export function unlinkIfStmt(db: Db, before: AccountRow) {
   return db
     .update(accounts)
-    .set({ bankAccountId: null, importStartDate: null })
+    .set({ bankAccountId: null, importStartDate: null, linkMissingSince: null })
     .where(unlinkCondition(before));
 }
 
@@ -557,6 +569,40 @@ export function linksAsRead(
   return sql`not exists (select 1 from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null and ${accounts.bankAccountId} is not null${known})`;
 }
 
+/**
+ * Sets `link_missing_since` (kept if already set) on the live accounts linked to a bank account of the
+ * connection that is in `missingBankIds`, and clears it on those that are not, while `guard` holds. Only
+ * rows that change are written; it is sync state like the balances (no change_log row, no updated_at).
+ */
+export function markMissingStmt(
+  db: Db,
+  connectionId: string,
+  missingBankIds: string[],
+  now: string,
+  guard: SQLWrapper,
+) {
+  const missing =
+    missingBankIds.length > 0
+      ? sql`${accounts.bankAccountId} in (${sql.join(
+          missingBankIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`
+      : sql`0`;
+  return db
+    .update(accounts)
+    .set({
+      linkMissingSince: sql`case when ${missing} then coalesce(${accounts.linkMissingSince}, ${now}) else null end`,
+    })
+    .where(
+      and(
+        isNull(accounts.deletedAt),
+        sql`${accounts.bankAccountId} in (${ofConnection(connectionId)})`,
+        sql`(${accounts.linkMissingSince} is null) = (${missing})`,
+        sql`exists ${guard}`,
+      ),
+    );
+}
+
 /** The unlink of a plan's delete holds while the account is still linked as read and the plan's deleted_at is `at`. */
 function unlinkAfterDeleteCondition(before: AccountRow, at: string) {
   return and(
@@ -574,6 +620,6 @@ export function unlinkAfterDeleteHolds(db: Db, before: AccountRow, at: string) {
 export function unlinkAfterDeleteStmt(db: Db, before: AccountRow, at: string) {
   return db
     .update(accounts)
-    .set({ bankAccountId: null, importStartDate: null })
+    .set({ bankAccountId: null, importStartDate: null, linkMissingSince: null })
     .where(unlinkAfterDeleteCondition(before, at));
 }

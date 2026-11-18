@@ -19,6 +19,7 @@ export const accounts = sqliteTable(
     bankAccountId: text("bank_account_id"),
     importStartDate: text("import_start_date"),
     lastReconciledAt: text("last_reconciled_at"),
+    linkMissingSince: text("link_missing_since"),
   },
   (t) => [
     index("accounts_budget").on(t.budgetId),

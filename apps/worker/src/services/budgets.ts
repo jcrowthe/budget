@@ -267,7 +267,10 @@ export async function deleteBudget(env: Env, actor: string, id: string): Promise
             entityType: "account",
             entityId: row.id,
             before: accountToApi(row, facts(row)),
-            after: accountToApi({ ...row, bankAccountId: null, importStartDate: null }, facts(row)),
+            after: accountToApi(
+              { ...row, bankAccountId: null, importStartDate: null, linkMissingSince: null },
+              facts(row),
+            ),
           },
           accountsRepo.unlinkAfterDeleteHolds(db, row, at),
         ),

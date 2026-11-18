@@ -146,6 +146,7 @@ export function accountToApi(
     needs_attention_count: b.attention ?? 0,
     connection_status: row.bankAccountId === null ? null : asStatus(row.connectionStatus),
     last_synced_at: row.bankAccountId === null ? null : (row.connectionSyncedAt ?? null),
+    link_missing_since: row.bankAccountId === null ? null : row.linkMissingSince,
   };
 }
 
@@ -174,6 +175,7 @@ export async function createAccount(
       bankAccountId: null,
       importStartDate: null,
       lastReconciledAt: null,
+      linkMissingSince: null,
     };
     // Log first, both guarded on "this sort_order is still the next free one": a lost race writes neither.
     const [, result] = await db.batch([
@@ -809,6 +811,7 @@ export async function insertAccountWithStartingBalance(
       bankAccountId: spec.bankAccountId,
       importStartDate: spec.importStartDate,
       lastReconciledAt: null,
+      linkMissingSince: null,
     };
     const { sys, stmts: payeeStmts } = systemPayee(
       db,

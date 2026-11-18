@@ -686,6 +686,11 @@ async function syncConnection(
       ),
     );
   }
+  // Only this good list marks anything: a link whose bank account the bank no longer lists reads Account Not Found.
+  if (linkedRows.length > 0) {
+    const missing = bankAccounts.filter((b) => !byPlaidId.has(b.plaidAccountId)).map((b) => b.id);
+    final.push(accountsRepo.markMissingStmt(db, row.id, missing, finished, guard));
+  }
   final.push(
     bankRepo.updateConnectionStmt(
       db,

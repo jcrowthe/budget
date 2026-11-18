@@ -81,6 +81,10 @@ export const Account = z
       description:
         "When the linked account's bank connection last synced (ISO 8601 UTC); null when not linked or never synced",
     }),
+    link_missing_since: z.string().nullable().default(null).openapi({
+      description:
+        "When the bank first stopped listing this linked account's bank account (ISO 8601 UTC): the account reads Account Not Found and imports to it have stopped. Null when the bank lists it, and null when the account is not linked",
+    }),
   })
   .openapi("Account");
 
