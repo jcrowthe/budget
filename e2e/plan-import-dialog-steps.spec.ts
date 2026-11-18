@@ -197,3 +197,34 @@ test("11b closing while the first request is still out cancels the import it sta
     await cleanup(request, name);
   }
 });
+
+test("11c a start that answers 201 before the cancel acts shows the result", async ({
+  page,
+  request,
+}) => {
+  const name = testName("quick");
+  try {
+    const requests = importRequests(page);
+    await page.route("**/api/v1/budgets/import", async (route) => {
+      if (route.request().method() === "POST" && !route.request().url().includes("dry_run")) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      await route.fallback();
+    });
+    await openImport(page);
+    await chooseFiles(page, largePair(5));
+    await dialog(page).getByLabel("Plan name", { exact: true }).fill(name);
+    await expect(button(page, "Import")).toBeEnabled();
+    await realClick(page, button(page, "Import"));
+    await expect(dialog(page).getByText("Starting the import…")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await realClick(page, button(page, "Cancel import"));
+    await expect(dialog(page).getByText(`Imported ${name}.`, { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    expect(requests.filter((r) => r.method === "DELETE")).toHaveLength(0);
+    expect(await plansNamed(request, name)).toHaveLength(1);
+  } finally {
+    await cleanup(request, name);
+  }
+});

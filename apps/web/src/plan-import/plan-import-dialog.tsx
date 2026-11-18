@@ -65,8 +65,6 @@ export function PlanImportDialog({
       [],
     ),
   );
-  const stepKind = useRef(step.kind);
-  stepKind.current = step.kind;
   const active = step.kind === "writing" || step.kind === "failed";
 
   const applyPreview = (p: PlanImportPreview, first: boolean) => {
@@ -195,10 +193,14 @@ export function PlanImportDialog({
     const was = confirm;
     setConfirm(null);
     setCancelling(true);
-    await run.cancel();
+    const outcome = await run.cancel();
     setCancelling(false);
-    if (was === "close" && stepKind.current !== "done") onClose();
-    else if (was === "leave") blocker.proceed?.();
+    const gone = outcome === "cancelled" || outcome === "none";
+    if (was === "close" && gone) onClose();
+    else if (was === "leave") {
+      if (gone) blocker.proceed?.();
+      else blocker.reset?.();
+    }
   };
   const blocker = useBlocker(active);
   useEffect(() => {

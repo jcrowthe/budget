@@ -11,6 +11,8 @@ export type RunStep =
   | { kind: "cancelled" }
   | { kind: "done"; result: PlanImportResult };
 
+export type CancelOutcome = "cancelled" | "none" | "done" | "failed";
+
 const failedText = (e: unknown) => (e instanceof ApiError ? e.detail : "The connection failed.");
 
 /** The import itself: the first request, then `continue` one at a time until done; retry and cancel. */
@@ -90,22 +92,25 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
     await run(r);
   }, [run]);
 
-  const cancel = useCallback(async () => {
+  /** "cancelled" and "none" (nothing was started) leave nothing; "done" and "failed" show their step. */
+  const cancel = useCallback(async (): Promise<CancelOutcome> => {
     stopping.current = true;
     await looping.current;
     const r = last.current;
-    if (!r || finished.current) return;
+    if (finished.current) return "done";
+    if (!r) return "none";
     try {
       await cancelImport(r.import_id);
       set({ kind: "cancelled" });
+      return "cancelled";
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && e.errorName === "import_finished") {
         try {
           done(await continueImport(r.import_id));
-          return;
+          return "done";
         } catch (e2) {
           set({ kind: "failed", result: r, detail: failedText(e2) });
-          return;
+          return "failed";
         }
       }
       set({
@@ -113,6 +118,7 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
         result: r,
         detail: `The import could not be cancelled: ${failedText(e)}`,
       });
+      return "failed";
     }
   }, [done, set]);
 
