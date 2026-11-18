@@ -89,9 +89,7 @@ export function ConnectionDetail({
           <div className="mc-banner" role="note" data-kind={badge.toLowerCase()}>
             {badge === "Delayed" ? <ClockIcon /> : <LinkWarningIcon />}
             <div className="mc-banner-text">
-              <strong>
-                {badge === "Delayed" ? "Imports Delayed" : "Connection Repair Needed"}
-              </strong>
+              <strong>{statusLabel(connection.status)}</strong>
               <span>
                 {badge === "Delayed"
                   ? DELAYED_TEXT

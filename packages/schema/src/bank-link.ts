@@ -72,8 +72,9 @@ export function connectionLabel(s: LinkStatus | "not_set_up"): string {
     case "delayed":
       return "Imports Delayed";
     case "login_required":
-    case "broken":
       return "Connection Repair Needed";
+    case "broken":
+      return "Connection Lost";
     case "not_set_up":
       return "Bank connections are not set up";
   }

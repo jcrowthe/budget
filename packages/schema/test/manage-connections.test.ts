@@ -18,7 +18,7 @@ describe("manage connections rules", () => {
   it("labels and badges", () => {
     expect(statusLabel("connected")).toBe("Connected");
     expect(statusLabel("delayed")).toBe("Imports Delayed");
-    expect(statusLabel("broken")).toBe("Connection Repair Needed");
+    expect(statusLabel("broken")).toBe("Connection Lost");
     expect(statusLabel("weird")).toBe("Connection Repair Needed");
     expect(connectionBadge("connected")).toBeNull();
     expect(connectionBadge("delayed")).toBe("Delayed");

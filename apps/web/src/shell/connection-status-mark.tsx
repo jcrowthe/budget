@@ -41,9 +41,11 @@ export function ConnectionStatusMark({
     open && s === "login_required",
   );
   const relink = useConnectionRelink(budgetId, connection?.id ?? "", noop);
-  const sticky = pinned || relink.running || !!relink.error || !!relink.notice;
-  const stickyRef = useRef(sticky);
-  stickyRef.current = sticky;
+  const held = relink.running || !!relink.error || !!relink.notice;
+  const sticky = pinned || held;
+  const stickyRef = useRef(held);
+  // A pin survives the pointer leaving; only a running Repair or a held message survives a scroll or a resize.
+  stickyRef.current = held;
 
   const cancelClose = useCallback(() => window.clearTimeout(timer.current), []);
   const show = useCallback(() => {
