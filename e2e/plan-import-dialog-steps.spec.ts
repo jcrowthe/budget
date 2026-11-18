@@ -168,3 +168,32 @@ test("12 a failed step: Try again and Cancel import, never a spinner; Try again 
     await cleanup(request, name);
   }
 });
+
+test("11b closing while the first request is still out cancels the import it starts", async ({
+  page,
+  request,
+}) => {
+  const name = testName("early");
+  try {
+    const requests = importRequests(page);
+    await page.route("**/api/v1/budgets/import", async (route) => {
+      if (route.request().method() === "POST" && !route.request().url().includes("dry_run")) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      await route.fallback();
+    });
+    await openImport(page);
+    await chooseFiles(page, largePair(6000));
+    await dialog(page).getByLabel("Plan name", { exact: true }).fill(name);
+    await expect(button(page, "Import")).toBeEnabled();
+    await realClick(page, button(page, "Import"));
+    await expect(dialog(page).getByText("Starting the import…")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await realClick(page, button(page, "Cancel import"));
+    await expect(dialog(page)).toHaveCount(0, { timeout: 15000 });
+    await expect.poll(() => requests.filter((r) => r.method === "DELETE").length).toBe(1);
+    expect(await plansNamed(request, name)).toEqual([]);
+  } finally {
+    await cleanup(request, name);
+  }
+});

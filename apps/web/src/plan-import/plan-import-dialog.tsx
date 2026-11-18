@@ -23,7 +23,7 @@ import "./plan-import-dialog.css";
 type Step =
   | { kind: "file"; error: string | null }
   | { kind: "reading" }
-  | { kind: "preview"; updating: boolean; error: string | null }
+  | { kind: "preview"; updating: boolean; error: string | null; startFailed?: boolean }
   | RunStep;
 
 type Confirm = "cancel" | "close" | "leave" | null;
@@ -49,6 +49,7 @@ export function PlanImportDialog({
   const [exportText, setExportText] = useState("");
   const [exportError, setExportError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
+  const [cancelling, setCancelling] = useState(false);
   const latest = useRef(latestOnly());
   const box = useRef<HTMLDivElement>(null);
   const drop = useRef<HTMLButtonElement>(null);
@@ -59,10 +60,13 @@ export function PlanImportDialog({
   const run = useImportRun(
     useCallback((s: RunStep) => setStep(s), []),
     useCallback(
-      (detail: string) => setStep({ kind: "preview", updating: false, error: detail }),
+      (detail: string) =>
+        setStep({ kind: "preview", updating: false, error: detail, startFailed: true }),
       [],
     ),
   );
+  const stepKind = useRef(step.kind);
+  stepKind.current = step.kind;
   const active = step.kind === "writing" || step.kind === "failed";
 
   const applyPreview = (p: PlanImportPreview, first: boolean) => {
@@ -164,7 +168,7 @@ export function PlanImportDialog({
   const canImport =
     step.kind === "preview" &&
     !step.updating &&
-    !step.error &&
+    (!step.error || step.startFailed === true) &&
     preview !== null &&
     preview.date_question === null &&
     name.trim() !== "" &&
@@ -180,6 +184,7 @@ export function PlanImportDialog({
 
   // Closing, escaping and leaving.
   const closeAsked = () => {
+    if (cancelling || confirm) return;
     if (active) setConfirm("close");
     else if (step.kind === "reading") {
       latest.current.next();
@@ -189,8 +194,10 @@ export function PlanImportDialog({
   const yes = async () => {
     const was = confirm;
     setConfirm(null);
+    setCancelling(true);
     await run.cancel();
-    if (was === "close") onClose();
+    setCancelling(false);
+    if (was === "close" && stepKind.current !== "done") onClose();
     else if (was === "leave") blocker.proceed?.();
   };
   const blocker = useBlocker(active);
@@ -279,6 +286,7 @@ export function PlanImportDialog({
               <Notes summary={result.summary} fmt={previewFormatter(result.summary.formats)} />
             </>
           ) : null}
+          {cancelling ? <p role="status">Cancelling…</p> : null}
           {confirm ? (
             <p role="alert" className="plan-import-dialog-confirm">
               Cancel this import? Everything written so far is removed.
@@ -286,7 +294,7 @@ export function PlanImportDialog({
           ) : null}
         </div>
         <div className="dialog-footer">
-          {confirm ? (
+          {cancelling ? null : confirm ? (
             <>
               <button type="button" className="secondary" data-initial onClick={keepGoing}>
                 Keep importing

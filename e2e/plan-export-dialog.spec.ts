@@ -162,6 +162,10 @@ test("4 A failed export shows the server's words, never nothing", async ({ page,
     await expect(
       dialog(page).getByText("The plan could not be exported.", { exact: true }),
     ).toBeVisible();
+    // The server's own words follow the sentence (the 404's detail).
+    const words = await dialog(page).locator("p").allTextContents();
+    expect(words).toHaveLength(2);
+    expect(words[1]?.length).toBeGreaterThan(0);
     await mouseClick(page, dialog(page).getByRole("button", { name: "OK", exact: true }));
     await expect(dialog(page)).toHaveCount(0);
   } finally {

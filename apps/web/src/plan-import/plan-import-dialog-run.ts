@@ -60,22 +60,27 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
   );
 
   const start = useCallback(
-    async (files: readonly File[], options: PlanImportOptions) => {
+    (files: readonly File[], options: PlanImportOptions) => {
       stopping.current = false;
       finished.current = false;
-      let r: PlanImportResult;
-      try {
-        r = await startImport(files, options);
-      } catch (e) {
-        onStartFailed(e instanceof ApiError ? e.detail : "The connection failed.");
-        return;
-      }
-      if (r.state === "done") {
-        last.current = r;
-        done(r);
-      } else await run(r);
+      last.current = null;
+      // The whole start-then-loop is what cancel waits for, so a cancel during the first request cancels it.
+      looping.current = (async () => {
+        let r: PlanImportResult;
+        try {
+          r = await startImport(files, options);
+        } catch (e) {
+          onStartFailed(e instanceof ApiError ? e.detail : "The connection failed.");
+          return;
+        }
+        if (r.state === "done") {
+          last.current = r;
+          done(r);
+        } else await loop(r);
+      })();
+      return looping.current;
     },
-    [done, onStartFailed, run],
+    [done, loop, onStartFailed],
   );
 
   const retry = useCallback(async () => {
