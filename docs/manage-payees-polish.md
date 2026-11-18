@@ -17,3 +17,5 @@ All items are scoped to the feature (`apps/web/src/payees/manage-payees.css` and
 - P13 [applied] Checkbox squares 13×13, tick and dash images scaled to 10px.
 - P14 [applied] Border above `Select N Unused Payees` removed.
 - P15 [applied] Disabled in-pane buttons: `--menuHover` background, `--labelTertiary` text, full opacity; footer Undo/Redo keep opacity 0.5.
+- P16 [applied] The popover's header moved inside `.mp-popover-content`, so the title and the ✕ line up with ACCOUNT and AMOUNT (22px from the edges).
+- P17 [applied] The table head is a separate table above the scrolling body: its borders and dividers stay, the 7px gap above it never scrolls, and only the body's rows scroll (max 192px). When the body overflows, the head reserves the scrollbar gutter and the last column gets 8px right padding in head and body (`has-scrollbar`, measured with a layout effect).

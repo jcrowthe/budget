@@ -494,20 +494,30 @@
 .mp-popover-content {
   padding: 1.6px 8px 4px;
 }
+/* Source: the head stays above a separate body; only the body (192px of rows) scrolls, the 7px gap above the head never does. */
+.mp-table-head {
+  margin-top: 7px;
+  border-top: 1px solid var(--separatorStandard);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.mp-table-head.has-scrollbar {
+  overflow-y: scroll;
+}
 .mp-table-body {
   max-height: 192px;
   overflow-y: auto;
   border-bottom: 1px solid var(--separatorStandard);
+}
+.mp-table-head.has-scrollbar th:last-child button,
+.mp-table-body.has-scrollbar td:last-child {
+  padding-right: var(--space-2);
 }
 .mp-table {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
 }
-.mp-table thead tr {
-  border-top: 1px solid var(--separatorStandard);
-  border-bottom: 1px solid var(--separatorStandard);
-}
+
 .mp-table th {
   padding: 0;
   text-align: left;
@@ -552,9 +562,6 @@
 }
 
 .mp-table th {
-  position: sticky;
-  top: 0;
-  background: var(--backgroundTertiary);
   border-right: 1px solid var(--separatorStandard);
 }
 .mp-table th:last-child {
@@ -570,7 +577,4 @@
 }
 .mp-table tbody tr:last-child td {
   border-bottom: 0;
-}
-.mp-popover .mp-table {
-  margin-top: 7px;
 }

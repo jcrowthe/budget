@@ -1,6 +1,6 @@
 import type { PayeeTransaction } from "@budget/schema/payees";
 import { PAYEE_TRANSACTIONS_LIMIT } from "@budget/schema/payees";
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePayeeTransactions } from "../api/payees";
 import { CloseIcon } from "../shell/icons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
@@ -43,6 +43,8 @@ export function TransactionsPopover({
   const q = usePayeeTransactions(budgetId, payeeId);
   const [sort, setSort] = useState<{ col: Col; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
   const box = useRef<HTMLDivElement>(null);
+  const bodyBox = useRef<HTMLDivElement>(null);
+  const [scrolls, setScrolls] = useState(false);
   const rows = useMemo(() => {
     const list = [...(q.data?.transactions ?? [])];
     const sign = sort.dir === "asc" ? 1 : -1;
@@ -53,6 +55,12 @@ export function TransactionsPopover({
     });
     return list;
   }, [q.data, sort]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: measured again whenever the rows change
+  useLayoutEffect(() => {
+    const el = bodyBox.current;
+    if (el) setScrolls(el.scrollHeight > el.clientHeight);
+  }, [rows]);
 
   // Under the button, 16 px inside the dialog's edges.
   const c = container.getBoundingClientRect();
@@ -72,14 +80,14 @@ export function TransactionsPopover({
       style={{ left, top, width }}
     >
       <span className="mp-popover-arrow" style={{ left: arrow }} aria-hidden="true" />
-      <div className="mp-popover-head">
-        <h3>Transactions</h3>
-        <button type="button" className="mp-x" aria-label="Close transactions" onClick={onClose}>
-          <CloseIcon width={16} height={16} />
-        </button>
-      </div>
       <div className="mp-popover-content">
-        <div className="mp-table-body">
+        <div className="mp-popover-head">
+          <h3>Transactions</h3>
+          <button type="button" className="mp-x" aria-label="Close transactions" onClick={onClose}>
+            <CloseIcon width={16} height={16} />
+          </button>
+        </div>
+        <div className={`mp-table-head${scrolls ? " has-scrollbar" : ""}`}>
           <table className="mp-table">
             <thead>
               <tr>
@@ -105,6 +113,10 @@ export function TransactionsPopover({
                 ))}
               </tr>
             </thead>
+          </table>
+        </div>
+        <div ref={bodyBox} className={`mp-table-body${scrolls ? " has-scrollbar" : ""}`}>
+          <table className="mp-table">
             <tbody>
               {rows.map((t) => (
                 <tr key={`${t.kind}-${t.id}`}>
