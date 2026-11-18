@@ -1265,4 +1265,15 @@
 }
 .bank-import-panel .match-error {
   margin-top: 8px;
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+.bank-import-info svg {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.bank-import-link:focus-visible {
+  outline: auto 2px var(--actionPrimary);
+  outline-offset: 2px;
 }

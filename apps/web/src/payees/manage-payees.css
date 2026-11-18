@@ -247,6 +247,8 @@
   color: var(--labelSecondary);
 }
 .mp-main {
+  scrollbar-color: var(--inputBackground) transparent;
+  color-scheme: dark;
   flex: 1;
   min-width: 0;
   padding: var(--space-3);
@@ -594,9 +596,12 @@
 .mp-rule {
   margin-bottom: var(--space-2);
 }
+.mp-rule:last-child {
+  margin-bottom: 0;
+}
 .mp-rule-row {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr) 28px;
+  grid-template-columns: 104px minmax(0, 1fr) 32px;
   align-items: center;
   gap: var(--space-2);
 }
@@ -605,8 +610,8 @@
 }
 .mp-rule-button {
   box-sizing: border-box;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-lg);
@@ -636,4 +641,12 @@
   align-items: center;
   justify-content: center;
   color: var(--labelSecondary);
+}
+.mp-rules-slot > span {
+  display: flex;
+}
+.mp-pane .mp-rule-button:disabled {
+  background: var(--menuHover);
+  color: var(--labelTertiary);
+  opacity: 1;
 }
