@@ -1,25 +1,14 @@
 import { type SidebarSection, sidebarSections } from "@budget/core/account-types";
 
 import type { Account } from "@budget/schema/accounts";
-import { connectionLabel, linkStatus } from "@budget/schema/bank-link";
+import { linkStatus } from "@budget/schema/bank-link";
 import { NavLink, useMatch } from "react-router";
 import { useSaveUiState, useUiState } from "../api/ui-state";
 import { SIDEBAR_LABELS } from "./accountTypeLabels";
-import { LinkStatusIcon } from "./bank-link-status";
+import { ConnectionStatusMark } from "./connection-status-mark";
 import { ChevronDownIcon, ChevronRightIcon, PencilIcon } from "./icons";
 import { usePlanFormatter } from "./plan-formats-context";
 import { accountPath } from "./planPaths";
-
-/** A linked account's connection mark: a check mark while connected, a warning otherwise. */
-function LinkedStatus({ account }: { account: Account }) {
-  const s = linkStatus(account);
-  if (!s) return null;
-  return (
-    <span className="nav-link-status" data-status={s} title={connectionLabel(s)}>
-      <LinkStatusIcon status={s} />
-    </span>
-  );
-}
 
 const sign = (n: number) => (n < 0 ? "negative" : n === 0 ? "zero" : "positive");
 
@@ -109,10 +98,11 @@ export function SidebarAccounts({
                         {a.name}
                       </span>
                       <span className={`value ${sign(a.balance)}`}>{fmt.money(a.balance)}</span>
-                      <span className="slot-right">
-                        <LinkedStatus account={a} />
-                      </span>
+                      <span className="slot-right" />
                     </NavLink>
+                    {linkStatus(a) ? (
+                      <ConnectionStatusMark budgetId={budgetId} account={a} />
+                    ) : null}
                   </div>
                 ))}
           </div>
