@@ -6,6 +6,7 @@ import {
   type BudgetUpdate,
 } from "@budget/schema/budgets";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { apiFetch } from "./client";
 
 export const listBudgets = async () =>
@@ -70,5 +71,22 @@ export function useUpdateBudget() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: BudgetUpdate }) => updateBudget(id, patch),
     onSuccess: replace,
+  });
+}
+
+export const deleteBudget = async (id: string) =>
+  apiFetch(`/api/v1/budgets/${id}`, {
+    method: "DELETE",
+    idempotencyKey: crypto.randomUUID(),
+    schema: z.object({ data: z.object({ deleted: z.literal(true) }) }),
+  });
+
+/** Deletes one plan; on success it leaves the plans list in the cache (no refetch). */
+export function useDeleteBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteBudget,
+    onSuccess: (_res, id) =>
+      qc.setQueryData<Budget[]>(["budgets"], (list) => list?.filter((b) => b.id !== id)),
   });
 }

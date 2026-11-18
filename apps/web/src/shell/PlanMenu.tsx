@@ -310,13 +310,11 @@ export function PlanMenu({
           <div key={section.heading ?? section.entries[0]?.id} className="menu-section">
             {i > 0 ? <hr className="menu-separator" /> : null}
             {section.heading ? <div className="menu-heading">{section.heading}</div> : null}
-            {section.entries
-              .filter((d) => d.id !== "open-plan" || others.length > 0)
-              .map((d) => row(d, false))}
+            {section.entries.map((d) => row(d, false))}
           </div>
         ))}
       </div>
-      {sub && others.length > 0 ? (
+      {sub ? (
         <div
           className="menu submenu"
           role="menu"
@@ -327,20 +325,24 @@ export function PlanMenu({
           onMouseEnter={() => clearTimeout(timer.current)}
           style={subPos ?? { visibility: "hidden" }}
         >
-          <div className="menu-heading">Recent Plans</div>
-          {others.map((p) => (
-            <Link
-              key={p.id}
-              role="menuitem"
-              tabIndex={-1}
-              to={`/${p.id}/budget`}
-              onClick={() => close(false)}
-            >
-              <DocumentIcon />
-              <span className="label">{p.name}</span>
-            </Link>
-          ))}
-          <hr className="menu-separator" />
+          {others.length > 0 ? (
+            <>
+              <div className="menu-heading">Recent Plans</div>
+              {others.map((p) => (
+                <Link
+                  key={p.id}
+                  role="menuitem"
+                  tabIndex={-1}
+                  to={`/${p.id}/budget`}
+                  onClick={() => close(false)}
+                >
+                  <DocumentIcon />
+                  <span className="label">{p.name}</span>
+                </Link>
+              ))}
+              <hr className="menu-separator" />
+            </>
+          ) : null}
           {row(VIEW_ALL_PLANS, true)}
         </div>
       ) : null}

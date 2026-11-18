@@ -53,7 +53,12 @@ export function Sidebar() {
   const side = useSidebarState();
   const rail = side.showRail;
   const notFound = !!budgetId && !isLoading && !error && !plan;
-  const planName = notFound ? "No Plan Open" : (plan?.name ?? "Budget");
+  // /plans (and "/" with no plan at all) shows the plans page: no plan is current, so nothing of one plan shows.
+  const onPlansRoute = !!useMatch("/plans");
+  const atRoot = !!useMatch("/");
+  const plansPage = onPlansRoute || (atRoot && !isLoading && !error && plans.length === 0);
+  const noPlan = notFound || plansPage;
+  const planName = noPlan ? "No Plan Open" : (plan?.name ?? "Budget");
   const toggle = () => {
     setMenu(null);
     side.toggle();
@@ -124,7 +129,7 @@ export function Sidebar() {
         />
       ) : null}
       <div className="sidebar-scroll">
-        {notFound ? null : (
+        {noPlan ? null : (
           <div className="nav">
             <NavLink
               aria-label={rail ? "Plan" : undefined}
@@ -153,22 +158,22 @@ export function Sidebar() {
             </NavLink>
           </div>
         )}
-        {!rail && !notFound && plan && accountList.length > 0 ? (
+        {!rail && !noPlan && plan && accountList.length > 0 ? (
           <SidebarAccounts budgetId={plan.id} accounts={accountList} onEdit={setEditingId} />
         ) : null}
-        {!rail && !notFound && (!plan || (accounts.isSuccess && accountList.length === 0)) ? (
+        {!rail && !noPlan && (!plan || (accounts.isSuccess && accountList.length === 0)) ? (
           <div className="accounts-card">
             <h5>No Accounts</h5>
             <p>You can't plan without adding accounts first. How about adding one now?</p>
           </div>
         ) : null}
-        {rail || notFound ? null : (
+        {rail || noPlan ? null : (
           <button type="button" className="add-account" onClick={() => setAddAccount(true)}>
             <PlusCircleIcon />
             Add Account
           </button>
         )}
-        {rail || notFound || !plan ? null : (
+        {rail || noPlan || !plan ? null : (
           <button
             type="button"
             className="add-account bank-connections"
@@ -194,9 +199,11 @@ export function Sidebar() {
           )}
         </ShortcutTooltip>
       </div>
-      <div className="sidebar-resizer" aria-hidden="true" onMouseDown={side.onResizerMouseDown}>
-        <span className="sidebar-resizer-indicator" />
-      </div>
+      {plansPage ? null : (
+        <div className="sidebar-resizer" aria-hidden="true" onMouseDown={side.onResizerMouseDown}>
+          <span className="sidebar-resizer-indicator" />
+        </div>
+      )}
       {dialog ? (
         <dialog.Dialog budgetId={plan?.id ?? null} onClose={() => setDialog(null)} />
       ) : null}
@@ -207,8 +214,8 @@ export function Sidebar() {
           onClose={() => setEditingId(null)}
         />
       ) : null}
-      {addAccount && !notFound ? <AddAccountDialog onClose={() => setAddAccount(false)} /> : null}
-      {connectionsOpen && plan && !notFound ? (
+      {addAccount && !noPlan ? <AddAccountDialog onClose={() => setAddAccount(false)} /> : null}
+      {connectionsOpen && plan && !noPlan ? (
         <ManageConnectionsDialog budgetId={plan.id} onClose={() => setConnectionsOpen(false)} />
       ) : null}
     </nav>
