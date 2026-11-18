@@ -4,7 +4,11 @@ import {
   type AccountsFromBankRequest,
   AccountsFromBankResponse,
 } from "@budget/schema/accounts";
-import { PlanSyncResponse, SyncResultResponse } from "@budget/schema/bank-connections";
+import {
+  type BankConnection,
+  PlanSyncResponse,
+  SyncResultResponse,
+} from "@budget/schema/bank-connections";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { listBankConnections } from "./bank-connections";
 import { ApiError, apiFetch } from "./client";
@@ -67,6 +71,17 @@ export const useBankConnections = (budgetId: string, enabled = true) =>
     enabled: enabled && !!budgetId,
     retry: false,
   });
+
+/** The connection holding the account's bank account, from the shared connections read; enabled only when asked. */
+export function useAccountConnection(
+  budgetId: string,
+  bankAccountId: string | null,
+  enabled: boolean,
+): { connection: BankConnection | undefined; isLoading: boolean } {
+  const q = useBankConnections(budgetId, enabled && bankAccountId !== null);
+  const connection = q.data?.find((c) => c.accounts.some((b) => b.id === bankAccountId));
+  return { connection, isLoading: q.isLoading };
+}
 
 /** Every query of the plan (accounts, register, months) and its connections may have changed. */
 export function invalidateBankLink(qc: QueryClient, budgetId: string): void {
