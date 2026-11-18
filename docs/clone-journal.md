@@ -12845,3 +12845,33 @@ run its checks beside that gate, and one release for both merges is better). Whe
 answered and it has merged: Deploy D38 for both, with what can be proved on live without a bank
 for the strip (nothing: no status but `connected` can be made there) and for match (manual match
 needs an import: a flow test with a Sandbox bank).
+
+### 2026-11-18 · Plan round 144
+
+Children used 159 of 200 (none started in this plan). Main `879f169`; live `1979d9d`. The person
+has said nothing new.
+
+**The tickets filed at the last review exist** (identifiers from the ticket list in this turn):
+EXF-866 (the connection statuses left from EXF-465; feature; Medium) and EXF-867 (the pinned
+popup and the broken connection's header label; gap; Low).
+
+**Status of the running child (09:01Z):** the manual-match Build
+(`p_f67df6924cb740b29568b5f4a63c844f`) is at its final gate, no open card.
+
+**Started: nothing.**
+- No child while that Build's status reads `final_gate`.
+- No Deploy for `879f169` alone: the manual-match merge is minutes to an hour away and carries a
+  migration; one release ships both, and its gate then runs after the Build's, not beside it.
+- When the Build's card comes: its gate ran on `b39c8cd` and main is now `879f169`, so I expect
+  the card to offer Refresh; the two merges share no file but `docs/README.md` and the coverage
+  lists, so a drift-only proof should do.
+
+**After its merge, in order:** Deploy D38 for both merges (the migration applied at release; on
+live, without a bank: `match_details` null on plain rows, the two tools listed, the strip absent
+on an unlinked account, the plan delete of a test plan through the script); then a flow test
+with a Sandbox bank for what needs an import: a manual match of a hand entry and an import with
+different amounts, its details, unmatch, a sync that changes nothing, and the mark's popup on a
+connected account. Then EXF-727 (the month picker) on the Plan page, and EXF-866 with EXF-867.
+
+Ticket writes: 2 (the two priorities).
+Finished since each template's last review: Build 3, Deploy 6, Discover 2, Test user flow 7.
