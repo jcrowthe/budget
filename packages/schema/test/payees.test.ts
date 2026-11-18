@@ -9,6 +9,8 @@ const p = (name: string, over: Partial<Payee> = {}): Payee => ({
   last_category_id: null,
   last_inflow_to_ready_to_assign: false,
   transfer_account_id: null,
+  transaction_count: 0,
+  scheduled_count: 0,
   ...over,
 });
 

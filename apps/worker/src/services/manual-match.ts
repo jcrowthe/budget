@@ -232,6 +232,8 @@ export async function unmatchTransaction(
     const results = await (async () => {
       try {
         return await db.batch([
+          // First, so the batch's last statement is still the guarded insert whose `changes` is read below.
+          ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
           ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
           changeLogInsertIf(
             db,
@@ -280,6 +282,7 @@ export async function unmatchTransaction(
         ] as unknown as Parameters<typeof db.batch>[0]);
       } catch (e) {
         if (payee?.create && payeesRepo.isUniqueViolation(e)) return null;
+        if (payeesRepo.isPayeeGone(e)) return null;
         throw e;
       }
     })();
