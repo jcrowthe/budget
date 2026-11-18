@@ -163,7 +163,7 @@ export async function listDue(db: Db, before: string): Promise<BankConnectionRow
     .orderBy(bankConnections.createdAt, bankConnections.id);
 }
 
-/** Records the time of a nightly check that got an error (the one write of a refused check). */
+/** Records the time of a scheduled check that got an error (the one write of a refused check). */
 export function checkedStmt(db: Db, id: string, at: string) {
   return db
     .update(bankConnections)

@@ -4,7 +4,6 @@ import {
   bankDescriptionOf,
   CHECK_AFTER_MS,
   categoryFor,
-  DUE_AFTER_MS,
   isRecoveryDuplicate,
   linkSet,
   linksCovered,
@@ -17,6 +16,7 @@ import {
   payeeNameOf,
   pickMatch,
   removedPlan,
+  SCHEDULE_DUE_AFTER_MS,
   SCHEDULED_MAX_RUNS,
   SCHEDULED_WALL_MS,
   type SkipReason,
@@ -201,7 +201,7 @@ async function syncConnection(
   holder: { list: bankRepo.BankAccountRow[] },
   opts: { maxUpdates?: number; maxPages?: number; check?: boolean },
 ): Promise<SyncResult> {
-  // Only the nightly check (`opts.check`) looks again at a connection that needs a sign-in; never a broken one.
+  // Only the scheduled check (`opts.check`) looks again at a connection that needs a sign-in; never a broken one.
   const checking = opts.check === true && row.status === "login_required";
   if ((NEEDS_REPAIR as readonly string[]).includes(row.status) && !checking) {
     return empty(row, row.status);
@@ -223,7 +223,7 @@ async function syncConnection(
     throw e;
   }
 
-  // The nightly check: one call. A refusal leaves everything as it is but the time of this try; a good
+  // The scheduled check: one call. A refusal leaves everything as it is but the time of this try; a good
   // answer is the bank's list, which the sync below reuses.
   let checked: BalanceAccount[] | null = null;
   if (checking) {
@@ -965,7 +965,7 @@ export async function syncPlan(env: Env, budgetId: string): Promise<{ results: S
 }
 
 /**
- * The scheduled sync: every connection never synced or not synced for 6 hours, whatever the cron's rate.
+ * The scheduled sync: every connection never synced or not synced for five hours; the cron runs every six.
  * Round-robin, so every due connection makes progress: each run is its own Durable Object request, and one
  * invocation starts at most SCHEDULED_MAX_RUNS of them, none after SCHEDULED_WALL_MS.
  */
@@ -978,7 +978,7 @@ export async function syncDueConnections(
   const maxRuns = opts.maxRuns ?? SCHEDULED_MAX_RUNS;
   let active = await bankRepo.listDue(
     getDb(env),
-    new Date(now.getTime() - DUE_AFTER_MS).toISOString(),
+    new Date(now.getTime() - SCHEDULE_DUE_AFTER_MS).toISOString(),
   );
   const out: SyncResult[] = [];
   const started = Date.now();

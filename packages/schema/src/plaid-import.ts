@@ -13,6 +13,9 @@ export type SyncStatus = (typeof SYNC_STATUSES)[number];
 export const NEEDS_REPAIR: readonly SyncStatus[] = ["login_required", "broken"];
 
 export const DUE_AFTER_MS = 6 * 3600_000;
+
+/** Due for the scheduled run (every six hours): five hours, so a run a few seconds late still finds it due. */
+export const SCHEDULE_DUE_AFTER_MS = 5 * 3600_000;
 export const MATCH_WINDOW_DAYS = 10;
 export const RECONCILED_GRACE_DAYS = 3;
 export const MAX_UPDATES_PER_RUN = 500;
@@ -67,7 +70,7 @@ export function syncStatusForError(
   return "delayed";
 }
 
-/** A connection that needs a sign-in is checked again in the nightly run no sooner than this after its last check. */
+/** A connection that needs a sign-in is checked again in a scheduled run (about once a day) no sooner than this after its last check. */
 export const CHECK_AFTER_MS = 20 * 3600_000;
 
 /** Why a connection is in its status, for the words only (the stored status values stay four). */
