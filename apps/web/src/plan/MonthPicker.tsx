@@ -23,7 +23,7 @@ export function MonthPicker({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [year, setYear] = useState(Number(month.slice(0, 4)));
-  useDismiss(ref, onClose, triggerRef);
+  useDismiss(ref, onClose, triggerRef, { consumeOutsidePress: true });
   return (
     <div ref={ref} className="month-picker" role="dialog" aria-label="Choose month" style={style}>
       <span className="popover-arrow" aria-hidden="true" />
