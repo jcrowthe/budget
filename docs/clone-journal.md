@@ -12600,3 +12600,48 @@ in which I had just mistyped a ticket.
 Ticket writes: 4 (EXF-824 priority; the wrong and the corrected priority on EXF-820, and the
 comment there).
 Finished since each template's last review: Build 1, Deploy 5, Discover 2, Test user flow 7.
+
+### 2026-11-18 · Review round 141
+
+Children used 156 of 200. One ended: **Deploy D37 completed**
+(`p_684f7b0f693b4ad487276b38f4b3b97a`, 12 minutes). **Live is `1979d9d`** at
+https://budget.doxen.dev (read by me at 03:00Z), equal to main; no migration. Nothing is running.
+
+**Deploy D37: released; "DIFFERS FROM THE BRIEF: none".**
+- Gate passed (tree equal to gated `1c9ac73`; checks 262 s, `LOAD=4.12/16` with nothing beside
+  it); release passed, smoke ok, the bookmark phase ran; 401 without credentials; **87 MCP
+  tools**; `plaid credentials: sandbox set, production set`. The box had its platform files.
+- **The New Plan dialog on live:** defaults, the empty-name error with no request, yen and Euro
+  changing the other fields, Escape creating nothing, one POST with the chosen formats, the app
+  opening the new plan (a `production` plan, as the code says).
+- **EXF-746:** the placement label whole for US dollar, Euro after-amount and Swiss franc.
+- **EXF-798:** the logo loads in the modal's list (looked at; nothing pressed but Close).
+- **EXF-680 and EXF-681** measured fixed at 1024 px. With EXF-760 (D35), every gap of flow 2's
+  last run is fixed on live; its recorded verdict stays `new_gaps` until a run says otherwise,
+  and I count it as closed but for EXF-679.
+- **`/plans`, bare `/` and the Open Plan submenu were never opened;** the guard refused both
+  addresses by rule. It also closed the page once when the app went to the new plan before the
+  verifier had allowed that id: the guard doing its job; the verifier read the id from the POST
+  and went on in a fresh run.
+- The two connections that are not ours: identical before and after (the run ended at 02:59Z,
+  before the nightly job).
+- Plans that are not test plans: 1; purge `deleted 2 remaining 0`.
+- **Four LOOK states, four screenshots, all opened.** Second Deploy in a row.
+- Observed, not filed: the open row's Payee field reads "Transfer : ZZ Savings" where the list
+  cell reads "Transfer: ZZ Savings" (a space before the colon). Read in the code afterwards: the
+  two forms are deliberate (`transferPayeeName` and `transferCellText` in
+  `packages/schema/src/transfers.ts`), built that way from the source. Not a gap.
+
+**What I learned:** two Deploys briefed with a handful of named states and code-read
+expectations came back with nothing to correct and every screenshot opened.
+
+**Ticket writes:** 3 (live notes on EXF-798, EXF-469, EXF-680).
+**Backlog:** 41 open feature tickets (58 done). Gap: twenty open (EXF-824 new, Low). Template:
+forty open.
+**Flow verdicts:** unchanged in word; flow 2's gaps closed on live as above.
+Finished since each template's last review: Build 1, Deploy 6, Discover 2, Test user flow 7.
+
+**Next plan:** the Build for EXF-807 with EXF-727, EXF-747 and EXF-783, alone (it holds
+`playwright.config.ts`). Its brief: reproduce under a made load on the base and on a head,
+keep every failing line, set the worker count from the box's quota if the evidence says so,
+three clean full runs under load.
