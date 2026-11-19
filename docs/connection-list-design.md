@@ -70,11 +70,11 @@ The table is **complete**: it covers every `inArray(`, `notInArray(`, `idList(` 
 
 ### Found, not fixed
 
-- **Category deletes, one group's categories.** `historyOf` binds the ids twice (2n + 2). By counting placeholders (not run), `GET` usage of a category group fails from about 49 categories in the group. Each statement of the delete batch carries the guard `full` (`noHistory` 2n, `allActive` n, …), so a group delete fails from roughly 30 categories in one group. It answers 500. An ordinary plan rarely puts 30 categories in one group, so this is **not as bad as the list**, but it is reachable. For a ticket.
+- **Fixed (EXF-883, see `bound-lists-design.md`).** **Category deletes, one group's categories.** `historyOf` binds the ids twice (2n + 2). By counting placeholders (not run), `GET` usage of a category group fails from about 49 categories in the group. Each statement of the delete batch carries the guard `full` (`noHistory` 2n, `allActive` n, …), so a group delete fails from roughly 30 categories in one group. It answers 500. An ordinary plan rarely puts 30 categories in one group, so this is **not as bad as the list**, but it is reachable. For a ticket.
 - **Plan delete with more than 90 linked accounts** is refused with 409 (`MAX_LINKS_AS_READ`). It is a stated bound with a clean refusal, not a crash. `idsIn` over `id|bank_account_id` pairs would lift it. For a ticket if wanted.
-- **`listActiveByIds`** has no caller.
+- **Removed (EXF-883).** **`listActiveByIds`** had no caller.
 - **Items left at Plaid's Sandbox by earlier runs** (the Lead's and the gates') stay. Their access tokens went with the boxes that made them, and nothing can remove them. Nothing is done.
-- The Worker logs only the error's name for a 500 (`middleware/errors.ts`, a shared module, out of bounds), which is why the cause was not visible in the server log.
+- **Fixed (EXF-884, see `bound-lists-design.md`).** The Worker logged only the error's name for a 500 (`middleware/errors.ts`, a shared module, out of bounds), which is why the cause was not visible in the server log.
 
 ## The spec cleans up (`e2e/bank-connections-sandbox.spec.ts`)
 
