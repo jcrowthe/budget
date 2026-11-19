@@ -42,9 +42,10 @@ function textOf(e: unknown): string {
   if (e instanceof DrizzleQueryError) {
     // `message` and `params` hold the bound values; the statement's own text holds placeholders only.
     const q = typeof e.query === "string" ? e.query : "";
-    return squash(
-      q.replace(/\?(?:\s*,\s*\?){2,}/g, (m) => `?×${m.split("?").length - 1}`),
-    ).slice(0, MAX_TEXT);
+    return squash(q.replace(/\?(?:\s*,\s*\?){2,}/g, (m) => `?×${m.split("?").length - 1}`)).slice(
+      0,
+      MAX_TEXT,
+    );
   }
   if (!(e instanceof Error)) return "";
   const m = String(e.message)
@@ -96,7 +97,8 @@ function isFault(e: unknown): boolean {
 
 /** MCP: logs `mcp_tool_error <tool> | <describeError(e)>` only for a fault; a refusal is not logged. */
 export function logToolError(tool: string, e: unknown): void {
-  if (isFault(e)) console.error(`mcp_tool_error ${tool} | ${describeError(e)}`.slice(0, LOG_LINE_MAX));
+  if (isFault(e))
+    console.error(`mcp_tool_error ${tool} | ${describeError(e)}`.slice(0, LOG_LINE_MAX));
 }
 
 /**
