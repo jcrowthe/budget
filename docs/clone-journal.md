@@ -14833,3 +14833,56 @@ running Build does not touch. **One Deploy for all three merges** when the runni
 merged, not one now and one then: with 22 children left a Deploy is worth saving, and nobody
 is waiting on the renaming rules tonight.
 **Still waiting on the person:** the eight questions; the child limit first.
+
+### 2026-11-19 · Plan round 163
+
+Children used 179 of 200 (one started this turn; **the next child is the 180th and the
+warning starts with it**). Main `e3a04c9`, live `f9f1281`: two merges and one migration wait
+for a Deploy. No answer to the check-in of round 160.
+
+**The ticket filed at the last review exists:** EXF-885 (renaming rules leftovers; title read
+from the list this turn), set to Medium.
+
+**Running (00:27Z): the Build for EXF-883 with EXF-884**
+(`p_0395bb1b09614e11b3d4186ef8a0bb41`), at its checks after the first review; 13 visits.
+
+**Started: the Build for EXF-515, the remembered category of a payee**
+(`p_19c3c39f04ee48709e6e75f9081afaa0`), beside it.
+- **Why this one:** it is the second half of what makes bank imports usable day to day (the
+  first was the renaming rules): the category an imported row arrives with. Today that is
+  the category of the payee's latest transaction; the source uses a steadier rule and lets
+  the owner fix or switch off the suggestion per payee.
+- **The scheduling rule:** its ground is the payees' files, the write paths of transactions
+  (each for one statement), the dialog and one file of the register; one migration. The
+  running Build's ground is the category repositories, `guards.ts`, `middleware/**`,
+  `scheduled.ts`, `mcp/server.ts`, the audit test and two documents. **Disjoint; the running
+  Build's files are closed to this one by name, and it is told to add no IN-list site, so
+  that it never needs the audit test the other is editing.** No shared module, no
+  always-overlap file. In common: `docs/README.md`.
+- **Read before writing:** what a payee suggests today and who reads it (`listForPlan`,
+  `entryDraft.ts`, `categoryFor`); the write paths by file and function.
+- **The decision that shapes it:** the default is stored and worked out again inside each
+  write's own batch. The ticket's cases cannot be told apart from the transactions alone,
+  so a value read at the moment of asking would be wrong for two of the eight.
+- **Existing payees on live:** the migration fills the default in one statement, so nothing
+  the owner's plan suggests today is lost; the Build may argue for another way and must say
+  why. The release takes its Time Travel bookmark first, as always.
+- **A departure from the ticket, mine, with its reason:** a transaction created through REST
+  or MCP without a category stays without one. Four more decisions where the ticket is
+  silent are labelled "not observed" and go to "Departures to check".
+- **Two small points of EXF-885 ride along last** (the correction an older and a newer rule
+  defeat; three tool descriptions). If the Build runs long they stay in EXF-885.
+- The source is closed to every step; no sub-agent; `"reserved_migrations": []`, the
+  migration's name in the text only (`20261116101900_payee_category.sql`).
+
+**Not started:**
+- **No Deploy yet.** One Deploy ships `deb0f99`, `e3a04c9` and the running gap Build's merge
+  when it has merged. It will be the 180th child.
+- No flow run; no template review due (Build 3, Deploy 1, Discover 2, Test user flow 8).
+
+**Ticket writes:** 4 (EXF-885 priority and a comment; EXF-515 to In Progress and a comment).
+
+**From 180 on I start only what matters most.** As I see it now, in this order: the Deploy
+for what is merged; the Deploy after EXF-515; then nothing more without the person's word on
+the child limit, except a fix for something broken on live.
+**Still waiting on the person:** the eight questions; the child limit first.
