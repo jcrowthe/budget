@@ -61,6 +61,8 @@ A request that handles many rows makes a number of D1 calls that does not grow w
 
 No `IN` list built from rows of the database without a stated bound (D1 refuses more than 100 bound parameters in a statement): use a join, a sub-select or `idsIn` (`repositories/payees.ts`, one parameter for any number of ids).
 
+`apps/worker/test/connection-list-table.test.ts` counts the `IN`-list sites (`inArray(`, `notInArray(`, `idList(`, `in (${`) per file of `repositories/` and `services/`: a Build that adds or removes one updates its count and the table in `docs/connection-list-design.md`. `idList` (`repositories/guards.ts`) binds its list as one parameter.
+
 ## Statements: name the columns
 
 No statement depends on a table's column order: every insert or copy names its columns. Use `insertSelect` (`repositories/insert-select.ts`) for `insert … select`; Drizzle's `insert(t).select(...)` lists every column of `t` and is refused by `scripts/test/positional-inserts.test.ts`. `insert(t).values({...})` names them and is fine.

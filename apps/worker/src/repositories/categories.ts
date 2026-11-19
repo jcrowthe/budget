@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
+import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
@@ -161,24 +161,6 @@ export async function listActiveInGroup(db: Db, groupId: string): Promise<Catego
     .orderBy(categories.sortOrder, categories.id);
 }
 
-export async function listActiveByIds(
-  db: Db,
-  budgetId: string,
-  ids: readonly string[],
-): Promise<CategoryRow[]> {
-  if (ids.length === 0) return [];
-  return db
-    .select()
-    .from(categories)
-    .where(
-      and(
-        eq(categories.budgetId, budgetId),
-        isNull(categories.deletedAt),
-        inArray(categories.id, [...ids]),
-      ),
-    );
-}
-
 /** The `where` shared by the flip statements: active categories of a group now hidden/unhidden. */
 function flipWhere(groupId: string, to: boolean, exceptId?: string): SQL {
   return sql`${categories.groupId} = ${groupId} and ${categories.deletedAt} is null and ${categories.hidden} = ${to ? 0 : 1}${exceptId ? sql` and ${categories.id} <> ${exceptId}` : sql``}`;
@@ -239,7 +221,7 @@ export function softDeleteManyStmt(db: Db, ids: readonly string[], now: string, 
   return db
     .update(categories)
     .set({ deletedAt: now, updatedAt: now })
-    .where(and(inArray(categories.id, [...ids]), isNull(categories.deletedAt), guard));
+    .where(and(sql`${categories.id} in (${idList(ids)})`, isNull(categories.deletedAt), guard));
 }
 
 /** The `select` a category-change log row is built from (its columns are those of `categories`). */
