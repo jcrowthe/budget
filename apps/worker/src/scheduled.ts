@@ -2,6 +2,7 @@ import { SCHEDULED_MAX_RUNS } from "@budget/schema/plaid-import";
 import { dayBefore } from "@budget/schema/recurrence";
 import { SCHEDULER_ACTOR, SCHEDULER_CRON_CALLS } from "@budget/schema/scheduled-transactions";
 import type { Env } from "./env";
+import { describeError, LOG_LINE_MAX } from "./middleware/errors";
 import { requestSync, syncDueConnections } from "./services/plaid-sync";
 import { enterDue } from "./services/scheduled-transactions";
 
@@ -23,7 +24,7 @@ export async function cronRun(
     });
   } catch (e) {
     // A failed scheduler never stops the bank sync.
-    console.error("scheduler failed", e);
+    console.error(`scheduler failed | ${describeError(e)}`.slice(0, LOG_LINE_MAX));
   }
   await syncDueConnections(env, now, run, { maxRuns: SCHEDULED_MAX_RUNS - SCHEDULER_CRON_CALLS });
 }
