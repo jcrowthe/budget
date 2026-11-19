@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler, getMcpAuthContext } from "agents/mcp/server";
 import type { Context } from "hono";
 import type { AppEnv, Env } from "../env";
+import { logToolError } from "../middleware/errors";
 import type { McpToolDef } from "./types";
 
 // Every module in mcp/tools/ exports `tools: McpToolDef[]`.
@@ -22,7 +23,13 @@ export function createServerFactory(env: Env) {
         { description: tool.description, inputSchema: tool.inputSchema },
         async (input: unknown) => {
           const actor = `mcp:${String(getMcpAuthContext()?.props.actor ?? "unknown")}`;
-          const result = await tool.run(input as never, { env, actor });
+          let result: unknown;
+          try {
+            result = await tool.run(input as never, { env, actor });
+          } catch (e) {
+            logToolError(tool.name, e);
+            throw e;
+          }
           return {
             content: [{ type: "text" as const, text: JSON.stringify(result) }],
             structuredContent: result as Record<string, unknown>,
