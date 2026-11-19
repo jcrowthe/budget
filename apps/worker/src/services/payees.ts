@@ -7,11 +7,13 @@ import {
   type PayeeSystem,
   type PayeeTransaction,
 } from "@budget/schema/payees";
+import { checkRuleText, foldRuleText } from "@budget/schema/rename-rules";
 import {
   TRANSFER_PAYEE_PREFIX,
   transferPayeeId,
   transferPayeeName,
 } from "@budget/schema/transfers";
+import { sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { type Db as DbT, getDb } from "../db/client";
 import type { Env } from "../env";
@@ -20,6 +22,7 @@ import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import { allOf, type LogBase, whenQuery } from "../repositories/guards";
+import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as transactionsRepo from "../repositories/transactions";
@@ -29,7 +32,7 @@ type Db = ReturnType<typeof getDb>;
 
 export function payeeToApi(
   row: payeesRepo.PayeeRow &
-    Partial<Pick<payeesRepo.PayeeListRow, "transactionCount" | "scheduledCount">>,
+    Partial<Pick<payeesRepo.PayeeListRow, "transactionCount" | "scheduledCount" | "hasRules">>,
   lastCategoryId: string | null = null,
   lastInflow = false,
 ): Payee {
@@ -43,6 +46,7 @@ export function payeeToApi(
     transfer_account_id: null,
     transaction_count: row.transactionCount ?? 0,
     scheduled_count: row.scheduledCount ?? 0,
+    has_rules: row.hasRules ?? false,
   };
 }
 
@@ -69,6 +73,7 @@ export async function listPayees(
     transfer_account_id: a.id,
     transaction_count: 0,
     scheduled_count: 0,
+    has_rules: false,
   }));
   const needle = opts.q?.toLowerCase() ?? "";
   return [
@@ -155,12 +160,12 @@ export class PayeeRefused extends Error {
 const forbidden = (m: string) => new PayeeRefused(403, "forbidden", m);
 const unprocessable = (m: string) => new PayeeRefused(422, "unprocessable_entity", m);
 
-async function requirePlan(db: DbT, budgetId: string) {
+export async function requirePlan(db: DbT, budgetId: string) {
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
 }
 
 /** The payee a path names: a transfer entry or a system payee is refused (403), a missing one is 404. */
-async function pathPayee(db: DbT, budgetId: string, payeeId: string, withCounts: boolean) {
+export async function pathPayee(db: DbT, budgetId: string, payeeId: string, withCounts: boolean) {
   if (payeeId.startsWith(TRANSFER_PAYEE_PREFIX)) throw forbidden(PAYEE_ERRORS.transfer);
   const [row] = await payeesRepo.listForPlan(db, budgetId, {
     includeHidden: true,
@@ -198,8 +203,30 @@ export async function updatePayee(
     return payeeToApi(row, row.lastCategoryId, row.lastInflowToReadyToAssign);
   const now = new Date().toISOString();
   const same = payeesRepo.unchangedSql(budgetId, row.id, row);
+  // A rename of a payee whose old name came from a bank import adds the rule `is <old name>` (before the update).
+  const learn =
+    name !== row.name && checkRuleText(row.name).ok
+      ? rulesRepo.addIfMissingStmts(
+          db,
+          { budgetId, actor, action: "create", entityType: "payee_rename_rule", createdAt: now },
+          {
+            id: crypto.randomUUID(),
+            budgetId,
+            payeeId: row.id,
+            kind: "is",
+            text: row.name.trim(),
+            matchText: foldRuleText(row.name),
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          },
+          sql`${same} and exists (select 1 from transactions t where t.budget_id = ${budgetId} and t.payee_id = ${row.id} and t.deleted_at is null and t.import_payee_name = ${row.name})`,
+        )
+      : [];
+  let ruleAdded = false;
   try {
     const res = await db.batch([
+      ...learn,
       changeLogInsertIf(
         db,
         {
@@ -214,18 +241,22 @@ export async function updatePayee(
         whenQuery(db, same),
       ),
       payeesRepo.updateStmt(db, budgetId, row.id, { name, hidden }, now, row),
-    ]);
+    ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
     // The guard failed (a rename, hide or delete got there first): nothing was written.
-    if (((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
+    if (((res[res.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
     }
+    // The rule's insert is the last statement of `learn`.
+    if (learn.length > 0)
+      ruleAdded =
+        ((res[learn.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) > 0;
   } catch (e) {
     if (payeesRepo.isUniqueViolation(e))
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
     throw e;
   }
   return payeeToApi(
-    { ...after, updatedAt: now },
+    { ...after, hasRules: row.hasRules || ruleAdded, updatedAt: now },
     row.lastCategoryId,
     row.lastInflowToReadyToAssign,
   );
@@ -242,7 +273,7 @@ export interface PayeeDeletePlan {
   counts: Record<string, { t: number; s: number }>;
 }
 
-/** The statements of one delete, four whatever the rows. A test appends a failing statement to prove atomicity. */
+/** The statements of one delete, six whatever the rows. A test appends a failing statement to prove atomicity. */
 export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"sqlite">[] {
   const { budgetId, ids, replacementId } = p;
   const guard = allOf(
@@ -268,6 +299,7 @@ export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"s
       crypto.randomUUID(),
       guard,
     ),
+    ...rulesRepo.removeForPayeesStmts(db, base, budgetId, ids, guard),
     payeesRepo.softDeleteStmt(db, budgetId, ids, p.now, guard),
   ];
 }

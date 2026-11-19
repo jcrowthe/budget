@@ -26,7 +26,8 @@ import {
   storedErrorCode,
   syncStatusForError,
 } from "@budget/schema/plaid-import";
-import { and, type SQLWrapper, sql } from "drizzle-orm";
+import { pickRenameRule } from "@budget/schema/rename-rules";
+import { and, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { getDb } from "../db/client";
 import { changeLog } from "../db/schema/change-log";
@@ -41,6 +42,7 @@ import { type BalanceAccount, fetchBalances, fetchSyncPages } from "../plaid/tra
 import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as importsRepo from "../repositories/imports";
+import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { bankAccountRow, toApi } from "./bank-connections";
@@ -301,16 +303,19 @@ async function syncConnection(
   if (pages) {
     const { upserts, removed } = netChanges(pages.pages);
     const recovery = row.syncErrorSince !== null;
-    const payeesOf = new Map<string, PayeeMap>();
+    const payeesOf = new Map<string, PlanPayees>();
     const planPayees = async (budgetId: string) => {
       let p = payeesOf.get(budgetId);
       if (!p) {
-        const list = await payeesRepo.listForPlan(db, budgetId, { includeHidden: true });
-        p = new Map(
-          list
-            .filter((x) => x.system === null)
-            .map((x) => [x.name, { lastCategoryId: x.lastCategoryId }]),
+        const list = (await payeesRepo.listForPlan(db, budgetId, { includeHidden: true })).filter(
+          (x) => x.system === null,
         );
+        p = {
+          byName: new Map(list.map((x) => [x.name, { lastCategoryId: x.lastCategoryId }])),
+          byId: new Map(
+            list.map((x) => [x.id, { name: x.name, lastCategoryId: x.lastCategoryId }]),
+          ),
+        };
         payeesOf.set(budgetId, p);
       }
       return p;
@@ -360,6 +365,9 @@ async function syncConnection(
     });
     const namesAt = new Map(planIds.map((id) => [id, queries.length + planIds.indexOf(id)]));
     for (const id of planIds) queries.push(importsRepo.categoryNamesQuery(db, id));
+    // The plan's renaming rules ride the same batch: no call is added.
+    const rulesAt = queries.length;
+    for (const id of planIds) queries.push(rulesRepo.rulesForPlanQuery(db, id));
     const got =
       queries.length > 0
         ? ((await db.batch(queries as unknown as Stmts)) as unknown as unknown[][])
@@ -375,10 +383,18 @@ async function syncConnection(
       ]),
     );
 
+    const rulesOfPlan = new Map(
+      planIds.map((id, i) => [
+        id,
+        ((got[rulesAt + i] ?? []) as { r: rulesRepo.RuleRow }[]).map((x) => x.r),
+      ]),
+    );
+
     units: for (const [w, { account, bank, mine }] of work.entries()) {
       const slot = at[w] as (typeof at)[number];
       const budgetId = account.budgetId;
-      const payees = payeesOf.get(budgetId) as PayeeMap;
+      const payees = payeesOf.get(budgetId) as PlanPayees;
+      const planRules = rulesOfPlan.get(budgetId) ?? [];
       const names = namesOfPlan.get(budgetId) as importsRepo.CategoryNames;
       const idSet = new Set(mine.map((u) => u.txn.transaction_id));
       const startingBalanceDate =
@@ -440,7 +456,7 @@ async function syncConnection(
         for (const { txn } of unit) {
           const have = existing.get(txn.transaction_id);
           if (have) {
-            const plan = followPlan(budgetId, have, txn);
+            const plan = followPlan(budgetId, have, txn, planRules, payees);
             if (plan) decisions.push({ kind: "follow", have, plan });
             continue;
           }
@@ -558,18 +574,15 @@ async function syncConnection(
           }
           // The insert: the import itself, or the fallback of a match whose candidate changed meanwhile.
           // Once the match is written the id is known, and every statement below is a no-op.
-          const cat = categoryFor(
-            kinds,
-            amount,
-            payeeName ? (payees.get(payeeName) ?? null) : null,
-          );
+          const target = payeeTarget(budgetId, payeeName, planRules, payees);
+          const cat = categoryFor(kinds, amount, target.entry);
           const newRow: Row = {
             id: crypto.randomUUID(),
             budgetId,
             accountId: account.id,
             date: txn.date,
             payeeId: null,
-            payeeName,
+            payeeName: target.name,
             categoryId: cat.categoryId,
             inflowToReadyToAssign: cat.inflowToReadyToAssign,
             memo: null,
@@ -582,7 +595,15 @@ async function syncConnection(
             ...bankValues,
             source: "plaid",
           };
-          if (payeeName) addPayee(db, g, budgetId, payeeName, now, guard);
+          if (payeeName)
+            addPayee(
+              db,
+              g,
+              budgetId,
+              payeeName,
+              now,
+              target.ruleGone ? txRepo.allHold([guard, target.ruleGone]) : guard,
+            );
           g.add(
             changeLogInsertIf(
               db,
@@ -593,28 +614,22 @@ async function syncConnection(
                 entityType: "transaction",
                 entityId: newRow.id,
                 before: null,
-                after: logShape({ ...newRow, ...forNewRow(names, cat.categoryId) }),
+                after: {
+                  ...logShape({ ...newRow, ...forNewRow(names, cat.categoryId) }),
+                  ...(target.rule ? { rename_rule_id: target.rule.id } : {}),
+                },
               },
               guard,
             ),
           );
-          g.add(
-            txRepo.insertIfStmt(
-              db,
-              newRow,
-              guard,
-              payeeName ? payeesRepo.ordinaryIdByNameSql(budgetId, payeeName) : undefined,
-            ),
-            "added",
-          );
-          if (payeeName) {
+          g.add(txRepo.insertIfStmt(db, newRow, guard, target.idSql), "added");
+          if (target.idSql) {
             g.add(
               logPayeeIdStmt(
                 db,
                 newRow.id,
                 "create",
-                budgetId,
-                payeeName,
+                target.idSql,
                 txRepo.writtenAt(db, newRow.id, now),
               ),
             );
@@ -796,6 +811,49 @@ function importValues(txn: PlaidTxn, amount: number, payeeName: string | null) {
 
 /** A group of statements with the kind of change each one counts, when it changes a row. */
 type PayeeMap = Map<string, { lastCategoryId: string | null }>;
+type PlanPayees = {
+  byName: PayeeMap;
+  byId: Map<string, { name: string; lastCategoryId: string | null }>;
+};
+
+/**
+ * The payee an imported name goes to: the payee of the plan's winning renaming rule when there is one (its name, its
+ * last category), else the payee of that name. `ruleGone` holds when the rule's payee was deleted since the read, so
+ * that the bank's name is made then and the import is not lost.
+ */
+function payeeTarget(
+  budgetId: string,
+  bankName: string | null,
+  rules: readonly rulesRepo.RuleRow[],
+  pp: PlanPayees,
+) {
+  const rule = bankName ? pickRenameRule(bankName, rules) : null;
+  const rp = rule ? pp.byId.get(rule.payeeId) : undefined;
+  if (bankName && rule && rp) {
+    return {
+      name: rp.name as string | null,
+      idSql:
+        sql`coalesce(${payeesRepo.liveOrdinaryIdSql(budgetId, rule.payeeId)}, ${payeesRepo.ordinaryIdByNameSql(budgetId, bankName)})` as
+          | SQL
+          | undefined,
+      entry: rp as { lastCategoryId: string | null } | null,
+      rule,
+      ruleGone:
+        sql`(select 1 where not ${payeesRepo.liveOrdinarySql(budgetId, rule.payeeId)})` as SQL | null,
+    };
+  }
+  return {
+    name: bankName,
+    idSql: (bankName ? payeesRepo.ordinaryIdByNameSql(budgetId, bankName) : undefined) as
+      | SQL
+      | undefined,
+    entry: (bankName ? (pp.byName.get(bankName) ?? null) : null) as {
+      lastCategoryId: string | null;
+    } | null,
+    rule: null as rulesRepo.RuleRow | null,
+    ruleGone: null as SQL | null,
+  };
+}
 
 /**
  * Fills `payee_id` in the newest change_log copy of the transaction with the payee its row points to (the
@@ -805,14 +863,13 @@ function logPayeeIdStmt(
   db: Db,
   transactionId: string,
   action: "create" | "update",
-  budgetId: string,
-  name: string,
+  payeeIdSql: SQL,
   guard: SQLWrapper,
 ) {
   return db
     .update(changeLog)
     .set({
-      afterJson: sql`json_set(${changeLog.afterJson}, '$.payee_id', ${payeesRepo.ordinaryIdByNameSql(budgetId, name)})`,
+      afterJson: sql`json_set(${changeLog.afterJson}, '$.payee_id', ${payeeIdSql})`,
     })
     .where(
       and(
@@ -874,7 +931,13 @@ function addPayee(
  * bank's description; an unapproved import follows the bank; anything else keeps the user's values and takes
  * the description and the bank's own copies. Nothing differs: null.
  */
-function followPlan(budgetId: string, have: Row, txn: PlaidTxn) {
+function followPlan(
+  budgetId: string,
+  have: Row,
+  txn: PlaidTxn,
+  rules: readonly rulesRepo.RuleRow[],
+  pp: PlanPayees,
+) {
   const how = modifiedPlan(have);
   const amount = milli(txn.amount);
   const payeeName = payeeNameOf(txn);
@@ -889,31 +952,46 @@ function followPlan(budgetId: string, have: Row, txn: PlaidTxn) {
     if (!same(have.importedPayee, txn.name)) set.importedPayee = txn.name;
   }
   let newPayee: string | null = null;
+  let applied: { ruleId: string; ruleGone: SQL } | null = null;
   if (how === "follow") {
     if (!same(have.date, txn.date)) set.date = txn.date;
     if (!same(have.amount, amount)) set.amount = amount;
     if (!same(have.importPayeeName, payeeName)) {
-      set.payeeName = payeeName;
-      set.payeeId = payeeName ? payeesRepo.ordinaryIdByNameSql(budgetId, payeeName) : null;
+      const t = payeeTarget(budgetId, payeeName, rules, pp);
+      set.payeeName = t.name;
+      set.payeeId = t.idSql ?? null;
       newPayee = payeeName;
+      if (t.rule && t.ruleGone) applied = { ruleId: t.rule.id, ruleGone: t.ruleGone };
     }
   }
-  return Object.keys(set).length === 0 ? null : { set, newPayee };
+  return Object.keys(set).length === 0 ? null : { set, newPayee, applied };
 }
 
 function followBank(
   db: Db,
   budgetId: string,
   have: Row,
-  plan: { set: txRepo.TxSet; newPayee: string | null },
+  plan: {
+    set: txRepo.TxSet;
+    newPayee: string | null;
+    applied: { ruleId: string; ruleGone: SQL } | null;
+  },
   names: { categoryName: string | null; groupName: string | null },
   lines: txRepo.LineRow[],
   now: string,
 ): Group {
-  const { set, newPayee } = plan;
+  const { set, newPayee, applied } = plan;
   const guard = txRepo.writtenAt(db, have.id, have.updatedAt);
   const g = new Group();
-  if (newPayee) addPayee(db, g, budgetId, newPayee, now, guard);
+  if (newPayee)
+    addPayee(
+      db,
+      g,
+      budgetId,
+      newPayee,
+      now,
+      applied ? txRepo.allHold([guard, applied.ruleGone]) : guard,
+    );
   const merged = {
     ...have,
     ...set,
@@ -929,15 +1007,18 @@ function followBank(
         entityType: "transaction",
         entityId: have.id,
         before: logShape({ ...have, ...names }, lines),
-        after: logShape({ ...merged, ...names }, lines),
+        after: {
+          ...logShape({ ...merged, ...names }, lines),
+          ...(applied ? { rename_rule_id: applied.ruleId } : {}),
+        },
       },
       guard,
     ),
   );
   g.add(txRepo.updateIfStmt(db, have.id, { ...set, updatedAt: now }, guard), "modified");
-  if (newPayee) {
+  if (newPayee && set.payeeId) {
     g.add(
-      logPayeeIdStmt(db, have.id, "update", budgetId, newPayee, txRepo.writtenAt(db, have.id, now)),
+      logPayeeIdStmt(db, have.id, "update", set.payeeId as SQL, txRepo.writtenAt(db, have.id, now)),
     );
   }
   return g;

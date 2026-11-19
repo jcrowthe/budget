@@ -1,11 +1,17 @@
 import {
   PAYEE_BULK_MAX,
+  type Payee,
   PayeeBulkResponse,
   PayeeDeleteResponse,
   PayeeListResponse,
   PayeeResponse,
   PayeeTransactionsResponse,
 } from "@budget/schema/payees";
+import {
+  type PayeeRenameRule,
+  RenameRuleListResponse,
+  RenameRuleResponse,
+} from "@budget/schema/rename-rules";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 import { keepPreviousInPlan } from "./placeholder";
@@ -84,8 +90,75 @@ export const usePayeeTransactions = (b: string, id: string | null) =>
     placeholderData: keepPreviousInPlan(b),
   });
 
+const ruleBase = (b: string, id: string) =>
+  `${base(b)}/${encodeURIComponent(id)}/rename-rules` as const;
+
+/** A payee's renaming rules, oldest first; off while no ordinary payee is selected. */
+export const usePayeeRenameRules = (b: string, id: string | null) =>
+  useQuery({
+    queryKey: ["payee-rename-rules", b, id],
+    queryFn: async () =>
+      (await apiFetch(ruleBase(b, id as string), { schema: RenameRuleListResponse })).data.rules,
+    enabled: id !== null,
+    placeholderData: keepPreviousInPlan(b),
+  });
+
+export const createRenameRule = async (
+  b: string,
+  id: string,
+  body: { kind: "contains" | "is"; text: string },
+) =>
+  (
+    await apiFetch(ruleBase(b, id), {
+      method: "POST",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: RenameRuleResponse,
+    })
+  ).data.rule;
+
+export const updateRenameRule = async (
+  b: string,
+  id: string,
+  ruleId: string,
+  body: { kind?: "contains" | "is"; text?: string },
+) =>
+  (
+    await apiFetch(`${ruleBase(b, id)}/${encodeURIComponent(ruleId)}`, {
+      method: "PATCH",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: RenameRuleResponse,
+    })
+  ).data.rule;
+
+export const deleteRenameRule = async (b: string, id: string, ruleId: string) =>
+  (
+    await apiFetch(`${ruleBase(b, id)}/${encodeURIComponent(ruleId)}`, {
+      method: "DELETE",
+      idempotencyKey: crypto.randomUUID(),
+      schema: RenameRuleResponse,
+    })
+  ).data.rule;
+
+/** A rule change's answer, written into the rules list and the payee's `has_rules`: nothing is fetched again. */
+export function applyRuleChange(
+  qc: QueryClient,
+  b: string,
+  payeeId: string,
+  change: (rules: PayeeRenameRule[]) => PayeeRenameRule[],
+) {
+  const key = ["payee-rename-rules", b, payeeId];
+  const next = change(qc.getQueryData<PayeeRenameRule[]>(key) ?? []);
+  qc.setQueryData(key, next);
+  qc.setQueryData<Payee[]>(["payees", b], (list) =>
+    list?.map((p) => (p.id === payeeId ? { ...p, has_rules: next.length > 0 } : p)),
+  );
+}
+
 const VIEWS = new Set([
   "payees",
+  "payee-rename-rules",
   "transactions",
   "scheduled-transactions",
   "category-activity",

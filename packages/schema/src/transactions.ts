@@ -52,6 +52,10 @@ export const Transaction = z
     imported_payee: z.string().nullable().openapi({
       description: "The payee name the bank sent, as sent",
     }),
+    import_payee_name: z.string().nullable().default(null).openapi({
+      description:
+        "The payee name the bank import matched and its renaming rules compare, as received (the merchant name, else the name); null when no import gave this transaction",
+    }),
     bank_description: z.string().nullable().openapi({
       description: "The bank's own description of the transaction",
     }),

@@ -21,6 +21,7 @@ function tx(over: Partial<TransactionDetail>): TransactionDetail {
     import_id: null,
     source: null,
     imported_payee: null,
+    import_payee_name: null,
     bank_description: null,
     matched: false,
     flag_color: null,

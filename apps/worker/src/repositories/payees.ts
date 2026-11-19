@@ -12,6 +12,7 @@ export type PayeeListRow = PayeeRow & {
   lastInflowToReadyToAssign: boolean;
   transactionCount: number;
   scheduledCount: number;
+  hasRules: boolean;
 };
 
 /** `col in (select value from json_each(?))`: any number of ids ride one bound parameter. */
@@ -43,6 +44,9 @@ export async function listForPlan(
     ? sql<number>`(select count(*) from scheduled_transactions s join accounts a on a.id = s.account_id and a.deleted_at is null
         where s.payee_id = payees.id and s.budget_id = ${budgetId} and s.deleted_at is null)`
     : sql<number>`0`;
+  const hr = opts.counts
+    ? sql<number>`exists (select 1 from payee_rename_rules r where r.payee_id = payees.id and r.deleted_at is null)`
+    : sql<number>`0`;
   const rows = await db
     .select({
       p: payees,
@@ -52,6 +56,7 @@ export async function listForPlan(
       rta: sql<number>`case when payees.system is null then coalesce((select inflow_to_ready_to_assign from transactions where id = ${latestId}), 0) else 0 end`,
       tc,
       sc,
+      hr,
     })
     .from(payees)
     .where(and(...conds));
@@ -61,6 +66,7 @@ export async function listForPlan(
     lastInflowToReadyToAssign: Number(r.rta) === 1,
     transactionCount: Number(r.tc),
     scheduledCount: Number(r.sc),
+    hasRules: Number(r.hr) === 1,
   }));
 }
 
@@ -203,6 +209,11 @@ export function missingByNameGuard(budgetId: string, name: string): SQLWrapper {
 /** A scalar subquery for a `payee_id` value: the plan's live ordinary payee with that name. */
 export function ordinaryIdByNameSql(budgetId: string, name: string): SQL {
   return sql`(select p.id from payees p where p.budget_id = ${budgetId} and p.name = ${name} and p.system is null and p.deleted_at is null)`;
+}
+
+/** A scalar subquery for a `payee_id` value: that payee's id while it is a live ordinary payee of the plan, else null. */
+export function liveOrdinaryIdSql(budgetId: string, id: string): SQL {
+  return sql`(select p.id from payees p where p.id = ${id} and p.budget_id = ${budgetId} and p.system is null and p.deleted_at is null)`;
 }
 
 const ordinaryAmong = (budgetId: string, ids: readonly string[]) =>
