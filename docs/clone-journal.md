@@ -14762,3 +14762,74 @@ its first review's findings; 17 visits, $12.98 by its status.
 **At 180 the warning starts.** The two children before it go, as things stand, to the Deploy
 for these merges and to EXF-515.
 **Still waiting on the person:** the eight questions; the child limit first.
+
+### 2026-11-19 · Review round 162
+
+Children used 178 of 200 (the warning comes at 180; 22 left). One ended: **the Build for
+EXF-467 completed and merged** (`p_b2eded0336ae43d0b212526947b082e3`; 7,419 s and $13.57 by its
+status, PR 81). **Main is `e3a04c9`**; its tree equals the gated head's tree (`d85be9f`; both
+read this turn). **Live is `f9f1281`** (read at 00:23Z): two merges wait for a Deploy
+(`deb0f99`, `e3a04c9`) and **one migration is pending on live**
+(`20261116101800_payee_rename_rules.sql`, from `scripts/migrations-pending.sh`). The journal
+branch holds main (merge `dc2c2db`).
+
+**The Build (card answered in a side turn: approve).**
+- Gate, from the card's own line and the step list: one attempt, passed, no gate fix, the
+  test-writing step did not run; 728/728 three times; changed specs ×10 60/60; the migration
+  accepted with the empty reserved list; no flake. It was gated on `deb0f99`, the base that
+  had moved under it, and the audit test of EXF-881 passed untouched.
+- I read at the card: the migration, the matching function, the whole diff of the sync
+  service, the two services' edits and the rules repository's automatic statements.
+- **What it does:** the import applies a plan's rules, read in the batch the sync already
+  makes (13 D1 calls before and after, by the design); a corrected imported row and a renamed
+  bank payee make an `is` rule in the same batch as the change; four operations and four
+  tools (98 by the design; not counted by me); the `Renaming` card, the gear, the tooltip and
+  `Bank Import Details`.
+- **It handled a case I had not named:** the rule's payee deleted between the sync's read and
+  its write; the import then falls back to the bank's own name instead of being lost.
+- **Not compared with the source, by my brief.** The design lists eight departures to check,
+  four of them my decisions.
+- This Build ran beside the Build for EXF-881 and then beside the one for EXF-883 with
+  EXF-884 (started 23:37Z); its gate and EXF-881's were each clean on the first attempt.
+
+**Running (00:23Z): the Build for EXF-883 with EXF-884** (`p_0395bb1b09614e11b3d4186ef8a0bb41`),
+at its first review, 11 visits; design and manifest written, PR 82 open as a draft.
+- **The scheduling rule on its manifest:** the category repositories and the delete service,
+  `repositories/guards.ts`, `scheduled.ts`, the audit test, its own tests and documents; and
+  **two shared modules, both by my word in the brief:** `middleware/errors.ts` and one
+  try/catch in `mcp/server.ts`. Nothing else is building, so nothing else touches a shared
+  module. It names none of the files I closed to it.
+- It will meet a moved base at its gate (`e3a04c9`): by the manifests the two share
+  `docs/README.md` only.
+
+**Filed with this review (one gap ticket): renaming rules leftovers.**
+1. **A fault the Build named and did not fix:** when the payee a row is corrected to already
+   has an older `is` rule for that name and another payee a newer one, nothing is written and
+   the newer still wins, so the correction does not hold at the next import.
+2. No rules for transfer payees (the source has them).
+3. Three transaction tools' descriptions do not name `import_payee_name` or say that a payee
+   change makes a rule: an agent would change future imports without being told.
+4. Matched rows have no `Bank Import Details`.
+5. Named: export and import carry no rules; the tooltip is the browser's own; the browser test
+   of `Don't rename as` runs on a stand-in row.
+6. The eight departures, to be marked against the source when a look is allowed.
+
+**What I learned:**
+- Closing the other Build's files by name in each brief let two Builds run together twice
+  today with no conflict and no regate beyond the rebase the gate does itself.
+- A Build with the source closed and every unobserved decision labelled as such came back
+  with those decisions listed; nothing was passed off as observed.
+
+**Tickets:** EXF-467 to Done with a comment. **Ticket writes:** 2.
+**Backlog:** feature: 31 open (32 at round 159, EXF-467 done since). Gap: 19 open, two of them
+In Progress (EXF-883, EXF-884); 20 with the one filed now. Template: not recounted (44 at the
+last count).
+**Flow verdicts:** unchanged.
+Finished since each template's last review: Build 3, Deploy 1, Discover 2, Test user flow 8.
+
+**Next plan:** set the new ticket's priority. EXF-515 (remembered category) can start now: its
+ground is the payees pane and service, the sync and the transactions service, which the
+running Build does not touch. **One Deploy for all three merges** when the running Build has
+merged, not one now and one then: with 22 children left a Deploy is worth saving, and nobody
+is waiting on the renaming rules tonight.
+**Still waiting on the person:** the eight questions; the child limit first.
