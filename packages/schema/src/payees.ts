@@ -26,6 +26,8 @@ export const Payee = z
     transaction_count: z.number().int().min(0),
     /** Live scheduled transactions that name this payee; 0 for transfer entries. */
     scheduled_count: z.number().int().min(0),
+    /** True when the payee has renaming rules; always false for transfer entries. */
+    has_rules: z.boolean().openapi({ description: "True when the payee has renaming rules" }),
   })
   .openapi("Payee");
 export type Payee = z.infer<typeof Payee>;

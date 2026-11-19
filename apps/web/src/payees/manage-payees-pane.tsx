@@ -9,12 +9,14 @@ import {
   TRANSFER_NOTE,
   usedCount,
 } from "@budget/schema/payees";
+import { RENAMING } from "@budget/schema/rename-rules";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { bulkPayees, deletePayee, invalidatePayeeViews, updatePayee } from "../api/payees";
 import { NewPayeeSection } from "./manage-payees-delete";
 import { PayeesIllustration } from "./manage-payees-illustration";
+import { RenamingCard } from "./rename-rules-card";
 
 const detailOf = (e: unknown) =>
   e instanceof ApiError ? e.detail : "Something went wrong. Try again.";
@@ -168,20 +170,31 @@ export function EditPane({
       {several ? (
         <SelectedNames selected={selected} />
       ) : (
-        <NameCard
-          key={single.id}
-          budgetId={budgetId}
-          payee={single}
-          disabled={deleting}
-          onSaved={refresh}
-          onShow={(el) => onShowTransactions(single.id, el)}
-        />
+        <>
+          <NameCard
+            key={single.id}
+            budgetId={budgetId}
+            payee={single}
+            disabled={deleting}
+            onSaved={refresh}
+            onShow={(el) => onShowTransactions(single.id, el)}
+          />
+          <RenamingCard
+            key={`rules-${single.id}`}
+            budgetId={budgetId}
+            payee={single}
+            disabled={deleting}
+          />
+        </>
       )}
       {section}
       {fault ? (
         <div role="alert" className="mp-error mp-fault">
           {fault}
         </div>
+      ) : null}
+      {!deleting && several && selected.some((p) => p.has_rules) ? (
+        <p className="mp-note">{RENAMING.severalNote}</p>
       ) : null}
       {!deleting && !several ? <p className="mp-note">{HIDDEN_NOTE}</p> : null}
     </div>

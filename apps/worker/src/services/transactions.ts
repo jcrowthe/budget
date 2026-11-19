@@ -33,6 +33,7 @@ import * as txRepo from "../repositories/transactions";
 import { importStartAfterMove, importStartStmts } from "./account-links";
 import { runGroups, type StatementGroup } from "./batch-groups";
 import { formatsOfRow } from "./budgets";
+import { autoRuleStmts } from "./payee-rename-rules";
 import { resolvePayee } from "./payees";
 import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
@@ -56,6 +57,7 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
     import_id: row.importId ?? null,
     source: row.source ?? null,
     imported_payee: row.importedPayee ?? null,
+    import_payee_name: row.importPayeeName ?? null,
     bank_description: row.bankDescription ?? null,
     matched: (row.importId ?? null) !== null && (row.source ?? null) === null,
     flag_color: row.flagColor ?? null,
@@ -918,6 +920,28 @@ async function mutate(
           ])
         : guard;
     const w0 = planWrites(db, { budgetId, actor, id, kind, plan, now, guard, selfGuard });
+    // The renaming rule an imported row's payee change makes by itself: in this batch, before the row's own write
+    // (which changes updated_at, on which `guard` rests), no extra call.
+    const importName = before.source === "plaid" ? (before.importPayeeName ?? null) : null;
+    const newPayee = plan.after.payeeId;
+    const ruleMode =
+      kind === "update" &&
+      importName !== null &&
+      !plan.after.transferAccountId &&
+      newPayee &&
+      newPayee !== before.payeeId
+        ? plan.after.payeeName === importName
+          ? "undo"
+          : "learn"
+        : null;
+    const ruleStmts =
+      ruleMode && importName !== null && newPayee
+        ? autoRuleStmts(
+            db,
+            { budgetId, actor, now, payeeId: newPayee, importName, mode: ruleMode },
+            guard,
+          )
+        : [];
     const statements: unknown[] = [
       ...payeesRepo.livePayeesCheck(
         db,
@@ -931,6 +955,7 @@ async function mutate(
       ),
       ...w0.payees,
       ...w0.logs,
+      ...ruleStmts,
       ...(imp ? [imp.stmts[0]] : []),
       ...w0.rest,
       ...(imp ? [imp.stmts[1]] : []),

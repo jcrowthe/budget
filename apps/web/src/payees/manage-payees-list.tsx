@@ -1,7 +1,9 @@
 import type { ManageGroups, Payee } from "@budget/schema/payees";
+import { RENAMING } from "@budget/schema/rename-rules";
 import { type KeyboardEvent, useEffect, useMemo, useRef } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "../shell/icons";
 import { useWindowedRows } from "./manage-payees-window";
+import { GearIcon } from "./rename-rules-icons";
 
 export type GroupKey = "payees" | "transfers" | "hidden";
 export const GROUP_LABEL: Record<GroupKey, string> = {
@@ -163,6 +165,13 @@ export function PayeeList({
             aria-selected={selected.has(p.id)}
             className={`mp-row mp-payee${isActive ? " is-active" : ""}${it.group === "hidden" ? " is-hidden" : ""}`}
           >
+            <span className="mp-rules-slot">
+              {p.has_rules ? (
+                <span role="img" aria-label={RENAMING.listIcon} title={RENAMING.listIcon}>
+                  <GearIcon />
+                </span>
+              ) : null}
+            </span>
             <label className="mp-check">
               <input
                 type="checkbox"

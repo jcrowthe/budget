@@ -45,6 +45,7 @@ import {
 import { MatchCell } from "./manual-match-details";
 import { useOpenAccounts } from "./openAccounts";
 import { useRegisterView } from "./register-view";
+import { BankImportButton, payeeTitle } from "./rename-rules-bank-import";
 import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
 import { useSelection } from "./selection";
 
@@ -370,6 +371,15 @@ export function RegisterTable({
                 >
                   <TransferIcon />
                 </button>
+              </span>
+            </td>
+          ) : tx.source === "plaid" ? (
+            <td data-field="payee">
+              <span className="import-payee">
+                <span className="import-payee-name" title={payeeTitle(tx)}>
+                  {tx.payee_name}
+                </span>
+                <BankImportButton budgetId={budgetId} tx={tx} />
               </span>
             </td>
           ) : (
