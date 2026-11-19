@@ -68,7 +68,7 @@ describe("EXF-883: a group's categories as one parameter", () => {
         `status ${res.status}: ${await causeOf(() => groupUsage(env, s.bid, s.groupId))}`,
       );
     }
-    expect(((await res.json()) as Json).data).toMatchObject({
+    expect(((await res.json()) as Json).data.usage).toMatchObject({
       category_count: 55,
       transaction_count: 0,
       has_history: false,
