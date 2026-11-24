@@ -12,11 +12,13 @@ import {
 } from "@budget/schema/plan-import";
 import { ImportError, identifyFiles, type NamedText } from "@budget/schema/plan-import-read";
 import { isZip, unzip, ZipError } from "@budget/schema/zip";
-import { getDb } from "../db/client";
+import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert } from "../history/change-log";
 import type * as budgetsRepo from "../repositories/budgets";
+import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as repo from "../repositories/plan-import";
+
 import { toApi } from "./budgets";
 import { planClock } from "./plan-clock";
 import { compareImport } from "./plan-import-compare";
@@ -404,6 +406,8 @@ export async function startImport(
     await db.batch([
       repo.insertPlanStmt(db, built.budget),
       ...repo.insertRowsStmts(db, budgetId, built.parts, null, importLimits.rowsPerStatement),
+      // The payees' stored defaults follow the imported history, in the same batch.
+      ...recompute(db, budgetId),
       changeLogInsert(db, historyEntry(built.budget, actor, importId, summary)),
       repo.insertImportStmt(db, row),
     ]);
@@ -544,6 +548,8 @@ async function stepOf(
           ),
         })
       : []),
+    // Last step only: every row is in, so the stored defaults follow the whole history (advanceStmt stays last).
+    ...(last ? recompute(db, row.budgetId) : []),
     repo.advanceStmt(db, row.id, n, now, last),
   ];
   let results: { meta: { changes: number } }[];
@@ -605,4 +611,10 @@ export async function cancelImport(
     }
   }
   return { import_id: importId, state: "abandoned" };
+}
+
+/** The plan-wide recompute of the payees' stored defaults, as a batch part. */
+function recompute(db: Db, budgetId: string) {
+  const stmt = recomputeDefaultsStmt(db, budgetId, "plan");
+  return stmt ? [stmt] : [];
 }

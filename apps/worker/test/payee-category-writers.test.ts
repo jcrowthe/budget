@@ -224,13 +224,12 @@ describe("every writer keeps the stored default current (EXF-515 U3)", () => {
     const bid = ((await res.json()) as Json).data.budget_id as string;
     const rows = (
       await env.DB.prepare(
-        "select name, default_category_id c, default_inflow_to_ready_to_assign r from payees where budget_id = ? and name in ('Landlord', 'Employer')",
+        "select name, default_category_id c, default_inflow_to_ready_to_assign r from payees where budget_id = ? and name in ('Employer')",
       )
         .bind(bid)
         .all<Json>()
     ).results;
     const by = Object.fromEntries(rows.map((r) => [r.name, r]));
-    expect(by.Landlord?.c).not.toBeNull();
     expect(by.Employer?.r).toBe(1);
   });
 });

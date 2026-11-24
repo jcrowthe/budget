@@ -101,7 +101,14 @@ describe("listing", () => {
       category_id: cat,
     });
     expect((await payees(bid)).find((p) => p.name === "ZZ P").last_category_id).toBe(cat);
-    await post(bid, { account_id: aid, date: "2026-11-05", amount: -1, payee_name: "ZZ P" });
+    // An explicit null: with no category keys a create takes the payee's default (EXF-515 U3).
+    await post(bid, {
+      account_id: aid,
+      date: "2026-11-05",
+      amount: -1,
+      payee_name: "ZZ P",
+      category_id: null,
+    });
     expect((await payees(bid)).find((p) => p.name === "ZZ P").last_category_id).toBeNull();
   });
 });
