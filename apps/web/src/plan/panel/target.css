@@ -75,6 +75,10 @@
 .target-subheading {
   margin: 4px 0 0;
 }
+/* EXF-538: the card target's kind, above its heading. */
+.target-label {
+  margin: 0 0 4px;
+}
 .target-donut {
   flex: none;
 }

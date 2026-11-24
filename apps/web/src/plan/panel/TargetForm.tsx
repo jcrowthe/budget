@@ -21,7 +21,7 @@ const TABS: { id: FormTab; label: string }[] = [
   { id: "yearly", label: "Yearly" },
   { id: "custom", label: "Custom" },
 ];
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   "January",
   "February",
   "March",
@@ -37,7 +37,7 @@ const MONTH_NAMES = [
 ];
 
 /** The amount: `$0.00` until focused, then the raw text; arithmetic is evaluated when the field loses focus. */
-function TargetAmountField({
+export function TargetAmountField({
   value,
   onChange,
   disabled,
@@ -410,6 +410,6 @@ export function TargetForm({
 }
 
 /** The year range, plus the draft's own year when a saved target lies outside it. */
-function withYear(years: number[], y: number): number[] {
+export function withYear(years: number[], y: number): number[] {
   return years.includes(y) ? years : [...years, y].sort((a, b) => a - b);
 }

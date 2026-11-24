@@ -1,4 +1,5 @@
 import {
+  type CardTargetBody,
   type Target,
   type TargetBody,
   TargetDeletedResponse,
@@ -17,7 +18,7 @@ const path = (budgetId: string, categoryId: string): `/api/v1/${string}` =>
 export const putTarget = async (
   budgetId: string,
   categoryId: string,
-  body: TargetBody,
+  body: TargetBody | CardTargetBody,
 ): Promise<Target> =>
   (
     await apiFetch(`${path(budgetId, categoryId)}?today=${localToday()}`, {
@@ -41,7 +42,7 @@ export const deleteTarget = async (budgetId: string, categoryId: string): Promis
 export function useSaveTarget(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { categoryId: string; body: TargetBody }) =>
+    mutationFn: (v: { categoryId: string; body: TargetBody | CardTargetBody }) =>
       putTarget(budgetId, v.categoryId, v.body),
     onMutate: () => beginWrite(qc, budgetId),
     onSettled: () => endWrite(qc, budgetId),

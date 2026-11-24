@@ -23,6 +23,11 @@ export const TargetStatus = z
   .openapi("TargetStatus");
 export const RepeatUnit = z.enum(["month", "year"]).openapi("RepeatUnit");
 
+/** Targets of credit card payment categories (EXF-538); repeats core's CARD_TARGET_TYPES. */
+export const CardTargetType = z
+  .enum(["card_payoff_by_date", "card_monthly"])
+  .openapi("CardTargetType");
+
 export const TargetRepeat = z
   .object({ every: z.number().int().min(1).max(11), unit: RepeatUnit })
   .openapi("TargetRepeat");
@@ -61,6 +66,9 @@ export const Target = TargetDefinition.extend({
   budget_id: z.uuid(),
   category_id: z.uuid(),
   created_month: Month,
+  type: CardTargetType.nullable().openapi({
+    description: "The card target kind of a credit card payment category's target; null for others",
+  }),
 }).openapi("Target");
 
 const absent = (v: unknown) => v === undefined || v === null;
@@ -146,6 +154,46 @@ export const TargetBody = z
   .superRefine(checkTargetCombination)
   .openapi("TargetBody");
 
+const cardTargetFields = {
+  card_payoff_by_date: {
+    type: z.literal("card_payoff_by_date"),
+    month: Month.regex(YEAR_RANGE, "Year must be between 1900 and 2199").openapi({
+      description: "The month by which the card is paid off (YYYY-MM-01)",
+    }),
+  },
+  card_monthly: {
+    type: z.literal("card_monthly"),
+    amount: Milliunits.positive({ message: "amount must be greater than 0" }),
+  },
+};
+
+/** A credit card payment category's target: pay the card off by a month, or a set amount each month. */
+export const CardTargetBody = z
+  .discriminatedUnion(
+    "type",
+    [z.object(cardTargetFields.card_payoff_by_date), z.object(cardTargetFields.card_monthly)],
+    { error: "type must be card_payoff_by_date or card_monthly" },
+  )
+  .openapi("CardTargetBody");
+
+export const CardTargetSet = z
+  .discriminatedUnion(
+    "type",
+    [
+      z.object({
+        budget_id: z.uuid(),
+        category_id: z.uuid(),
+        ...cardTargetFields.card_payoff_by_date,
+      }),
+      z.object({ budget_id: z.uuid(), category_id: z.uuid(), ...cardTargetFields.card_monthly }),
+    ],
+    { error: "type must be card_payoff_by_date or card_monthly" },
+  )
+  .openapi("CardTargetSet");
+
+/** The body of PUT .../target: an ordinary target, or (payment categories only) a card target. */
+export const TargetPutBody = z.union([TargetBody, CardTargetBody]).openapi("TargetPutBody");
+
 /** The owner's local date, sent with reads and writes so that targets use their calendar. */
 export const Today = IsoDate.refine((s) => isCalendarDate(s) && YEAR_RANGE.test(s), {
   message: "today must be a real date, YYYY-MM-DD",
@@ -175,6 +223,9 @@ export type TargetDefinition = z.infer<typeof TargetDefinition>;
 export type CategoryTargetMonth = z.infer<typeof CategoryTargetMonth>;
 export type Target = z.infer<typeof Target>;
 export type TargetSet = z.input<typeof TargetSet>;
+export type CardTargetType = z.infer<typeof CardTargetType>;
+export type CardTargetBody = z.input<typeof CardTargetBody>;
+export type CardTargetSet = z.input<typeof CardTargetSet>;
 export type TargetBody = z.input<typeof TargetBody>;
 export type TargetDelete = z.infer<typeof TargetDelete>;
 export type TargetSnooze = z.infer<typeof TargetSnooze>;

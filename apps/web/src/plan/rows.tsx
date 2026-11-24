@@ -1,5 +1,7 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are; the keys are the page's (shortcuts.ts)
+
+import { cardTargetStatusText } from "@budget/schema/card-target";
 import { activityTitle } from "@budget/schema/category-activity";
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "@budget/schema/months";
 import { targetStatusText } from "@budget/schema/target-wording";
@@ -200,7 +202,12 @@ export function CategoryRow({
   onActivity: (anchor: HTMLElement) => void;
 }) {
   const fmt = usePlanFormatter();
-  const status = bars && c.target && c.available >= 0 ? targetStatusText(c, fmt) : null;
+  const status =
+    bars && c.target && c.available >= 0
+      ? c.kind === "credit_card_payment"
+        ? cardTargetStatusText(c, fmt)
+        : targetStatusText(c, fmt)
+      : null;
   const label = bars && !status ? statusLabel(c, fmt) : null;
   const pill = categoryPill(c, fmt);
   const nameRef = useRef<HTMLButtonElement>(null);

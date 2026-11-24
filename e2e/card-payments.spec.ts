@@ -188,14 +188,15 @@ test.describe("card payments, 1440x900", () => {
 
   test("15. each payment row shows exactly one Payment state with its copy", async ({ page }) => {
     await open(page, s);
-    const noLinks = async () => {
+    // EXF-538: the underfunded states now offer "Create a Debt Payoff Target" (see card-targets.spec.ts).
+    const noLinks = async (offered: string[] = []) => {
       for (const t of [
         "Why am I seeing this warning?",
         "Why does overspending affect my payment?",
         "Why is my payment underfunded?",
         "View Help Topic",
         "Create a Debt Payoff Target",
-      ]) {
+      ].filter((t) => !offered.includes(t))) {
         await expect(panel(page).getByText(t)).toHaveCount(0);
       }
     };
@@ -230,7 +231,7 @@ test.describe("card payments, 1440x900", () => {
     await expect(
       panel(page).locator(".payment-total", { hasText: "Total Underfunded" }),
     ).toContainText("$1,200.00");
-    await noLinks();
+    await noLinks(["Create a Debt Payoff Target"]);
     await untick(page, DEBT);
 
     await tick(page, SPENT);
@@ -243,7 +244,7 @@ test.describe("card payments, 1440x900", () => {
     await expect(
       panel(page).locator(".payment-total", { hasText: "Overspent Categories" }),
     ).toContainText("$30.00");
-    await noLinks();
+    await noLinks(["Create a Debt Payoff Target"]);
     await realClick(
       page,
       panel(page).getByRole("button", { name: "Cover Overspent Categories", exact: true }),

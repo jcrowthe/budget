@@ -34,7 +34,7 @@ import "./target.css";
 import { usePlanFormatter } from "../../shell/plan-formats-context";
 
 /** The donut: the percentage as a ring, yellow while the target is short and green once it is met or on track. */
-function Donut({ percent, tone }: { percent: number; tone: "cautious" | "positive" }) {
+export function Donut({ percent, tone }: { percent: number; tone: "cautious" | "positive" }) {
   const r = 26;
   const c = 2 * Math.PI * r;
   return (

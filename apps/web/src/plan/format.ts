@@ -1,5 +1,6 @@
 import type { Month } from "@budget/core/month";
 import { targetBar } from "@budget/core/targets";
+import { cardTargetPill } from "@budget/schema/card-target";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 import type { PlanFormatter } from "@budget/schema/plan-formats";
 import { pillTitle, targetPill } from "@budget/schema/target-wording";
@@ -118,7 +119,7 @@ export const creditOverspentTitle = (credit: number, fmt: PlanFormatter): string
 
 type CategoryPill = {
   tone: "zero" | "positive" | "negative" | "cautious";
-  icon: "clock" | "check" | "clockCheck" | "snooze" | "card" | null;
+  icon: "clock" | "check" | "clockCheck" | "snooze" | "card" | "target" | null;
   title: string;
 };
 
@@ -143,6 +144,9 @@ export function categoryPill(c: MonthCategoryDetail, fmt: PlanFormatter): Catego
           : c.available > 0
             ? "positive"
             : "zero";
+    // EXF-538: a target on the card speaks for the pill, unless the card is overpaid or the target is snoozed.
+    const card = cardTargetPill(c);
+    if (card) return { ...card, title: paymentPillTitle(c.available, fmt) };
     return { tone, icon: null, title: paymentPillTitle(c.available, fmt) };
   }
   return pill;

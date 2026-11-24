@@ -272,3 +272,55 @@ there is no screen, and the examples were observed by discovery.
 touches: [packages/core/src/targets.ts, packages/core/src/budget-engine.ts, packages/core/test/targets.test.ts, packages/schema/src/targets.ts, packages/schema/src/months.ts, packages/schema/test/targets.test.ts, apps/worker/migrations/20261115213604_targets.sql, apps/worker/src/db/schema/targets.ts, apps/worker/src/repositories/targets.ts, apps/worker/src/services/targets.ts, apps/worker/src/services/months.ts, apps/worker/test/targets.test.ts, docs/targets-engine-design.md, docs/targets-engine-spec.md, docs/README.md]
 shared: [packages/core/src/targets.ts (new) and packages/core/src/budget-engine.ts: the pure target arithmetic, and the engine feeding it and returning `target` per category; additive, every existing field and test unchanged]
 migrations: 1
+
+## Credit card payment targets (EXF-538)
+
+A credit card payment category (`kind = credit_card_payment`) takes two target kinds, `card_payoff_by_date` and
+`card_monthly`. An ordinary target body on a payment category is still refused (`payment_category_target`), and a
+card body on an ordinary category is refused (`card_target_requires_payment_category`).
+
+**Storage, no migration.** The kinds use the existing `targets` columns. The category's `kind` makes the encoding
+unambiguous:
+
+- `card_monthly {amount}` is `cadence monthly, behavior set_aside, amount`.
+- `card_payoff_by_date {month}` is `cadence custom, behavior balance, due_month = month, amount 0`. An ordinary
+  custom balance needs amount > 0, so amount 0 never collides with one.
+
+`Target` (PUT, DELETE and MCP responses) gains `type`: the card kind, or null for an ordinary category. The month
+read keeps `CategoryTargetMonth` unchanged. Core and schema keep the same shape (`_sameShape`). The
+`change_log` before/after of a target never carries `type` (`targetToApi` is the logged shape, `targetResponse`
+adds `type`). The undo engine refuses a target row with a key it does not know, and the encoding above restores a
+card target as it was.
+
+**Arithmetic** (`packages/core/src/card-targets.ts`, `computeCardTargetMonth`). `computeMonth` computes the card's
+`payment` first and hands its balances to `targetFor`, so no new D1 call is made.
+
+- `card_monthly` is the ordinary monthly set-aside, unchanged.
+- `card_payoff_by_date` with B = max(0, -prior_balance) and k = months from this month to the due month, inclusive:
+  - needed this month = ceilCent(B / k).
+  - funded = Assigned. to go this month = max(0, needed - Assigned).
+  - overall To Go = max(0, -current_balance - Available).
+  - percent = (B - To Go) / B, 100 when B = 0.
+  - Status: To Go 0 is `funded`. Otherwise this month's share met is `on_track`, else `underfunded`.
+  - Snoozing changes the status only.
+- Ticket example: 1,200.00 over Nov to Feb is 300.00 a month. With 100.00 assigned, 12.00 funded card spending and
+  a 100.00 payment: needed 300.00, to go this month 200.00, To Go 1,100.00, 8 %.
+
+**API / MCP.** `PUT .../categories/{id}/target` takes the ordinary body or `{type, month|amount}`; the MCP tool is
+`set_card_payment_target`. DELETE and `delete_category_target` work for both.
+
+**UI.** The Payment card's underfunded and overspent states offer Create a Debt Payoff Target. A target replaces
+the Payment card with the target view and editor (`CardTargetCard`). The grid pill is cautious with the target
+icon while underfunded and a check once funded or on track. Wording and form logic: `packages/schema/src/card-target.ts`.
+
+**Departures from the ticket.**
+
+- D1 The month read has no `type`, and `assigned_so_far` is `funded`. It uses the existing field names.
+- D2 No migration (see Storage).
+- D3 The "Making minimum payments?" help row is left out.
+- D4 The default payoff month is the month after the current one.
+- D5 After the due month, the payoff target asks for the whole balance at the start of the month (k = 1). This
+  was not observed in the source.
+- D6 Payoff percent is (B - To Go) / B. The one observed value, 8 %, fits it.
+- D7 Auto-Assign's Underfunded still uses the payment category's Total Underfunded and ignores its target.
+- D8 The card target view has no snooze switch. The shift-Z shortcut still snoozes it.
