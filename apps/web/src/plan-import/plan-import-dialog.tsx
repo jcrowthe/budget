@@ -396,6 +396,16 @@ function pendingResult(p: PlanImportPreview) {
   };
 }
 
+/**
+ * The bar's fill: the steps done plus half of the one in progress, so "Writing step 1 of 3" already shows a
+ * started bar (16%), never past the end; a few pixels at least. `aria-valuenow` stays the true count.
+ */
+function fillStyle(done: number, count: number) {
+  if (count === 0) return { width: "0%" };
+  const part = Math.min(done + 0.5, count);
+  return { width: `${(part / count) * 100}%`, minWidth: 8 };
+}
+
 function Progress({ step }: { step: Extract<Step, { kind: "writing" | "failed" }> }) {
   const { chunks_done: done, chunk_count: count } = step.result.progress;
   return (
@@ -413,7 +423,7 @@ function Progress({ step }: { step: Extract<Step, { kind: "writing" | "failed" }
         aria-valuenow={done}
         aria-valuemax={count}
       >
-        <div style={{ width: count ? `${(done / count) * 100}%` : "0%" }} />
+        <div style={fillStyle(done, count)} />
       </div>
       {step.kind === "failed" ? (
         <p role="alert" className="plan-import-dialog-error">

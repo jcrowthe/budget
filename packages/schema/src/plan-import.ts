@@ -81,6 +81,7 @@ export const PlanImportOptions = z
     account_types: z.record(z.string(), z.enum(IMPORT_ACCOUNT_TYPES)).optional(),
     currency_format: z
       .object({
+        iso_code: z.string().max(3).optional(),
         currency_symbol: z.string().max(8).optional(),
         symbol_placement: z.enum(["before", "after", "none"]).optional(),
         decimal_separator: z.enum([".", ",", "-", "/"]).optional(),
@@ -94,6 +95,7 @@ export type PlanImportOptions = z.infer<typeof PlanImportOptions>;
 export const ImportFormats = z
   .object({
     delimiter: z.enum(["comma", "tab"]),
+    iso_code: z.string().optional(),
     currency_symbol: z.string(),
     symbol_placement: z.enum(["before", "after", "none"]),
     decimal_separator: z.string(),
@@ -1159,6 +1161,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
   const cf = options.currency_format ?? {};
   const formats: ImportFormats = {
     delimiter: (input.delimiter === "\t" ? "tab" : "comma") as "tab" | "comma",
+    ...(cf.iso_code ? { iso_code: cf.iso_code } : {}),
     currency_symbol: cf.currency_symbol ?? (f as ParsedAmount | null)?.symbol ?? "",
     symbol_placement: cf.symbol_placement ?? (f as ParsedAmount | null)?.placement ?? "none",
     decimal_separator:

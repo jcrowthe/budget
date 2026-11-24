@@ -1,10 +1,12 @@
 import type { Page } from "@playwright/test";
-import { expect as baseExpect, test } from "./fixtures";
-import { openImport, pairOf, planCsv, registerCsv } from "./support/plan-import-dialog-files";
-
-// A loaded box answers slowly: wait far longer than the default 5 s.
-const expect = baseExpect.configure({ timeout: 60_000 });
-test.setTimeout(150_000);
+import { expect, test } from "./fixtures";
+import {
+  chooseFiles,
+  openImport,
+  pairOf,
+  planCsv,
+  registerCsv,
+} from "./support/plan-import-dialog-files";
 
 test.use({ viewport: { width: 1024, height: 700 } });
 
@@ -88,4 +90,38 @@ test("14 import half: inside the window, long text cut or wrapped, the accounts 
   await page.keyboard.press("Escape");
   await expect(d).toHaveCount(0);
   await expect(opener).toBeFocused();
+});
+
+test("16 no header of the accounts table breaks inside a word, at 1440x900 and 1024x700", async ({
+  page,
+}) => {
+  await openImport(page);
+  await chooseFiles(page, wide());
+  const d = dialog(page);
+  await expect(d.getByRole("columnheader", { name: "Transactions", exact: true })).toBeVisible();
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 700 },
+  ]) {
+    await page.setViewportSize(size);
+    // Each header's text is one line: a word broken in two would have two client rects.
+    const lines = await d.getByRole("columnheader").evaluateAll((cells) =>
+      cells.map((th) => {
+        const range = document.createRange();
+        range.selectNodeContents(th);
+        const tops = new Set([...range.getClientRects()].map((r) => Math.round(r.top)));
+        return [th.textContent, tops.size] as const;
+      }),
+    );
+    expect(lines, `${size.width}x${size.height}`).toEqual([
+      ["Account", 1],
+      ["Type", 1],
+      ["Proposed", 1],
+      ["Transactions", 1],
+    ]);
+    if (size.width === 1440) {
+      await d.screenshot({ path: "test-results/plan-import-header-1440.png" });
+    }
+  }
+  await d.screenshot({ path: "test-results/plan-import-header-1024.png" });
 });

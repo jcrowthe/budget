@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect as baseExpect, test } from "./fixtures";
+import { expect, test } from "./fixtures";
 import { authHeaders, testName } from "./support/auth";
 import {
   apiExport,
@@ -9,10 +9,6 @@ import {
   seedClearPlan,
 } from "./support/plan-import-dialog-files";
 import { realClick } from "./support/real-click";
-
-// A loaded box answers slowly: wait far longer than the default 5 s.
-const expect = baseExpect.configure({ timeout: 60_000 });
-test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -59,15 +55,12 @@ test("5 the button, and each refusal in words with no request", async ({ page })
   await expect(alert).toHaveText("Choose one zip, or the two files: Plan and Register.");
   await chooseFiles(page, [file("a.csv")]);
   await expect(alert).toHaveText("Choose both files: Plan and Register.");
-  // 21 MB made in the page from one shared 1 MB chunk (a 21 MB buffer through the chooser crashed a loaded box).
+  // The smallest file over the limit (20 MB and one byte), made in the page from one shared 1 MB chunk (a 21 MB buffer through the chooser crashed a loaded box).
   await page.evaluate(() => {
     const chunk = new Blob([new ArrayBuffer(2 ** 20)]);
     const dt = new DataTransfer();
     dt.items.add(
-      new File(
-        Array.from({ length: 21 }, () => chunk),
-        "big.zip",
-      ),
+      new File([...Array.from({ length: 20 }, () => chunk), new Uint8Array(1)], "big.zip"),
     );
     const input = document.querySelector<HTMLInputElement>("#plan-import-file");
     if (!input) throw new Error("no file input");
@@ -124,15 +117,11 @@ test("7 a one-call import: result, Open Plan, and the list refreshed once", asyn
     await expect(d.getByRole("button", { name: "Import", exact: true })).toBeEnabled();
     const before = requests.length;
     await realClick(page, d.getByRole("button", { name: "Import", exact: true }));
-    await expect(d.getByText(`Imported ${name}.`, { exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(d.getByText(`Imported ${name}.`, { exact: true })).toBeVisible();
     const sent = requests.slice(before);
     expect(sent).toHaveLength(1);
     expect(sent[0]?.url).not.toContain("dry_run");
-    await expect
-      .poll(async () => (await plansNamed(request, name)).length, { timeout: 30_000 })
-      .toBe(1);
+    await expect.poll(async () => (await plansNamed(request, name)).length).toBe(1);
     // The plans list: refreshed once after done, never by the dialog itself.
     await expect.poll(() => lists.length).toBe(2);
     await page.waitForTimeout(500);

@@ -11,7 +11,8 @@ export type RunStep =
   | { kind: "cancelled" }
   | { kind: "done"; result: PlanImportResult };
 
-export type CancelOutcome = "cancelled" | "none" | "done" | "failed";
+/** "ended": the server had already removed the import; the dialog shows its words and nothing is sent. */
+export type CancelOutcome = "cancelled" | "none" | "done" | "failed" | "ended";
 
 const failedText = (e: unknown) => (e instanceof ApiError ? e.detail : "The connection failed.");
 
@@ -22,6 +23,7 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
   const looping = useRef<Promise<void>>(Promise.resolve());
   const last = useRef<PlanImportResult | null>(null);
   const finished = useRef(false);
+  const ended = useRef(false);
 
   const done = useCallback(
     (result: PlanImportResult) => {
@@ -43,8 +45,10 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
           r = await continueImport(r.import_id);
           last.current = r;
         } catch (e) {
-          if (e instanceof ApiError && e.status === 409) set({ kind: "ended", detail: e.detail });
-          else set({ kind: "failed", result: r, detail: failedText(e) });
+          if (e instanceof ApiError && e.status === 409) {
+            ended.current = true;
+            set({ kind: "ended", detail: e.detail });
+          } else set({ kind: "failed", result: r, detail: failedText(e) });
           return;
         }
       }
@@ -65,6 +69,7 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
     (files: readonly File[], options: PlanImportOptions) => {
       stopping.current = false;
       finished.current = false;
+      ended.current = false;
       last.current = null;
       // The whole start-then-loop is what cancel waits for, so a cancel during the first request cancels it.
       looping.current = (async () => {
@@ -92,18 +97,25 @@ export function useImportRun(set: (s: RunStep) => void, onStartFailed: (detail: 
     await run(r);
   }, [run]);
 
-  /** "cancelled" and "none" (nothing was started) leave nothing; "done" and "failed" show their step. */
+  /** "cancelled" and "none" (nothing was started) leave nothing; "done", "failed" and "ended" show their step. */
   const cancel = useCallback(async (): Promise<CancelOutcome> => {
     stopping.current = true;
     await looping.current;
     const r = last.current;
     if (finished.current) return "done";
+    // A `continue` answered that the import is gone: the dialog already says so; a DELETE could only fail.
+    if (ended.current) return "ended";
     if (!r) return "none";
     try {
       await cancelImport(r.import_id);
       set({ kind: "cancelled" });
       return "cancelled";
     } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && e.errorName === "import_abandoned") {
+        ended.current = true;
+        set({ kind: "ended", detail: e.detail });
+        return "ended";
+      }
       if (e instanceof ApiError && e.status === 409 && e.errorName === "import_finished") {
         try {
           done(await continueImport(r.import_id));
