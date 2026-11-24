@@ -257,6 +257,11 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["get_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.tx })],
   ["list_payees", (c) => ({ budget_id: c.bid })],
   ["list_payee_transactions", (c) => ({ budget_id: c.bid, payee_id: c.payee })],
+  [
+    "set_payee_category_mode",
+    (c) => ({ budget_id: c.bid, payee_id: c.payee, category_mode: "off" }),
+  ],
+  ["list_payee_recent_transactions", (c) => ({ budget_id: c.bid, payee_id: c.payee })],
   ["list_bank_connections", (c) => ({ budget_id: c.bid })],
   ["get_bank_connection", (c) => ({ budget_id: c.bid, bank_connection_id: c.conn })],
   ["get_plan_month", (c) => ({ budget_id: c.bid, month: MONTH })],

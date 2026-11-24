@@ -1,3 +1,4 @@
+import { type CategoryValue, nextDefault } from "@budget/schema/payee-category";
 import type { PayeeSystem } from "@budget/schema/payees";
 import { and, eq, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
@@ -5,11 +6,25 @@ import { changeLog } from "../db/schema/change-log";
 import { payees } from "../db/schema/payees";
 import { type LogBase, logSelectStmt } from "./guards";
 import { insertSelect } from "./insert-select";
+import { liveCategorySql, recentValueSql } from "./payee-category";
 
-export type PayeeRow = typeof payees.$inferSelect;
-export type PayeeListRow = PayeeRow & {
+/** The columns of the payee's remembered category (EXF-515). */
+type CategoryCols =
+  | "categoryMode"
+  | "fixedCategoryId"
+  | "fixedInflowToReadyToAssign"
+  | "defaultCategoryId"
+  | "defaultInflowToReadyToAssign";
+export type PayeeFullRow = typeof payees.$inferSelect;
+/** A payee as code builds it: the category columns are optional, the table's defaults fill them. */
+export type PayeeRow = Omit<PayeeFullRow, CategoryCols> & Partial<Pick<PayeeFullRow, CategoryCols>>;
+export type PayeeListRow = PayeeFullRow & {
   lastCategoryId: string | null;
   lastInflowToReadyToAssign: boolean;
+  /** The fixed choice's category while it is live, else null (Ready to Assign is `fixedInflowToReadyToAssign`). */
+  fixedLiveCategoryId: string | null;
+  /** The history default: the stored value while live, else the read-time rule over the last 3 counted rows. */
+  historyDefault: CategoryValue | null;
   transactionCount: number;
   scheduledCount: number;
   hasRules: boolean;
@@ -47,9 +62,19 @@ export async function listForPlan(
   const hr = opts.counts
     ? sql<number>`exists (select 1 from payee_rename_rules r where r.payee_id = payees.id and r.deleted_at is null)`
     : sql<number>`0`;
+  const last3 = [0, 1, 2].map((n) => recentValueSql(budgetId, "payees.id", n));
   const rows = await db
     .select({
       p: payees,
+      fixedLive: sql<
+        string | null
+      >`case when payees.fixed_category_id is not null and ${liveCategorySql(budgetId, "payees.fixed_category_id")} then payees.fixed_category_id end`,
+      storedLive: sql<
+        string | null
+      >`case when payees.default_category_id is not null and ${liveCategorySql(budgetId, "payees.default_category_id")} then payees.default_category_id end`,
+      v0: sql<string | null>`${last3[0]}`,
+      v1: sql<string | null>`${last3[1]}`,
+      v2: sql<string | null>`${last3[2]}`,
       live: sql<
         string | null
       >`(select c.id from categories c where c.id = (select category_id from transactions where id = ${latestId}) and c.deleted_at is null)`,
@@ -62,12 +87,36 @@ export async function listForPlan(
     .where(and(...conds));
   return rows.map((r) => ({
     ...r.p,
+    fixedLiveCategoryId: r.fixedLive ?? null,
+    historyDefault: historyDefaultOf(r.p, r.storedLive, [r.v0, r.v1, r.v2]),
     lastCategoryId: r.live ?? null,
     lastInflowToReadyToAssign: Number(r.rta) === 1,
     transactionCount: Number(r.tc),
     scheduledCount: Number(r.sc),
     hasRules: Number(r.hr) === 1,
   }));
+}
+
+const parseValue = (j: string | null): CategoryValue | null => {
+  if (j === null) return null;
+  const v = JSON.parse(j) as { c: string | null; r: number };
+  return { category_id: v.c, inflow_to_ready_to_assign: Number(v.r) === 1 };
+};
+
+/** The stored default while it is live (Ready to Assign always is), else the rule over the last 3 with no current. */
+function historyDefaultOf(
+  p: PayeeFullRow,
+  storedLive: string | null,
+  last3: (string | null)[],
+): CategoryValue | null {
+  if (p.defaultInflowToReadyToAssign) {
+    return { category_id: null, inflow_to_ready_to_assign: true };
+  }
+  if (storedLive !== null) return { category_id: storedLive, inflow_to_ready_to_assign: false };
+  return nextDefault(
+    null,
+    last3.map(parseValue).filter((v): v is CategoryValue => v !== null),
+  );
 }
 
 export async function findActive(
@@ -89,7 +138,13 @@ export async function findByName(
   budgetId: string,
   name: string,
 ): Promise<PayeeRow | undefined> {
-  const [r] = await db
+  const [r] = await findByNameQuery(db, budgetId, name);
+  return r;
+}
+
+/** The unexecuted query of `findByName`, so it can ride a `db.batch` of reads. */
+export function findByNameQuery(db: Db, budgetId: string, name: string) {
+  return db
     .select()
     .from(payees)
     .where(
@@ -101,7 +156,6 @@ export async function findByName(
       ),
     )
     .limit(1);
-  return r;
 }
 
 export async function findSystem(
@@ -229,28 +283,53 @@ export function liveOrdinarySql(budgetId: string, id: string): SQL {
   return sql`exists (select 1 from payees where id = ${id} and budget_id = ${budgetId} and deleted_at is null and system is null)`;
 }
 
-/** Renames and/or hides one payee, only while it still reads as `before`. */
+export type PayeeCategoryFields = {
+  categoryMode: PayeeFullRow["categoryMode"];
+  fixedCategoryId: string | null;
+  fixedInflowToReadyToAssign: boolean;
+};
+
+/** Renames, hides and/or sets the category choice of one payee, only while it still reads as `before`. */
 export function updateStmt(
   db: Db,
   budgetId: string,
   id: string,
-  patch: { name?: string; hidden?: boolean },
+  patch: { name?: string; hidden?: boolean } & Partial<PayeeCategoryFields>,
   now: string,
-  before: { name: string; hidden: boolean },
+  before: { name: string; hidden: boolean } & Partial<PayeeCategoryFields>,
+  liveFixed: string | null = null,
 ) {
   return db
     .update(payees)
     .set({ ...patch, updatedAt: now })
-    .where(and(eq(payees.id, id), unchangedSql(budgetId, id, before)));
+    .where(and(eq(payees.id, id), updateGuardSql(budgetId, id, before, liveFixed)));
+}
+
+/**
+ * The guard of one payee update: the payee is live, ordinary and still reads as `before`, and the fixed category
+ * the update sets (`liveFixed`) is still live (a race with its delete then writes nothing).
+ */
+export function updateGuardSql(
+  budgetId: string,
+  id: string,
+  before: { name: string; hidden: boolean } & Partial<PayeeCategoryFields>,
+  liveFixed: string | null = null,
+): SQL {
+  const live = liveFixed ? liveCategorySql(budgetId, sql`${liveFixed}`) : sql`1`;
+  return sql`${unchangedSql(budgetId, id, before)} and ${live}`;
 }
 
 /** A condition: the payee is live, ordinary and still reads as `before`. */
 export function unchangedSql(
   budgetId: string,
   id: string,
-  before: { name: string; hidden: boolean },
+  before: { name: string; hidden: boolean } & Partial<PayeeCategoryFields>,
 ): SQL {
-  return sql`exists (select 1 from payees where id = ${id} and budget_id = ${budgetId} and deleted_at is null and system is null and name = ${before.name} and hidden = ${before.hidden ? 1 : 0})`;
+  const cat =
+    before.categoryMode === undefined
+      ? sql``
+      : sql` and category_mode = ${before.categoryMode} and fixed_category_id is ${before.fixedCategoryId ?? null} and fixed_inflow_to_ready_to_assign = ${before.fixedInflowToReadyToAssign ? 1 : 0}`;
+  return sql`exists (select 1 from payees where id = ${id} and budget_id = ${budgetId} and deleted_at is null and system is null and name = ${before.name} and hidden = ${before.hidden ? 1 : 0}${cat})`;
 }
 
 /** Sets `hidden` on the live ordinary payees among `ids` whose value differs, when `guard` holds. */

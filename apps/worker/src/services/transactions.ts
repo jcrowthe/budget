@@ -28,6 +28,7 @@ import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
 import * as importsRepo from "../repositories/imports";
+import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { importStartAfterMove, importStartStmts } from "./account-links";
@@ -139,6 +140,7 @@ export async function createTransaction(
             before: null,
             after: transactionToApi(row),
           }),
+          ...recompute(db, row.budgetId, [row.payeeId]),
         ]),
       );
     } catch (e) {
@@ -151,6 +153,12 @@ export async function createTransaction(
 }
 
 export const MAX_ATTEMPTS = 5;
+
+/** The stored payee defaults follow a write that changes counted rows (same batch, no D1 call of its own). */
+const recompute = (db: Db, budgetId: string, payeeIds: readonly (string | null | undefined)[]) => {
+  const stmt = recomputeDefaultsStmt(db, budgetId, payeeIds);
+  return stmt ? [stmt] : [];
+};
 
 /** A plain transaction from a schedule: its insert and its create log row, both written only while `guard` holds. */
 export function enteredTransactionWrites(
@@ -641,6 +649,7 @@ export async function addTransaction(
             after: logShape({ ...row, ...names }),
           }),
           ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
+          ...recompute(db, budgetId, [row.payeeId]),
         ]),
       );
     } catch (e) {
@@ -960,7 +969,10 @@ async function mutate(
       ...w0.rest,
       ...(imp ? [imp.stmts[1]] : []),
       w0.self,
+      // After the row's own write, so it sees the new rows; success is read from `w0.self`, not the last result.
+      ...recompute(db, budgetId, [before.payeeId, plan.after?.payeeId]),
     ];
+    const selfAt = statements.indexOf(w0.self);
     let results: Awaited<ReturnType<typeof db.batch>>;
     try {
       results = await db.batch(stmts(statements));
@@ -969,7 +981,7 @@ async function mutate(
       if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
-    const w = results[results.length - 1] as { meta: { changes?: number } };
+    const w = results[selfAt] as { meta: { changes?: number } };
     if ((w.meta.changes ?? 0) > 0) {
       if (kind === "delete") {
         return transactionDetailToApi({ ...before, updatedAt: now }, plan.beforeLines);
@@ -1526,6 +1538,13 @@ export async function rejectTransactions(
       ]);
       details.push(transactionDetailToApi(row, lines));
     }
+    // The rejected rows leave their payees' counted rows: one more group, after the per-row ones, no result read.
+    const follow = recompute(
+      db,
+      budgetId,
+      rows.map((r) => r.payeeId),
+    );
+    if (follow.length > 0) groups.push(follow);
     // One batch for every row, so the window between the checks and the writes is as small as it can be.
     const results = await runGroups(db, groups, Number.MAX_SAFE_INTEGER);
     pending = [];

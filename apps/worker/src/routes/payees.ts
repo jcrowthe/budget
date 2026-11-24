@@ -7,6 +7,8 @@ import {
   PayeeIdParam,
   PayeeListQuery,
   PayeeListResponse,
+  PayeeRecentQuery,
+  PayeeRecentResponse,
   PayeeResponse,
   PayeeTransactionsResponse,
   PayeeUpdate,
@@ -17,6 +19,7 @@ import { apiError } from "../middleware/errors";
 import {
   applyToPayees,
   deletePayee,
+  listPayeeRecentTransactions,
   listPayees,
   listPayeeTransactions,
   PayeeRefused,
@@ -171,5 +174,26 @@ export default app
       refusals(c, async () => {
         const { budget_id, payee_id } = c.req.valid("param");
         return c.json({ data: await listPayeeTransactions(c.env, budget_id, payee_id) }, 200);
+      }),
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/payees/{payee_id}/recent-transactions",
+      tags,
+      request: { params: PayeeIdParam, query: PayeeRecentQuery },
+      responses: {
+        200: json(PayeeRecentResponse, "The payee's last counted transactions"),
+        ...errors,
+      },
+    }),
+    (c) =>
+      refusals(c, async () => {
+        const { budget_id, payee_id } = c.req.valid("param");
+        const { limit } = c.req.valid("query");
+        return c.json(
+          { data: await listPayeeRecentTransactions(c.env, budget_id, payee_id, limit) },
+          200,
+        );
       }),
   );

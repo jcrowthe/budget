@@ -1,3 +1,4 @@
+import { PAYEE_CATEGORY_MODES } from "@budget/schema/payee-category";
 import { PAYEE_SYSTEMS } from "@budget/schema/payees";
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
@@ -13,6 +14,17 @@ export const payees = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     deletedAt: text("deleted_at"),
+    categoryMode: text("category_mode", { enum: PAYEE_CATEGORY_MODES })
+      .notNull()
+      .default("history"),
+    fixedCategoryId: text("fixed_category_id"),
+    fixedInflowToReadyToAssign: integer("fixed_inflow_to_ready_to_assign", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    defaultCategoryId: text("default_category_id"),
+    defaultInflowToReadyToAssign: integer("default_inflow_to_ready_to_assign", { mode: "boolean" })
+      .notNull()
+      .default(false),
   },
   (t) => [
     uniqueIndex("payees_budget_name")
