@@ -317,3 +317,70 @@ Made here, also not observed:
 `packages/schema/test/file-import-read.test.ts`, `file-import.test.ts` and `imported-payee.test.ts`. The fixtures
 are in `packages/schema/test/fixtures/file-import/` (`sample.csv`, `three-rows.csv`, `sample.tsv`,
 `sgml.ofx`, `xml.ofx`, `sample.qfx`, `sample.qif`). The tests' names per acceptance item are in the spec.
+
+## Worker (FI-2): design
+
+The Worker half of EXF-531, with EXF-518 on file import and EXF-515 AC6. A bank file is previewed and then imported
+over REST and MCP. The import writes everything in one atomic batch: deduplicated, matched automatically to rows
+entered by hand, with payees resolved through the renaming rules and categories from each payee's default. The bank
+import is the pattern (docs/plaid-import-design.md, `services/plaid-sync.ts`).
+
+### Tables (migration `20261124220000_file_imports.sql`, additive)
+- `file_imports`: one row per stored file (`r2_key` `file-imports/<budget_id>/<file_id>` in `FILES`), kept 30 days
+  (`expires_at`). These rows are plumbing, like `plan_imports`, so they get no change_log. The sweep soft-deletes up to 5
+  expired rows on each preview or import (`deleted_at`) and deletes their R2 objects. A swept or expired id answers 410.
+- `account_import_settings` (`account_id`, `format`): the remembered options for each account and file format. A row
+  is written only when the options change, with a change_log row.
+- `transactions.import_memo`: the file's memo on a row the import created or merged. Only the file import writes it;
+  FI-3's Unmatch reads it. It is in `LinkCols` (`repositories/transactions.ts`), so other writers may leave it out of
+  their row literals. `transactions.source` gains `file`.
+
+### API
+- `POST /budgets/{budget_id}/accounts/{account_id}/imports/preview`: multipart `file` with an optional `options` JSON
+  field. Returns `FileImportPreview` + `file_id`, `options` (the effective options: the request's, then the remembered
+  settings, then the defaults) and `expires_at`.
+- `POST /budgets/{budget_id}/accounts/{account_id}/imports` `{ file_id, options }` → `{ imported, matched, skipped }`.
+  The server re-reads the stored file and never trusts rows sent by the client.
+- MCP `preview_transactions_file` and `import_transactions_file` (with `file_id`, or with `file_name` +
+  `content_base64`) call the same service.
+- Errors: 404, 410 `file_expired`, 413 `file_too_large`, 422 `too_many_rows` / `unreadable` / `no_rows` /
+  `unsupported_format` / `date_format_unclear` / `account_closed`. `apiError` has no 410 or 413, so the route writes
+  those two itself in the same `{ error: { id, name, detail } }` shape.
+
+### Deciding a row (in file order, over the rows `buildFileRows` keeps)
+1. Its key is known (a live row or a tombstone): matched, nothing written.
+2. `pickMatch` finds a row entered by hand: it is merged and counted as matched. The hand row keeps its payee, memo,
+   category, date and amount. It takes the import columns and `import_memo`, becomes cleared (reconciled stays
+   reconciled) and approved, and its source stays null.
+3. A Direct Import row (Plaid, or Plaid matched to a hand entry) with the same date and amount: skipped, with no
+   tombstone.
+4. Otherwise a new row is created: cleared, unapproved, `source "file"`. Its payee comes from `resolveImportedPayee`
+   (`rename_rule_id` in the change_log after) and its category from `categoryFor` with the payee's default.
+With "include earlier rows", a created or merged row dated before the Starting Balance moves the Starting Balance's
+date to it. `import_start_date` doesn't change.
+
+### One batch, set statements
+In order:
+1. payees insert, then its change_log;
+2. merge change_log, merge lines, merge update;
+3. insert of the creates and of each merge's fallback;
+4. create change_log;
+5. the Starting Balance move, the settings upsert and the sweep;
+6. `recomputeDefaultsStmt(db, budgetId, "plan")`.
+
+Each row statement takes one `json_each(?)` parameter, split at 900 KB, so there are no IN lists. "Key not known" and
+"account open" are SQL over each JSON row, so a concurrent import changes nothing twice. D1 calls: 2 for a preview,
+4 for an import (6 when MCP sends the file's content), whatever the number of rows.
+
+### As built
+- The batch of a file with new payees, creates and settings is **7 statements**, the same for 100 and 1,000 rows
+  (payees insert and log, row insert and log, the settings insert and log, the defaults recompute); merges add three
+  (log, lines, update) and the Starting Balance move two. Measured: preview 2 D1 calls, import 4, for 10, 100 and 1,000
+  rows alike; MCP content adds the preview's 2.
+- Create and merge rows travel as `[after-object, payee_id, import_memo]` and `[id, updated_at, before, after, date,
+  amount, memo, cleared]`: the insert reads the row's columns out of the `after` object (`j.value->>'$[0].date'`), so
+  no row is serialised twice. A merge's fallback insert (candidate changed meanwhile) never creates a payee.
+- `transactions.import_memo` is written only by this import (create and merge) and read by FI-3's Unmatch. It is in
+  `LinkCols` (one type-only line in `repositories/transactions.ts`), so the other writers' row literals compile
+  without it and insert it as NULL.
+- The route writes 410 and 413 itself; the MCP tools throw `<code>: <message>`.

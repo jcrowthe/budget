@@ -222,6 +222,30 @@ const results = new Map<string, Json>();
 
 /** Tools in call order; the mutating and deleting ones come last, on throwaway rows. */
 const CALLS: [string, (c: Ctx) => Json][] = [
+  [
+    "preview_transactions_file",
+    (c) => ({
+      budget_id: c.bid,
+      account_id: c.checking,
+      file_name: "sample.csv",
+      content_base64: btoa(
+        "Date,Payee,Memo,Outflow,Inflow\n11/10/2026,ZZ-TEST Preview Cafe,latte,4.50,\n",
+      ),
+      options: { today: "2026-11-24" },
+    }),
+  ],
+  [
+    "import_transactions_file",
+    (c) => ({
+      budget_id: c.bid,
+      account_id: c.checking,
+      file_name: "one.csv",
+      content_base64: btoa(
+        "Date,Payee,Memo,Outflow,Inflow\n11/11/2026,ZZ-TEST Import Cafe,mug,3.25,\n",
+      ),
+      options: { today: "2026-11-24" },
+    }),
+  ],
   ["list_budgets", () => ({})],
   ["get_budget", (c) => ({ budget_id: c.bid })],
   ["export_budget", (c) => ({ budget_id: c.bid })],

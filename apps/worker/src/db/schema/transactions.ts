@@ -28,7 +28,7 @@ export const transactions = sqliteTable(
     parentTransactionId: text("parent_transaction_id"),
     splitIndex: integer("split_index"),
     importId: text("import_id"),
-    source: text("source", { enum: ["plaid"] }),
+    source: text("source", { enum: ["plaid", "file"] }),
     importedPayee: text("imported_payee"),
     bankDescription: text("bank_description"),
     importDate: text("import_date"),
@@ -36,6 +36,7 @@ export const transactions = sqliteTable(
     importPayeeName: text("import_payee_name"),
     flagColor: text("flag_color", { enum: FLAG_COLORS }),
     matchEntryAmount: integer("match_entry_amount"),
+    importMemo: text("import_memo"),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),

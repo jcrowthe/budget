@@ -46,8 +46,9 @@ export const Transaction = z
       description:
         "The bank's id of the transaction when it came from (or was matched to) an import",
     }),
-    source: z.enum(["plaid"]).nullable().openapi({
-      description: "plaid for a transaction the bank import created; null when entered by hand",
+    source: z.enum(["plaid", "file"]).nullable().openapi({
+      description:
+        "plaid or file for a transaction an import created; null when entered by hand (a matched row keeps null)",
     }),
     imported_payee: z.string().nullable().openapi({
       description: "The payee name the bank sent, as sent",
