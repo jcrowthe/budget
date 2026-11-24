@@ -60,5 +60,12 @@ Web only: no Worker, schema or migration change.
 
 ## Measured
 
-To be filled while building: the fails-before run of acceptance 2 and 3 on base (fills `Fun`), and the sizes at
-1024×700 and 1440×900.
+- Fails before (base web, `pnpm e2e e2e/payee-categorization.spec.ts -g "A2|A3"`, saved in the Thread's
+  `evidence/fail-before/register-fill.txt`): A3 receives `ZZ Daily: Fun` (expected `ZZ Daily: Groceries`).
+  A2 receives an **empty** category, not Fun: base reads the latest row's category and the seed's latest row (11/13)
+  is the uncategorised one the contract asks for. It still fails on base. A1 passes on base.
+- After: `pnpm e2e e2e/payee-categorization.spec.ts --repeat-each=3` 51 passed.
+- Sizes: at 1024×700 and 1440×900 the card is inside `.mp-main` with no horizontal scroll and the popover lies inside
+  the window and the dialog (spec A7; screenshots in the Thread's `screenshots/`). At 1024×700 the popover opens above
+  the link.
+- Money in the popover reads as the plan's formatter prints it (`−$3.46` for -3460 milliunits).
