@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect as baseExpect, test } from "./fixtures";
+import { expect, test } from "./fixtures";
 import {
   chooseFiles,
   openImport,
@@ -7,10 +7,6 @@ import {
   planCsv,
   registerCsv,
 } from "./support/plan-import-dialog-files";
-
-// A loaded box answers slowly: wait far longer than the default 5 s.
-const expect = baseExpect.configure({ timeout: 60_000 });
-test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1024, height: 700 } });
 

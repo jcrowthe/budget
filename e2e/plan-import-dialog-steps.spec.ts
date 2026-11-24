@@ -9,7 +9,8 @@ import {
 } from "./support/plan-import-dialog-files";
 import { realClick } from "./support/real-click";
 
-// The first request of a 6,000-row file is the slowest step: a loaded box needs far more than 5 s for it.
+// The first request of a several-step file writes 2,500 rows to the local database: a loaded box needs far more
+// than the default 5 s for it, by the nature of the request. This is the one spec file that keeps the long limits.
 const expect = baseExpect.configure({ timeout: 60_000 });
 test.setTimeout(150_000);
 
@@ -29,14 +30,14 @@ async function cleanup(request: APIRequestContext, name: string) {
     await request.delete(`/api/v1/budgets/${id}`, { headers: await authHeaders() });
 }
 
-/** Opens the dialog with a file of 6,000 rows, the name set, and the continue answers slowed (they still reach the server). */
-async function ready(page: Page, name: string, delayMs = 400, gate?: Promise<void>) {
+/** Opens the dialog with a file of `rows` rows (default 2,500: the server writes 2,500 rows a step, and 2,480 is the smallest file of two steps), the name set, and the continue answers slowed (they still reach the server). */
+async function ready(page: Page, name: string, delayMs = 400, gate?: Promise<void>, rows = 2500) {
   await page.route("**/budgets/import/*/continue", async (route) => {
     await (gate ?? new Promise((r) => setTimeout(r, delayMs)));
     await route.fallback();
   });
   await openImport(page);
-  await chooseFiles(page, largePair(6000));
+  await chooseFiles(page, largePair(rows));
   await dialog(page).getByLabel("Plan name", { exact: true }).fill(name);
   await expect(button(page, "Import")).toBeEnabled();
 }
@@ -63,7 +64,8 @@ test("10 several steps: progress advances, continues never overlap, then the res
     };
     page.on("requestfinished", (r) => r.url().endsWith("/continue") && end());
     page.on("requestfailed", (r) => r.url().endsWith("/continue") && end());
-    await ready(page, name);
+    // The one several-step import of the suite: 5,000 rows is the smallest file of three steps (4,980 is).
+    await ready(page, name, 400, undefined, 5000);
     await realClick(page, button(page, "Import"));
     const bar = dialog(page).getByRole("progressbar", { name: "Import progress" });
     await expect(bar).toBeVisible();
@@ -195,7 +197,7 @@ test("11b closing while the first request is still out cancels the import it sta
       await route.fallback();
     });
     await openImport(page);
-    await chooseFiles(page, largePair(6000));
+    await chooseFiles(page, largePair(2500));
     await dialog(page).getByLabel("Plan name", { exact: true }).fill(name);
     await expect(button(page, "Import")).toBeEnabled();
     await realClick(page, button(page, "Import"));

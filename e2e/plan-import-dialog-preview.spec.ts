@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect as baseExpect, test } from "./fixtures";
+import { expect, test } from "./fixtures";
 import {
   badAmountPair,
   chooseFiles,
@@ -11,10 +11,6 @@ import {
   unclearZip,
 } from "./support/plan-import-dialog-files";
 import { realClick } from "./support/real-click";
-
-// A loaded box answers slowly: wait far longer than the default 5 s.
-const expect = baseExpect.configure({ timeout: 60_000 });
-test.setTimeout(150_000);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -78,9 +74,7 @@ test("9 a file that cannot be read: the server's words, no content in the consol
   await openImport(page);
   await chooseFiles(page, badAmountPair());
   const alert = dialog(page).getByRole("alert");
-  await expect(alert).toContainText("This file cannot be imported: Register file line 3", {
-    timeout: 30_000,
-  });
+  await expect(alert).toContainText("This file cannot be imported: Register file line 3");
   await expect(alert).toContainText("is not an amount");
   await expect(dialog(page).getByRole("button", { name: /Drop the files here/ })).toBeVisible();
   expect(requests).toHaveLength(1);
