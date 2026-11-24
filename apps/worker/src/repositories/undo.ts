@@ -150,14 +150,14 @@ function holds(alias: string, keys: readonly Key[], j: string): SQL {
   return raw(parts.length ? parts.join(" and ") : "1");
 }
 
-/** `col = <the JSON's value>` for each present key; an absent key leaves the column alone. */
-function sets(keys: readonly Key[], j: string): SQL {
+/** `col = <the JSON's value>` for each present key; an absent key leaves the column alone (`table` qualifies it where the joined net has a column of that name, e.g. a rule's `kind`). */
+function sets(keys: readonly Key[], j: string, table?: string): SQL {
   return raw(
     keys
       .filter((k) => !k.guardOnly)
       .map(
         (k) =>
-          `${k.col} = case when json_type(${j}, '$.${pres(k)}') is null then ${k.col} else json_extract(${j}, '$.${k.path ?? k.key}') end`,
+          `${k.col} = case when json_type(${j}, '$.${pres(k)}') is null then ${table ? `${table}.` : ""}${k.col} else json_extract(${j}, '$.${k.path ?? k.key}') end`,
       )
       .join(", "),
   );
@@ -438,7 +438,7 @@ export function restoreStmts(c: Ctx, type: UndoType): BatchItem<"sqlite">[] {
       ];
     case "payee_rename_rule":
       return [
-        run(sql`update payee_rename_rules set ${sets(keys, "n.before_json")}, deleted_at = null, updated_at = ${c.now},
+        run(sql`update payee_rename_rules set ${sets(keys, "n.before_json", "payee_rename_rules")}, deleted_at = null, updated_at = ${c.now},
             match_text = coalesce((select json_extract(m.value, '$.m') from json_each(${c.ruleTexts}) m where json_extract(m.value, '$.id') = n.eid), match_text)
           from ${net(c, type)} where payee_rename_rules.id = n.eid and n.kind in ('update', 'delete')`),
       ];

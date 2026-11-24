@@ -26,6 +26,7 @@ import { NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
 import { allOf, type LogBase, whenQuery } from "../repositories/guards";
 import * as categoryRepo from "../repositories/payee-category";
+import * as deleteLog from "../repositories/payee-delete-log";
 import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
@@ -474,7 +475,7 @@ export interface PayeeDeletePlan {
   counts: Record<string, { t: number; s: number }>;
 }
 
-/** The statements of one delete, six whatever the rows. A test appends a failing statement to prove atomicity. */
+/** The statements of one delete, eight whatever the rows. A test appends a failing statement to prove atomicity. */
 export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"sqlite">[] {
   const { budgetId, ids, replacementId } = p;
   const guard = allOf(
@@ -490,6 +491,8 @@ export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"s
   };
   return [
     payeesRepo.logDeleteStmt(db, base, budgetId, ids, replacementId, p.counts, guard),
+    deleteLog.logTransactionMovesStmt(db, base, budgetId, ids, replacementId, guard),
+    deleteLog.logScheduledMovesStmt(db, base, budgetId, ids, replacementId, guard),
     transactionsRepo.movePayeeStmt(db, budgetId, ids, replacementId, p.now, guard),
     scheduledRepo.movePayeeStmt(
       db,
