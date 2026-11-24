@@ -116,10 +116,10 @@ describe("setting a card target", () => {
     const ordinary = (body: unknown) => w.put(body, w.food);
     const r1 = await ordinary({ type: "card_monthly", amount: 1000 });
     expect(r1.status).toBe(422);
-    expect(((await r1.json()) as Json).error.code).toBe("card_target_requires_payment_category");
+    expect(((await r1.json()) as Json).error.name).toBe("card_target_requires_payment_category");
     const r2 = await w.put({ cadence: "monthly", behavior: "set_aside", amount: 1000 });
     expect(r2.status).toBe(422);
-    expect(((await r2.json()) as Json).error.code).toBe("payment_category_target");
+    expect(((await r2.json()) as Json).error.name).toBe("payment_category_target");
     for (const bad of [
       { type: "card_monthly", amount: 0 },
       { type: "card_monthly" },
@@ -129,11 +129,11 @@ describe("setting a card target", () => {
     ]) {
       const r = await w.put(bad);
       expect(r.status, JSON.stringify(bad)).toBe(422);
-      expect(((await r.json()) as Json).error.message.length).toBeGreaterThan(0);
+      expect(((await r.json()) as Json).error.detail.length).toBeGreaterThan(0);
     }
     // a bad ordinary body keeps its readable message
     const bad = await ordinary({ cadence: "weekly", behavior: "set_aside", amount: 1000 });
-    expect(((await bad.json()) as Json).error.message).toContain("day_of_week");
+    expect(((await bad.json()) as Json).error.detail).toContain("day_of_week");
     const m = await mcp("set_card_payment_target", {
       budget_id: w.bid,
       category_id: w.pay,

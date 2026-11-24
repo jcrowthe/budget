@@ -1,8 +1,13 @@
 import { InputMonth } from "@budget/schema/months";
-import { TargetBody, Today } from "@budget/schema/targets";
+import { CardTargetType, TargetBody, Today } from "@budget/schema/targets";
 import { z } from "zod";
 import { NotFound } from "../../middleware/errors";
-import { deleteTarget, setTarget, setTargetSnooze } from "../../services/targets";
+import {
+  deleteTarget,
+  setCardPaymentTarget,
+  setTarget,
+  setTargetSnooze,
+} from "../../services/targets";
 import { dates, Id, MONEY, MONTH } from "../tool-text";
 import type { McpToolDef } from "../types";
 
@@ -19,7 +24,7 @@ type SetInput = Omit<TargetBody, "cadence" | "behavior"> & {
 export const tools: McpToolDef[] = [
   {
     name: "set_category_target",
-    description: `Create or replace a category's target; a replace keeps the first creation date. ${MONEY} ${dates("today", "due_date")} ${MONTH} Returns { target }: the stored target with its fields and created_month (the month it applies from; earlier months show no target). today (YYYY-MM-DD, default the server's UTC date) sets the creation month of a new target. Kinds: weekly (set_aside or refill; amount each week on day_of_week, 0 = Sunday); monthly (set_aside or refill; amount each month by day_of_month, null or absent = the last day); yearly (set_aside or refill; amount each year by due_date); custom set_aside or fill_up (amount by due_date, optional repeat every 1 to 11 months or years); custom balance (reach amount by due_month, or eventually when it is absent). Other combinations are refused. (Not for the Credit Card Payments group or its payment categories: that is a 422.)`,
+    description: `Create or replace a category's target; a replace keeps the first creation date. ${MONEY} ${dates("today", "due_date")} ${MONTH} Returns { target }: the stored target with its fields and created_month (the month it applies from; earlier months show no target). today (YYYY-MM-DD, default the server's UTC date) sets the creation month of a new target. Kinds: weekly (set_aside or refill; amount each week on day_of_week, 0 = Sunday); monthly (set_aside or refill; amount each month by day_of_month, null or absent = the last day); yearly (set_aside or refill; amount each year by due_date); custom set_aside or fill_up (amount by due_date, optional repeat every 1 to 11 months or years); custom balance (reach amount by due_month, or eventually when it is absent). Other combinations are refused. (Not for a credit card payment category: that is a 422 payment_category_target; use set_card_payment_target.)`,
     inputSchema: z.object({
       budget_id: Id,
       category_id: Id,
@@ -31,6 +36,34 @@ export const tools: McpToolDef[] = [
       if (!isId(input.budget_id)) throw new NotFound("Plan");
       if (!isId(input.category_id)) throw new NotFound("Category");
       return { target: await setTarget(env, actor, rest, { today }) };
+    },
+  },
+  {
+    name: "set_card_payment_target",
+    description: `Create or replace the target of a credit card payment category (only those; an ordinary category is refused with card_target_requires_payment_category). ${MONEY} ${dates("today")} ${MONTH} type card_payoff_by_date: pay the card off by month (month, YYYY-MM-01); each month it asks for the balance at the start of the month divided by the months left, rounded up to the cent. type card_monthly: amount to set aside for the card each month. Returns { target }: the stored target with its type and created_month. get_plan_month shows the figures in the category's target: needed_this_month (Amount to Assign This Month), funded (Assigned So Far), to_go_this_month, overall_to_go (the payoff To Go: the balance still owed less Available) and percent, next to the category's payment.prior_balance and payment.current_balance. Delete it with delete_category_target.`,
+    inputSchema: z.object({
+      budget_id: Id,
+      category_id: Id,
+      type: CardTargetType,
+      month: InputMonth.optional(),
+      amount: z.number().int().optional(),
+      today: Today.optional(),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        category_id: string;
+        type: CardTargetType;
+        month?: string;
+        amount?: number;
+        today?: string;
+      },
+      { env, actor },
+    ) => {
+      if (!isId(input.budget_id)) throw new NotFound("Plan");
+      if (!isId(input.category_id)) throw new NotFound("Category");
+      const { today, ...rest } = input;
+      return { target: await setCardPaymentTarget(env, actor, rest as never, { today }) };
     },
   },
   {

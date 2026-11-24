@@ -500,6 +500,8 @@ const CALLS: [string, (c: Ctx) => Json][] = [
 const NOT_CALLED: Record<string, string> = {
   pay_credit_card: "the seed has no credit card",
   cancel_budget_import: "needs an unfinished import; covered by plan-import-steps.test.ts",
+  set_card_payment_target:
+    "needs a credit card payment category; covered by card-targets.test.ts; its result has no timestamp",
   get_card_payment_status: "returns amounts only, no timestamp; the fixture has no credit account",
 };
 

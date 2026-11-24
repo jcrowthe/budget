@@ -1,6 +1,13 @@
+import { cardTargetFields, cardTargetType } from "@budget/core/card-targets";
 import { toMonth } from "@budget/core/month";
 import { IsoDate } from "@budget/schema/common/dates";
-import { type Target, TargetDelete, TargetSet, type TargetSnooze } from "@budget/schema/targets";
+import {
+  CardTargetSet,
+  type Target,
+  TargetDelete,
+  TargetSet,
+  type TargetSnooze,
+} from "@budget/schema/targets";
 import { sql } from "drizzle-orm";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
@@ -17,9 +24,11 @@ const MAX_ATTEMPTS = 5;
 /** Today's date in UTC, the same rule `currentMonth()` uses. */
 export const todayUtc = (now: Date = new Date()): string => now.toISOString().slice(0, 10);
 
-export function targetToApi(row: repo.TargetRow): Target {
+/** `kind`: the target's category kind; a payment category's target also carries its card target type. */
+export function targetToApi(row: repo.TargetRow, kind: string | null = null): Target {
   return {
     ...repo.toDefinition(row),
+    type: kind ? cardTargetType(repo.toDefinition(row)) : null,
     budget_id: row.budgetId,
     category_id: row.categoryId,
     created_month: toMonth(row.createdOn),
@@ -43,6 +52,58 @@ async function requirePlan(db: Db, budgetId: string) {
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
 }
 
+/** A target write is refused for the category's kind. The routes answer 422 with `code`. */
+export class TargetRefused extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "TargetRefused";
+  }
+}
+
+type Fields = Omit<repo.TargetRow, "createdOn" | "createdAt" | "updatedAt">;
+
+/** The create-or-replace write both setters share: a replace keeps `created_on`; retried on a lost race. */
+async function writeTarget(
+  db: Db,
+  actor: string,
+  fields: Fields,
+  kind: string | null,
+  today: string | undefined,
+): Promise<Target> {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const before = await repo.find(db, fields.budgetId, fields.categoryId);
+    const now = new Date().toISOString();
+    const row: repo.TargetRow = {
+      ...fields,
+      createdOn: before?.createdOn ?? today ?? todayUtc(),
+      createdAt: before?.createdAt ?? now,
+      updatedAt: now,
+    };
+    const result = targetToApi(row, kind);
+    const [, write] = await db.batch([
+      ...buildSetTargetBatch(
+        db,
+        row,
+        {
+          budgetId: fields.budgetId,
+          actor,
+          action: before ? "update" : "create",
+          entityType: "target",
+          entityId: fields.categoryId,
+          before: before ? targetToApi(before, kind) : null,
+          after: result,
+        },
+        before?.updatedAt,
+      ),
+    ]);
+    if (write.meta.changes > 0) return result;
+  }
+  throw new Conflict("Target");
+}
+
 /** Creates or replaces a category's target. A replace keeps `created_on`. */
 export async function setTarget(
   env: Env,
@@ -56,11 +117,13 @@ export async function setTarget(
   await requirePlan(db, v.budget_id);
   const cat = await categoriesRepo.findActive(db, v.budget_id, v.category_id);
   if (!cat) throw new NotFound("Category");
-  if (cat.kind !== null) throw new PaymentLocked("payment_category_target");
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const before = await repo.find(db, v.budget_id, v.category_id);
-    const now = new Date().toISOString();
-    const row: repo.TargetRow = {
+  if (cat.kind !== null) {
+    throw new PaymentLocked("payment_category_target");
+  }
+  return writeTarget(
+    db,
+    actor,
+    {
       categoryId: v.category_id,
       budgetId: v.budget_id,
       cadence: v.cadence,
@@ -72,30 +135,54 @@ export async function setTarget(
       dueMonth: v.due_month ?? null,
       repeatEvery: v.repeat?.every ?? null,
       repeatUnit: v.repeat?.unit ?? null,
-      createdOn: before?.createdOn ?? today ?? todayUtc(),
-      createdAt: before?.createdAt ?? now,
-      updatedAt: now,
-    };
-    const result = targetToApi(row);
-    const [, write] = await db.batch([
-      ...buildSetTargetBatch(
-        db,
-        row,
-        {
-          budgetId: v.budget_id,
-          actor,
-          action: before ? "update" : "create",
-          entityType: "target",
-          entityId: v.category_id,
-          before: before ? targetToApi(before) : null,
-          after: result,
-        },
-        before?.updatedAt,
-      ),
-    ]);
-    if (write.meta.changes > 0) return result;
+    },
+    null,
+    today,
+  );
+}
+
+/** Creates or replaces the target of a credit card payment category (EXF-538). */
+export async function setCardPaymentTarget(
+  env: Env,
+  actor: string,
+  input: CardTargetSet,
+  opts: { today?: string } = {},
+): Promise<Target> {
+  const v = CardTargetSet.parse(input);
+  const today = opts.today === undefined ? undefined : IsoDate.parse(opts.today);
+  const db = getDb(env);
+  await requirePlan(db, v.budget_id);
+  const cat = await categoriesRepo.findActive(db, v.budget_id, v.category_id);
+  if (!cat) throw new NotFound("Category");
+  if (cat.kind === null) {
+    throw new TargetRefused(
+      "card_target_requires_payment_category",
+      "Card payment targets are only for credit card payment categories.",
+    );
   }
-  throw new Conflict("Target");
+  const f = cardTargetFields(
+    v.type,
+    v.type === "card_payoff_by_date" ? { month: v.month } : { amount: v.amount },
+  );
+  return writeTarget(
+    db,
+    actor,
+    {
+      categoryId: v.category_id,
+      budgetId: v.budget_id,
+      cadence: f.cadence,
+      behavior: f.behavior,
+      amount: f.amount,
+      dayOfWeek: null,
+      dayOfMonth: null,
+      dueDate: null,
+      dueMonth: f.due_month,
+      repeatEvery: null,
+      repeatUnit: null,
+    },
+    cat.kind,
+    today,
+  );
 }
 
 export async function deleteTarget(env: Env, actor: string, input: TargetDelete): Promise<Target> {
@@ -105,6 +192,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await repo.find(db, v.budget_id, v.category_id);
     if (!before) throw new NotFound("Target");
+    const kind = (await categoriesRepo.findActive(db, v.budget_id, v.category_id))?.kind ?? null;
     const [, del] = await db.batch([
       changeLogInsertIf(
         db,
@@ -114,7 +202,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
           action: "delete",
           entityType: "target",
           entityId: v.category_id,
-          before: targetToApi(before),
+          before: targetToApi(before, kind),
           after: null,
         },
         repo.holds(db, v.budget_id, v.category_id, before.updatedAt),
@@ -123,7 +211,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
       // The target's snoozes go with it (only when the delete above changed a row).
       snoozesRepo.deleteForCategoryStmt(db, v.budget_id, v.category_id, sql`changes() > 0`),
     ]);
-    if (del.meta.changes > 0) return targetToApi(before);
+    if (del.meta.changes > 0) return targetToApi(before, kind);
   }
   throw new Conflict("Target");
 }

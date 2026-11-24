@@ -1,8 +1,8 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
 import { InputMonth } from "@budget/schema/months";
 import {
-  TargetBody,
   TargetDeletedResponse,
+  TargetPutBody,
   TargetResponse,
   TargetSnoozeBody,
   TargetSnoozeResponse,
@@ -13,7 +13,14 @@ import { ZodError } from "zod";
 import type { AppEnv } from "../env";
 import { apiError, NotFound } from "../middleware/errors";
 import { PaymentLocked } from "../services/credit-payments";
-import { deleteTarget, SnoozeRefused, setTarget, setTargetSnooze } from "../services/targets";
+import {
+  deleteTarget,
+  SnoozeRefused,
+  setCardPaymentTarget,
+  setTarget,
+  setTargetSnooze,
+  TargetRefused,
+} from "../services/targets";
 
 const tags = ["Targets"];
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -26,19 +33,32 @@ const errors = {
   409: json(ErrorBody, "The target was changed concurrently"),
   422: json(
     ErrorBody,
-    "Invalid target or date, or payment_category_target: a credit card payment category",
+    "Invalid target or date; payment_category_target: an ordinary target on a credit card payment category; card_target_requires_payment_category: a card target on an ordinary category",
   ),
 };
 
+/**
+ * The readable text of a failed body. TargetPutBody is a union of an ordinary and a card body: a bare union
+ * says only "Invalid input", so the issues of the branch the body meant (`type` present: the card one) are used.
+ */
+async function issueText(
+  error: ZodError,
+  c: { req: { json: () => Promise<unknown> } },
+): Promise<string> {
+  const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+  const card = typeof body === "object" && body !== null && "type" in body;
+  const flat = error.issues.flatMap((i) => {
+    if (i.code !== "invalid_union") return [i];
+    const branch = (i as { errors?: ZodError["issues"][] }).errors?.[card ? 1 : 0];
+    return branch ?? [i];
+  });
+  return flat.map((i) => i.message).join("; ");
+}
+
 const app = new OpenAPIHono<AppEnv>({
-  defaultHook: (result, c) => {
+  defaultHook: async (result, c) => {
     if (!result.success) {
-      return apiError(
-        c,
-        422,
-        "unprocessable_entity",
-        result.error.issues.map((i) => i.message).join("; "),
-      );
+      return apiError(c, 422, "unprocessable_entity", await issueText(result.error, c));
     }
   },
 });
@@ -74,7 +94,7 @@ export default app
               "The owner's local date (YYYY-MM-DD): the creation date of a new target. Default: the server's UTC date",
           }),
         }),
-        body: { required: true, content: { "application/json": { schema: TargetBody } } },
+        body: { required: true, content: { "application/json": { schema: TargetPutBody } } },
       },
       responses: { 200: json(TargetResponse, "The stored target"), ...errors },
     }),
@@ -83,12 +103,17 @@ export default app
       const { today } = c.req.valid("query");
       requireIds(budget_id, category_id);
       try {
-        const target = await setTarget(
-          c.env,
-          c.get("identity").actor,
-          { budget_id, category_id, ...c.req.valid("json") },
-          { today },
-        );
+        const body = c.req.valid("json");
+        const actor = c.get("identity").actor;
+        const target =
+          "type" in body
+            ? await setCardPaymentTarget(
+                c.env,
+                actor,
+                { budget_id, category_id, ...body },
+                { today },
+              )
+            : await setTarget(c.env, actor, { budget_id, category_id, ...body }, { today });
         return c.json({ data: { target } }, 200);
       } catch (e) {
         if (e instanceof ZodError) {
@@ -99,7 +124,8 @@ export default app
             e.issues.map((i) => i.message).join("; "),
           ) as never;
         }
-        if (e instanceof PaymentLocked) return apiError(c, 422, e.code, e.message) as never;
+        if (e instanceof PaymentLocked || e instanceof TargetRefused)
+          return apiError(c, 422, e.code, e.message) as never;
         throw e;
       }
     },
