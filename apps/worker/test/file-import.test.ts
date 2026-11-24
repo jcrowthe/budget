@@ -131,6 +131,36 @@ describe("worked example (EXF-531 AC7)", () => {
   });
 });
 
+describe("merging a split hand row", () => {
+  it("the lines follow the parent: cleared and approved, and the log carries them", async () => {
+    const bid = await plan();
+    const aid = await accountOn(bid, 530000);
+    const c = await cats(bid);
+    const parent = await tx(bid, {
+      account_id: aid,
+      date: "2026-11-15",
+      amount: -20000,
+      payee_name: "ZZ-TEST Split Market",
+      subtransactions: [
+        { amount: -12000, category_id: c.Groceries },
+        { amount: -8000, category_id: c.Fun },
+      ],
+    });
+    const { result } = await importText(bid, aid, "three-rows.csv", fixture("three-rows.csv"));
+    expect(result).toEqual({ imported: 2, matched: 1, skipped: 0 });
+    const lines = await q(
+      "select cleared, approved from transactions where parent_transaction_id = ?",
+      parent.id,
+    );
+    expect(lines).toHaveLength(2);
+    for (const l of lines) expect(l).toMatchObject({ cleared: "cleared", approved: 1 });
+    const log = (await logRows(bid, "transaction")).find(
+      (l) => l.entity_id === parent.id && l.action === "update",
+    );
+    expect(JSON.parse(log?.after_json).subtransactions).toHaveLength(2);
+  });
+});
+
 describe("the cutoff (AC5)", () => {
   it("skips the row before the Starting Balance", async () => {
     const bid = await plan();
@@ -352,13 +382,18 @@ describe("OFX (AC11)", () => {
       const { result } = await importText(bid, aid, name, fixture(name));
       expect(result.imported).toBeGreaterThan(0);
       const rows = (await rowsOf(aid)).filter((r) => r.source === "file");
-      for (const r of rows) expect(r.import_id).toMatch(new RegExp(`^file:v1:${aid}:fitid:ZZ\\d+`));
-      const target = rows[0];
+      const keyed = rows.filter((r) => r.import_id.includes(":fitid:"));
+      expect(keyed.length).toBeGreaterThan(0);
+      for (const r of keyed)
+        expect(r.import_id).toMatch(new RegExp(`^file:v1:${aid}:fitid:ZZ\\d+`));
+      const first = /<MEMO>(\w+)/.exec(fixture(name))?.[1] as string;
+      const target = keyed.find((r) => r.import_memo === first);
+      expect(target, `a keyed row with the memo ${first}`).toBeDefined();
       const res = await send(`${plans(bid)}/transactions/${target?.id}`, "PATCH", {
         memo: "edited",
       });
       expect(res.status).toBe(200);
-      const edited = fixture(name).replace(/(<MEMO>)latte/, "$1latte edited");
+      const edited = fixture(name).replace(/<MEMO>(\w+)/, "<MEMO>$1 edited");
       const again = await importText(bid, aid, name, edited);
       expect(again.result.imported).toBe(0);
     }

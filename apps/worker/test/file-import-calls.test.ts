@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { FileImportOptions } from "@budget/schema/file-import";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
 import { changeLog } from "../src/db/schema/change-log";
@@ -56,7 +57,7 @@ describe("file import: D1 calls and atomicity (AC12)", () => {
         budgetId: bid,
         accountId: aid,
         fileId: p.file_id,
-        options: { today: TODAY } as never,
+        options: FileImportOptions.parse({ today: TODAY }),
       });
       lengths.push(buildImportBatch(getDb(env), prepared.plan).length);
     }
@@ -89,7 +90,7 @@ describe("file import: D1 calls and atomicity (AC12)", () => {
       budgetId: bid,
       accountId: aid,
       fileId: p.file_id,
-      options: { today: TODAY } as never,
+      options: FileImportOptions.parse({ today: TODAY }),
     });
     const db = getDb(env);
     const snap = async () =>

@@ -28,7 +28,7 @@ export const b64 = (text: string) => btoa(String.fromCharCode(...new TextEncoder
 export function rowsCsv(n: number, prefix = "ZZ-TEST Vendor"): string {
   const lines = ["Date,Payee,Memo,Outflow,Inflow"];
   for (let i = 0; i < n; i++) {
-    const day = String((i % 20) + 1).padStart(2, "0");
+    const day = String((i % 20) + 10).padStart(2, "0");
     lines.push(`11/${day}/2026,${prefix} ${i},memo ${i},${(i + 1) / 100 + 1000},`);
   }
   return lines.join("\n");
@@ -43,7 +43,7 @@ export function previewReq(
   envOverride: Partial<Env> = {},
 ) {
   const form = new FormData();
-  form.set("file", new File([text as BlobPart], fileName));
+  form.set("file", new File([text as unknown as ArrayBuffer], fileName));
   if (options !== undefined) form.set("options", JSON.stringify(options));
   return authed({ method: "POST", body: form }).then((init) =>
     call(`${base(bid, aid)}/preview`, init, envOverride),

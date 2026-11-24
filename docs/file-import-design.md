@@ -371,3 +371,16 @@ In order:
 Each row statement takes one `json_each(?)` parameter, split at 900 KB, so there are no IN lists. "Key not known" and
 "account open" are SQL over each JSON row, so a concurrent import changes nothing twice. D1 calls: 2 for a preview,
 4 for an import (6 when MCP sends the file's content), whatever the number of rows.
+
+### As built
+- The batch of a file with new payees, creates and settings is **7 statements**, the same for 100 and 1,000 rows
+  (payees insert and log, row insert and log, the settings insert and log, the defaults recompute); merges add three
+  (log, lines, update) and the Starting Balance move two. Measured: preview 2 D1 calls, import 4, for 10, 100 and 1,000
+  rows alike; MCP content adds the preview's 2.
+- Create and merge rows travel as `[after-object, payee_id, import_memo]` and `[id, updated_at, before, after, date,
+  amount, memo, cleared]`: the insert reads the row's columns out of the `after` object (`j.value->>'$[0].date'`), so
+  no row is serialised twice. A merge's fallback insert (candidate changed meanwhile) never creates a payee.
+- `transactions.import_memo` is written only by this import (create and merge) and read by FI-3's Unmatch. It is in
+  `LinkCols` (one type-only line in `repositories/transactions.ts`), so the other writers' row literals compile
+  without it and insert it as NULL.
+- The route writes 410 and 413 itself; the MCP tools throw `<code>: <message>`.

@@ -5,6 +5,7 @@
  */
 import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
+import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import { amountDecimal, FILE_FORMATS, type ParsedFile, readAmount } from "./file-import-read";
 import { skipReason } from "./plaid-import";
@@ -260,6 +261,55 @@ export const FileImportResult = z
   })
   .openapi("FileImportResult");
 export type FileImportResult = z.infer<typeof FileImportResult>;
+
+// ---------------------------------------------------------------------------------------------------- worker API (FI-2)
+
+/** A stored import file is kept this many days, then answers 410. */
+export const FILE_IMPORT_KEEP_DAYS = 30;
+/** At most this many expired files are swept on each preview or import. */
+export const FILE_IMPORT_SWEEP = 5;
+
+/** The options remembered for an account and file format (the others are per import). */
+export const RememberedFileOptions = FileImportOptions.pick({
+  no_header: true,
+  mapping: true,
+  date_format: true,
+  swap_inflow_outflow: true,
+  import_memos: true,
+  swap_payee_memo: true,
+});
+export type RememberedFileOptions = z.infer<typeof RememberedFileOptions>;
+
+export const FileImportPreviewResult = FileImportPreview.extend({
+  file_id: z.string().openapi({ description: "Pass to the import within 30 days" }),
+  options: FileImportOptions.openapi({
+    description:
+      "The effective options: the request's, then the remembered settings for this account and format, then the defaults",
+  }),
+  expires_at: z.string().openapi({ description: "ISO 8601 UTC; after it the file answers 410" }),
+}).openapi("FileImportPreviewResult");
+export type FileImportPreviewResult = z.infer<typeof FileImportPreviewResult>;
+
+export const FileImportRequest = z
+  .object({ file_id: z.string().min(1), options: FileImportOptions })
+  .openapi("FileImportRequest");
+export type FileImportRequest = z.infer<typeof FileImportRequest>;
+
+export const FileImportPreviewResponse = dataEnvelope(FileImportPreviewResult);
+export const FileImportResultResponse = dataEnvelope(FileImportResult);
+
+export const FILE_IMPORT_ERRORS = {
+  not_found: "Account or file not found",
+  file_expired: "The file is no longer stored; upload it again",
+  file_too_large: "The file is larger than 2 MB",
+  too_many_rows: "The file has more than 2,000 transactions",
+  unreadable: "The file cannot be read",
+  no_rows: "The file has no transactions",
+  unsupported_format: "Use a CSV, TSV, OFX, QFX or QIF file",
+  date_format_unclear: "Choose the date format of the file",
+  account_closed: "The account is closed",
+  unprocessable_entity: "The options are not valid",
+} as const;
 
 // ---------------------------------------------------------------------------------------------------- rows
 

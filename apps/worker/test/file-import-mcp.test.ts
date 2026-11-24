@@ -27,7 +27,11 @@ const out = (r: Json): Json => {
   return r.result.structuredContent;
 };
 const norm = (v: Json): Json =>
-  JSON.parse(JSON.stringify(v).replace(/"(file_id|expires_at)":"[^"]*"/g, '"$1":"X"'));
+  JSON.parse(
+    JSON.stringify(v)
+      .replace(/"(file_id|expires_at)":"[^"]*"/g, '"$1":"X"')
+      .replace(/file:v1:[0-9a-f-]{36}:/g, "file:v1:ACCOUNT:"),
+  );
 
 describe("file import over MCP (AC14)", () => {
   it("lists both operations and both tools", async () => {
@@ -78,11 +82,14 @@ describe("file import over MCP (AC14)", () => {
       rows.map((r) => `${r.date}|${r.amount}|${r.payee_name}|${r.cleared}|${r.source}`);
     expect(strip(await rowsOf(a3))).toEqual(strip(await rowsOf(a1)));
 
-    const mcpLogs = (await logRows(b3, "transaction")).filter((l) => l.action === "create");
-    expect(mcpLogs.length).toBeGreaterThan(0);
+    const fileIds = new Set((await rowsOf(a3)).filter((r) => r.source === "file").map((r) => r.id));
+    const mcpLogs = (await logRows(b3, "transaction")).filter((l) => fileIds.has(l.entity_id));
+    expect(mcpLogs).toHaveLength(2);
     for (const l of mcpLogs) expect(l.actor.startsWith("mcp:")).toBe(true);
-    for (const l of (await logRows(b1, "transaction")).filter((x) => x.action === "create"))
-      expect(l.actor).toBe(actor);
+    const restIds = new Set((await rowsOf(a1)).filter((r) => r.source === "file").map((r) => r.id));
+    const restLogs = (await logRows(b1, "transaction")).filter((l) => restIds.has(l.entity_id));
+    expect(restLogs).toHaveLength(2);
+    for (const l of restLogs) expect(l.actor).toBe(actor);
   });
 
   it("refuses both or neither of file_id and content, as a tool error", async () => {
