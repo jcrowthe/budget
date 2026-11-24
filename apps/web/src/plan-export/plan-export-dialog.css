@@ -50,20 +50,3 @@
   color: var(--actionPrimary);
   cursor: pointer;
 }
-.plan-export-dialog .dialog-footer button,
-.plan-import-dialog .dialog-footer button {
-  transition: background-color 0.15s;
-}
-.plan-export-dialog .dialog-footer .secondary:hover:not(:disabled),
-.plan-import-dialog .dialog-footer .secondary:hover:not(:disabled) {
-  background: var(--buttonSecondaryBackgroundHover);
-}
-.plan-export-dialog .dialog-footer .primary:hover:not(:disabled),
-.plan-import-dialog .dialog-footer .primary:hover:not(:disabled) {
-  background: var(--actionPrimary);
-}
-.plan-export-dialog .dialog-footer button:focus-visible,
-.plan-import-dialog .dialog-footer button:focus-visible {
-  outline: auto 2px var(--actionPrimary);
-  outline-offset: 2px;
-}

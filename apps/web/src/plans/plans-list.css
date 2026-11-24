@@ -145,14 +145,3 @@
 .plans-list-delete-dialog .close-text {
   overflow-wrap: anywhere;
 }
-
-.dialog.form.edit-account.plans-list-delete-dialog .dialog-footer .destructive {
-  background: var(--buttonDestructiveBackground);
-  color: var(--buttonDestructiveLabel);
-}
-.dialog.form.edit-account.plans-list-delete-dialog
-  .dialog-footer
-  .destructive:hover:not(:disabled) {
-  background: var(--buttonDestructiveBackgroundActive);
-  color: var(--labelPrimary);
-}

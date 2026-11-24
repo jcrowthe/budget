@@ -113,9 +113,6 @@
   font-weight: 500;
   cursor: pointer;
 }
-.dialog.shortcuts .dialog-footer .primary:hover {
-  background: var(--actionPrimary);
-}
 
 .shortcut-tip-anchor {
   position: relative;
