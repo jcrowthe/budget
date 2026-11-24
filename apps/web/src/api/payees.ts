@@ -4,8 +4,10 @@ import {
   PayeeBulkResponse,
   PayeeDeleteResponse,
   PayeeListResponse,
+  PayeeRecentResponse,
   PayeeResponse,
   PayeeTransactionsResponse,
+  type PayeeUpdate,
 } from "@budget/schema/payees";
 import {
   type PayeeRenameRule,
@@ -34,11 +36,7 @@ export const usePayees = (budgetId: string) =>
 const base = (b: string) => `/api/v1/budgets/${b}/payees` as const;
 
 /** Rename and/or hide one payee. */
-export const updatePayee = async (
-  b: string,
-  id: string,
-  body: { name?: string; hidden?: boolean },
-) =>
+export const updatePayee = async (b: string, id: string, body: PayeeUpdate) =>
   (
     await apiFetch(`${base(b)}/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -46,6 +44,43 @@ export const updatePayee = async (
       schema: PayeeResponse,
     })
   ).data.payee;
+
+/** Save the payee's category mode and fixed choice; the answer replaces the payee in the cached list. */
+export async function savePayeeCategory(
+  qc: QueryClient,
+  b: string,
+  id: string,
+  body: Pick<
+    PayeeUpdate,
+    "category_mode" | "fixed_category_id" | "fixed_inflow_to_ready_to_assign"
+  >,
+) {
+  const answer = (
+    await apiFetch(`${base(b)}/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body,
+      idempotencyKey: crypto.randomUUID(),
+      schema: PayeeResponse,
+    })
+  ).data.payee;
+  qc.setQueryData<Payee[]>(["payees", b], (list) => list?.map((p) => (p.id === id ? answer : p)));
+  return answer;
+}
+
+/** The payee's last 3 counted transactions, newest first; off while no payee is open. */
+export const usePayeeRecentTransactions = (b: string, id: string | null) =>
+  useQuery({
+    queryKey: ["payee-recent-transactions", b, id],
+    queryFn: async () =>
+      (
+        await apiFetch(
+          `${base(b)}/${encodeURIComponent(id as string)}/recent-transactions?limit=3`,
+          { schema: PayeeRecentResponse },
+        )
+      ).data.transactions,
+    enabled: id !== null,
+    placeholderData: keepPreviousInPlan(b),
+  });
 
 /** Delete one payee; its transactions go to the replacement, or to no payee. */
 export const deletePayee = async (b: string, id: string, replacementId: string | null) =>
@@ -164,6 +199,7 @@ const VIEWS = new Set([
   "category-activity",
   "report-transactions",
   "payee-transactions",
+  "payee-recent-transactions",
 ]);
 
 /** After a change: every screen that shows payees or their names refetches once, without a reload. */
