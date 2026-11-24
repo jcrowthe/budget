@@ -7,10 +7,11 @@ import {
   ClockIcon,
   CreditCardIcon,
   SnoozeIcon,
+  TargetRingIcon,
 } from "./icons";
 
 export type PillTone = "zero" | "positive" | "negative" | "cautious";
-export type PillIcon = "clock" | "check" | "clockCheck" | "snooze" | "card" | null;
+export type PillIcon = "clock" | "check" | "clockCheck" | "snooze" | "card" | "target" | null;
 
 const ICONS = {
   clock: ClockIcon,
@@ -18,6 +19,7 @@ const ICONS = {
   clockCheck: ClockCheckIcon,
   snooze: SnoozeIcon,
   card: CreditCardIcon,
+  target: TargetRingIcon,
 };
 
 /**

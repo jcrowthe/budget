@@ -1,12 +1,15 @@
+import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 import type { PlanView } from "@budget/schema/plan-views";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { accountPath } from "../../shell/planPaths";
 import { AvailablePill } from "../AvailablePill";
 import { categoryPill } from "../format";
 import { CheckCircleFillIcon, WarningTriangleIcon } from "../icons";
+import { CardTargetCard } from "./CardTargetCard";
 import { PanelCard } from "./PanelCard";
 
 export type PaymentCollapsed = { paymentBalance: boolean; forPayment: boolean };
@@ -35,13 +38,20 @@ function PaymentCard({
   budgetId,
   c,
   onView,
+  onCreateTarget,
 }: {
   budgetId: string;
   c: MonthCategoryDetail;
   onView: (v: PlanView) => void;
+  onCreateTarget: () => void;
 }) {
   const fmt = usePlanFormatter();
   const navigate = useNavigate();
+  const create = (
+    <button type="button" className="popover-button payment-button" onClick={onCreateTarget}>
+      Create a Debt Payoff Target
+    </button>
+  );
   const p = c.payment;
   if (!p) return null;
   let body: ReactNode;
@@ -101,6 +111,7 @@ function PaymentCard({
           >
             Cover Overspent Categories
           </button>
+          {create}
         </>
       );
       break;
@@ -113,6 +124,7 @@ function PaymentCard({
           </h3>
           <PaymentBar available={p.available} balance={p.current_balance} />
           <p>You need to assign {fmt.money(p.underfunded)} more to pay off your current balance.</p>
+          {create}
         </>
       );
       break;
@@ -132,6 +144,7 @@ function PaymentCard({
 /** The cards of a payment category's inspector, between its title and Notes. */
 export function PaymentInspector({
   budgetId,
+  month,
   c,
   collapsed,
   onToggle,
@@ -139,6 +152,7 @@ export function PaymentInspector({
   autoAssign,
 }: {
   budgetId: string;
+  month: Month;
   c: MonthCategoryDetail;
   collapsed: PaymentCollapsed;
   onToggle: (key: keyof PaymentCollapsed) => void;
@@ -148,9 +162,26 @@ export function PaymentInspector({
   const fmt = usePlanFormatter();
   const p = c.payment;
   const pill = categoryPill(c, fmt);
+  // The Payment card's Create button opens the target editor in its place (EXF-538).
+  const [creating, setCreating] = useState(false);
   return (
     <>
-      <PaymentCard budgetId={budgetId} c={c} onView={onView} />
+      {c.target || creating ? (
+        <CardTargetCard
+          budgetId={budgetId}
+          month={month}
+          category={c}
+          startOpen={creating && !c.target}
+          onClose={() => setCreating(false)}
+        />
+      ) : (
+        <PaymentCard
+          budgetId={budgetId}
+          c={c}
+          onView={onView}
+          onCreateTarget={() => setCreating(true)}
+        />
+      )}
       {p && p.underfunded > 0 && (
         <section className="panel-card panel-card-static payment-total">
           <div className="panel-row">

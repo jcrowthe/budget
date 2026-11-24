@@ -77,7 +77,9 @@ export function CategoryInspector({
       </div>
       {c.kind === "credit_card_payment" ? (
         <PaymentInspector
+          key={c.id}
           budgetId={budgetId}
+          month={month}
           c={c}
           collapsed={paymentCollapsed}
           onToggle={onTogglePayment}
