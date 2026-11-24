@@ -325,7 +325,7 @@ over REST and MCP. The import writes everything in one atomic batch: deduplicate
 entered by hand, with payees resolved through the renaming rules and categories from each payee's default. The bank
 import is the pattern (docs/plaid-import-design.md, `services/plaid-sync.ts`).
 
-### Tables (migration `20261124130000_file_imports.sql`, additive)
+### Tables (migration `20261124220000_file_imports.sql`, additive)
 - `file_imports`: one row per stored file (`r2_key` `file-imports/<budget_id>/<file_id>` in `FILES`), kept 30 days
   (`expires_at`). These rows are plumbing, like `plan_imports`, so they get no change_log. The sweep soft-deletes up to 5
   expired rows on each preview or import (`deleted_at`) and deletes their R2 objects. A swept or expired id answers 410.
