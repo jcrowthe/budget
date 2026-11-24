@@ -1,6 +1,8 @@
 import { RECENCY_ORDER } from "@budget/schema/payee-category";
-import { type SQL, sql } from "drizzle-orm";
+import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
+import { categories } from "../db/schema/categories";
+import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
 import { whenQuery } from "./guards";
 import { idsIn } from "./payees";
@@ -137,3 +139,19 @@ export function recentCountedQuery(
 /** An unexecuted query that yields a row while the category is live in the plan (rides a `db.batch` of reads). */
 export const liveCategoryQuery = (db: Db, budgetId: string, id: string) =>
   whenQuery(db, liveCategorySql(budgetId, sql`${id}`));
+
+/**
+ * An unexecuted query: one row `{ payment: 0 | 1 }` while the category is live in the plan, `payment` 1 for a credit
+ * card payment category (which a payee's fixed choice refuses); no row when it is not live.
+ */
+export const liveCategoryKindQuery = (db: Db, budgetId: string, id: string) =>
+  db
+    .select({ payment: sql<number>`(${categories.kind} = 'credit_card_payment')` })
+    .from(categories)
+    .innerJoin(
+      categoryGroups,
+      and(eq(categoryGroups.id, categories.groupId), isNull(categoryGroups.deletedAt)),
+    )
+    .where(
+      and(eq(categories.id, id), eq(categories.budgetId, budgetId), isNull(categories.deletedAt)),
+    );

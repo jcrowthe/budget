@@ -16,7 +16,10 @@ Web only: no Worker, schema or migration change.
   - Under the first, while it is the saved mode: `Budget will auto-select the category for new <Payee> transactions
     based on how the [last 3 transactions] for this payee were categorized. This is updated when you add or edit a
     transaction.`, then `Current default category:` with `<Group>: <Category>`, `Ready to Assign`, or `Not yet set`.
-  - Under the second, while chosen: the register's category picker (`CategoryField`), Ready to Assign included.
+  - Under the second, while chosen: the register's category picker (`CategoryField`), Ready to Assign included (Inflow
+    section) and **without credit card payment categories** (EXF-515 follow-up, matched to the source): the card hands the
+    picker the month with those categories and their group removed, and the Worker refuses one for `fixed_category_id`
+    with a 422 (`liveCategoryKindQuery`). Spec A12; `payee-category-card-payment.test.ts`.
   - Each choice saves at once when it has what it needs: `history` and `off` at once; `fixed` once a category is
     picked, or at once when a stored fixed choice is still live. Choosing `Always use my choice` with no category
     sends nothing (decision of the contract).

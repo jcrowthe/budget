@@ -70,9 +70,8 @@ describe("payee renaming rules: the operations (EXF-467)", () => {
     const w = await rulesWorld(["ZZ Cafe"]);
     const id = await w.id("ZZ Cafe");
     const post = (pid: string, body: Json) => send(RR(w.bid, pid), "POST", body);
-    const transfer = await post("transfer:abc", { kind: "is", text: "x" });
-    expect(transfer.status).toBe(403);
-    expect((await err(transfer)).detail).toBe(PAYEE_ERRORS.transfer);
+    // EXF-885: a transfer payee takes rules now; one of no account of the plan is not found.
+    expect((await post("transfer:abc", { kind: "is", text: "x" })).status).toBe(404);
     const system = (await w.list()).find((p) => p.system)?.id;
     if (system) {
       const r = await post(system, { kind: "is", text: "x" });

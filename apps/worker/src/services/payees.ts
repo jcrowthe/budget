@@ -16,13 +16,13 @@ import {
   transferPayeeId,
   transferPayeeName,
 } from "@budget/schema/transfers";
-import { sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { type Db as DbT, getDb } from "../db/client";
+import { accounts as accountsTable } from "../db/schema/accounts";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
-import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import { allOf, type LogBase, whenQuery } from "../repositories/guards";
 import * as categoryRepo from "../repositories/payee-category";
@@ -94,7 +94,22 @@ export async function listPayees(
     counts: true,
   });
   // The transfer entries stand for the plan's open accounts; they are derived here, never stored.
-  const accounts = await accountsRepo.list(db, budgetId, { includeClosed: false });
+  // One D1 call for the open accounts and the transfer entries that have rules.
+  const [accounts, ruledRows] = await db.batch([
+    db
+      .select({ id: accountsTable.id, name: accountsTable.name })
+      .from(accountsTable)
+      .where(
+        and(
+          eq(accountsTable.budgetId, budgetId),
+          isNull(accountsTable.deletedAt),
+          eq(accountsTable.closed, false),
+        ),
+      )
+      .orderBy(asc(accountsTable.sortOrder), asc(accountsTable.id)),
+    rulesRepo.transferIdsWithRulesQuery(db, budgetId),
+  ]);
+  const ruled = new Set(ruledRows.map((r) => r.id));
   const transfers: Payee[] = accounts.map((a) => ({
     id: transferPayeeId(a.id),
     name: transferPayeeName(a.name),
@@ -110,7 +125,7 @@ export async function listPayees(
     transfer_account_id: a.id,
     transaction_count: 0,
     scheduled_count: 0,
-    has_rules: false,
+    has_rules: ruled.has(transferPayeeId(a.id)),
   }));
   const needle = opts.q?.toLowerCase() ?? "";
   return [
@@ -194,6 +209,8 @@ export class PayeeRefused extends Error {
   }
 }
 
+/** A credit card payment category belongs to its card's payments, not to a payee. */
+const FIXED_PAYMENT_CATEGORY = "A credit card payment category can't be a payee's fixed category";
 const forbidden = (m: string) => new PayeeRefused(403, "forbidden", m);
 const unprocessable = (m: string) => new PayeeRefused(422, "unprocessable_entity", m);
 
@@ -350,15 +367,18 @@ export async function updatePayee(
     const reads: [unknown?, unknown?] = [];
     if (renamed) reads.push(payeesRepo.findByNameQuery(db, budgetId, name));
     if (givenCategory !== null)
-      reads.push(categoryRepo.liveCategoryQuery(db, budgetId, givenCategory));
+      reads.push(categoryRepo.liveCategoryKindQuery(db, budgetId, givenCategory));
     const res = (await db.batch(reads as never)) as unknown as unknown[][];
     if (renamed) {
       const other = (res[0] as payeesRepo.PayeeRow[])[0];
       if (other && other.id !== row.id)
         throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
     }
-    if (givenCategory !== null && (res[res.length - 1] as unknown[]).length === 0)
-      throw unprocessable(PAYEE_ERRORS.categoryUnknown);
+    if (givenCategory !== null) {
+      const [found] = res[res.length - 1] as { payment: number }[];
+      if (!found) throw unprocessable(PAYEE_ERRORS.categoryUnknown);
+      if (Number(found.payment) === 1) throw unprocessable(FIXED_PAYMENT_CATEGORY);
+    }
   }
   const hidden = input.hidden ?? row.hidden;
   const fixedLive =

@@ -87,7 +87,7 @@ test("1 the card: add Contains and Is, the gear, a refused rule, remove both", a
   await expect(gear(d)).toHaveCount(0);
 });
 
-test("2 a hidden payee has the card, a transfer payee has none, two selected show the sentence", async ({
+test("2 a hidden payee has the card, a transfer payee has it too (EXF-885), two selected show the sentence", async ({
   page,
   request,
 }) => {
@@ -104,7 +104,7 @@ test("2 a hidden payee has the card, a transfer payee has none, two selected sho
 
   await realClick(page, btn(d, "Expand Transfer Payees"));
   await realClick(page, pick(d, "Transfer : ZZ Card"));
-  await expect(heading(d)).toHaveCount(0);
+  await expect(heading(d)).toBeVisible();
 
   const sentence =
     "One or more of these payees have renaming rules. Deleting them will also delete their rules.";

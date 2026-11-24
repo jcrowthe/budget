@@ -103,6 +103,7 @@ export function EditPane({
     return (
       <div className="mp-pane">
         <h2 className="mp-heading">{p.name}</h2>
+        <RenamingCard key={`rules-${p.id}`} budgetId={budgetId} payee={p} disabled={false} />
         <div className="mp-info">{TRANSFER_NOTE}</div>
       </div>
     );

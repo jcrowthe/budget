@@ -1,6 +1,6 @@
 import type { Payee } from "@budget/schema/payees";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
 import { savePayeeCategory } from "../api/payees";
@@ -28,6 +28,20 @@ export function CategorizationCard({
   const qc = useQueryClient();
   const month = useMonth(budgetId, `${localToday().slice(0, 7)}-01`).data;
   const groups = month?.groups ?? [];
+  // A credit card payment category belongs to its card: the picker does not offer it (the Worker refuses it too).
+  const pickable = useMemo(
+    () =>
+      month && {
+        ...month,
+        groups: month.groups
+          .filter((g) => g.kind !== "credit_card_payments")
+          .map((g) => ({
+            ...g,
+            categories: g.categories.filter((c) => c.kind !== "credit_card_payment"),
+          })),
+      },
+    [month],
+  );
   const [choice, setChoice] = useState<Mode>(payee.category_mode);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -169,7 +183,7 @@ export function CategorizationCard({
               }}
             >
               <CategoryField
-                month={month}
+                month={pickable}
                 value={fixedValue}
                 disabled={disabled}
                 footer="none"

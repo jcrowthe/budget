@@ -21,6 +21,13 @@ export function listForPayee(db: Db, budgetId: string, payeeId: string): Promise
     .orderBy(asc(payeeRenameRules.createdAt), asc(payeeRenameRules.id));
 }
 
+/** Unexecuted: the transfer payee ids (`transfer:<account id>`) of the plan that have a live rule. */
+export const transferIdsWithRulesQuery = (db: Db, budgetId: string) =>
+  db
+    .selectDistinct({ id: payeeRenameRules.payeeId })
+    .from(payeeRenameRules)
+    .where(and(live(budgetId), sql`${payeeRenameRules.payeeId} like 'transfer:%'`));
+
 export async function findLive(
   db: Db,
   budgetId: string,

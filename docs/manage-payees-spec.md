@@ -262,6 +262,14 @@ after another), `usePayeeTransactions(b, id | null)` (key `["payee-transactions"
 
 - Several mode: `selectedLabel`, the names (`<span title>` each, max-width 240, joined by `, `), `Hide All`/`Unhide All` through
   `bulkPayees`, and `Delete All` through Part 5's section. Mixed mode has the sentence, with its link button `deselect transfer payees`.
+- **Transfer pane (EXF-885 point 2, matched to the source).** `paneMode "transfer"`: the header `Transfer : <account>`, the
+  `Renaming` card (`RenamingCard`, the same editable rules as an ordinary payee), then `TRANSFER_NOTE`. No Payee Name,
+  Categorization, Hide or Delete. The rules API takes the transfer id (`transfer:<account id>`) of a live account of the plan
+  (404 otherwise); renaming or deleting the transfer payee itself stays 403. `listPayees` gives a transfer entry `has_rules`
+  from its stored rules (`transferIdsWithRules`). **Import: a rule on a transfer payee is stored and not applied.**
+  `rulesForPlanQuery` joins the `payees` table, which has no row for a transfer payee, so the import never loads it and the
+  row gets its ordinary payee; a rule that turns an import into a transfer is its own piece of work
+  (`docs/rename-rules-design.md`, "Found, not built" 1). Tests: `transfer-rename-rules.test.ts`, `manage-payees.spec.ts` 8b.
 - `e2e/manage-payees-keyboard.spec.ts`: cases 15 and 16 at 1024×700. It measures the panes with `boundingBox` and checks the ellipsis with
   `scrollWidth > clientWidth` and the `title`.
 - `e2e/manage-payees-scale.spec.ts`: case 18, one test.

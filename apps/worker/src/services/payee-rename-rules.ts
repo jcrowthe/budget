@@ -6,14 +6,40 @@ import {
   RENAME_RULE_ERRORS,
   type RenameRuleKind,
 } from "@budget/schema/rename-rules";
-import { type SQLWrapper, sql } from "drizzle-orm";
+import { TRANSFER_PAYEE_PREFIX } from "@budget/schema/transfers";
+import { and, eq, isNull, type SQLWrapper, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
+import { accounts } from "../db/schema/accounts";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
 import { type LogBase, whenQuery } from "../repositories/guards";
 import * as rulesRepo from "../repositories/payee-rename-rules";
 import { PayeeRefused, pathPayee, requirePlan } from "./payees";
+
+/**
+ * The payee a rule's path names: an ordinary payee, or a transfer payee (`transfer:<account id>`) of a live account of
+ * the plan. A rule on a transfer payee is stored and edited but the import never applies it: `rulesForPlanQuery` joins
+ * the payees table, which has no row for a transfer payee (docs/rename-rules-design.md "Found, not built" 1).
+ */
+async function rulePayee(db: ReturnType<typeof getDb>, budgetId: string, payeeId: string) {
+  if (!payeeId.startsWith(TRANSFER_PAYEE_PREFIX)) return pathPayee(db, budgetId, payeeId, false);
+  const accountId = payeeId.slice(TRANSFER_PAYEE_PREFIX.length);
+  const [row] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(eq(accounts.id, accountId), eq(accounts.budgetId, budgetId), isNull(accounts.deletedAt)),
+    )
+    .limit(1);
+  if (!row) throw new NotFound("Payee");
+}
+
+/** A condition: the rule's payee exists, as `rulePayee` reads it. */
+const payeeLiveSql = (budgetId: string, payeeId: string) =>
+  payeeId.startsWith(TRANSFER_PAYEE_PREFIX)
+    ? sql`exists (select 1 from accounts where id = ${payeeId.slice(TRANSFER_PAYEE_PREFIX.length)} and budget_id = ${budgetId} and deleted_at is null)`
+    : rulesRepo.liveOrdinaryPayeeSql(budgetId, payeeId);
 
 export function ruleToApi(r: rulesRepo.RuleRow): PayeeRenameRule {
   return {
@@ -53,7 +79,7 @@ export async function listRenameRules(
 ): Promise<PayeeRenameRule[]> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  await pathPayee(db, budgetId, payeeId, false);
+  await rulePayee(db, budgetId, payeeId);
   return (await rulesRepo.listForPayee(db, budgetId, payeeId)).map(ruleToApi);
 }
 
@@ -66,7 +92,7 @@ export async function createRenameRule(
 ): Promise<PayeeRenameRule> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  await pathPayee(db, budgetId, payeeId, false);
+  await rulePayee(db, budgetId, payeeId);
   const text = textOf(input.text);
   const now = new Date().toISOString();
   const row: rulesRepo.RuleRow = {
@@ -80,7 +106,7 @@ export async function createRenameRule(
     updatedAt: now,
     deletedAt: null,
   };
-  const guard = rulesRepo.liveOrdinaryPayeeSql(budgetId, payeeId);
+  const guard = payeeLiveSql(budgetId, payeeId);
   try {
     const res = await db.batch([
       changeLogInsertIf(
@@ -117,7 +143,7 @@ export async function updateRenameRule(
 ): Promise<PayeeRenameRule> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  await pathPayee(db, budgetId, payeeId, false);
+  await rulePayee(db, budgetId, payeeId);
   const before = await ruleOf(db, budgetId, payeeId, ruleId);
   if (input.kind === undefined && input.text === undefined)
     throw unprocessable(RENAME_RULE_ERRORS.noField);
@@ -164,7 +190,7 @@ export async function deleteRenameRule(
 ): Promise<PayeeRenameRule> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  await pathPayee(db, budgetId, payeeId, false);
+  await rulePayee(db, budgetId, payeeId);
   const before = await ruleOf(db, budgetId, payeeId, ruleId);
   const now = new Date().toISOString();
   const res = await db.batch([
