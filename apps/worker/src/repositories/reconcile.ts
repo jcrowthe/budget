@@ -3,6 +3,7 @@ import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { changeLog } from "../db/schema/change-log";
 import { transactions } from "../db/schema/transactions";
+import { insertSelect } from "./insert-select";
 import { countsInBalance } from "./transactions";
 
 /** A condition: the account's cleared (and reconciled) sum equals `amount`, as `balancesByAccount` counts it. */
@@ -21,11 +22,22 @@ export function reconcileLogsStmt(
   p: { budgetId: string; accountId: string; actor: string; now: string; guard: SQLWrapper },
 ) {
   const uuid = sql`lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6)))`;
-  return db
-    .insert(changeLog)
-    .select(
-      sql`select ${uuid}, ${transactions.budgetId}, ${p.actor}, 'update', 'transaction', ${transactions.id}, json_object('id', ${transactions.id}, 'cleared', 'cleared'), json_object('id', ${transactions.id}, 'cleared', 'reconciled', 'updated_at', ${p.now}), ${p.now} from ${transactions} where ${clearedRows(p.accountId)} and exists ${p.guard}`,
-    );
+  return insertSelect(
+    db,
+    changeLog,
+    {
+      id: uuid,
+      budgetId: transactions.budgetId,
+      actor: p.actor,
+      action: sql`'update'`,
+      entityType: sql`'transaction'`,
+      entityId: transactions.id,
+      beforeJson: sql`json_object('id', ${transactions.id}, 'cleared', 'cleared')`,
+      afterJson: sql`json_object('id', ${transactions.id}, 'cleared', 'reconciled', 'updated_at', ${p.now})`,
+      createdAt: p.now,
+    },
+    sql`from ${transactions} where ${clearedRows(p.accountId)} and exists ${p.guard}`,
+  );
 }
 
 /** Flags the account's cleared rows reconciled while `guard` holds. */

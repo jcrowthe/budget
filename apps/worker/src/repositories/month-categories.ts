@@ -2,6 +2,7 @@ import { and, eq, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { monthCategories } from "../db/schema/month-categories";
 import { idList, type LogBase, logSelectStmt } from "./guards";
+import { insertSelect } from "./insert-select";
 
 export type MonthCategoryRow = typeof monthCategories.$inferSelect;
 
@@ -74,11 +75,12 @@ export function setIfHoldsStmt(
 ) {
   const prev = guard;
   if (before === undefined) {
-    return db
-      .insert(monthCategories)
-      .select(
-        sql`select ${c.budgetId}, ${c.month}, ${c.categoryId}, ${assigned}, ${updatedAt} where not exists (select 1 from ${monthCategories} where ${sameCell(c)}) and ${prev}`,
-      );
+    return insertSelect(
+      db,
+      monthCategories,
+      { budgetId: c.budgetId, month: c.month, categoryId: c.categoryId, assigned, updatedAt },
+      sql`where not exists (select 1 from ${monthCategories} where ${sameCell(c)}) and ${prev}`,
+    );
   }
   return db
     .update(monthCategories)
@@ -116,18 +118,24 @@ export function mergeIntoStmt(
   now: string,
   guard: SQL,
 ) {
-  return db
-    .insert(monthCategories)
-    .select(
-      sql`select ${monthCategories.budgetId}, ${monthCategories.month}, ${targetId}, sum(${monthCategories.assigned}), ${now} ${mergeSource(budgetId, fromIds)} and ${guard} group by ${monthCategories.month} having sum(${monthCategories.assigned}) <> 0`,
-    )
-    .onConflictDoUpdate({
-      target: [monthCategories.budgetId, monthCategories.month, monthCategories.categoryId],
-      set: {
-        assigned: sql`month_categories.assigned + excluded.assigned`,
-        updatedAt: sql`excluded.updated_at`,
-      },
-    });
+  return insertSelect(
+    db,
+    monthCategories,
+    {
+      budgetId: monthCategories.budgetId,
+      month: monthCategories.month,
+      categoryId: targetId,
+      assigned: sql`sum(${monthCategories.assigned})`,
+      updatedAt: now,
+    },
+    sql`${mergeSource(budgetId, fromIds)} and ${guard} group by ${monthCategories.month} having sum(${monthCategories.assigned}) <> 0`,
+  ).onConflictDoUpdate({
+    target: [monthCategories.budgetId, monthCategories.month, monthCategories.categoryId],
+    set: {
+      assigned: sql`month_categories.assigned + excluded.assigned`,
+      updatedAt: sql`excluded.updated_at`,
+    },
+  });
 }
 
 /** One change_log row per merged month, for the target's cell (id `<target>:<month>`). */
