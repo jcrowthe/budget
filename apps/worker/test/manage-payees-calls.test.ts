@@ -1,8 +1,10 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { getDb } from "../src/db/client";
 import type { Env } from "../src/env";
 import {
   applyToPayees,
+  buildPayeeDeleteBatch,
   deletePayee,
   listPayees,
   listPayeeTransactions,
@@ -59,6 +61,30 @@ describe("D1 calls of the payee operations (EXF-510)", () => {
     const a = await w.id("ZZ A");
     expect(await calls((e) => updatePayee(e, REST_ACTOR, w.bid, a, { name: "ZZ A2" }))).toBe(4);
     expect(await calls((e) => updatePayee(e, REST_ACTOR, w.bid, a, { hidden: true }))).toBe(3);
+  });
+
+  it("delete with a replacement logs the moved rows: the same calls for 10 and 100 transactions, 8 statements", async () => {
+    const out: number[] = [];
+    for (const n of [10, 100]) {
+      const w = await payeeWorld();
+      await w.tx("ZZ R");
+      await w.sched("ZZ D");
+      const r = await w.id("ZZ R");
+      const a = await w.id("ZZ D");
+      await fill(w, a, n);
+      out.push(await calls((e) => deletePayee(e, REST_ACTOR, w.bid, a, r)));
+    }
+    expect(out).toEqual([4, 4]);
+    const w = await payeeWorld();
+    const stmts = buildPayeeDeleteBatch(getDb(env), {
+      budgetId: w.bid,
+      actor: "t",
+      now: new Date().toISOString(),
+      ids: ["x"],
+      replacementId: "y",
+      counts: {},
+    });
+    expect(stmts).toHaveLength(8);
   });
 
   it("delete: the same calls with 1 and with 500 transactions (3, and 4 with a replacement)", async () => {

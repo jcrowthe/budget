@@ -100,8 +100,16 @@ function refusals(nets: readonly Net[], system: ReadonlySet<string>) {
     }
     if (n.type === "payee") {
       if ((b?.system ?? a?.system) != null) refuse("A system payee can't be undone");
-      if (n.kind === "delete" && (a?.transactions_moved ?? 0) + (a?.scheduled_moved ?? 0) > 0)
-        refuse("Its transactions moved to another payee and can't be moved back");
+      // Sets written before the move rows were logged (EXF-882) can't return what moved; new sets can.
+      if (n.kind === "delete") {
+        const logged = (type: string) =>
+          nets.some((m) => m.type === type && m.kind !== "noop" && m.before?.payee_id === n.id);
+        if (
+          ((a?.transactions_moved ?? 0) > 0 && !logged("transaction")) ||
+          ((a?.scheduled_moved ?? 0) > 0 && !logged("scheduled_transaction"))
+        )
+          refuse("Its transactions moved to another payee and can't be moved back");
+      }
     }
     if ((n.type === "category" || n.type === "category_group") && system.has(`${n.type}:${n.id}`))
       refuse("A credit card payment category can't be undone");
