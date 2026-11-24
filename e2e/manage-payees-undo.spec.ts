@@ -22,18 +22,19 @@ const hiddenOf = async (request: Parameters<typeof payees>[0], s: Seed, name: st
 
 test("3 rename: Undo gives A, Redo gives B", async ({ page, request }) => {
   const s = await seedPayees(request);
+  await s.tx("ZZ-TEST Cafe A");
   const d = await open(page, s);
-  await realClick(page, pick(d, "ZZ Cafe A"));
-  await rename(d, "ZZ Cafe A2");
-  await expect(pick(d, "ZZ Cafe A2")).toBeVisible();
+  await realClick(page, pick(d, "ZZ-TEST Cafe A"));
+  await rename(d, "ZZ-TEST Cafe B");
+  await expect(pick(d, "ZZ-TEST Cafe B")).toBeVisible();
   await realClick(page, btn(d, "Undo"));
-  await expect(pick(d, "ZZ Cafe A")).toBeVisible();
-  await expect(pick(d, "ZZ Cafe A2")).toHaveCount(0);
-  await expect(nameField(d)).toHaveValue("ZZ Cafe A");
+  await expect(pick(d, "ZZ-TEST Cafe A")).toBeVisible();
+  await expect(pick(d, "ZZ-TEST Cafe B")).toHaveCount(0);
+  await expect(nameField(d)).toHaveValue("ZZ-TEST Cafe A");
   await realClick(page, btn(d, "Redo"));
-  await expect(pick(d, "ZZ Cafe A2")).toBeVisible();
-  await expect(pick(d, "ZZ Cafe A")).toHaveCount(0);
-  await expect(nameField(d)).toHaveValue("ZZ Cafe A2");
+  await expect(pick(d, "ZZ-TEST Cafe B")).toBeVisible();
+  await expect(pick(d, "ZZ-TEST Cafe A")).toHaveCount(0);
+  await expect(nameField(d)).toHaveValue("ZZ-TEST Cafe B");
 });
 
 test("4 hide: Undo puts it back in Payees, Redo moves it to Hidden Payees", async ({
