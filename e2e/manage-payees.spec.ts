@@ -160,13 +160,16 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
   const s = await seedPayees(request);
   const d = await open(page, s);
   await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await realClick(page, pick(d, "Transfer : ZZ Card"));
   await expect(d.getByRole("heading", { name: "Transfer : ZZ Card", exact: true })).toBeVisible();
   await expect(d.getByRole("heading", { name: "Renaming", exact: true })).toBeVisible();
   await expect(
     d.getByText("Imported payees that match these rules will be renamed.", { exact: true }),
   ).toBeVisible();
-  await expect(d.getByText(/Transfer payees are used to move money between accounts/)).toBeVisible();
+  await expect(
+    d.getByText(/Transfer payees are used to move money between accounts/),
+  ).toBeVisible();
   const empty = d.getByRole("textbox", { name: "New rule text", exact: true });
   await empty.fill("zz card payment");
   await realClick(page, btn(d, "Add a renaming rule"));

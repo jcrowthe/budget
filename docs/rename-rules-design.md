@@ -187,8 +187,8 @@ received; null when no import gave the row), from `transactionToApi` (`services/
 
 ## Found, not built
 
-1. A `Renaming` card for transfer payees (the source shows one; a rule that turns an import into a transfer is its
-   own piece of work).
+1. A rule that turns an import into a transfer. The `Renaming` card for transfer payees is built (EXF-885): its rules
+   are stored and listed, and the import ignores them (see `manage-payees-spec.md`, Part 6).
 3. Plan export and import do not carry rules.
 4. Matched rows have no `Bank Import Details`.
 
@@ -206,8 +206,7 @@ received; null when no import gave the row), from `transactionToApi` (`services/
 
 ## Out of scope
 
-Rules on file import (EXF-518, EXF-531), `Combine and Rename` (EXF-512), `Categorization` (EXF-515), rules on
-transfer payees, Undo.
+Rules on file import (EXF-518, EXF-531), `Combine and Rename` (EXF-512), `Categorization` (EXF-515), Undo.
 
 ## Acceptance
 

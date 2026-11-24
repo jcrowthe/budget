@@ -12,7 +12,7 @@ import type { McpToolDef } from "../types";
 const fields =
   "id, payee_id, kind (contains or is), text (as typed, trimmed, 1 to 200 characters), created_at and updated_at";
 const matching =
-  "A bank import renames a payee by these rules: the imported payee name (the bank's merchant name, else its name) is compared without regard to case or runs of spaces; is matches the whole name, contains matches when the text is a part of the name in the same order (no wildcards); a payee's rules are OR-ed; an is match wins over a contains match, then the most recently created rule wins. Rules are per plan, on ordinary payees only (a transfer entry or a system payee is a tool error).";
+  "A bank import renames a payee by these rules: the imported payee name (the bank's merchant name, else its name) is compared without regard to case or runs of spaces; is matches the whole name, contains matches when the text is a part of the name in the same order (no wildcards); a payee's rules are OR-ed; an is match wins over a contains match, then the most recently created rule wins. Rules are per plan, on ordinary payees and on transfer payees (`transfer:<account id>`); the import applies only those of ordinary payees, a rule on a transfer payee is stored and not applied. A system payee is a tool error.";
 
 export const tools: McpToolDef[] = [
   {
