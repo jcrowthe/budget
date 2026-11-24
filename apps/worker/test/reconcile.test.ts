@@ -225,7 +225,11 @@ describe("reconcile: cards and tracking accounts (case 16)", () => {
     const pay = (m: Json) =>
       m.groups.flatMap((g: Json) => g.categories).find((c: Json) => c.name === cardRow.name);
     const m0 = await month();
-    const res = await reconcile(b, card, { statement_balance: -55000, create_adjustment: true });
+    const res = await reconcile(b, card, {
+      statement_balance: -55000,
+      create_adjustment: true,
+      today: "2026-11-15",
+    });
     expect(res.status).toBe(200);
     const d = (await body(res)).data;
     expect(d.adjustment).toMatchObject({

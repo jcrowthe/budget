@@ -67,6 +67,17 @@ describe("rename and note", () => {
 });
 
 describe("adjust-balance", () => {
+  it("dates the adjustment today when no date is sent", async () => {
+    const bid = await plan();
+    const chk = await account(bid, "checking", 0);
+    const before = new Date().toISOString().slice(0, 10);
+    const d = await data(
+      await send(`${A(bid)}/${chk.id}/adjust-balance`, "POST", { balance: 100 }),
+    );
+    const after = new Date().toISOString().slice(0, 10);
+    expect([before, after]).toContain(d.adjustment.date);
+  });
+
   it("adds a Manual Balance Adjustment; on-plan to Ready to Assign, tracking not", async () => {
     const bid = await plan();
     const chk = await account(bid, "checking", 0);
@@ -93,10 +104,13 @@ describe("adjust-balance", () => {
     expect(list.find((t) => t.id === d.adjustment.id)).toMatchObject({
       payee_system: "manual_adjustment",
     });
-    const down = await send(`${A(bid)}/${chk.id}/adjust-balance`, "POST", { balance: 0 });
+    const down = await send(`${A(bid)}/${chk.id}/adjust-balance`, "POST", {
+      balance: 0,
+      today: "2026-11-12",
+    });
     const downData = await data(down);
     expect(downData.adjustment.amount).toBe(-312500);
-    expect(downData.adjustment.date).toBe(new Date().toISOString().slice(0, 10));
+    expect(downData.adjustment.date).toBe("2026-11-12");
     expect(await rta(bid)).toBe(before);
     const payees = await env.DB.prepare(
       "select count(*) n from payees where budget_id = ? and system = 'manual_adjustment'",

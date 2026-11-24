@@ -120,10 +120,10 @@ describe("scheduled transactions: create and read", () => {
     expect((await send(`/api/v1/budgets/${b}/accounts/${closed}/close`, "POST", {})).status).toBe(
       200,
     );
-    const res = await send(S(b), "POST", base(closed));
+    const res = await send(`${S(b)}?today=${TODAY}`, "POST", base(closed));
     expect(res.status).toBe(422);
     expect(((await res.json()) as Json).error.name).toBe("account_closed");
-    const tr = await send(S(b), "POST", base(t, { category_id: c }));
+    const tr = await send(`${S(b)}?today=${TODAY}`, "POST", base(t, { category_id: c }));
     expect(tr.status).toBe(422);
     expect(JSON.stringify(await tr.json())).toContain("Tracking accounts do not take a category");
     // a refused create leaves no row, no payee and no log
