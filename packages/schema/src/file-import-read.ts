@@ -113,26 +113,15 @@ function leaf(block: string, tag: string): string | null {
   return v === "" ? null : v;
 }
 
-/**
- * `-.50` and `$.99` get the 0 `parseAmount` needs: it reads from the first digit and takes what precedes as a
- * currency symbol, so a bare leading decimal point would make `.50` mean 50.
- */
-export function normalizeAmountText(text: string): string {
-  return text.replace(
-    /^(\s*[-+]?\s*[^\d\s.,+-]*\s*)([.,])(?=\d)/,
-    (_, lead: string, sep: string) => `${lead}0${sep}`,
-  );
-}
-
 /** Milliunits of an amount cell, or null; `decimal` is the file's decimal separator when known. */
 export function readAmount(text: string, decimal: string | null): number | null {
-  const p = parseAmount(normalizeAmountText(text), decimal);
+  const p = parseAmount(text, decimal);
   return p ? p.milliunits : null;
 }
 
-/** The decimal separator an amount reveals, after the leading-point fix. */
+/** The decimal separator an amount reveals. */
 export function amountDecimal(text: string): string | null {
-  return detectDecimal(normalizeAmountText(text));
+  return detectDecimal(text);
 }
 
 function amountOf(text: string): number | null {

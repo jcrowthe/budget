@@ -89,7 +89,12 @@ describe("amounts with a leading decimal point", () => {
     expect(parseAmount(cell, ",")?.milliunits).toBe(milliunits);
   });
   it("keeps the symbol", () => {
-    expect(parseAmount("-$.99")).toMatchObject({ symbol: "$", placement: "before", separator: ".", digits: 2 });
+    expect(parseAmount("-$.99")).toMatchObject({
+      symbol: "$",
+      placement: "before",
+      separator: ".",
+      digits: 2,
+    });
   });
 });
 
