@@ -228,15 +228,22 @@ export function isRecoveryDuplicate(
   return existing.some((e) => e.date === imp.date && e.amount === imp.amount);
 }
 
-/** The category of a new import: the payee's last one, else Ready to Assign for a deposit into cash. */
+/** A payee's effective default (the API's default_category_id / default_inflow_to_ready_to_assign). */
+export type PayeeDefault = { categoryId: string | null; inflowToReadyToAssign: boolean };
+
+/**
+ * The category of a new imported row: the payee's effective default, else Ready to Assign for a deposit into cash,
+ * else none. The bank import calls it, and the file import (EXF-531) must call it too.
+ */
 export function categoryFor(
   a: { takesCategory: boolean; rtaInflow: boolean },
   amount: number,
-  payee: { lastCategoryId: string | null } | null,
+  payeeDefault: PayeeDefault | null,
 ): { categoryId: string | null; inflowToReadyToAssign: boolean } {
   if (!a.takesCategory) return { categoryId: null, inflowToReadyToAssign: false };
-  if (payee?.lastCategoryId)
-    return { categoryId: payee.lastCategoryId, inflowToReadyToAssign: false };
+  if (payeeDefault?.categoryId)
+    return { categoryId: payeeDefault.categoryId, inflowToReadyToAssign: false };
+  if (payeeDefault?.inflowToReadyToAssign) return { categoryId: null, inflowToReadyToAssign: true };
   if (a.rtaInflow && amount > 0) return { categoryId: null, inflowToReadyToAssign: true };
   return { categoryId: null, inflowToReadyToAssign: false };
 }

@@ -17,6 +17,7 @@ import { changeLogInsert, changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
+import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as payeesRepo from "../repositories/payees";
 import * as repo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
@@ -274,6 +275,9 @@ export async function createScheduled(
       writes.push(
         ...enteredTransactionWrites(db, actor, tx, namesOfRow(row), repo.writtenWith(id, token)),
       );
+      // The entered row joins the payee's history: its stored default follows, in this batch.
+      const recompute = recomputeDefaultsStmt(db, budgetId, [row.payeeId]);
+      if (recompute) writes.push(recompute);
     }
     try {
       await db.batch(stmts(writes));
@@ -407,6 +411,10 @@ export async function updateScheduled(
     writes.push(
       ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
     );
+    if (enterDate) {
+      const recompute = recomputeDefaultsStmt(db, budgetId, [after.payeeId]);
+      if (recompute) writes.push(recompute);
+    }
     let results: { meta: { changes?: number } }[];
     try {
       results = (await db.batch(stmts(writes))) as unknown as typeof results;
@@ -491,6 +499,14 @@ export async function bulkScheduled(
       ),
     );
     planned.push({ row: s, txId: tx.id });
+  }
+  if (req.op === "enter_now") {
+    const recompute = recomputeDefaultsStmt(
+      db,
+      budgetId,
+      planned.map((p) => p.row.payeeId),
+    );
+    if (recompute) writes.push(recompute);
   }
   await hooks?.beforeWrite?.();
   const per = req.op === "delete" ? 2 : 4;
@@ -613,6 +629,14 @@ export async function enterDue(
     planned.push({ row: s, txId: tx.id, date: step.enterDate });
   }
   if (planned.length === 0) return { day: opts.day, entered: [], has_more: hasMore };
+  for (const planId of new Set(planned.map((p) => p.row.budgetId))) {
+    const recompute = recomputeDefaultsStmt(
+      db,
+      planId,
+      planned.filter((p) => p.row.budgetId === planId).map((p) => p.row.payeeId),
+    );
+    if (recompute) writes.push(recompute);
+  }
   const results = (await db.batch(stmts(writes))) as unknown as { meta: { changes?: number } }[];
   return {
     day: opts.day,

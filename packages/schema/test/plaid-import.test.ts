@@ -162,21 +162,20 @@ describe("recovery and category", () => {
   });
   it("categoryFor", () => {
     const on = { takesCategory: true, rtaInflow: true };
-    expect(categoryFor(on, 5, { lastCategoryId: "c" })).toEqual({
-      categoryId: "c",
-      inflowToReadyToAssign: false,
-    });
-    expect(categoryFor(on, 5, null)).toEqual({ categoryId: null, inflowToReadyToAssign: true });
-    expect(categoryFor(on, -5, null)).toEqual({ categoryId: null, inflowToReadyToAssign: false });
-    expect(
-      categoryFor({ takesCategory: false, rtaInflow: false }, 5, { lastCategoryId: "c" }),
-    ).toEqual({
-      categoryId: null,
-      inflowToReadyToAssign: false,
-    });
-    expect(
-      categoryFor({ takesCategory: true, rtaInflow: false }, 5, null).inflowToReadyToAssign,
-    ).toBe(false);
+    const none = { categoryId: null, inflowToReadyToAssign: false };
+    const rta = { categoryId: null, inflowToReadyToAssign: true };
+    const cat = { categoryId: "c", inflowToReadyToAssign: false };
+    expect(categoryFor(on, 5, cat)).toEqual(cat);
+    // an RTA default is the payee's value: it applies to an outflow too
+    expect(categoryFor(on, -5, rta)).toEqual(rta);
+    // no default (new payee, `off`, nothing live): a deposit into cash still gets Ready to Assign
+    expect(categoryFor(on, 5, null)).toEqual(rta);
+    expect(categoryFor(on, 5, none)).toEqual(rta);
+    expect(categoryFor(on, -5, null)).toEqual(none);
+    expect(categoryFor(on, -5, none)).toEqual(none);
+    // a tracking account takes none
+    expect(categoryFor({ takesCategory: false, rtaInflow: false }, 5, cat)).toEqual(none);
+    expect(categoryFor({ takesCategory: true, rtaInflow: false }, 5, null)).toEqual(none);
   });
 });
 
