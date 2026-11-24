@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  autoMap,
+  buildFileRows,
+  columnLabels,
+  detectDateFormat,
   FILE_DATE_FORMATS,
   FILE_IMPORT_COPY,
   FileImportOptions,
@@ -10,15 +14,12 @@ import {
   FileImportResult,
   MAX_FILE_BYTES,
   MAX_FILE_ROWS,
-  autoMap,
-  buildFileRows,
-  columnLabels,
-  detectDateFormat,
   parseFileDate,
 } from "../src/file-import";
 import { readCsv, readFileText } from "../src/file-import-read";
 
-const fx = (n: string) => readFileSync(join(import.meta.dirname, "fixtures/file-import", n), "utf8");
+const fx = (n: string) =>
+  readFileSync(join(import.meta.dirname, "fixtures/file-import", n), "utf8");
 const sha256 = async (t: string) => createHash("sha256").update(t, "utf8").digest("hex");
 const ctx = {
   today: "2026-11-24",
@@ -38,8 +39,13 @@ const csv = (text: string, o: Record<string, unknown> = {}, c: Partial<typeof ct
   buildFileRows({ format: "csv", ...readCsv(text, ",") }, opts(o), { ...ctx, ...c }, sha256);
 const file = (name: string, o: Record<string, unknown> = {}, c: Partial<typeof ctx> = {}) =>
   buildFileRows(readFileText(name, fx(name)), opts(o), { ...ctx, ...c }, sha256);
-const brief = (r: { date: string | null; payee_text: string; memo: string | null; amount: number | null; skip: string | null }) =>
-  [r.date, r.payee_text, r.memo, r.amount, r.skip];
+const brief = (r: {
+  date: string | null;
+  payee_text: string;
+  memo: string | null;
+  amount: number | null;
+  skip: string | null;
+}) => [r.date, r.payee_text, r.memo, r.amount, r.skip];
 
 describe("AC1 the EXF-531 sample", () => {
   it("EXF-531 sample: readCsv and autoMap map Date, Payee, Memo, Outflow, Inflow to 0-4", () => {
@@ -236,7 +242,8 @@ describe("AC7 readers and options", () => {
   });
 
   it("QIF rows without mapping", async () => {
-    const r = await file("sample.qif");
+    // The 2026-12-01 row is in the future of the default `today`, so this test looks from a later day.
+    const r = await file("sample.qif", {}, { today: "2026-12-31" });
     expect(r.rows.map((x) => [x.date, x.payee_text, x.memo, x.amount])).toEqual([
       ["2026-11-10", "Sample Cafe", "latte", -4500],
       ["2026-11-12", "Sample Payroll", "salary", 250000],
@@ -322,10 +329,9 @@ describe("extras", () => {
   });
 
   it("TSV with outflow and inflow on one column is a signed amount", async () => {
-    const r = await file(
-      "sample.tsv",
-      { mapping: { date: 0, payee: 1, memo: 2, outflow: 3, inflow: 3 } },
-    );
+    const r = await file("sample.tsv", {
+      mapping: { date: 0, payee: 1, memo: 2, outflow: 3, inflow: 3 },
+    });
     expect(r.rows.map((x) => x.amount)).toEqual([-4500, 250000]);
     expect(r.dateFormat).toBe("YYYY-MM-DD");
   });

@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  FileImportError,
   decodeFileText,
+  FileImportError,
   fileFormatOf,
   readCsv,
   readFileText,
@@ -11,7 +11,8 @@ import {
   readQif,
 } from "../src/file-import-read";
 
-const fx = (n: string) => readFileSync(join(import.meta.dirname, "fixtures/file-import", n), "utf8");
+const fx = (n: string) =>
+  readFileSync(join(import.meta.dirname, "fixtures/file-import", n), "utf8");
 
 function codeOf(fn: () => unknown): string | null {
   try {
@@ -93,7 +94,13 @@ describe("readOfx", () => {
   it("readOfx reads XML with PAYEE/NAME", () => {
     const { entries } = readOfx(fx("xml.ofx"));
     expect(entries).toEqual([
-      { date: "2026-11-10", amount: -12340, fitid: "ZZ2001", name: "Sample Grocer", memo: "weekly" },
+      {
+        date: "2026-11-10",
+        amount: -12340,
+        fitid: "ZZ2001",
+        name: "Sample Grocer",
+        memo: "weekly",
+      },
       { date: "2026-11-11", amount: 5000, fitid: null, name: "Sample Refund", memo: null },
     ]);
   });
@@ -155,7 +162,9 @@ describe("decodeFileText", () => {
     };
     const latin = (s: string) => new Uint8Array(Buffer.from(s, "latin1"));
 
-    const ofx = latin("OFXHEADER:100\r\nDATA:OFXSGML\r\nCHARSET:1252\r\n\r\n<OFX><NAME>Caf\xe9\r\n");
+    const ofx = latin(
+      "OFXHEADER:100\r\nDATA:OFXSGML\r\nCHARSET:1252\r\n\r\n<OFX><NAME>Caf\xe9\r\n",
+    );
     expect(decodeFileText(ofx, decoder)).toContain("<NAME>Café");
     expect(labels.at(-1)).toBe("windows-1252");
 

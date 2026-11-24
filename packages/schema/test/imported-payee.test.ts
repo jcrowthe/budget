@@ -108,7 +108,8 @@ describe("resolveImportedPayee", () => {
   });
 
   it("a hidden payee still matches", () => {
-    const ps = [{ id: "p-h", name: "Hidden One", system: null, hidden: true }] as ImportPayee[];
+    // Hidden payees are ordinary rows: `ImportPayee` carries no hidden flag, so none is filtered.
+    const ps: ImportPayee[] = [{ id: "p-h", name: "Hidden One", system: null }];
     expect(resolveImportedPayee("hidden one", [], ps)).toEqual({ payee_id: "p-h" });
   });
 

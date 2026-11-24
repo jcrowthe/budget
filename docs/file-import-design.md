@@ -285,7 +285,9 @@ Made here, also not observed:
 - The key uses the file's date before the future clamp.
 - Two-column amounts use magnitudes (`|inflow| − |outflow|`), so a bank that writes outflows as `-4.50` still reads
   as an outflow.
-- `skippedBefore` counts before-cutoff rows whether or not "Include…" is ticked.
+- `skippedBefore` counts before-cutoff rows whether or not "Include…" is ticked. An invalid or `duplicate_in_file` row is
+  not counted, because its skip reason ranks above the cutoff.
+- The copy singularises the count messages for 1 (`matchedMessage(1)`: "1 transaction has been…").
 - A file in Windows-1252 without a declaration is detected by U+FFFD.
 
 ## Contract extensions (additive)
