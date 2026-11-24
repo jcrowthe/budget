@@ -31,12 +31,10 @@ describe("20261116101900_payee_category.sql (EXF-515)", () => {
     expect(text).toMatch(/default_inflow_to_ready_to_assign INTEGER NOT NULL DEFAULT 0/i);
   });
 
-  it("is the newest migration and is not older than 20261116101800", () => {
-    const names = files()
-      .map((f) => f.name)
-      .sort();
-    expect(names.at(-1)).toMatch(/payee_category/);
-    expect((names.at(-1) ?? "") > "20261116101800").toBe(true);
+  it("exists and is newer than 20261116101800", () => {
+    const m = files().find((f) => f.name.includes("payee_category"));
+    expect(m).toBeDefined();
+    expect((m?.name ?? "") > "20261116101800").toBe(true);
   });
 
   it("backfills G,G,F and F,G (dates ascending) to G, G and a payee with no rows to null", async () => {

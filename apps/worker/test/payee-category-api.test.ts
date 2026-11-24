@@ -180,8 +180,8 @@ describe("recent transactions of a payee (EXF-515)", () => {
         date: "2026-11-30",
         amount: -300,
         subtransactions: [
-          { amount: -100, category_id: s.fun },
-          { amount: -200, category_id: s.groceries },
+          { amount: -100, category_id: s.fun, payee_name: "ZZ R" },
+          { amount: -200, category_id: s.groceries, payee_name: "ZZ R" },
         ],
       }),
     );
