@@ -7,6 +7,7 @@ import { createCategory, createCategoryGroup } from "../src/services/categories"
 import { setAssigned } from "../src/services/months";
 import { json } from "./helpers";
 import { apiDocument, listedToolNames, mcpRpc } from "./surface";
+import { setOf, undo } from "./undo-helpers";
 
 // EXF-538: payment categories take card targets (Pay Off Balance by Date, Pay Specific Amount Monthly)
 // through REST and MCP; the month read shows their figures. Milliunits; the ticket's examples.
@@ -229,6 +230,27 @@ describe("the month read (ticket examples)", () => {
     expect(after.target).toBeNull();
     expect(after.payment).toEqual(before.payment);
     expect((await w.logs()).map((l) => l.action)).toEqual(["create", "delete"]);
+  });
+
+  it("the history rows keep the stored fields only, so undo restores a card target", async () => {
+    const w = await world();
+    await w.put({ type: "card_monthly", amount: 100000 });
+    const replace = await w.put({ type: "card_payoff_by_date", month: "2027-02-01" });
+    expect(replace.status).toBe(200);
+    const row = await env.DB.prepare(
+      "select before_json, after_json from change_log where budget_id = ? and entity_type = 'target' order by rowid desc limit 1",
+    )
+      .bind(w.bid)
+      .first<Json>();
+    expect("type" in JSON.parse(row.after_json)).toBe(false);
+    expect("type" in JSON.parse(row.before_json)).toBe(false);
+    const u = await undo(w.bid, setOf(replace));
+    expect(u.status, JSON.stringify(u.body)).toBe(200);
+    expect((await w.payCat()).target.definition).toMatchObject({
+      cadence: "monthly",
+      behavior: "set_aside",
+      amount: 100000,
+    });
   });
 });
 

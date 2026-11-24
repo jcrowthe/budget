@@ -24,15 +24,22 @@ const MAX_ATTEMPTS = 5;
 /** Today's date in UTC, the same rule `currentMonth()` uses. */
 export const todayUtc = (now: Date = new Date()): string => now.toISOString().slice(0, 10);
 
-/** `kind`: the target's category kind; a payment category's target also carries its card target type. */
-export function targetToApi(row: repo.TargetRow, kind: string | null = null): Target {
+/**
+ * The target as `change_log` records it (before/after): the stored fields only, never the derived `type`, so the
+ * history rows keep the shape the undo engine restores (it refuses a target row with a key it does not know).
+ */
+export function targetToApi(row: repo.TargetRow): Omit<Target, "type"> {
   return {
     ...repo.toDefinition(row),
-    type: kind ? cardTargetType(repo.toDefinition(row)) : null,
     budget_id: row.budgetId,
     category_id: row.categoryId,
     created_month: toMonth(row.createdOn),
   };
+}
+
+/** The target as REST and MCP return it. `kind`: its category's kind; a payment category's target carries its card type. */
+export function targetResponse(row: repo.TargetRow, kind: string | null): Target {
+  return { ...targetToApi(row), type: kind ? cardTargetType(repo.toDefinition(row)) : null };
 }
 
 /** Test seam: the setTarget batch with a custom change_log entry (to prove atomicity). */
@@ -82,7 +89,7 @@ async function writeTarget(
       createdAt: before?.createdAt ?? now,
       updatedAt: now,
     };
-    const result = targetToApi(row, kind);
+    const result = targetToApi(row);
     const [, write] = await db.batch([
       ...buildSetTargetBatch(
         db,
@@ -93,13 +100,13 @@ async function writeTarget(
           action: before ? "update" : "create",
           entityType: "target",
           entityId: fields.categoryId,
-          before: before ? targetToApi(before, kind) : null,
+          before: before ? targetToApi(before) : null,
           after: result,
         },
         before?.updatedAt,
       ),
     ]);
-    if (write.meta.changes > 0) return result;
+    if (write.meta.changes > 0) return targetResponse(row, kind);
   }
   throw new Conflict("Target");
 }
@@ -202,7 +209,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
           action: "delete",
           entityType: "target",
           entityId: v.category_id,
-          before: targetToApi(before, kind),
+          before: targetToApi(before),
           after: null,
         },
         repo.holds(db, v.budget_id, v.category_id, before.updatedAt),
@@ -211,7 +218,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
       // The target's snoozes go with it (only when the delete above changed a row).
       snoozesRepo.deleteForCategoryStmt(db, v.budget_id, v.category_id, sql`changes() > 0`),
     ]);
-    if (del.meta.changes > 0) return targetToApi(before, kind);
+    if (del.meta.changes > 0) return targetResponse(before, kind);
   }
   throw new Conflict("Target");
 }
