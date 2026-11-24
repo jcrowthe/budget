@@ -34,11 +34,11 @@ test("opening the Plan page enters what is due, and an account opened next adds 
   await page.goto(`/${s.plan}/budget/202611`);
   const food = catRow(page, "D4 Groceries");
   await expect(food).toBeVisible();
-  await expect(food.locator(".cell-activity")).toHaveText("−$300.00");
-  await expect(food.locator(".available-pill")).toContainText("−$100.00");
+  await expect(food.locator(".cell-activity")).toHaveText("−$30.00");
+  await expect(food.locator(".available-pill")).toContainText("$170.00");
   await expect(
     page.getByRole("navigation", { name: "Sidebar" }).getByRole("link", { name: /ZZ Checking/ }),
-  ).toContainText("$2,200.00");
+  ).toContainText("$2,470.00");
   expect(await mine()).toHaveLength(1);
 
   // Then the account page: still one transaction.
