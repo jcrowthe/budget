@@ -113,9 +113,30 @@ function leaf(block: string, tag: string): string | null {
   return v === "" ? null : v;
 }
 
-function amountOf(text: string): number | null {
-  const p = parseAmount(text, detectDecimal(text));
+/**
+ * `-.50` and `$.99` get the 0 `parseAmount` needs: it reads from the first digit and takes what precedes as a
+ * currency symbol, so a bare leading decimal point would make `.50` mean 50.
+ */
+export function normalizeAmountText(text: string): string {
+  return text.replace(
+    /^(\s*[-+]?\s*[^\d\s.,+-]*\s*)([.,])(?=\d)/,
+    (_, lead: string, sep: string) => `${lead}0${sep}`,
+  );
+}
+
+/** Milliunits of an amount cell, or null; `decimal` is the file's decimal separator when known. */
+export function readAmount(text: string, decimal: string | null): number | null {
+  const p = parseAmount(normalizeAmountText(text), decimal);
   return p ? p.milliunits : null;
+}
+
+/** The decimal separator an amount reveals, after the leading-point fix. */
+export function amountDecimal(text: string): string | null {
+  return detectDecimal(normalizeAmountText(text));
+}
+
+function amountOf(text: string): number | null {
+  return readAmount(text, amountDecimal(text));
 }
 
 export function readOfx(text: string): { entries: OfxEntry[] } {
@@ -234,13 +255,13 @@ export function readQif(text: string): { entries: QifEntry[] } {
   const texts = records.map((r) => r.t ?? r.u).filter((s): s is string => s !== null && s !== "");
   let decimal: string | null = null;
   for (const t of texts) {
-    decimal = detectDecimal(t);
+    decimal = amountDecimal(t);
     if (decimal !== null) break;
   }
   const entries = records.map((r): QifEntry => {
     const a = r.t ?? r.u;
-    const parsed = a === null || a === "" ? null : parseAmount(a, decimal);
-    return { dateText: r.d, amount: parsed ? parsed.milliunits : null, payee: r.p, memo: r.m };
+    const amount = a === null || a === "" ? null : readAmount(a, decimal);
+    return { dateText: r.d, amount, payee: r.p, memo: r.m };
   });
   return { entries };
 }

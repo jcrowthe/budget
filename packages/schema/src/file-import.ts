@@ -6,15 +6,9 @@
 import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
 import { Milliunits } from "./common/money";
-import { FILE_FORMATS, type ParsedFile } from "./file-import-read";
+import { amountDecimal, FILE_FORMATS, type ParsedFile, readAmount } from "./file-import-read";
 import { skipReason } from "./plaid-import";
-import {
-  DATE_FORMATS,
-  type DateFormat,
-  detectDecimal,
-  parseAmount,
-  parseDate,
-} from "./plan-import-read";
+import { DATE_FORMATS, type DateFormat, parseDate } from "./plan-import-read";
 import { foldRuleText } from "./rename-rules";
 import { isCalendarDate } from "./transactions";
 
@@ -305,7 +299,7 @@ function csvSources(
   let decimal: string | null = null;
   for (const row of data) {
     for (const i of new Set([mapping.outflow, mapping.inflow])) {
-      const d = detectDecimal(cell(row, i));
+      const d = amountDecimal(cell(row, i));
       if (d !== null) {
         decimal = d;
         break;
@@ -313,7 +307,7 @@ function csvSources(
     }
     if (decimal !== null) break;
   }
-  const read = (text: string): number | null => parseAmount(text, decimal)?.milliunits ?? null;
+  const read = (text: string): number | null => readAmount(text, decimal);
   const signed = mapping.outflow !== null && mapping.outflow === mapping.inflow;
 
   const sources = data.map((row, i): Source => {

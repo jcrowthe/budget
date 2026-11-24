@@ -288,6 +288,9 @@ Made here, also not observed:
 - `skippedBefore` counts before-cutoff rows whether or not "Include…" is ticked. An invalid or `duplicate_in_file` row is
   not counted, because its skip reason ranks above the cutoff.
 - The copy singularises the count messages for 1 (`matchedMessage(1)`: "1 transaction has been…").
+- An amount written with a leading decimal point (`-.50`, `.99`, `$.99`) gets a `0` in front before `parseAmount`, which
+  would otherwise read `.50` as 50 (the `.` taken for a currency symbol). `readAmount` and `amountDecimal` in
+  `file-import-read.ts` do this for CSV, OFX/QFX and QIF alike; `plan-import-read.ts` is untouched.
 - A file in Windows-1252 without a declaration is detected by U+FFFD.
 
 ## Contract extensions (additive)
