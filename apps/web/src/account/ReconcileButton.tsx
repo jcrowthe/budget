@@ -17,8 +17,7 @@ export function ReconcileButton() {
   const saveUi = useSaveUiState(rc?.account.budget_id ?? "");
   const wrap = useRef<HTMLSpanElement>(null);
   const idle = rc?.step === "idle";
-  const closed = rc?.account.closed ?? true;
-  useShortcut("reconcile", () => rc?.open(), !!rc && idle && !closed);
+  useShortcut("reconcile", () => rc?.open(), !!rc && idle);
 
   const showing =
     rc?.step === "ask" || rc?.step === "enter" || rc?.step === "difference" || rc?.step === "done";
@@ -67,7 +66,7 @@ export function ReconcileButton() {
             <button
               type="button"
               className="acct-reconcile"
-              disabled={closed || rc.step === "mode"}
+              disabled={rc.step === "mode"}
               onClick={rc.open}
               {...tip}
             >

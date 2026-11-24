@@ -27,7 +27,7 @@ import { transactionToApi } from "./transactions";
 export class ReconcileRefused extends Error {
   constructor(
     readonly status: 409 | 422,
-    readonly code: "reconcile_difference" | "reconcile_changed" | "account_closed",
+    readonly code: "reconcile_difference" | "reconcile_changed",
     detail: string,
     readonly difference?: number,
     readonly cleared?: number,
@@ -45,7 +45,7 @@ function conflictDetail(code: "reconcile_difference" | "reconcile_changed", S: n
 }
 
 /**
- * Reconciles an open account: every cleared row becomes reconciled, `last_reconciled_at` is set and, when the
+ * Reconciles an account, closed ones included (EXF-721; the adjustment is an internal row, not a user-added one): every cleared row becomes reconciled, `last_reconciled_at` is set and, when the
  * bank balance differs, an adjustment row covers the difference. 6 D1 calls (7 with an adjustment), one batch.
  */
 export async function reconcileAccount(
@@ -60,9 +60,6 @@ export async function reconcileAccount(
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   const before = await accountsRepo.findActive(db, budgetId, accountId);
   if (!before) throw new NotFound("Account");
-  if (before.closed) {
-    throw new ReconcileRefused(422, "account_closed", "A closed account cannot be reconciled");
-  }
   const facts = (await accountFacts(db, budgetId, accountId))(before);
   const C = facts.cleared;
   const S = v.statement_balance;

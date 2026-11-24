@@ -290,24 +290,21 @@ test("lower than, Cancel writes nothing, Don’t Show Again, and the matching ba
   ).toBeVisible();
 });
 
-test("a closed account's Reconcile button is disabled, and shift+E opens nothing (case 16)", async ({
+test("a closed account's Reconcile is enabled and the Yes path completes (EXF-721, case 16)", async ({
   page,
   request,
 }) => {
   const w = await seedWorked(request);
-  // Close Savings (the transfer's other side is uncleared, its balance is moved out by the close).
   await call(request, "POST", `/api/v1/budgets/${w.plan}/accounts/${w.savings}/close`);
   await goto(page, w.plan, w.savings);
-  await expect(header(page)).toBeDisabled();
-  await page.locator("body").click({ position: { x: 5, y: 5 } });
-  await page.keyboard.press("Shift+E");
-  await expect(popover(page)).toHaveCount(0);
-  // The server agrees: decision A, 422 account_closed.
-  const res = await request.post(`/api/v1/budgets/${w.plan}/accounts/${w.savings}/reconcile`, {
-    data: { statement_balance: 0 },
-  });
-  expect(res.status()).toBe(422);
-  expect((await res.json()).error.name).toBe("account_closed");
+  await expect(button(page, "Add Transaction")).toBeDisabled();
+  await expect(header(page)).toBeEnabled();
+  await realClick(page, header(page));
+  await realClick(page, button(page, "Yes"));
+  await expect(popover(page).getByText("Account reconciled")).toBeVisible();
+  await expect
+    .poll(async () => (await accountOf(request, w.plan, w.savings)).last_reconciled_at)
+    .not.toBeNull();
 });
 
 // EXF-724. Reconcile mode: a click on a cleared icon moves the header and the bar in the icon's render, and the

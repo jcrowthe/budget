@@ -37,7 +37,7 @@ describe("reconcile: refusals (case 11)", () => {
     expect((await acct(w.b, w.checking)).last_reconciled_at).toBeNull();
   });
 
-  it("a stale cleared_balance is 409 reconcile_changed; a closed account 422; unknown 404", async () => {
+  it("a stale cleared_balance is 409 reconcile_changed; unknown 404", async () => {
     const w = await seedWorkedExample();
     const res = await reconcile(w.b, w.checking, { statement_balance: 755500, cleared_balance: 1 });
     expect(res.status).toBe(409);
@@ -46,13 +46,6 @@ describe("reconcile: refusals (case 11)", () => {
       difference: 0,
       cleared_balance: 755500,
     });
-    const empty = await account(w.b, "checking", 0);
-    expect((await send(`/api/v1/budgets/${w.b}/accounts/${empty}/close`, "POST", {})).status).toBe(
-      200,
-    );
-    const closed = await reconcile(w.b, empty, { statement_balance: 0 });
-    expect(closed.status).toBe(422);
-    expect((await body(closed)).error.name).toBe("account_closed");
     expect((await reconcile(w.b, crypto.randomUUID(), { statement_balance: 0 })).status).toBe(404);
   });
 });
@@ -298,5 +291,39 @@ describe("reconcile: surface and MCP (case 17)", () => {
       w.checking,
     );
     expect(logRows.at(-1)?.actor).toMatch(/^mcp:/);
+  });
+});
+
+describe("reconcile: a closed account reconciles like an open one (EXF-721, case 16)", () => {
+  const close = async (b: string, id: string) =>
+    expect((await send(`/api/v1/budgets/${b}/accounts/${id}/close`, "POST", {})).status).toBe(200);
+
+  it("returns 200 without a difference and without an adjustment", async () => {
+    const w = await seedWorkedExample();
+    const empty = await account(w.b, "checking", 0);
+    await close(w.b, empty);
+    const res = await reconcile(w.b, empty, { statement_balance: 0 });
+    expect(res.status).toBe(200);
+    const d = (await body(res)).data;
+    expect(d.adjustment).toBeNull();
+    expect(d.account.last_reconciled_at).toEqual(expect.any(String));
+    expect(d.account.closed).toBe(true);
+  });
+
+  it("returns 200 with an adjustment, and the adjustment row exists", async () => {
+    const w = await seedWorkedExample();
+    const empty = await account(w.b, "checking", 0);
+    await close(w.b, empty);
+    const refused = await reconcile(w.b, empty, { statement_balance: 5000 });
+    expect(refused.status).toBe(409);
+    const res = await reconcile(w.b, empty, { statement_balance: 5000, create_adjustment: true });
+    expect(res.status).toBe(200);
+    const d = (await body(res)).data;
+    expect(d.adjustment).toMatchObject({ amount: 5000 });
+    const adj = (await rows(empty)).filter(
+      (r) => r.payee_name === "Reconciliation Balance Adjustment",
+    );
+    expect(adj).toHaveLength(1);
+    expect(adj[0]).toMatchObject({ amount: 5000, cleared: "reconciled" });
   });
 });
