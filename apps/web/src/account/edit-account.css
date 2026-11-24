@@ -82,30 +82,6 @@
   gap: var(--space-2);
   margin-right: auto;
 }
-.dialog.form.edit-account .dialog-footer .ghost {
-  padding: 4px 8px;
-  background: transparent;
-  color: var(--buttonGhostLabel);
-  font-size: var(--font-size-sm);
-}
-.dialog.form.edit-account .dialog-footer .ghost:hover:not(:disabled) {
-  background: var(--buttonSecondaryBackground);
-}
-.dialog.form.edit-account .dialog-footer .destructive {
-  background: var(--statusNegative);
-  color: var(--labelPrimary);
-}
-.dialog.form.edit-account .dialog-footer .destructive:disabled {
-  background: var(--menuHover);
-  color: var(--labelTertiary);
-  cursor: default;
-}
-.dialog.form.edit-account .dialog-footer .secondary:hover {
-  background: var(--buttonSecondaryBackgroundHover);
-}
-.dialog.form.edit-account .dialog-footer .primary:hover:not(:disabled) {
-  background: var(--actionPrimary);
-}
 
 /* Bank Connection (EXF-461): Link, Sync Now, Unlink. The box never outgrows the window (1024×700). */
 .dialog.form.edit-account {

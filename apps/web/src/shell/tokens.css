@@ -30,6 +30,11 @@
   --buttonSecondaryBackground: rgba(117, 131, 255, 0.2);
   --buttonSecondaryLabel: #f1f1ff;
   --buttonGhostLabel: #a3acff;
+  --buttonDestructiveBackground: #6a1020;
+  --buttonDestructiveLabel: #feedeb;
+  --buttonDestructiveBackgroundActive: #912333;
+  --buttonDisabledBackground: var(--menuHover);
+  --buttonDisabledLabel: var(--labelTertiary);
   --buttonSecondaryBackgroundHover: rgba(117, 131, 255, 0.27);
   --keyCapBackground: rgba(114, 116, 132, 0.24);
   --keyCapTooltipBackground: rgba(255, 255, 255, 0.15);

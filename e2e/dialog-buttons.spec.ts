@@ -151,6 +151,8 @@ test("Edit Memo: a disabled primary has its own colours, opacity 1, no hover cha
   await page.screenshot({ path: "test-results/dialog-buttons-memo-disabled.png" });
   await d.getByLabel("Memo").fill("x");
   await expect(primary).toBeEnabled();
+  await page.mouse.move(0, 0);
+  await expect.poll(() => bg(primary)).toBe(PRIMARY);
   await rest(primary, { bg: PRIMARY, color: "rgb(255, 255, 255)" });
   await hoverBg(primary, PRIMARY_HOVER);
 });

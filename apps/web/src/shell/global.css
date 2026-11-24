@@ -392,16 +392,62 @@ a {
   font-weight: 500;
   cursor: pointer;
 }
-.dialog.form .dialog-footer .secondary {
+/*
+ * Dialog footer buttons, one place for every dialog (EXF-876; values measured on the source, dark theme):
+ * variants, hover (the same colour as :active), our own focus ring (no box-shadow) and a disabled look
+ * that is a colour, never an opacity.
+ */
+.dialog :is(.dialog-footer, .account-modal-footer) button {
+  transition: background-color 0.15s;
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.primary {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.secondary {
   background: var(--buttonSecondaryBackground);
   color: var(--buttonSecondaryLabel);
 }
-.dialog.form .dialog-footer .primary {
-  background: var(--buttonPrimaryBackground);
+.dialog :is(.dialog-footer, .account-modal-footer) button.destructive {
+  background: var(--buttonDestructiveBackground);
+  color: var(--buttonDestructiveLabel);
 }
-.dialog.form .dialog-footer .primary:disabled {
-  opacity: 0.5;
-  cursor: default;
+.dialog :is(.dialog-footer, .account-modal-footer) button.ghost {
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  color: var(--buttonGhostLabel);
+  font-size: var(--font-size-sm);
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.primary:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.secondary:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.ghost:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackground);
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.destructive:hover:not(:disabled) {
+  background: var(--buttonDestructiveBackgroundActive);
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button:focus-visible {
+  outline: 1px auto var(--actionPrimary);
+  outline-offset: 2px;
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.primary:focus-visible {
+  outline-width: 2px;
+}
+.dialog :is(.dialog-footer, .account-modal-footer) button.ghost:focus-visible {
+  outline-offset: 0;
+}
+.dialog
+  :is(.dialog-footer, .account-modal-footer)
+  button:is(.primary, .secondary, .destructive, .ghost):disabled,
+.dialog .primary:disabled {
+  background: var(--buttonDisabledBackground);
+  color: var(--buttonDisabledLabel);
+  opacity: 1;
+  cursor: auto;
 }
 .dialog-backdrop.top {
   align-items: center;
