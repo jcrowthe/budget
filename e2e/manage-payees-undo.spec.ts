@@ -97,6 +97,7 @@ test("6 button states: disabled on open, a register change does not enable Undo,
   await expect(btn(d, "Redo")).toBeDisabled();
   await realClick(page, pick(d, "ZZ Cafe A"));
   await rename(d, "ZZ Cafe A2");
+  await expect(pick(d, "ZZ Cafe A2")).toBeVisible();
   await expect(btn(d, "Undo")).toBeEnabled();
   await expect(btn(d, "Redo")).toBeDisabled();
   await realClick(page, btn(d, "Undo"));
