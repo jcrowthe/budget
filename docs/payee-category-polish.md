@@ -10,3 +10,4 @@ Not compared with the source: the ticket's screenshots are not in the repo. Ever
 - P6 [applied] The popover's header cells are plain (no sorting); the first column has no left padding and the last no right padding.
 - P7 [not compared] Empty state `No transactions yet.` is ours.
 - P8 [not compared] The card's order, `Payee Name`, `Categorization`, `Renaming`, is the Architect's (docs/manage-payees-design.md).
+- P9 [applied] Under `Always use my choice` the register's picker is dressed as the card's own `.mp-input`: 32px tall, `--inputBackground` fill, `--inputBorder` until focused (then `--actionPrimary`), caret `--labelSecondary`. It is at most 400px wide (the width of its list) and has 8px above it. Before this, it was the register's 24px field with an always-blue border, stretched across the card. Labels of disabled radios lose the pointer cursor.

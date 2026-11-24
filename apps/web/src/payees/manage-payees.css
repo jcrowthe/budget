@@ -683,8 +683,33 @@
   color: var(--labelPrimary);
   font-weight: 500;
 }
+/* The register's picker, dressed as the card's own field (`.mp-input`): 32px, input fill, quiet border until focused. */
+.mp-categorization .mp-cat-field {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-1);
+}
 .mp-categorization .mp-cat-field .entry-input {
-  max-width: 100%;
+  max-width: min(100%, 400px);
+}
+.mp-categorization .mp-cat-field .entry-input input {
+  height: 32px;
+  padding: 4px 24px 4px 8px;
+  border-color: var(--inputBorder);
+  background: var(--inputBackground);
+}
+.mp-categorization .mp-cat-field .entry-input input:focus {
+  border-color: var(--actionPrimary);
+}
+.mp-categorization .mp-cat-field .entry-caret {
+  top: 11px;
+  right: 8px;
+  color: var(--labelSecondary);
+}
+.mp-categorization .mp-cat-field .entry-input:focus-within .entry-caret {
+  color: var(--actionPrimary);
+}
+.mp-categorization .mp-cat-option:has(input:disabled) {
+  cursor: default;
 }
 .mp-categorization .mp-error {
   margin-top: var(--space-2);
