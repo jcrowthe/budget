@@ -134,6 +134,8 @@ and `budget_id`.
 | `createTransaction` (`services/transactions.ts`) | one transaction | create `transaction` |
 | `getPlanMonth`, `listPlanMonths` (`services/months.ts`) | read model / summaries | none |
 
+`getPlanMonth` (REST `months/{month}`, MCP `get_plan_month`) refuses with 422 a month before 1970-01 or more than 10 years after the current month (`planMonthError` in `services/months.ts`); the plan's first month is not used, as it costs a D1 call.
+
 `moveMoney` writes `assigned` with a guarded compare-and-set: it re-reads and retries up to five times, then throws Conflict. Under heavy simultaneous writes to the same rows a move can therefore be rejected with Conflict (nothing is lost; the caller retries).
 `month_category` entity ids are `<category_id>:<month>`; `month` entity ids are the month.
 
