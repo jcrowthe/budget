@@ -406,3 +406,26 @@ for (const size of [
     await page.screenshot({ path: `test-results/payee-categorization-popover-${tag}.png` });
   });
 }
+
+test("A12 the Always use my choice list has Inflow and the groups, and no credit card payment category (EXF-515)", async ({
+  page,
+  request,
+}) => {
+  const s = await seedCategorization(request);
+  await call(request, "POST", `/api/v1/budgets/${s.plan}/accounts`, {
+    name: "ZZ Visa",
+    type: "creditCard",
+    balance: 100000,
+    date: "2026-11-10",
+  });
+  const n = await s.one("ZZ Cafe Picker");
+  await open(page, s);
+  const { card } = await manage(page, s, n);
+  await realClick(page, radio(card, FIXED));
+  await realClick(page, card.getByRole("combobox", { name: "Category", exact: true }));
+  const list = page.getByRole("listbox", { name: "Categories", exact: true });
+  await expect(list.getByRole("option", { name: "Fun", exact: true })).toBeVisible();
+  await expect(list.getByText("Inflow", { exact: true })).toBeVisible();
+  await expect(list.getByText("Credit Card Payments", { exact: true })).toHaveCount(0);
+  await expect(list.getByRole("option", { name: "ZZ Visa", exact: true })).toHaveCount(0);
+});

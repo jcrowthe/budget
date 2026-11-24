@@ -142,13 +142,52 @@ test("8 a transfer payee is read-only; mixing it with another asks to deselect i
     d.getByText(/Transfer payees are used to move money between accounts/),
   ).toBeVisible();
   await expect(d.getByRole("textbox", { name: "Payee Name" })).toHaveCount(0);
+  await expect(d.getByRole("heading", { name: "Categorization", exact: true })).toHaveCount(0);
   await expect(btn(d, "Hide")).toHaveCount(0);
+  await expect(btn(d, "Delete")).toHaveCount(0);
   await realClick(page, tick(d, "ZZ Cafe A"));
   await expect(d.getByText(/Only one payee group can be edited at a time/)).toBeVisible();
   await realClick(page, btn(d, "deselect transfer payees"));
   await expect(d.getByRole("textbox", { name: "Payee Name", exact: true })).toHaveValue(
     "ZZ Cafe A",
   );
+});
+
+test("8b a transfer payee has a Renaming card: a rule is added and removed; no other card (EXF-885)", async ({
+  page,
+  request,
+}) => {
+  const s = await seedPayees(request);
+  const d = await open(page, s);
+  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await realClick(page, pick(d, "Transfer : ZZ Card"));
+  await expect(d.getByRole("heading", { name: "Transfer : ZZ Card", exact: true })).toBeVisible();
+  await expect(d.getByRole("heading", { name: "Renaming", exact: true })).toBeVisible();
+  await expect(
+    d.getByText("Imported payees that match these rules will be renamed.", { exact: true }),
+  ).toBeVisible();
+  await expect(d.getByText(/Transfer payees are used to move money between accounts/)).toBeVisible();
+  const empty = d.getByRole("textbox", { name: "New rule text", exact: true });
+  await empty.fill("zz card payment");
+  await realClick(page, btn(d, "Add a renaming rule"));
+  await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveValue(
+    "zz card payment",
+  );
+  await expect(d.getByRole("img", { name: "Renaming rules applied", exact: true })).toHaveCount(1);
+  // It was stored: another selection and back shows it, and a reload of the list keeps the gear.
+  await realClick(page, tick(d, "Transfer : ZZ Checking"));
+  await realClick(page, tick(d, "Transfer : ZZ Checking"));
+  await realClick(page, pick(d, "Transfer : ZZ Card"));
+  await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveValue(
+    "zz card payment",
+  );
+  await expect(d.getByRole("textbox", { name: "Payee Name" })).toHaveCount(0);
+  await expect(d.getByRole("heading", { name: "Categorization", exact: true })).toHaveCount(0);
+  await expect(btn(d, "Hide")).toHaveCount(0);
+  await expect(btn(d, "Delete")).toHaveCount(0);
+  await realClick(page, btn(d, "Remove renaming rule"));
+  await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveCount(0);
+  await expect(d.getByRole("img", { name: "Renaming rules applied", exact: true })).toHaveCount(0);
 });
 
 test("9 hide and unhide: the picker follows", async ({ page, request }) => {
