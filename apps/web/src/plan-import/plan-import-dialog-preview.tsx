@@ -1,5 +1,10 @@
 import type { PlanFormatter } from "@budget/schema/plan-formats";
 import {
+  CURRENCIES,
+  currenciesNamedBy,
+  formatsFromImport,
+} from "@budget/schema/plan-formats-catalogue";
+import {
   type DateQuestion,
   IMPORT_ACCOUNT_TYPES,
   type ImportAccountType,
@@ -37,6 +42,52 @@ const PLACEMENTS = [
   ["after", "After amount"],
   ["none", "Don't show"],
 ] as const;
+
+/**
+ * The plan's currency, offered when the symbol read from the file does not name exactly one currency of the
+ * catalogue (no symbol, an unknown one, or one several currencies share). The detected currency comes first; only
+ * currencies with the file's decimal digits are offered, as amounts are never converted.
+ */
+function CurrencyChoice({
+  formats: f,
+  onCurrency,
+}: {
+  formats: PlanImportPreview["formats"];
+  onCurrency: (patch: Currency) => void;
+}) {
+  const named = currenciesNamedBy(f.currency_symbol, f.decimal_digits);
+  if (f.symbol_placement !== "none" && named.length === 1) return null;
+  const detected = formatsFromImport({ ...f, iso_code: undefined }).iso_code;
+  const same = CURRENCIES.filter((c) => c.decimal_digits === f.decimal_digits);
+  const list = [
+    ...same.filter((c) => c.code === detected),
+    ...same.filter((c) => c.code !== detected),
+  ];
+  const sym = f.currency_symbol.trim();
+  return (
+    <div className="plan-import-dialog-currency">
+      <label htmlFor="plan-import-currency">Plan currency</label>
+      <select
+        id="plan-import-currency"
+        className="field"
+        value={f.iso_code ?? detected}
+        onChange={(e) => onCurrency({ iso_code: e.target.value })}
+      >
+        {list.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.code} · {c.name}
+          </option>
+        ))}
+      </select>
+      <small className="plan-import-dialog-more">
+        {sym !== "" && f.symbol_placement !== "none"
+          ? `The symbol “${sym}” does not name one currency of the list.`
+          : "The file shows no currency symbol, so it does not name one currency."}{" "}
+        Choose the plan's currency; amounts are not converted.
+      </small>
+    </div>
+  );
+}
 
 export function PlanImportPreviewBody(p: PreviewProps) {
   const { preview, question } = p;
@@ -112,11 +163,12 @@ export function PlanImportPreviewBody(p: PreviewProps) {
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
               onBlur={() => {
-                if (symbol !== f.currency_symbol) p.onCurrency({ currency_symbol: symbol });
+                if (symbol !== f.currency_symbol)
+                  p.onCurrency({ currency_symbol: symbol, iso_code: undefined });
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && symbol !== f.currency_symbol)
-                  p.onCurrency({ currency_symbol: symbol });
+                  p.onCurrency({ currency_symbol: symbol, iso_code: undefined });
               }}
             />
           </div>
@@ -170,6 +222,7 @@ export function PlanImportPreviewBody(p: PreviewProps) {
             </select>
           </div>
         </div>
+        <CurrencyChoice formats={f} onCurrency={p.onCurrency} />
       </section>
 
       <section className="plan-import-dialog-section">

@@ -261,6 +261,7 @@ test("13 step 1 shows a started bar: the fill is visible while aria-valuenow is 
     expect(track?.width).toBeGreaterThan(100);
     // A person reads a fill of at least a few pixels as "started".
     expect(fill?.width).toBeGreaterThanOrEqual(8);
+    await dialog(page).screenshot({ path: "test-results/plan-import-step1.png" });
     open();
     await expect(dialog(page).getByText(`Imported ${name}.`, { exact: true })).toBeVisible();
   } finally {

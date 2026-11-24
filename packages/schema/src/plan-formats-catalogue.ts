@@ -276,8 +276,26 @@ export const DEFAULT_STORED_FORMATS: StoredFormats = {
   date_format: "MM/DD/YYYY",
 };
 
-/** What the import detected, as the formats a plan stores (design: "Files"). */
+/** The catalogue in the Plan Settings dialog's order: the common currencies, then all of them. */
+const dialogOrderOf = (): Currency[] => [
+  ...COMMON_CURRENCY_CODES.map((code) => currencyByCode(code) as Currency),
+  ...CURRENCIES,
+];
+
+/** The currencies a symbol read from a file names, with the file's decimal digits (EXF-877). */
+export function currenciesNamedBy(symbol: string, digits: number): Currency[] {
+  const sym = symbol.trim();
+  return dialogOrderOf().filter(
+    (cur) => cur.symbol.trim() === sym && cur.decimal_digits === digits,
+  );
+}
+
+/**
+ * What the import detected, as the formats a plan stores (design: "Files"). `iso_code`, when it names a
+ * currency of the catalogue, is the person's choice and wins over the one the symbol would give.
+ */
 export function formatsFromImport(f: {
+  iso_code?: string;
   currency_symbol: string;
   symbol_placement: Placement;
   decimal_separator: string;
@@ -286,10 +304,7 @@ export function formatsFromImport(f: {
 }): StoredFormats {
   const digits = f.decimal_digits;
   const sameDigits = (cur: Currency) => cur.decimal_digits === digits;
-  const dialogOrder = [
-    ...COMMON_CURRENCY_CODES.map((code) => currencyByCode(code) as Currency),
-    ...CURRENCIES,
-  ];
+  const dialogOrder = dialogOrderOf();
   const sym = f.currency_symbol.trim();
   const decimalOf = (cur: Currency) => numberFormatParts(cur.number_format).decimal_separator;
   const matches = dialogOrder.filter((cur) => cur.symbol.trim() === sym && sameDigits(cur));
@@ -303,7 +318,8 @@ export function formatsFromImport(f: {
       undefined,
     );
   }
-  pick ??= dialogOrder.find(sameDigits) ?? (currencyByCode("USD") as Currency);
+  const chosen = f.iso_code ? currencyByCode(f.iso_code) : undefined;
+  pick = chosen ?? pick ?? dialogOrder.find(sameDigits) ?? (currencyByCode("USD") as Currency);
   const formats = NUMBER_FORMATS[pick.decimal_digits];
   const numberFormat =
     decimalOf(pick) === f.decimal_separator

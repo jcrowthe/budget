@@ -82,6 +82,14 @@
   color: var(--labelPrimary);
   border: 1px solid var(--borderSubtle);
 }
+.plan-import-dialog-currency {
+  display: grid;
+  gap: 4px;
+  margin-bottom: var(--space-2);
+}
+.plan-import-dialog-currency small {
+  display: block;
+}
 .plan-import-dialog-section h3 {
   margin: var(--space-3) 0 var(--space-1);
   font-size: 14px;
@@ -103,7 +111,11 @@
   text-align: left;
   vertical-align: top;
 }
+/* The body breaks anywhere to keep long names in; a header is never broken inside a word: the Proposed column
+   (its reason text) and the Account column (ellipsis) give way instead. */
 .plan-import-dialog-accounts th {
+  overflow-wrap: normal;
+  white-space: nowrap;
   position: sticky;
   top: 0;
   background: var(--backgroundTertiary);
