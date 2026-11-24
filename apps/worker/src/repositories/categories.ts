@@ -235,12 +235,12 @@ export async function historyOf(
   db: Db,
   budgetId: string,
   ids: readonly string[],
-): Promise<{ transactions: number; assignedMonths: number }> {
-  if (ids.length === 0) return { transactions: 0, assignedMonths: 0 };
-  const [r] = await db.all<{ t: number; a: number }>(
-    sql`select (select count(*) from transactions where budget_id = ${budgetId} and deleted_at is null and category_id in (${idList(ids)})) as t, (select count(distinct month) from month_categories where budget_id = ${budgetId} and assigned <> 0 and category_id in (${idList(ids)})) as a`,
+): Promise<{ transactions: number; assignedMonths: number; schedules: number }> {
+  if (ids.length === 0) return { transactions: 0, assignedMonths: 0, schedules: 0 };
+  const [r] = await db.all<{ t: number; a: number; s: number }>(
+    sql`select (select count(*) from transactions where budget_id = ${budgetId} and deleted_at is null and category_id in (${idList(ids)})) as t, (select count(distinct month) from month_categories where budget_id = ${budgetId} and assigned <> 0 and category_id in (${idList(ids)})) as a, (select count(*) from scheduled_transactions where budget_id = ${budgetId} and deleted_at is null and category_id in (${idList(ids)})) as s`,
   );
-  return { transactions: r?.t ?? 0, assignedMonths: r?.a ?? 0 };
+  return { transactions: r?.t ?? 0, assignedMonths: r?.a ?? 0, schedules: r?.s ?? 0 };
 }
 
 /** Holds while no active transaction and no non-zero assigned amount refers to the categories. */

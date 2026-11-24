@@ -6,6 +6,7 @@ import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
 import { scheduledTransactions as st } from "../db/schema/scheduled-transactions";
+import { idList, type LogBase, logSelectStmt } from "./guards";
 
 export type ScheduledBase = typeof st.$inferSelect;
 
@@ -221,4 +222,49 @@ export function movePayeeStmt(
     .where(
       sql`${st.budgetId} = ${budgetId} and ${st.payeeId} in (select value from json_each(${JSON.stringify(fromIds)})) and ${st.deletedAt} is null and ${guard}`,
     );
+}
+
+// A deleted category's live schedules (EXF-659): moved to the replacement, or cleared when there is none.
+
+const liveIn = (budgetId: string, fromIds: readonly string[]) =>
+  sql`${st.budgetId} = ${budgetId} and ${st.categoryId} in (${idList(fromIds)}) and ${st.deletedAt} is null`;
+
+/** One change_log row per live schedule that moves (`targetId`) or is cleared (null). Put it before the update. */
+export function logCategoryChangeStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  fromIds: readonly string[],
+  targetId: string | null,
+  guard: SQL,
+) {
+  return logSelectStmt(
+    db,
+    base,
+    sql`select id, category_id from ${st} where ${liveIn(budgetId, fromIds)} and ${guard}`,
+    {
+      entityId: sql`id`,
+      before: sql`json_object('id', id, 'category_id', category_id)`,
+      after: sql`json_object('id', id, 'category_id', ${targetId}, 'reassigned_from', category_id)`,
+    },
+  );
+}
+
+/** Points the live schedules of `fromIds` at the target (or at no category), each under a new write token. */
+export function changeCategoryStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  targetId: string | null,
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(st)
+    .set({
+      categoryId: targetId,
+      updatedAt: now,
+      writeToken: sql`lower(hex(randomblob(16)))`,
+    })
+    .where(sql`${liveIn(budgetId, fromIds)} and ${guard}`);
 }

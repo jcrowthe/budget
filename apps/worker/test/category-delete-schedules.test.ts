@@ -94,6 +94,7 @@ describe("category delete moves schedules (EXF-659)", () => {
     expect(((await usage.json()) as Json).data.usage.scheduled_count).toBe(2);
     const res = await send("DELETE", api(bid, `/categories/${a}?reassign_to=${b}`));
     expect(res.status).toBe(200);
+    expect(JSON.stringify(await res.json())).toContain('"schedules_moved":2');
     const after = await rows(bid);
     expect(after.map((r) => r.category_id)).toEqual([b, b]);
     for (const r of after) {
@@ -129,7 +130,10 @@ describe("category delete moves schedules (EXF-659)", () => {
 describe("group delete moves schedules (EXF-659)", () => {
   it("a group of 35 categories: every schedule moves", async () => {
     const s = await seed(35);
-    const res = await send("DELETE", api(s.bid, `/category_groups/${s.g.id}?reassign_to=${s.target}`));
+    const res = await send(
+      "DELETE",
+      api(s.bid, `/category_groups/${s.g.id}?reassign_to=${s.target}`),
+    );
     expect(res.status).toBe(200);
     const after = await rows(s.bid);
     expect(after).toHaveLength(35);

@@ -76,6 +76,7 @@ export const CategoryUsage = z
   .object({
     category_count: z.number().int(),
     transaction_count: z.number().int(),
+    scheduled_count: z.number().int(),
     has_assigned: z.boolean(),
     has_history: z.boolean(),
   })
@@ -88,6 +89,7 @@ export const CategoryDeleted = z
     reassigned_to: z.uuid().nullable(),
     transactions_moved: z.number().int(),
     months_merged: z.number().int(),
+    schedules_moved: z.number().int(),
   })
   .openapi("CategoryDeleted");
 
