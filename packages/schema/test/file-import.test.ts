@@ -16,7 +16,7 @@ import {
   MAX_FILE_ROWS,
   parseFileDate,
 } from "../src/file-import";
-import { readCsv, readFileText } from "../src/file-import-read";
+import { readCsv, readFileText, readOfx, readQif } from "../src/file-import-read";
 
 const fx = (n: string) =>
   readFileSync(join(import.meta.dirname, "fixtures/file-import", n), "utf8");
@@ -339,6 +339,20 @@ describe("extras", () => {
   it("a two-column outflow written negative is still an outflow", async () => {
     const r = await csv("Date,Payee,Memo,Outflow,Inflow\n11/10/2026,Sample Cafe,latte,-4.50,\n");
     expect(r.rows[0]?.amount).toBe(-4500);
+  });
+
+  it("an amount with a leading decimal point is read as written, not 100 times too large", async () => {
+    const o = await csv(
+      "Date,Payee,Memo,Outflow,Inflow\n11/10/2026,Sample Cafe,,.50,\n11/11/2026,Sample Cafe,,,$.99\n",
+    );
+    expect(o.rows.map((x) => x.amount)).toEqual([-500, 990]);
+    const ofx = readOfx(
+      "<OFX><STMTTRN><DTPOSTED>20261110<TRNAMT>-.50<FITID>ZZ9<NAME>Sample Cafe</STMTTRN><STMTTRN><DTPOSTED>20261111<TRNAMT>.99<FITID>ZZ10<NAME>Sample Cafe</STMTTRN></OFX>",
+    );
+    expect(ofx.entries.map((e) => e.amount)).toEqual([-500, 990]);
+    expect(
+      readQif("!Type:Bank\nD11/10'26\nT-.50\n^\nD11/11'26\nT.99\n^\n").entries.map((e) => e.amount),
+    ).toEqual([-500, 990]);
   });
 
   it("an unparseable amount is invalid", async () => {
