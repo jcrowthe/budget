@@ -172,7 +172,8 @@ received; null when no import gave the row), from `transactionToApi` (`services/
 1. (Lead, not observed) `is` beats `contains`; among one kind the newest wins.
 2. (Lead) A payee rename in Manage Payees adds `is <old name>` when the old name came from the bank.
 3. (Lead) The undo removes other payees' `is <name>` rules and adds `is <name>` when a `contains` rule elsewhere
-   still matches.
+   still matches. The learn does the same removal (EXF-885): every other payee's `is <name>` goes, with a delete
+   history row each, then `is <name>` is added to the new payee unless it has it.
 4. (Lead) The info button sits at the right of the payee cell, shown on hover, selection or focus.
 5. (Architect) The fold also turns any run of white space into one space.
 6. (Architect) `+` with a blank text sends nothing; an emptied saved row shows the empty error locally.
@@ -188,11 +189,20 @@ received; null when no import gave the row), from `transactionToApi` (`services/
 
 1. A `Renaming` card for transfer payees (the source shows one; a rule that turns an import into a transfer is its
    own piece of work).
-2. `update_transaction`, `get_transaction` and `list_transactions` descriptions do not name `import_payee_name` or
-   the learned rule (`mcp/tools/transactions.ts` is outside this Build's ground).
 3. Plan export and import do not carry rules.
 4. Matched rows have no `Bank Import Details`.
-5. Learn when the new payee already has an older `is <name>` and another payee a newer one: the newer still wins.
+
+## Built (EXF-885)
+
+- **Descriptions.** The five transaction tools in `mcp/tools/transactions.ts` name `import_payee_name`;
+  `update_transaction` says that changing the payee of an imported row writes the renaming rule, and
+  `bulk_update_transactions` says its ops write none.
+- **Learn when the new payee already has an older `is <name>` and another payee a newer one.** Chosen: the learn
+  removes every other payee's live `is <name>` (same `match_text`, as the undo does, with a delete history row each)
+  and adds `is <name>` to the new payee unless it has it. Reason: the owner's last correction must decide, and
+  `pickRenameRule` takes the newest `is` rule; rewriting `created_at` of the owner's rule would falsify history,
+  and keeping both rules leaves the answer to a timestamp. After any correction exactly one payee holds
+  `is <name>`; all in the change's own batch, no extra D1 call.
 
 ## Out of scope
 

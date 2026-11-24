@@ -141,7 +141,7 @@ describe("renaming rules made by themselves (EXF-467)", () => {
     expect(await rulesOf(s.plan)).toEqual([]);
   });
 
-  it("a second learn to a third payee: that rule is the newest and wins", async () => {
+  it("a second learn to a third payee: the newest correction is the only `is` rule left", async () => {
     const s = await setup();
     const a = await s.payee("ZZ-TEST A");
     const b = await s.payee("ZZ-TEST B");
@@ -152,8 +152,8 @@ describe("renaming rules made by themselves (EXF-467)", () => {
     await patch(s.plan, r1.id, { payee_id: b });
     await s.bank({ added: [txn("ZZ-2", "ZZ BANK CAFE 12")] });
     expect((await s.row("ZZ-2")).payee_id).toBe(b);
-    // The payee left behind keeps its rule (the ticket's rule: the most recent wins).
-    expect(await rulesOf(s.plan)).toEqual(["is:ZZ BANK CAFE 12", "is:ZZ BANK CAFE 12"]);
+    // EXF-885: the payee left behind loses its rule, so exactly one payee holds `is <name>`.
+    expect(await rulesOf(s.plan)).toEqual(["is:ZZ BANK CAFE 12"]);
   });
 
   it("undo: back to the imported name removes other payees' `is` rules; the next import keeps the name", async () => {
