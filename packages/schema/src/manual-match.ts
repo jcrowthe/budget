@@ -28,11 +28,15 @@ export type Refusal = {
 };
 type Ctx = { closed: (accountId: string) => boolean; fmt: MatchFmt };
 
+/** An import is a row a bank feed or a file made: source "plaid" or "file". */
+export const isImportSource = (source: string | null | undefined) =>
+  source === "plaid" || source === "file";
+
 /** matched: a hand entry that took a bank import; import: a bank row as sent; entry: any other row. */
 export const matchRole = (r: Pick<MatchRow, "import_id" | "source">) =>
   r.import_id !== null && r.source === null
     ? ("matched" as const)
-    : r.source === "plaid"
+    : isImportSource(r.source)
       ? ("import" as const)
       : ("entry" as const);
 

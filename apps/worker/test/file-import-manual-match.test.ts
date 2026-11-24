@@ -26,7 +26,7 @@ describe("a file row in Match and Unmatch (EXF-531, FI-3)", () => {
     const hand = await tx(bid, {
       account_id: aid,
       date: "2026-11-10",
-      amount: -450,
+      amount: -4500,
       payee_name: "ZZ-TEST Hand Cafe",
       memo: "hand memo",
     });
@@ -59,7 +59,7 @@ describe("a file row in Match and Unmatch (EXF-531, FI-3)", () => {
     const body = (await res.json()) as Json;
     expect(res.status, JSON.stringify(body)).toBe(200);
     expect(body.data.transaction).toMatchObject({ id: hand.id, matched: true });
-    expect((await rowsOf(aid)).filter((r) => r.date === "2026-11-10")).toHaveLength(1);
+    expect((await rowsOf(aid)).filter((r) => r.amount === -4500)).toHaveLength(1);
     const [m] = await q("select * from transactions where id = ?", hand.id);
     expect(m).toMatchObject({ import_id: file.import_id, import_memo: "latte", source: null });
 
