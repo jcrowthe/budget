@@ -81,3 +81,7 @@ hooks, so the call sites (`ActionBar`, `EntryRow`, `RegisterTable`, `AttentionMe
   answer comes from a real bulk delete and carries that delete's change set, so the Undo runs the real engine. The
   engine's reject-and-tombstone path is covered by the worker test (`apps/worker/test/undo.test.ts`).
 - **`docs/README.md`** gets no index line: it is outside this unit's files.
+- **Refusal text.** The notice shows the engine's `detail` as it is, for example "transaction <id> changed after this
+  action, so it can't be undone". The id is the engine's wording; this unit does not rewrite it.
+- **Keys wait for the write.** While a mutation is in flight (`useIsMutating() > 0`) ctrl+Z is ignored, as the disabled
+  button is. A key pressed in that window does nothing and is not queued; the e2e waits for the button to enable.
