@@ -77,6 +77,12 @@ describe("clone.profile.json", () => {
     }
   });
 
+  it("EXF-631: the purge recipe requires the ZZ-TEST prefix", () => {
+    const purge: string = profile.live.recipes.purge;
+    expect(purge).toMatch(/^bash scripts\/live-test-plans\.sh purge '<ZZ-TEST[^']*>'/);
+    expect(purge).toMatch(/without/i);
+  });
+
   it("lists the never_run and never_touch lines", () => {
     const run: string[] = profile.live.never_run;
     for (const line of [
