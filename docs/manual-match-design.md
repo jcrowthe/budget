@@ -364,3 +364,22 @@ real import can be made: no Plaid, and no D1 writes from outside. State 5's pair
 touches: [apps/worker/migrations/20261116101600_manual_match.sql, apps/worker/src/db/schema/transactions.ts, apps/worker/src/services/manual-match.ts, apps/worker/src/services/transactions.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/routes/transactions.ts, apps/worker/src/mcp/tools/transactions.ts, apps/worker/test/manual-match*.ts, apps/worker/test/mcp-coverage/transactions.ts, apps/worker/test/mcp-timestamps.test.ts, packages/schema/src/transactions.ts, packages/schema/src/manual-match.ts, packages/schema/test/manual-match*.test.ts, packages/schema/test/register.test.ts, packages/schema/test/register-export.test.ts, apps/web/src/register/**, apps/web/src/api/transactions.ts, e2e/manual-match*.spec.ts, e2e/support/manual-match-stub.ts, docs/manual-match-design.md, docs/manual-match-spec.md, docs/manual-match-polish.md, docs/README.md]
 shared: []
 migrations: 1
+
+## File imports (EXF-531, FI-3)
+
+A row with `source: "file"` (FI-2, docs/file-import-design.md) is an import like a bank row. `isImportSource(source)`
+in packages/schema/src/manual-match.ts is true for `"plaid"` and `"file"`; `matchRole` and Match's one-of-each check
+use it.
+
+- Match copies the file row's `import_memo` onto the entry with the other `import_*` values.
+- Unmatch recreates the import with `source = "file"` and `memo = import_memo` when its `import_id` starts with
+  `file:`, else `source = "plaid"` and `memo = null` as before. It clears `import_memo` with the other `import_*`
+  copies.
+- Automatic matches by a file import and manual matches leave the same row, so both unmatch the same way.
+- A payee correction on a file row makes the same automatic renaming rule as on a bank row (the `importName` in
+  services/transactions.ts uses `isImportSource`).
+
+### Departures to check
+
+- Does the source learn a rule from a file row's correction? Here it does, exactly as for a bank row; the rule's
+  text is the file's payee (`import_payee_name`).

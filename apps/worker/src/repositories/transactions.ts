@@ -84,6 +84,7 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
       importDate: r.importDate ?? null,
       importAmount: r.importAmount ?? null,
       importPayeeName: r.importPayeeName ?? null,
+      importMemo: r.importMemo ?? null,
       flagColor: r.flagColor ?? null,
     },
     sql`where exists ${guard}`,
@@ -506,6 +507,7 @@ export type TxSet = Partial<
     | "importDate"
     | "importAmount"
     | "importPayeeName"
+    | "importMemo"
     | "flagColor"
     | "matchEntryAmount"
   >

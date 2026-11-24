@@ -1,5 +1,6 @@
 import { CREDIT_ACCOUNT_TYPES } from "@budget/core/account-types";
 import { OWN_PAYMENT_TEXT } from "@budget/schema/card-payments";
+import { isImportSource } from "@budget/schema/manual-match";
 import { DEFAULT_FORMATTER, type PlanFormatter, planFormatter } from "@budget/schema/plan-formats";
 import {
   type PlanSortColumn,
@@ -963,7 +964,7 @@ async function mutate(
     const w0 = planWrites(db, { budgetId, actor, id, kind, plan, now, guard, selfGuard });
     // The renaming rule an imported row's payee change makes by itself: in this batch, before the row's own write
     // (which changes updated_at, on which `guard` rests), no extra call.
-    const importName = before.source === "plaid" ? (before.importPayeeName ?? null) : null;
+    const importName = isImportSource(before.source) ? (before.importPayeeName ?? null) : null;
     const newPayee = plan.after.payeeId;
     const ruleMode =
       kind === "update" &&

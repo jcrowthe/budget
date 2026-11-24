@@ -1,4 +1,4 @@
-import { MATCH_TEXT, matchLabel } from "@budget/schema/manual-match";
+import { isImportSource, MATCH_TEXT, matchLabel } from "@budget/schema/manual-match";
 import { planFormatter } from "@budget/schema/plan-formats";
 import type { MatchResult, UnmatchResult } from "@budget/schema/transactions";
 import { getDb } from "../db/client";
@@ -67,8 +67,8 @@ export async function matchTransactions(
     if (account.closed) throw new TransactionRefused(422, "account_closed", MATCH_TEXT.closedMatch);
     if (isMatched(a)) throw notMatchable(MATCH_TEXT.alreadyMatched(la));
     if (isMatched(b)) throw notMatchable(MATCH_TEXT.alreadyMatched(lb));
-    const aImport = a.source === "plaid";
-    if (aImport === (b.source === "plaid")) throw notMatchable(MATCH_TEXT.needOneOfEach);
+    const aImport = isImportSource(a.source);
+    if (aImport === isImportSource(b.source)) throw notMatchable(MATCH_TEXT.needOneOfEach);
     const [imp, entry] = aImport ? [a, b] : [b, a];
     const li = aImport ? la : lb;
     const le = aImport ? lb : la;
@@ -96,6 +96,7 @@ export async function matchTransactions(
       importDate: imp.importDate ?? null,
       importAmount: imp.importAmount ?? null,
       importPayeeName: imp.importPayeeName ?? null,
+      importMemo: imp.importMemo ?? null,
       matchEntryAmount: entry.amount,
       cleared: entry.cleared === "reconciled" ? "reconciled" : "cleared",
       approved: true,
@@ -207,10 +208,12 @@ export async function unmatchTransaction(
       importDate: null,
       importAmount: null,
       importPayeeName: null,
+      importMemo: null,
       matchEntryAmount: null,
       cleared: "uncleared",
       updatedAt: now,
     };
+    const fromFile = row.importId?.startsWith("file:") ?? false;
     const newImport: txRepo.TransactionRow = {
       id: crypto.randomUUID(),
       budgetId,
@@ -220,20 +223,21 @@ export async function unmatchTransaction(
       payeeName: payee?.name ?? null,
       categoryId: null,
       inflowToReadyToAssign: false,
-      memo: null,
+      memo: fromFile ? (row.importMemo ?? null) : null,
       amount: row.importAmount,
       cleared: "cleared",
       approved: false,
       createdAt: now,
       deletedAt: null,
       updatedAt: now,
-      source: "plaid",
+      source: fromFile ? "file" : "plaid",
       importId: row.importId,
       importedPayee: row.importedPayee ?? null,
       bankDescription: row.bankDescription ?? null,
       importDate: row.importDate,
       importAmount: row.importAmount,
       importPayeeName: row.importPayeeName ?? null,
+      importMemo: fromFile ? (row.importMemo ?? null) : null,
       flagColor: null,
     };
     const guard = txRepo.holdsAt(db, row);
