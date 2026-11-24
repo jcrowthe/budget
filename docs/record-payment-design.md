@@ -263,9 +263,9 @@ assigned 335000 in Nov. Worker amounts are in milliunits.
     - At 1024×700 the submenu stays inside the window.
 17. **[636 counting]** Moving 10 rows of one account, and 100 rows of three accounts (with splits and transfers),
     make equal calls, ≤ 20, and every row lands in the target.
-18. **[637]** On Checking, select "ZZ Fee" (−45.00, 11/10/2026, categorized), then More › Move to Account ›
+18. **[637]** On Checking, select "ZZ Fee" (−4.50, 11/10/2026, categorized), then More › Move to Account ›
     ZZ Asset (tracking).
-    - The alert reads exactly "ZZ Fee on 11/10/2026 (−$45.00): ZZ Asset is a tracking account, so its transactions
+    - The alert reads exactly "ZZ Fee on 11/10/2026 (−$4.50): ZZ Asset is a tracking account, so its transactions
       can't have a category. Remove the category first.", with no UUID.
     - Nothing changes.
     - REST `detail` still starts `Transaction <id>: `.

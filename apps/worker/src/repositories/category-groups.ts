@@ -42,7 +42,6 @@ export async function maxSort(db: Db, budgetId: string): Promise<number> {
   return r?.m ?? -1;
 }
 
-/** Returns an UNEXECUTED statement for `db.batch`. */
 /** A `SELECT 1` that holds while `sort` is still the next free sort_order, for the guarded insert. */
 export function sortIsNext(db: Db, budgetId: string, sort: number) {
   return db

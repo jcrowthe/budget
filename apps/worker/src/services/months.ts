@@ -321,6 +321,23 @@ function withNotes(detail: CoreMonthDetail, notes: Map<string, string | null>): 
   };
 }
 
+/** Plan reads accept a month up to this many years after the current month. */
+export const PLAN_MONTH_YEARS = 10;
+/** ...and no earlier than this fixed floor. The plan's first month would cost a D1 call, so it is not used. */
+export const PLAN_MONTH_FLOOR: Month = "1970-01-01";
+
+/**
+ * The 422 message for a month before PLAN_MONTH_FLOOR or more than PLAN_MONTH_YEARS after the current month
+ * (`today`, the owner's local date, else the server's UTC date); the one bound REST and MCP share.
+ */
+export function planMonthError(month: Month, today: string = todayUtc()): string | null {
+  if (month < PLAN_MONTH_FLOOR) return `Month must not be before ${PLAN_MONTH_FLOOR.slice(0, 7)}`;
+  if (month > addMonths(toMonth(today), PLAN_MONTH_YEARS * 12)) {
+    return `Month must be at most ${PLAN_MONTH_YEARS} years after today`;
+  }
+  return null;
+}
+
 export async function getPlanMonth(
   env: Env,
   budgetId: string,
