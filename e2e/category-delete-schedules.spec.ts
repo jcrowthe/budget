@@ -18,7 +18,9 @@ async function setup(request: Req, schedules: number) {
   const s = await seed(request);
   planId = s.plan;
   const g = (
-    await call(request, "POST", `/api/v1/budgets/${s.plan}/category_groups`, { name: "ZZ-TEST Keep" })
+    await call(request, "POST", `/api/v1/budgets/${s.plan}/category_groups`, {
+      name: "ZZ-TEST Keep",
+    })
   ).category_group.id;
   const target = (
     await call(request, "POST", `/api/v1/budgets/${s.plan}/categories`, {
@@ -56,7 +58,9 @@ test("the delete dialog counts the category's scheduled transactions and they mo
 }) => {
   const s = await setup(request, 2);
   const dialog = await openDialog(page);
-  await expect(dialog.getByText("2 scheduled transactions will move to the new category")).toBeVisible();
+  await expect(
+    dialog.getByText("2 scheduled transactions will move to the new category"),
+  ).toBeVisible();
   await dialog.getByRole("combobox", { name: "Select category" }).fill("ZZ-TEST Tar");
   await page.getByRole("option", { name: /ZZ-TEST Target/ }).click();
   await expect(

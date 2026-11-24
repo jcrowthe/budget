@@ -59,6 +59,7 @@ type Open =
       name: string;
       ids: string[];
       transactionCount: number;
+      scheduledCount: number;
     };
 
 /** Asks the grid to open a category's edit popover (the inspector's pencil). */
@@ -172,18 +173,19 @@ export function PlanGrid({
     name: string,
     ids: string[],
   ) => {
-    const dialog = (transactionCount: number): Open => ({
+    const dialog = (transactionCount: number, scheduledCount: number): Open => ({
       kind: "delete",
       what,
       id,
       name,
       ids,
       transactionCount,
+      scheduledCount,
     });
     try {
       const usage = await (what === "group" ? actions.groupUsage(id) : actions.categoryUsage(id));
       if (usage.has_history) {
-        setPop(dialog(usage.transaction_count));
+        setPop(dialog(usage.transaction_count, usage.scheduled_count));
         return;
       }
       await (what === "group" ? actions.deleteGroup(id) : actions.deleteCategory(id));
@@ -194,7 +196,7 @@ export function PlanGrid({
           const usage = await (what === "group"
             ? actions.groupUsage(id)
             : actions.categoryUsage(id));
-          setPop(dialog(usage.transaction_count));
+          setPop(dialog(usage.transaction_count, usage.scheduled_count));
         } catch {
           close();
           setNotice(`Couldn't delete the ${what}.`);
@@ -301,6 +303,7 @@ export function PlanGrid({
         ids={pop.ids}
         categoryCount={pop.ids.length}
         transactionCount={pop.transactionCount}
+        scheduledCount={pop.scheduledCount}
         groups={allGroups}
         onDone={close}
         onCancel={close}
