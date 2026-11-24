@@ -47,7 +47,7 @@ const app = new OpenAPIHono<AppEnv>({
       ),
       403: json(ErrorBody, "Forbidden"),
       404: json(ErrorBody, "Plan or account not found"),
-      422: json(ErrorBody, "Invalid request, or the account is closed"),
+      422: json(ErrorBody, "Invalid request"),
     },
   }),
   async (c) => {
