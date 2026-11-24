@@ -166,7 +166,12 @@ function numberSpan(cell: string): { s: string; first: number; last: number } | 
       last = i;
     }
   }
-  return first < 0 ? null : { s, first, last };
+  if (first < 0) return null;
+  // A decimal point written straight before the first digit (`.50`, `-$.99`) belongs to the number,
+  // unless a letter precedes it (`Rs.50`: the point ends the symbol).
+  const lead = s[first - 1];
+  if ((lead === "." || lead === ",") && !/\p{L}/u.test(s[first - 2] ?? "")) first--;
+  return { s, first, last };
 }
 
 /**
@@ -276,6 +281,7 @@ export function parseAmount(cell: string, decimal?: string | null): ParsedAmount
     }
     if (separator !== null && (frac.length < 1 || frac.length > 3)) return null;
   }
+  if (whole === "" && separator !== null && frac !== "") whole = "0";
   if (whole.length > 12 || whole === "" || frac.length > 3) return null;
   const units = Number(whole) * 1000 + Number(frac.padEnd(3, "0"));
   const symbol = before !== "" ? before : after;
