@@ -66,7 +66,7 @@ need. No webhook, no Durable Object, no cron, no `env.ts`/`wrangler.jsonc` chang
   {environment:"production", …}]}}`. Never a value or any part of one (not even a length or prefix).
 - No MCP tool reads or writes credentials.
 - **`scripts/plaid-credentials.sh`** pushes Sandbox when `PLAID_CLIENT_ID` and `PLAID_SANDBOX_SECRET` are set,
-  Production when `PLAID_CLIENT_ID` and `PLAID_PRODUCTION_SECRET` are set, skips otherwise; to `live.url` with the
+  Production when `PLAID_CLIENT_ID` and `PLAID_PRODUCTION_SECRET` are set, skips otherwise (live only: with `PLAID_CREDENTIALS_BASE_URL` set it pushes Sandbox only and prints `production skipped (local)`, and `PLAID_CREDENTIALS_LOCAL_PRODUCTION` is refused with exit 2); to `live.url` with the
   Access headers on a curl config pipe, the body from `jq -n` reading `$ENV` on stdin (no value in argv). Prints
   only `plaid credentials: sandbox set|skipped|failed, production set|skipped|failed`.
 - **`scripts/deploy.sh`**: one step after the smoke test and its `phase_report`, before `Live:`:

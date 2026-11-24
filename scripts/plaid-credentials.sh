@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Pushes the Plaid credentials from the environment to the clone (encrypted there, write-only):
 #   Sandbox    when PLAID_CLIENT_ID and PLAID_SANDBOX_SECRET are set
-#   Production when PLAID_CLIENT_ID and PLAID_PRODUCTION_SECRET are set
+#   Production when PLAID_CLIENT_ID and PLAID_PRODUCTION_SECRET are set (live mode only)
 # An environment whose variables are missing is skipped. Prints only
 #   plaid credentials: sandbox set|skipped|failed, production set|skipped|failed
+# Local mode (PLAID_CREDENTIALS_BASE_URL) pushes Sandbox only and prints "production skipped (local)";
+# PLAID_CREDENTIALS_LOCAL_PRODUCTION set is refused (exit 2): a production secret never reaches a local server.
 # Exit: 0 ok (skipped is fine), 1 an environment failed, 2 usage/configuration refused.
 # Live mode needs CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET (sent through a curl config on a pipe).
 # Local testing: PLAID_CREDENTIALS_BASE_URL=http://127.0.0.1:<port> (pnpm dev signs requests itself);
@@ -23,6 +25,8 @@ if [ -n "${PLAID_CREDENTIALS_BASE_URL:-}" ]; then
     || fail "ERROR: PLAID_CREDENTIALS_BASE_URL must be http://localhost[:port] or http://127.0.0.1[:port]" 2
   BASE="$PLAID_CREDENTIALS_BASE_URL"
   MODE=local
+  [ -z "${PLAID_CREDENTIALS_LOCAL_PRODUCTION:-}" ] \
+    || fail "ERROR: production credentials are never pushed to a local server (unset PLAID_CREDENTIALS_LOCAL_PRODUCTION)" 2
   if [ "${PLAID_CREDENTIALS_LOCAL_JWT:-}" = 1 ]; then
     node scripts/local-jwt.mjs --out "$tmp/jwt" >/dev/null || fail "ERROR: cannot sign a local token (run node scripts/dev-vars.mjs)"
   fi
@@ -49,6 +53,7 @@ auth_config() {
 # push ENVIRONMENT: prints set|skipped|failed. The body is built by jq from the environment on a pipe.
 push() {
   local e="$1" var
+  if [ "$MODE" = local ] && [ "$e" = production ]; then echo "skipped (local)"; return 0; fi
   case "$e" in sandbox) var=PLAID_SANDBOX_SECRET ;; production) var=PLAID_PRODUCTION_SECRET ;; esac
   if [ -z "${PLAID_CLIENT_ID:-}" ] || [ -z "${!var:-}" ]; then echo skipped; return 0; fi
   local code
