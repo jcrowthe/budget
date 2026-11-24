@@ -240,3 +240,89 @@ test("11c a start that answers 201 before the cancel acts shows the result", asy
     await cleanup(request, name);
   }
 });
+
+test("13 step 1 shows a started bar: the fill is visible while aria-valuenow is still 0", async ({
+  page,
+  request,
+}) => {
+  const name = testName("bar");
+  try {
+    let open = () => {};
+    const gate = new Promise<void>((r) => {
+      open = r;
+    });
+    await ready(page, name, 0, gate);
+    await realClick(page, button(page, "Import"));
+    const bar = dialog(page).getByRole("progressbar", { name: "Import progress" });
+    await expect(dialog(page).getByText(/^Writing step 1 of \d+$/)).toBeVisible();
+    await expect(bar).toHaveAttribute("aria-valuenow", "0");
+    const track = await bar.boundingBox();
+    const fill = await bar.locator("> div").boundingBox();
+    expect(track?.width).toBeGreaterThan(100);
+    // A person reads a fill of at least a few pixels as "started".
+    expect(fill?.width).toBeGreaterThanOrEqual(8);
+    open();
+    await expect(dialog(page).getByText(`Imported ${name}.`, { exact: true })).toBeVisible();
+  } finally {
+    await cleanup(request, name);
+  }
+});
+
+test("14 a cancel while the server has already removed the import: its words, no retry, no DELETE", async ({
+  page,
+  request,
+}) => {
+  const name = testName("gone");
+  try {
+    const requests = importRequests(page);
+    let open = () => {};
+    const gate = new Promise<void>((r) => {
+      open = r;
+    });
+    await ready(page, name, 0, gate);
+    // The server's own answers once it has removed the import; they never reach the server.
+    await page.unroute("**/budgets/import/*/continue");
+    await page.route("**/budgets/import/*/continue", async (route) => {
+      await gate;
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            id: "409",
+            name: "import_abandoned",
+            detail: "This import was cancelled or expired; start again",
+          },
+        }),
+      });
+    });
+    await page.route("**/budgets/import/*", async (route) => {
+      if (route.request().method() !== "DELETE") return route.fallback();
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: { id: "404", name: "not_found", detail: "Import not found" },
+        }),
+      });
+    });
+    await realClick(page, button(page, "Import"));
+    await expect(button(page, "Cancel import")).toBeEnabled();
+    await realClick(page, button(page, "Cancel import"));
+    await realClick(page, button(page, "Cancel import"));
+    open();
+    await expect(
+      dialog(page).getByText(
+        "This import was cancelled or expired; start again Nothing was kept.",
+        {
+          exact: true,
+        },
+      ),
+    ).toBeVisible();
+    await expect(dialog(page).getByText(/could not be cancelled/)).toHaveCount(0);
+    await expect(button(page, "Try again")).toHaveCount(0);
+    expect(requests.filter((r) => r.method === "DELETE")).toHaveLength(0);
+  } finally {
+    await cleanup(request, name);
+  }
+});

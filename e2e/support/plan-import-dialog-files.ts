@@ -136,6 +136,23 @@ export function largePair(rows: number, accountName = "Big"): Upload[] {
   return pairOf(STAMP, "Big Plan", planCsv([]), registerCsv(lines));
 }
 
+/** Two Register lines whose amounts are written with `symbol` before them (a symbol the app may not know). */
+export function symbolPair(symbol: string): Upload[] {
+  const lines = [
+    reg(
+      "Sym Checking",
+      "",
+      "01/13/2026",
+      "Starting Balance",
+      "Inflow: Ready to Assign",
+      `${symbol}0.00`,
+      `${symbol}1000.00`,
+    ),
+    reg("Sym Checking", "", "01/14/2026", "Shop", "Bills: Rent", `${symbol}12.50`, `${symbol}0.00`),
+  ];
+  return pairOf(STAMP, "Sym Plan", planCsv([]), registerCsv(lines));
+}
+
 /** One Register Outflow "$1,23.45" (quoted). */
 export function badAmountPair(): Upload[] {
   const lines = [

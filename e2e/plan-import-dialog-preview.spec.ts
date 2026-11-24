@@ -7,6 +7,7 @@ import {
   importRequests,
   openImport,
   recordImportForms,
+  symbolPair,
   unclearZip,
 } from "./support/plan-import-dialog-files";
 import { realClick } from "./support/real-click";
@@ -87,4 +88,27 @@ test("9 a file that cannot be read: the server's words, no content in the consol
   await realClick(page, dialog(page).getByRole("button", { name: "Cancel", exact: true }));
   await expect(dialog(page)).toHaveCount(0);
   expect(logs.filter((l) => l.includes("1,23.45") || l.includes("Bad Checking"))).toEqual([]);
+});
+
+test("15 a symbol the app does not know: the person chooses the plan's currency, and the import sends it", async ({
+  page,
+}) => {
+  const requests = importRequests(page);
+  await recordImportForms(page);
+  await openImport(page);
+  await chooseFiles(page, symbolPair("Ƶ"));
+  const d = dialog(page);
+  const choice = d.getByLabel("Plan currency", { exact: true });
+  await expect(choice).toBeVisible();
+  await expect(d.getByText(/does not name one currency/)).toBeVisible();
+  // The detected currency (what the app would have stored) comes first.
+  await expect(choice.locator("option").first()).toHaveAttribute("value", "USD");
+  const before = requests.length;
+  await choice.selectOption("EUR");
+  await expect.poll(() => requests.length).toBe(before + 1);
+  expect(JSON.parse((await importForms(page))[before]?.currency_format ?? "{}")).toMatchObject({
+    iso_code: "EUR",
+  });
+  await expect(choice).toHaveValue("EUR");
+  await expect(d.getByRole("button", { name: "Import", exact: true })).toBeEnabled();
 });
