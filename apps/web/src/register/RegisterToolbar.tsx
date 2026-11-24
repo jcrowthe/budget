@@ -21,7 +21,12 @@ const RECORD_PAYMENT_BELOW = 880;
 
 type Overflow = { key: string; node: (inMenu: boolean) => ReactNode };
 
-// Drawn, not wired: each button names the ticket that attaches its behaviour.
+const UNDO_TIP = "Undo the last thing you did (in Budget, not in life).";
+const REDO_TIP = "Redo that thing you just undid. Practice decisiveness.";
+
+type Step = { enabled: boolean; onClick: () => void };
+
+// Add Transaction, Undo and Redo are wired; File Import and the search box are drawn, each naming its ticket.
 export function RegisterToolbar({
   name,
   onAdd,
@@ -30,6 +35,8 @@ export function RegisterToolbar({
   onRecordPayment,
   paymentDisabled = false,
   viewScope,
+  undo: undoStep,
+  redo: redoStep,
 }: {
   name: string;
   onAdd: () => void;
@@ -41,6 +48,9 @@ export function RegisterToolbar({
   paymentDisabled?: boolean;
   /** An account's page, or All Accounts (no Running Balance option). */
   viewScope: "account" | "all";
+  /** EXF-530: the plan's shared Undo and Redo; a tooltip shows only while the button is enabled. */
+  undo: Step;
+  redo: Step;
 }) {
   const view = useRegisterView();
   const viewBtn = useRef<HTMLButtonElement>(null);
@@ -82,7 +92,16 @@ export function RegisterToolbar({
   const undo: Overflow = {
     key: "undo",
     node: () => (
-      <button type="button" className="toolbar-button" data-ticket="EXF-530" disabled>
+      <button
+        type="button"
+        className="toolbar-button"
+        title={undoStep.enabled ? UNDO_TIP : undefined}
+        disabled={!undoStep.enabled}
+        onClick={() => {
+          setMenu(false);
+          undoStep.onClick();
+        }}
+      >
         <UndoIcon />
         <span className="toolbar-label">Undo</span>
       </button>
@@ -91,7 +110,16 @@ export function RegisterToolbar({
   const redo: Overflow = {
     key: "redo",
     node: () => (
-      <button type="button" className="toolbar-button" data-ticket="EXF-530" disabled>
+      <button
+        type="button"
+        className="toolbar-button"
+        title={redoStep.enabled ? REDO_TIP : undefined}
+        disabled={!redoStep.enabled}
+        onClick={() => {
+          setMenu(false);
+          redoStep.onClick();
+        }}
+      >
         <RedoIcon />
         <span className="toolbar-label">Redo</span>
       </button>

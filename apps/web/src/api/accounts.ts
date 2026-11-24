@@ -16,6 +16,7 @@ import {
   ReconcileResponse,
 } from "@budget/schema/reconcile";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { recordChange } from "../undo/store";
 import { ApiError, apiFetch } from "./client";
 
 export const listAccounts = async (budgetId: string, opts: { includeClosed: boolean }) =>
@@ -47,11 +48,13 @@ export const updateAccount = async (
   budgetId: string,
   accountId: string,
   patch: AccountUpdateRequest,
+  onChangeSet?: (id: string) => void,
 ): Promise<Account> =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}`, {
       method: "PATCH",
       body: patch,
+      onChangeSet,
       idempotencyKey: crypto.randomUUID(),
       schema: AccountResponse,
     })
@@ -231,7 +234,10 @@ export function useSetStarred(budgetId: string, accountId: string) {
   const oneKey = ["accounts", budgetId, accountId];
   const listKey = ["accounts", budgetId];
   return useMutation({
-    mutationFn: (starred: boolean) => updateAccount(budgetId, accountId, { starred }),
+    mutationFn: (starred: boolean) =>
+      updateAccount(budgetId, accountId, { starred }, (id) =>
+        recordChange(budgetId, id, "register"),
+      ),
     onMutate: async (starred) => {
       await qc.cancelQueries({ queryKey: listKey });
       const one = qc.getQueryData<Account>(oneKey);

@@ -13,7 +13,7 @@ import { registerVisible } from "@budget/schema/register-view";
 
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useReconcile } from "../account/ReconcileContext";
 import { useAccounts } from "../api/accounts";
@@ -224,14 +224,19 @@ export function RegisterTable({
     onOpen({ mode: "edit", id: tx.id, focus: field, openCategory });
   };
 
-  // The ⇆ icon opens the other account's register with the paired row selected and in view.
-  const wanted = (location.state as { select?: string } | null)?.select;
+  // The ⇆ icon, and an Undo or Redo, open a register with rows selected and in view: `state.select` is one id or
+  // several. Each navigation (`location.key`) applies once, as soon as any of the ids is among the rows.
+  const picked = (location.state as { select?: string | string[] } | null)?.select;
+  const wanted = picked === undefined ? [] : Array.isArray(picked) ? picked : [picked];
+  const present = wanted.filter((id) => rows.some((r) => r.id === id));
+  const applied = useRef<string | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per visit, when the rows are there
   useEffect(() => {
-    if (!wanted || rows.length === 0 || !rows.some((r) => r.id === wanted)) return;
-    setSelected([wanted]);
-    document.querySelector(`tr[data-tx="${wanted}"]`)?.scrollIntoView({ block: "center" });
-  }, [wanted, location.key, rows.length > 0]);
+    if (present.length === 0 || applied.current === location.key) return;
+    applied.current = location.key;
+    setSelected(present);
+    document.querySelector(`tr[data-tx="${present[0]}"]`)?.scrollIntoView({ block: "center" });
+  }, [wanted.join(","), location.key, present.length]);
 
   // S turns the selected saved row into a split (or opens a split).
   const splittable = (tx: Row) =>

@@ -9,6 +9,7 @@ import {
 } from "@budget/schema/scheduled-transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { recordChange } from "../undo/store";
 import { apiFetch } from "./client";
 import { keepPreviousInPlan } from "./placeholder";
 import { localToday } from "./today";
@@ -43,6 +44,7 @@ export function useCreateScheduled(budgetId: string) {
         await apiFetch(`${base(budgetId)}?today=${localToday()}`, {
           method: "POST",
           body,
+          onChangeSet: (id) => recordChange(budgetId, id, "register"),
           idempotencyKey: crypto.randomUUID(),
           schema: ScheduledCreateResponse,
         })
@@ -59,6 +61,7 @@ export function useUpdateScheduled(budgetId: string) {
         await apiFetch(`${base(budgetId)}/${encodeURIComponent(v.id)}?today=${localToday()}`, {
           method: "PATCH",
           body: v.body,
+          onChangeSet: (id) => recordChange(budgetId, id, "register"),
           idempotencyKey: crypto.randomUUID(),
           schema: ScheduledCreateResponse,
         })
@@ -76,6 +79,7 @@ export function useScheduledBulk(budgetId: string) {
         await apiFetch(`${base(budgetId)}/bulk?today=${localToday()}`, {
           method: "POST",
           body,
+          onChangeSet: (id) => recordChange(budgetId, id, "register"),
           idempotencyKey: crypto.randomUUID(),
           schema: ScheduledBulkResponse,
         })

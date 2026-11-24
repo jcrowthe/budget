@@ -1,9 +1,15 @@
 import type { Account } from "@budget/schema/accounts";
 import { ATTENTION_FILTER_LABEL } from "@budget/schema/attention";
 import { isCredit } from "@budget/schema/card-payments";
+import type { UndoWhere } from "@budget/schema/changes";
+import { useIsMutating } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { usePaymentAvailable } from "../account/usePaymentAvailable";
+import { ApiError } from "../api/client";
+import { accountPath, planPath } from "../shell/planPaths";
+import { useShortcut } from "../shortcuts/dispatcher";
+import { useUndo } from "../undo/useUndo";
 import { ActionBar } from "./ActionBar";
 import { useAttentionFilter } from "./attention-filter";
 import type { Open } from "./entryDraft";
@@ -62,6 +68,52 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
     setParams(next, { replace: true });
   }, [wantsPayment, account, credit, pay.settled]);
 
+  // EXF-530: Undo and Redo act on the plan's shared stack. A request in flight has not recorded its change set yet,
+  // and an open entry row holds edits the undo would not know about: both disable Undo.
+  const u = useUndo(budgetId);
+  const mutating = useIsMutating();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { set: selectRows, clear: clearRows } = useSelection();
+  const [notice, setNotice] = useState<string | null>(null);
+  const undoEnabled = u.canUndo && open === null && mutating === 0;
+  const redoEnabled = u.canRedo && mutating === 0;
+  // Follows the engine's `where` (D6): the account of the change, with its rows selected.
+  const go = (where: UndoWhere) => {
+    if (where.surface === "plan") {
+      navigate(planPath(budgetId, where.month ?? undefined));
+      return;
+    }
+    if (where.surface !== "register") return;
+    const ids = where.transaction_ids;
+    if (ids.length === 0) {
+      clearRows();
+      return;
+    }
+    if (account && account.id !== where.account_id) {
+      navigate(accountPath(budgetId, where.account_id), { state: { select: ids } });
+    } else {
+      // Same page (or All Accounts): a new location key makes the table select the rows.
+      navigate(location.pathname + location.search, { replace: true, state: { select: ids } });
+      if (!account) selectRows(ids);
+    }
+  };
+  const step = async (kind: "undo" | "redo") => {
+    setNotice(null);
+    try {
+      const where = await (kind === "undo" ? u.undo() : u.redo());
+      if (where) go(where);
+    } catch (e) {
+      setNotice(e instanceof ApiError ? e.detail : kind === "undo" ? "Undo failed" : "Redo failed");
+    }
+  };
+  useShortcut("undo", () => {
+    if (undoEnabled) void step("undo");
+  });
+  useShortcut("redo", () => {
+    if (redoEnabled) void step("redo");
+  });
+
   // Shift+N adds a transaction unless the user is typing or a dialog is open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -90,7 +142,20 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
           onRecordPayment={credit ? openPayment : undefined}
           paymentDisabled={!account || account.closed || !pay.settled}
           viewScope={account ? "account" : "all"}
+          undo={{ enabled: undoEnabled, onClick: () => void step("undo") }}
+          redo={{ enabled: redoEnabled, onClick: () => void step("redo") }}
         />
+        {notice !== null && (
+          // The notice style is the floating bar's; inset it to the toolbar's 16px edge so its corners read in the page.
+          <div
+            className="register-action-bar-error"
+            role="alert"
+            data-undo-notice
+            style={{ margin: "0 var(--space-3) var(--space-2)" }}
+          >
+            {notice}
+          </div>
+        )}
         <ReconcileBar />
         {attention.on && (
           <div className="attention-filter-row">
