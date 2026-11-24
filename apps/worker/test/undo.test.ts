@@ -473,4 +473,18 @@ describe("extras", () => {
       (await q("select memo from scheduled_transactions where id = ?", sid))[0]?.memo,
     ).toBeNull();
   });
+
+  it("a refusal found while writing (closed account) rolls the whole batch back", async () => {
+    const b = await plan();
+    const a = await account(b);
+    const t = await tx(b, { account_id: a, date: "2026-11-10", amount: -1000 });
+    const S = setOf(await send(`${B(b)}/transactions/${t.id}`, "DELETE"));
+    await env.DB.prepare("update accounts set closed = 1 where id = ?").bind(a).run();
+    const snap = await fingerprint(b);
+    const r = await undo(b, S);
+    expect(r.status).toBe(409);
+    expect(r.body.error.name).toBe("undo_refused");
+    expect(await fingerprint(b)).toEqual(snap);
+    expect(await q("select 1 from change_set_undos where budget_id = ?", b)).toHaveLength(0);
+  });
 });
