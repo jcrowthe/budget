@@ -13,6 +13,7 @@ import * as groupsRepo from "../repositories/category-groups";
 import * as reassignRepo from "../repositories/category-reassign";
 import { allOf, idList, type LogBase, whenQuery } from "../repositories/guards";
 import * as monthCatsRepo from "../repositories/month-categories";
+import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as targetsRepo from "../repositories/targets";
 import { categoryToApi, groupToApi, HistoryExists, InvalidReassignTarget } from "./categories";
 import { PaymentLocked } from "./credit-payments";
@@ -30,6 +31,8 @@ export interface DeletePlan {
   categories: categoriesRepo.CategoryRow[];
   targetId: string | null;
   targets: targetsRepo.TargetRow[];
+  /** Live schedules in the deleted categories: moved to the target, or cleared when there is none. */
+  schedules?: number;
 }
 
 /**
@@ -85,6 +88,19 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
         full,
       ),
       monthCatsRepo.mergeIntoStmt(db, budgetId, ids, targetId, p.now, full),
+    );
+  }
+  if ((p.schedules ?? 0) > 0) {
+    stmts.push(
+      scheduledRepo.logCategoryChangeStmt(
+        db,
+        { ...log("scheduled_transaction", "update") },
+        budgetId,
+        ids,
+        targetId,
+        full,
+      ),
+      scheduledRepo.changeCategoryStmt(db, budgetId, ids, targetId, p.now, full),
     );
   }
   for (const t of p.targets) {
@@ -154,6 +170,12 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
   return stmts;
 }
 
+/** The schedule update's row count: it follows its log statement and any transaction/month statements. */
+function scheduleChanges(results: { meta: { changes: number } }[], p: DeletePlan): number {
+  const at = (p.targetId ? 4 : 0) + 1;
+  return results[at]?.meta.changes ?? 0;
+}
+
 async function requirePlan(db: Db, budgetId: string) {
   if (!isUuid(budgetId) || !(await budgetsRepo.findActive(db, budgetId)))
     throw new NotFound("Plan");
@@ -194,6 +216,7 @@ async function usageOf(db: Db, budgetId: string, ids: string[]): Promise<Categor
   const h = await categoriesRepo.historyOf(db, budgetId, ids);
   return {
     category_count: ids.length,
+    scheduled_count: h.schedules,
     transaction_count: h.transactions,
     has_assigned: h.assignedMonths > 0,
     has_history: h.transactions > 0 || h.assignedMonths > 0,
@@ -259,8 +282,9 @@ async function run(
     if (hasHistory && targetId === null) {
       throw new HistoryExists(historyMessage(group ? "Category group" : "Category", history));
     }
+    const schedules = history.schedules;
     // A target with nothing to move is accepted but not used: the plain delete has the stronger guard.
-    const useTarget = hasHistory ? targetId : null;
+    const useTarget = hasHistory || schedules > 0 ? targetId : null;
     const months = useTarget ? await monthCatsRepo.mergeableMonths(db, budgetId, ids) : 0;
     const allTargets = await targetsRepo.listForBudget(db, budgetId);
     const plan: DeletePlan = {
@@ -272,6 +296,7 @@ async function run(
       categories: cats,
       targetId: useTarget,
       targets: allTargets.filter((t) => ids.includes(t.categoryId)),
+      schedules,
     };
     const results = await db.batch(
       buildDeleteBatch(db, plan) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
@@ -285,6 +310,7 @@ async function run(
         reassigned_to: useTarget,
         transactions_moved: useTarget ? (results[1]?.meta.changes ?? 0) : 0, // statement 1 is the move
         months_merged: months,
+        schedules_moved: schedules > 0 ? scheduleChanges(results, plan) : 0,
       };
     }
   }

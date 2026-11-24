@@ -102,6 +102,7 @@ describe("delete without history", () => {
     expect(usage).toEqual({
       category_count: 1,
       transaction_count: 0,
+      scheduled_count: 0,
       has_assigned: true,
       has_history: true,
     });
