@@ -3,6 +3,7 @@ import { overspentCount, type PlanView, viewCategories } from "@budget/schema/pl
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { useMonth } from "../api/months";
+import { useEnterDueOnOpen } from "../api/scheduledTransactions";
 import { KeyboardTip } from "../plan/KeyboardTip";
 import { type EditRequest, PlanGrid } from "../plan/PlanGrid";
 import { PlanHeader } from "../plan/PlanHeader";
@@ -65,6 +66,7 @@ function PlanPage() {
   const { month: raw } = useParams();
   // No month in the URL: the source keeps /budget and shows the current month (polish P2).
   const month = raw === undefined ? localCurrentMonth() : parsed;
+  useEnterDueOnOpen(budgetId);
   usePageTitle("Plan");
   useEffect(() => {
     if (month) rememberMonth(budgetId, month);

@@ -119,7 +119,12 @@ export function useEnterDueOnOpen(budgetId: string) {
           entered += r.entered.length;
           if (!r.has_more) break;
         }
-        if (entered > 0 && live) await invalidatePlan(qc, budgetId);
+        if (entered > 0 && live) {
+          // A read of the plan still in flight began before the entry and has no data to fall back on, so an
+          // invalidation alone would hand its stale answer back: cancel it first, then refetch.
+          await qc.cancelQueries({ predicate: (q) => q.queryKey.includes(budgetId) });
+          await invalidatePlan(qc, budgetId);
+        }
       } catch {
         enteredFor.delete(budgetId);
       }
