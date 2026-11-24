@@ -109,7 +109,7 @@ Tools: 89 today, 94 after. Exact words in the spec.
   `report-transactions`, `payee-transactions` for that plan: mounted queries refetch once; no reload.
 - **Frame** (`apps/web/src/payees/`): portal modal `Manage Payees` with `Close` ✕; left pane search, windowed list,
   pinned `Select N Unused Payees` link (hidden at 0; position not compared); right pane the edit pane; footer `Undo`
-  and `Redo` disabled with `data-ticket="EXF-530"` and no title (as the register toolbar's), primary `Done`. Tab cycles
+  and `Redo` on the left (EXF-510 AC10, built: see item 14), primary `Done` on the right. Tab cycles
   inside; Escape closes; handled in a **window** capture listener so the register's and the split dialog's document
   listeners never see them. Focus returns to the opener. Own hook; nothing imported from `plan/`, `reflect/`,
   `plan-export/`.
@@ -205,8 +205,19 @@ payees `ZZ Phone Co`, `XX PHONECO 99`, `ZZ Cafe A` (3 transactions), `ZZ Cafe B`
 13. **Several selected.** Tick three payees: `3 Payees Selected`, the three names, `Hide All` and `Delete All`. `Hide All`
     moves all three to `Hidden Payees`. `Delete All` on a set with transactions shows the `New payee` section with the summed
     count, and a button reads `Delete All`. (AC9, scope note 1)
-14. **Undo, Redo, Done.** `Undo` and `Redo` are disabled, and `Done` closes the dialog. (AC10: Undo is not built, EXF-530;
-    Done PASS)
+14. **Undo, Redo, Done.** Both buttons are disabled when the dialog opens. Each write the dialog makes (rename, hide, delete
+    with a replacement, the category card, the rename rules) is recorded with `origin: "payees"`; `Undo` reverts the last
+    one and `Redo` applies it again. Only entries made since the dialog opened count (D2), so a register change made
+    before opening does not enable `Undo`, and a new change empties `Redo`. A refusal shows in the footer
+    (`role="alert"`). `Done` closes the dialog. No keyboard shortcut. (AC10 built, `e2e/manage-payees-undo.spec.ts`;
+    EXF-882 item 3: a delete with a replacement undoes completely, `docs/undo-design.md` "U5")
+
+    **U5 departures:** the web store's `recordChange` has no `where` parameter, so none is passed (the engine's answer
+    carries `where: {surface: "payees", payee_ids}`); the hook is `useUndo(budgetId, scope)`; `savePayeeCategory` is
+    recorded too, or Undo after a category change would revert an earlier rename; a bulk of more than 1000 ids sends one
+    request per chunk and records one entry per chunk; `invalidateFor` does not exist, `useUndo` already refetches every
+    query of the plan and the dialog then calls `invalidatePayeeViews`; the edit pane is remounted after each step so its
+    name draft re-reads the restored payee.
 15. **Keyboard.** Tab to the list, ArrowDown to `ZZ Cafe A`, then Space: the box is ticked. Enter selects it alone. Tab
     reaches `Payee Name`. Escape closes the dialog, and focus returns to the opener. Tab never leaves the dialog.
 16. **Narrow window.** At 1024×700, with a seeded 120-character payee `ZZ Long …` and a 120-character memo on its

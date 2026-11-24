@@ -15,6 +15,7 @@ import {
   RenameRuleResponse,
 } from "@budget/schema/rename-rules";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
+import { recordChange } from "../undo/store";
 import { apiFetch } from "./client";
 import { keepPreviousInPlan } from "./placeholder";
 
@@ -33,6 +34,11 @@ export const usePayees = (budgetId: string) =>
     staleTime: 30_000,
   });
 
+/** The dialog's writes are its own Undo/Redo entries (EXF-510 AC10). */
+const recorded = (b: string) => ({
+  onChangeSet: (id: string) => recordChange(b, id, "payees"),
+});
+
 const base = (b: string) => `/api/v1/budgets/${b}/payees` as const;
 
 /** Rename and/or hide one payee. */
@@ -42,6 +48,7 @@ export const updatePayee = async (b: string, id: string, body: PayeeUpdate) =>
       method: "PATCH",
       body,
       schema: PayeeResponse,
+      ...recorded(b),
     })
   ).data.payee;
 
@@ -61,6 +68,7 @@ export async function savePayeeCategory(
       body,
       idempotencyKey: crypto.randomUUID(),
       schema: PayeeResponse,
+      ...recorded(b),
     })
   ).data.payee;
   qc.setQueryData<Payee[]>(["payees", b], (list) => list?.map((p) => (p.id === id ? answer : p)));
@@ -89,7 +97,7 @@ export const deletePayee = async (b: string, id: string, replacementId: string |
       `${base(b)}/${encodeURIComponent(id)}${
         replacementId ? `?replacement_payee_id=${encodeURIComponent(replacementId)}` : ""
       }`,
-      { method: "DELETE", schema: PayeeDeleteResponse },
+      { method: "DELETE", schema: PayeeDeleteResponse, ...recorded(b) },
     )
   ).data.deleted;
 
@@ -107,6 +115,7 @@ export async function bulkPayees(
         ...(body.replacementId ? { replacement_payee_id: body.replacementId } : {}),
       },
       schema: PayeeBulkResponse,
+      ...recorded(b),
     });
   }
 }
@@ -149,6 +158,7 @@ export const createRenameRule = async (
       body,
       idempotencyKey: crypto.randomUUID(),
       schema: RenameRuleResponse,
+      ...recorded(b),
     })
   ).data.rule;
 
@@ -164,6 +174,7 @@ export const updateRenameRule = async (
       body,
       idempotencyKey: crypto.randomUUID(),
       schema: RenameRuleResponse,
+      ...recorded(b),
     })
   ).data.rule;
 
@@ -173,6 +184,7 @@ export const deleteRenameRule = async (b: string, id: string, ruleId: string) =>
       method: "DELETE",
       idempotencyKey: crypto.randomUUID(),
       schema: RenameRuleResponse,
+      ...recorded(b),
     })
   ).data.rule;
 

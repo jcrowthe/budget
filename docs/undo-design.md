@@ -119,7 +119,7 @@ so partial rows (category reassign, payee bulk hide) use the same statements.
 | entity_type | mapped keys → columns | net create → | net delete → | net update → | refused |
 |---|---|---|---|---|---|
 | `transaction` (rows and lines) | `account_id, date, payee_id, category_id, inflow_to_ready_to_assign, memo, amount, cleared, approved, import_id, source, imported_payee, import_payee_name, bank_description, flag_color, transfer_account_id, transfer_transaction_id`; `subtransactions` by the line rule. `payee_name` is derived and never compared; it is rewritten when the payee or transfer changes | guard live and holds after; soft-delete the row and its lines; put back a carried tombstone | guard still deleted and holds before; undelete it and its listed lines; delete its import tombstone | guard live and holds after; write before | reconcile rows; bank match/unmatch; a row made live or moved must end in a live open account |
-| `payee` | `name, hidden, category_mode, fixed_category_id, fixed_inflow_to_ready_to_assign` | soft-delete; stale if anything live still names it | undelete | write | system payees; a delete that moved transactions or schedules (they are not logged) |
+| `payee` | `name, hidden, category_mode, fixed_category_id, fixed_inflow_to_ready_to_assign` | soft-delete; stale if anything live still names it | undelete | write | system payees; a delete that moved transactions or schedules when the set lacks their move rows (sets from before U5) |
 | `payee_rename_rule` | `payee_id, kind, text` (+ `match_text` folded) | soft-delete | undelete | write | – |
 | `scheduled_transaction` | `account_id, date_first, date_next, frequency, amount, payee_id, category_id, inflow_to_ready_to_assign, memo, flag_color`; `deleted`; `updated_at` as a guard | soft-delete | undelete | write; every write renews `write_token` | – |
 | `category` | `group_id, name, sort → sort_order, hidden, note` | soft-delete; stale if anything live still names it | undelete at its `sort_order`; its group must be live | write | payment categories |
@@ -136,6 +136,17 @@ so partial rows (category reassign, payee bulk hide) use the same statements.
 - Then live lines copy the parent's account, date, cleared and approved.
 
 After the writes, the stored payee defaults of the payees involved are recomputed (`recomputeDefaultsStmt`).
+
+### U5: payee delete moves
+
+`buildPayeeDeleteBatch` logs, before the two moves (`repositories/payee-delete-log.ts`, one `logSelectStmt` each, D1 calls
+unchanged): a `transaction` `update` per moved row (parents and split lines), before `{id, payee_id, payee_name}`, after
+`{id, payee_id: replacement, payee_name}`; and a `scheduled_transaction` `update` per moved schedule, before/after
+`{id, payee_id}` (the table has no payee name). No `account_id`, so `where` stays `{surface: "payees"}`. The refusal
+for a payee `delete` now applies only when its after reports moved rows and the set holds no move row for that payee
+(sets from before U5). Undo writes the payee, its rules and the rows' `payee_id` back (the name is re-derived); redo
+is the undo of that undo. A moved row in a closed account (or a schedule in a deleted one) is still refused by the
+post-check. Restoring a deleted rename rule qualifies the column names of its `update … from` (a rule's `kind` clashed with the net's).
 
 ### Refusals and staleness (D3)
 
