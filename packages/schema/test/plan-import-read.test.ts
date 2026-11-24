@@ -68,6 +68,31 @@ describe("amounts", () => {
   });
 });
 
+describe("amounts with a leading decimal point", () => {
+  it.each([
+    [".50", 500],
+    ["-.50", -500],
+    ["$.99", 990],
+    ["-$.99", -990],
+    ["$ .99", 990],
+  ])("reads %s as %i milliunits", (cell, milliunits) => {
+    expect(parseAmount(cell)?.milliunits).toBe(milliunits);
+    expect(parseAmount(cell, detectDecimal(cell))?.milliunits).toBe(milliunits);
+    expect(detectDecimal(cell)).toBe(".");
+  });
+  it.each([
+    [",50", 500],
+    ["-,50", -500],
+    [",99€", 990],
+  ])("reads %s under a comma-decimal file as %i", (cell, milliunits) => {
+    expect(detectDecimal(cell)).toBe(",");
+    expect(parseAmount(cell, ",")?.milliunits).toBe(milliunits);
+  });
+  it("keeps the symbol", () => {
+    expect(parseAmount("-$.99")).toMatchObject({ symbol: "$", placement: "before", separator: ".", digits: 2 });
+  });
+});
+
 describe("amounts with thousands separators", () => {
   it.each([
     [".", "$1,234.56", 1234560],
