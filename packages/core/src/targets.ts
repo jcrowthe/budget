@@ -64,10 +64,10 @@ export interface TargetMonthContext {
 const daysIn = (month: Month): number =>
   new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
 
-const lastDay = (month: Month): string =>
+export const lastDay = (month: Month): string =>
   `${month.slice(0, 8)}${String(daysIn(month)).padStart(2, "0")}`;
 
-const monthsBetween = (from: Month, to: Month): number =>
+export const monthsBetween = (from: Month, to: Month): number =>
   (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 +
   (Number(to.slice(5, 7)) - Number(from.slice(5, 7)));
 
@@ -148,7 +148,7 @@ export function targetPeriod(
 
 const pos = (n: number): number => Math.max(0, n);
 
-function percentOf(funded: Milliunits, goal: Milliunits): number {
+export function percentOf(funded: Milliunits, goal: Milliunits): number {
   if (goal <= 0) return 100;
   return Math.min(100, Math.max(0, Math.floor((100 * funded) / goal)));
 }

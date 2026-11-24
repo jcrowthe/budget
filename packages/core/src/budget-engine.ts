@@ -1,5 +1,6 @@
 import { type AccountType, accountGroup } from "./account-types";
 import { type CardFlow, type CardPayment, cardPayment } from "./card-payment";
+import { computeCardTargetMonth } from "./card-targets";
 import { addMilliunits, type Milliunits } from "./money";
 import { addMonths, isMonth, type Month, toMonth } from "./month";
 import { computeTargetMonth, type TargetDefinition, type TargetMonth } from "./targets";
@@ -491,25 +492,39 @@ export function computeMonth(input: EngineInput, month: Month): MonthDetail {
     list.push(c);
     catsByGroup.set(c.groupId, list);
   }
-  const targetFor = (categoryId: string, s: CatState): TargetMonth | null => {
+  const targetFor = (
+    categoryId: string,
+    s: CatState,
+    payment: CardPayment | null,
+  ): TargetMonth | null => {
     const t = targetsByCat.get(categoryId);
     if (!t) return null;
     const { categoryId: _id, ...def } = t;
-    return computeTargetMonth(def, {
+    const ctx = {
       month,
       today,
       leftover: s.carried,
       assigned: s.assigned,
       activity: s.activity,
       available: s.available,
-      assignedIn: (m) => p.assignedByCatMonth.get(`${m}|${categoryId}`) ?? 0,
-    });
+      assignedIn: (m: Month) => p.assignedByCatMonth.get(`${m}|${categoryId}`) ?? 0,
+    };
+    return payment ? computeCardTargetMonth(def, ctx, payment) : computeTargetMonth(def, ctx);
   };
   const groupOrder = (a: EngineGroup, b: EngineGroup) =>
     (a.kind ? 0 : 1) - (b.kind ? 0 : 1) || bySort(a, b);
   const groups: MonthGroupDetail[] = [...input.groups].sort(groupOrder).map((g) => {
     const cats = (catsByGroup.get(g.id) ?? []).sort(bySort).map((c): MonthCategoryDetail => {
       const s = state.cats.get(c.id) as CatState;
+      const payment =
+        c.kind === "credit_card_payment" && c.accountId
+          ? cardPayment(
+              p.flowsByCard.get(c.accountId) ?? [],
+              month,
+              s.available,
+              state.creditParts.get(c.accountId) ?? 0,
+            )
+          : null;
       return {
         id: c.id,
         name: c.name,
@@ -531,16 +546,8 @@ export function computeMonth(input: EngineInput, month: Month): MonthDetail {
         activity: s.activity,
         available: s.available,
         carried: s.carried,
-        target: targetFor(c.id, s),
-        payment:
-          c.kind === "credit_card_payment" && c.accountId
-            ? cardPayment(
-                p.flowsByCard.get(c.accountId) ?? [],
-                month,
-                s.available,
-                state.creditParts.get(c.accountId) ?? 0,
-              )
-            : null,
+        target: targetFor(c.id, s, payment),
+        payment,
       };
     });
     const visible = cats.filter((c) => !c.hidden);
