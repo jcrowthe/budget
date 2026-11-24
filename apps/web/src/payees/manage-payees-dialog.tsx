@@ -43,8 +43,11 @@ export function ManagePayeesDialog({
   const { canUndo, canRedo, undo, redo } = useUndo(b, scope);
   const [fault, setFault] = useState<string | null>(null);
   const [step, setStep] = useState(0);
+  // Both buttons stay off until the lists have refetched and the pane shows the restored state.
+  const [running, setRunning] = useState(false);
   const runStep = async (go: () => Promise<unknown>) => {
     setFault(null);
+    setRunning(true);
     try {
       await go();
     } catch (e) {
@@ -52,6 +55,7 @@ export function ManagePayeesDialog({
     } finally {
       await invalidatePayeeViews(qc, b);
       setStep((n) => n + 1);
+      setRunning(false);
     }
   };
   const popoverRef = useRef(popover);
@@ -199,7 +203,7 @@ export function ManagePayeesDialog({
           <button
             type="button"
             className="mp-button secondary"
-            disabled={!canUndo}
+            disabled={!canUndo || running}
             onClick={() => runStep(undo)}
           >
             Undo
@@ -207,7 +211,7 @@ export function ManagePayeesDialog({
           <button
             type="button"
             className="mp-button secondary"
-            disabled={!canRedo}
+            disabled={!canRedo || running}
             onClick={() => runStep(redo)}
           >
             Redo
