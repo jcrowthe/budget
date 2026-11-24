@@ -7,8 +7,8 @@ import { json } from "./helpers";
 import { type Json, P, payeeWorld } from "./manage-payees-helpers";
 import { sqlImport } from "./manual-match-helpers";
 import { REST_ACTOR, setupPlaid, stubBank, world1 } from "./plaid-sync-helpers";
-import { importForm, postImport, sampleZip, SAMPLE_ZIP_NAME } from "./plan-import-helpers";
 import { pinPlanClock } from "./plan-export-helpers";
+import { importForm, postImport, SAMPLE_ZIP_NAME, sampleZip } from "./plan-import-helpers";
 import { setNext, TODAY } from "./scheduled-helpers";
 import { mcpRpc } from "./surface";
 
@@ -171,7 +171,11 @@ describe("every writer keeps the stored default current (EXF-515 U3)", () => {
       ...over,
     });
     const make = async (s: Json, over: Json = {}) => {
-      const res = await send(`${B(s.bid)}/scheduled-transactions?today=${TODAY}`, "POST", input(s, over));
+      const res = await send(
+        `${B(s.bid)}/scheduled-transactions?today=${TODAY}`,
+        "POST",
+        input(s, over),
+      );
       expect(res.status).toBe(201);
       return (await data(res)).scheduled_transaction as Json;
     };
@@ -187,7 +191,11 @@ describe("every writer keeps the stored default current (EXF-515 U3)", () => {
       const s = await seeded();
       const sc = await make(s);
       await setNext(sc.id, "2026-11-10");
-      const r = await enterDue(env, { budgetIds: [s.bid], day: "2026-11-16", actor: "service:scheduler" });
+      const r = await enterDue(env, {
+        budgetIds: [s.bid],
+        day: "2026-11-16",
+        actor: "service:scheduler",
+      });
       expect(r.entered).toHaveLength(1);
       expect((await s.stored("ZZ P"))?.c).toBe(s.ids.Groceries);
     });
@@ -212,9 +220,7 @@ describe("every writer keeps the stored default current (EXF-515 U3)", () => {
 
   it("a plan import stores the defaults of its payees", async () => {
     pinPlanClock();
-    const res = await postImport(
-      importForm([{ name: SAMPLE_ZIP_NAME, data: await sampleZip() }]),
-    );
+    const res = await postImport(importForm([{ name: SAMPLE_ZIP_NAME, data: await sampleZip() }]));
     const bid = ((await res.json()) as Json).data.budget_id as string;
     const rows = (
       await env.DB.prepare(
@@ -247,7 +253,11 @@ describe("a create with no category keys takes the payee's default (Q3, EXF-515 
     const mcp = async (body: Json) => {
       await mcpRpc(
         "initialize",
-        { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+        {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "t", version: "1" },
+        },
         1,
       );
       const r = (
@@ -267,7 +277,8 @@ describe("a create with no category keys takes the payee's default (Q3, EXF-515 
         )
       ).body.result as Json;
       expect(r.isError, JSON.stringify(r)).toBeFalsy();
-      return (r.structuredContent?.transaction ?? JSON.parse(r.content[0].text).transaction) as Json;
+      return (r.structuredContent?.transaction ??
+        JSON.parse(r.content[0].text).transaction) as Json;
     };
     return { ...s, rest, mcp, pid: await s.id("ZZ P") };
   }

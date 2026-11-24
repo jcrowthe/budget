@@ -150,11 +150,13 @@ describe("the bank import uses the payee's effective default (EXF-515 U3)", () =
 
 describe("a sync keeps the stored defaults of the payees it touched current (EXF-515 U3)", () => {
   const stored = async (plan: string, name: string) =>
-    (await q(
-      "select default_category_id c, default_inflow_to_ready_to_assign r from payees where budget_id = ? and name = ?",
-      plan,
-      name,
-    ))[0] as Json;
+    (
+      await q(
+        "select default_category_id c, default_inflow_to_ready_to_assign r from payees where budget_id = ? and name = ?",
+        plan,
+        name,
+      )
+    )[0] as Json;
   const patchTx = (plan: string, id: string, body: Json) =>
     json(`${TX(plan)}/${id}`, { method: "PATCH" }, body);
 
