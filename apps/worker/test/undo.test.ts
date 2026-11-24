@@ -135,7 +135,10 @@ describe("2. reject an import", () => {
         w.account,
       ),
     ).toHaveLength(0);
-    await runUntilDone(env, w.conn);
+    // the bank sends that transaction again (the cursor is past the first page)
+    feed.pages = [...feed.pages, { added: [plaidTxn({ transaction_id: "ZZ-REJ", amount: 9.5 })] }];
+    const again = await runUntilDone(env, w.conn);
+    expect(again.reduce((n, r) => n + (r.added ?? 0), 0)).toBe(0);
     const live = await q(
       "select id from transactions where account_id = ? and import_id = 'ZZ-REJ' and deleted_at is null",
       w.account,
@@ -248,8 +251,21 @@ describe("5. move and cover", () => {
     const cv = await send(`${B(b)}/months/${MONTH}/categories/${C}/cover`, "POST", { from: A });
     expect(cv.status, await cv.clone().text()).toBe(200);
     expect(await read()).not.toEqual(s1);
-    await ok(b, setOf(cv));
+    const cvSet = setOf(cv);
+    const cvMoveId = (await data(cv)).move_id as string;
+    const CU = await ok(b, cvSet);
     expect(await read()).toEqual(s1);
+    const cvRows = await q(
+      "select after_json from change_log where change_set_id = ? and entity_type = 'month_category'",
+      CU,
+    );
+    expect(cvRows).toHaveLength(2);
+    for (const r of cvRows) {
+      const aft = JSON.parse(r.after_json);
+      expect(aft.move.kind).toBe("undo");
+      expect(aft.undo_of).toBe(cvSet);
+      expect(aft.move.undo_of).toBe(cvMoveId);
+    }
   });
 });
 
