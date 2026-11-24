@@ -62,19 +62,19 @@ The table is **complete**: it covers every `inArray(`, `notInArray(`, `idList(` 
 | `repositories/imports.ts` · `livePlanIds` (`plaid-sync.ts:242`, `account-links.ts:289`) | the distinct plans with a live link to one connection | **none** (the number of plans) | **Fixed**: `idsIn` |
 | `repositories/accounts.ts` · `linksAsRead` (plan delete, `services/budgets.ts:255,280`) | the plan's linked accounts | `MAX_LINKS_AS_READ = 90`, refused with 409 before the statement | Not fixed: see below |
 | `repositories/imports.ts` · `knownImportIds`, `tombstonesQuery`, `rowsByImportIdQuery` | import ids of a file or of Plaid | chunked: `CHUNK - 1 = 89`, `CHUNK = 90`, `SYNC_UNIT_SIZE = 90`, plus the plan's id | Kept |
-| `repositories/categories.ts` · `historyOf`, `noHistory`, `allActive`, `softDeleteManyStmt`; `services/category-delete.ts:63,112`; `repositories/category-reassign.ts:9`; `repositories/month-categories.ts:92` | the deleted category, or the live categories of one group | one group's categories, no number; several bindings per id per statement | Not fixed: see below |
-| `repositories/categories.ts` · `listActiveByIds` | (no caller in `src`) | none | Not fixed: dead code, named |
+| `repositories/categories.ts` · `historyOf`, `noHistory`, `allActive`, `softDeleteManyStmt`; `services/category-delete.ts:63,112`; `repositories/category-reassign.ts:9`; `repositories/month-categories.ts:92` | the deleted category, or the live categories of one group | one group's categories, any number | **Fixed (EXF-883)**: `idList` binds the list as one JSON parameter (`json_each`), so each statement's parameters no longer grow with the group |
+| `repositories/categories.ts` · `listActiveByIds` | (no caller in `src`) | none | **Removed (EXF-883)** |
 | `repositories/scheduled-transactions.ts` · `listDue` `budgetIds` | `[budget_id]` from the route and the tool, or `"all"` from the cron | 1 | Kept |
 | `reports.ts:286` `CASH_TYPES`; `plan-activity.ts:70`, `transactions.ts:197` `UNCOUNTED_STARTING_TYPES`; `card-flows.ts:34`, `plan-activity.ts:35` card types; `reconcile.ts:10` literals; `bank-connections.ts:159,207` statuses | constants | a constant | Kept |
 | `payees.ts` `idsIn`; `transactions.ts:319,614,667,711`; `scheduled-transactions.ts:89,222` (`json_each`); `reports.ts:49`, `accounts.ts` `linkedToConnection` / `noLinksToConnection` (sub-selects) | — | one parameter already | Kept |
 
 ### Found, not fixed
 
-- **Category deletes, one group's categories.** `historyOf` binds the ids twice (2n + 2). By counting placeholders (not run), `GET` usage of a category group fails from about 49 categories in the group. Each statement of the delete batch carries the guard `full` (`noHistory` 2n, `allActive` n, …), so a group delete fails from roughly 30 categories in one group. It answers 500. An ordinary plan rarely puts 30 categories in one group, so this is **not as bad as the list**, but it is reachable. For a ticket.
+- **Fixed (EXF-883, see `bound-lists-design.md`).** **Category deletes, one group's categories.** `historyOf` binds the ids twice (2n + 2). By counting placeholders (not run), `GET` usage of a category group fails from about 49 categories in the group. Each statement of the delete batch carries the guard `full` (`noHistory` 2n, `allActive` n, …), so a group delete fails from roughly 30 categories in one group. It answers 500. An ordinary plan rarely puts 30 categories in one group, so this is **not as bad as the list**, but it is reachable. For a ticket.
 - **Plan delete with more than 90 linked accounts** is refused with 409 (`MAX_LINKS_AS_READ`). It is a stated bound with a clean refusal, not a crash. `idsIn` over `id|bank_account_id` pairs would lift it. For a ticket if wanted.
-- **`listActiveByIds`** has no caller.
+- **Removed (EXF-883).** **`listActiveByIds`** had no caller.
 - **Items left at Plaid's Sandbox by earlier runs** (the Lead's and the gates') stay. Their access tokens went with the boxes that made them, and nothing can remove them. Nothing is done.
-- The Worker logs only the error's name for a 500 (`middleware/errors.ts`, a shared module, out of bounds), which is why the cause was not visible in the server log.
+- **Fixed (EXF-884, see `bound-lists-design.md`).** The Worker logged only the error's name for a 500 (`middleware/errors.ts`, a shared module, out of bounds), which is why the cause was not visible in the server log.
 
 ## The spec cleans up (`e2e/bank-connections-sandbox.spec.ts`)
 

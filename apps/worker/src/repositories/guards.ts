@@ -8,12 +8,10 @@ export function whenQuery(db: Db, cond: SQL) {
   return db.select({ x: sql`1` }).from(sql`(select 1)`).where(cond);
 }
 
-/** `a, b, c` as bound parameters, for an `in (...)` list. */
+/** The ids as ONE bound parameter, for `col in (${idList(ids)})`: renders `select value from json_each(?)` bound to
+ *  JSON.stringify(ids). Any number of ids (D1 allows 100 parameters per statement). */
 export function idList(ids: readonly string[]): SQL {
-  return sql.join(
-    ids.map((i) => sql`${i}`),
-    sql`, `,
-  );
+  return sql`select value from json_each(${JSON.stringify(ids)})`;
 }
 
 /** AND of the conditions that are present. */
