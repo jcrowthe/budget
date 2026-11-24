@@ -5,6 +5,7 @@ import type { Db } from "../db/client";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { changeLog } from "../db/schema/change-log";
+import { currentChangeSetId } from "../history/change-set";
 import { paymentCategoryJson } from "../repositories/categories";
 import { type LogBase, logSelectStmt } from "../repositories/guards";
 import { insertSelect } from "../repositories/insert-select";
@@ -97,6 +98,7 @@ export function paymentCreateStmts(
         beforeJson: sql`null`,
         afterJson: sql`json_object('id', g.id, 'budget_id', g.budget_id, 'name', g.name, 'sort', g.sort_order, 'hidden', json('false'), 'collapsed', json('false'), 'kind', g.kind)`,
         createdAt: p.now,
+        changeSetId: currentChangeSetId(),
       },
       sql`from category_groups g where g.id = ${gid}`,
     ),

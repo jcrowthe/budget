@@ -3,6 +3,7 @@ import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { changeLog } from "../db/schema/change-log";
 import { transactions } from "../db/schema/transactions";
+import { currentChangeSetId } from "../history/change-set";
 import { insertSelect } from "./insert-select";
 import { countsInBalance } from "./transactions";
 
@@ -35,6 +36,7 @@ export function reconcileLogsStmt(
       beforeJson: sql`json_object('id', ${transactions.id}, 'cleared', 'cleared')`,
       afterJson: sql`json_object('id', ${transactions.id}, 'cleared', 'reconciled', 'updated_at', ${p.now})`,
       createdAt: p.now,
+      changeSetId: currentChangeSetId(),
     },
     sql`from ${transactions} where ${clearedRows(p.accountId)} and exists ${p.guard}`,
   );

@@ -12,6 +12,10 @@ export const changeLog = sqliteTable(
     beforeJson: text("before_json"),
     afterJson: text("after_json"),
     createdAt: text("created_at").notNull(),
+    changeSetId: text("change_set_id"),
   },
-  (t) => [index("change_log_budget_created").on(t.budgetId, t.createdAt)],
+  (t) => [
+    index("change_log_budget_created").on(t.budgetId, t.createdAt),
+    index("change_log_change_set").on(t.budgetId, t.changeSetId),
+  ],
 );

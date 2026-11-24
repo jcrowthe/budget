@@ -1,6 +1,7 @@
 import { type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { changeLog } from "../db/schema/change-log";
+import { currentChangeSetId } from "../history/change-set";
 import { insertSelect } from "./insert-select";
 
 /** A `SELECT 1` that yields a row only while `cond` holds, for `changeLogInsertIf`. */
@@ -58,6 +59,7 @@ export function logSelectStmt(
       beforeJson: cols.before ?? sql`null`,
       afterJson: cols.after ?? sql`null`,
       createdAt: base.createdAt,
+      changeSetId: currentChangeSetId(),
     },
     sql`from (select lower(hex(randomblob(16))) as h, s.* from (${inner}) s)`,
   );

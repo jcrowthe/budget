@@ -2,6 +2,7 @@ import { type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { changeLog } from "../db/schema/change-log";
 import { insertSelect } from "../repositories/insert-select";
+import { currentChangeSetId } from "./change-set";
 
 export interface ChangeLogEntry {
   budgetId: string | null;
@@ -29,7 +30,7 @@ function row(e: ChangeLogEntry) {
 
 /** Returns an UNEXECUTED insert: put it in the same `db.batch` as the row change it records. */
 export function changeLogInsert(db: Db, e: ChangeLogEntry) {
-  return db.insert(changeLog).values(row(e));
+  return db.insert(changeLog).values({ ...row(e), changeSetId: currentChangeSetId() });
 }
 
 /**
@@ -37,6 +38,10 @@ export function changeLogInsert(db: Db, e: ChangeLogEntry) {
  * Put it BEFORE the guarded UPDATE in the batch, with the same guard, so a lost race logs nothing.
  */
 export function changeLogInsertIf(db: Db, e: ChangeLogEntry, exists: SQLWrapper) {
-  const r = row(e);
-  return insertSelect(db, changeLog, r, sql`where exists ${exists}`);
+  return insertSelect(
+    db,
+    changeLog,
+    { ...row(e), changeSetId: currentChangeSetId() },
+    sql`where exists ${exists}`,
+  );
 }

@@ -3,6 +3,7 @@ import type { JWTVerifyGetKey } from "jose";
 import type { AppEnv } from "./env";
 import { mcpRoute } from "./mcp/server";
 import { accessMiddleware } from "./middleware/access";
+import { changeSet } from "./middleware/change-set";
 import { catchNonError, notFoundApi, onError } from "./middleware/errors";
 import { idempotency } from "./middleware/idempotency";
 
@@ -16,6 +17,8 @@ export function createApp(opts: { getKey?: JWTVerifyGetKey } = {}) {
   app.onError(onError);
   app.use("*", catchNonError);
   app.use("*", accessMiddleware(opts));
+  app.use("/api/v1/*", changeSet());
+  app.use("/mcp", changeSet());
   app.use("/api/v1/*", idempotency());
   for (const key of Object.keys(routeModules).sort()) {
     const mod = routeModules[key];

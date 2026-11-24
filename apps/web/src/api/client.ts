@@ -15,7 +15,14 @@ export class ApiError extends Error {
 /** The web app calls only /api/v1; the zod schemas come from @budget/schema (shared with the Worker). */
 export async function apiFetch<S extends z.ZodType>(
   path: `/api/v1/${string}`,
-  opts: { method?: string; body?: unknown; idempotencyKey?: string; schema: S },
+  opts: {
+    method?: string;
+    body?: unknown;
+    idempotencyKey?: string;
+    schema: S;
+    /** Called with the Budget-Change-Set header of a 2xx write (docs/undo-design.md). */
+    onChangeSet?: (id: string) => void;
+  },
 ): Promise<z.infer<S>> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
@@ -36,5 +43,10 @@ export async function apiFetch<S extends z.ZodType>(
       e?.detail ?? res.statusText,
     );
   }
+  // The write happened even if parsing the body fails below, so report its change set first.
+  const method = (opts.method ?? "GET").toUpperCase();
+  const changeSet = res.headers.get("Budget-Change-Set");
+  if (changeSet && ["POST", "PATCH", "PUT", "DELETE"].includes(method))
+    opts.onChangeSet?.(changeSet);
   return opts.schema.parse(data);
 }
