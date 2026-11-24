@@ -181,13 +181,16 @@ describe("3. bulk", () => {
 describe("4. EXF-504 AC2 Assigned history", () => {
   it("three undos and three redos", async () => {
     const b = await plan();
-    const [rent, groc] = [await category(b, "Rent"), await category(b, "Groceries")] as string[];
+    const [rent, groc] = [
+      await category(b, "Rent/Mortgage"),
+      await category(b, "Groceries"),
+    ] as string[];
     await assign(b, rent as string, 450);
     await assign(b, groc as string, 205);
     const S1 = await assign(b, rent as string, 451);
     const S2 = await assign(b, groc as string, 207);
     const S3 = await assign(b, rent as string, 454);
-    const now = () => assigned(b, ["Rent", "Groceries"]);
+    const now = () => assigned(b, ["Rent/Mortgage", "Groceries"]);
     expect(await now()).toEqual([454, 207]);
     const U3 = await ok(b, S3);
     expect(await now()).toEqual([451, 207]);
@@ -209,12 +212,12 @@ describe("5. move and cover", () => {
     const b = await plan();
     const a = await account(b);
     const [A, Bc, C] = [
-      await category(b, "Rent"),
+      await category(b, "Rent/Mortgage"),
       await category(b, "Groceries"),
       await category(b, "Transportation"),
     ] as string[];
     await assign(b, A as string, 400);
-    const names = ["Rent", "Groceries", "Transportation"];
+    const names = ["Rent/Mortgage", "Groceries", "Transportation"];
     const read = async () =>
       (await cells(b, names)).map((c) => [c.assigned, c.activity, c.available]);
     const s0 = await read();
@@ -267,7 +270,7 @@ describe("6. category delete with reassign_to", () => {
       amount: 20000,
     });
     expect(tg.status, await tg.clone().text()).toBe(200);
-      (await data(await json(`${B(b)}/categories/${C}/target`)).catch?.(() => null)) ?? null;
+    (await data(await json(`${B(b)}/categories/${C}/target`)).catch?.(() => null)) ?? null;
     const t1 = await tx(b, { account_id: a, date: "2026-11-10", amount: -1000, category_id: C });
     const t2 = await tx(b, {
       account_id: a,
