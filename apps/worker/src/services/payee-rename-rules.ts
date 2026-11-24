@@ -218,7 +218,7 @@ function autoRow(a: AutoRule, text: string): rulesRepo.RuleRow {
 /**
  * The statements of the rules a row's payee change makes by itself, in the change's own batch, each under `guard`
  * (the batch's condition) and with its history row by the change's actor: no read, no round trip.
- * Learn: `is <name>` on the new payee unless it has it. Undo: every other payee's `is <name>` goes, and if a
+ * Learn: every other payee's `is <name>` goes, and `is <name>` on the new payee unless it has it. Undo: every other payee's `is <name>` goes, and if a
  * `contains` rule of another payee still matches the name, the new payee gets `is <name>` so that it holds.
  * Empty when the imported name cannot be a rule's text (blank, over 200 characters).
  */
@@ -234,7 +234,12 @@ export function autoRuleStmts(db: ReturnType<typeof getDb>, a: AutoRule, guard: 
     createdAt: a.now,
   };
   const row = autoRow(a, checked.text);
-  if (a.mode === "learn") return [...rulesRepo.addIfMissingStmts(db, base, row, cond)];
+  if (a.mode === "learn")
+    return [
+      // Every other payee's `is <name>` goes, so the correction is the only one left (created_at is never rewritten).
+      ...rulesRepo.removeIsRulesStmts(db, base, a.budgetId, row.matchText, a.payeeId, cond),
+      ...rulesRepo.addIfMissingStmts(db, base, row, cond),
+    ];
   return [
     ...rulesRepo.removeIsRulesStmts(db, base, a.budgetId, row.matchText, a.payeeId, cond),
     ...rulesRepo.addIfMissingStmts(
