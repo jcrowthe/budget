@@ -159,6 +159,35 @@ export function ReconciledSaveDialog({
   );
 }
 
+export function ClosedAccountSaveDialog({
+  onCancel,
+  onSave,
+}: {
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Modal
+      title="Warning: Closed Account"
+      onCancel={onCancel}
+      footer={
+        <>
+          <button type="button" className="secondary" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="primary" onClick={onSave}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <p className="bulk-dialog-text">
+        Editing transactions from closed accounts can result in unexpected changes to your plan.
+      </p>
+    </Modal>
+  );
+}
+
 export function ExportDialog({
   onCancel,
   onExport,

@@ -66,7 +66,7 @@ test("saving an edit in a closed account asks first: Cancel keeps the row, Save 
   await expect(dialog).toHaveCount(0);
   // The row is still in edit mode with the typed value, and nothing was saved.
   await expect(page.locator(".entry-body")).toHaveCount(1);
-  await expect(outflow(page)).toHaveValue("120");
+  await expect(outflow(page)).toHaveValue("120.00");
   expect(await amountOf()).toBe(-100000);
   await outflow(page).press("Enter");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();

@@ -27,7 +27,7 @@ import { AccountField } from "./AccountField";
 import { AmountField } from "./AmountField";
 import { useAttentionColumn } from "./attention-filter";
 import { Box } from "./Box";
-import { ReconciledSaveDialog } from "./BulkDialogs";
+import { ClosedAccountSaveDialog, ReconciledSaveDialog } from "./BulkDialogs";
 import { CategoryField } from "./CategoryField";
 import { DateField } from "./DateField";
 import {
@@ -130,6 +130,7 @@ export function EntryRow({
     next: "close" | "again";
   } | null>(null);
   const [askReconciled, setAskReconciled] = useState<PendingSave | null>(null);
+  const [askClosed, setAskClosed] = useState<PendingSave | null>(null);
   const [lineFocus, setLineFocus] = useState<{ line: number; n: number } | null>(null);
   const qc = useQueryClient();
   const accountsQ = useAccounts(budgetId);
@@ -288,12 +289,20 @@ export function EntryRow({
       return;
     }
     const iso = (body as { date?: string }).date ?? d.lastDate;
-    // A reconciled row asks before an amount, date or account change is saved (EXF-533).
-    if (mode === "edit" && tx?.cleared === "reconciled" && touchesLocked(body)) {
-      setAskReconciled({ next, body, iso });
+    // A closed account's row asks before any edit is saved (EXF-721); then the reconciled check follows.
+    if (mode === "edit" && account?.closed) {
+      setAskClosed({ next, body, iso });
       return;
     }
-    send({ next, body, iso }, false);
+    afterClosedCheck({ next, body, iso });
+  };
+  const afterClosedCheck = (p: PendingSave) => {
+    // A reconciled row asks before an amount, date or account change is saved (EXF-533).
+    if (mode === "edit" && tx?.cleared === "reconciled" && touchesLocked(p.body)) {
+      setAskReconciled(p);
+      return;
+    }
+    send(p, false);
   };
   const send = (p: PendingSave, confirmed: boolean) => {
     saving.current = true;
@@ -559,6 +568,16 @@ export function EntryRow({
           </div>
         </td>
       </tr>
+      {askClosed && (
+        <ClosedAccountSaveDialog
+          onCancel={() => setAskClosed(null)}
+          onSave={() => {
+            const p = askClosed;
+            setAskClosed(null);
+            afterClosedCheck(p);
+          }}
+        />
+      )}
       {askReconciled && (
         <ReconciledSaveDialog
           onCancel={() => setAskReconciled(null)}

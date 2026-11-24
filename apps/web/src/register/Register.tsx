@@ -86,6 +86,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
           name={account?.name ?? "All Accounts"}
           onAdd={() => openAdd()}
           closed={closed}
+          closedAccount={!!account?.closed}
           onRecordPayment={credit ? openPayment : undefined}
           paymentDisabled={!account || account.closed || !pay.settled}
           viewScope={account ? "account" : "all"}
