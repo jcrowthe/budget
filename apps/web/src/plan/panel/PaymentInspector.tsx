@@ -47,8 +47,13 @@ function PaymentCard({
 }) {
   const fmt = usePlanFormatter();
   const navigate = useNavigate();
-  const create = (
-    <button type="button" className="popover-button payment-button" onClick={onCreateTarget}>
+  // Secondary beneath Cover Overspent Categories; the card's only action when it is merely underfunded.
+  const create = (tone: "is-primary" | "is-secondary") => (
+    <button
+      type="button"
+      className={`popover-button ${tone} payment-button`}
+      onClick={onCreateTarget}
+    >
       Create a Debt Payoff Target
     </button>
   );
@@ -111,7 +116,7 @@ function PaymentCard({
           >
             Cover Overspent Categories
           </button>
-          {create}
+          {create("is-secondary")}
         </>
       );
       break;
@@ -124,7 +129,7 @@ function PaymentCard({
           </h3>
           <PaymentBar available={p.available} balance={p.current_balance} />
           <p>You need to assign {fmt.money(p.underfunded)} more to pay off your current balance.</p>
-          {create}
+          {create("is-primary")}
         </>
       );
       break;

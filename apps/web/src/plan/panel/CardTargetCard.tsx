@@ -258,7 +258,7 @@ export function CardTargetCard({
       <div className="target-view">
         <div className="target-summary">
           <div className="target-heading-block">
-            {head.label && <p className="target-subheading">{head.label}</p>}
+            {head.label && <p className="target-label">{head.label}</p>}
             <h3 className="target-heading">{head.heading}</h3>
             <p className="target-subheading">{head.subheading}</p>
           </div>
