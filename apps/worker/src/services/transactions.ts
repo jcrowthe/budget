@@ -35,7 +35,7 @@ import { importStartAfterMove, importStartStmts } from "./account-links";
 import { runGroups, type StatementGroup } from "./batch-groups";
 import { formatsOfRow } from "./budgets";
 import { autoRuleStmts } from "./payee-rename-rules";
-import { resolvePayee } from "./payees";
+import { payeeToApi, resolvePayee } from "./payees";
 import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
 import { bulkTransactions } from "./transactions-bulk";
@@ -632,7 +632,39 @@ export async function addTransaction(
       }
       return detailOf(db, budgetId, row.id);
     }
-    await validate(db, budgetId, row, account);
+    // A create that sends neither category key takes its payee's effective default (a row that can take one).
+    let defaulted = false;
+    if (
+      v.category_id === undefined &&
+      v.inflow_to_ready_to_assign === undefined &&
+      account.onBudget &&
+      row.payeeId &&
+      !payee?.create
+    ) {
+      const [found] = await payeesRepo.listForPlan(db, budgetId, {
+        includeHidden: true,
+        ids: [row.payeeId],
+      });
+      const d = found
+        ? payeeToApi(found, found.lastCategoryId, found.lastInflowToReadyToAssign)
+        : null;
+      if (d?.default_category_id) {
+        row.categoryId = d.default_category_id;
+        defaulted = true;
+      } else if (d?.default_inflow_to_ready_to_assign) {
+        row.inflowToReadyToAssign = true;
+        defaulted = true;
+      }
+    }
+    try {
+      await validate(db, budgetId, row, account);
+    } catch (e) {
+      // The payee's default is this card's own payment category: the request named none, so take none.
+      if (!(defaulted && e instanceof TransactionRefused && e.code === "own_payment_category"))
+        throw e;
+      row.categoryId = null;
+      await validate(db, budgetId, row, account);
+    }
     const names = await namesOf(db, budgetId, row.categoryId);
     try {
       await db.batch(

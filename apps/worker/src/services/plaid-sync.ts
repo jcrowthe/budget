@@ -12,6 +12,7 @@ import {
   modifiedPlan,
   NEEDS_REPAIR,
   netChanges,
+  type PayeeDefault,
   type PlaidTxn,
   payeeNameOf,
   pickMatch,
@@ -42,12 +43,14 @@ import { type BalanceAccount, fetchBalances, fetchSyncPages } from "../plaid/tra
 import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as importsRepo from "../repositories/imports";
+import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { bankAccountRow, toApi } from "./bank-connections";
 import { batchCount, runGroups } from "./batch-groups";
 import { getBudgetEnvironment } from "./budgets";
+import { payeeToApi } from "./payees";
 import { CallBudget, countedEnv, countedPlaid, SyncBudgetTooSmall } from "./sync-budget";
 import { logShape } from "./transactions";
 
@@ -311,10 +314,8 @@ async function syncConnection(
           (x) => x.system === null,
         );
         p = {
-          byName: new Map(list.map((x) => [x.name, { lastCategoryId: x.lastCategoryId }])),
-          byId: new Map(
-            list.map((x) => [x.id, { name: x.name, lastCategoryId: x.lastCategoryId }]),
-          ),
+          byName: new Map(list.map((x) => [x.name, defaultOf(x)])),
+          byId: new Map(list.map((x) => [x.id, { name: x.name, default: defaultOf(x) }])),
         };
         payeesOf.set(budgetId, p);
       }
@@ -756,6 +757,12 @@ async function syncConnection(
       ? bankAccounts.filter((b) => !byPlaidId.has(b.plaidAccountId)).map((b) => b.id)
       : [];
   if (unlisted.length > 0) final.push(bankRepo.deleteUnlistedStmt(db, row.id, unlisted, guard));
+  // The imports and changes of this sync move the payees' histories: recompute their stored defaults, in this batch.
+  if (wrote)
+    for (const planId of new Set(open.map((l) => l.account.budgetId))) {
+      const stmt = recomputeDefaultsStmt(db, planId, "plan");
+      if (stmt) final.push(stmt);
+    }
   final.push(
     bankRepo.updateConnectionStmt(
       db,
@@ -810,15 +817,23 @@ function importValues(txn: PlaidTxn, amount: number, payeeName: string | null) {
 }
 
 /** A group of statements with the kind of change each one counts, when it changes a row. */
-type PayeeMap = Map<string, { lastCategoryId: string | null }>;
 type PlanPayees = {
-  byName: PayeeMap;
-  byId: Map<string, { name: string; lastCategoryId: string | null }>;
+  byName: Map<string, PayeeDefault>;
+  byId: Map<string, { name: string; default: PayeeDefault }>;
 };
+
+/** The payee's effective default, as the API shows it (mode, fixed choice and history). */
+function defaultOf(x: payeesRepo.PayeeListRow): PayeeDefault {
+  const p = payeeToApi(x, x.lastCategoryId, x.lastInflowToReadyToAssign);
+  return {
+    categoryId: p.default_category_id,
+    inflowToReadyToAssign: p.default_inflow_to_ready_to_assign,
+  };
+}
 
 /**
  * The payee an imported name goes to: the payee of the plan's winning renaming rule when there is one (its name, its
- * last category), else the payee of that name. `ruleGone` holds when the rule's payee was deleted since the read, so
+ * default), else the payee of that name. `ruleGone` holds when the rule's payee was deleted since the read, so
  * that the bank's name is made then and the import is not lost.
  */
 function payeeTarget(
@@ -836,7 +851,7 @@ function payeeTarget(
         sql`coalesce(${payeesRepo.liveOrdinaryIdSql(budgetId, rule.payeeId)}, ${payeesRepo.ordinaryIdByNameSql(budgetId, bankName)})` as
           | SQL
           | undefined,
-      entry: rp as { lastCategoryId: string | null } | null,
+      entry: rp.default as PayeeDefault | null,
       rule,
       ruleGone:
         sql`(select 1 where not ${payeesRepo.liveOrdinarySql(budgetId, rule.payeeId)})` as SQL | null,
@@ -847,9 +862,7 @@ function payeeTarget(
     idSql: (bankName ? payeesRepo.ordinaryIdByNameSql(budgetId, bankName) : undefined) as
       | SQL
       | undefined,
-    entry: (bankName ? (pp.byName.get(bankName) ?? null) : null) as {
-      lastCategoryId: string | null;
-    } | null,
+    entry: (bankName ? (pp.byName.get(bankName) ?? null) : null) as PayeeDefault | null,
     rule: null as rulesRepo.RuleRow | null,
     ruleGone: null as SQL | null,
   };

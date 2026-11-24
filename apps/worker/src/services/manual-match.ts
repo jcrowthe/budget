@@ -5,6 +5,7 @@ import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
+import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { formatsOfRow } from "./budgets";
@@ -103,7 +104,7 @@ export async function matchTransactions(
     const both = txRepo.allHold([txRepo.holdsAt(db, entry), txRepo.holdsAt(db, imp)]);
     const last = txRepo.allHold([txRepo.holdsAt(db, entry), txRepo.writtenAt(db, imp.id, now)]);
     const after = { ...entry, ...set } as typeof entry;
-    const results = await db.batch([
+    const writes = [
       changeLogInsertIf(
         db,
         {
@@ -148,9 +149,16 @@ export async function matchTransactions(
         : []),
       txRepo.softDeleteIfStmt(db, imp.id, now, both),
       txRepo.updateIfStmt(db, entry.id, set, last),
+    ];
+    // The success check reads the guarded update; the recompute of the payees' stored defaults follows it.
+    const success = writes.length - 1;
+    const recompute = recomputeDefaultsStmt(db, budgetId, [imp.payeeId, entry.payeeId]);
+    const results = await db.batch([
+      ...writes,
+      ...(recompute ? [recompute] : []),
     ] as unknown as Parameters<typeof db.batch>[0]);
-    const changes = (results[results.length - 1] as { meta?: { changes?: number } } | undefined)
-      ?.meta?.changes;
+    const changes = (results[success] as { meta?: { changes?: number } } | undefined)?.meta
+      ?.changes;
     if ((changes ?? 0) === 0) continue;
     return {
       transaction: await detailOf(db, budgetId, entry.id),
@@ -229,10 +237,11 @@ export async function unmatchTransaction(
       flagColor: null,
     };
     const guard = txRepo.holdsAt(db, row);
+    const recompute = recomputeDefaultsStmt(db, budgetId, [row.payeeId, payee?.payeeId]);
     const results = await (async () => {
       try {
         return await db.batch([
-          // First, so the batch's last statement is still the guarded insert whose `changes` is read below.
+          // First, so the guarded insert whose `changes` is read below keeps its place from the end (before the recompute).
           ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
           ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
           changeLogInsertIf(
@@ -279,6 +288,8 @@ export async function unmatchTransaction(
             : []),
           txRepo.updateIfStmt(db, row.id, set, guard),
           txRepo.insertIfStmt(db, newImport, txRepo.writtenAt(db, row.id, now)),
+          // Last: the stored defaults of the entry's payee and of the import's follow the new history.
+          ...(recompute ? [recompute] : []),
         ] as unknown as Parameters<typeof db.batch>[0]);
       } catch (e) {
         if (payee?.create && payeesRepo.isUniqueViolation(e)) return null;
@@ -287,8 +298,9 @@ export async function unmatchTransaction(
       }
     })();
     if (!results) continue;
-    const changes = (results[results.length - 1] as { meta?: { changes?: number } } | undefined)
-      ?.meta?.changes;
+    const changes = (
+      results[results.length - (recompute ? 2 : 1)] as { meta?: { changes?: number } } | undefined
+    )?.meta?.changes;
     if ((changes ?? 0) === 0) continue;
     const [transaction, imported] = await detailsOf(db, budgetId, [row.id, newImport.id]);
     return { transaction: transaction as never, imported: imported as never };

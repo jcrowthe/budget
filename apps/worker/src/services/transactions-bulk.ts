@@ -13,6 +13,7 @@ import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
+import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as txRepo from "../repositories/transactions";
 import { formatsOfRow } from "./budgets";
 import { newOtherSide } from "./transaction-pairs";
@@ -465,7 +466,13 @@ export async function bulkTransactions(
       if (i === 0) firstSelf = w.self;
       else selfs.push(w.self);
     }
-    const statements = [firstSelf, ...logs, ...rest, ...selfs];
+    // Categorize, move, duplicate and delete change the payees' histories: their stored defaults follow, in this batch.
+    const recompute = recomputeDefaultsStmt(
+      db,
+      budgetId,
+      [...rows.values()].map((r) => r.payeeId),
+    );
+    const statements = [firstSelf, ...logs, ...rest, ...selfs, ...(recompute ? [recompute] : [])];
     if (statements.length > BULK_MAX_STATEMENTS) {
       throw new TransactionRefused(
         422,

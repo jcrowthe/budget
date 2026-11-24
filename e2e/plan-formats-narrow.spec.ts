@@ -289,6 +289,7 @@ test("EXF-726 polish P1: an Uncategorized Activity of thirteen characters stays 
     account_id: acct,
     date: TODAY,
     amount: -9777777760,
+    category_id: null,
     payee_name: "ZZ Payee",
   });
   await page.goto(`/${plan}/budget`);

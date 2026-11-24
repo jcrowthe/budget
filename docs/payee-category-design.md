@@ -116,3 +116,29 @@ Base suggestion (`last_category_id`) of the ticket rows, measured on base: Cafe 
 - A tie keeps the stored default (rule step 2), so one edited row can leave the default as it was (a single Fun row edited to Groceries keeps Fun). This is the contract's rule, read literally.
 - `buildPayeeDeleteBatch` stays at 6 statements; the replacement's recompute is appended outside it.
 
+
+## Writers and imports (U3)
+
+**`categoryFor` is the function the file import (EXF-531) must call.** `categoryFor(account, amount, payeeDefault)` in `packages/schema/src/plaid-import.ts` takes the payee's effective default, `{ categoryId, inflowToReadyToAssign } | null`, and returns the category of a new imported row. Read the default from `payeesRepo.listForPlan` and `payeeToApi` (the API's `default_category_id` / `default_inflow_to_ready_to_assign`), never from `last_category_id`. Order: an account that takes no category gets none; the default's category; the default's Ready to Assign; a deposit into a checking/savings account gets Ready to Assign; else none.
+
+- **Bank import.** `planPayees` fills a per-plan map from the one `listForPlan` read the sync already makes (no added D1 call), so every row of one sync uses the defaults read at its start. A row renamed by a rule takes the rule payee's default (docs/rename-rules-design.md).
+- **A1, `off` and cash inflows.** With no default (a brand-new payee, `off`, a `fixed` choice whose category is gone, no history) an inflow into checking/savings still gets Ready to Assign: the rule belongs to the account, and Ready to Assign is not a category. An `off` payee's outflow gets nothing.
+- **A2, an RTA default** is applied as it is to any row that can take a category, whatever its sign.
+- **A3, plan-wide recompute in the sync.** The final batch holds one `recomputeDefaultsStmt(db, plan, "plan")` per plan with an open linked account, only when the sync wrote something, before `updateConnectionStmt`, which stays last (its `changes` is the success check). A touched-ids list would miss a new payee (resolved by name in SQL), and "plan" also covers rows that moved or were deleted.
+- **A4, own payment category.** In Q3, a default that is the card's own payment category gives none instead of a 422 (the request named no category). The bank import never checked this either.
+- **A5.** `BULK_MAX_STATEMENTS` stays 400; the recompute statement counts inside it.
+- **Q3, create without category keys** (Driver's decision): a create with neither `category_id` nor `inflow_to_ready_to_assign` takes the payee's effective default when the row can take a category (not a split, not a transfer, not a tracking account, and the payee already exists). `category_id: null` means none. The response shows the result. This is in `addTransaction`, the path REST and MCP call; the test-only `createTransaction` is unchanged (D-create). It costs one D1 call, only on this path.
+
+Where the recompute rides (always in the writer's own batch, no added call):
+
+| Writer | Statement |
+| --- | --- |
+| bank sync | `"plan"`, per plan, in the final batch before `updateConnectionStmt` |
+| bulk categorize, move, duplicate, delete | the rows' payees, last, inside `BULK_MAX_STATEMENTS` |
+| match | both payees, after the guarded update; success read at its index |
+| unmatch | both payees, after the guarded insert; success read at its index |
+| `enterDue` | per plan, the payees of its entered rows |
+| scheduled `enter_now`, create and update that enter a row | the entered rows' payees |
+| plan import | `"plan"`: after the rows in the one batch; in the last chunk after the reveal and before `advanceStmt` (last) |
+
+D1 calls, before → after (same tests on main bd7c4fe and on the branch): bank sync 13 → 13 (`link-status-calls`, `rename-rules-calls`, `sync-refresh-calls`); a one-account sync 11 → 11; bulk memo 7 → 7, delete 5 → 5; match 7 → 7; unmatch 8 → 8; `enterDue` 2 → 2; `enter_now` 5 → 5; create with a payee and a category key 6 → 6, create with a payee and no category key 6 → 7 (the default read).
