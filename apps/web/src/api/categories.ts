@@ -8,30 +8,39 @@ import {
 import type { MonthDetail } from "@budget/schema/months";
 import { type QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { recordPlan } from "./assigned";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite, inOrder } from "./monthCache";
 
 const base = (b: string) => `/api/v1/budgets/${b}` as const;
 const write = { idempotencyKey: undefined as string | undefined };
 const key = () => ({ ...write, idempotencyKey: crypto.randomUUID() });
+type OnChangeSet = (id: string) => void;
 const reassign = (to?: string) => (to ? `?reassign_to=${encodeURIComponent(to)}` : "");
 
-export const createGroup = async (b: string, name: string) =>
+export const createGroup = async (b: string, name: string, onChangeSet?: OnChangeSet) =>
   (
     await apiFetch(`${base(b)}/category_groups`, {
       method: "POST",
       body: { name },
       schema: CategoryGroupResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.category_group;
 
-export const createCategory = async (b: string, groupId: string, name: string) =>
+export const createCategory = async (
+  b: string,
+  groupId: string,
+  name: string,
+  onChangeSet?: OnChangeSet,
+) =>
   (
     await apiFetch(`${base(b)}/categories`, {
       method: "POST",
       body: { group_id: groupId, name },
       schema: CategoryResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.category;
@@ -40,12 +49,14 @@ export const updateGroup = async (
   b: string,
   id: string,
   patch: { name?: string; hidden?: boolean; collapsed?: boolean },
+  onChangeSet?: OnChangeSet,
 ) =>
   (
     await apiFetch(`${base(b)}/category_groups/${id}`, {
       method: "PATCH",
       body: patch,
       schema: CategoryGroupResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.category_group;
@@ -54,12 +65,14 @@ export const updateCategory = async (
   b: string,
   id: string,
   patch: { name?: string; hidden?: boolean },
+  onChangeSet?: OnChangeSet,
 ) =>
   (
     await apiFetch(`${base(b)}/categories/${id}`, {
       method: "PATCH",
       body: patch,
       schema: CategoryResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.category;
@@ -82,55 +95,81 @@ export const categoryUsage = async (b: string, id: string) =>
   (await apiFetch(`${base(b)}/categories/${id}/usage`, { schema: CategoryUsageResponse })).data
     .usage;
 
-export const deleteGroup = async (b: string, id: string, reassignTo?: string) =>
+export const deleteGroup = async (
+  b: string,
+  id: string,
+  reassignTo?: string,
+  onChangeSet?: OnChangeSet,
+) =>
   (
     await apiFetch(`${base(b)}/category_groups/${id}${reassign(reassignTo)}`, {
       method: "DELETE",
       schema: CategoryDeletedResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.deleted;
 
-export const deleteCategory = async (b: string, id: string, reassignTo?: string) =>
+export const deleteCategory = async (
+  b: string,
+  id: string,
+  reassignTo?: string,
+  onChangeSet?: OnChangeSet,
+) =>
   (
     await apiFetch(`${base(b)}/categories/${id}${reassign(reassignTo)}`, {
       method: "DELETE",
       schema: CategoryDeletedResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.deleted;
 
-export const unhideAll = async (b: string) =>
+export const unhideAll = async (b: string, onChangeSet?: OnChangeSet) =>
   (
     await apiFetch(`${base(b)}/categories/unhide_all`, {
       method: "POST",
       schema: CategoriesUnhiddenResponse,
+      onChangeSet,
       ...key(),
     })
   ).data.unhidden;
 
-/** The writes of the grid, each refetching the plan's months when it succeeds. */
+/** The writes of the grid, each refetching the plan's months when it succeeds and put on the Undo stack. */
 export function useCategoryActions(budgetId: string) {
   const qc = useQueryClient();
   return useMemo(() => {
-    const done =
-      <A extends unknown[], R>(fn: (b: string, ...a: A) => Promise<R>) =>
-      async (...a: A): Promise<R> => {
-        await beginWrite(qc, budgetId);
-        try {
-          return await fn(budgetId, ...a);
-        } finally {
-          endWrite(qc, budgetId);
-        }
-      };
+    const done = async <R>(run: () => Promise<R>): Promise<R> => {
+      await beginWrite(qc, budgetId);
+      try {
+        return await run();
+      } finally {
+        endWrite(qc, budgetId);
+      }
+    };
+    // Category, group and plan-wide writes are not bound to a month: their undo stays on the shown month.
+    const rec = (...categoryIds: string[]) => recordPlan(budgetId, { month: null, categoryIds });
     return {
-      createGroup: done(createGroup),
-      createCategory: done(createCategory),
-      updateGroup: done(updateGroup),
-      updateCategory: done(updateCategory),
-      deleteGroup: done(deleteGroup),
-      deleteCategory: done(deleteCategory),
-      unhideAll: done(unhideAll),
+      createGroup: (name: string) => done(() => createGroup(budgetId, name, rec())),
+      createCategory: (groupId: string, name: string) =>
+        done(() => createCategory(budgetId, groupId, name, rec())),
+      updateGroup: (id: string, patch: Parameters<typeof updateGroup>[2]) =>
+        // A patch of only `collapsed` is UI state with no change_log row: never recorded.
+        done(() =>
+          updateGroup(
+            budgetId,
+            id,
+            patch,
+            Object.keys(patch).every((k) => k === "collapsed") ? undefined : rec(),
+          ),
+        ),
+      updateCategory: (id: string, patch: Parameters<typeof updateCategory>[2]) =>
+        done(() => updateCategory(budgetId, id, patch, rec(id))),
+      deleteGroup: (id: string, reassignTo?: string) =>
+        done(() => deleteGroup(budgetId, id, reassignTo, rec())),
+      deleteCategory: (id: string, reassignTo?: string) =>
+        done(() => deleteCategory(budgetId, id, reassignTo, rec(id))),
+      unhideAll: () => done(() => unhideAll(budgetId, rec())),
       groupUsage: (id: string) => groupUsage(budgetId, id),
       categoryUsage: (id: string) => categoryUsage(budgetId, id),
     };

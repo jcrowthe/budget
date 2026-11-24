@@ -177,7 +177,7 @@ test("3 deleting a category with money (reassigning), then Undo, restores it in 
   // New categories are added at the top: Gone is second-to-last.
   expect(before).toEqual(["ZZ-TEST Last", "ZZ-TEST Gone", "D4 Groceries"]);
   await open(page, s.plan);
-  await expect(catRow(page, "ZZ-TEST Gone").locator(".cell-activity")).toHaveText("-$30.00");
+  await expect(catRow(page, "ZZ-TEST Gone").locator(".cell-activity")).toHaveText("−$30.00");
   await deleteVia(page, "ZZ-TEST Gone", "D4 Groceries");
   await expect(assignedOf(page, "D4 Groceries")).toHaveText("$350.00");
   await press(page, undoBtn(page));
@@ -190,7 +190,7 @@ test("3 deleting a category with money (reassigning), then Undo, restores it in 
   expect(await groupNames(request, s.plan, s.group)).toEqual(before);
   const row = catRow(page, "ZZ-TEST Gone");
   await expect(row.locator(".assigned-box .amount")).toHaveText("$150.00");
-  await expect(row.locator(".cell-activity")).toHaveText("-$30.00");
+  await expect(row.locator(".cell-activity")).toHaveText("−$30.00");
   await expect(assignedOf(page, "D4 Groceries")).toHaveText("$200.00");
   const m = await call(request, "GET", `/api/v1/budgets/${s.plan}/months/${MONTH}`);
   const gone = m.groups
@@ -304,7 +304,7 @@ test("7 move, cover and rename each undo with one press; a collapse is not a ste
   await expect(pill(page, GROC)).toHaveText("$205.00");
   await expect(undoBtn(page)).toBeEnabled();
   await press(page, undoBtn(page));
-  await expect(pill(page, FUN)).toHaveText("-$70.00");
+  await expect(pill(page, FUN)).toHaveText("−$70.00");
   await expect(pill(page, GROC)).toHaveText("$275.00");
   await expect(undoBtn(page)).toBeDisabled();
 

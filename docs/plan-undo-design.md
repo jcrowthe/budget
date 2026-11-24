@@ -42,7 +42,8 @@ Not recorded:
   3. The undo's own change set inherits the recorded `where`, so a redo navigates too. If the entry was not
      recorded by the Plan, the server's `where` (plan surface, non-null month) is used after the undo.
   4. The plan's non-month queries are invalidated. `endWrite` refetches the months once no write is pending.
-  5. On 409 or 403 the store drops the entry, and the error's detail shows in the grid notice.
+  5. On 409, 403 or 404 the store drops the entry, and the error's detail shows in the grid notice. Any other failure
+     shows "Couldn't undo." (or redo) and the store keeps the entry.
 - The stacks live in memory per tab, so a reload clears them.
 
 ## Departures

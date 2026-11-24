@@ -8,6 +8,7 @@ import {
 import type { PlanView } from "@budget/schema/plan-views";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { recordPlan } from "./assigned";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite, inOrder } from "./monthCache";
 import { localToday } from "./today";
@@ -105,6 +106,10 @@ export function useAutoAssign(budgetId: string, month: Month) {
             },
             idempotencyKey: crypto.randomUUID(),
             schema: AutoAssignResultResponse,
+            onChangeSet: recordPlan(budgetId, {
+              month,
+              categoryIds: "view" in scope ? [] : scope.categoryIds,
+            }),
           }),
         );
       } catch {
