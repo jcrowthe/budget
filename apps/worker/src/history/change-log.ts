@@ -1,6 +1,7 @@
 import { type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { changeLog } from "../db/schema/change-log";
+import { insertSelect } from "../repositories/insert-select";
 
 export interface ChangeLogEntry {
   budgetId: string | null;
@@ -37,9 +38,5 @@ export function changeLogInsert(db: Db, e: ChangeLogEntry) {
  */
 export function changeLogInsertIf(db: Db, e: ChangeLogEntry, exists: SQLWrapper) {
   const r = row(e);
-  return db
-    .insert(changeLog)
-    .select(
-      sql`select ${r.id}, ${r.budgetId}, ${r.actor}, ${r.action}, ${r.entityType}, ${r.entityId}, ${r.beforeJson}, ${r.afterJson}, ${r.createdAt} where exists ${exists}`,
-    );
+  return insertSelect(db, changeLog, r, sql`where exists ${exists}`);
 }
