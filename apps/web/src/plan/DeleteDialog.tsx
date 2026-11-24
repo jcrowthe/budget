@@ -14,6 +14,7 @@ export function DeleteDialog({
   ids,
   categoryCount,
   transactionCount,
+  scheduledCount,
   groups,
   onDone,
   onCancel,
@@ -27,6 +28,7 @@ export function DeleteDialog({
   ids: string[];
   categoryCount: number;
   transactionCount: number;
+  scheduledCount: number;
   groups: MonthGroupDetail[];
   /** The delete went through (the months are already refetched). */
   onDone: () => void;
@@ -39,6 +41,11 @@ export function DeleteDialog({
   const exclude = useMemo(() => new Set(ids), [ids]);
   const cancelRef = useRef(onCancel);
   cancelRef.current = onCancel;
+  const targetName = useMemo(
+    () =>
+      groups.flatMap((g) => g.categories).find((c) => c.id === target)?.name ?? "the new category",
+    [groups, target],
+  );
   const title = kind === "group" ? "Delete Category Group" : "Delete Category";
 
   useEffect(() => {
@@ -104,6 +111,12 @@ export function DeleteDialog({
             <li>All assigned amounts</li>
             <li>Any remaining available amount</li>
           </ul>
+          {scheduledCount > 0 && (
+            <p className="delete-scheduled">
+              {scheduledCount} scheduled transaction{scheduledCount === 1 ? "" : "s"} will move to{" "}
+              {target ? targetName : "the new category"}
+            </p>
+          )}
           {error && (
             <div className="popover-error" role="alert">
               {error}
