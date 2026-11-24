@@ -3,7 +3,7 @@ import type { JWTVerifyGetKey } from "jose";
 import type { AppEnv } from "./env";
 import { mcpRoute } from "./mcp/server";
 import { accessMiddleware } from "./middleware/access";
-import { notFoundApi, onError } from "./middleware/errors";
+import { catchNonError, notFoundApi, onError } from "./middleware/errors";
 import { idempotency } from "./middleware/idempotency";
 
 // Every module in routes/ exports a default OpenAPIHono with paths relative to /api/v1.
@@ -14,6 +14,7 @@ const routeModules = import.meta.glob<{ default: OpenAPIHono<AppEnv> }>("./route
 export function createApp(opts: { getKey?: JWTVerifyGetKey } = {}) {
   const app = new OpenAPIHono<AppEnv>();
   app.onError(onError);
+  app.use("*", catchNonError);
   app.use("*", accessMiddleware(opts));
   app.use("/api/v1/*", idempotency());
   for (const key of Object.keys(routeModules).sort()) {

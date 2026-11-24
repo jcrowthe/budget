@@ -2,9 +2,10 @@ import { env } from "cloudflare:test";
 import { DrizzleQueryError, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
+import { createApp } from "../src/app";
 import { getDb } from "../src/db/client";
 import type { AppEnv, Env } from "../src/env";
-import { describeError, onError } from "../src/middleware/errors";
+import { catchNonError, describeError, onError } from "../src/middleware/errors";
 import { cronRun } from "../src/scheduled";
 import { seedBigGroup } from "./bound-lists-helpers";
 import { api, mcp } from "./category-helpers";
@@ -21,6 +22,7 @@ const BID = "0b0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0b0b";
 const testApp = () => {
   const app = new Hono<AppEnv>();
   app.onError(onError);
+  app.use("*", catchNonError);
   app.post("/api/v1/budgets/:budget_id/zz-error-log", async (c) => {
     const memo = ((await c.req.json()) as { memo: string }).memo;
     await getDb(c.env).all(
@@ -90,16 +92,18 @@ describe("EXF-884: what an unexpected error logs", () => {
     ]);
   });
 
-  it("E4: a thrown non-error bypasses onError, and is never described by its value", async () => {
+  it("E4: a thrown non-error is a 500 with a log line (method, route), never its value", async () => {
     const lines = captureErrors();
-    let thrown: unknown;
-    try {
-      await testApp().request(`/api/v1/budgets/${BID}/zz-error-log/thrown`, {}, env);
-    } catch (e) {
-      thrown = e;
-    }
-    expect(thrown).toBe(MARKER);
-    expect(lines.filter((l) => l.startsWith("internal_error"))).toEqual([]);
+    const res = await testApp().request(`/api/v1/budgets/${BID}/zz-error-log/thrown`, {}, env);
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(await res.json())).not.toContain(MARKER);
+    const own = lines.filter((l) => l.startsWith("internal_error"));
+    expect(own).toHaveLength(1);
+    expect(own[0]).toBe(
+      "internal_error GET /api/v1/budgets/:budget_id/zz-error-log/thrown | non-error string",
+    );
+    expect(own[0]).not.toContain(MARKER);
+    expect(createApp().routes[0]?.handler).toBe(catchNonError);
     expect(describeError(MARKER)).toBe("non-error string");
     expect(describeError({ message: MARKER })).toBe("non-error object");
   });

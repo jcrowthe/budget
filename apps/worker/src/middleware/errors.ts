@@ -1,5 +1,5 @@
 import { DrizzleError, DrizzleQueryError } from "drizzle-orm";
-import type { Context, ErrorHandler, NotFoundHandler } from "hono";
+import type { Context, ErrorHandler, MiddlewareHandler, NotFoundHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { routePath } from "hono/route";
 import { ZodError } from "zod";
@@ -116,6 +116,10 @@ export const onError: ErrorHandler = (err, c) => {
     if (err.status >= 400 && err.status < 500)
       return apiError(c, status, status === 400 ? "bad_request" : "error", err.message);
   }
+  return internalError(c, err);
+};
+
+function internalError(c: Context, err: unknown) {
   const route = routePath(c);
   console.error(
     `internal_error ${c.req.method}${route ? ` ${route}` : ""} | ${describeError(err)}`.slice(
@@ -124,6 +128,19 @@ export const onError: ErrorHandler = (err, c) => {
     ),
   );
   return apiError(c, 500, "internal_error", "Internal error");
+}
+
+/**
+ * First middleware. Hono hands only an `Error` to `onError` and rethrows anything else (a thrown string or
+ * object), which would reach the runtime with no log line. This catches that: same log line, same 500.
+ */
+export const catchNonError: MiddlewareHandler = async (c, next) => {
+  try {
+    await next();
+  } catch (e) {
+    if (e instanceof Error) throw e;
+    return internalError(c, e);
+  }
 };
 
 export const notFoundApi: NotFoundHandler = (c) =>
