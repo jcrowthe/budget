@@ -146,7 +146,13 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
           redo={{ enabled: redoEnabled, onClick: () => void step("redo") }}
         />
         {notice !== null && (
-          <div className="register-action-bar-error" role="alert" data-undo-notice>
+          // The notice style is the floating bar's; inset it to the toolbar's 16px edge so its corners read in the page.
+          <div
+            className="register-action-bar-error"
+            role="alert"
+            data-undo-notice
+            style={{ margin: "0 var(--space-3) var(--space-2)" }}
+          >
             {notice}
           </div>
         )}
