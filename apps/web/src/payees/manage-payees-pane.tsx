@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { bulkPayees, deletePayee, invalidatePayeeViews, updatePayee } from "../api/payees";
+import { CategorizationCard } from "./categorization-card";
 import { NewPayeeSection } from "./manage-payees-delete";
 import { PayeesIllustration } from "./manage-payees-illustration";
 import { RenamingCard } from "./rename-rules-card";
@@ -178,6 +179,12 @@ export function EditPane({
             disabled={deleting}
             onSaved={refresh}
             onShow={(el) => onShowTransactions(single.id, el)}
+          />
+          <CategorizationCard
+            key={`cat-${single.id}`}
+            budgetId={budgetId}
+            payee={single}
+            disabled={deleting}
           />
           <RenamingCard
             key={`rules-${single.id}`}

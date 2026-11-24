@@ -650,3 +650,100 @@
   color: var(--labelTertiary);
   opacity: 1;
 }
+
+/* Categorization card (EXF-515): three radio options, each with its own body; the look is the other cards'. */
+.mp-categorization .mp-cat-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.mp-categorization .mp-cat-option:first-child {
+  margin-top: 0;
+}
+.mp-categorization .mp-cat-option input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--actionPrimary);
+}
+.mp-categorization .mp-cat-detail {
+  margin: var(--space-1) 0 0 calc(13px + var(--space-2));
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.mp-categorization .mp-cat-detail p {
+  margin: 0 0 var(--space-1);
+}
+.mp-categorization .mp-cat-detail strong {
+  color: var(--labelPrimary);
+  font-weight: 500;
+}
+/* The register's picker, dressed as the card's own field (`.mp-input`): 32px, input fill, quiet border until focused. */
+.mp-categorization .mp-cat-field {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+.mp-categorization .mp-cat-field .entry-input {
+  max-width: min(100%, 400px);
+}
+.mp-categorization .mp-cat-field .entry-input input {
+  height: 32px;
+  padding: 4px 24px 4px 8px;
+  border-color: var(--inputBorder);
+  background: var(--inputBackground);
+}
+.mp-categorization .mp-cat-field .entry-input input:focus {
+  border-color: var(--actionPrimary);
+}
+.mp-categorization .mp-cat-field .entry-caret {
+  top: 11px;
+  right: 8px;
+  color: var(--labelSecondary);
+}
+.mp-categorization .mp-cat-field .entry-input:focus-within .entry-caret {
+  color: var(--actionPrimary);
+}
+.mp-categorization .mp-cat-option:has(input:disabled) {
+  cursor: default;
+}
+.mp-categorization .mp-error {
+  margin-top: var(--space-2);
+  border-radius: var(--radius-xs);
+}
+/* The register's picker draws its list on the page body, which the dialog's backdrop (z-index 70) covers. */
+body:has(.mp-backdrop) .entry-dropdown {
+  z-index: 71;
+}
+.mp-recent {
+  z-index: 3;
+}
+.mp-recent.is-above .mp-popover-arrow {
+  top: 100%;
+  bottom: auto;
+  border-top-color: var(--backgroundTertiary);
+  border-bottom-color: transparent;
+}
+.mp-recent .mp-table th {
+  padding: 4px var(--space-2);
+  color: var(--labelPrimary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.mp-recent .mp-table th:first-child,
+.mp-recent .mp-table td:first-child {
+  padding-left: 0;
+}
+.mp-recent .mp-table th:last-child,
+.mp-recent .mp-table td:last-child {
+  padding-right: 0;
+}
+.mp-recent-table {
+  margin-top: 7px;
+  border-top: 1px solid var(--separatorStandard);
+  border-bottom: 1px solid var(--separatorStandard);
+}
