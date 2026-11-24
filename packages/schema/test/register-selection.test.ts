@@ -98,7 +98,6 @@ describe("barActions", () => {
     expect(barActions([row(), row()], accountOf).makeRepeating).toBe(false);
     // EXF-636: Move to Account is offered on All Accounts too.
     expect(barActions([row()], accountOf).move).toBe(true);
-    expect(barActions([row()], accountOf).move).toBe(true);
     expect(barActions([row({ flag_color: "red" })], accountOf).anyFlagged).toBe(true);
   });
 });

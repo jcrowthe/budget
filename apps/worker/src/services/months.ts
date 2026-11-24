@@ -321,6 +321,26 @@ function withNotes(detail: CoreMonthDetail, notes: Map<string, string | null>): 
   };
 }
 
+/** A month the plan reads accept is within this many years of today (either side). */
+export const PLAN_MONTH_YEARS = 10;
+
+/**
+ * The 422 message for a month more than PLAN_MONTH_YEARS from the current month (`today`, the owner's local date, else the
+ * server's UTC date); the one bound REST and MCP share.
+ */
+export function planMonthError(month: Month, today: string = todayUtc()): string | null {
+  const now = toMonth(today);
+  const distance = Math.abs(
+    (Number(month.slice(0, 4)) - Number(now.slice(0, 4))) * 12 +
+      Number(month.slice(5, 7)) -
+      Number(now.slice(5, 7)),
+  );
+  if (distance > PLAN_MONTH_YEARS * 12) {
+    return `Month must be within ${PLAN_MONTH_YEARS} years of today`;
+  }
+  return null;
+}
+
 export async function getPlanMonth(
   env: Env,
   budgetId: string,

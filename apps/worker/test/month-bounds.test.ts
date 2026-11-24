@@ -21,7 +21,7 @@ async function mcpMonth(bid: string, month: string) {
   );
   return (
     await mcpRpc("tools/call", { name: "get_plan_month", arguments: { budget_id: bid, month } }, 2)
-  ).body.result;
+  ).body.result as { isError?: boolean } | undefined;
 }
 
 describe("month bound on GET months/{month} and get_plan_month", () => {
@@ -38,7 +38,9 @@ describe("month bound on GET months/{month} and get_plan_month", () => {
     for (const m of [plusYears(11), plusYears(-11), "2199-12-01", "1900-01-01"]) {
       const res = await json(`/api/v1/budgets/${bid}/months/${m}`);
       expect(res.status, m).toBe(422);
-      expect(((await res.json()) as any).error.code).toBe("unprocessable_entity");
+      expect(((await res.json()) as { error: { name: string } }).error.name).toBe(
+        "unprocessable_entity",
+      );
       expect((await mcpMonth(bid, m))?.isError, m).toBe(true);
     }
   });

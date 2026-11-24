@@ -134,7 +134,7 @@ and `budget_id`.
 | `createTransaction` (`services/transactions.ts`) | one transaction | create `transaction` |
 | `getPlanMonth`, `listPlanMonths` (`services/months.ts`) | read model / summaries | none |
 
-`moveMoney` writes `assigned = assigned + delta` with an upsert, so concurrent moves never lose an update.
+`moveMoney` writes `assigned` with a guarded compare-and-set: it re-reads and retries up to five times, then throws Conflict. Under heavy simultaneous writes to the same rows a move can therefore be rejected with Conflict (nothing is lost; the caller retries).
 `month_category` entity ids are `<category_id>:<month>`; `month` entity ids are the month.
 
 ### REST (`apps/worker/src/routes/months.ts`, tag `Months`)

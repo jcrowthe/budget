@@ -19,6 +19,7 @@ import {
   getMonthSummary,
   getPlanMonth,
   listPlanMonths,
+  planMonthError,
   setMonthNote,
 } from "../services/months";
 
@@ -82,6 +83,8 @@ export default app
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
       const { today, view } = c.req.valid("query");
+      const bad = planMonthError(month, today);
+      if (bad) return apiError(c, 422, "unprocessable_entity", bad) as never;
       return c.json({ data: await getPlanMonth(c.env, budget_id, month, today, view) }, 200);
     },
   )
@@ -206,10 +209,7 @@ export default app
       tags,
       request: {
         params: z.object({
-          budget_id: z
-            .string()
-            .min(1)
-            .openapi({ param: { name: "budget_id", in: "path" } }),
+          budget_id: z.uuid().openapi({ param: { name: "budget_id", in: "path" } }),
         }),
       },
       responses: {
