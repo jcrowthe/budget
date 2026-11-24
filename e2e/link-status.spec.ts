@@ -267,6 +267,7 @@ test("11 the connection's own pages use the reason's words", async ({ page, requ
     links: { [linked]: z.checking.id },
   });
   await page.goto(`/${plan}/budget`);
+  await expect(sidebar(page).getByRole("link", { name: /ZZ Linked/ })).toBeVisible();
   const detail = await openDetail(page, "ZZ Bank");
   await expect(detail.locator(".mc-subtitle")).toHaveText("Reauthorization Needed");
   await expect(detail.getByRole("note")).toContainText(
