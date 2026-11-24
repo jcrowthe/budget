@@ -287,7 +287,10 @@ unambiguous:
   custom balance needs amount > 0, so amount 0 never collides with one.
 
 `Target` (PUT, DELETE and MCP responses) gains `type`: the card kind, or null for an ordinary category. The month
-read keeps `CategoryTargetMonth` unchanged. Core and schema keep the same shape (`_sameShape`).
+read keeps `CategoryTargetMonth` unchanged. Core and schema keep the same shape (`_sameShape`). The
+`change_log` before/after of a target never carries `type` (`targetToApi` is the logged shape, `targetResponse`
+adds `type`). The undo engine refuses a target row with a key it does not know, and the encoding above restores a
+card target as it was.
 
 **Arithmetic** (`packages/core/src/card-targets.ts`, `computeCardTargetMonth`). `computeMonth` computes the card's
 `payment` first and hands its balances to `targetFor`, so no new D1 call is made.
