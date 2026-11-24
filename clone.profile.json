@@ -128,7 +128,7 @@
       "get": "bash scripts/live-test-plans.sh list  # prints one line per plan whose name starts with ZZ-TEST: <id><TAB><name>; nothing when none",
       "create": "bash scripts/live-test-plans.sh create '<name>'  # name must start with ZZ-TEST (else exit 2); prints the new plan's id only",
       "delete": "bash scripts/live-test-plans.sh delete <id>  # re-reads the plan, deletes it only if its name starts with ZZ-TEST (else exit 3); prints: deleted <id>",
-      "purge": "bash scripts/live-test-plans.sh purge  # deletes every ZZ-TEST plan, re-reading each first; prints: deleted <n> remaining <m>; exit 0 only when m is 0; refuses (exit 3, deletes nothing) when more than 50 match",
+      "purge": "bash scripts/live-test-plans.sh purge '<ZZ-TEST prefix>'  # the prefix argument is required: it must start with ZZ-TEST (else exit 2) and deletes only the plans whose name starts with it, re-reading each first; prints: deleted <n> remaining <m>; exit 0 only when m is 0; refuses (exit 3, deletes nothing) when more than 50 match; without the argument the script deletes every ZZ-TEST plan, which can remove another run's plans, so never run it without one",
       "delete_import": "Not applicable yet: the app has no imports.",
       "routes": "/ and every non-API path: the single-page app; /api/v1/*: REST, reads GET /api/v1/health, GET /api/v1/openapi.json, GET /api/v1/budgets, GET /api/v1/budgets/{id}, writes POST /api/v1/budgets, PATCH /api/v1/budgets/{id}, DELETE /api/v1/budgets/{id} (test plans are managed only through scripts/live-test-plans.sh); /mcp: the MCP endpoint"
     },

@@ -25,21 +25,23 @@ function run(env: Record<string, string>) {
 }
 // The in-process server needs a free event loop, so this one does not block (spawnSync would).
 function runAsync(env: Record<string, string>) {
-  return new Promise<{ status: number | null; stdout: string; stderr: string; out: string }>((resolve) => {
-    const c = spawn("bash", ["scripts/plaid-credentials.sh"], {
-      cwd: root,
-      env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
-    });
-    let stdout = "";
-    let stderr = "";
-    c.stdout.on("data", (d) => {
-      stdout += d;
-    });
-    c.stderr.on("data", (d) => {
-      stderr += d;
-    });
-    c.on("close", (status) => resolve({ status, stdout, stderr, out: stdout + stderr }));
-  });
+  return new Promise<{ status: number | null; stdout: string; stderr: string; out: string }>(
+    (resolve) => {
+      const c = spawn("bash", ["scripts/plaid-credentials.sh"], {
+        cwd: root,
+        env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
+      });
+      let stdout = "";
+      let stderr = "";
+      c.stdout.on("data", (d) => {
+        stdout += d;
+      });
+      c.stderr.on("data", (d) => {
+        stderr += d;
+      });
+      c.on("close", (status) => resolve({ status, stdout, stderr, out: stdout + stderr }));
+    },
+  );
 }
 const noLeak = (text: string) => SENTINELS.every((s) => !text.includes(s));
 
@@ -64,19 +66,19 @@ describe("against the local dev server", () => {
   it("skips both when nothing is set (exit 0)", async () => {
     const r = run(env());
     expect(r.status, r.out).toBe(0);
-    expect(r.stdout).toBe("plaid credentials: sandbox skipped, production skipped\n");
+    expect(r.stdout).toBe("plaid credentials: sandbox skipped, production skipped (local)\n");
     expect(await configured()).toEqual(["sandbox:false", "production:false"]);
   });
 
   it("pushes only Sandbox when only its variables are set", async () => {
     const r = run(env({ PLAID_CLIENT_ID: CLIENT, PLAID_SANDBOX_SECRET: SANDBOX }));
     expect(r.status, r.out).toBe(0);
-    expect(r.stdout).toBe("plaid credentials: sandbox set, production skipped\n");
+    expect(r.stdout).toBe("plaid credentials: sandbox set, production skipped (local)\n");
     expect(noLeak(r.out)).toBe(true);
     expect(await configured()).toEqual(["sandbox:true", "production:false"]);
   });
 
-  it("pushes both when both are set", async () => {
+  it("EXF-631: pushes Sandbox only when both are set (production skipped locally)", async () => {
     const r = run(
       env({
         PLAID_CLIENT_ID: CLIENT,
@@ -85,9 +87,9 @@ describe("against the local dev server", () => {
       }),
     );
     expect(r.status, r.out).toBe(0);
-    expect(r.stdout).toBe("plaid credentials: sandbox set, production set\n");
+    expect(r.stdout).toBe("plaid credentials: sandbox set, production skipped (local)\n");
     expect(noLeak(r.out)).toBe(true);
-    expect(await configured()).toEqual(["sandbox:true", "production:true"]);
+    expect(await configured()).toEqual(["sandbox:true", "production:false"]);
   });
 
   it("refuses a base URL that is not local (exit 2)", () => {
@@ -168,7 +170,7 @@ describe("a failing server", () => {
       PLAID_SANDBOX_SECRET: SANDBOX,
     });
     expect(r.status).toBe(1);
-    expect(r.stdout).toBe("plaid credentials: sandbox failed, production skipped\n");
+    expect(r.stdout).toBe("plaid credentials: sandbox failed, production skipped (local)\n");
     expect(noLeak(r.out)).toBe(true);
   });
 });
@@ -207,7 +209,10 @@ describe("live mode", () => {
       PATH: `${fake.bin}:${process.env.PATH}`,
       FAKE_CURL_LOG: fake.log,
       FAKE_CURL_ROUTES: JSON.stringify({
-        "PUT https://budget.doxen.dev/api/v1/plaid/credentials": { status: 200, body: { data: {} } },
+        "PUT https://budget.doxen.dev/api/v1/plaid/credentials": {
+          status: 200,
+          body: { data: {} },
+        },
       }),
       CF_ACCESS_CLIENT_ID: ACCESS_ID,
       CF_ACCESS_CLIENT_SECRET: ACCESS_SECRET,
