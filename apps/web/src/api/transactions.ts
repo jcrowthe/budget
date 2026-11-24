@@ -12,7 +12,11 @@ import {
   UnmatchResponse,
 } from "@budget/schema/transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { recordChange } from "../undo/store";
 import { apiFetch } from "./client";
+
+/** The register records each of its writes on the plan's Undo stack (EXF-530); the raw requests record nothing. */
+const record = (budgetId: string) => (id: string) => recordChange(budgetId, id, "register");
 
 type Listed = { transactions: { id: string; cleared: string }[] };
 
@@ -35,21 +39,28 @@ export const updateTransaction = async (
   budgetId: string,
   id: string,
   patch: TransactionUpdateRequest,
+  onChangeSet?: (id: string) => void,
 ) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/transactions/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: patch,
+      onChangeSet,
       idempotencyKey: crypto.randomUUID(),
       schema: TransactionResponse,
     })
   ).data.transaction;
 
-export const createTransaction = async (budgetId: string, body: TransactionCreateRequest) =>
+export const createTransaction = async (
+  budgetId: string,
+  body: TransactionCreateRequest,
+  onChangeSet?: (id: string) => void,
+) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/transactions`, {
       method: "POST",
       body,
+      onChangeSet,
       idempotencyKey: crypto.randomUUID(),
       schema: TransactionResponse,
     })
@@ -61,8 +72,8 @@ export function useSaveTransaction(budgetId: string) {
   return useMutation({
     mutationFn: (v: { id?: string; body: TransactionCreateRequest | TransactionUpdateRequest }) =>
       v.id
-        ? updateTransaction(budgetId, v.id, v.body as TransactionUpdateRequest)
-        : createTransaction(budgetId, v.body as TransactionCreateRequest),
+        ? updateTransaction(budgetId, v.id, v.body as TransactionUpdateRequest, record(budgetId))
+        : createTransaction(budgetId, v.body as TransactionCreateRequest, record(budgetId)),
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });
 }
@@ -100,7 +111,7 @@ export function useSetCleared(budgetId: string, key: readonly unknown[]) {
   return useMutation({
     mutationKey: setClearedKey(budgetId),
     mutationFn: (v: { id: string; cleared: "uncleared" | "cleared" }) =>
-      updateTransaction(budgetId, v.id, { cleared: v.cleared }),
+      updateTransaction(budgetId, v.id, { cleared: v.cleared }, record(budgetId)),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<Listed & { balances?: Balances }>(key);
@@ -153,11 +164,16 @@ export function useSetCleared(budgetId: string, key: readonly unknown[]) {
 const invalidatePlan = (qc: ReturnType<typeof useQueryClient>, budgetId: string) =>
   qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) });
 
-export const bulkTransactions = async (budgetId: string, body: TransactionBulkRequest) =>
+export const bulkTransactions = async (
+  budgetId: string,
+  body: TransactionBulkRequest,
+  onChangeSet?: (id: string) => void,
+) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/transactions/bulk`, {
       method: "POST",
       body,
+      onChangeSet,
       idempotencyKey: crypto.randomUUID(),
       schema: TransactionBulkResponse,
     })
@@ -167,15 +183,22 @@ export const bulkTransactions = async (budgetId: string, body: TransactionBulkRe
 export function useBulkTransactions(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: TransactionBulkRequest) => bulkTransactions(budgetId, body),
+    mutationFn: (body: TransactionBulkRequest) =>
+      bulkTransactions(budgetId, body, record(budgetId)),
     onSuccess: () => invalidatePlan(qc, budgetId),
   });
 }
 
-const idsCall = (budgetId: string, action: "approve" | "reject", ids: string[]) =>
+const idsCall = (
+  budgetId: string,
+  action: "approve" | "reject",
+  ids: string[],
+  onChangeSet?: (id: string) => void,
+) =>
   apiFetch(`/api/v1/budgets/${budgetId}/transactions/${action}`, {
     method: "POST",
     body: { ids },
+    onChangeSet,
     idempotencyKey: crypto.randomUUID(),
     schema: TransactionsResponse,
   });
@@ -190,25 +213,35 @@ export function useApproveReject(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { action: "approve" | "reject"; ids: string[] }) =>
-      idsCall(budgetId, v.action, v.ids),
+      idsCall(budgetId, v.action, v.ids, record(budgetId)),
     onSuccess: () => invalidatePlan(qc, budgetId),
   });
 }
 
 /** Matches an unapproved import and a hand entry (EXF-464): one request. */
-export const matchTransactions = async (budgetId: string, ids: string[]) =>
+export const matchTransactions = async (
+  budgetId: string,
+  ids: string[],
+  onChangeSet?: (id: string) => void,
+) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/transactions/match`, {
       method: "POST",
       body: { ids },
+      onChangeSet,
       idempotencyKey: crypto.randomUUID(),
       schema: MatchResponse,
     })
   ).data;
-export const unmatchTransaction = async (budgetId: string, id: string) =>
+export const unmatchTransaction = async (
+  budgetId: string,
+  id: string,
+  onChangeSet?: (id: string) => void,
+) =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/transactions/${id}/unmatch`, {
       method: "POST",
+      onChangeSet,
       idempotencyKey: crypto.randomUUID(),
       schema: UnmatchResponse,
     })
@@ -218,7 +251,7 @@ export const unmatchTransaction = async (budgetId: string, id: string) =>
 export function useMatchTransactions(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (ids: string[]) => matchTransactions(budgetId, ids),
+    mutationFn: (ids: string[]) => matchTransactions(budgetId, ids, record(budgetId)),
     onSuccess: () => invalidatePlan(qc, budgetId),
   });
 }
@@ -227,7 +260,7 @@ export function useMatchTransactions(budgetId: string) {
 export function useUnmatchTransaction(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => unmatchTransaction(budgetId, id),
+    mutationFn: (id: string) => unmatchTransaction(budgetId, id, record(budgetId)),
     onSuccess: () => invalidatePlan(qc, budgetId),
   });
 }
@@ -237,7 +270,7 @@ export function useSetFlag(budgetId: string, key: readonly unknown[]) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { id: string; color: FlagColor | null }) =>
-      updateTransaction(budgetId, v.id, { flag_color: v.color }),
+      updateTransaction(budgetId, v.id, { flag_color: v.color }, record(budgetId)),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<{ transactions: { id: string }[] }>(key);

@@ -27,11 +27,13 @@ const memoOf = async (request: APIRequestContext, plan: string, acct: string, id
   (await accountRows(request, plan, acct)).find((t) => t.id === id)?.memo;
 
 /** Picks a colour from a row's flag menu, then moves focus off every field so the keys reach the page. */
-async function flag(page: Page, payee: string, colour: string) {
+async function flag(page: Page, payee: string, colour: string, inline = true) {
   await realClick(page, flagCell(page, payee));
   await realClick(page, flagMenu(page).getByRole("menuitem", { name: colour, exact: true }));
   await expect(flagMenu(page)).toHaveCount(0);
   await page.getByRole("heading", { name: "ZZ Checking" }).first().click();
+  // The key does nothing while the write is in flight: wait for the button, as a person would see it.
+  if (inline) await expect(undoBtn(page)).toBeEnabled();
 }
 
 /** A first click selects the row, a second on its memo cell opens it for editing. */
@@ -114,14 +116,17 @@ test("2 flag, ctrl+Z, ctrl+shift+Z, ctrl+Y", async ({ page, request }) => {
     rowOf(page, "ZZ Rent").getByRole("button", { name: "Flag", exact: true }),
   ).toBeVisible();
 
+  await expect(redoBtn(page)).toBeEnabled();
   await page.keyboard.press("Control+Shift+z");
   await expect.poll(() => flagOf(request, s.plan, s.checking, s.rent)).toBe("red");
   await expect(
     rowOf(page, "ZZ Rent").getByRole("button", { name: "Red", exact: true }),
   ).toBeVisible();
 
+  await expect(undoBtn(page)).toBeEnabled();
   await page.keyboard.press("Control+z");
   await expect.poll(() => flagOf(request, s.plan, s.checking, s.rent)).toBeNull();
+  await expect(redoBtn(page)).toBeEnabled();
   await page.keyboard.press("Control+y");
   await expect.poll(() => flagOf(request, s.plan, s.checking, s.rent)).toBe("red");
 });
@@ -295,7 +300,7 @@ test("9 stale undo shows refusal, changes nothing", async ({ page, request }) =>
   });
   await realClick(page, undoBtn(page));
   await expect(page.locator("[data-undo-notice]")).toContainText(
-    /^Something changed after this action/,
+    /changed after this action, so it can't be undone/,
   );
   expect(await flagOf(request, s.plan, s.checking, s.rent)).toBe("red");
   expect(await memoOf(request, s.plan, s.checking, s.rent)).toBe("ZZ edited elsewhere");
@@ -307,11 +312,11 @@ test("10 More menu at 1100px", async ({ page, request }) => {
   const s = await seedBulk(request);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   await expect(rowOf(page, "ZZ Fee")).toBeVisible();
-  await flag(page, "ZZ Rent", "Red");
+  await flag(page, "ZZ Rent", "Red", false);
   await expect.poll(() => flagOf(request, s.plan, s.checking, s.rent)).toBe("red");
   await expect(undoBtn(page)).toHaveCount(0);
   await realClick(page, toolbar(page).getByRole("button", { name: "More", exact: true }));
-  const menu = page.getByRole("dialog", { name: "More toolbar actions" });
+  const menu = page.getByRole("menu", { name: "More toolbar actions" });
   const inMenu = menu.getByRole("button", { name: "Undo", exact: true });
   await expect(inMenu).toBeEnabled();
   await expect(inMenu).toHaveAttribute("title", UNDO_TIP);
