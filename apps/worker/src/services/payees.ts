@@ -1,11 +1,14 @@
+import { type CategoryValue, effectiveDefault } from "@budget/schema/payee-category";
 import {
   compareNames,
   PAYEE_ERRORS,
   PAYEE_TRANSACTIONS_LIMIT,
   type Payee,
   type PayeeDeleted,
+  type PayeeRecentTransaction,
   type PayeeSystem,
   type PayeeTransaction,
+  type PayeeUpdate,
 } from "@budget/schema/payees";
 import { checkRuleText, foldRuleText } from "@budget/schema/rename-rules";
 import {
@@ -22,6 +25,7 @@ import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import { allOf, type LogBase, whenQuery } from "../repositories/guards";
+import * as categoryRepo from "../repositories/payee-category";
 import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
@@ -30,12 +34,35 @@ import { TransactionRefused } from "./transactions";
 
 type Db = ReturnType<typeof getDb>;
 
+const RTA: CategoryValue = { category_id: null, inflow_to_ready_to_assign: true };
+
 export function payeeToApi(
   row: payeesRepo.PayeeRow &
-    Partial<Pick<payeesRepo.PayeeListRow, "transactionCount" | "scheduledCount" | "hasRules">>,
+    Partial<
+      Pick<
+        payeesRepo.PayeeListRow,
+        | "transactionCount"
+        | "scheduledCount"
+        | "hasRules"
+        | "fixedLiveCategoryId"
+        | "historyDefault"
+      >
+    >,
   lastCategoryId: string | null = null,
   lastInflow = false,
 ): Payee {
+  // System payees are set by the app: they never suggest a category.
+  const ordinary = row.system === null;
+  const mode = ordinary ? (row.categoryMode ?? "history") : "history";
+  const fixedRta = ordinary && (row.fixedInflowToReadyToAssign ?? false);
+  const fixedValue: CategoryValue | null = fixedRta
+    ? RTA
+    : row.fixedLiveCategoryId
+      ? { category_id: row.fixedLiveCategoryId, inflow_to_ready_to_assign: false }
+      : null;
+  const suggestion = ordinary
+    ? effectiveDefault(mode, fixedValue, row.historyDefault ?? null)
+    : null;
   return {
     id: row.id,
     name: row.name,
@@ -43,6 +70,11 @@ export function payeeToApi(
     system: row.system,
     last_category_id: lastCategoryId,
     last_inflow_to_ready_to_assign: lastInflow,
+    category_mode: mode,
+    fixed_category_id: ordinary ? (row.fixedCategoryId ?? null) : null,
+    fixed_inflow_to_ready_to_assign: fixedRta,
+    default_category_id: suggestion?.category_id ?? null,
+    default_inflow_to_ready_to_assign: suggestion?.inflow_to_ready_to_assign ?? false,
     transfer_account_id: null,
     transaction_count: row.transactionCount ?? 0,
     scheduled_count: row.scheduledCount ?? 0,
@@ -70,6 +102,11 @@ export async function listPayees(
     system: null,
     last_category_id: null,
     last_inflow_to_ready_to_assign: false,
+    category_mode: "history",
+    fixed_category_id: null,
+    fixed_inflow_to_ready_to_assign: false,
+    default_category_id: null,
+    default_inflow_to_ready_to_assign: false,
     transfer_account_id: a.id,
     transaction_count: 0,
     scheduled_count: 0,
@@ -177,29 +214,175 @@ export async function pathPayee(db: DbT, budgetId: string, payeeId: string, with
   return row;
 }
 
+const hasCategoryField = (i: PayeeUpdate) =>
+  i.category_mode !== undefined ||
+  i.fixed_category_id !== undefined ||
+  i.fixed_inflow_to_ready_to_assign !== undefined;
+
+export interface PayeeUpdatePlan {
+  budgetId: string;
+  actor: string;
+  now: string;
+  row: payeesRepo.PayeeListRow;
+  name: string;
+  hidden: boolean;
+  mode: payeesRepo.PayeeFullRow["categoryMode"];
+  fixedCategoryId: string | null;
+  fixedRta: boolean;
+  /** The request named a category field: the log row and the update carry the category columns. */
+  namesCategory: boolean;
+  /** The fixed category the request sets, which must still be live when the batch runs. */
+  liveFixed?: string | null;
+  /** Statements that go first (a renaming rule). */
+  learn: BatchItem<"sqlite">[];
+}
+
+/** The statements of one payee update: `learn`, the history row, then the update itself (last: it reads success). */
+export function buildPayeeUpdateBatch(db: DbT, p: PayeeUpdatePlan): BatchItem<"sqlite">[] {
+  const { budgetId, row } = p;
+  const same = payeesRepo.updateGuardSql(budgetId, row.id, row, p.liveFixed ?? null);
+  const shape = (v: {
+    name: string;
+    hidden: boolean;
+    mode: string;
+    fixedCategoryId: string | null;
+    fixedRta: boolean;
+  }) => ({
+    id: row.id,
+    name: v.name,
+    hidden: v.hidden,
+    ...(p.namesCategory
+      ? {
+          category_mode: v.mode,
+          fixed_category_id: v.fixedCategoryId,
+          fixed_inflow_to_ready_to_assign: v.fixedRta,
+        }
+      : {}),
+  });
+  return [
+    ...p.learn,
+    changeLogInsertIf(
+      db,
+      {
+        budgetId,
+        actor: p.actor,
+        action: "update",
+        entityType: "payee",
+        entityId: row.id,
+        before: shape({
+          name: row.name,
+          hidden: row.hidden,
+          mode: row.categoryMode,
+          fixedCategoryId: row.fixedCategoryId,
+          fixedRta: row.fixedInflowToReadyToAssign,
+        }),
+        after: shape(p),
+      },
+      whenQuery(db, same),
+    ),
+    payeesRepo.updateStmt(
+      db,
+      budgetId,
+      row.id,
+      {
+        name: p.name,
+        hidden: p.hidden,
+        ...(p.namesCategory
+          ? {
+              categoryMode: p.mode,
+              fixedCategoryId: p.fixedCategoryId,
+              fixedInflowToReadyToAssign: p.fixedRta,
+            }
+          : {}),
+      },
+      p.now,
+      row,
+      p.liveFixed ?? null,
+    ),
+  ] as BatchItem<"sqlite">[];
+}
+
 export async function updatePayee(
   env: Env,
   actor: string,
   budgetId: string,
   payeeId: string,
-  input: { name?: string; hidden?: boolean },
+  input: PayeeUpdate,
 ): Promise<Payee> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
   const row = await pathPayee(db, budgetId, payeeId, true);
-  if (input.name === undefined && input.hidden === undefined) {
+  const namesCategory = hasCategoryField(input);
+  if (input.name === undefined && input.hidden === undefined && !namesCategory) {
     throw unprocessable(PAYEE_ERRORS.noField);
+  }
+  if (input.fixed_category_id && input.fixed_inflow_to_ready_to_assign === true) {
+    throw unprocessable(PAYEE_ERRORS.fixedBoth);
   }
   const name = input.name === undefined ? row.name : input.name.trim();
   if (name === "") throw unprocessable(PAYEE_ERRORS.empty);
-  if (name !== row.name) {
-    const other = await payeesRepo.findByName(db, budgetId, name);
-    if (other && other.id !== row.id)
-      throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
+  // The fixed choice after the request: a given category clears Ready to Assign and the other way round.
+  let fixedCategoryId = row.fixedCategoryId;
+  let fixedRta = row.fixedInflowToReadyToAssign;
+  if (input.fixed_category_id !== undefined) {
+    fixedCategoryId = input.fixed_category_id;
+    if (fixedCategoryId !== null) fixedRta = false;
+  }
+  if (input.fixed_inflow_to_ready_to_assign !== undefined) {
+    fixedRta = input.fixed_inflow_to_ready_to_assign;
+    if (fixedRta) fixedCategoryId = null;
+  }
+  const mode = input.category_mode ?? row.categoryMode;
+  if (mode === "fixed") {
+    if (fixedCategoryId === null && !fixedRta) throw unprocessable(PAYEE_ERRORS.fixedNeedsValue);
+    // A stored fixed category must still be live; a given one is checked below.
+    if (
+      input.fixed_category_id === undefined &&
+      fixedCategoryId !== null &&
+      !row.fixedLiveCategoryId
+    )
+      throw unprocessable(PAYEE_ERRORS.fixedNeedsValue);
+  }
+  const givenCategory = input.fixed_category_id ?? null;
+  // One read call for both checks: the duplicate name and the given category.
+  const renamed = name !== row.name;
+  if (renamed || givenCategory !== null) {
+    const reads: [unknown?, unknown?] = [];
+    if (renamed) reads.push(payeesRepo.findByNameQuery(db, budgetId, name));
+    if (givenCategory !== null)
+      reads.push(categoryRepo.liveCategoryQuery(db, budgetId, givenCategory));
+    const res = (await db.batch(reads as never)) as unknown as unknown[][];
+    if (renamed) {
+      const other = (res[0] as payeesRepo.PayeeRow[])[0];
+      if (other && other.id !== row.id)
+        throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
+    }
+    if (givenCategory !== null && (res[res.length - 1] as unknown[]).length === 0)
+      throw unprocessable(PAYEE_ERRORS.categoryUnknown);
   }
   const hidden = input.hidden ?? row.hidden;
-  const after = { ...row, name, hidden };
-  if (name === row.name && hidden === row.hidden)
+  const fixedLive =
+    fixedCategoryId === null
+      ? null
+      : input.fixed_category_id === undefined
+        ? row.fixedLiveCategoryId
+        : fixedCategoryId;
+  const after = {
+    ...row,
+    name,
+    hidden,
+    categoryMode: mode,
+    fixedCategoryId,
+    fixedInflowToReadyToAssign: fixedRta,
+    fixedLiveCategoryId: fixedLive,
+  };
+  if (
+    name === row.name &&
+    hidden === row.hidden &&
+    mode === row.categoryMode &&
+    fixedCategoryId === row.fixedCategoryId &&
+    fixedRta === row.fixedInflowToReadyToAssign
+  )
     return payeeToApi(row, row.lastCategoryId, row.lastInflowToReadyToAssign);
   const now = new Date().toISOString();
   const same = payeesRepo.unchangedSql(budgetId, row.id, row);
@@ -225,23 +408,21 @@ export async function updatePayee(
       : [];
   let ruleAdded = false;
   try {
-    const res = await db.batch([
-      ...learn,
-      changeLogInsertIf(
-        db,
-        {
-          budgetId,
-          actor,
-          action: "update",
-          entityType: "payee",
-          entityId: row.id,
-          before: { id: row.id, name: row.name, hidden: row.hidden },
-          after: { id: row.id, name, hidden },
-        },
-        whenQuery(db, same),
-      ),
-      payeesRepo.updateStmt(db, budgetId, row.id, { name, hidden }, now, row),
-    ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
+    const batch = buildPayeeUpdateBatch(db, {
+      budgetId,
+      actor,
+      now,
+      row,
+      name,
+      hidden,
+      mode,
+      fixedCategoryId,
+      fixedRta,
+      namesCategory,
+      liveFixed: givenCategory,
+      learn: learn as BatchItem<"sqlite">[],
+    });
+    const res = await db.batch(batch as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
     // The guard failed (a rename, hide or delete got there first): nothing was written.
     if (((res[res.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
@@ -339,13 +520,16 @@ export async function applyToPayees(
     const counts = Object.fromEntries(
       rows.map((r) => [r.id, { t: r.transactionCount, s: r.scheduledCount }]),
     );
-    const res = await db.batch(
-      buildPayeeDeleteBatch(db, { budgetId, actor, now, ids, replacementId, counts }) as [
-        BatchItem<"sqlite">,
-        ...BatchItem<"sqlite">[],
-      ],
-    );
-    const last = res[res.length - 1] as { meta?: { changes?: number } };
+    const batch = buildPayeeDeleteBatch(db, { budgetId, actor, now, ids, replacementId, counts });
+    // The moved rows are the replacement's now: its stored default follows (same batch, no extra call).
+    const recompute = replacementId
+      ? categoryRepo.recomputeDefaultsStmt(db, budgetId, [replacementId])
+      : null;
+    const res = await db.batch([...batch, ...(recompute ? [recompute] : [])] as [
+      BatchItem<"sqlite">,
+      ...BatchItem<"sqlite">[],
+    ]);
+    const last = res[batch.length - 1] as { meta?: { changes?: number } };
     if ((last.meta?.changes ?? 0) < ids.length)
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
     return {
@@ -457,5 +641,33 @@ export async function listPayeeTransactions(
   return {
     transactions: merged.slice(0, PAYEE_TRANSACTIONS_LIMIT).map((m) => m.row),
     total_count: Number(real[0]?.total ?? 0) + Number(sched[0]?.total ?? 0),
+  };
+}
+
+/** A payee's last counted transactions (see docs/payee-category-design.md), newest first. Three D1 calls. */
+export async function listPayeeRecentTransactions(
+  env: Env,
+  budgetId: string,
+  payeeId: string,
+  limit: number,
+): Promise<{ transactions: PayeeRecentTransaction[] }> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  if (payeeId.startsWith(TRANSFER_PAYEE_PREFIX)) throw forbidden(PAYEE_ERRORS.transfer);
+  const row = await payeesRepo.findActive(db, budgetId, payeeId);
+  if (!row) throw new NotFound("Payee");
+  if (row.system) throw forbidden(PAYEE_ERRORS.system);
+  const rows = await categoryRepo.recentCountedQuery(db, budgetId, payeeId, limit);
+  return {
+    transactions: rows.map((r) => ({
+      id: r.id,
+      account_id: r.account_id,
+      date: r.date,
+      category_id: r.category_id,
+      category_name: r.category_name,
+      category_group_name: r.category_group_name,
+      inflow_to_ready_to_assign: Number(r.inflow) === 1,
+      amount: r.amount,
+    })),
   };
 }

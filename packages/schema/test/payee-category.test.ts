@@ -24,7 +24,10 @@ function replay(entries: Entry[], start: CategoryValue | null = null): CategoryV
   let current = start;
   for (const [i, e] of entries.entries()) {
     rows.push({ ...e, created_at: String(i).padStart(4, "0"), id: `r${i}` });
-    const last3 = [...rows].sort(compareRecency).slice(0, 3).map((r) => r.value);
+    const last3 = [...rows]
+      .sort(compareRecency)
+      .slice(0, 3)
+      .map((r) => r.value);
     current = nextDefault(current, last3);
   }
   return current;

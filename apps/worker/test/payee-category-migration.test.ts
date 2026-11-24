@@ -7,7 +7,14 @@ const files = () => env.TEST_MIGRATIONS as unknown as { name: string; queries: s
 const migration = () => {
   const m = files().find((f) => f.name.includes("payee_category"));
   expect(m).toBeDefined();
-  return (m?.queries ?? []).map((q) => q.trim());
+  // Each query may start with the comment lines before it.
+  return (m?.queries ?? []).map((q) =>
+    q
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("--"))
+      .join("\n")
+      .trim(),
+  );
 };
 
 describe("20261116101900_payee_category.sql (EXF-515)", () => {
@@ -29,7 +36,7 @@ describe("20261116101900_payee_category.sql (EXF-515)", () => {
       .map((f) => f.name)
       .sort();
     expect(names.at(-1)).toMatch(/payee_category/);
-    expect(names.at(-1) ?? "").toBeGreaterThan("20261116101800");
+    expect((names.at(-1) ?? "") > "20261116101800").toBe(true);
   });
 
   it("backfills G,G,F and F,G (dates ascending) to G, G and a payee with no rows to null", async () => {

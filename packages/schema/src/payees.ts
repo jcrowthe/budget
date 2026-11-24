@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { CategoryMode } from "./payee-category";
 
 export const PAYEE_SYSTEMS = [
   "starting_balance",
@@ -17,9 +18,25 @@ export const Payee = z
     name: z.string(),
     hidden: z.boolean(),
     system: PayeeSystem.nullable(),
+    /** The category of the payee's latest transaction: that transaction, not the suggestion (see `default_category_id`). */
     last_category_id: z.string().nullable(),
     /** True when the payee's latest transaction is an inflow to Ready to Assign (then `last_category_id` is null); always false for system payees and transfer entries. */
     last_inflow_to_ready_to_assign: z.boolean(),
+    /** How the category is suggested: from the payee's history, a fixed choice, or not at all. Transfer entries and system payees: `history`. */
+    category_mode: CategoryMode,
+    /** The fixed category, kept when the mode leaves `fixed`; null when none or when it is Ready to Assign. */
+    fixed_category_id: z.string().nullable(),
+    /** The fixed choice is Ready to Assign (then `fixed_category_id` is null). */
+    fixed_inflow_to_ready_to_assign: z.boolean(),
+    /** The suggested category now: null for `off`, the fixed choice while live for `fixed`, the history default for `history`; null for transfer entries and system payees. */
+    default_category_id: z
+      .string()
+      .nullable()
+      .openapi({ readOnly: true, description: "The suggested category now, from the mode" }),
+    /** The suggestion is Ready to Assign (then `default_category_id` is null). */
+    default_inflow_to_ready_to_assign: z
+      .boolean()
+      .openapi({ readOnly: true, description: "The suggestion is Ready to Assign" }),
     /** Set on the "Transfer : <account>" entries, which stand for an open account of the plan. */
     transfer_account_id: z.string().nullable(),
     /** Live transactions (parents and split lines, in open or closed accounts) that name this payee; 0 for transfer entries. */
@@ -51,9 +68,38 @@ export const PayeeIdParam = z.object({
 });
 
 export const PayeeUpdate = z
-  .object({ name: z.string().max(200).optional(), hidden: z.boolean().optional() })
+  .object({
+    name: z.string().max(200).optional(),
+    hidden: z.boolean().optional(),
+    category_mode: CategoryMode.optional(),
+    /** A category or Ready to Assign, never both. `fixed` needs one, given now or already stored. */
+    fixed_category_id: z.string().min(1).nullable().optional(),
+    fixed_inflow_to_ready_to_assign: z.boolean().optional(),
+  })
   .openapi("PayeeUpdate");
 export type PayeeUpdate = z.infer<typeof PayeeUpdate>;
+
+export const PayeeRecentQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(10).default(3),
+});
+
+/** One of a payee's last counted transactions (see docs/payee-category-design.md). */
+export const PayeeRecentTransaction = z
+  .object({
+    id: z.string(),
+    account_id: z.string(),
+    date: IsoDate,
+    category_id: z.string().nullable(),
+    category_name: z.string().nullable(),
+    category_group_name: z.string().nullable(),
+    inflow_to_ready_to_assign: z.boolean(),
+    amount: Milliunits,
+  })
+  .openapi("PayeeRecentTransaction");
+export type PayeeRecentTransaction = z.infer<typeof PayeeRecentTransaction>;
+export const PayeeRecentResponse = dataEnvelope(
+  z.object({ transactions: z.array(PayeeRecentTransaction) }),
+);
 
 export const PayeeResponse = dataEnvelope(z.object({ payee: Payee }));
 
@@ -111,7 +157,10 @@ export const PAYEE_ERRORS = {
   empty: "Payee name cannot be empty",
   transfer: "Transfer payees can't be edited or deleted",
   system: "System payees are set by the app and can't be edited or deleted",
-  noField: "Give name or hidden",
+  noField: "Give name, hidden, category_mode or a fixed choice",
+  fixedNeedsValue: "A fixed mode needs a fixed category or Ready to Assign",
+  categoryUnknown: "Category not found in this plan",
+  fixedBoth: "A fixed choice is a category or Ready to Assign, not both",
   replacement: "The replacement must be an ordinary payee of this plan",
   replaceSelf: "A payee can't replace itself",
   replacementOnlyDelete: "replacement_payee_id goes only with delete",

@@ -93,3 +93,26 @@ Splits, transfers and approvals never change a payee's counted rows.
   - Creating a transaction without `category_id` doesn't apply the default yet (REST/MCP report it).
 - **U4:** the Categorization card, the "Last 3 transactions" popover and the register add-row fill.
 - An account delete or a category-group delete leaves the stored default as it is. It reads through the live check and the fallback, so the API stays right.
+
+## Measured (as built)
+
+D1 calls, counted with `countingEnv` (`test/payee-category-calls.test.ts`). Base is main d1e7f2d.
+
+| operation | base | now |
+|---|---|---|
+| payee list, 10 and 100 payees | 3 / 3 | 3 / 3 |
+| `addTransaction`, existing payee / new payee | 9 / 9 | 9 / 9 |
+| `updateTransaction` `{category_id}` / payee move | 7 / 8 | 7 / 8 |
+| `deleteTransaction` | 5 | 5 |
+| `updatePayee` rename / hide | 4 / 3 | 4 / 3 |
+| `updatePayee` mode, `fixed`, rename + fixed | n/a | ≤ 4 |
+| recent transactions | n/a | 3 |
+
+Base suggestion (`last_category_id`) of the ticket rows, measured on base: Cafe A row 1 Fun, row 2 Groceries, Cafe C Fun, Cafe D row 1 Fun, row 2 Rent, Cafe E Fun. Cafe E already matches the ticket on base; the others differ.
+
+## Found while building
+
+- D1 batches only accept Drizzle builder statements: `db.run(sql)` has no prepared statement and fails inside `db.batch`. `recomputeDefaultsStmt` is therefore a `db.update(...).from(<derived table>)`, with no `WITH`.
+- A tie keeps the stored default (rule step 2), so one edited row can leave the default as it was (a single Fun row edited to Groceries keeps Fun). This is the contract's rule, read literally.
+- `buildPayeeDeleteBatch` stays at 6 statements; the replacement's recompute is appended outside it.
+

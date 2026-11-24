@@ -30,7 +30,7 @@ async function world() {
   const payeeLogs = async (id: string) =>
     (
       await env.DB.prepare(
-        "select actor, action, before_json, after_json from change_log where entity_type = 'payee' and entity_id = ? order by rowid",
+        "select actor, action, before_json, after_json from change_log where entity_type = 'payee' and action = 'update' and entity_id = ? order by rowid",
       )
         .bind(id)
         .all<Json>()

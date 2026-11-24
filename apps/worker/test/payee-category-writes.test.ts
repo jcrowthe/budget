@@ -103,7 +103,10 @@ describe("writes recompute the stored default (EXF-515)", () => {
   it("editing the category recomputes", async () => {
     const s = await world();
     const a = await s.enter("ZZ P", "2026-11-10", "Fun");
+    await s.enter("ZZ P", "2026-11-11", "Fun");
+    await s.enter("ZZ P", "2026-11-12", "Groceries");
     expect(await s.nameIs("ZZ P")).toBe("Fun");
+    // Last 3 become Groceries 11/12, Fun 11/11, Groceries 11/10: Groceries holds 2.
     expect((await s.patchTx(a.id, { category_id: s.ids.Groceries })).status).toBe(200);
     expect(await s.nameIs("ZZ P")).toBe("Groceries");
   });
