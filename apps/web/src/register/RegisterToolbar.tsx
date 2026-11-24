@@ -26,6 +26,7 @@ export function RegisterToolbar({
   name,
   onAdd,
   closed = false,
+  closedAccount = false,
   onRecordPayment,
   paymentDisabled = false,
   viewScope,
@@ -33,6 +34,8 @@ export function RegisterToolbar({
   name: string;
   onAdd: () => void;
   closed?: boolean;
+  /** The register is one closed account: Add says how to enable it. */
+  closedAccount?: boolean;
   /** A credit account's page only (EXF-539). */
   onRecordPayment?: () => void;
   paymentDisabled?: boolean;
@@ -109,7 +112,9 @@ export function RegisterToolbar({
         <button
           type="button"
           className="toolbar-button"
-          title="Add new transaction"
+          title={
+            closedAccount ? "Re-open this account to add a transaction." : "Add new transaction"
+          }
           data-ticket="EXF-517"
           onClick={onAdd}
           disabled={closed}
