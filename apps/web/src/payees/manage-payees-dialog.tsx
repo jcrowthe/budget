@@ -2,9 +2,12 @@ import { manageGroups, NO_PAYEES, type Payee, unusedIds, unusedLabel } from "@bu
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { usePayees } from "../api/payees";
+import { ApiError } from "../api/client";
+import { invalidatePayeeViews, usePayees } from "../api/payees";
 import { SearchIcon } from "../register/icons";
 import { CloseIcon } from "../shell/icons";
+import { mark, type Scope } from "../undo/store";
+import { useUndo } from "../undo/useUndo";
 import { useManagePayeesFocus } from "./manage-payees-focus";
 import { type GroupKey, PayeeList } from "./manage-payees-list";
 import { EditPane } from "./manage-payees-pane";
@@ -35,6 +38,26 @@ export function ManagePayeesDialog({
   });
   const [active, setActive] = useState<string | null>(null);
   const [popover, setPopover] = useState<{ payeeId: string; anchor: HTMLElement } | null>(null);
+  // Undo/Redo act only on what this dialog changed since it opened.
+  const [scope] = useState<Scope>(() => ({ origin: "payees", since: mark() }));
+  const { canUndo, canRedo, undo, redo } = useUndo(b, scope);
+  const [fault, setFault] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  // Both buttons stay off until the lists have refetched and the pane shows the restored state.
+  const [running, setRunning] = useState(false);
+  const runStep = async (go: () => Promise<unknown>) => {
+    setFault(null);
+    setRunning(true);
+    try {
+      await go();
+    } catch (e) {
+      setFault(e instanceof ApiError ? e.detail : "Something went wrong. Try again.");
+    } finally {
+      await invalidatePayeeViews(qc, b);
+      setStep((n) => n + 1);
+      setRunning(false);
+    }
+  };
   const popoverRef = useRef(popover);
   popoverRef.current = popover;
 
@@ -162,6 +185,7 @@ export function ManagePayeesDialog({
         </div>
         <div className="mp-main">
           <EditPane
+            key={step}
             budgetId={b}
             selected={selectedPayees}
             all={all}
@@ -179,22 +203,25 @@ export function ManagePayeesDialog({
           <button
             type="button"
             className="mp-button secondary"
-            disabled
-            aria-disabled="true"
-            data-ticket="EXF-530"
+            disabled={!canUndo || running}
+            onClick={() => runStep(undo)}
           >
             Undo
           </button>
           <button
             type="button"
             className="mp-button secondary"
-            disabled
-            aria-disabled="true"
-            data-ticket="EXF-530"
+            disabled={!canRedo || running}
+            onClick={() => runStep(redo)}
           >
             Redo
           </button>
         </div>
+        {fault ? (
+          <div role="alert" className="mp-error mp-fault" style={{ margin: 0 }}>
+            {fault}
+          </div>
+        ) : null}
         <button type="button" className="mp-button mp-primary" onClick={onClose}>
           Done
         </button>
