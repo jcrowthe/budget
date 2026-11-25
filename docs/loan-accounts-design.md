@@ -124,3 +124,15 @@ which it retries (5 attempts). The number of D1 calls is constant: fixed reads p
 - Editing loan details (the account's edit dialog, "Loan Details") is area 6.
 - What happens to `paired_category_id` when its category is deleted.
 - Plan export and import carrying the loan fields.
+
+## Tests and measured D1 calls
+
+- Worker: `apps/worker/test/loan-accounts.test.ts` (AC5–AC8, the 422 matrix over REST and MCP, atomicity,
+  change log, MCP parity) and `apps/worker/test/loan-accounts-calls.test.ts` (counting).
+- e2e: `e2e/loan-accounts.spec.ts` (AC1–AC5 and the new-category pairing through the UI).
+- D1 calls of `addUnlinkedAccount` for a loan, the same at 10 and at 100 categories, always one `db.batch`:
+  new category in a new group 8, new category in an existing group 9, existing category 8, no pairing 6.
+- AC5's Starting Balance row is read in All Accounts: an off-plan account's own register has no category
+  column.
+- Also touched outside May touch: `apps/worker/test/accounts.test.ts` (four keys added to one `AccountRow`
+  literal so it type-checks).
