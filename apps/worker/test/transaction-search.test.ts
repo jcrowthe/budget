@@ -1,10 +1,16 @@
 import { env } from "cloudflare:test";
 import { formatToken, parseSearch } from "@budget/schema/transaction-search";
 import { beforeAll, describe, expect, it } from "vitest";
-import { account as mkAccount, category as mkCategory, type Json, q as sql, tx } from "./bulk-helpers";
+import { createBudget } from "../src/services/budgets";
+import {
+  type Json,
+  account as mkAccount,
+  category as mkCategory,
+  q as sql,
+  tx,
+} from "./bulk-helpers";
 import { json } from "./helpers";
 import { mcpRpc } from "./surface";
-import { createBudget } from "../src/services/budgets";
 
 const actor = "user:tester@localhost";
 const DAY = "2026-11-10";
@@ -16,12 +22,16 @@ let savings: string;
 const names = new Map<string, string>(); // id -> label
 
 async function named(name: string, type = "checking") {
-  const res = await call(`/api/v1/budgets/${bid}/accounts`, { method: "POST" }, {
-    name,
-    type,
-    balance: 0,
-    date: DAY,
-  });
+  const res = await call(
+    `/api/v1/budgets/${bid}/accounts`,
+    { method: "POST" },
+    {
+      name,
+      type,
+      balance: 0,
+      date: DAY,
+    },
+  );
   expect(res.status).toBe(201);
   return ((await res.json()) as Json).data.account.id as string;
 }
@@ -40,7 +50,11 @@ async function rest(query: string, account?: string, extra = "") {
 /** The labels of the rows `q` returns, sorted. */
 async function hits(query: string, account?: string, extra = "") {
   const d = await rest(query, account, extra);
-  return d.transactions.map((t: Json) => names.get(t.id) ?? t.id).sort() as string[];
+  // Rows this file did not add (an account's Starting Balance) are not part of the cases.
+  return d.transactions
+    .map((t: Json) => names.get(t.id))
+    .filter(Boolean)
+    .sort() as string[];
 }
 async function refused(query: string) {
   const res = await call(listUrl(query));
@@ -60,36 +74,67 @@ beforeAll(async () => {
   await sql("update categories set name = 'ZZ Groceries' where id = ?", groc);
   const c = checking;
   await add("corner", {
-    account_id: c, payee_name: "ZZ Corner Store", amount: -25000, category_id: groc, approved: false,
+    account_id: c,
+    payee_name: "ZZ Corner Store",
+    amount: -25000,
+    category_id: groc,
+    approved: false,
   });
   await add("bakery", {
-    account_id: c, payee_name: "ZZ Bakery", memo: "corner table", amount: -15000, category_id: groc,
+    account_id: c,
+    payee_name: "ZZ Bakery",
+    memo: "corner table",
+    amount: -15000,
+    category_id: groc,
   });
   const market = await add("market", {
-    account_id: c, payee_name: "ZZ Market", amount: -30000, category_id: groc, cleared: "cleared",
+    account_id: c,
+    payee_name: "ZZ Market",
+    amount: -30000,
+    category_id: groc,
+    cleared: "cleared",
     date: "2026-10-05",
   });
-  await call(`/api/v1/budgets/${bid}/transactions/bulk`, { method: "POST" }, {
-    op: "flag", ids: [market], value: "red",
-  });
+  await call(
+    `/api/v1/budgets/${bid}/transactions/bulk`,
+    { method: "POST" },
+    {
+      op: "flag",
+      ids: [market],
+      value: "red",
+    },
+  );
   const rta = await add("rta", {
-    account_id: c, payee_name: "ZZ Employer", amount: 30000, inflow_to_ready_to_assign: true,
+    account_id: c,
+    payee_name: "ZZ Employer",
+    amount: 30000,
+    inflow_to_ready_to_assign: true,
     cleared: "cleared",
   });
   await sql("update transactions set cleared = 'reconciled' where id = ?", rta);
   const matched = await add("matched", {
-    account_id: c, payee_name: "ZZ Matched", amount: -5000, category_id: groc,
+    account_id: c,
+    payee_name: "ZZ Matched",
+    amount: -5000,
+    category_id: groc,
   });
   await sql("update transactions set import_id = 'ZZ-BANK-1' where id = ?", matched);
   await add("split", {
-    account_id: c, payee_name: "ZZ Split Payee", amount: -30000,
+    account_id: c,
+    payee_name: "ZZ Split Payee",
+    amount: -30000,
     subtransactions: [
       { amount: -10000, category_id: fun, memo: "gift" },
       { amount: -20000, category_id: groc },
     ],
   });
   await add("transfer", { account_id: c, amount: -7000, transfer_account_id: savings });
-  await add("sav", { account_id: savings, payee_name: "ZZ Savings Payee", amount: -2000, category_id: groc });
+  await add("sav", {
+    account_id: savings,
+    payee_name: "ZZ Savings Payee",
+    amount: -2000,
+    category_id: groc,
+  });
   await add("nocat", { account_id: savings, payee_name: "ZZ Nocat", amount: -1000 });
 });
 
@@ -152,7 +197,11 @@ describe("register search: matching (EXF-528)", () => {
     expect(await hits("After: 11/10/2026", checking)).toEqual(ALL_C.filter((l) => l !== "market"));
     expect(await hits("After: 2026-10-06", checking)).toEqual(ALL_C.filter((l) => l !== "market"));
     const other = (await createBudget(env, actor, { name: `ZZ-TEST ${crypto.randomUUID()}` })).id;
-    await call(`/api/v1/budgets/${other}`, { method: "PATCH" }, { date_format: { format: "DD/MM/YYYY" } });
+    await call(
+      `/api/v1/budgets/${other}`,
+      { method: "PATCH" },
+      { date_format: { format: "DD/MM/YYYY" } },
+    );
     const a = await mkAccount(other, "checking", 0);
     const t = await tx(other, { account_id: a, date: "2026-11-05", amount: -1000 });
     const res = await call(
@@ -229,7 +278,9 @@ describe("register search: grammar", () => {
       { type: "date", op: "before", date: "2026-11-14" },
       { type: "text", field: "any", value: "corner" },
     ]);
-    expect(parseSearch("Is: banana, Payee:", ctx).invalid.map((i) => i.segment)).toEqual(["Is: banana"]);
+    expect(parseSearch("Is: banana, Payee:", ctx).invalid.map((i) => i.segment)).toEqual([
+      "Is: banana",
+    ]);
   });
   it("writes the token text the UI uses", () => {
     const f = (s: string) => formatToken(parseSearch(s, ctx).tokens[0] as never, ctx.dateFormat);

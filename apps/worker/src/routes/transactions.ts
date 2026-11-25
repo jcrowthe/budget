@@ -1,6 +1,7 @@
 import { IsoDate } from "@budget/schema/common/dates";
 import { ErrorBody } from "@budget/schema/common/envelope";
 import { PLAN_SORT_COLUMNS, REGISTER_SORT_COLUMNS } from "@budget/schema/register";
+import { SEARCH_QUERY_DESCRIPTION } from "@budget/schema/transaction-search";
 import {
   MatchResponse,
   PlanTransactionListResponse,
@@ -96,6 +97,7 @@ export default app
             .describe(
               "approval_or_category: only transactions that are unapproved or need a category",
             ),
+          q: z.string().max(500).optional().describe(SEARCH_QUERY_DESCRIPTION),
           include: z
             .enum(["running_balance"])
             .optional()
@@ -112,14 +114,17 @@ export default app
     async (c) => {
       const { budget_id, account_id } = c.req.valid("param");
       const q = c.req.valid("query");
-      const data = await listAccountTransactions(c.env, budget_id, account_id, {
-        sinceDate: q.since_date,
-        sort: q.sort,
-        dir: q.dir,
-        needs: q.needs,
-        include: q.include,
+      return refusals(c, async () => {
+        const data = await listAccountTransactions(c.env, budget_id, account_id, {
+          sinceDate: q.since_date,
+          sort: q.sort,
+          dir: q.dir,
+          needs: q.needs,
+          include: q.include,
+          q: q.q,
+        });
+        return c.json({ data }, 200);
       });
-      return c.json({ data }, 200);
     },
   )
   .openapi(
@@ -139,6 +144,7 @@ export default app
             .describe(
               "approval_or_category: only transactions that are unapproved or need a category",
             ),
+          q: z.string().max(500).optional().describe(SEARCH_QUERY_DESCRIPTION),
         }),
       },
       responses: {
@@ -152,13 +158,16 @@ export default app
     async (c) => {
       const { budget_id } = c.req.valid("param");
       const q = c.req.valid("query");
-      const data = await listPlanTransactions(c.env, budget_id, {
-        sinceDate: q.since_date,
-        sort: q.sort,
-        dir: q.dir,
-        needs: q.needs,
+      return refusals(c, async () => {
+        const data = await listPlanTransactions(c.env, budget_id, {
+          sinceDate: q.since_date,
+          sort: q.sort,
+          dir: q.dir,
+          needs: q.needs,
+          q: q.q,
+        });
+        return c.json({ data }, 200);
       });
-      return c.json({ data }, 200);
     },
   )
   .openapi(

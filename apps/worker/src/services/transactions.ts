@@ -8,6 +8,7 @@ import {
   type SortDir,
   sortTransactions,
 } from "@budget/schema/register";
+import { parseSearch, type SearchToken } from "@budget/schema/transaction-search";
 import {
   type AccountBalances,
   PlainClearedStatus,
@@ -331,6 +332,21 @@ export async function getAccountBalances(
   return balancesOf(db, budgetId, accountId);
 }
 
+/** The tokens of a `q`, read in the plan's date format; a segment that cannot be read is a 422. */
+function searchTokens(
+  q: string | undefined,
+  plan: { dateFormat: string },
+): SearchToken[] | undefined {
+  if (!q?.trim()) return undefined;
+  const { tokens, invalid } = parseSearch(q, {
+    dateFormat: plan.dateFormat,
+    today: new Date().toISOString().slice(0, 10),
+  });
+  const first = invalid[0];
+  if (first) throw unprocessable(`Search: ${first.reason} in "${first.segment}"`);
+  return tokens;
+}
+
 export async function listAccountTransactions(
   env: Env,
   budgetId: string,
@@ -341,17 +357,19 @@ export async function listAccountTransactions(
     dir?: SortDir;
     needs?: "approval_or_category";
     include?: "running_balance";
+    q?: string;
   } = {},
 ): Promise<{
   transactions: (TransactionDetail & { running_balance?: number })[];
   balances: AccountBalances;
 }> {
   const db = getDb(env);
-  await activePlan(db, budgetId);
+  const search = searchTokens(opts.q, await activePlan(db, budgetId));
   await activeAccount(db, budgetId, accountId);
   const [rows, balances, lines] = await Promise.all([
     txRepo.listDetailForAccount(db, budgetId, accountId, opts.sinceDate, opts.needs, {
       runningBalance: opts.include === "running_balance",
+      search,
     }),
     balancesOf(db, budgetId, accountId),
     txRepo.listLines(db, budgetId, { accountId, sinceDate: opts.sinceDate }),
@@ -375,12 +393,13 @@ export async function listPlanTransactions(
     sort?: PlanSortColumn;
     dir?: SortDir;
     needs?: "approval_or_category";
+    q?: string;
   } = {},
 ): Promise<{ transactions: PlanTransaction[]; balances: AccountBalances }> {
   const db = getDb(env);
-  await activePlan(db, budgetId);
+  const search = searchTokens(opts.q, await activePlan(db, budgetId));
   const [rows, open, lines] = await Promise.all([
-    txRepo.listDetailForPlan(db, budgetId, opts.sinceDate, opts.needs),
+    txRepo.listDetailForPlan(db, budgetId, opts.sinceDate, opts.needs, { search }),
     txRepo.openAccountsBalances(db, budgetId),
     txRepo.listLines(db, budgetId, { sinceDate: opts.sinceDate }),
   ]);

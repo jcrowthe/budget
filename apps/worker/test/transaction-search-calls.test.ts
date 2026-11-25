@@ -59,7 +59,6 @@ async function calls(run: (e: Env) => Promise<unknown>) {
   return c.calls();
 }
 
-
 /** Two live split lines on every 10th row would make the seed depend on n; one split row is enough to reach the lines branch. */
 async function seedSplit(b: string, a: string) {
   const now = new Date().toISOString();
@@ -80,7 +79,11 @@ async function seedSplit(b: string, a: string) {
   }
 }
 
-const QUERIES = [undefined, "Is: Uncleared, Outflow: >=1, ZZ", "Memo: gift, Outflow: 10, Category: x"];
+const QUERIES = [
+  undefined,
+  "Is: Uncleared, Outflow: >=1, ZZ",
+  "Memo: gift, Outflow: 10, Category: x",
+];
 
 describe("register search: D1 calls (EXF-528)", () => {
   it("cost the same for 10 and 100 rows, with and without q", async () => {
@@ -113,6 +116,8 @@ describe("register search: D1 calls (EXF-528)", () => {
     await seedSplit(b, a);
     const got = await listAccountTransactions(env, b, a, { q: "Memo: gift" });
     expect(got.transactions).toHaveLength(1);
-    expect((await listPlanTransactions(env, b, { q: "Is: Uncleared" })).transactions).toHaveLength(1);
+    expect((await listPlanTransactions(env, b, { q: "Is: Uncleared" })).transactions).toHaveLength(
+      1,
+    );
   });
 });

@@ -5,6 +5,7 @@ import {
 } from "@budget/core/account-types";
 import type { EngineActivity } from "@budget/core/budget-engine";
 import type { PayeeSystem } from "@budget/schema/payees";
+import type { SearchToken } from "@budget/schema/transaction-search";
 import { transferPayeeName } from "@budget/schema/transfers";
 import {
   and,
@@ -97,19 +98,117 @@ export function countsInBalance(): SQL {
 }
 
 /**
- * A transaction that needs the user: it is unapproved, or it needs a category (an on-plan account, no
- * category, not Ready to Assign, not a split parent, not a transfer to an on-plan account, not a Starting
- * Balance). Raw SQL over `transactions`, usable in `where()`.
+ * Needs a category: an on-plan account, no category, not Ready to Assign, not a split parent, not a transfer to
+ * an on-plan account, not a Starting Balance. Raw SQL over `transactions`, usable in `where()`.
  */
-export function needsAttention(): SQL {
+export function needsCategory(): SQL {
   const t = transactions;
-  return sql`(${t.approved} = 0 or (
+  return sql`(
     ${t.categoryId} is null and ${t.inflowToReadyToAssign} = 0
     and exists (select 1 from accounts na where na.id = ${t.accountId} and na.on_budget = 1)
     and not exists (select 1 from transactions nl where nl.parent_transaction_id = ${t.id} and nl.deleted_at is null)
     and not (${t.transferAccountId} is not null
       and exists (select 1 from accounts nt where nt.id = ${t.transferAccountId} and nt.on_budget = 1))
-    and coalesce((select np.system from payees np where np.id = ${t.payeeId}), '') <> 'starting_balance'))`;
+    and coalesce((select np.system from payees np where np.id = ${t.payeeId}), '') <> 'starting_balance')`;
+}
+
+/** A transaction that needs the user: it is unapproved, or it needs a category. */
+export function needsAttention(): SQL {
+  return sql`(${transactions.approved} = 0 or ${needsCategory()})`;
+}
+
+const escapeLike = (v: string) => v.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/** The columns of one row in a search condition: the listed row (`"transactions"`) or one of its lines (`l`). */
+const rowCols = (prefix: string) => {
+  const c = (name: string) => sql.raw(`${prefix}.${name}`);
+  return {
+    amount: c("amount"),
+    memo: c("memo"),
+    payee: sql`coalesce(
+      case when ${c("transfer_account_id")} is not null
+        then (select 'Transfer : ' || x.name from accounts x where x.id = ${c("transfer_account_id")}) end,
+      (select p.name from payees p where p.id = ${c("payee_id")}),
+      ${c("payee_name")})`,
+    category: sql`case when ${c("inflow_to_ready_to_assign")} = 1 then 'Ready to Assign'
+      else (select k.name from categories k where k.id = ${c("category_id")}) end`,
+  };
+};
+
+/** One search token on a row; `line` is set for a split line, whose payee falls back to the parent's. */
+function tokenSql(token: SearchToken, line: boolean): SQL {
+  const parent = rowCols('"transactions"');
+  const row = line ? rowCols("l") : parent;
+  const payee = line ? sql`coalesce(${row.payee}, ${parent.payee})` : row.payee;
+  const account = sql`(select ac.name from accounts ac where ac.id = ${transactions.accountId})`;
+  const t = transactions;
+  switch (token.type) {
+    case "text": {
+      const field = {
+        payee,
+        category: row.category,
+        memo: row.memo,
+        account,
+        any: sql`(coalesce(${payee}, '') || char(31) || coalesce(${row.category}, '') || char(31) || coalesce(${row.memo}, '') || char(31) || coalesce(${account}, ''))`,
+      }[token.field];
+      return sql`lower(coalesce(${field}, '')) like lower(${`%${escapeLike(token.value)}%`}) escape '\\'`;
+    }
+    case "amount": {
+      const op = { eq: "=", gte: ">=", lte: "<=" }[token.op];
+      return token.side === "outflow"
+        ? sql`(${row.amount} < 0 and -${row.amount} ${sql.raw(op)} ${token.milliunits})`
+        : sql`(${row.amount} > 0 and ${row.amount} ${sql.raw(op)} ${token.milliunits})`;
+    }
+    case "flag":
+      return token.color ? sql`${t.flagColor} = ${token.color}` : sql`${t.flagColor} is null`;
+    case "date": {
+      const op = { on: "=", before: "<=", after: ">=" }[token.op];
+      return sql`${t.date} ${sql.raw(op)} ${token.date}`;
+    }
+    case "income":
+      return sql`(${t.inflowToReadyToAssign} = 1 and ${t.amount} > 0 and substr(${t.date}, 1, 7) = ${token.month.slice(0, 7)})`;
+    case "is":
+      switch (token.value) {
+        case "Uncleared":
+          return sql`${t.cleared} = 'uncleared'`;
+        case "Cleared":
+          return sql`${t.cleared} = 'cleared'`;
+        case "Reconciled":
+          return sql`${t.cleared} = 'reconciled'`;
+        case "Unreconciled":
+          return sql`${t.cleared} <> 'reconciled'`;
+        case "Cleared or Reconciled":
+          return sql`${t.cleared} in ('cleared', 'reconciled')`;
+        case "Matched":
+          return sql`(${t.importId} is not null and ${t.source} is null)`;
+        case "Approved":
+          return sql`${t.approved} = 1`;
+        case "Unapproved":
+          return sql`${t.approved} = 0`;
+        case "Needs Category":
+          return needsCategory();
+        case "Unapproved or Needs Category":
+          return needsAttention();
+      }
+  }
+}
+
+/**
+ * The search tokens as one condition on the listed (parent) row: every token holds on the row, or on one of its
+ * live split lines (the row's own account, date, flag and status still apply). All values are bound parameters,
+ * and it adds no statement.
+ */
+export function searchCondition(tokens: readonly SearchToken[]): SQL {
+  const onRow = sql.join(
+    tokens.map((k) => tokenSql(k, false)),
+    sql` and `,
+  );
+  const onLine = sql.join(
+    tokens.map((k) => tokenSql(k, true)),
+    sql` and `,
+  );
+  return sql`((${onRow}) or exists (select 1 from transactions l
+    where l.parent_transaction_id = ${transactions.id} and l.deleted_at is null and (${onLine})))`;
 }
 
 export type AttentionCounts = { unapproved: number; attention: number };
@@ -334,7 +433,7 @@ export async function listDetailForAccount(
   accountId: string,
   sinceDate?: string,
   needs?: "approval_or_category",
-  opts: { runningBalance?: boolean } = {},
+  opts: { runningBalance?: boolean; search?: readonly SearchToken[] } = {},
 ): Promise<TransactionDetailRow[]> {
   const conds = [
     eq(transactions.budgetId, budgetId),
@@ -344,6 +443,7 @@ export async function listDetailForAccount(
   ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
   if (needs) conds.push(needsAttention());
+  if (opts.search?.length) conds.push(searchCondition(opts.search));
   if (!opts.runningBalance) return (await detailSelect(db).where(and(...conds))).map(toDetail);
   // Every live row of the account counts, whatever the filters above leave out: the window runs in its own
   // subquery. The register's order is date desc, amount asc, created_at, id, so the balance runs the reverse.
@@ -392,6 +492,7 @@ export async function listDetailForPlan(
   budgetId: string,
   sinceDate?: string,
   needs?: "approval_or_category",
+  opts: { search?: readonly SearchToken[] } = {},
 ): Promise<PlanDetailRow[]> {
   const conds = [
     eq(transactions.budgetId, budgetId),
@@ -400,6 +501,7 @@ export async function listDetailForPlan(
   ];
   if (sinceDate) conds.push(gte(transactions.date, sinceDate));
   if (needs) conds.push(needsAttention());
+  if (opts.search?.length) conds.push(searchCondition(opts.search));
   const rows = await db
     .select({
       t: transactions,

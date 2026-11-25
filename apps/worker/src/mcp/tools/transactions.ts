@@ -1,5 +1,6 @@
 import { IsoDate } from "@budget/schema/common/dates";
 import { Milliunits } from "@budget/schema/common/money";
+import { SEARCH_QUERY_DESCRIPTION } from "@budget/schema/transaction-search";
 import {
   FlagColor,
   PlainClearedStatus,
@@ -56,6 +57,19 @@ export const tools: McpToolDef[] = [
           })
         : listPlanTransactions(env, input.budget_id, { sinceDate: input.since_date });
     },
+  },
+  {
+    name: "search_transactions",
+    description: `Search a plan's transactions. ${SEARCH_QUERY_DESCRIPTION} With account_id: that account's rows; without: every account's rows (closed accounts included) with account_name. A split transaction is returned with all its lines. ${MONEY} Returns { transactions, balances: { cleared, uncleared, working } }; each row has the fields of list_transactions. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      query: z.string().min(1).max(500),
+      account_id: Id.optional(),
+    }),
+    run: async (input: { budget_id: string; query: string; account_id?: string }, { env }) =>
+      input.account_id
+        ? listAccountTransactions(env, input.budget_id, input.account_id, { q: input.query })
+        : listPlanTransactions(env, input.budget_id, { q: input.query }),
   },
   {
     name: "list_unapproved_transactions",
