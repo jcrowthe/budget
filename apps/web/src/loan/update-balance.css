@@ -1,0 +1,64 @@
+/* EXF-543: the Update Balance wizard. Colours and spacing come from shell/tokens.css only. */
+.update-balance .ub-ask {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--labelPrimary);
+}
+.update-balance .ub-name {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  color: var(--labelPrimary);
+}
+.update-balance .ub-current {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+}
+.update-balance .ub-current strong {
+  margin-left: var(--space-2);
+  color: var(--labelPrimary);
+  font-variant-numeric: tabular-nums;
+}
+.update-balance .ub-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--buttonSubtleBackground);
+}
+.update-balance .ub-tile-value {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--labelPrimary);
+  font-variant-numeric: tabular-nums;
+}
+.update-balance .ub-tile-label {
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.update-balance .ub-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--labelSecondary);
+}
+.update-balance .ub-changes {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--labelSecondary);
+}
+.update-balance .ub-change-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--borderSubtle);
+  font-variant-numeric: tabular-nums;
+}
+.update-balance .ub-done-title {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  color: var(--labelPrimary);
+}
