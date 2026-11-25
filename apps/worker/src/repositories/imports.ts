@@ -92,8 +92,8 @@ export function categoryNamesQuery(db: Db, budgetId: string) {
   return db
     .select({
       id: categories.id,
-      name: categories.name,
-      groupName: categoryGroups.name,
+      name: sql<string>`${categories.name}`.as("category_name"),
+      groupName: sql<string | null>`${categoryGroups.name}`.as("group_name"),
       deleted: sql<number>`(${categories.deletedAt} is not null or ${categoryGroups.deletedAt} is not null)`,
     })
     .from(categories)
