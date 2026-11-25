@@ -202,6 +202,49 @@ export function removeForPayeesStmts(
   );
 }
 
+/** A condition over the rules table: the rule has a live twin (same kind and folded text) that outranks it. */
+const outrankedSql = (fromIds: readonly string[], toId: string) =>
+  sql`exists (select 1 from payee_rename_rules o where o.deleted_at is null and o.kind = payee_rename_rules.kind
+    and o.match_text = payee_rename_rules.match_text and o.id <> payee_rename_rules.id
+    and (o.payee_id = ${toId} or (${idsIn(sql`o.payee_id`, fromIds)}
+      and (o.created_at, o.id) < (payee_rename_rules.created_at, payee_rename_rules.id))))`;
+
+/**
+ * Moves every live rule of `fromIds` to `toId` (a combine). A rule that the survivor already has, or an earlier one
+ * of the merged payees has, is dropped instead, so the earliest copy stays. Four statements, whatever the rules:
+ * the dropped rules' history rows, their soft delete (its `meta.changes` is the dropped count), the moved rules'
+ * history rows and the move (its `meta.changes` is the moved count).
+ */
+export function moveForPayeesStmts(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  fromIds: readonly string[],
+  toId: string,
+  now: string,
+  guard: SQL,
+) {
+  const mine = sql`payee_rename_rules.budget_id = ${budgetId} and ${idsIn(sql`payee_rename_rules.payee_id`, fromIds)} and payee_rename_rules.deleted_at is null and ${guard}`;
+  const dup = sql`${mine} and ${outrankedSql(fromIds, toId)}`;
+  const rest = sql`${mine} and not ${outrankedSql(fromIds, toId)}`;
+  const pick = (where: SQL) =>
+    sql`select id, payee_id, kind, text from payee_rename_rules where ${where}`;
+  return [
+    logSelectStmt(db, { ...base, action: "delete", entityType: "payee_rename_rule" }, pick(dup), {
+      entityId: sql`id`,
+      before: ruleJson,
+      after: null,
+    }),
+    db.update(payeeRenameRules).set({ deletedAt: now, updatedAt: now }).where(dup),
+    logSelectStmt(db, { ...base, action: "update", entityType: "payee_rename_rule" }, pick(rest), {
+      entityId: sql`id`,
+      before: ruleJson,
+      after: sql`json_set(${ruleJson}, '$.payee_id', ${toId})`,
+    }),
+    db.update(payeeRenameRules).set({ payeeId: toId, updatedAt: now }).where(rest),
+  ] as const;
+}
+
 export function isUniqueViolation(e: unknown): boolean {
   for (let x: unknown = e; x instanceof Error; x = x.cause) {
     if (x.message.includes("UNIQUE constraint failed: payee_rename_rules")) return true;

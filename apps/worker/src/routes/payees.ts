@@ -2,6 +2,8 @@ import { ErrorBody } from "@budget/schema/common/envelope";
 import {
   PayeeBulkRequest,
   PayeeBulkResponse,
+  PayeeCombineRequest,
+  PayeeCombineResponse,
   PayeeDeleteQuery,
   PayeeDeleteResponse,
   PayeeIdParam,
@@ -18,6 +20,7 @@ import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import {
   applyToPayees,
+  combinePayees,
   deletePayee,
   listPayeeRecentTransactions,
   listPayees,
@@ -136,6 +139,34 @@ export default app
           ids: b.payee_ids,
           action: b.action,
           replacementId: b.replacement_payee_id,
+        });
+        return c.json({ data: out }, 200);
+      }),
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/payees/combine",
+      tags,
+      request: {
+        params: budgetOnly,
+        body: { content: { "application/json": { schema: PayeeCombineRequest } }, required: true },
+      },
+      responses: {
+        200: json(PayeeCombineResponse, "The surviving payee and the payees merged into it"),
+        404: json(ErrorBody, "Plan not found"),
+        409: json(ErrorBody, "Conflict"),
+        422: json(ErrorBody, "Invalid request"),
+      },
+    }),
+    (c) =>
+      refusals(c, async () => {
+        const { budget_id } = c.req.valid("param");
+        const b = c.req.valid("json");
+        const out = await combinePayees(c.env, c.get("identity").actor, budget_id, {
+          ids: b.payee_ids,
+          name: b.name,
+          targetId: b.target_payee_id,
         });
         return c.json({ data: out }, 200);
       }),
