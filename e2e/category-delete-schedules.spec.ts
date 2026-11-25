@@ -79,3 +79,49 @@ test("a category with no schedules shows no scheduled line", async ({ page, requ
   await expect(dialog.getByText("All transactions")).toBeVisible();
   await expect(dialog.getByText(/scheduled transaction/)).toHaveCount(0);
 });
+
+test("a category used only by one schedule still opens the dialog and the schedule moves", async ({
+  page,
+  request,
+}) => {
+  const s = await setup(request, 0);
+  const only = (
+    await call(request, "POST", `/api/v1/budgets/${s.plan}/categories`, {
+      group_id: (
+        await call(request, "POST", `/api/v1/budgets/${s.plan}/category_groups`, {
+          name: "ZZ-TEST Only",
+        })
+      ).category_group.id,
+      name: "ZZ-TEST Only Sched",
+    })
+  ).category.id as string;
+  await createSched(request, s.plan, today, {
+    account_id: s.checking,
+    date_first: `${now.getFullYear() + 1}-01-11`,
+    frequency: "monthly",
+    amount: -1000,
+    payee_name: "ZZ-TEST Sched only",
+    category_id: only,
+  });
+  await page.goto(`/${planId}/budget`);
+  await expect(page.getByRole("treegrid", { name: "Plan" })).toBeVisible();
+  await page
+    .locator(".category-name", { hasText: "ZZ-TEST Only Sched" })
+    .click({ button: "right" });
+  await page
+    .getByRole("dialog", { name: "Edit Category" })
+    .getByRole("button", { name: "Delete" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Delete Category" });
+  await expect(dialog.getByText("1 scheduled transaction will move to")).toBeVisible();
+  await dialog.getByRole("combobox", { name: "Select category" }).fill("ZZ-TEST Tar");
+  await page.getByRole("option", { name: /ZZ-TEST Target/ }).click();
+  await expect(
+    dialog.getByText("1 scheduled transaction will move to ZZ-TEST Target"),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await expect(dialog).toHaveCount(0);
+  const list = await listSched(request, s.plan);
+  expect(list).toHaveLength(1);
+  expect(list[0].category_id).toBe(s.target);
+});
