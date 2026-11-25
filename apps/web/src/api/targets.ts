@@ -8,6 +8,7 @@ import {
   TargetSnoozeResponse,
 } from "@budget/schema/targets";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { recordPlan } from "./assigned";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite } from "./monthCache";
 import { localToday } from "./today";
@@ -19,6 +20,7 @@ export const putTarget = async (
   budgetId: string,
   categoryId: string,
   body: TargetBody | CardTargetBody,
+  onChangeSet?: (id: string) => void,
 ): Promise<Target> =>
   (
     await apiFetch(`${path(budgetId, categoryId)}?today=${localToday()}`, {
@@ -26,24 +28,33 @@ export const putTarget = async (
       body,
       idempotencyKey: crypto.randomUUID(),
       schema: TargetResponse,
+      onChangeSet,
     })
   ).data.target;
 
-export const deleteTarget = async (budgetId: string, categoryId: string): Promise<Target> =>
+export const deleteTarget = async (
+  budgetId: string,
+  categoryId: string,
+  onChangeSet?: (id: string) => void,
+): Promise<Target> =>
   (
     await apiFetch(path(budgetId, categoryId), {
       method: "DELETE",
       idempotencyKey: crypto.randomUUID(),
       schema: TargetDeletedResponse,
+      onChangeSet,
     })
   ).data.deleted;
+
+const planRecord = (budgetId: string, categoryId: string) =>
+  recordPlan(budgetId, { month: null, categoryIds: [categoryId] });
 
 /** No optimistic write: the card waits for the refetched month, which carries the target's figures. */
 export function useSaveTarget(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { categoryId: string; body: TargetBody | CardTargetBody }) =>
-      putTarget(budgetId, v.categoryId, v.body),
+      putTarget(budgetId, v.categoryId, v.body, planRecord(budgetId, v.categoryId)),
     onMutate: () => beginWrite(qc, budgetId),
     onSettled: () => endWrite(qc, budgetId),
   });
@@ -52,7 +63,8 @@ export function useSaveTarget(budgetId: string) {
 export function useDeleteTarget(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (categoryId: string) => deleteTarget(budgetId, categoryId),
+    mutationFn: (categoryId: string) =>
+      deleteTarget(budgetId, categoryId, planRecord(budgetId, categoryId)),
     onMutate: () => beginWrite(qc, budgetId),
     onSettled: () => endWrite(qc, budgetId),
   });

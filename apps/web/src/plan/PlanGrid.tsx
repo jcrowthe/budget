@@ -7,13 +7,18 @@ import {
   VIEW_HIDDEN_FOOTER,
   viewDetail,
 } from "@budget/schema/plan-views";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useCommitAssigned } from "../api/assigned";
+import { carryPlanWhere, planWhere, useCommitAssigned } from "../api/assigned";
 import { useCategoryActions } from "../api/categories";
 import { ApiError } from "../api/client";
+import { beginWrite, endWrite, inOrder } from "../api/monthCache";
 import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
-import { localCurrentMonth } from "../shell/planPaths";
+import { localCurrentMonth, usePlanMonth } from "../shell/planPaths";
+import { useShortcut } from "../shortcuts/dispatcher";
+import { getSnapshot, redo as redoStep, undo as undoStep } from "../undo/store";
+import { useUndo } from "../undo/useUndo";
 import type { CloseHow } from "./AssignedCell";
 import { ActivityPopover } from "./activity-popover";
 import { CoverPopover } from "./CoverPopover";
@@ -105,6 +110,44 @@ export function PlanGrid({
     setNotice("Couldn't save the assigned amount."),
   );
   const move = useMoveMoney(budgetId, () => setNotice("Couldn't move the money."));
+  const qc = useQueryClient();
+  const { setMonth } = usePlanMonth();
+  const { canUndo, canRedo } = useUndo(budgetId);
+  // Undo or redo the top entry of the shared stack (docs/plan-undo-design.md): go to the month it changed first
+  // (D6), run it in the plan's write queue so it never overtakes a pending Assigned PATCH, then refetch.
+  const runStep = async (from: "undo" | "redo") => {
+    if (!(from === "undo" ? canUndo : canRedo)) return;
+    const top = getSnapshot(budgetId)[from].at(-1);
+    if (!top) return;
+    const where = planWhere(top.changeSetId);
+    if (where?.month && where.month !== month) setMonth(where.month);
+    await beginWrite(qc, budgetId);
+    try {
+      const result = await inOrder(budgetId, () =>
+        (from === "undo" ? undoStep : redoStep)(budgetId),
+      );
+      const own = getSnapshot(budgetId)[from === "undo" ? "redo" : "undo"].at(-1);
+      if (where && own) carryPlanWhere(top.changeSetId, own.changeSetId);
+      // An entry the Plan did not record (a register one): the server's where, when it is a plan month.
+      if (!where && result?.surface === "plan" && result.month && result.month !== month)
+        setMonth(result.month as Month);
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 409 || e.status === 403 || e.status === 404))
+        setNotice(e.detail);
+      else setNotice(from === "undo" ? "Couldn't undo." : "Couldn't redo.");
+    } finally {
+      // Everything of the plan but the months (categories, usage, targets, accounts...); the months refetch
+      // once no write is pending (the cached-month rule).
+      void qc.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey.includes(budgetId) &&
+          !["month", "month-list", "auto-assign"].includes(q.queryKey[0] as string),
+      });
+      endWrite(qc, budgetId);
+    }
+  };
+  useShortcut("undo", () => void runStep("undo"));
+  useShortcut("redo", () => void runStep("redo"));
   // Visible categories in render order: what ↑/↓ walks.
   const order = groups.flatMap((g) =>
     isCollapsed(g.id) ? [] : g.categories.filter((c) => !c.hidden).map((c) => c.id),
@@ -321,6 +364,10 @@ export function PlanGrid({
             setBars={setBars}
             onAddGroup={(anchor) => setPop({ kind: "add-group", anchor })}
             addGroupDisabled={inView}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={() => void runStep("undo")}
+            onRedo={() => void runStep("redo")}
           />
           {!(inView && groups.length === 0 && data) && (
             <div className="grid-row header-row" role="row">

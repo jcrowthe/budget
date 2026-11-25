@@ -9,6 +9,7 @@ import {
 } from "@budget/schema/moves";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { recordPlan } from "./assigned";
 import { apiFetch } from "./client";
 import { beginWrite, endWrite, inOrder } from "./monthCache";
 
@@ -16,6 +17,7 @@ export const postMove = async (
   budgetId: string,
   month: Month,
   body: MoveCreate,
+  onChangeSet?: (id: string) => void,
 ): Promise<MoveResult> =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}/moves`, {
@@ -23,6 +25,7 @@ export const postMove = async (
       body,
       idempotencyKey: crypto.randomUUID(),
       schema: MoveResultResponse,
+      onChangeSet,
     })
   ).data;
 
@@ -31,6 +34,7 @@ export const postCover = async (
   month: Month,
   categoryId: string,
   from: string,
+  onChangeSet?: (id: string) => void,
 ): Promise<MoveResult> =>
   (
     await apiFetch(`/api/v1/budgets/${budgetId}/months/${month}/categories/${categoryId}/cover`, {
@@ -38,6 +42,7 @@ export const postCover = async (
       body: { from },
       idempotencyKey: crypto.randomUUID(),
       schema: MoveResultResponse,
+      onChangeSet,
     })
   ).data;
 
@@ -70,11 +75,15 @@ export function useMoveMoney(
         );
       await beginWrite(qc, budgetId);
       apply(m.from, m.to);
+      const categoryIds = (m.cover ? [m.cover.categoryId, m.from] : [m.from, m.to]).filter(
+        (id) => id !== READY_TO_ASSIGN,
+      );
+      const record = recordPlan(budgetId, { month: m.month, categoryIds });
       try {
         await inOrder(budgetId, () =>
           m.cover
-            ? postCover(budgetId, m.month, m.cover.categoryId, m.from)
-            : postMove(budgetId, m.month, { from: m.from, to: m.to, amount: m.amount }),
+            ? postCover(budgetId, m.month, m.cover.categoryId, m.from, record)
+            : postMove(budgetId, m.month, { from: m.from, to: m.to, amount: m.amount }, record),
         );
       } catch (e) {
         apply(m.to, m.from);

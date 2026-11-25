@@ -9,18 +9,29 @@ import {
   UndoIcon,
 } from "./icons";
 
-/** Undo, Redo and Recent Moves do nothing yet (the undo ticket gives them actions). */
+const UNDO_TITLE = "Undo the last thing you did (in Budget, not in life).";
+const REDO_TITLE = "Redo that thing you just undid. Practice decisiveness.";
+
+/** Recent Moves does nothing yet. Undo and Redo work the shared stack; their titles show only while enabled. */
 export function Toolbar({
   bars,
   setBars,
   onAddGroup,
   addGroupDisabled = false,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: {
   bars: boolean;
   setBars: (on: boolean) => void;
   onAddGroup: (anchor: HTMLElement) => void;
   /** Disabled while a view other than All is shown. */
   addGroupDisabled?: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 }) {
   return (
     <div className="grid-toolbar" role="row">
@@ -34,11 +45,25 @@ export function Toolbar({
         <PlusCircleFillIcon />
         Category Group
       </button>
-      <button type="button" className="toolbar-button" disabled>
+      <button
+        type="button"
+        className="toolbar-button"
+        disabled={!canUndo}
+        title={canUndo ? UNDO_TITLE : undefined}
+        aria-keyshortcuts="Control+Z Meta+Z"
+        onClick={onUndo}
+      >
         <UndoIcon />
         <span className="toolbar-label">Undo</span>
       </button>
-      <button type="button" className="toolbar-button" disabled>
+      <button
+        type="button"
+        className="toolbar-button"
+        disabled={!canRedo}
+        title={canRedo ? REDO_TITLE : undefined}
+        aria-keyshortcuts="Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z"
+        onClick={onRedo}
+      >
         <RedoIcon />
         <span className="toolbar-label">Redo</span>
       </button>
