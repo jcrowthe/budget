@@ -82,7 +82,7 @@ test("AC4: Record Payment from the mortgage page, then the month's lines (AC1) a
   expect(cash.find((t) => t.amount === -1500000)?.category_id).toBe(s.cat);
 
   // AC1: exactly four lines and the balance.
-  await expect(page.getByText("November 2026")).toBeVisible();
+  await expect(page.locator(".loan-month-label")).toHaveText("November 2026");
   const payments = section(page, "Payments");
   await expect(payments.getByRole("listitem")).toHaveCount(1);
   await expect(payments).toContainText("$1,500.00");
@@ -105,7 +105,7 @@ test("AC4: Record Payment from the mortgage page, then the month's lines (AC1) a
 
   // AC3: the next month has no charges.
   await page.getByRole("button", { name: "Next month" }).click();
-  await expect(page.getByText("December 2026")).toBeVisible();
+  await expect(page.locator(".loan-month-label")).toHaveText("December 2026");
   await expect(page.getByText("No payments this month")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Interest Charges This Month" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Escrow Held" })).toHaveCount(0);
