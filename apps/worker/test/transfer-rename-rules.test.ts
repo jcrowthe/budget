@@ -65,10 +65,10 @@ describe("the import and a rule on a transfer payee (EXF-885)", () => {
     expect(res.status).toBe(201);
     await s.bank({ added: [txn("ZZ-1", "ZZ BANK SAVINGS XFER")] });
     const r = await s.row("ZZ-1");
-    expect(r.payee_name).toBe("ZZ BANK SAVINGS XFER");
+    expect(r.payee_name).toBe("Zz Bank Savings Xfer");
     expect(r.payee_id).not.toBe(tid);
     expect(r.transfer_account_id ?? null).toBeNull();
-    expect(await s.payeeNames()).toContain("ZZ BANK SAVINGS XFER");
+    expect(await s.payeeNames()).toContain("Zz Bank Savings Xfer");
     const [log] = await q(
       "select after_json from change_log where entity_type = 'transaction' and entity_id = ?",
       r.id,

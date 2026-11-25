@@ -30,10 +30,13 @@ describe("the bank sync resolves payees like the file import (EXF-518)", () => {
   it("later rows of the same folded name reuse the payee made in the run", async () => {
     const s = await setup();
     await s.bank({
-      added: [txn("ZZ-1", "zz twice shop"), txn("ZZ-2", "ZZ TWICE SHOP"), txn("ZZ-3", "Zz Twice Shop")],
+      added: [
+        txn("ZZ-1", "zz twice shop"),
+        txn("ZZ-2", "ZZ TWICE SHOP"),
+        txn("ZZ-3", "Zz Twice Shop"),
+      ],
     });
-    const ids = new Set([1, 2, 3].map(() => 0));
-    ids.clear();
+    const ids = new Set<unknown>();
     for (const n of [1, 2, 3]) ids.add((await s.row(`ZZ-${n}`)).payee_id);
     expect(ids.size).toBe(1);
     expect((await s.payeeNames()).filter((n) => /twice shop/i.test(n))).toHaveLength(1);
@@ -49,6 +52,9 @@ describe("the bank sync resolves payees like the file import (EXF-518)", () => {
       "select after_json from change_log where entity_type = 'transaction' and entity_id = ? and action = 'create'",
       r.id,
     );
-    expect(JSON.parse(log?.after_json)).toMatchObject({ payee_id: coffee, rename_rule_id: rule?.id });
+    expect(JSON.parse(log?.after_json)).toMatchObject({
+      payee_id: coffee,
+      rename_rule_id: rule?.id,
+    });
   });
 });

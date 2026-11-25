@@ -296,3 +296,15 @@ done, with what is there.
 touches: [apps/worker/migrations/20261116101800_payee_rename_rules.sql, apps/worker/src/db/schema/payee-rename-rules.ts, apps/worker/src/repositories/payee-rename-rules.ts, apps/worker/src/services/payee-rename-rules.ts, apps/worker/src/routes/payee-rename-rules.ts, apps/worker/src/mcp/tools/payee-rename-rules.ts, apps/worker/src/repositories/payees.ts, apps/worker/src/services/payees.ts, apps/worker/src/mcp/tools/payees.ts, apps/worker/src/services/plaid-sync.ts, apps/worker/src/services/transactions.ts, apps/worker/src/repositories/transactions.ts, packages/schema/src/rename-rules.ts, packages/schema/src/payees.ts, packages/schema/src/transactions.ts, packages/schema/test/rename-rules.test.ts, packages/schema/test/payees.test.ts, packages/schema/test/register.test.ts, packages/schema/test/register-export.test.ts, apps/worker/test/rename-rules*.test.ts, apps/worker/test/rename-rules-helpers.ts, apps/worker/test/mcp-coverage/payees.ts, apps/worker/test/mcp-timestamps.test.ts, apps/web/src/payees/**, apps/web/src/api/payees.ts, apps/web/src/register/RegisterTable.tsx, apps/web/src/register/rename-rules-bank-import.tsx, apps/web/src/register/register.css, e2e/rename-rules*.spec.ts, e2e/support/rename-rules-stub.ts, e2e/support/rename-rules-seed.ts, docs/rename-rules-design.md, docs/rename-rules-spec.md, docs/rename-rules-polish.md, docs/README.md]
 shared: []
 migrations: 1
+
+## Payee resolution shared with file import (EXF-518)
+
+The bank sync resolves an imported name to a payee with `resolveImportedPayee` (`packages/schema/src/imported-payee.ts`), the function the file import uses, so the two cannot drift. The order is:
+
+1. a renaming rule (the winning rule whose payee is live and ordinary);
+2. otherwise an existing ordinary payee with the same name, compared ignoring case and white space (`foldRuleText`);
+3. otherwise a new payee named after the text, title-cased when the text is ALL CAPS. A mixed-case name is kept as it is.
+
+Existing payees are never renamed. Later rows of one run with the same folded name reuse the payee the run made first. The plan's payees are read once per plan (`listForPlan`), names are folded in JS, so a sync stays at 13 D1 calls. A payee found without a rule is still written by name, so a payee renamed during the run gets a fresh payee of the old name (EXF-462); only a rule's payee is written by id, with the by-name fallback when it was deleted.
+
+Because the sync now title-cases, an imported name (`ZZ CAFE`) no longer equals its payee's name (`Zz Cafe`). The automatic `is` rule on a payee rename (`services/payees.ts`) therefore compares the transaction's `import_payee_name` to the payee's old name ignoring case and white space, and stores the rule text as the bank sent it. SQL's `lower()` knows only ASCII, so a name with other letters still has to match exactly there.

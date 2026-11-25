@@ -32,7 +32,7 @@ describe("the import applies renaming rules (EXF-467)", () => {
   it("no rule: the payee of the bank's name is made, as before; no rename_rule_id", async () => {
     const s = await setup();
     await s.bank({ added: [txn("ZZ-1", "ZZ PLAIN")] });
-    expect(await s.payeeNames()).toContain("ZZ PLAIN");
+    expect(await s.payeeNames()).toContain("Zz Plain");
     const [log] = await q(
       "select after_json from change_log where entity_type = 'transaction' and entity_id = ?",
       (await s.row("ZZ-1")).id,
@@ -61,7 +61,7 @@ describe("the import applies renaming rules (EXF-467)", () => {
     expect((await s.row("ZZ-2")).payee_id).toBe(other);
     expect((await s.row("ZZ-3")).payee_id).toBe(rides);
     expect((await s.row("ZZ-4")).payee_id).toBe(rides);
-    expect((await s.row("ZZ-5")).payee_name).toBe("ZZ NOTHING");
+    expect((await s.row("ZZ-5")).payee_name).toBe("Zz Nothing");
   });
 
   it("two payees with the same rule: the newer rule wins; an `is` beats both", async () => {
@@ -86,8 +86,8 @@ describe("the import applies renaming rules (EXF-467)", () => {
     expect((await s.row("ZZ-1")).payee_id).toBe(hidden);
     const [h] = await q("select hidden from payees where id = ?", hidden);
     expect(h?.hidden).toBe(1);
-    expect((await s.row("ZZ-2")).payee_name).toBe("ZZ G");
-    expect(await s.payeeNames()).toContain("ZZ G");
+    expect((await s.row("ZZ-2")).payee_name).toBe("Zz G");
+    expect(await s.payeeNames()).toContain("Zz G");
   });
 
   it("non-ASCII: CAFÉ ZZ matches `contains café`", async () => {
@@ -127,7 +127,7 @@ describe("the import applies renaming rules (EXF-467)", () => {
     const coffee = await s.payee("ZZ-TEST Coffee", [["is", "ZZ NEW NAME"]]);
     const t = txn("ZZ-1", "ZZ OLD NAME");
     await s.bank({ added: [t] });
-    expect((await s.row("ZZ-1")).payee_name).toBe("ZZ OLD NAME");
+    expect((await s.row("ZZ-1")).payee_name).toBe("Zz Old Name");
     await s.bank({ modified: [{ ...t, merchant_name: "ZZ NEW NAME" }] });
     expect(await s.row("ZZ-1")).toMatchObject({
       payee_id: coffee,

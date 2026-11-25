@@ -172,7 +172,7 @@ describe("a sync keeps the stored defaults of the payees it touched current (EXF
     }
     await s.bank([out("ZZ-3", "ZZ P", { date: "2026-11-12", amount: 3.33 })]);
     expect((await s.imported("ZZ-3")).category_id).toBe(s.c.Fun);
-    expect((await stored(s.plan, "ZZ P")).c).toBe(s.c.Fun);
+    expect((await stored(s.plan, "Zz P")).c).toBe(s.c.Fun);
   });
 
   it("the final batch recomputes: a stale stored default is replaced; a new payee's inflow stores RTA", async () => {
