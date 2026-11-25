@@ -37,7 +37,7 @@ export function UpcomingBox({
         </button>
         <span className="upcoming-amount">{fmt.money(c.upcoming)}</span>
       </div>
-      <div className="upcoming-row" data-testid="upcoming-after">
+      <div className="upcoming-row is-after" data-testid="upcoming-after">
         <span className="upcoming-after-label">Available After Upcoming</span>
         <span className="upcoming-after-value">{fmt.money(after)}</span>
       </div>
