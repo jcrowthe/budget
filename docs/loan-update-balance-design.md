@@ -147,3 +147,25 @@ months and 10 vs 100 payments, with or without an adjustment, first update or la
 
 EXF-542 (Add Activity, which will also write edited frozen rows), EXF-544 (simulator inputs), plan export/import of
 frozen rows, and future-dated payments' estimates (C1).
+
+## Build notes
+
+Differences between this note and the Build, none of them changing a decision above.
+
+- **Guard order.** The account update (`last_reconciled_at`, kept rate and escrow) is the batch's first guarded
+  statement (account as read, stored sum, terms unchanged); every later statement is guarded by that marker
+  (`last_reconciled_at = now`), because the first writes move the stored sum the guard compares. A lost race writes
+  nothing and answers 409 `balance_changed`.
+- **Adjustment.** `adjustment_amount = balance − B′` is solved by up to four passes of the engine: with
+  future-dated payments an adjustment changes later months' estimates, so one pass can miss by a rounding step.
+  Without them it lands in one.
+- **Edited lines keep their date.** The replacement row takes the earliest edited row's date; a new frozen row is
+  dated `today` in month M and the month's last day before it.
+- **`account` in the answer** carries the derived balances; its `unapproved_count` and `needs_attention_count` are
+  not read (they cost a call) and read 0. `GET …/accounts/{id}` has the real ones.
+- **Other Activity** rows show their memo (`otherLine`), as payments do: "…Balance adjustment on November 15:
+  Entered automatically by Budget".
+- **Payee systems.** `loan_interest` / `loan_escrow` are also named in plan export's `SYSTEM_PAYEE_NAMES` (a typed
+  map) and in the `list_payees` tool text; export and import of frozen rows stays out of this Build.
+- **Request size.** The frozen rows travel as one JSON parameter (about 0.7 KB a row, two rows a month), so a
+  30-year loan is about 0.5 MB, inside D1's limits.
