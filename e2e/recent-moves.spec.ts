@@ -88,7 +88,9 @@ test("1 lists an edit, a move and a removal under today, newest first, with the 
   await expect(panel(page).getByRole("heading", { level: 3 })).toHaveCount(1);
   await expect(cards(page)).toHaveCount(3);
   await expect(cards(page).nth(0)).toContainText(`${name} removed $25.00 from`);
-  await expect(cards(page).nth(0).getByRole("button")).toContainText(`Rent/Mortgage${thisMonth()}`);
+  await expect(cards(page).nth(0).getByRole("button")).toContainText(
+    `Rent/Mortgage ${thisMonth()}`,
+  );
   await expect(cards(page).nth(1)).toContainText(`${name} moved $100.00 from`);
   await expect(cards(page).nth(1)).toContainText("Groceries");
   await expect(cards(page).nth(2)).toContainText(`${name} assigned $450.00 to`);
