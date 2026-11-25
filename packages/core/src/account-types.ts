@@ -118,5 +118,25 @@ export function startingBalanceFeedsReadyToAssign(type: AccountType): boolean {
   return accountGroup(type) === "cash";
 }
 
+/** EXF-547 names: thin aliases over the rules above. */
+export const accountKind = accountGroup;
+export const signedOpeningBalance = startingBalanceAmount;
+
+/** Loans and Asset/Liability accounts take no register category; Ready to Assign sees only cash Starting Balances. */
+export const affectsReadyToAssign = startingBalanceFeedsReadyToAssign;
+
+export type CategoryNeed = "required" | "not_needed" | "none";
+
+/**
+ * Whether a transaction needs a category. `account` is the row's own type; `counterpart` the type on the
+ * other side of a transfer. Off-plan accounts (tracking, loan) never have one; an on-plan to on-plan
+ * transfer needs none; an on-plan to off-plan transfer needs one on the on-plan side.
+ */
+export function requiresCategory(account: AccountType, counterpart?: AccountType): CategoryNeed {
+  if (!isOnBudget(account)) return "none";
+  if (counterpart && isOnBudget(counterpart)) return "not_needed";
+  return "required";
+}
+
 export const CLEARED_STATUSES = ["uncleared", "cleared", "reconciled"] as const;
 export type ClearedStatus = (typeof CLEARED_STATUSES)[number];
