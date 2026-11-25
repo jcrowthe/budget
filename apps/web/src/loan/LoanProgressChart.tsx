@@ -20,11 +20,14 @@ export function LoanProgressChart({
   past,
   original,
   current,
+  simulation,
   label = "Loan balance by month",
 }: {
   past: Point[];
   original?: Point[];
   current: Point[];
+  /** The Payoff Simulator's what-if schedule. */
+  simulation?: Point[];
   label?: string;
 }) {
   const fmt = usePlanFormatter();
@@ -39,7 +42,7 @@ export function LoanProgressChart({
     return () => ro.disconnect();
   }, []);
 
-  const all = [...past, ...(original ?? []), ...current];
+  const all = [...past, ...(original ?? []), ...current, ...(simulation ?? [])];
   if (all.length === 0) return <div className="loan-chart" ref={box} />;
   const x0 = Math.min(...all.map((p) => idx(p.month)));
   const x1 = Math.max(...all.map((p) => idx(p.month)));
@@ -71,6 +74,8 @@ export function LoanProgressChart({
   const xAt = (i: number) => PAD.left + ((i - x0) / Math.max(1, span)) * plotW;
   const first = current[0];
   const last = current[current.length - 1];
+  const simFirst = simulation?.[0];
+  const simLast = simulation?.[simulation.length - 1];
 
   return (
     <div className="loan-chart" ref={box} style={{ height: HEIGHT }}>
@@ -123,6 +128,18 @@ export function LoanProgressChart({
             d={path(current)}
             fill="none"
             strokeDasharray="6 4"
+          />
+        ) : null}
+        {simulation && simulation.length > 1 && simFirst && simLast ? (
+          <path
+            className="loan-line simulation"
+            data-series="simulation"
+            data-start-month={simFirst.month}
+            data-start-balance={simFirst.balance}
+            data-end-month={simLast.month}
+            data-end-balance={simLast.balance}
+            d={path(simulation)}
+            fill="none"
           />
         ) : null}
       </svg>

@@ -153,6 +153,9 @@
 .loan-line.current {
   stroke: var(--statusPositive);
 }
+.loan-line.simulation {
+  stroke: var(--labelWarning);
+}
 .loan-legend {
   display: flex;
   flex-wrap: wrap;
@@ -178,6 +181,9 @@
 .loan-swatch.current {
   border-top-style: dashed;
   border-color: var(--statusPositive);
+}
+.loan-swatch.simulation {
+  border-color: var(--labelWarning);
 }
 .loan-info-wrap {
   position: relative;
@@ -286,4 +292,65 @@
 .loan-step-heading {
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-md);
+}
+.loan-sim-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+  gap: var(--space-4);
+}
+.loan-sim-left,
+.loan-sim-right {
+  min-width: 0;
+}
+.loan-sim-min {
+  margin-bottom: var(--space-3);
+  color: var(--labelSecondary);
+}
+.loan-sim-min strong {
+  color: var(--labelPrimary);
+  font-size: var(--font-size-lg, var(--font-size-md));
+}
+.loan-sim-hint {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-sim-payoff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.loan-sim-label {
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-sim-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.loan-sim-change {
+  margin: 0;
+  font-weight: 600;
+}
+.loan-sim-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.loan-sim-figures .loan-tile-value {
+  font-size: var(--font-size-md);
+}
+.loan-sim-error {
+  margin: 0 var(--space-4) var(--space-2);
+  color: var(--labelNegative);
+}
+@media (max-width: 640px) {
+  .loan-sim-body {
+    grid-template-columns: 1fr;
+  }
 }

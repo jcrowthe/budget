@@ -44,8 +44,7 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: "Loan Payoff Sim
 const payment = (page: Page) => dialog(page).getByRole("textbox", { name: "Monthly Payment" });
 const extra = (page: Page) =>
   dialog(page).getByRole("textbox", { name: "One time extra in November" });
-const figure = (page: Page, name: string) =>
-  dialog(page).getByRole("group", { name, exact: true });
+const figure = (page: Page, name: string) => dialog(page).getByRole("group", { name, exact: true });
 const summary = (page: Page) => dialog(page).getByRole("region", { name: "Simulation summary" });
 const copy = (page: Page) => dialog(page).getByRole("button", { name: "Copy and go to my plan" });
 const reset = (page: Page) => dialog(page).getByRole("button", { name: "Reset all changes" });
@@ -72,7 +71,9 @@ test("AC1: opens prefilled with the minimum or the paired target, 357 payments a
   const s = await seed(request);
   await openSim(page, s.plan, s.mortgage);
   await expect(payment(page)).toHaveValue("1,500.00");
-  await expect(dialog(page).getByText("You have 357 payments remaining on your loan.")).toBeVisible();
+  await expect(
+    dialog(page).getByText("You have 357 payments remaining on your loan."),
+  ).toBeVisible();
   await expect(dialog(page).getByText("Aug 2056", { exact: true })).toBeVisible();
   await expect(dialog(page).getByText("$1,500.00 is your required minimum payment.")).toBeVisible();
   await expect(summary(page)).toContainText("Paying the minimum every month:");
@@ -129,7 +130,9 @@ test("AC3: Reset restores the loan; Done writes nothing", async ({ page, request
   await reset(page).click();
   await expect(payment(page)).toHaveValue("1,500.00");
   await expect(extra(page)).toHaveValue("");
-  await expect(dialog(page).getByText("You have 357 payments remaining on your loan.")).toBeVisible();
+  await expect(
+    dialog(page).getByText("You have 357 payments remaining on your loan."),
+  ).toBeVisible();
   await expect(reset(page)).toHaveCount(0);
   await expect(copy(page)).toHaveCount(0);
 

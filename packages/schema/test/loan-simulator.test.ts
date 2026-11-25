@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { MINIMUM_SUMMARY as DEBT_MINIMUM } from "../src/debt-target";
 import {
-  changeLines,
   COPY_TO_PLAN,
+  changeLines,
   ESCROW_NOTE,
   EXTRA_HINT,
   extraLabel,
