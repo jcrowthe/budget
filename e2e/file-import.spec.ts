@@ -169,7 +169,7 @@ test.describe("AC5 skipped rows", () => {
     );
     await expect(previewRows(page)).toHaveCount(1);
     await runImport(page);
-    await expect(result(page)).toContainText("1 transaction has been successfully imported.");
+    await expect(result(page)).toContainText("1 transaction imported");
     expect(await imports(request, s.plan, s.checking)).toHaveLength(2);
   });
 
@@ -193,7 +193,7 @@ test("AC6 Import shows the counts, the rows are unapproved and the banner counts
   const s = await seedFileImport(request);
   await toPreview(page, s, "sample.csv");
   await runImport(page);
-  await expect(result(page)).toContainText("2 transactions have been successfully imported.");
+  await expect(result(page)).toContainText("2 transactions imported");
   await realClick(page, result(page).getByRole("button", { name: "OK", exact: true }));
   await expect(result(page)).toHaveCount(0);
   const needs = page.getByRole("button", { name: "This transaction needs approval", exact: true });
@@ -212,9 +212,8 @@ test("AC7 and AC8 the worked example merges one row, and a re-import matches all
   await toPreview(page, s, "three-rows.csv");
   await runImport(page);
   await expect(result(page).getByRole("heading", { name: "Import Successful" })).toBeVisible();
-  await expect(result(page)).toContainText(
-    "2 transactions have been successfully imported. 1 previously imported transaction has been matched.",
-  );
+  await expect(result(page)).toContainText("2 transactions imported");
+  await expect(result(page)).toContainText("1 matched to existing transaction");
   await realClick(page, result(page).getByRole("button", { name: "OK", exact: true }));
   await expect(rowsOf(page).filter({ hasText: "Corner Market" })).toHaveCount(1);
   await expect(
@@ -235,10 +234,30 @@ test("AC7 and AC8 the worked example merges one row, and a re-import matches all
   await expect(previewRows(page).first()).toBeVisible();
   await runImport(page);
   await expect(result(page).getByRole("heading", { name: "Import Matched" })).toBeVisible();
-  await expect(result(page)).toContainText(
-    "3 transactions have been successfully imported. All transactions were matched to already entered or imported transactions, so there's nothing else for you to do!",
-  );
+  await expect(result(page)).toContainText("No new transactions were imported");
+  await expect(result(page)).toContainText("3 matched to existing transactions");
   expect((await imports(request, s.plan, s.checking)).length).toBe(before);
+});
+
+test("the result dialog reports a full re-import as zero imported, with the matched count", async ({
+  page,
+  request,
+}) => {
+  const s = await seedFileImport(request, { kind: "worked" });
+  await toPreview(page, s, "three-rows.csv");
+  await runImport(page);
+  await realClick(page, result(page).getByRole("button", { name: "OK", exact: true }));
+
+  await realClick(page, toolbarButton(page));
+  await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
+  await input(page).setInputFiles(fixture("three-rows.csv"));
+  await expect(previewRows(page).first()).toBeVisible();
+  await runImport(page);
+  const status = result(page).getByRole("status");
+  await expect(status).toContainText("No new transactions were imported");
+  await expect(status).toContainText("3 matched to existing transactions");
+  await expect(status).not.toContainText("successfully imported");
+  await expect(status).not.toContainText("skipped");
 });
 
 test("EXF-988 a file already imported is marked row by row, with the count", async ({

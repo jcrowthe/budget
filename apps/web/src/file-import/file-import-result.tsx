@@ -5,6 +5,18 @@ import { useDialogFocus } from "../plan-export/plan-export-dialog-focus";
 import { CloseIcon } from "../shell/icons";
 import "./file-import.css";
 
+const noun = (n: number) => (n === 1 ? "transaction" : "transactions");
+
+/** One line per non-zero count; "No new transactions were imported" when nothing was. */
+export function resultLines({ imported, matched, skipped }: FileImportResult): string[] {
+  const lines = [
+    imported > 0 ? `${imported} ${noun(imported)} imported` : "No new transactions were imported",
+  ];
+  if (matched > 0) lines.push(`${matched} matched to existing ${noun(matched)}`);
+  if (skipped > 0) lines.push(`${skipped} skipped`);
+  return lines;
+}
+
 /** The result dialog: the counts the Worker settled on. Every row matched: "Import Matched". */
 export function FileImportResultDialog({
   result,
@@ -19,6 +31,7 @@ export function FileImportResultDialog({
   const ok = useRef<HTMLButtonElement>(null);
   useDialogFocus(box, { onEscape: onClose, returnTo, initial: ok });
   const allMatched = result.imported === 0 && result.matched > 0;
+  const lines = resultLines(result);
   return createPortal(
     <div className="dialog-backdrop">
       <div
@@ -38,11 +51,11 @@ export function FileImportResultDialog({
           </button>
         </div>
         <div className="form-body file-import-body">
-          <p role="status">
-            {allMatched
-              ? FILE_IMPORT_COPY.matchedMessage(result.matched)
-              : FILE_IMPORT_COPY.successMessage(result.imported, result.matched)}
-          </p>
+          <div role="status">
+            {lines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
         </div>
         <div className="dialog-footer">
           <button type="button" className="primary" ref={ok} onClick={onClose}>
