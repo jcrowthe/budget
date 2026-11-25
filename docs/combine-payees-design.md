@@ -85,6 +85,8 @@ the card and its button are not there.
 
 The batch reuses the delete-with-replacement statements of EXF-882 with `replacementId = survivor`, in this order:
 
+0. `livePayeesCheck` over the survivor and every merged payee: it fails the whole batch (NULL `change_log.actor`) when
+   any of them is no longer live, so a delete that raced the combine cannot leave a rename alone behind a 200;
 1. the survivor's rename: its `payee` `update` log row, then the update (only when renamed). It goes first, so the moved
    rows' stored `payee_name` and their log's `after.payee_name` read the new name;
 2. `logDeleteStmt`: one `payee` `delete` row per merged payee, with `replacement_payee_id`, `transactions_moved` and
@@ -98,9 +100,10 @@ The batch reuses the delete-with-replacement statements of EXF-882 with `replace
    live. It uses the `livePayeesCheck` trick: an insert of a NULL `change_log.actor`. The service maps that failure to
    409 `PAYEE_ERRORS.race`.
 
-Every statement carries the guard `liveOrdinaryCountSql(budgetId, allIds)`. The rename also carries `unchangedSql`, so a
-rename that raced the combine changes nothing, and the check then rolls everything back. Ids ride `json_each` (one bound
-parameter, `idsIn`). The batch has 13 statements whatever the payees, rules or rows (the rename is two no-op statements when the name stays, so the count never changes).
+Every statement but the rename carries the guard `liveOrdinaryCountSql(budgetId, allIds)`; the rename carries
+`unchangedSql` instead, and the opening liveness check covers what it does not. A rename that raced the combine changes
+nothing, and the closing check then rolls everything back. Ids ride `json_each` (one bound
+parameter, `idsIn`). The batch has 14 statements whatever the payees, rules or rows (the rename is two no-op statements when the name stays, so the count never changes).
 
 **change_log.** The ticket asks for "one entry per affected payee". There is one per payee, plus one per moved row and
 per moved or dropped rule. The undo needs those rows: a payee `delete` whose `transactions_moved > 0` has no logged move

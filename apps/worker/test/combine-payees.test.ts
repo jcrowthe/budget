@@ -358,6 +358,35 @@ describe("combine payees (EXF-512)", () => {
     expect(await fingerprint(w.bid)).toBe(before);
   });
 
+  it("a merged payee deleted after the read fails the batch and nothing changes", async () => {
+    const w = await ab();
+    const db = getDb(env);
+    const [row] = await payeesRepo.listForPlan(db, w.bid, {
+      includeHidden: true,
+      counts: true,
+      ids: [w.a],
+    });
+    await env.DB.prepare("update payees set deleted_at = 'x' where id = ?").bind(w.b).run();
+    const stmts = buildPayeeCombineBatch(db, {
+      budgetId: w.bid,
+      actor: "t",
+      now: new Date().toISOString(),
+      survivor: row as payeesRepo.PayeeListRow,
+      mergedIds: [w.b],
+      name: "ZZ-TEST AB",
+      counts: { [w.b]: { t: 2, s: 0 } },
+    });
+    const before = await fingerprint(w.bid);
+    let err: unknown;
+    try {
+      await db.batch(stmts as never);
+    } catch (e) {
+      err = e;
+    }
+    expect(payeesRepo.isPayeeGone(err)).toBe(true);
+    expect(await fingerprint(w.bid)).toBe(before);
+  });
+
   it("the surface lists the route and the tool", async () => {
     expect(await apiPaths()).toContain("/api/v1/budgets/{budget_id}/payees/combine");
     expect(await listedToolNames()).toContain("combine_payees");

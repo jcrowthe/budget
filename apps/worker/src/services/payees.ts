@@ -544,10 +544,10 @@ export interface PayeeCombinePlan {
 }
 
 /** Where the rule statements start in a combine batch: the soft delete is `+1`, the move `+3`. */
-const COMBINE_RULES_AT = 7;
+const COMBINE_RULES_AT = 8;
 
 /**
- * The statements of one combine, thirteen whatever the payees, rules or rows: the survivor's rename (two no-op
+ * The statements of one combine, fourteen whatever the payees, rules or rows: a first check that every payee read is still live (the rename is not guarded by the others' count), the survivor's rename (two no-op
  * statements when its name stays), the delete's history rows and moves of EXF-882 with the survivor as the
  * replacement, the rules' move, the merged payees' soft delete and a closing check. A test appends a failing
  * statement to prove atomicity.
@@ -595,6 +595,7 @@ export function buildPayeeCombineBatch(db: DbT, p: PayeeCombinePlan): BatchItem<
         db.update(payeesTable).set({ updatedAt: p.now }).where(sql`0`),
       ];
   return [
+    ...payeesRepo.livePayeesCheck(db, budgetId, [survivor.id, ...mergedIds]),
     ...rename,
     payeesRepo.logDeleteStmt(db, base, budgetId, mergedIds, survivor.id, p.counts, guard),
     deleteLog.logTransactionMovesStmt(db, base, budgetId, mergedIds, survivor.id, guard),
