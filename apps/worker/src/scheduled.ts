@@ -1,8 +1,10 @@
+import { BACKUP_CRON } from "@budget/schema/backup";
 import { SCHEDULED_MAX_RUNS } from "@budget/schema/plaid-import";
 import { dayBefore } from "@budget/schema/recurrence";
 import { SCHEDULER_ACTOR, SCHEDULER_CRON_CALLS } from "@budget/schema/scheduled-transactions";
 import type { Env } from "./env";
 import { describeError, LOG_LINE_MAX } from "./middleware/errors";
+import { backupRun } from "./services/backup";
 import { requestSync, syncDueConnections } from "./services/plaid-sync";
 import { enterDue } from "./services/scheduled-transactions";
 
@@ -29,13 +31,17 @@ export async function cronRun(
   await syncDueConnections(env, now, run, { maxRuns: SCHEDULED_MAX_RUNS - SCHEDULER_CRON_CALLS });
 }
 
-// TODO: nightly backup Build (export to R2) hooks in here.
+/**
+ * Two crons. The six-hourly one runs `cronRun`, as does any call without a cron. BACKUP_CRON (04:00 to 04:55 UTC)
+ * runs the nightly backup alone, in its own invocation: it takes no call or run from enterDue or the sync
+ * (docs/backup-design.md). `backupRun` never throws.
+ */
 export async function scheduled(
-  _controller: ScheduledController,
+  controller: ScheduledController,
   env: Env,
   ctx: ExecutionContext,
 ): Promise<void> {
-  const run = cronRun(env);
+  const run = controller.cron === BACKUP_CRON ? backupRun(env) : cronRun(env);
   ctx.waitUntil(run);
   await run;
 }
