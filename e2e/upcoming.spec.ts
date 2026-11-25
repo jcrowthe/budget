@@ -164,7 +164,17 @@ test("an inflow to Ready to Assign shows no upcoming and leaves it unchanged (AC
     payee_name: "ZZ-TEST Pay",
   });
   expect(await rta()).toBe(before);
+  // In the same scenario the category with a schedule does carry upcoming, the inflow adds none anywhere.
+  const m = await call(request, "GET", api(plan, `/months/${NOV}?today=${TODAY}`));
+  const counts = m.groups
+    .flatMap((g: { categories: { name: string; upcoming_count: number }[] }) => g.categories)
+    .map((c: { name: string; upcoming_count: number }) => [c.name, c.upcoming_count]);
+  expect(counts).toContainEqual([FUN, 2]);
+  expect(
+    counts.filter(([n]: [string, number]) => n !== FUN).every(([, k]: [string, number]) => k === 0),
+  ).toBe(true);
   await open(page);
+  await expect(row(page).locator('.available-pill [data-icon="calendar"]')).toBeVisible();
   const rtaBox: Locator = page.locator(".rta-box");
   await expect(rtaBox).toBeVisible();
   await expect(rtaBox).not.toContainText(/upcoming/i);
