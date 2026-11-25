@@ -8,6 +8,7 @@ import {
   autoAssignPreview,
   autoAssignResult,
   historyFigures,
+  upcomingShortfall,
 } from "@budget/schema/auto-assign";
 import type { MonthCategory, MonthDetail } from "@budget/schema/months";
 import { type PlanView, viewCategories } from "@budget/schema/plan-views";
@@ -85,6 +86,7 @@ async function loadScope(
       target: c.target,
       payment: c.kind === "credit_card_payment",
       payment_underfunded: lone && c.payment ? c.payment.underfunded : 0,
+      upcoming_shortfall: upcomingShortfall(c),
       ...historyFigures(month, figures, first),
     };
   });

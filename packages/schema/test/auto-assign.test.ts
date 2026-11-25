@@ -11,6 +11,7 @@ import {
   monthHiddenInputs,
   ORDINARY_SKIPS,
   PAYMENT_SKIPS,
+  upcomingShortfall,
 } from "../src/auto-assign";
 import type { MonthDetail } from "../src/months";
 import type { CategoryTargetMonth } from "../src/targets";
@@ -54,6 +55,7 @@ const input = (o: Partial<AutoAssignInput> = {}): AutoAssignInput => ({
   average_paid: 0,
   payment_underfunded: 0,
   payment: false,
+  upcoming_shortfall: 0,
   ...o,
 });
 
@@ -326,10 +328,44 @@ describe("EXF-537: payment strategies and hidden amounts", () => {
     const t = target({ to_go_this_month: 70, overfunded: 30 });
     expect(
       hiddenAmounts([
-        { assigned: 50, target: t, payment: false, payment_underfunded: 0 },
-        { assigned: 0, target: null, payment: true, payment_underfunded: 9 },
+        { assigned: 50, target: t, payment: false, payment_underfunded: 0, upcoming_shortfall: 0 },
+        { assigned: 0, target: null, payment: true, payment_underfunded: 9, upcoming_shortfall: 0 },
       ]),
     ).toEqual({ underfunded: 79, reduce_overfunding: 30 });
+  });
+  it("upcomingShortfall: nothing upcoming is 0; otherwise how far below zero Available After Upcoming is", () => {
+    expect(upcomingShortfall({ available: 30000, upcoming: -40000 })).toBe(10000);
+    expect(upcomingShortfall({ available: 40000, upcoming: -40000 })).toBe(0);
+    expect(upcomingShortfall({ available: 50000, upcoming: -40000 })).toBe(0);
+    expect(upcomingShortfall({ available: -5000, upcoming: 0 })).toBe(0);
+    expect(upcomingShortfall({ available: -5000, upcoming: 2000 })).toBe(3000);
+  });
+  it("underfunded takes the larger of the target's to-go and the upcoming shortfall", () => {
+    const t = target({ to_go_this_month: 70, overfunded: 0 });
+    expect(
+      autoAssignResult(input({ assigned: 10, target: t, upcoming_shortfall: 30 }), "underfunded"),
+    ).toBe(80);
+    expect(
+      autoAssignResult(input({ assigned: 10, target: t, upcoming_shortfall: 100 }), "underfunded"),
+    ).toBe(110);
+    expect(
+      autoAssignResult(
+        input({ assigned: 10, target: null, upcoming_shortfall: 100 }),
+        "underfunded",
+      ),
+    ).toBe(110);
+    // a payment category is unchanged by upcoming
+    expect(
+      autoAssignResult(
+        input({ assigned: 10, payment: true, payment_underfunded: 5, upcoming_shortfall: 100 }),
+        "underfunded",
+      ),
+    ).toBe(15);
+    expect(
+      hiddenAmounts([
+        { assigned: 0, target: t, payment: false, payment_underfunded: 0, upcoming_shortfall: 100 },
+      ]).underfunded,
+    ).toBe(100);
   });
   it("history figures carry paid", () => {
     const m = (month: string, paid: number) => ({ month, assigned: 0, activity: 0, paid });

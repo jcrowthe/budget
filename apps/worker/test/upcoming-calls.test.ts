@@ -101,7 +101,7 @@ describe("upcoming: D1 calls", { timeout: 30_000 }, () => {
       getMonthCategory: 10,
       listUpcomingForCategory: 10,
       "mcp list_upcoming_for_category": 10,
-      previewAutoAssign: 12,
+      previewAutoAssign: 11,
     };
     for (const [k, v] of Object.entries(seen)) {
       expect(v[0], `${k} at 10 and 100: ${v.join(" / ")}`).toBe(v[1]);

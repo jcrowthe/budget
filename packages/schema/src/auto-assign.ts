@@ -89,7 +89,23 @@ export interface AutoAssignInput {
   payment_underfunded: number;
   /** A credit card payment category: it has no target yet and its activity is not spending (EXF-532). */
   payment: boolean;
+  /** EXF-505: what upcoming scheduled transactions would overspend the category by (>= 0); see `upcomingShortfall`. */
+  upcoming_shortfall: number;
 }
+
+/**
+ * The amount Available After Upcoming falls below zero by, or 0 when nothing is upcoming or it is covered. One
+ * function for the browser and the service. `available` is the category's Available.
+ */
+export function upcomingShortfall(c: { available: number; upcoming: number }): number {
+  return c.upcoming !== 0 ? Math.max(0, -(c.available + c.upcoming)) : 0;
+}
+
+/** What Underfunded adds to an ordinary category: the larger of its target's to-go and its upcoming shortfall. */
+const underfundedAdd = (c: {
+  target: CategoryTargetMonth | null;
+  upcoming_shortfall: number;
+}): number => Math.max(active(c)?.to_go_this_month ?? 0, c.upcoming_shortfall);
 
 /** The strategies that leave a credit card payment category's Assigned unchanged. */
 export const PAYMENT_SKIPS: readonly AutoAssignStrategy[] = [
@@ -170,7 +186,7 @@ export function autoAssignResult(c: AutoAssignInput, s: AutoAssignStrategy): num
   if (!c.payment && ORDINARY_SKIPS.includes(s)) return c.assigned;
   switch (s) {
     case "underfunded":
-      return c.assigned + (c.payment ? c.payment_underfunded : (active(c)?.to_go_this_month ?? 0));
+      return c.assigned + (c.payment ? c.payment_underfunded : underfundedAdd(c));
     case "assigned_last_month":
       return c.last_assigned;
     case "spent_last_month":
@@ -197,6 +213,7 @@ export interface HiddenInput {
   target: CategoryTargetMonth | null;
   payment: boolean;
   payment_underfunded: number;
+  upcoming_shortfall: number;
 }
 
 /**
@@ -215,7 +232,7 @@ export function hiddenAmounts(cs: readonly HiddenInput[]): {
       underfunded += c.payment_underfunded;
       continue;
     }
-    underfunded += active(c)?.to_go_this_month ?? 0;
+    underfunded += underfundedAdd(c);
     reduce += removable(c);
   }
   return { underfunded, reduce_overfunding: reduce };
@@ -379,6 +396,7 @@ export function monthHiddenInputs(
         target: c.target,
         payment: c.kind === "credit_card_payment",
         payment_underfunded: lone && c.payment ? c.payment.underfunded : 0,
+        upcoming_shortfall: upcomingShortfall(c),
       },
     ];
   });

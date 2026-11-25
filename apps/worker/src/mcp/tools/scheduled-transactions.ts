@@ -1,3 +1,4 @@
+import { AssignedMonth } from "@budget/schema/month-categories";
 import {
   ScheduledTransactionCreate as CreateSchema,
   SCHEDULER_ACTOR,
@@ -10,6 +11,7 @@ import { z } from "zod";
 import { getDb } from "../../db/client";
 import { NotFound } from "../../middleware/errors";
 import * as budgetsRepo from "../../repositories/budgets";
+import { planMonthError } from "../../services/months";
 import {
   createScheduled,
   deleteScheduled,
@@ -17,9 +19,10 @@ import {
   enterScheduledNow,
   getScheduled,
   listScheduled,
+  listUpcomingForCategory,
   updateScheduled,
 } from "../../services/scheduled-transactions";
-import { dates, Id, MONEY, timestamps } from "../tool-text";
+import { dates, Id, MONEY, MONTH, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const NOT_SUPPORTED =
@@ -105,6 +108,16 @@ export const tools: McpToolDef[] = [
         day: input.today ?? new Date().toISOString().slice(0, 10),
         actor: SCHEDULER_ACTOR,
       });
+    },
+  },
+  {
+    name: "list_upcoming_for_category",
+    description: `List the scheduled transactions dated inside one month for one category: what the Plan counts as upcoming (a repeating schedule counts every date in the month; a date before the month is not carried into it; schedules on closed or tracking accounts, deleted ones and inflows to Ready to Assign count nothing). Latest date first. ${MONTH} ${MONEY} ${dates("date")} Returns { category_id, month, upcoming, upcoming_count, available, available_after_upcoming, occurrences: [{ scheduled_transaction_id, account_id, account_name, date, payee_id, payee_name, memo, amount }] }. available_after_upcoming is available + upcoming (not clamped).`,
+    inputSchema: z.object({ budget_id: Id, month: AssignedMonth, category_id: Id }),
+    run: async (input: { budget_id: string; month: string; category_id: string }, { env }) => {
+      const bad = planMonthError(input.month);
+      if (bad) throw new Error(bad);
+      return listUpcomingForCategory(env, input.budget_id, input.month, input.category_id);
     },
   },
 ];

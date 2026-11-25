@@ -43,7 +43,7 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
     expect(JSON.stringify(r.result)).toContain(RANGE);
   });
 
-  it("writes no month past the server's month + 24, with 16 D1 calls", async () => {
+  it("writes no month past the server's month + 24, with 17 D1 calls", async () => {
     const f = await buildF();
     // Money assigned in May 2029 (30 months ahead) by SQL.
     await env.DB.prepare(
@@ -53,7 +53,7 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
       .run();
     const c = counting();
     const { bytes } = await exportPlan(c.env, f.bid, { now: "2026-11-16T09:05" });
-    expect(c.calls()).toBe(16);
+    expect(c.calls()).toBe(17);
     const plan = text(readZip(bytes)[0]?.data as Uint8Array);
     expect(plan).toContain('"Nov 2028"');
     expect(plan).not.toContain("2029");

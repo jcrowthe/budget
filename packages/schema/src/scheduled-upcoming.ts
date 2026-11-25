@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
-import { type Frequency, dayBefore, nextDate, occurrenceAfter } from "./recurrence";
+import { dayBefore, type Frequency, nextDate, occurrenceAfter } from "./recurrence";
 import { addMonthsTo } from "./report-range";
 
 /** The schedule fields upcoming needs, one row per live schedule that counts (rules R1 and R2). */
@@ -35,7 +35,9 @@ export function occurrencesInMonth(
 ): string[] {
   const end = monthLastDay(month);
   let cur: string | null =
-    s.date_next >= month ? s.date_next : occurrenceAfter(s.date_first, s.frequency, dayBefore(month));
+    s.date_next >= month
+      ? s.date_next
+      : occurrenceAfter(s.date_first, s.frequency, dayBefore(month));
   const out: string[] = [];
   while (cur && cur <= end) {
     // Guard against an anchor whose occurrence is before the month (a one-off already past).

@@ -39,7 +39,9 @@ describe("occurrencesInMonth", () => {
     ]);
   });
   it("a date_next in a later month gives none for an earlier month", () => {
-    expect(occurrencesInMonth(src({ date_first: "2026-12-10", date_next: "2026-12-10" }), NOV)).toEqual([]);
+    expect(
+      occurrencesInMonth(src({ date_first: "2026-12-10", date_next: "2026-12-10" }), NOV),
+    ).toEqual([]);
   });
   it("an overdue occurrence inside the month counts", () => {
     const s = src({ date_first: "2026-11-03", date_next: "2026-11-03", frequency: "never" });
@@ -92,6 +94,9 @@ describe("upcomingList", () => {
     expect(rows.map((r) => r.scheduled_transaction_id)).toEqual(["s1", "s3", "s2"]);
   });
   it("weekly lists 11/29 before 11/22", () => {
-    expect(upcomingList([src()], "c1", NOV).map((r) => r.date)).toEqual(["2026-11-29", "2026-11-22"]);
+    expect(upcomingList([src()], "c1", NOV).map((r) => r.date)).toEqual([
+      "2026-11-29",
+      "2026-11-22",
+    ]);
   });
 });

@@ -10,7 +10,9 @@ import {
   ScheduledTransactionCreate,
   ScheduledTransactionUpdate,
 } from "@budget/schema/scheduled-transactions";
+import { type CategoryUpcoming, upcomingList } from "@budget/schema/scheduled-upcoming";
 import type { TransactionDetail } from "@budget/schema/transactions";
+import { z } from "zod";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsert, changeLogInsertIf } from "../history/change-log";
@@ -21,6 +23,7 @@ import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as payeesRepo from "../repositories/payees";
 import * as repo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
+import { getPlanMonthWithSources } from "./months";
 import { resolvePayee } from "./payees";
 import {
   CLOSED_NO_NEW,
@@ -646,5 +649,33 @@ export async function enterDue(
         : [],
     ),
     has_more: hasMore,
+  };
+}
+
+const isUuid = (s: string) => z.uuid().safeParse(s).success;
+
+/**
+ * The scheduled transactions dated inside one month for one category (the Activity popover), with the category's
+ * Available. One month read gives both the figures and the schedules behind them, so the calls are constant.
+ */
+export async function listUpcomingForCategory(
+  env: Env,
+  budgetId: string,
+  month: string,
+  categoryId: string,
+): Promise<CategoryUpcoming> {
+  if (!isUuid(budgetId)) throw new NotFound("Plan");
+  if (!isUuid(categoryId)) throw new NotFound("Category");
+  const { detail, sources } = await getPlanMonthWithSources(env, budgetId, month);
+  const c = detail.groups.flatMap((g) => g.categories).find((x) => x.id === categoryId);
+  if (!c) throw new NotFound("Category");
+  return {
+    category_id: c.id,
+    month: detail.month,
+    upcoming: c.upcoming,
+    upcoming_count: c.upcoming_count,
+    available: c.available,
+    available_after_upcoming: c.available_after_upcoming,
+    occurrences: c.kind === null ? upcomingList(sources, c.id, detail.month) : [],
   };
 }

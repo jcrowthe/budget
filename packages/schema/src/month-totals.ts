@@ -39,6 +39,9 @@ export function categoryMonth(d: MonthDetail, id: string): CategoryMonth | null 
         available: c.available,
         note: c.note,
         payment: c.payment,
+        upcoming: c.upcoming,
+        upcoming_count: c.upcoming_count,
+        available_after_upcoming: c.available_after_upcoming,
       };
     }
   }

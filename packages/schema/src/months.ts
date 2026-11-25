@@ -50,6 +50,11 @@ export const MonthCategoryDetail = z
     payment: CardPayment.nullable(),
     note: z.string().nullable(),
     target_snoozed: z.boolean(),
+    /** EXF-505: scheduled transactions dated inside this month (summed, milliunits; 0 for a payment category). */
+    upcoming: Milliunits,
+    upcoming_count: z.number().int(),
+    /** available + upcoming; not clamped. */
+    available_after_upcoming: Milliunits,
   })
   .openapi("MonthCategoryDetail");
 

@@ -1,3 +1,4 @@
+import type { UpcomingSource } from "@budget/schema/scheduled-upcoming";
 import { and, asc, eq, inArray, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
@@ -267,4 +268,59 @@ export function changeCategoryStmt(
       writeToken: sql`lower(hex(randomblob(16)))`,
     })
     .where(sql`${liveIn(budgetId, fromIds)} and ${guard}`);
+}
+
+/**
+ * Every schedule that can still show up in a month read, in one select (EXF-505): live, on an open, on-budget
+ * account, with an active category, not an inflow to Ready to Assign, and `date_next` on or before `through`
+ * (the last day of the latest month read). `categoryId` narrows it to one category. A deleted payee reads as none.
+ */
+export async function listUpcomingSources(
+  db: Db,
+  budgetId: string,
+  through: string,
+  categoryId?: string,
+): Promise<UpcomingSource[]> {
+  const conds = [
+    eq(st.budgetId, budgetId),
+    isNull(st.deletedAt),
+    eq(st.inflowToReadyToAssign, false),
+    eq(accounts.closed, false),
+    eq(accounts.onBudget, true),
+    sql`${st.dateNext} <= ${through}`,
+  ];
+  if (categoryId) conds.push(eq(st.categoryId, categoryId));
+  const rows = await db
+    .select({
+      id: st.id,
+      categoryId: categories.id,
+      accountId: st.accountId,
+      accountName: accounts.name,
+      dateFirst: st.dateFirst,
+      dateNext: st.dateNext,
+      frequency: st.frequency,
+      amount: st.amount,
+      payeeId: payees.id,
+      payeeName: payees.name,
+      memo: st.memo,
+    })
+    .from(st)
+    .innerJoin(accounts, and(eq(accounts.id, st.accountId), isNull(accounts.deletedAt)))
+    .innerJoin(categories, and(eq(categories.id, st.categoryId), isNull(categories.deletedAt)))
+    .leftJoin(payees, and(eq(payees.id, st.payeeId), isNull(payees.deletedAt)))
+    .where(and(...conds))
+    .orderBy(asc(st.dateNext), asc(st.id));
+  return rows.map((r) => ({
+    id: r.id,
+    category_id: r.categoryId,
+    account_id: r.accountId,
+    account_name: r.accountName,
+    date_first: r.dateFirst,
+    date_next: r.dateNext,
+    frequency: r.frequency,
+    amount: r.amount,
+    payee_id: r.payeeId ?? null,
+    payee_name: r.payeeName ?? null,
+    memo: r.memo ?? null,
+  }));
 }

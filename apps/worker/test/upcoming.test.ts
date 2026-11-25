@@ -155,10 +155,12 @@ describe("upcoming: Auto-Assign Underfunded (AC5)", () => {
 
 describe("upcoming: Ready to Assign and the rules of what counts (AC6, R2)", () => {
   it("AC6: an inflow to Ready to Assign leaves it unchanged and every category at zero", async () => {
-    const w = await world();
+    // A plan with no category schedule, so "every category at zero" is the whole claim.
+    const w = await seedPlan(["ZZ-TEST Fun"]);
+    const checking = (await openAccount(w.bid, "checking", 0, "ZZ-TEST Checking")).id as string;
     const before = (await get(w.bid, `/months/${NOV}?today=${TODAY}`)).body.ready_to_assign;
     await sched(w.bid, {
-      account_id: w.checking,
+      account_id: checking,
       date_first: "2026-11-20",
       frequency: "never",
       amount: 500000,

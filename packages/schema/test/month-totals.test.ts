@@ -20,6 +20,9 @@ const cat = (id: string, o: Partial<MonthCategoryDetail> = {}): MonthCategoryDet
   target: null,
   note: null,
   target_snoozed: false,
+  upcoming: 0,
+  upcoming_count: 0,
+  available_after_upcoming: 0,
   payment: null,
   ...o,
 });
@@ -109,6 +112,20 @@ describe("categoryMonth", () => {
       available: 140000,
       note: "n",
       payment: null,
+      upcoming: 0,
+      upcoming_count: 0,
+      available_after_upcoming: 0,
+    });
+  });
+  it("carries the upcoming figures (EXF-505)", () => {
+    const d = detail();
+    const c = d.groups[0]?.categories.find((x) => x.id === "a");
+    if (c)
+      Object.assign(c, { upcoming: -40000, upcoming_count: 2, available_after_upcoming: 100000 });
+    expect(categoryMonth(d, "a")).toMatchObject({
+      upcoming: -40000,
+      upcoming_count: 2,
+      available_after_upcoming: 100000,
     });
   });
   it("splits activity into cash and credit (EXF-535)", () => {

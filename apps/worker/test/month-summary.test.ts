@@ -114,6 +114,10 @@ describe("category month", () => {
       available: 70000,
       note: null,
       payment: null,
+      // EXF-505: no schedule, so nothing upcoming
+      upcoming: 0,
+      upcoming_count: 0,
+      available_after_upcoming: 70000,
     });
     await s.assign(s.groceries, DEC, 30000);
     const dec = await read(DEC);
