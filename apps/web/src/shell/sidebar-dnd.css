@@ -1,14 +1,25 @@
 /* EXF-490: dragging an account row in the sidebar. Colours come from tokens.css only. */
+/* The slot takes a row's exact box. It has no fill, so it can't be mistaken for a hovered row (--sidebarHover);
+   the dashed primary outline matches the Plan's drop gap. */
 .nav-drop-gap {
   height: 32px;
   margin: 0 calc(5px + var(--sidebar-resizer)) var(--space-1) var(--space-2);
   box-sizing: border-box;
   border: 1px dashed var(--actionPrimary);
   border-radius: var(--radius-md);
-  background: var(--sidebarHover);
+  background: transparent;
 }
 .nav-account-row.is-drag-source {
   opacity: 0.4;
+}
+/* Chrome holds :hover on the source row for the whole drag; keep the dimmed row clean (no pencil, dot stays). */
+.nav-account-row.is-drag-source:hover .edit,
+.nav-account-row.is-drag-source:focus-within .edit {
+  opacity: 0;
+}
+.nav-account-row.is-drag-source:hover .nav-unapproved-dot,
+.nav-account-row.is-drag-source:focus-within .nav-unapproved-dot {
+  visibility: visible;
 }
 .nav-account-row[draggable="true"] {
   cursor: grab;
