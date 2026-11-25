@@ -13,6 +13,7 @@ import {
 } from "@budget/schema/accounts";
 import { z } from "zod";
 import { createAccountsFromBank, linkAccount, unlinkAccount } from "../../services/account-links";
+import { reorderAccounts } from "../../services/account-order";
 import {
   addUnlinkedAccount,
   adjustBalance,
@@ -34,6 +35,14 @@ export const tools: McpToolDef[] = [
     inputSchema: z.object({ budget_id: Id, include_closed: z.boolean().optional() }),
     run: async (input: { budget_id: string; include_closed?: boolean }, { env }) => ({
       accounts: await listAccounts(env, input.budget_id, { includeClosed: input.include_closed }),
+    }),
+  },
+  {
+    name: "reorder_accounts",
+    description: `Put one sidebar group's open accounts in a new order. account_ids are the accounts in their new order, all from one group (cash, credit, loans or tracking): the accounts trade the places they held, and accounts you leave out keep theirs, so a subset (for example the starred accounts of one group) reorders only those. A closed account (account_closed), ids from more than one group (account_groups_mixed) and repeated ids are tool errors, and an unknown id is not found; nothing is written. An order that is already the order changes nothing. ${MONEY} Debts are negative. Returns { accounts }: every account of the plan, closed ones included, in display order, each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count and needs_attention_count, plus interest_rate, minimum_payment, escrow_amount and paired_category_id (loan accounts only, null otherwise). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
+    inputSchema: z.object({ budget_id: Id, account_ids: z.array(Id).min(1).max(500) }),
+    run: async (input: { budget_id: string; account_ids: string[] }, { env, actor }) => ({
+      accounts: await reorderAccounts(env, actor, input),
     }),
   },
   {

@@ -286,6 +286,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["create_budget", () => ({ name: "ZZ-TEST made by tool", bank_environment: "sandbox" })],
   ["update_budget", (c) => ({ budget_id: c.bid, name: "ZZ-TEST renamed" })],
   ["list_accounts", (c) => ({ budget_id: c.bid, include_closed: true })],
+  ["reorder_accounts", (c) => ({ budget_id: c.bid, account_ids: [c.checking] })],
   ["get_account", (c) => ({ budget_id: c.bid, account_id: c.checking })],
   ["get_account_summary", (c) => ({ budget_id: c.bid })],
   ["list_transactions", (c) => ({ budget_id: c.bid })],

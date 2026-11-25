@@ -6,6 +6,7 @@ import {
   AccountCreateResponse,
   AccountDeleteResponse,
   AccountListResponse,
+  AccountOrderRequest,
   AccountResponse,
   AccountSummaryResponse,
   AccountUpdateRequest,
@@ -14,6 +15,7 @@ import { ErrorBody } from "@budget/schema/common/envelope";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
+import { reorderAccounts } from "../services/account-order";
 import {
   AccountRefused,
   addUnlinkedAccount,
@@ -80,6 +82,39 @@ export default app
         includeClosed: include_closed !== "false",
       });
       return c.json({ data: { accounts } }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "put",
+      path: "/budgets/{budget_id}/accounts/order",
+      tags,
+      request: {
+        params: z.object({ budget_id: budgetParam }),
+        body: { content: { "application/json": { schema: AccountOrderRequest } }, required: true },
+      },
+      responses: {
+        200: json(AccountListResponse, "The plan's accounts in their new display order"),
+        409: json(ErrorBody, "The accounts changed while the order was written; retry"),
+        ...errors,
+        422: json(
+          ErrorBody,
+          "account_closed: a closed account is listed; account_groups_mixed: the ids are not in one group (cash, credit, loans or tracking); unprocessable_entity: empty, repeated or too many ids",
+        ),
+      },
+    }),
+    async (c) => {
+      const { budget_id } = c.req.valid("param");
+      try {
+        const accounts = await reorderAccounts(c.env, c.get("identity").actor, {
+          budget_id,
+          ...c.req.valid("json"),
+        });
+        return c.json({ data: { accounts } }, 200);
+      } catch (e) {
+        if (e instanceof AccountRefused) return apiError(c, e.status, e.code, e.message) as never;
+        throw e;
+      }
     },
   )
   .openapi(

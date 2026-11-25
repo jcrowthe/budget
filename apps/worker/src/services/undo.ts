@@ -96,6 +96,7 @@ function refusals(nets: readonly Net[], system: ReadonlySet<string>) {
       const other = [...keys].some(
         (k) =>
           k !== "starred" &&
+          k !== "sort" &&
           k !== "paired_category_id" &&
           JSON.stringify(b?.[k]) !== JSON.stringify(a?.[k]),
       );

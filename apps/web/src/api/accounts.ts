@@ -7,6 +7,7 @@ import {
   AccountCreateResponse,
   AccountDeleteResponse,
   AccountListResponse,
+  type AccountOrderRequest,
   AccountResponse,
   AccountSummaryResponse,
   type AccountUpdateRequest,
@@ -225,6 +226,51 @@ export function useDeleteAccount(budgetId: string, accountId: string) {
           !(q.queryKey[0] === "accounts" && q.queryKey[2] === accountId),
       });
     },
+  });
+}
+
+export const reorderAccounts = async (
+  budgetId: string,
+  accountIds: string[],
+  onChangeSet?: (id: string) => void,
+): Promise<Account[]> => {
+  const body: AccountOrderRequest = { account_ids: accountIds };
+  return (
+    await apiFetch(`/api/v1/budgets/${budgetId}/accounts/order`, {
+      method: "PUT",
+      body,
+      onChangeSet,
+      idempotencyKey: crypto.randomUUID(),
+      schema: AccountListResponse,
+    })
+  ).data.accounts;
+};
+
+/** The list with the listed accounts permuted into the positions they held: the order the server will give. */
+export function withAccountsOrdered<T extends { id: string }>(list: T[], ids: string[]): T[] {
+  const byId = new Map(list.map((a) => [a.id, a]));
+  const listed = new Set(ids);
+  let k = 0;
+  return list.map((a) => (listed.has(a.id) ? (byId.get(ids[k++] as string) ?? a) : a));
+}
+
+/** Puts the dropped order in the sidebar at once; a failure puts the list back, and the list is refetched. */
+export function useReorderAccounts(budgetId: string) {
+  const qc = useQueryClient();
+  const listKey = ["accounts", budgetId];
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      reorderAccounts(budgetId, ids, (id) => recordChange(budgetId, id, "register")),
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: listKey });
+      const list = qc.getQueryData<Account[]>(listKey);
+      if (list) qc.setQueryData<Account[]>(listKey, withAccountsOrdered(list, ids));
+      return { list };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.list) qc.setQueryData(listKey, ctx.list);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: listKey }),
   });
 }
 

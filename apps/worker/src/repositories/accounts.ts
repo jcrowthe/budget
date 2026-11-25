@@ -17,7 +17,7 @@ import { bankConnections } from "../db/schema/bank-connections";
 import { budgets } from "../db/schema/budgets";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
-import { idList, type LogBase, logSelectStmt } from "./guards";
+import { allOf, idList, type LogBase, logSelectStmt } from "./guards";
 import { insertSelect } from "./insert-select";
 import { idsIn } from "./payees";
 import { countsInBalance } from "./transactions";
@@ -704,4 +704,76 @@ export function changePairingStmt(
     .update(accounts)
     .set({ pairedCategoryId: targetId })
     .where(sql`${pairedIn(budgetId, fromIds)} and ${guard}`);
+}
+
+// EXF-490: reorder. The writes ride ONE json parameter of entries `{ i, o, n, t, l, w }`: id, the sort_order and
+// type read, the new sort_order, 1 when the account is listed in the request, 1 when the row is written.
+export interface AccountOrderEntry {
+  i: string;
+  o: number;
+  n: number;
+  t: string;
+  l: 0 | 1;
+  w: 0 | 1;
+}
+
+export interface OrderRow {
+  id: string;
+  type: AccountRow["type"];
+  closed: boolean;
+  sortOrder: number;
+}
+
+/** The plan's non-deleted accounts in display order, with only what the reorder needs. */
+export async function listForOrder(db: Db, budgetId: string): Promise<OrderRow[]> {
+  return db
+    .select({
+      id: accounts.id,
+      type: accounts.type,
+      closed: accounts.closed,
+      sortOrder: accounts.sortOrder,
+    })
+    .from(accounts)
+    .where(and(eq(accounts.budgetId, budgetId), isNull(accounts.deletedAt)))
+    .orderBy(asc(accounts.sortOrder), asc(accounts.id));
+}
+
+const jx = (path: string): SQL => sql.raw(`json_extract(j.value, '$.${path}')`);
+
+/**
+ * Holds while every account in the JSON is still in the plan, not deleted, with the sort_order and type read, a
+ * listed one still open, and (renumbering only) the plan still has `total` accounts.
+ */
+export function orderGuard(budgetId: string, json: string, total: number | null): SQL {
+  return allOf(
+    sql`not exists (select 1 from json_each(${json}) j left join ${accounts} a on a.id = ${jx("i")} where a.id is null or a.deleted_at is not null or a.budget_id <> ${budgetId} or a.sort_order <> ${jx("o")} or a.type <> ${jx("t")} or (${jx("l")} = 1 and a.closed = 1))`,
+    total === null
+      ? null
+      : sql`(select count(*) from ${accounts} where ${accounts.budgetId} = ${budgetId} and ${accounts.deletedAt} is null) = ${total}`,
+  );
+}
+
+/** The rows the reorder writes, for `logSelectStmt`: the account's columns and its entry as `jv`. */
+export function orderInner(budgetId: string, json: string, guard: SQL): SQL {
+  return sql`select a.*, j.value as jv from json_each(${json}) j join ${accounts} a on a.id = ${jx("i")} where a.budget_id = ${budgetId} and ${jx("w")} = 1 and ${guard}`;
+}
+
+export const orderBeforeJson = (): SQL => sql`json_object('id', id, 'sort', sort_order)`;
+export const orderAfterJson = (): SQL =>
+  sql`json_object('id', id, 'sort', json_extract(jv, '$.n'))`;
+
+export function orderSortsStmt(db: Db, budgetId: string, json: string, guard: SQL) {
+  return db
+    .update(accounts)
+    .set({
+      sortOrder: sql`(select json_extract(j.value, '$.n') from json_each(${json}) j where json_extract(j.value, '$.i') = ${accounts.id})`,
+    })
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        sql`${accounts.id} in (select json_extract(j.value, '$.i') from json_each(${json}) j where json_extract(j.value, '$.w') = 1)`,
+        guard,
+      ),
+    );
 }

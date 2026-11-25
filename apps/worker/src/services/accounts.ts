@@ -251,8 +251,17 @@ export async function listAccounts(
 ): Promise<Account[]> {
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  return accountList(db, budgetId, opts.includeClosed ?? true);
+}
+
+/** The plan's accounts in display order with their facts (the plan is not checked here). */
+export async function accountList(
+  db: Db,
+  budgetId: string,
+  includeClosed: boolean,
+): Promise<Account[]> {
   const [rows, facts] = await Promise.all([
-    accountsRepo.list(db, budgetId, { includeClosed: opts.includeClosed ?? true }),
+    accountsRepo.list(db, budgetId, { includeClosed }),
     accountFacts(db, budgetId),
   ]);
   return rows.map((r) => accountToApi(r, facts(r)));

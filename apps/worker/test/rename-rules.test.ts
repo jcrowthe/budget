@@ -20,7 +20,7 @@ const NEW_TOOLS = [
 ];
 
 describe("payee renaming rules: the operations (EXF-467)", () => {
-  it("the surface has the paths and 111 tools", async () => {
+  it("the surface has the paths and 113 tools", async () => {
     expect(await apiPaths()).toEqual(
       expect.arrayContaining([
         "/api/v1/budgets/{budget_id}/payees/{payee_id}/rename-rules",
@@ -29,7 +29,7 @@ describe("payee renaming rules: the operations (EXF-467)", () => {
     );
     const names = await listedToolNames();
     expect(names).toEqual(expect.arrayContaining(NEW_TOOLS));
-    expect(names).toHaveLength(112);
+    expect(names).toHaveLength(113);
   });
 
   it("lists, creates, updates and deletes, each with a history row of the actor", async () => {
