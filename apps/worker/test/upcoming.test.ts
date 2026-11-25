@@ -153,6 +153,33 @@ describe("upcoming: Auto-Assign Underfunded (AC5)", () => {
   });
 });
 
+describe("upcoming: the Underfunded view (EXF-1000)", () => {
+  const inUnderfunded = async (w: Awaited<ReturnType<typeof world>>) => {
+    const rest = (await get(w.bid, `/months/${NOV}?view=underfunded&today=${TODAY}`)).body;
+    const tool = await mcp("get_plan_month", {
+      budget_id: w.bid,
+      month: NOV,
+      view: "underfunded",
+      today: TODAY,
+    });
+    expect(tool.structuredContent).toEqual(rest);
+    return (rest.groups as Json[]).flatMap((g) => g.categories.map((c: Json) => c.id));
+  };
+
+  it("lists a category with no target but an upcoming shortfall; none once covered", async () => {
+    const w = await world();
+    expect(await inUnderfunded(w)).toContain(w.fun);
+    await send("PATCH", api(w.bid, `/months/${NOV}/categories/${w.fun}`), { assigned: 60000 });
+    expect(await inUnderfunded(w)).not.toContain(w.fun);
+  });
+
+  it("still lists it when the target's to-go is larger than the shortfall", async () => {
+    const w = await world();
+    await w.target("ZZ-TEST Fun", { cadence: "monthly", behavior: "set_aside", amount: 100000 });
+    expect(await inUnderfunded(w)).toContain(w.fun);
+  });
+});
+
 describe("upcoming: Ready to Assign and the rules of what counts (AC6, R2)", () => {
   it("AC6: an inflow to Ready to Assign leaves it unchanged and every category at zero", async () => {
     // A plan with no category schedule, so "every category at zero" is the whole claim.
