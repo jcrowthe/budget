@@ -88,7 +88,8 @@ test("the pill is amber with a calendar and the box reads the upcoming figures (
   await expect(box(page)).toContainText("−$40.00");
   await expect(box(page)).toContainText("Available After Upcoming");
   await expect(after(page)).toContainText("−$10.00");
-  await expect(after(page)).toHaveAttribute("data-tone", "cautious");
+  await expect(box(page)).toHaveAttribute("data-tone", "cautious");
+  await expect(box(page)).toHaveCSS("background-color", "rgba(218, 172, 0, 0.2)");
   const head = page.locator(".panel-card", { has: page.locator("#panel-balance") });
   await expect(head.locator(".available-pill")).toHaveClass(/cautious/);
   await expect(head.locator('.available-pill [data-icon="calendar"]')).toBeVisible();
@@ -135,7 +136,8 @@ test("assigning 60.00 turns the pill green and the box to $0.00 (AC2, AC5b)", as
   await expect(pill).toContainText("$40.00");
   await expect(pill.locator('[data-icon="calendar"]')).toHaveCount(0);
   await expect(after(page)).toContainText("$0.00");
-  await expect(after(page)).toHaveAttribute("data-tone", "positive");
+  await expect(box(page)).toHaveAttribute("data-tone", "positive");
+  await expect(box(page)).toHaveCSS("background-color", "rgba(119, 186, 33, 0.2)");
   await expect(option(autoCard(page), "Underfunded")).toHaveCount(0);
 });
 

@@ -26,18 +26,18 @@ export function UpcomingBox({
   const after = c.available + c.upcoming;
   const label = `${c.upcoming_count} Upcoming Transaction${c.upcoming_count === 1 ? "" : "s"}`;
   return (
-    <div className="upcoming-box" data-testid="upcoming-box">
+    <div
+      className="upcoming-box"
+      data-testid="upcoming-box"
+      data-tone={after < 0 ? "cautious" : "positive"}
+    >
       <div className="upcoming-row">
         <button ref={link} type="button" className="upcoming-link" onClick={() => setOpen(true)}>
           {label}
         </button>
         <span className="upcoming-amount">{fmt.money(c.upcoming)}</span>
       </div>
-      <div
-        className="upcoming-row"
-        data-testid="upcoming-after"
-        data-tone={after < 0 ? "cautious" : "positive"}
-      >
+      <div className="upcoming-row" data-testid="upcoming-after">
         <span className="upcoming-after-label">Available After Upcoming</span>
         <span className="upcoming-after-value">{fmt.money(after)}</span>
       </div>

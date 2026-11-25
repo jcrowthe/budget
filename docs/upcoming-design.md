@@ -29,7 +29,7 @@ the fields.
    Otherwise the pill is the existing target pill or the plain pill. The browser computes it from
    `available + upcoming`, so an optimistic Assigned edit moves it at once.
 5. Inspector box, only when upcoming ≠ 0: `N Upcoming Transactions` (singular for 1) as a link with the total,
-   then `Available After Upcoming`. Amber below zero, green at zero and above.
+   then `Available After Upcoming`. The whole box is tinted: amber below zero, green at zero and above (`data-tone` on the box; the callout backgrounds).
 6. Popover: `Activity` with the category name as subtitle, `ACCOUNT | DATE | PAYEE | MEMO | AMOUNT`, latest
    date first, `Close`.
 7. Auto-Assign Underfunded adds, per ordinary category, `max(target to_go_this_month, shortfall)`, where
@@ -98,7 +98,7 @@ query, so the Activity popover costs one request.
 
 ## Observed vs assumed
 
-No look at the source was made in this build (the optional check was not run), so A1 to A5 stay assumptions.
+No look at the source was made in this build, so A1 to A5 stay assumptions, and so does the box styling: the ticket's "highlighted box, amber below 0, green at 0 or more" is built as a fully tinted box, not observed at the source.
 What the build took from the ticket (as the Architect's spec records it) is not re-verified here.
 
 - Pill tooltip: set to the plain Available tooltip (`pillTitle(available)`); the source's tooltip is not observed.

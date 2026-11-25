@@ -1,9 +1,16 @@
-/* EXF-505: the Upcoming box under the Available Balance rows. Colours only from shell/tokens.css; the two tones
-   copy the variables the .available-pill.cautious and .positive rules use. */
+/* EXF-505: the Upcoming box under the Available Balance rows. Colours only from variables already declared
+   (tokens.css and the callout variables in panel/target.css); none is declared here. */
 .upcoming-box {
   margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--separatorStandard);
+  padding: 8px;
+  border-radius: 8px;
+}
+/* The whole box is tinted: amber below zero, green at zero and above (the callout backgrounds). */
+.upcoming-box[data-tone="cautious"] {
+  background: var(--calloutCautiousBackground);
+}
+.upcoming-box[data-tone="positive"] {
+  background: var(--calloutPositiveBackground);
 }
 .upcoming-row {
   display: flex;
@@ -30,15 +37,5 @@
   color: var(--labelPrimary);
 }
 .upcoming-after-value {
-  padding: 0 8px;
-  border-radius: 12px;
   font-variant-numeric: tabular-nums;
-}
-.upcoming-row[data-tone="cautious"] .upcoming-after-value {
-  background: var(--categoryBalanceWarningBackground);
-  color: var(--categoryBalanceCautiousLabel);
-}
-.upcoming-row[data-tone="positive"] .upcoming-after-value {
-  background: var(--statusPositive);
-  color: var(--categoryBalancePositiveLabel);
 }
