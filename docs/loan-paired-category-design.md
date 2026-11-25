@@ -117,3 +117,28 @@ plan to match spacing. It records structure only, never names or amounts.
 - **"The loan page link opens this editor too"** is EXF-541's page and is left to it.
 - **Payoff arithmetic** may duplicate EXF-541's loan projection, which runs in parallel and whose files are
   closed here. Follow-up: one shared function once both land.
+
+## Build notes
+
+Where the build differs from the design above, and what was measured.
+
+- **Single-category read.** `GET …/months/{month}/categories/{id}` (`CategoryMonth`, `month-totals.ts`) is a
+  narrower shape than `MonthCategoryDetail` and its files are outside May touch, so it does **not** carry
+  `paired_account_id` or `paid_this_month`. It still costs the same 11 calls (it reads through `getPlanMonth`).
+  `GET …/months/{month}` and MCP `get_plan_month` carry both. Follow-up if wanted.
+- **`pairedLoansQuery`** returns a row per open paired loan and month with a transaction (payments summed by the
+  `kindOf = 'payment'` rule, other kinds counted as 0), so it grows with months, never with payments. A loan
+  with no transaction gives one row with a null month. Pairing with a closed or deleted loan is ignored.
+- **Saved view** is extracted into `plan/panel/TargetSavedView.tsx` (heading block, donut, message with Assign,
+  breakdown, Edit Target, snooze). `TargetCard` now uses it too; its rendered output is unchanged. The Assign
+  in-flight state now lives in that component, so it resets when the editor is opened and closed.
+- **`TargetAmountField`** gained an optional `label` prop (default "Target Amount"); the debt form names it
+  "Monthly Payment".
+- **Payoff Date** lists every month from next month to the later of the minimum's and the typed payment's payoff
+  month (360 months when neither pays off). Typing a payment clears the picked date.
+- **Measured D1 calls** (`debt-target-calls.test.ts`, identical at 10 and 100 categories/loans, 3 payments each):
+  `getPlanMonth` 11, `getMonthCategory` 11, `getPlanMonths` 11, `getCardPaymentStatus` 11 (was 10);
+  `setDebtPaymentTarget` one `DB.batch`.
+- **Pins moved** (each carries a comment): `credit-call-count` 10→11, `plan-export-calls` 17→18,
+  `plan-export-now` 17→18, `upcoming-calls` +1 per entry, `bulk-call-count` `LIMIT` 20→21 (paying a card reads
+  the month), tool count 110→111 in `rename-rules` and `payee-category-api`.
