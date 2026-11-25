@@ -154,31 +154,51 @@ received; null when no import gave the row), from `transactionToApi` (`services/
 - **The gear on a list row** (`manage-payees-list.tsx`): a 16 px slot before the checkbox on every payee row; with
   `has_rules`, the gear with `title` and aria-label `Renaming rules applied`.
 - **Several selected:** the sentence under the buttons when any selected payee has `has_rules`.
-- **The payee cell of an imported row** (`source = "plaid"`, not a transfer; `RegisterTable.tsx`): the name in a
-  span whose `title` is `<payee_name> (Imported as <import_payee_name>)` when `payee_name` and `import_payee_name`
-  are both set and differ, else `<payee_name>` (the browser's own tooltip, as every register cell's). At the right
+- **The payee cell of an imported row** (`source` set, or, EXF-885, a matched row that still holds
+  `import_payee_name`; not a transfer; `RegisterTable.tsx`): the name (`ImportedPayeeName`). When `payee_name` and
+  `import_payee_name` are both set and differ, the name is the trigger of the register's `Tooltip`
+  (`account/Tooltip.tsx`, the component of the account header and the action bar) with `<payee_name> (Imported as
+  <import_payee_name>)` (EXF-885; first built as the browser's `title`), else a plain `title` of `<payee_name>`, as
+  the other payee cells have. The cell no longer clips (`overflow: visible`) so the tooltip hangs below the row. At the right
   of the cell, the info button (`rename-rules-bank-import.tsx`, `InfoCircleIcon`, aria-label and `Tooltip`
   `Bank Import Details`), at opacity 0 unless the row is hovered, selected (`is-checked`) or the button has focus;
   always in the tab order. Its press never selects or opens the row.
 - **The popover** (`Popover`, `role="dialog"`, below, start-aligned, 320 px): `Bank Import Details`; `As it appears
   on your statement` with `bank_description`; `As we imported it` with `import_payee_name`; and, only when the
-  payee differs from `import_payee_name`, a link button `Don't rename as <payee_name>`: `PATCH {payee_name:
+  payee differs from `import_payee_name` and the row is not matched (EXF-885), a link button `Don't rename as <payee_name>`: `PATCH {payee_name:
   import_payee_name, approved: <the row's approved>}` through `useSaveTransaction` (the payee of that name is made
   if missing; the Worker does point 1's undo); success closes the popover and puts the focus on the info button; a
   refusal shows in the popover. No amount or date is shown, so no formatter call.
 
 ## Departures to check
 
+**What the look found (all read-only).** Manage Payees → a payee's `Renaming` card (a payee of the owner's plan with no
+rules): heading `Renaming`, a gear beside it, the sentence `Imported payees that match these rules will be renamed.`,
+a select with `Contains` and `Is` (in that order), a text box, and a `+` button labelled `Add a renaming rule`; the
+`Hide` and `Delete` buttons follow the card. This matches the clone's card (copy, option order, button name).
+**No departure was observed to differ.** The source's payee name in the register carries an `aria-describedby`
+tooltip element, not a `title` (the kind the clone now uses; see Built).
+
+
 1. (Lead, not observed) `is` beats `contains`; among one kind the newest wins.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: the order in which an import applies rules needs two payees with rules and a real import of the matching name; a look at the card cannot show it, and adding a rule is forbidden.*
 2. (Lead) A payee rename in Manage Payees adds `is <old name>` when the old name came from the bank.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: needs a rename in Manage Payees, a write, on a payee whose old name came from a bank import.*
 3. (Lead) The undo removes other payees' `is <name>` rules and adds `is <name>` when a `contains` rule elsewhere
    still matches. The learn does the same removal (EXF-885): every other payee's `is <name>` goes, with a delete
    history row each, then `is <name>` is added to the new payee unless it has it.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: needs a row edit on a real import and a later look at other payees' rules.*
 4. (Lead) The info button sits at the right of the payee cell, shown on hover, selection or focus.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable** (checked 2026-11-25, read-only): in `SoFi Checking – 3803` (40 rows rendered, among them unapproved imported `Venmo` rows) hovering a payee cell showed no info button, and the payee cell holds an empty slot after the name; none of the rendered rows holds the feature, and a row that does was not found without edits or other accounts' rows. Neither the position nor the moment is settled.*
 5. (Architect) The fold also turns any run of white space into one space.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: the comparison runs when an import is matched; seeing it needs a saved rule and an import (or typing into the text box and `+`, forbidden).*
 6. (Architect) `+` with a blank text sends nothing; an emptied saved row shows the empty error locally.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: needs a click on `+`, which was forbidden. Seen only: `+` (`Add a renaming rule`) is enabled with a blank text box (no `disabled`), so the source has no disabled guard; whether it sends nothing is not known. Not a settled difference.*
 7. (Architect) A duplicate rule is 409; a PATCH operation is added (tool 98); rules are soft-deleted.
-8. (Architect) `Don't rename as` keeps the row's approval; the tooltip is the browser's `title`.
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: a 409 or a PATCH is a network answer to a saved rule, a write.*
+8. (Architect) `Don't rename as` keeps the row's approval; the tooltip was the browser's `title` (now the register's
+   `Tooltip`, see Built).
+   *Check (EXF-885, 2026-11-25, read-only in the owner's logged-in session; nothing was added, edited or saved): **not observable**: needs a real import, an approved row and an edit.*
 9. Changed expectations in existing tests, fields only: `packages/schema/test/payees.test.ts` helper `p`
    (`has_rules: false`); `packages/schema/test/register.test.ts` and `register-export.test.ts` fixtures
    (`import_payee_name: null`).
@@ -187,10 +207,17 @@ received; null when no import gave the row), from `transactionToApi` (`services/
 
 ## Found, not built
 
-1. A rule that turns an import into a transfer. The `Renaming` card for transfer payees is built (EXF-885): its rules
-   are stored and listed, and the import ignores them (see `manage-payees-spec.md`, Part 6).
-3. Plan export and import do not carry rules.
-4. Matched rows have no `Bank Import Details`.
+1. A rule that turns an import into a transfer. The `Renaming` card for transfer payees is built (EXF-885, PR 104):
+   its rules are stored and listed, **and the import does not apply them**. That is a departure, taken as the
+   smallest safe step: a rule that turns an import into a transfer needs the paired side made by the import (account
+   choice, a pair in the other account, the import's matching of the other side), which is a design of its own. What
+   the source's import does with such a rule is not observed (see departures 1 to 3, 8).
+3. Plan export and import do not carry rules (EXF-885, decided: left). Why: the export is our own file format
+   now (not the source's, as first assumed), so a place for rules could be added, and rules are real owner data: a
+   plan exported and imported again loses them, and the next import renames nothing. It is not built here. A
+   follow-up is proposed: carry `payee_rename_rules` (payee name, kind, text, order of creation) in the export and
+   import, with the loan fields' unit (EXF-991) in the same files, so it waits for that unit.
+4. Matched rows had no `Bank Import Details` (built, EXF-885; see Built).
 
 ## Built (EXF-885)
 
@@ -203,6 +230,22 @@ received; null when no import gave the row), from `transactionToApi` (`services/
   `pickRenameRule` takes the newest `is` rule; rewriting `created_at` of the owner's rule would falsify history,
   and keeping both rules leaves the answer to a timestamp. After any correction exactly one payee holds
   `is <name>`; all in the change's own batch, no extra D1 call.
+
+- **Matched rows (point 4).** The button shows wherever the row still holds the bank's texts (`source` set, or
+  `import_payee_name` not null), matched or not. Reason it was missing: the cell tested `source !== null`, and a
+  match sets `source` to null although it keeps `import_payee_name`, the statement text and `imported_payee`; so the
+  texts were there and only the button was gone. On a matched row `Don't rename as` is not offered: the match keeps
+  the payee the owner typed, no rule renamed it (the learn only runs on `source = 'plaid'` rows), so there is no
+  rule to undo, and the link would replace the owner's payee by the bank's text.
+- **The tooltip (point 5b).** The register's cells use the browser's `title` (late, none on touch), but its
+  interactive controls (action bar, info button, account header) use `Tooltip`. The renamed payee text now uses
+  `Tooltip` (hover and focus; the name is not focusable, so Escape closes only when the trigger has focus), because the ticket's
+  fault is the delay and touch. Plain rows keep the `title`. Seen in the source: its payee name has an
+  `aria-describedby` tooltip.
+- **Browser test on a real import (5c).** File import (EXF-531) makes real imported rows in the local server without
+  Plaid: `e2e/rename-rules-import.spec.ts` test 5c imports `sample.csv`, corrects a payee, then uses `Don't rename
+  as` on the row in the browser and shows the rule gone. Test 4 shows a matched row. The stand-in specs stay for the tooltip.
+- **Point 2** is recorded under Found, not built (1): the card is built, the import does not apply the rules.
 
 ## Out of scope
 
