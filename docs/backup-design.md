@@ -99,6 +99,12 @@ backups/d1/2026-11-25/parts/00001.ndjson.gz   one part per invocation that read 
 - At most `BACKUP_PRUNE_PER_RUN = 3` backups are deleted per invocation (each takes one `list` and one
   `delete([...keys])`), so a backlog drains over a few runs. The steady state deletes one backup a night.
 
+- Pruning also runs on a no-op invocation when the state says a backlog is left (`prune_pending`), so a backlog
+  drains within the same night, not one set per night. That invocation costs: state get, prune list, up to
+  3 × (list + delete), state put = 9 R2 calls.
+- Write order at the end of a backup: last part, manifest, prune, then the state (`last_done`). If the state write
+  fails, the next invocation redoes only the last read: part keys are fixed, so nothing is duplicated.
+
 ### 7. Limits: calls per backup invocation
 
 | Invocation | D1 | R2 |
@@ -114,7 +120,13 @@ backups/d1/2026-11-25/parts/00001.ndjson.gz   one part per invocation that read 
   no IN list.
 - `BACKUP_ROWS_PER_RUN = 10,000` to start with, so a night's 12 invocations cover 120,000 rows. Anything beyond
   that carries over to the next night.
-- Measured (filled in by the Implementer from the `backup-calls:` test line): time for 10,000 rows = _TBD_.
+- Run size: `BACKUP_ROWS_PER_RUN` is split evenly over the tables not yet finished (at least 1 each, one extra row
+  is asked for to see that a table is done), so the first invocation reads at most 400 rows per table; a table that
+  is still unfinished then has the whole run to itself. A plan whose largest table exceeds 400 rows therefore takes
+  a second invocation (5 minutes later). The batch is never larger than the run size (plus one row a table).
+- Measured (the `backup-calls:` test line, local miniflare, so only an order of magnitude): an invocation that
+  reads a 10,000-row table = about 160 ms, 2 D1 calls (start) or 1 (continue), 11 R2 calls at most (3 on a start with
+  no pruning).
 
 ### 8. Failure and logs
 
