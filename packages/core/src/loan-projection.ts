@@ -6,6 +6,8 @@ export type ProjectionIn = {
   balance: number;
   payment: number;
   from: Month;
+  /** A one-time extra, milliunits (negative = 0): taken off the balance at the start of month 1, before its interest. */
+  extra_once?: number;
 };
 
 export type LoanProjection = {
@@ -42,7 +44,20 @@ export function projectLoan(terms: LoanTerms, input: ProjectionIn): LoanProjecti
     };
   }
   if (input.payment <= 0) return never();
+  const extra = Math.max(0, input.extra_once ?? 0);
+  if (extra >= b) {
+    return {
+      payments_remaining: 1,
+      payoff_month: addMonths(input.from, 1),
+      interest_total: 0,
+      schedule: [
+        { month: input.from, balance: start },
+        { month: addMonths(input.from, 1), balance: 0 },
+      ],
+    };
+  }
   const schedule = [{ month: input.from, balance: b }];
+  b -= extra;
   let interestTotal = 0;
   for (let n = 1; n <= MAX_PROJECTION_MONTHS; n++) {
     const month = addMonths(input.from, n - 1);
@@ -66,4 +81,41 @@ export function projectLoan(terms: LoanTerms, input: ProjectionIn): LoanProjecti
     }
   }
   return never();
+}
+
+export type SimulationOut = {
+  projection: LoanProjection;
+  /** The balance the simulation starts from. */
+  principal: number;
+  /** principal + the simulated interest. */
+  remaining_to_pay: number;
+  /** The base projection's interest minus the simulation's; null when either never pays off. */
+  interest_savings: number | null;
+  /** The base projection's payments minus the simulation's; null when either never pays off. */
+  months_saved: number | null;
+};
+
+/** The payoff simulator: `base` is the loan as it is, `change` the typed monthly payment and one-time extra. */
+export function simulatePayoff(
+  terms: LoanTerms,
+  base: ProjectionIn,
+  change: { payment: number; extra_once: number },
+): SimulationOut {
+  const asIs = projectLoan(terms, base);
+  const projection = projectLoan(terms, {
+    ...base,
+    payment: change.payment,
+    extra_once: change.extra_once,
+  });
+  const both = asIs.payments_remaining !== null && projection.payments_remaining !== null;
+  const principal = Math.max(0, base.balance);
+  return {
+    projection,
+    principal,
+    remaining_to_pay: principal + projection.interest_total,
+    interest_savings: both ? asIs.interest_total - projection.interest_total : null,
+    months_saved: both
+      ? (asIs.payments_remaining as number) - (projection.payments_remaining as number)
+      : null,
+  };
 }
