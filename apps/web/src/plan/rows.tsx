@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AssignedCell, type CloseHow } from "./AssignedCell";
 import { AvailablePill } from "./AvailablePill";
+import type { RowDragProps } from "./dnd";
 import { amountClass, categoryPill, plainSections, statusLabel, targetSections } from "./format";
 import {
   CheckIcon,
@@ -58,7 +59,10 @@ export function GroupRow({
   addOpen,
   checked,
   onCheck,
+  drag,
 }: {
+  /** Drag and drop (EXF-496): the row's handlers. */
+  drag?: RowDragProps;
   /** A group with a `kind` (Credit Card Payments) belongs to the app: no edit popover, no add button. */
   g: MonthGroupDetail;
   checked: boolean | "mixed";
@@ -81,6 +85,7 @@ export function GroupRow({
       role="row"
       aria-level={1}
       aria-expanded={!collapsed}
+      {...drag}
       onContextMenu={(e) => {
         e.preventDefault();
         if (!locked && nameRef.current) onEditName(nameRef.current);
@@ -185,8 +190,13 @@ export function CategoryRow({
   onActivity,
   hasMoves = false,
   onMoves,
+  drag,
+  dragging = false,
 }: {
   c: MonthCategoryDetail;
+  /** Drag and drop (EXF-496): the row's handlers; `dragging` dims the row being dragged. */
+  drag?: RowDragProps;
+  dragging?: boolean;
   selected: boolean;
   onSelect: (how: "only" | "toggle") => void;
   /** A click on the name: the grid decides between selecting the row and opening its edit popover (EXF-592). */
@@ -231,10 +241,11 @@ export function CategoryRow({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a right-click opens the edit popover; the inspector's pencil does the same by keyboard
     <div
-      className={`grid-row category-row${selected ? " is-selected" : ""}`}
+      className={`grid-row category-row${selected ? " is-selected" : ""}${dragging ? " is-drag-source" : ""}`}
       role="row"
       aria-level={2}
       aria-selected={selected}
+      {...(editing ? {} : drag)}
       onContextMenu={(e) => {
         e.preventDefault();
         if (c.kind === null && nameRef.current) onContextMenu(nameRef.current);

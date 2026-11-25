@@ -8,7 +8,7 @@ import {
   viewDetail,
 } from "@budget/schema/plan-views";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { carryPlanWhere, planWhere, useCommitAssigned } from "../api/assigned";
 import { useCategoryActions } from "../api/categories";
 import { ApiError } from "../api/client";
@@ -26,6 +26,7 @@ import { CoverPopover } from "./CoverPopover";
 import { useCollapsedGroups } from "./collapse";
 import { useNumberColumns } from "./columnWidths";
 import { DeleteDialog } from "./DeleteDialog";
+import { usePlanDnd } from "./dnd";
 import { HiddenCategoriesRow } from "./HiddenCategories";
 import { ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
 import { MovePopover } from "./MovePopover";
@@ -113,6 +114,13 @@ export function PlanGrid({
   const commit = useCommitAssigned(budgetId, month, () =>
     setNotice("Couldn't save the assigned amount."),
   );
+  const dnd = usePlanDnd({
+    groups: data?.groups ?? [],
+    onMoveCategory: (id, body) =>
+      void actions.moveCategory(id, body).catch(() => setNotice("Couldn't move the category.")),
+    onMoveGroup: (id, body) =>
+      void actions.moveGroup(id, body).catch(() => setNotice("Couldn't move the group.")),
+  });
   const move = useMoveMoney(budgetId, () => setNotice("Couldn't move the money."));
   const qc = useQueryClient();
   const { setMonth } = usePlanMonth();
@@ -454,83 +462,110 @@ export function PlanGrid({
             {!inView && data?.uncategorized && <UncategorizedRow u={data.uncategorized} />}
             {groups.map((g) => {
               const collapsed = isCollapsed(g.id);
+              const t = dnd.target;
+              const gap = (kind: "category" | "group") => (
+                <div
+                  className={`grid-row drop-gap drop-gap-${kind}`}
+                  role="presentation"
+                  data-testid="drop-gap"
+                  {...dnd.gap}
+                />
+              );
+              const groupGap = t?.kind === "group" ? t.gap : null;
+              const catGap = t?.kind === "category" ? t.gap : null;
+              const visible = g.categories.filter((c) => !c.hidden);
               return (
-                <div key={g.id} className="group-block" role="presentation">
-                  <GroupRow
-                    g={g}
-                    collapsed={collapsed}
-                    onToggle={() => setCollapsed([g.id], !collapsed)}
-                    onEditName={(anchor) => setPop({ kind: "edit-group", groupId: g.id, anchor })}
-                    onAddCategory={(anchor) =>
-                      setPop({ kind: "add-category", groupId: g.id, anchor })
-                    }
-                    addOpen={pop?.kind === "add-category" && pop.groupId === g.id}
-                    checked={checkState(
-                      g.categories.filter((c) => !c.hidden).map((c) => c.id),
-                      selected,
-                    )}
-                    onCheck={() =>
-                      onSelection((s) =>
-                        toggleMany(
-                          s,
-                          g.categories.filter((c) => !c.hidden).map((c) => c.id),
-                        ),
-                      )
-                    }
-                  />
-                  {!collapsed &&
-                    g.categories
-                      .filter((c) => !c.hidden)
-                      .map((c) => (
-                        <CategoryRow
-                          key={c.id}
-                          c={c}
-                          bars={bars}
-                          selected={selected.has(c.id)}
-                          onSelect={(how) =>
-                            onSelection((s) =>
-                              how === "only" ? selectOnly(c.id) : toggle(s, c.id),
-                            )
-                          }
-                          onNameClick={(anchor) => {
-                            // EXF-592: a click on the name of the one selected category opens its edit popover.
-                            if (c.kind === null && selected.size === 1 && selected.has(c.id)) {
-                              setPop({ kind: "edit-category", categoryId: c.id, anchor });
-                            } else onSelection(() => selectOnly(c.id));
-                          }}
-                          editing={editing === c.id}
-                          onOpen={() => {
-                            onSelection(() => selectOnly(c.id));
-                            setEditing(c.id);
-                            setFocusReq(null);
-                            setNotice(null);
-                          }}
-                          onClose={(how, p) => closeCell(c.id, how, p)}
-                          onCommit={(after) => commit(c.id, c.assigned, after)}
-                          focusRequest={
-                            focusReq && focusReq.id === c.id && Date.now() - focusReq.at < 1000
-                              ? focusReq.target
-                              : null
-                          }
-                          onFocusDone={() => setFocusReq(null)}
-                          onContextMenu={(anchor) =>
-                            setPop({ kind: "edit-category", categoryId: c.id, anchor })
-                          }
-                          onActivity={(anchor) =>
-                            setPop({ kind: "activity", categoryId: c.id, anchor })
-                          }
-                          hasMoves={moved.data?.has(c.id) ?? false}
-                          onMoves={(anchor) => setPop({ kind: "moves", categoryId: c.id, anchor })}
-                          onPill={(anchor) =>
-                            setPop({
-                              kind: c.available > 0 ? "move" : "cover",
-                              categoryId: c.id,
-                              anchor,
-                            })
-                          }
-                        />
+                <Fragment key={g.id}>
+                  {groupGap?.before === g.id && gap("group")}
+                  <div
+                    className={`group-block${dnd.draggingId === g.id ? " is-drag-source" : ""}`}
+                    role="presentation"
+                    {...dnd.groupBlock(g)}
+                  >
+                    <GroupRow
+                      drag={dnd.groupRow(g)}
+                      g={g}
+                      collapsed={collapsed}
+                      onToggle={() => setCollapsed([g.id], !collapsed)}
+                      onEditName={(anchor) => setPop({ kind: "edit-group", groupId: g.id, anchor })}
+                      onAddCategory={(anchor) =>
+                        setPop({ kind: "add-category", groupId: g.id, anchor })
+                      }
+                      addOpen={pop?.kind === "add-category" && pop.groupId === g.id}
+                      checked={checkState(
+                        g.categories.filter((c) => !c.hidden).map((c) => c.id),
+                        selected,
+                      )}
+                      onCheck={() =>
+                        onSelection((s) =>
+                          toggleMany(
+                            s,
+                            g.categories.filter((c) => !c.hidden).map((c) => c.id),
+                          ),
+                        )
+                      }
+                    />
+                    {catGap?.top === g.id && gap("category")}
+                    {!collapsed &&
+                      visible.map((c) => (
+                        <Fragment key={c.id}>
+                          {catGap?.before === c.id && gap("category")}
+                          <CategoryRow
+                            drag={dnd.categoryRow(c, g)}
+                            dragging={dnd.draggingId === c.id}
+                            c={c}
+                            bars={bars}
+                            selected={selected.has(c.id)}
+                            onSelect={(how) =>
+                              onSelection((s) =>
+                                how === "only" ? selectOnly(c.id) : toggle(s, c.id),
+                              )
+                            }
+                            onNameClick={(anchor) => {
+                              // EXF-592: a click on the name of the one selected category opens its edit popover.
+                              if (c.kind === null && selected.size === 1 && selected.has(c.id)) {
+                                setPop({ kind: "edit-category", categoryId: c.id, anchor });
+                              } else onSelection(() => selectOnly(c.id));
+                            }}
+                            editing={editing === c.id}
+                            onOpen={() => {
+                              onSelection(() => selectOnly(c.id));
+                              setEditing(c.id);
+                              setFocusReq(null);
+                              setNotice(null);
+                            }}
+                            onClose={(how, p) => closeCell(c.id, how, p)}
+                            onCommit={(after) => commit(c.id, c.assigned, after)}
+                            focusRequest={
+                              focusReq && focusReq.id === c.id && Date.now() - focusReq.at < 1000
+                                ? focusReq.target
+                                : null
+                            }
+                            onFocusDone={() => setFocusReq(null)}
+                            onContextMenu={(anchor) =>
+                              setPop({ kind: "edit-category", categoryId: c.id, anchor })
+                            }
+                            onActivity={(anchor) =>
+                              setPop({ kind: "activity", categoryId: c.id, anchor })
+                            }
+                            hasMoves={moved.data?.has(c.id) ?? false}
+                            onMoves={(anchor) =>
+                              setPop({ kind: "moves", categoryId: c.id, anchor })
+                            }
+                            onPill={(anchor) =>
+                              setPop({
+                                kind: c.available > 0 ? "move" : "cover",
+                                categoryId: c.id,
+                                anchor,
+                              })
+                            }
+                          />
+                          {catGap?.after === c.id && gap("category")}
+                        </Fragment>
                       ))}
-                </div>
+                  </div>
+                  {groupGap?.after === g.id && gap("group")}
+                </Fragment>
               );
             })}
             {inView && data && groups.length === 0 && (

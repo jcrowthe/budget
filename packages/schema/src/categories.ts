@@ -72,6 +72,36 @@ export const CategoryUpdate = z
   .refine(something, "Nothing to update")
   .openapi("CategoryUpdate");
 
+// EXF-496: move (reorder) a category or a group. The ids are not uuid checks: an unknown id answers 404 or 422.
+const notBoth = (a: string, b: string) => (v: Record<string, unknown>) =>
+  !(v[a] !== undefined && v[b] !== undefined);
+
+export const CategoryMove = z
+  .object({
+    group_id: z.string().min(1),
+    before_category_id: z.string().min(1).optional(),
+    after_category_id: z.string().min(1).optional(),
+  })
+  .refine(
+    notBoth("before_category_id", "after_category_id"),
+    "Give before_category_id or after_category_id, not both",
+  )
+  .openapi("CategoryMove");
+
+export const CategoryGroupMove = z
+  .object({
+    before_group_id: z.string().min(1).optional(),
+    after_group_id: z.string().min(1).optional(),
+  })
+  .refine(
+    notBoth("before_group_id", "after_group_id"),
+    "Give before_group_id or after_group_id, not both",
+  )
+  .openapi("CategoryGroupMove");
+
+export type CategoryMove = z.infer<typeof CategoryMove>;
+export type CategoryGroupMove = z.infer<typeof CategoryGroupMove>;
+
 export const CategoryUsage = z
   .object({
     category_count: z.number().int(),

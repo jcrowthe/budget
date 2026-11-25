@@ -2,7 +2,7 @@ import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
-import { idList, jsonBool } from "./guards";
+import { allOf, idList, jsonBool } from "./guards";
 import { insertSelect } from "./insert-select";
 
 export type CategoryRow = typeof categories.$inferSelect;
@@ -274,3 +274,61 @@ export async function findPaymentCategory(
 /** `categoryJson()` plus the payment category's `kind` and `account_id`. */
 export const paymentCategoryJson = (): SQL =>
   sql`json_object('id', id, 'budget_id', budget_id, 'group_id', group_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(sql`hidden`)}, 'note', note, 'kind', kind, 'account_id', account_id)`;
+
+// EXF-496: move (reorder) statements. The plan rides ONE json parameter, so the statements and the bound
+// parameters do not grow with the rows.
+
+/** One row of a move's JSON: `i` id, `o`/`g` the sort_order and group_id that were read, `n` the new sort_order,
+ *  `d` the destination group, `w` 1 when the row is written (0: only checked, so a neighbour that moved is noticed). */
+export interface MoveEntry {
+  i: string;
+  o: number;
+  g: string;
+  n: number;
+  d: string;
+  w: 0 | 1;
+}
+
+const jx = (path: string): SQL => sql.raw(`json_extract(j.value, '$.${path}')`);
+
+/** Holds while every row in the JSON is still active with the `sort_order`/`group_id` that were read, the moved
+ *  row still has the `updated_at` read, the destination group is active, and (cross-group) the name is free there. */
+export function moveGuard(
+  budgetId: string,
+  json: string,
+  moved: { id: string; updatedAt: string; name: string },
+  dest: { id: string; crossGroup: boolean },
+): SQL {
+  return allOf(
+    sql`not exists (select 1 from json_each(${json}) j left join ${categories} c on c.id = ${jx("i")} where c.id is null or c.deleted_at is not null or c.budget_id <> ${budgetId} or c.sort_order <> ${jx("o")} or c.group_id <> ${jx("g")})`,
+    holds(moved.id, moved.updatedAt),
+    sql`exists (select 1 from ${categoryGroups} where ${categoryGroups.id} = ${dest.id} and ${categoryGroups.budgetId} = ${budgetId} and ${categoryGroups.deletedAt} is null)`,
+    dest.crossGroup ? nameFree(dest.id, moved.name, moved.id) : null,
+  );
+}
+
+/** The written rows of the JSON as a `select` for `logSelectStmt` (columns of `categories` plus `jv`). */
+export function moveInner(budgetId: string, json: string, guard: SQL): SQL {
+  return sql`select c.*, j.value as jv from json_each(${json}) j join ${categories} c on c.id = ${jx("i")} where c.budget_id = ${budgetId} and ${jx("w")} = 1 and ${guard}`;
+}
+
+/** The log row's `after`: the category with the new sort and group. */
+export const categoryMovedJson = (): SQL =>
+  sql`json_set(${categoryJson()}, '$.sort', json_extract(jv, '$.n'), '$.group_id', json_extract(jv, '$.d'))`;
+
+/** Writes `sort_order`, `group_id` and `updated_at` of the written rows of the JSON while `guard` holds. */
+export function moveSortsStmt(db: Db, budgetId: string, json: string, now: string, guard: SQL) {
+  const pick = (path: string): SQL =>
+    sql`(select json_extract(j.value, ${`$.${path}`}) from json_each(${json}) j where json_extract(j.value, '$.i') = ${categories.id})`;
+  return db
+    .update(categories)
+    .set({ sortOrder: pick("n"), groupId: pick("d"), updatedAt: now })
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        isNull(categories.deletedAt),
+        sql`${categories.id} in (select json_extract(j.value, '$.i') from json_each(${json}) j where json_extract(j.value, '$.w') = 1)`,
+        guard,
+      ),
+    );
+}

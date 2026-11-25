@@ -1134,3 +1134,32 @@ button.category-name {
 .plan-body[data-fold] .plan-inspector {
   display: none;
 }
+
+/* EXF-496: drag and drop of rows. The row being dragged is dimmed; the gap row marks where it will land. */
+.category-row.is-drag-source,
+.group-block.is-drag-source {
+  opacity: 0.4;
+}
+.drop-gap {
+  height: 36px;
+  /* The slot sits inside the row's margins, inset 3px from its neighbours so the dashes don't meet their separators. */
+  margin: 0 14px;
+  border-block: 3px solid transparent;
+  width: auto;
+  flex: none;
+}
+.drop-gap::before {
+  content: "";
+  flex: 1;
+  align-self: stretch;
+  background: var(--backgroundSecondary);
+  border: 1px dashed var(--actionPrimary);
+  border-radius: var(--radius-xs);
+}
+.bars-on .drop-gap-category {
+  height: 44px;
+}
+/* A group lands as a group header: the slot is header height. */
+.drop-gap-group {
+  height: 40px;
+}

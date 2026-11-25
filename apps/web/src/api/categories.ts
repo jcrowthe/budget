@@ -45,6 +45,92 @@ export const createCategory = async (
     })
   ).data.category;
 
+export interface CategoryMoveBody {
+  group_id: string;
+  before_category_id?: string;
+  after_category_id?: string;
+}
+export interface GroupMoveBody {
+  before_group_id?: string;
+  after_group_id?: string;
+}
+
+export const moveCategory = async (
+  b: string,
+  id: string,
+  body: CategoryMoveBody,
+  onChangeSet?: OnChangeSet,
+) =>
+  (
+    await apiFetch(`${base(b)}/categories/${id}/move`, {
+      method: "POST",
+      body,
+      schema: CategoryResponse,
+      onChangeSet,
+      ...key(),
+    })
+  ).data.category;
+
+export const moveGroup = async (
+  b: string,
+  id: string,
+  body: GroupMoveBody,
+  onChangeSet?: OnChangeSet,
+) =>
+  (
+    await apiFetch(`${base(b)}/category_groups/${id}/move`, {
+      method: "POST",
+      body,
+      schema: CategoryGroupResponse,
+      onChangeSet,
+      ...key(),
+    })
+  ).data.category_group;
+
+/** Pure: the groups with the category moved into `groupId`, before/after a sibling (neither: last). */
+export function withCategoryMoved(
+  groups: MonthDetail["groups"],
+  id: string,
+  groupId: string,
+  body: Pick<CategoryMoveBody, "before_category_id" | "after_category_id">,
+): MonthDetail["groups"] {
+  const moved = groups.flatMap((g) => g.categories).find((c) => c.id === id);
+  if (!moved) return groups;
+  return groups.map((g) => {
+    const rest = g.categories.filter((c) => c.id !== id);
+    if (g.id !== groupId) return { ...g, categories: rest };
+    const ref = body.before_category_id ?? body.after_category_id;
+    const at = ref ? rest.findIndex((c) => c.id === ref) : -1;
+    const i = at < 0 ? rest.length : body.before_category_id ? at : at + 1;
+    return { ...g, categories: [...rest.slice(0, i), moved, ...rest.slice(i)] };
+  });
+}
+
+/** Pure: the groups with one moved before/after another (neither: last). */
+export function withGroupMoved(
+  groups: MonthDetail["groups"],
+  id: string,
+  body: GroupMoveBody,
+): MonthDetail["groups"] {
+  const moved = groups.find((g) => g.id === id);
+  if (!moved) return groups;
+  const rest = groups.filter((g) => g.id !== id);
+  const ref = body.before_group_id ?? body.after_group_id;
+  const at = ref ? rest.findIndex((g) => g.id === ref) : -1;
+  const i = at < 0 ? rest.length : body.before_group_id ? at : at + 1;
+  return [...rest.slice(0, i), moved, ...rest.slice(i)];
+}
+
+function patchGroups(
+  qc: QueryClient,
+  budgetId: string,
+  fn: (g: MonthDetail["groups"]) => MonthDetail["groups"],
+) {
+  qc.setQueriesData<MonthDetail>({ queryKey: ["month", budgetId] }, (d) =>
+    d ? { ...d, groups: fn(d.groups) } : d,
+  );
+}
+
 export const updateGroup = async (
   b: string,
   id: string,
@@ -165,6 +251,17 @@ export function useCategoryActions(budgetId: string) {
         ),
       updateCategory: (id: string, patch: Parameters<typeof updateCategory>[2]) =>
         done(() => updateCategory(budgetId, id, patch, rec(id))),
+      // The cached months change at once (every month shows one order); the refetch brings the subtotals.
+      moveCategory: (id: string, body: CategoryMoveBody) =>
+        done(() => {
+          patchGroups(qc, budgetId, (g) => withCategoryMoved(g, id, body.group_id, body));
+          return moveCategory(budgetId, id, body, rec(id));
+        }),
+      moveGroup: (id: string, body: GroupMoveBody) =>
+        done(() => {
+          patchGroups(qc, budgetId, (g) => withGroupMoved(g, id, body));
+          return moveGroup(budgetId, id, body, rec());
+        }),
       deleteGroup: (id: string, reassignTo?: string) =>
         done(() => deleteGroup(budgetId, id, reassignTo, rec())),
       deleteCategory: (id: string, reassignTo?: string) =>

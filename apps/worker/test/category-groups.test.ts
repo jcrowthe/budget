@@ -118,7 +118,7 @@ describe("category groups", () => {
 describe("category tools share one contract", () => {
   it("validate budget_id the same way and say what they return", () => {
     const all = [...categoryTools, ...groupTools];
-    expect(all).toHaveLength(12);
+    expect(all).toHaveLength(14);
     for (const t of all) {
       const shape = (
         t.inputSchema as unknown as {

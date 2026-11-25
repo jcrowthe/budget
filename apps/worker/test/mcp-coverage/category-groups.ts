@@ -9,6 +9,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
     tool: ["rename_category_group", "set_category_group_hidden"],
     note: PATCH_NOTE,
   },
+  "POST /budgets/{budget_id}/category_groups/{group_id}/move": { tool: "move_category_group" },
   "DELETE /budgets/{budget_id}/category_groups/{group_id}": { tool: "delete_category_group" },
   "GET /budgets/{budget_id}/category_groups/{group_id}/usage": { tool: "get_category_group_usage" },
 };

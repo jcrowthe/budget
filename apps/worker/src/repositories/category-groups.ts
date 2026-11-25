@@ -1,7 +1,7 @@
 import { and, eq, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { categoryGroups } from "../db/schema/category-groups";
-import { jsonBool } from "./guards";
+import { allOf, jsonBool } from "./guards";
 import { insertSelect } from "./insert-select";
 
 export type CategoryGroupRow = typeof categoryGroups.$inferSelect;
@@ -184,3 +184,50 @@ export function unhideAllGroupsStmt(db: Db, budgetId: string, now: string) {
 
 export const groupJson = (to?: boolean): SQL =>
   sql`json_object('id', id, 'budget_id', budget_id, 'name', name, 'sort', sort_order, 'hidden', ${jsonBool(to === undefined ? sql`hidden` : to ? sql`1` : sql`0`)}, 'collapsed', ${jsonBool(sql`collapsed`)})`;
+
+// EXF-496: move (reorder) statements, one json parameter like the categories'. `i` id, `o` the sort_order read,
+// `n` the new one, `w` 1 when written (0: only checked).
+export interface GroupMoveEntry {
+  i: string;
+  o: number;
+  n: number;
+  w: 0 | 1;
+}
+
+const jx = (path: string): SQL => sql.raw(`json_extract(j.value, '$.${path}')`);
+
+/** Holds while every row in the JSON is active with the sort_order read and the moved group is unchanged. */
+export function moveGuard(
+  budgetId: string,
+  json: string,
+  moved: { id: string; updatedAt: string },
+): SQL {
+  return allOf(
+    sql`not exists (select 1 from json_each(${json}) j left join ${categoryGroups} g on g.id = ${jx("i")} where g.id is null or g.deleted_at is not null or g.budget_id <> ${budgetId} or g.sort_order <> ${jx("o")})`,
+    holds(moved.id, moved.updatedAt),
+  );
+}
+
+export function moveInner(budgetId: string, json: string, guard: SQL): SQL {
+  return sql`select g.*, j.value as jv from json_each(${json}) j join ${categoryGroups} g on g.id = ${jx("i")} where g.budget_id = ${budgetId} and ${jx("w")} = 1 and ${guard}`;
+}
+
+export const groupMovedJson = (): SQL =>
+  sql`json_set(${groupJson()}, '$.sort', json_extract(jv, '$.n'))`;
+
+export function moveSortsStmt(db: Db, budgetId: string, json: string, now: string, guard: SQL) {
+  return db
+    .update(categoryGroups)
+    .set({
+      sortOrder: sql`(select json_extract(j.value, '$.n') from json_each(${json}) j where json_extract(j.value, '$.i') = ${categoryGroups.id})`,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(categoryGroups.budgetId, budgetId),
+        isNull(categoryGroups.deletedAt),
+        sql`${categoryGroups.id} in (select json_extract(j.value, '$.i') from json_each(${json}) j where json_extract(j.value, '$.w') = 1)`,
+        guard,
+      ),
+    );
+}

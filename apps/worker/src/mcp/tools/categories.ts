@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addCategory, unhideAll, updateCategory } from "../../services/categories";
+import { addCategory, moveCategory, unhideAll, updateCategory } from "../../services/categories";
 import { categoryUsage, deleteCategory } from "../../services/category-delete";
 import type { McpToolDef } from "../types";
 
@@ -47,6 +47,28 @@ export const tools: McpToolDef[] = [
       input: { budget_id: string; category_id: string; note: string | null },
       { env, actor },
     ) => ({ category: await updateCategory(env, actor, input) }),
+  },
+  {
+    name: "move_category",
+    description:
+      "Move a category within its group or to another group, placing it before_category_id or after_category_id (a category of group_id); with neither it goes last. The order is the same in every month. Ready to Assign and every month's Assigned/Activity/Available stay with the category; only the group subtotals change. Returns {category} with id, group_id, name, sort, hidden and note. (A credit card payment category can only be reordered inside the Credit Card Payments group and no other category can enter it: that is a 422; so is a name already used in the destination group or a before/after category that is not in group_id.)",
+    inputSchema: z.object({
+      budget_id,
+      category_id,
+      group_id: z.string().min(1),
+      before_category_id: z.string().min(1).optional(),
+      after_category_id: z.string().min(1).optional(),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        category_id: string;
+        group_id: string;
+        before_category_id?: string;
+        after_category_id?: string;
+      },
+      { env, actor },
+    ) => ({ category: await moveCategory(env, actor, input) }),
   },
   {
     name: "delete_category",

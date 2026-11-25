@@ -1,6 +1,7 @@
 import {
   CategoriesUnhiddenResponse,
   CategoryDeletedResponse,
+  CategoryMove,
   CategoryNew,
   CategoryResponse,
   CategoryUpdate,
@@ -10,7 +11,7 @@ import { ErrorBody } from "@budget/schema/common/envelope";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
-import { addCategory, unhideAll, updateCategory } from "../services/categories";
+import { addCategory, moveCategory, unhideAll, updateCategory } from "../services/categories";
 import { categoryUsage, deleteCategory } from "../services/category-delete";
 import { categoryError } from "./category-groups";
 
@@ -33,7 +34,7 @@ const errors = {
   ),
   422: json(
     ErrorBody,
-    "Invalid request, duplicate name, invalid reassign_to, or payment_group_locked / payment_category_locked (the Credit Card Payments group and its categories)",
+    "Invalid request, duplicate name, invalid reassign_to, invalid_move_target, or payment_group_locked / payment_category_locked (the Credit Card Payments group and its categories)",
   ),
 };
 
@@ -108,6 +109,34 @@ export default app
       const { budget_id, category_id } = c.req.valid("param");
       try {
         const category = await updateCategory(c.env, c.get("identity").actor, {
+          budget_id,
+          category_id,
+          ...c.req.valid("json"),
+        });
+        return c.json({ data: { category } }, 200);
+      } catch (e) {
+        return categoryError(c, e) as never;
+      }
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/categories/{category_id}/move",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id"), category_id: param("category_id") }),
+        body: { content: { "application/json": { schema: CategoryMove } }, required: true },
+      },
+      responses: {
+        200: json(CategoryResponse, "The moved category, in its new group and position"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, category_id } = c.req.valid("param");
+      try {
+        const category = await moveCategory(c.env, c.get("identity").actor, {
           budget_id,
           category_id,
           ...c.req.valid("json"),
