@@ -337,6 +337,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     "cover_overspending",
     (c) => ({ budget_id: c.bid, month: MONTH, category_id: c.category, from: c.category2 }),
   ],
+  ["list_recent_moves", (c) => ({ budget_id: c.bid })],
   ["set_month_note", (c) => ({ budget_id: c.bid, month: MONTH, note: "ZZ month" })],
   [
     "create_transaction",

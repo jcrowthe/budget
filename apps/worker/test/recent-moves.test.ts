@@ -1,11 +1,11 @@
 import { env } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
-import { createBudget } from "../src/services/budgets";
 import { autoAssign } from "../src/services/auto-assign";
+import { createBudget } from "../src/services/budgets";
 import { setAssigned } from "../src/services/months";
 import { recentMovesClock } from "../src/services/recent-moves";
-import { json } from "./helpers";
 import { actor as ACTOR } from "./category-helpers";
+import { json } from "./helpers";
 import { DEC, MONTHLY100, NOV, seedPlan, TODAY } from "./plan-fixtures";
 import { apiPaths, listedToolNames, mcpRpc } from "./surface";
 import { undo } from "./undo-helpers";
