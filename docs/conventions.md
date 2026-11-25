@@ -155,6 +155,8 @@ Live flow tests reach the clone with `scripts/access-browser.mjs`.
 
 **Plan menu entries.** The plan menu's entries are fixed in `apps/web/src/shell/planMenuEntries.ts`. An entry is enabled by adding one file `apps/web/src/menu-actions/<entry-id>.ts(x)` that exports `action: PlanMenuAction` (`{ entry, run(ctx) }` or `{ entry, Dialog }`). The shell collects it with `import.meta.glob`; never edit the shell to enable an entry. Unregistered entries are shown disabled.
 
+**Duplicate column names in batched selects.** A D1 batch (and `db.all`) maps rows by column name, so two selected columns of one name (`categories.name`, `category_groups.name`) collapse into one. Label each with ``sql<T>`${col}`.as("category_name")``; the worker test database (`apps/worker/test/column-guard.ts`) fails any batched or `all()` select with duplicate output names.
+
 **Timestamps in tool results.** A tool whose result holds a timestamp names it with timestamps([...], [nullable]) from mcp/tool-text.ts, and dates with dates(...). A new tool adds its call to CALLS (or a reason to NOT_CALLED) in apps/worker/test/mcp-timestamps.test.ts.
 
 ## Browser suite: workers and load
