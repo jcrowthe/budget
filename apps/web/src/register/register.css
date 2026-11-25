@@ -1195,6 +1195,10 @@
   gap: 6px;
   max-width: 100%;
 }
+/* The tooltip and the info button's tooltip hang below the row: the cell must not clip them (the name clips itself). */
+.register-table td:has(> .import-payee) {
+  overflow: visible;
+}
 .import-payee .acct-tip-anchor {
   min-width: 0;
 }

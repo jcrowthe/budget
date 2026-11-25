@@ -191,6 +191,18 @@ test("5b the payee tooltip is the register's tooltip component, not the browser'
   const tip = page.getByRole("tooltip");
   await expect(tip).toHaveText("ZZ Cafe (Imported as ZZ BANK CAFE 12)");
   await expect(tip).toHaveClass(/acct-tooltip/);
+  // No clipping ancestor (the cell used to) cuts it off: every one that clips still contains its box.
+  expect(
+    await tip.evaluate((el) => {
+      const t = el.getBoundingClientRect();
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        if (getComputedStyle(a).overflow === "visible") continue;
+        const r = a.getBoundingClientRect();
+        if (t.bottom > r.bottom + 0.5 || t.right > r.right + 0.5) return false;
+      }
+      return true;
+    }),
+  ).toBe(true);
   await page.mouse.move(0, 0);
   await expect(tip).toHaveCount(0);
   // A row whose payee is the imported name has no tooltip to show.
