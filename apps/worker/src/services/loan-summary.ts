@@ -1,6 +1,6 @@
 import { isLoanType } from "@budget/core/account-types";
 import { isDebtTargetDef } from "@budget/core/debt-targets";
-import { runLoan } from "@budget/core/loan-engine";
+import { type LoanTerms, runLoan } from "@budget/core/loan-engine";
 import { projectLoan } from "@budget/core/loan-projection";
 import { currentMonth, type Month } from "@budget/core/month";
 import { NOT_A_LOAN_TEXT } from "@budget/schema/loan-activity";
@@ -33,6 +33,16 @@ export async function getLoanSummary(
   loanId: string,
   month?: Month,
 ): Promise<LoanSummary> {
+  return (await readLoanSummary(env, budgetId, loanId, month)).summary;
+}
+
+/** The summary with the engine terms and month it was projected from (the payoff simulation reuses them). */
+export async function readLoanSummary(
+  env: Env,
+  budgetId: string,
+  loanId: string,
+  month?: Month,
+): Promise<{ summary: LoanSummary; terms: LoanTerms; month: Month }> {
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   const loan = await accountsRepo.findActive(db, budgetId, loanId);
@@ -101,7 +111,7 @@ export async function getLoanSummary(
       ? projectLoan(terms, { balance: original, payment: minimum, from: firstStarting.month })
       : null;
 
-  return {
+  const summary: LoanSummary = {
     remaining_balance: remaining,
     original_balance: original,
     percent_remaining: original === null ? null : percentOf(remaining, original),
@@ -121,4 +131,5 @@ export async function getLoanSummary(
     paired_category: paired,
     balance_updated_at: loan.lastReconciledAt,
   };
+  return { summary, terms, month: m };
 }
