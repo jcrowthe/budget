@@ -35,6 +35,7 @@ export function RegisterToolbar({
   onRecordPayment,
   paymentDisabled = false,
   viewScope,
+  onFileImport,
   undo: undoStep,
   redo: redoStep,
 }: {
@@ -48,6 +49,8 @@ export function RegisterToolbar({
   paymentDisabled?: boolean;
   /** An account's page, or All Accounts (no Running Balance option). */
   viewScope: "account" | "all";
+  /** EXF-531: opens the File Import dialogs; the button stays disabled in a closed account. */
+  onFileImport?: () => void;
   /** EXF-530: the plan's shared Undo and Redo; a tooltip shows only while the button is enabled. */
   undo: Step;
   redo: Step;
@@ -156,6 +159,7 @@ export function RegisterToolbar({
           title="Import transactions from a bank file."
           data-ticket="EXF-531"
           disabled={closed}
+          onClick={onFileImport}
         >
           <FileUpIcon />
           File Import
