@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, type AccountType, accountGroup } from "@budget/core/account-types";
+import { runLoan } from "@budget/core/loan-engine";
 import type { AgeRow } from "@budget/schema/age-of-money";
 
 type Month = string;
@@ -11,6 +12,7 @@ import { and, asc, eq, inArray, isNull, lt, lte, ne, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { transactions } from "../db/schema/transactions";
+import { loanMonthsFromRows, loanMonthsQuery } from "./loan-activity";
 import { countsInBalance } from "./transactions";
 
 const CASH_TYPES = ACCOUNT_TYPES.filter((t) => accountGroup(t) === "cash");
@@ -57,30 +59,51 @@ export async function earliestTransactionMonth(db: Db, budgetId: string): Promis
   return row?.m ? `${row.m}-01` : null;
 }
 
-/** Sums per account and month for transactions dated before `beforeDate` (YYYY-MM-DD). */
+/**
+ * Sums per account and month for transactions dated before `beforeDate` (YYYY-MM-DD). A loan's computed interest
+ * and escrow are added to its month (docs/loan-engine-design.md); one batch, one D1 call.
+ */
 export async function monthlySums(
   db: Db,
   budgetId: string,
   beforeDate: string,
 ): Promise<MonthlySum[]> {
   const month = sql<string>`substr(${transactions.date}, 1, 7)`;
-  const rows = await db
-    .select({
-      account_id: transactions.accountId,
-      month,
-      amount: sql<number>`sum(${transactions.amount})`,
-    })
-    .from(transactions)
-    // Split lines are left out: the parent row carries the split's whole amount. Both transfer sides stay in.
-    .where(
-      and(
-        live(budgetId),
-        isNull(transactions.parentTransactionId),
-        lt(transactions.date, beforeDate),
-      ),
-    )
-    .groupBy(transactions.accountId, month);
-  return rows.map((r) => ({ account_id: r.account_id, month: `${r.month}-01`, amount: r.amount }));
+  const [rows, loanRows] = await db.batch([
+    db
+      .select({
+        account_id: transactions.accountId,
+        month,
+        amount: sql<number>`sum(${transactions.amount})`,
+      })
+      .from(transactions)
+      // Split lines are left out: the parent row carries the split's whole amount. Both transfer sides stay in.
+      .where(
+        and(
+          live(budgetId),
+          isNull(transactions.parentTransactionId),
+          lt(transactions.date, beforeDate),
+        ),
+      )
+      .groupBy(transactions.accountId, month),
+    loanMonthsQuery(db, budgetId),
+  ]);
+  const sums = new Map<string, MonthlySum>(
+    rows.map((r) => [
+      `${r.account_id}|${r.month}-01`,
+      { account_id: r.account_id, month: `${r.month}-01`, amount: r.amount },
+    ]),
+  );
+  for (const [accountId, loan] of loanMonthsFromRows(loanRows)) {
+    for (const m of runLoan(loan.terms, loan.months)) {
+      if (m.estimated === 0 || m.month >= beforeDate) continue;
+      const key = `${accountId}|${m.month}`;
+      const sum = sums.get(key);
+      if (sum) sum.amount += m.estimated;
+      else sums.set(key, { account_id: accountId, month: m.month, amount: m.estimated });
+    }
+  }
+  return [...sums.values()];
 }
 
 interface SpendingRaw {

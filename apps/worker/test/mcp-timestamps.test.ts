@@ -529,6 +529,10 @@ const CALLS: [string, (c: Ctx) => Json][] = [
 /** A tool this test cannot call, with the reason. */
 const NOT_CALLED: Record<string, string> = {
   pay_credit_card: "the seed has no credit card",
+  record_loan_payment:
+    "the seed has no loan account; covered by loan-activity.test.ts (the pair's timestamps are the transactions')",
+  get_loan_activity:
+    "the seed has no loan account; covered by loan-activity.test.ts; no timestamps",
   cancel_budget_import: "needs an unfinished import; covered by plan-import-steps.test.ts",
   set_card_payment_target:
     "needs a credit card payment category; covered by card-targets.test.ts; its result has no timestamp",

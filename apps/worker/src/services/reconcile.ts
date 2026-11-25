@@ -104,16 +104,16 @@ export async function reconcileAccount(
       cleared: "reconciled",
     });
   }
-  const guard = accountsRepo.accountHolds(db, before, clearedSumIs(accountId, C));
+  const guard = accountsRepo.accountHolds(db, before, clearedSumIs(accountId, C - facts.estimated));
   // `now` has millisecond resolution: two requests may share it, so the marker alone proves nothing.
   // The adjustment is guarded by marker AND the cleared sum still being C (the winner's adjustment moves it);
   // the account log by marker AND this request's own adjustment existing (or the sum, with no adjustment).
-  const marked = reconciledAtIs(db, accountId, now, clearedSumIs(accountId, C));
+  const marked = reconciledAtIs(db, accountId, now, clearedSumIs(accountId, C - facts.estimated));
   const markedLog = reconciledAtIs(
     db,
     accountId,
     now,
-    tx ? transactionIs(tx.id) : clearedSumIs(accountId, C),
+    tx ? transactionIs(tx.id) : clearedSumIs(accountId, C - facts.estimated),
   );
   const after = accountToApi(
     { ...before, lastReconciledAt: now },
@@ -123,7 +123,7 @@ export async function reconcileAccount(
     ...payeeStmts,
     reconcileLogsStmt(db, { budgetId, accountId, actor, now, guard }),
     reconcileFlagsStmt(db, { accountId, now, guard }),
-    accountsRepo.markReconciledStmt(db, before, now, clearedSumIs(accountId, C)),
+    accountsRepo.markReconciledStmt(db, before, now, clearedSumIs(accountId, C - facts.estimated)),
   ];
   const flagsIndex = payeeStmts.length + 1;
   const markIndex = payeeStmts.length + 2;

@@ -1,9 +1,11 @@
+import { isLoanType } from "@budget/core/account-types";
 import { Navigate, useParams } from "react-router";
 import { AccountHeader } from "../account/AccountHeader";
 import { ReconcileProvider } from "../account/ReconcileContext";
 import { useAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
 import { useEnterDueOnOpen } from "../api/scheduledTransactions";
+import { LoanActivity } from "../loan/LoanActivity";
 import { AttentionBanner } from "../register/AttentionBanner";
 import { AttentionFilterProvider } from "../register/attention-filter";
 import { Register } from "../register/Register";
@@ -27,7 +29,11 @@ function AccountPage() {
         {account ? (
           <ReconcileProvider key={account.id} account={account}>
             <AccountHeader account={account} />
-            <Register key={account.id} budgetId={budgetId} account={account} />
+            {isLoanType(account.type) ? (
+              <LoanActivity key={account.id} budgetId={budgetId} account={account} />
+            ) : (
+              <Register key={account.id} budgetId={budgetId} account={account} />
+            )}
           </ReconcileProvider>
         ) : (
           <AccountHeader account={account} />
