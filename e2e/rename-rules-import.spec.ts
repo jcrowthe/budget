@@ -5,9 +5,9 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { testName } from "./support/auth";
 import { importViaApi, seedFileImport } from "./support/file-import-seed";
+import { payeeIds } from "./support/manage-payees-seed";
 import { realClick } from "./support/real-click";
 import { call, TODAY } from "./support/register-seed";
-import { payeeIds } from "./support/manage-payees-seed";
 import { rulesOf } from "./support/rename-rules-seed";
 import { stubRenameRulesImports } from "./support/rename-rules-stub";
 import { daysAgo } from "./support/view-settings";
@@ -223,9 +223,9 @@ test("5c Don't rename as on a really file-imported row", async ({ page, request 
     payee_name: "ZZ Corrected",
   });
   const ids = await payeeIds(request, s.plan);
-  expect((await rulesOf(request, s.plan, ids["ZZ Corrected"] as string)).map((r) => r.text)).toEqual(
-    ["Sample Cafe"],
-  );
+  expect(
+    (await rulesOf(request, s.plan, ids["ZZ Corrected"] as string)).map((r) => r.text),
+  ).toEqual(["Sample Cafe"]);
 
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   const r = row(page, "ZZ Corrected");

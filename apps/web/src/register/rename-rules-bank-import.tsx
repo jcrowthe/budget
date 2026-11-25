@@ -49,8 +49,7 @@ export function BankImportButton({ budgetId, tx }: { budgetId: string; tx: Trans
   const save = useSaveTransaction(budgetId);
   const imported = tx.import_payee_name;
   // A matched row keeps the payee its owner typed: no rule renamed it, so there is nothing to undo.
-  const renamed =
-    !tx.matched && !!tx.payee_name && imported !== null && tx.payee_name !== imported;
+  const renamed = !tx.matched && !!tx.payee_name && imported !== null && tx.payee_name !== imported;
 
   const close = () => {
     setOpen(false);
