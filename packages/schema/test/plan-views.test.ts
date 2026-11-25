@@ -124,6 +124,35 @@ describe("plan views", () => {
   it("underfunded: overspent or an active target with a gap; a snoozed target counts as none", () => {
     expect(ids("underfunded")).toEqual(["over", "under"]);
   });
+  it("underfunded: EXF-1000 an upcoming shortfall counts, with or without a larger target gap", () => {
+    const d = detail();
+    const cats = d.groups[1]?.categories ?? [];
+    cats.push(
+      // no target, Available 30 and -40 upcoming: short by 10
+      cat("short", { available: 30000, upcoming: -40000, upcoming_count: 2 }),
+      // covered by Available: not short
+      cat("covered", { available: 50000, upcoming: -40000, upcoming_count: 2 }),
+      // target to-go 60 beats the shortfall of 10, still in
+      cat("both", {
+        available: 30000,
+        upcoming: -40000,
+        upcoming_count: 2,
+        target: target({ to_go_this_month: 60000 }),
+      }),
+      // a payment category keeps its own rule
+      cat("card", {
+        available: 30000,
+        upcoming: -40000,
+        payment: {} as MonthCategoryDetail["payment"],
+      }),
+    );
+    expect(viewCategories(d, "underfunded").map((c) => c.id)).toEqual([
+      "over",
+      "under",
+      "short",
+      "both",
+    ]);
+  });
   it("overfunded: an active target with more than it needs", () => {
     expect(ids("overfunded")).toEqual(["overf"]);
   });

@@ -4,7 +4,10 @@ import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import { MonthCategory, type MonthCategoryDetail, type MonthDetail } from "./months";
 import { DEFAULT_FORMATTER, type PlanFormatter } from "./plan-formats";
-import { PlanView } from "./plan-views";
+import { PlanView, underfundedGap, upcomingShortfall } from "./plan-views";
+
+export { upcomingShortfall };
+
 import type { CategoryTargetMonth } from "./targets";
 
 // Pure Auto-Assign arithmetic: what each option sets Assigned to, and the preview beside its button.
@@ -93,19 +96,11 @@ export interface AutoAssignInput {
   upcoming_shortfall: number;
 }
 
-/**
- * The amount Available After Upcoming falls below zero by, or 0 when nothing is upcoming or it is covered. One
- * function for the browser and the service. `available` is the category's Available.
- */
-export function upcomingShortfall(c: { available: number; upcoming: number }): number {
-  return c.upcoming !== 0 ? Math.max(0, -(c.available + c.upcoming)) : 0;
-}
-
 /** What Underfunded adds to an ordinary category: the larger of its target's to-go and its upcoming shortfall. */
 const underfundedAdd = (c: {
   target: CategoryTargetMonth | null;
   upcoming_shortfall: number;
-}): number => Math.max(active(c)?.to_go_this_month ?? 0, c.upcoming_shortfall);
+}): number => underfundedGap(c.target, c.upcoming_shortfall);
 
 /** The strategies that leave a credit card payment category's Assigned unchanged. */
 export const PAYMENT_SKIPS: readonly AutoAssignStrategy[] = [
