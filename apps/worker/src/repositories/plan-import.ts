@@ -50,17 +50,36 @@ function spec<T extends SQLiteTable>(
 }
 
 const SPEC: Record<ImportTable, Spec> = {
-  accounts: spec(accounts, ["id", "name", "type", "on_budget", "sort_order", "created_at"], {
-    id: 0,
-    budgetId: "b",
-    name: 1,
-    type: 2,
-    onBudget: 3,
-    starred: lit("0"),
-    closed: lit("0"),
-    sortOrder: 4,
-    createdAt: 5,
-  }),
+  accounts: spec(
+    accounts,
+    [
+      "id",
+      "name",
+      "type",
+      "on_budget",
+      "sort_order",
+      "created_at",
+      "interest_rate",
+      "minimum_payment",
+      "escrow_amount",
+      "paired_category_id",
+    ],
+    {
+      id: 0,
+      budgetId: "b",
+      name: 1,
+      type: 2,
+      onBudget: 3,
+      starred: lit("0"),
+      closed: lit("0"),
+      sortOrder: 4,
+      createdAt: 5,
+      interestRate: 6,
+      minimumPayment: 7,
+      escrowAmount: 8,
+      pairedCategoryId: 9,
+    },
+  ),
   category_groups: spec(
     categoryGroups,
     ["id", "name", "sort_order", "kind", "created_at", "updated_at"],

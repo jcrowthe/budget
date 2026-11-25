@@ -129,6 +129,23 @@ Header `"Account","Flag","Date","Payee","Category Group/Category","Category Grou
 - **Memo**: the memo or `""`; a line's memo is `Split (<i>/<n>) <line memo or "">` (trailing space when empty; the
   parent's memo is not used), i = 1-based position among the live lines, n = their count.
 
+## Loan account fields (EXF-991)
+
+The files have no account rows, so a loan's fields ride on the Register as **six extra trailing columns** (not a
+third file: a third entry would break the two-entry layout the dialog and `e2e/plan-export-dialog.spec.ts` rely on).
+Header after `Cleared`: `"Account Type","Interest Rate","Minimum Payment","Escrow Amount","Paired Category Group","Paired Category"`.
+
+- **Only when the plan has a loan account** (type `mortgage`, `autoLoan`, `studentLoan`, `personalLoan`,
+  `medicalDebt`, `otherDebt`). A plan without one is written byte for byte as before, so every older consumer and
+  test sees the 11-column header.
+- Written on **every row of the loan's account** (the Register order is by date, so no row is "first"); the other
+  accounts' rows have the six cells empty. Account Type is the type key, Interest Rate the stored decimal string
+  (`6.5`, never localised), Minimum Payment and Escrow Amount in the plan's amount format, the pairing as the group and
+  category names the Plan file writes (a hidden category or group: group `Hidden Categories`). A pairing whose
+  category is gone is written empty.
+- A loan with no transaction has no row and so is not in the file (as every account without a row).
+- No new D1 call: the accounts are already read.
+
 ## API (note 9)
 
 | | Request | Response |

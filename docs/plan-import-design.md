@@ -149,6 +149,22 @@ it, the state machine can split call 1 (store / parse / compare) without changin
   warning_count, mismatch_count }`. **Imported rows get no history rows**: 45,000 log rows would double the writes
   and steps, nothing reads them, and the entry records the whole creation.
 
+## Loan accounts (EXF-991)
+
+The Register header is either the 11 columns or those plus the six loan columns of the export design; both are
+recognised, so an older export imports unchanged with every loan field null.
+
+- An account whose first non-empty `Account Type` is a loan type becomes that type (off the plan, like a tracking
+  liability, reason "The export names this loan type") unless a Credit Card Payments category has its name.
+  Rate, payment and escrow come from the same row; empty cells are null. A rate outside `0`–`100` / three decimals
+  is dropped with `loan_rate_invalid`.
+- The pairing (group name + category name) is resolved against the new plan's categories to its **new id**, or null
+  with the warning `loan_pairing_not_found` (also null for a payment category). It is resolved in the same JSON
+  chunk as the account, so no extra D1 call.
+- `account_types` may repeat a loan type the file names (a preview's types are sent back whole) but cannot choose
+  one; changing a loan to another type drops its fields with `loan_fields_dropped`. The summary's `type` and
+  `proposed_type` may now be a loan type.
+
 ## Comparison (criterion 5) and results
 
 The comparison builds `EngineInput` from the `ImportPlan` with `planActivity`'s rules (off-plan rows, split parents,
@@ -187,7 +203,7 @@ through an export and an import. See also the out-of-scope list below (formats, 
 
 The table is additive; existing plans and reads are untouched. At a rebase keep every line of
 `mcp-timestamps.test.ts`, `mcp-coverage/budgets.ts`, `docs/README.md`. Out of scope: the dialog and entry points;
-plan formats and flag names (EXF-468, EXF-480); repeating schedules; account closure; targets and notes; loans.
+plan formats and flag names (EXF-468, EXF-480); repeating schedules; account closure; targets and notes; loan payoff.
 
 ## Acceptance
 
