@@ -14,6 +14,7 @@ import {
   trackSentence,
 } from "@budget/schema/loan-summary";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { useLoanSummary } from "../api/loans";
 import { localToday } from "../api/today";
 import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from "../shell/icons";
@@ -33,7 +34,19 @@ export function LoanPage({ budgetId, account }: { budgetId: string; account: Acc
   const fmt = usePlanFormatter();
   const month = `${localToday().slice(0, 7)}-01` as Month;
   const { data: s } = useLoanSummary(budgetId, account.id, month);
-  const [simulator, setSimulator] = useState(false);
+  // ?simulate=1 opens the simulator (the Plan inspector's Open Payoff Simulator), so it survives a reload.
+  const [params, setParams] = useSearchParams();
+  const simulator = params.get("simulate") === "1";
+  const setSimulator = (open: boolean) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (open) next.set("simulate", "1");
+        else next.delete("simulate");
+        return next;
+      },
+      { replace: true },
+    );
   const [open, setOpen] = useState(true);
   const [dismissed, setDismissed] = useState(() => dismissedPlans.has(budgetId));
 

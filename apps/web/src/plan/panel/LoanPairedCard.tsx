@@ -77,7 +77,11 @@ export function LoanPairedCard({
             >
               {RECORD_PAYMENT}
             </button>
-            <button type="button" className="loan-paired-simulator" onClick={() => navigate(to)}>
+            <button
+              type="button"
+              className="loan-paired-simulator"
+              onClick={() => navigate(`${to}?simulate=1`)}
+            >
               {OPEN_PAYOFF_SIMULATOR}
             </button>
           </div>

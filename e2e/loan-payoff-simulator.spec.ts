@@ -84,6 +84,9 @@ test("AC1: opens prefilled with the minimum or the paired target, 357 payments a
     amount: 1800000,
     day: "last",
   });
+  // The open dialog is flagged in the URL (?simulate=1) and survives a reload: close it first.
+  await page.keyboard.press("Escape");
+  await expect(dialog(page)).toBeHidden();
   await page.reload();
   await page.getByRole("button", { name: "Open Payoff Simulator" }).click();
   await expect(payment(page)).toHaveValue("1,800.00");

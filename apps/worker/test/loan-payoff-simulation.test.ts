@@ -10,7 +10,8 @@ import { apiDocument, apiPaths, listedToolNames } from "./surface";
 // numbers are simulatePayoff's (the dialog's function) over the loan summary's figures.
 const path = (bid: string, loan: string) =>
   `/api/v1/budgets/${bid}/accounts/${loan}/payoff-simulation`;
-const simulate = (bid: string, loan: string, body: Json = {}) => send(path(bid, loan), "POST", body);
+const simulate = (bid: string, loan: string, body: Json = {}) =>
+  send(path(bid, loan), "POST", body);
 const data = async (res: Response): Promise<Json> => ((await res.json()) as Json).data;
 const mcpData = (res: Json): Json => res.structuredContent ?? JSON.parse(res.content[0].text);
 

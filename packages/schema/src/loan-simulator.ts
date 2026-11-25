@@ -1,3 +1,6 @@
+import { z } from "@hono/zod-openapi";
+import { dataEnvelope } from "./common/envelope";
+import { Milliunits } from "./common/money";
 import { MINIMUM_SUMMARY } from "./debt-target";
 import { payoffLabel } from "./loan-summary";
 
@@ -55,3 +58,52 @@ export function changeLines(v: { deltaMonthly: number; extra: number }, money: M
   if (v.extra > 0) lines.push(`Paying +${money(v.extra)} extra this month`);
   return lines;
 }
+
+// ---- the payoff simulation over REST and MCP (the dialog's numbers, from the same simulatePayoff) ----
+
+export const loanPayoffSimulationFields = {
+  monthly_payment: Milliunits.min(0).optional().openapi({
+    description:
+      "The monthly payment to simulate, in milliunits; default the loan's current payment (the paired category's target, else the minimum payment)",
+  }),
+  extra_once: Milliunits.min(0).optional().openapi({
+    description:
+      "A one-time extra payment in milliunits, applied at the start of the current month; default 0",
+  }),
+};
+export const LoanPayoffSimulationRequest = z
+  .object(loanPayoffSimulationFields)
+  .strict()
+  .openapi("LoanPayoffSimulationRequest");
+
+const Point = z.object({ month: z.string(), balance: Milliunits });
+
+export const LoanPayoffSimulation = z
+  .object({
+    payment_used: Milliunits.nullable().openapi({
+      description: "The loan's current monthly payment (the as-is baseline); null without one",
+    }),
+    monthly_payment: Milliunits.openapi({ description: "The simulated monthly payment" }),
+    extra_once: Milliunits,
+    payoff_month: z.string().nullable().openapi({ description: "Null when it never pays off" }),
+    payments_remaining: z.number().int().nullable(),
+    interest_total: Milliunits.openapi({ description: "Interest over the simulation" }),
+    principal: Milliunits.openapi({ description: "The remaining balance" }),
+    remaining_to_pay: Milliunits.openapi({ description: "principal + interest_total" }),
+    interest_savings: Milliunits.nullable().openapi({
+      description: "As-is interest minus simulated; null when either never pays off",
+    }),
+    months_saved: z.number().int().nullable(),
+    schedule: z.array(Point).openapi({ description: "The Simulation series" }),
+    current: z
+      .object({
+        payoff_month: z.string().nullable(),
+        payments_remaining: z.number().int().nullable(),
+        interest_remaining: Milliunits,
+        schedule: z.array(Point),
+      })
+      .openapi({ description: "The loan as it is (the summary's projection)" }),
+  })
+  .openapi("LoanPayoffSimulation");
+export type LoanPayoffSimulation = z.infer<typeof LoanPayoffSimulation>;
+export const LoanPayoffSimulationResponse = dataEnvelope(LoanPayoffSimulation);
