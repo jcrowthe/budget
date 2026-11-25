@@ -413,3 +413,71 @@ describe("loan accounts: one batch, change log, MCP parity", () => {
     for (const p of props) expect(keys, p).toContain(p);
   });
 });
+
+describe("EXF-547: category rules with a loan account", () => {
+  const tx = (bid: string, body: unknown) =>
+    json(`/api/v1/budgets/${bid}/transactions`, { method: "POST" }, body);
+
+  async function setup() {
+    const bid = await plan();
+    const chk = (
+      (await (
+        await post(bid, { name: "ZZ-TEST Chk", type: "checking", balance: 900000, date: DAY })
+      ).json()) as Json
+    ).data.account;
+    const ln = ((await (await post(bid, loan())).json()) as Json).data.account;
+    return { bid, chk, ln, cat: await anyCategory(bid) };
+  }
+
+  it("a plain row in a loan account takes no category", async () => {
+    const { bid, ln, cat } = await setup();
+    const bad = await tx(bid, { account_id: ln.id, date: DAY, amount: -1000, category_id: cat.id });
+    expect(bad.status).toBe(422);
+    const rta = await tx(bid, {
+      account_id: ln.id,
+      date: DAY,
+      amount: 1000,
+      inflow_to_ready_to_assign: true,
+    });
+    expect(rta.status).toBe(422);
+    const ok = await tx(bid, { account_id: ln.id, date: DAY, amount: -1000 });
+    expect(ok.status).toBe(201);
+  });
+
+  it("an on-budget to loan transfer takes a category on the on-budget side only", async () => {
+    const { bid, chk, ln, cat } = await setup();
+    await initMcp();
+    const t = async (extra: Json, from = chk.id, to = ln.id) => {
+      const { body } = (await mcpRpc(
+        "tools/call",
+        {
+          name: "create_transfer",
+          arguments: {
+            budget_id: bid,
+            from_account_id: from,
+            to_account_id: to,
+            amount: 5000,
+            date: DAY,
+            ...extra,
+          },
+        },
+        3,
+      )) as { body: Json };
+      return {
+        refused: body.result?.isError === true || body.error !== undefined,
+        sc: body.result?.structuredContent as Json,
+      };
+    };
+    const res = await t({ category_id: cat.id });
+    expect(res.refused).toBe(false);
+    const { from_transaction, to_transaction } = res.sc;
+    expect(from_transaction.category_id).toBe(cat.id);
+    expect(to_transaction.category_id).toBeNull();
+    // Loan to on-budget: the category still lands on the on-budget side, the loan side has none.
+    const back = await t({ category_id: cat.id }, ln.id, chk.id);
+    expect(back.refused).toBe(false);
+    expect(back.sc.from_transaction.category_id).toBeNull();
+    expect(back.sc.to_transaction.category_id).toBe(cat.id);
+    expect((await t({})).refused).toBe(false);
+  });
+});

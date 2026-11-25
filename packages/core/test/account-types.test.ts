@@ -4,14 +4,19 @@ import {
   type AccountGroup,
   type AccountType,
   accountGroup,
+  accountKind,
+  affectsReadyToAssign,
   DISPLAY_GROUPS,
   type DisplayGroup,
   displayGroup,
   isLoanType,
   isOnBudget,
+  LOAN_ACCOUNT_TYPES,
   positiveMeansOwed,
+  requiresCategory,
   type SidebarAccountLike,
   sidebarSections,
+  signedOpeningBalance,
   startingBalanceAmount,
   startingBalanceFeedsReadyToAssign,
 } from "../src/account-types";
@@ -146,5 +151,41 @@ describe("sidebarSections", () => {
     expect(s).toHaveLength(1);
     expect(s[0]?.rows.map((r) => r.name)).toEqual(["A", "b", "c"]);
     expect(s[0]?.total).toBeNull();
+  });
+});
+
+describe("EXF-547 table, one assertion per type", () => {
+  const cashLike: AccountType[] = ["checking", "savings", "cash", "otherAsset"];
+  it("opening balance 1200 is negative for credit, loan and Liability; positive for cash and Asset", () => {
+    for (const t of ACCOUNT_TYPES) {
+      const want = cashLike.includes(t) ? 1200000 : -1200000;
+      expect(signedOpeningBalance(t, 1200000), t).toBe(want);
+    }
+  });
+  it("accountKind maps all 13 types", () => {
+    for (const t of ACCOUNT_TYPES) expect(accountKind(t), t).toBe(GROUPS[t]);
+  });
+  it("category need per type, plain transaction", () => {
+    for (const t of ACCOUNT_TYPES) {
+      const g = GROUPS[t];
+      expect(requiresCategory(t), t).toBe(g === "cash" || g === "credit" ? "required" : "none");
+    }
+  });
+  it("category need on transfers, every type pair", () => {
+    for (const a of ACCOUNT_TYPES) {
+      for (const b of ACCOUNT_TYPES) {
+        if (a === b) continue;
+        const on = (t: AccountType) => GROUPS[t] === "cash" || GROUPS[t] === "credit";
+        const want = !on(a) ? "none" : on(b) ? "not_needed" : "required";
+        expect(requiresCategory(a, b), `${a}->${b}`).toBe(want);
+      }
+    }
+    expect(requiresCategory("checking", "mortgage")).toBe("required");
+    expect(requiresCategory("mortgage", "checking")).toBe("none");
+    expect(requiresCategory("creditCard", "autoLoan")).toBe("required");
+  });
+  it("only cash affects Ready to Assign; loans never", () => {
+    for (const t of ACCOUNT_TYPES) expect(affectsReadyToAssign(t), t).toBe(GROUPS[t] === "cash");
+    for (const t of LOAN_ACCOUNT_TYPES) expect(affectsReadyToAssign(t)).toBe(false);
   });
 });
