@@ -4,6 +4,7 @@ import { and, eq, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { changeLog } from "../db/schema/change-log";
 import { payees } from "../db/schema/payees";
+import { currentChangeSetId } from "../history/change-set";
 import { type LogBase, logSelectStmt } from "./guards";
 import { insertSelect } from "./insert-select";
 import { liveCategorySql, recentValueSql } from "./payee-category";
@@ -527,6 +528,7 @@ export function combineCheckStmt(
       entityType: sql`'payee'`,
       entityId: sql`'payee-gone'`,
       createdAt: sql`''`,
+      changeSetId: currentChangeSetId(),
     },
     sql`where not (exists (select 1 from payees where id = ${survivorId} and budget_id = ${budgetId} and deleted_at is null and system is null and name = ${name})
       and (select count(*) from payees where budget_id = ${budgetId} and deleted_at is null and ${idsIn(sql`payees.id`, mergedIds)}) = 0)`,
