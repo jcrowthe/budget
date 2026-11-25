@@ -67,13 +67,3 @@ export function projectLoan(terms: LoanTerms, input: ProjectionIn): LoanProjecti
   }
   return never();
 }
-
-/** "30 years", "29 yrs, 11 mos", "10 months", "1 month", "1 yr, 1 mo". */
-export function durationText(n: number): string {
-  const plural = (v: number, one: string, many: string) => `${v} ${v === 1 ? one : many}`;
-  if (n < 12) return plural(n, "month", "months");
-  const y = Math.floor(n / 12);
-  const m = n % 12;
-  if (m === 0) return plural(y, "year", "years");
-  return `${plural(y, "yr", "yrs")}, ${plural(m, "mo", "mos")}`;
-}

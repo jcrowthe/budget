@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CURRENT_TRACK_TARGET_TIP,
   CURRENT_TRACK_TIP,
+  durationText,
   LoanPairingRequest,
   LoanSummaryQuery,
   ORIGINAL_SCHEDULE_TIP,
@@ -15,6 +16,19 @@ const fmt = (n: number) => `$${(n / 1000).toLocaleString("en-US", { minimumFract
 const text = (s: { text: string }[]) => s.map((x) => x.text).join("");
 
 describe("loan summary copy", () => {
+  it("duration text (the ticket's five cases and the singular forms)", () => {
+    expect([360, 359, 357, 47, 10].map(durationText)).toEqual([
+      "30 years",
+      "29 yrs, 11 mos",
+      "29 yrs, 9 mos",
+      "3 yrs, 11 mos",
+      "10 months",
+    ]);
+    expect(durationText(12)).toBe("1 year");
+    expect(durationText(1)).toBe("1 month");
+    expect(durationText(13)).toBe("1 yr, 1 mo");
+    expect(durationText(0)).toBe("0 months");
+  });
   it("rate and payoff labels", () => {
     expect(rateLabel("6")).toBe("6%");
     expect(rateLabel("4.5")).toBe("4.5%");

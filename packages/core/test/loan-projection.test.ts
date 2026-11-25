@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type LoanTerms, runLoan } from "../src/loan-engine";
-import { durationText, MAX_PROJECTION_MONTHS, projectLoan } from "../src/loan-projection";
+import { MAX_PROJECTION_MONTHS, projectLoan } from "../src/loan-projection";
 
 const NOV = "2026-11-01";
 const M = (n: number) => n * 1000;
@@ -21,7 +21,6 @@ describe("projectLoan: the ticket's five cases", () => {
       const p = projectLoan(terms, { balance: M(bal), payment: M(pay), from: NOV });
       expect(p.payments_remaining).toBe(n);
       expect(p.payoff_month).toBe(payoff);
-      expect(durationText(n)).toBe(text);
       expect(p.schedule[0]).toEqual({ month: NOV, balance: M(bal) });
       expect(p.schedule.at(-1)).toEqual({ month: payoff, balance: 0 });
       expect(p.schedule).toHaveLength(n + 1);
@@ -108,14 +107,5 @@ describe("projectLoan edges", () => {
     const p = projectLoan(slow, { balance: M(1000000), payment: M(1), from: NOV });
     expect(p.payments_remaining).toBeNull();
     expect(p.schedule.length).toBeLessThanOrEqual(MAX_PROJECTION_MONTHS + 1);
-  });
-});
-
-describe("durationText", () => {
-  it("covers the singular forms", () => {
-    expect(durationText(12)).toBe("1 year");
-    expect(durationText(1)).toBe("1 month");
-    expect(durationText(13)).toBe("1 yr, 1 mo");
-    expect(durationText(0)).toBe("0 months");
   });
 });
