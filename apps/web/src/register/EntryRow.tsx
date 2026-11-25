@@ -284,6 +284,10 @@ export function EntryRow({
       mode === "edit" && tx
         ? draftToPatch(tx, d, today, fmt)
         : draftToCreate(d, accountId, today, fmt);
+    // "Approve" on an unedited unapproved row still saves: the Worker approves on any PATCH (EXF-531).
+    if (mode === "edit" && tx && !tx.approved && Object.keys(body).length === 0) {
+      Object.assign(body, { approved: true });
+    }
     if (mode === "edit" && Object.keys(body).length === 0) {
       onClose();
       return;
@@ -553,7 +557,7 @@ export function EntryRow({
               disabled={busy}
               onClick={() => submit("close")}
             >
-              Save
+              {mode === "edit" && tx && !tx.approved ? "Approve" : "Save"}
             </button>
             {mode === "add" && (
               <button

@@ -378,7 +378,7 @@ export function RegisterTable({
                 </button>
               </span>
             </td>
-          ) : tx.source === "plaid" ? (
+          ) : tx.source !== null ? (
             <td data-field="payee">
               <span className="import-payee">
                 <span className="import-payee-name" title={payeeTitle(tx)}>

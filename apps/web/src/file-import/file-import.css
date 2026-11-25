@@ -1,0 +1,247 @@
+/* File Import dialogs (EXF-531): this app's own look; theme variables only (shell/tokens.css). */
+.dialog.form.file-import-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  outline: none;
+}
+.dialog.form.file-import-dialog-two {
+  width: 720px;
+}
+.file-import-dialog .dialog-head {
+  flex: none;
+}
+.file-import-dialog .dialog-footer {
+  flex: none;
+  align-items: center;
+  border-top: 1px solid var(--borderSubtle);
+}
+.file-import-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+/* `.dialog.form .form-body` (global) zeroes the bottom padding; the footer rule needs air above it. */
+.dialog.form .file-import-body {
+  padding-bottom: var(--space-3);
+}
+.file-import-dialog .dialog-head .icon-button {
+  display: flex;
+  padding: 0;
+  color: var(--actionPrimary);
+}
+.file-import-body p {
+  margin: 0 0 var(--space-2);
+}
+.file-import-body-two {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.file-import-body-two > * {
+  flex: none;
+}
+.file-import-help {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+  color: var(--labelSecondary);
+}
+.file-import-help svg {
+  flex: none;
+  margin-top: 3px;
+}
+.file-import-error {
+  color: var(--labelNegative);
+}
+.dialog.form .file-import-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+}
+.file-import-dialog .dialog-footer .file-import-check {
+  margin-right: auto;
+}
+.file-import-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+.file-import-dialog select {
+  min-width: 0;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 var(--space-2);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  border: 1px solid var(--inputBorderSubtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+.file-import-help-text {
+  color: var(--labelSecondary);
+}
+.file-import-selects {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.file-import-select {
+  min-width: 0;
+}
+.file-import-select select {
+  width: 100%;
+}
+.file-import-select-head,
+.file-import-preview-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.file-import-select-head label {
+  margin: 0;
+  font-weight: 500;
+}
+.file-import-preview-head h3 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.file-import-date {
+  position: relative;
+  display: inline-flex;
+}
+.file-import-date-icon {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelWarning);
+  cursor: pointer;
+}
+.file-import-date-pop {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  display: grid;
+  gap: var(--space-2);
+  width: 280px;
+  max-width: calc(100vw - 64px);
+  padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundTertiary);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+  font-weight: 400;
+}
+.file-import-date-pop p {
+  margin: 0;
+}
+.file-import-save {
+  justify-self: end;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.file-import-save:hover {
+  background: var(--actionPrimary);
+}
+.file-import-date-icon:focus-visible,
+.file-import-skip-toggle:focus-visible,
+.file-import-save:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+.file-import-table-wrap {
+  flex: 1 1 200px;
+  min-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-md);
+}
+.file-import-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.file-import-table th,
+.file-import-table td {
+  padding: 6px var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+.file-import-table th {
+  position: sticky;
+  top: 0;
+  background: var(--backgroundTertiary);
+  box-shadow: inset 0 -1px 0 var(--borderSubtle);
+  color: var(--labelSecondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.file-import-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.file-import-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.file-import-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+.file-import-skip-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelWarning);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.file-import-skipped {
+  padding-top: var(--space-1);
+}
+.file-import-skipped p {
+  margin: var(--space-1) 0;
+  color: var(--labelSecondary);
+}
+fieldset.file-import-options {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.file-import-caret {
+  font-family: "Segoe UI Symbol", "DejaVu Sans", system-ui, sans-serif;
+}

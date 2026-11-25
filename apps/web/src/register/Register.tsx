@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { usePaymentAvailable } from "../account/usePaymentAvailable";
 import { ApiError } from "../api/client";
+import { FileImport, type FileImportHandle } from "../file-import/file-import";
 import { accountPath, planPath } from "../shell/planPaths";
 import { useShortcut } from "../shortcuts/dispatcher";
 import { useUndo } from "../undo/useUndo";
@@ -31,6 +32,7 @@ const isTyping = (t: EventTarget | null) => {
 /** One account's register, or (without `account`) every account's: All Accounts. */
 export function Register({ budgetId, account }: { budgetId: string; account?: Account }) {
   const [open, setOpen] = useState<Open>(null);
+  const fileImport = useRef<FileImportHandle>(null);
   const attention = useAttentionFilter();
   const view = useRegisterViewState(budgetId, account?.id);
   const { selected, scheduled } = useSelection();
@@ -142,6 +144,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
           onRecordPayment={credit ? openPayment : undefined}
           paymentDisabled={!account || account.closed || !pay.settled}
           viewScope={account ? "account" : "all"}
+          onFileImport={() => fileImport.current?.open()}
           undo={{ enabled: undoEnabled, onClick: () => void step("undo") }}
           redo={{ enabled: redoEnabled, onClick: () => void step("redo") }}
         />
@@ -156,6 +159,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
             {notice}
           </div>
         )}
+        <FileImport ref={fileImport} budgetId={budgetId} account={account} />
         <ReconcileBar />
         {attention.on && (
           <div className="attention-filter-row">
