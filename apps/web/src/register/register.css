@@ -117,7 +117,7 @@
   box-sizing: border-box;
   width: 192px;
   height: 32px;
-  padding: 0 0 0 28px;
+  padding: 0 28px 0 28px;
   border: 1px solid var(--inputBorder);
   border-radius: var(--radius-xs);
   background: var(--backgroundPrimary);
@@ -1276,4 +1276,68 @@
 .bank-import-link:focus-visible {
   outline: auto 2px var(--actionPrimary);
   outline-offset: 2px;
+}
+
+/* EXF-528: the search box's clear button and its suggestions. */
+.search-clear {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--labelTertiary);
+  cursor: pointer;
+}
+.search-clear svg {
+  position: static;
+  pointer-events: none;
+}
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: var(--z-menu);
+  box-sizing: border-box;
+  width: 360px;
+  max-height: 320px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+  border-radius: var(--radius-xs);
+  background: var(--backgroundTertiary);
+  box-shadow: var(--shadowMenu);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.search-option {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: 6px var(--space-3);
+  cursor: pointer;
+}
+.search-option.is-active,
+.search-option:hover {
+  background: var(--backgroundSecondary);
+}
+.search-option.is-hint {
+  cursor: default;
+}
+.search-option-label {
+  flex: 0 0 76px;
+  color: var(--labelTertiary);
+}
+.search-option-description {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

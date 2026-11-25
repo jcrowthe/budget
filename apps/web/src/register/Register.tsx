@@ -17,6 +17,7 @@ import type { Open } from "./entryDraft";
 import { CloseSmallIcon } from "./icons";
 import { useOpenAccounts } from "./openAccounts";
 import { ReconcileBar } from "./ReconcileBar";
+import { useRegisterSearchState } from "./RegisterSearch";
 import { RegisterTable } from "./RegisterTable";
 import { RegisterToolbar } from "./RegisterToolbar";
 import { RegisterViewContext, useRegisterViewState } from "./register-view";
@@ -34,6 +35,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
   const [open, setOpen] = useState<Open>(null);
   const fileImport = useRef<FileImportHandle>(null);
   const attention = useAttentionFilter();
+  const search = useRegisterSearchState(account?.id ?? "all");
   const view = useRegisterViewState(budgetId, account?.id);
   const { selected, scheduled } = useSelection();
   const { openAccounts, loaded } = useOpenAccounts(budgetId);
@@ -137,6 +139,8 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
         aria-label="Register"
       >
         <RegisterToolbar
+          budgetId={budgetId}
+          search={search}
           name={account?.name ?? "All Accounts"}
           onAdd={() => openAdd()}
           closed={closed}
@@ -177,6 +181,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
         <RegisterTable
           budgetId={budgetId}
           account={account}
+          search={search}
           open={open}
           onOpen={setOpen}
           onCloseEntry={() => setOpen(null)}

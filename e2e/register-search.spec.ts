@@ -200,7 +200,11 @@ test("a search is page state: it ends with the account", async ({ page, request 
   await box(page).fill("Payee: corner, ");
   await expect(rows(page)).toHaveCount(1);
   expect(new URL(page.url()).search).toBe("");
-  await page.getByRole("link", { name: "ZZ-TEST Savings" }).first().click();
-  await expect(box(page)).toHaveValue("");
+  await page
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("link", { name: /ZZ-TEST Savings/ })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/accounts/${s.savings}`));
   await expect(box(page)).toHaveAttribute("placeholder", "Search ZZ-TEST Savings");
+  await expect(box(page)).toHaveValue("");
 });

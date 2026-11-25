@@ -10,14 +10,17 @@ import {
   sortTransactions,
 } from "@budget/schema/register";
 import { registerVisible } from "@budget/schema/register-view";
-
+import type { ScheduledTransaction } from "@budget/schema/scheduled-transactions";
+import { lineMatches } from "@budget/schema/transaction-search";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useReconcile } from "../account/ReconcileContext";
 import { useAccounts } from "../api/accounts";
+import { localToday } from "../api/today";
 import {
+  transactionsKey,
   useAccountTransactions,
   usePlanTransactions,
   useSetCleared,
@@ -44,6 +47,8 @@ import {
 } from "./icons";
 import { MatchCell } from "./manual-match-details";
 import { useOpenAccounts } from "./openAccounts";
+import type { RegisterSearchState } from "./RegisterSearch";
+import { firstTokenText } from "./register-search";
 import { useRegisterView } from "./register-view";
 import { BankImportButton, payeeTitle } from "./rename-rules-bank-import";
 import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
@@ -102,10 +107,15 @@ function ClearedCell({ tx, onToggle }: { tx: Row; onToggle: () => void }) {
   );
 }
 
+// One array for "no scheduled rows": a new `[]` each render would reach the selection's setScheduledRows and
+// re-render the page without end (it also stalled navigation while the attention filter was on).
+const NO_SCHEDULED: ScheduledTransaction[] = [];
+
 /** One account's rows, or (without `account`) every account's rows with an ACCOUNT column. */
 export function RegisterTable({
   budgetId,
   account,
+  search,
   open,
   onOpen,
   onCloseEntry,
@@ -113,6 +123,8 @@ export function RegisterTable({
 }: {
   budgetId: string;
   account?: Account;
+  /** EXF-528: the applied search; its rows come from the server, whatever the View options say. */
+  search: RegisterSearchState;
   open: Open;
   onOpen: (next: Open) => void;
   onCloseEntry: () => void;
@@ -120,15 +132,20 @@ export function RegisterTable({
 }) {
   const fmt = usePlanFormatter();
   const plan = !account;
-  const accountQ = useAccountTransactions(budgetId, account?.id ?? "", !plan);
-  const planQ = usePlanTransactions(budgetId, plan);
+  const searching = search.applied !== "";
+  const firstText = firstTokenText(search.applied, {
+    dateFormat: fmt.dateFormat,
+    today: localToday(),
+  });
+  const accountQ = useAccountTransactions(budgetId, account?.id ?? "", !plan, search.applied);
+  const planQ = usePlanTransactions(budgetId, plan, search.applied);
   const q = plan ? planQ : accountQ;
   const accountsQ = useAccounts(budgetId);
   const byId = useMemo(
     () => new Map((accountsQ.data ?? []).map((a) => [a.id, a])),
     [accountsQ.data],
   );
-  const listKey = plan ? ["transactions", budgetId, "all"] : ["transactions", budgetId, account.id];
+  const listKey = transactionsKey(budgetId, plan ? "all" : account.id, search.applied);
   const setCleared = useSetCleared(budgetId, listKey);
   const setFlag = useSetFlag(budgetId, listKey);
   const [sort, setSort] = useState<{ column: PlanSortColumn; dir: SortDir }>({
@@ -166,6 +183,10 @@ export function RegisterTable({
       );
       return { rows: sortTransactions<Row>(need, sort.column, sort.dir), hidden: 0 };
     }
+    if (searching) {
+      // A match is never hidden by the View date range or the reconciled option.
+      return { rows: sortTransactions<Row>(data.transactions, sort.column, sort.dir), hidden: 0 };
+    }
     const shown = registerVisible<Row>(
       data.transactions,
       view.settings,
@@ -182,6 +203,7 @@ export function RegisterTable({
     view.firstMonth,
     reconcileMode,
     attention,
+    searching,
     openIds,
     byId,
     account,
@@ -305,7 +327,15 @@ export function RegisterTable({
     const sideAcct = account ?? byId.get(tx.account_id);
     const pay = transferAccount && sideAcct ? paymentDisplay(sideAcct, transferAccount) : null;
     const checked = selected.has(tx.id);
-    const lines = tx.subtransactions;
+    // A search shows the lines that match; when none does the parent matched on its own, so all show.
+    const parentOf = {
+      payee_name: tx.payee_name,
+      account_name: account?.name ?? byId.get(tx.account_id)?.name,
+    };
+    const matching = searching
+      ? tx.subtransactions.filter((l) => lineMatches(search.tokens, l, parentOf))
+      : [];
+    const lines = searching && matching.length > 0 ? matching : tx.subtransactions;
     const expanded = !collapsed.has(tx.id);
     const rowProps = {
       onClick: (e: React.MouseEvent) => onRowClick(e, tx),
@@ -614,7 +644,7 @@ export function RegisterTable({
             plan={plan}
             showCategory={showCategory}
             colCount={colCount}
-            rows={attention ? [] : scheduledRows}
+            rows={attention || searching ? NO_SCHEDULED : scheduledRows}
             open={open}
             onOpen={onOpen}
             onCloseEntry={onCloseEntry}
@@ -626,7 +656,8 @@ export function RegisterTable({
           (q.isError && !data) ||
           (rows.length === 0 &&
             hidden === 0 &&
-            (attention ? 0 : scheduledRows.length) === 0 &&
+            (attention || searching ? 0 : scheduledRows.length) === 0 &&
+            !searching &&
             !open) ? (
             <tbody>
               <tr>
@@ -670,21 +701,34 @@ export function RegisterTable({
                 />
               )}
               {editAt >= 0 && <tbody>{rows.slice(editAt + 1).map(dataRow)}</tbody>}
-              {hidden > 0 && (
+              {searching ? (
                 <tbody className="register-footer">
                   <tr>
                     <td colSpan={colCount}>
-                      <p>Some transactions are hidden by filters.</p>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => view.save({ preset: "all_dates", show_reconciled: true })}
-                      >
+                      <p>{`Some transactions are hidden by your search for "${firstText}".`}</p>
+                      <button type="button" className="secondary" onClick={search.clear}>
                         View All
                       </button>
                     </td>
                   </tr>
                 </tbody>
+              ) : (
+                hidden > 0 && (
+                  <tbody className="register-footer">
+                    <tr>
+                      <td colSpan={colCount}>
+                        <p>Some transactions are hidden by filters.</p>
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => view.save({ preset: "all_dates", show_reconciled: true })}
+                        >
+                          View All
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                )
               )}
             </>
           )}

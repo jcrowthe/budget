@@ -7,10 +7,10 @@ import {
   MoreDotsIcon,
   PlusCircleIcon,
   RedoIcon,
-  SearchIcon,
   UndoIcon,
 } from "./icons";
 import { Popover } from "./Popover";
+import { RegisterSearch, type RegisterSearchState } from "./RegisterSearch";
 import { useRegisterView, ViewOptionsPopover } from "./register-view";
 
 // Toolbar widths (px) below which buttons move into the More button. Source (measured): everything is inline at a
@@ -26,9 +26,11 @@ const REDO_TIP = "Redo that thing you just undid. Practice decisiveness.";
 
 type Step = { enabled: boolean; onClick: () => void };
 
-// Add Transaction, Undo and Redo are wired; File Import and the search box are drawn, each naming its ticket.
+// Add Transaction, File Import, Undo, Redo and the search box are wired.
 export function RegisterToolbar({
+  budgetId,
   name,
+  search,
   onAdd,
   closed = false,
   closedAccount = false,
@@ -39,7 +41,10 @@ export function RegisterToolbar({
   undo: undoStep,
   redo: redoStep,
 }: {
+  budgetId: string;
   name: string;
+  /** EXF-528: the search box's page state. */
+  search: RegisterSearchState;
   onAdd: () => void;
   closed?: boolean;
   /** The register is one closed account: Add says how to enable it. */
@@ -203,15 +208,7 @@ export function RegisterToolbar({
             </button>
           )}
         </Tooltip>
-        <span className="search-box">
-          <SearchIcon />
-          <input
-            type="search"
-            placeholder={`Search ${name}`}
-            aria-label="Find the transactions you're looking for..."
-            data-ticket="EXF-528"
-          />
-        </span>
+        <RegisterSearch budgetId={budgetId} name={name} search={search} />
       </div>
       {viewOpen && viewBtn.current ? (
         <ViewOptionsPopover

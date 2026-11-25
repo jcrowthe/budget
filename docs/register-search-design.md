@@ -88,3 +88,15 @@ and returns the same `data`. The two list operations name it in `test/mcp-covera
 - **Commas**: a comma ends a token, so text containing a comma, and amounts written with a decimal comma
   (`20,50`), cannot be searched.
 - **Category tokens** match by substring, so `Category: Fun` also lists `Fun Money`.
+- **Split lines shown**: a listed parent shows the lines that match. When none matches on its own (the parent
+  matched itself, e.g. by its memo) all its lines show, so a parent is never listed without its lines.
+- **Scheduled rows** are hidden while a search is applied (as with the attention filter). Fixing this exposed an
+  existing render loop: passing a new `[]` of scheduled rows on every render re-rendered the register without end,
+  and a click on another account in the sidebar then never rendered (reproducible on main with the banner's View
+  filter). `RegisterTable` now passes one shared empty array.
+- **Shortcuts**: ctrl/⌘+Z inside the search box relies on the shortcut dispatcher ignoring fields
+  (`shortcuts/dispatcher.ts`); not covered by an e2e.
+- **Cache keys**: a search has its own list key (`["transactions", plan, account|"all", q]`), so the full list the
+  View options read (`useRegisterViewState`) stays loaded and the first search does not replace it.
+- **Today** for dates without a year is the server's UTC date (the browser sends its own local date format
+  as the plan's; the year comes from the same clock).
