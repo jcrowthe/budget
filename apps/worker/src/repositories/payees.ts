@@ -44,6 +44,15 @@ export async function listForPlan(
   budgetId: string,
   opts: { includeHidden: boolean; counts?: boolean; ids?: readonly string[] },
 ): Promise<PayeeListRow[]> {
+  return listRowsOf(await listForPlanQuery(db, budgetId, opts));
+}
+
+/** Unexecuted: the query of `listForPlan`, so it can ride a `db.batch` of reads; `listRowsOf` shapes its rows. */
+export function listForPlanQuery(
+  db: Db,
+  budgetId: string,
+  opts: { includeHidden: boolean; counts?: boolean; ids?: readonly string[] },
+) {
   const conds = [eq(payees.budgetId, budgetId), isNull(payees.deletedAt)];
   if (!opts.includeHidden) conds.push(eq(payees.hidden, false));
   if (opts.ids) conds.push(idsIn(payees.id, opts.ids));
@@ -63,7 +72,7 @@ export async function listForPlan(
     ? sql<number>`exists (select 1 from payee_rename_rules r where r.payee_id = payees.id and r.deleted_at is null)`
     : sql<number>`0`;
   const last3 = [0, 1, 2].map((n) => recentValueSql(budgetId, "payees.id", n));
-  const rows = await db
+  return db
     .select({
       p: payees,
       fixedLive: sql<
@@ -85,6 +94,10 @@ export async function listForPlan(
     })
     .from(payees)
     .where(and(...conds));
+}
+
+/** The rows `listForPlanQuery` read, as list rows. */
+export function listRowsOf(rows: Awaited<ReturnType<typeof listForPlanQuery>>): PayeeListRow[] {
   return rows.map((r) => ({
     ...r.p,
     fixedLiveCategoryId: r.fixedLive ?? null,
@@ -490,4 +503,32 @@ export function isPayeeGone(e: unknown): boolean {
     if (x.message.includes("NOT NULL constraint failed: change_log.actor")) return true;
   }
   return false;
+}
+
+/**
+ * The last statement of a combine batch: it fails the whole batch (NOT NULL on `change_log.actor`) unless the survivor
+ * is live under `name` and no merged payee is. `isPayeeGone` recognises it.
+ */
+export function combineCheckStmt(
+  db: Db,
+  budgetId: string,
+  survivorId: string,
+  name: string,
+  mergedIds: readonly string[],
+) {
+  return insertSelect(
+    db,
+    changeLog,
+    {
+      id: sql`'payee-gone'`,
+      budgetId,
+      actor: sql`null`,
+      action: sql`'update'`,
+      entityType: sql`'payee'`,
+      entityId: sql`'payee-gone'`,
+      createdAt: sql`''`,
+    },
+    sql`where not (exists (select 1 from payees where id = ${survivorId} and budget_id = ${budgetId} and deleted_at is null and system is null and name = ${name})
+      and (select count(*) from payees where budget_id = ${budgetId} and deleted_at is null and ${idsIn(sql`payees.id`, mergedIds)}) = 0)`,
+  );
 }

@@ -66,15 +66,15 @@ describe("combine payees (EXF-512)", () => {
     expect(list.some((p) => p.id === w.b)).toBe(false);
     expect(list.filter((p) => p.name === "ZZ-TEST AB")).toHaveLength(1);
     const rows = await q(
-      "select payee_id, payee_name from transactions where budget_id = ?",
+      "select payee_id, payee_name from transactions where budget_id = ? and payee_id in (?, ?)",
       w.bid,
+      w.a,
+      w.b,
     );
-    const live = rows.filter((r) => r.payee_id !== null);
-    expect(live.length).toBeGreaterThanOrEqual(5);
-    for (const r of live) {
-      expect(r.payee_id).toBe(w.a);
-      expect(r.payee_name).toBe("ZZ-TEST AB");
-    }
+    expect(rows).toHaveLength(5);
+    for (const r of rows) expect(r.payee_id).toBe(w.a);
+    // The moved rows are stored under the new name (a rename leaves the survivor's own stored names to the join).
+    expect(rows.filter((r) => r.payee_name === "ZZ-TEST AB").length).toBeGreaterThanOrEqual(2);
     const reg = await register(w);
     expect(reg.filter((t) => t.payee_name === "ZZ-TEST AB")).toHaveLength(5);
   });
@@ -150,12 +150,18 @@ describe("combine payees (EXF-512)", () => {
 
   it("AC4: the survivor keeps its categorization", async () => {
     const w = await ab();
-    const cats = await data(await send(`/api/v1/budgets/${w.bid}/categories`, "GET"));
-    const flat = (cats.category_groups ?? cats.groups ?? []).flatMap(
-      (g: Json) => g.categories ?? [],
-    ) as Json[];
-    const [x, y] = [flat[0]?.id, flat[1]?.id] as string[];
-    expect(x && y).toBeTruthy();
+    const group = (
+      await data(
+        await send(`/api/v1/budgets/${w.bid}/category_groups`, "POST", { name: "ZZ-TEST G" }),
+      )
+    ).category_group.id as string;
+    const mk = async (name: string) =>
+      (
+        await data(
+          await send(`/api/v1/budgets/${w.bid}/categories`, "POST", { group_id: group, name }),
+        )
+      ).category.id as string;
+    const [x, y] = [await mk("ZZ-TEST X"), await mk("ZZ-TEST Y")];
     expect(
       (
         await send(`${P(w.bid)}/${w.a}`, "PATCH", {

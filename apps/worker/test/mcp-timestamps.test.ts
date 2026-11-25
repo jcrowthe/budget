@@ -15,6 +15,8 @@ const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 type Ctx = {
   payee: string;
   payeeDel: string;
+  payeeCombA: string;
+  payeeCombB: string;
   payeeBulkA: string;
   payeeBulkB: string;
   payeeRepl: string;
@@ -133,6 +135,8 @@ async function seed(): Promise<Ctx> {
     "ZZ Pay Bulk A",
     "ZZ Pay Bulk B",
     "ZZ Pay Repl",
+    "ZZ Pay Comb A",
+    "ZZ Pay Comb B",
   ];
   for (const payee_name of payeeNames) {
     await mk({ account_id: checking, date: DAY, amount: -100, payee_name });
@@ -141,8 +145,15 @@ async function seed(): Promise<Ctx> {
     id: string;
     name: string;
   }[];
-  const [payee = "", payeeDel = "", payeeBulkA = "", payeeBulkB = "", payeeRepl = ""] =
-    payeeNames.map((n) => payeeList.find((p) => p.name === n)?.id as string);
+  const [
+    payee = "",
+    payeeDel = "",
+    payeeBulkA = "",
+    payeeBulkB = "",
+    payeeRepl = "",
+    payeeCombA = "",
+    payeeCombB = "",
+  ] = payeeNames.map((n) => payeeList.find((p) => p.name === n)?.id as string);
 
   const now = new Date().toISOString();
   const conn = crypto.randomUUID();
@@ -194,6 +205,8 @@ async function seed(): Promise<Ctx> {
     payeeDel,
     payeeBulkA,
     payeeBulkB,
+    payeeCombA,
+    payeeCombB,
     payeeRepl,
     sched,
     sched2,
@@ -452,6 +465,15 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   [
     "bulk_update_payees",
     (c) => ({ budget_id: c.bid, payee_ids: [c.payeeBulkA, c.payeeBulkB], action: "hide" }),
+  ],
+  [
+    "combine_payees",
+    (c) => ({
+      budget_id: c.bid,
+      payee_ids: [c.payeeCombA, c.payeeCombB],
+      name: "ZZ Pay Combined",
+      target_payee_id: c.payeeCombA,
+    }),
   ],
   [
     "create_payee_rename_rule",

@@ -22,6 +22,7 @@ import { type Db as DbT, getDb } from "../db/client";
 import { accounts as accountsTable } from "../db/schema/accounts";
 import { changeLog } from "../db/schema/change-log";
 import { payeeRenameRules } from "../db/schema/payee-rename-rules";
+import { payees as payeesTable } from "../db/schema/payees";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
@@ -527,6 +528,187 @@ export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"s
     ...rulesRepo.removeForPayeesStmts(db, base, budgetId, ids, guard),
     payeesRepo.softDeleteStmt(db, budgetId, ids, p.now, guard),
   ];
+}
+
+export interface PayeeCombinePlan {
+  budgetId: string;
+  actor: string;
+  now: string;
+  /** The payee that stays, as read (the batch fails if it was renamed since). */
+  survivor: payeesRepo.PayeeListRow;
+  /** The payees that go: their rows and rules move to the survivor. */
+  mergedIds: string[];
+  /** The survivor's name after the combine (trimmed). */
+  name: string;
+  counts: Record<string, { t: number; s: number }>;
+}
+
+/** Where the rule statements start in a combine batch: the soft delete is `+1`, the move `+3`. */
+const COMBINE_RULES_AT = 7;
+
+/**
+ * The statements of one combine, thirteen whatever the payees, rules or rows: the survivor's rename (two no-op
+ * statements when its name stays), the delete's history rows and moves of EXF-882 with the survivor as the
+ * replacement, the rules' move, the merged payees' soft delete and a closing check. A test appends a failing
+ * statement to prove atomicity.
+ */
+export function buildPayeeCombineBatch(db: DbT, p: PayeeCombinePlan): BatchItem<"sqlite">[] {
+  const { budgetId, mergedIds, survivor } = p;
+  const guard = payeesRepo.liveOrdinaryCountSql(budgetId, [survivor.id, ...mergedIds]);
+  const base: LogBase = {
+    budgetId,
+    actor: p.actor,
+    action: "delete",
+    entityType: "payee",
+    createdAt: p.now,
+  };
+  const renamed = p.name !== survivor.name;
+  // The rename goes first, so that the moved rows read the new name. It carries the unchanged-payee guard.
+  const rename: BatchItem<"sqlite">[] = renamed
+    ? buildPayeeUpdateBatch(db, {
+        budgetId,
+        actor: p.actor,
+        now: p.now,
+        row: survivor,
+        name: p.name,
+        hidden: survivor.hidden,
+        mode: survivor.categoryMode,
+        fixedCategoryId: survivor.fixedCategoryId,
+        fixedRta: survivor.fixedInflowToReadyToAssign,
+        namesCategory: false,
+        learn: [],
+      })
+    : [
+        changeLogInsertIf(
+          db,
+          {
+            budgetId,
+            actor: p.actor,
+            action: "update",
+            entityType: "payee",
+            entityId: survivor.id,
+            before: null,
+            after: null,
+          },
+          whenQuery(db, sql`0`),
+        ),
+        db.update(payeesTable).set({ updatedAt: p.now }).where(sql`0`),
+      ];
+  return [
+    ...rename,
+    payeesRepo.logDeleteStmt(db, base, budgetId, mergedIds, survivor.id, p.counts, guard),
+    deleteLog.logTransactionMovesStmt(db, base, budgetId, mergedIds, survivor.id, guard),
+    deleteLog.logScheduledMovesStmt(db, base, budgetId, mergedIds, survivor.id, guard),
+    transactionsRepo.movePayeeStmt(db, budgetId, mergedIds, survivor.id, p.now, guard),
+    scheduledRepo.movePayeeStmt(
+      db,
+      budgetId,
+      mergedIds,
+      survivor.id,
+      p.now,
+      crypto.randomUUID(),
+      guard,
+    ),
+    ...rulesRepo.moveForPayeesStmts(db, base, budgetId, mergedIds, survivor.id, p.now, guard),
+    payeesRepo.softDeleteStmt(db, budgetId, mergedIds, p.now, guard),
+    payeesRepo.combineCheckStmt(db, budgetId, survivor.id, p.name, mergedIds),
+  ] as BatchItem<"sqlite">[];
+}
+
+export interface PayeeCombineResult {
+  payee: Payee;
+  merged: PayeeDeleted[];
+  rules_moved: number;
+  rules_dropped: number;
+}
+
+/**
+ * Combine and Rename (EXF-512): `ids` become one payee called `name`. The survivor is `targetId`, else the selected
+ * payee already called `name`, else the first id. Its transactions, schedules and rules take the others' (rules
+ * deduped by kind and text); the others are deleted. Four D1 calls whatever the rows.
+ */
+export async function combinePayees(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  input: { ids: string[]; name: string; targetId?: string },
+): Promise<PayeeCombineResult> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const ids = [...new Set(input.ids)];
+  if (ids.length < 2) throw unprocessable(PAYEE_ERRORS.combineTooFew);
+  const named = [...ids, ...(input.targetId ? [input.targetId] : [])];
+  if (named.some((i) => i.startsWith(TRANSFER_PAYEE_PREFIX)))
+    throw unprocessable(PAYEE_ERRORS.combineTransfer);
+  if (input.targetId !== undefined && !ids.includes(input.targetId))
+    throw unprocessable(PAYEE_ERRORS.combineTarget);
+  const name = input.name.trim();
+  // One read call: the selected payees (with counts) and the live payee that already has the name.
+  const [found, byName] = await db.batch([
+    payeesRepo.listForPlanQuery(db, budgetId, { includeHidden: true, counts: true, ids }),
+    payeesRepo.findByNameQuery(db, budgetId, name),
+  ]);
+  const rows = payeesRepo.listRowsOf(found);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  for (const id of ids) {
+    if (!byId.has(id)) throw unprocessable(`${PAYEE_ERRORS.unknown}: ${id}`);
+  }
+  if (rows.some((r) => r.system)) throw unprocessable(PAYEE_ERRORS.combineSystem);
+  if (name === "") throw unprocessable(PAYEE_ERRORS.empty);
+  const same = byName[0];
+  const survivorId = input.targetId ?? (same && byId.has(same.id) ? same.id : ids[0]);
+  const survivor = byId.get(survivorId as string) as payeesRepo.PayeeListRow;
+  if (same && !byId.has(same.id)) throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
+  if (same && same.id !== survivor.id)
+    throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.combineNameInSelection);
+  const mergedRows = ids
+    .filter((i) => i !== survivor.id)
+    .map((i) => byId.get(i) as payeesRepo.PayeeListRow);
+  const mergedIds = mergedRows.map((r) => r.id);
+  const counts = Object.fromEntries(
+    mergedRows.map((r) => [r.id, { t: r.transactionCount, s: r.scheduledCount }]),
+  );
+  const batch = buildPayeeCombineBatch(db, {
+    budgetId,
+    actor,
+    now: new Date().toISOString(),
+    survivor,
+    mergedIds,
+    name,
+    counts,
+  });
+  let res: unknown[];
+  try {
+    res = await db.batch(batch as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
+  } catch (e) {
+    // The closing check failed (a rename or delete got there first): nothing was written.
+    if (payeesRepo.isPayeeGone(e)) throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
+    if (payeesRepo.isUniqueViolation(e))
+      throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);
+    throw e;
+  }
+  const changes = (i: number) => (res[i] as { meta?: { changes?: number } }).meta?.changes ?? 0;
+  const [after] = await payeesRepo.listForPlan(db, budgetId, {
+    includeHidden: true,
+    counts: true,
+    ids: [survivor.id],
+  });
+  return {
+    payee: payeeToApi(
+      after as payeesRepo.PayeeListRow,
+      after?.lastCategoryId,
+      after?.lastInflowToReadyToAssign,
+    ),
+    merged: mergedRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      replacement_payee_id: survivor.id,
+      transactions_moved: r.transactionCount,
+      scheduled_moved: r.scheduledCount,
+    })),
+    rules_moved: changes(COMBINE_RULES_AT + 3),
+    rules_dropped: changes(COMBINE_RULES_AT + 1),
+  };
 }
 
 /** Hide, unhide or delete several payees at once (one is the same with one id). */

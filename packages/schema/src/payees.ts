@@ -130,6 +130,32 @@ export const PayeeBulkResponse = dataEnvelope(
   z.object({ payees: z.array(Payee), deleted: z.array(PayeeDeleted) }),
 );
 
+/** Combine and Rename (EXF-512): several payees become one. */
+export const PayeeCombineRequest = z
+  .object({
+    payee_ids: z.array(z.string().min(1)).min(2).max(PAYEE_BULK_MAX),
+    name: z.string().max(200),
+    target_payee_id: z.string().min(1).optional(),
+  })
+  .openapi("PayeeCombineRequest");
+export type PayeeCombineRequest = z.infer<typeof PayeeCombineRequest>;
+export const PayeeCombineResponse = dataEnvelope(
+  z.object({
+    payee: Payee,
+    merged: z.array(PayeeDeleted),
+    rules_moved: z.number().int(),
+    rules_dropped: z.number().int(),
+  }),
+);
+
+/** The words of the Combine and Rename card, shared with the web. */
+export const COMBINE = {
+  title: "Combine and Rename",
+  note: "Combining these payees will also combine all their renaming rules and categorization rules.",
+  placeholder: "New Payee Name",
+  button: "Combine",
+} as const;
+
 export const PAYEE_TRANSACTIONS_LIMIT = 500;
 export const PayeeTransaction = z
   .object({
@@ -166,6 +192,11 @@ export const PAYEE_ERRORS = {
   replacementOnlyDelete: "replacement_payee_id goes only with delete",
   unknown: "Payee not found in this plan",
   race: "The payees changed meanwhile. Try again.",
+  combineTooFew: "Select at least two payees to combine",
+  combineTarget: "target_payee_id must be one of payee_ids",
+  combineTransfer: "Transfer payees can't be combined",
+  combineSystem: "System payees can't be combined",
+  combineNameInSelection: "That name belongs to another selected payee; make it the target",
 } as const;
 
 /** Case-insensitive, then exact, then id: a stable order for lists. */

@@ -3,6 +3,7 @@ import { PAYEE_BULK_MAX } from "@budget/schema/payees";
 import { z } from "zod";
 import {
   applyToPayees,
+  combinePayees,
   deletePayee,
   listPayeeRecentTransactions,
   listPayees,
@@ -100,6 +101,25 @@ export const tools: McpToolDef[] = [
         ids: input.payee_ids,
         action: input.action,
         replacementId: input.replacement_payee_id ?? null,
+      }),
+  },
+  {
+    name: "combine_payees",
+    description: `Combine several ordinary payees into one (Combine and Rename): at least 2 and at most ${PAYEE_BULK_MAX} ids, in one step. The survivor is target_payee_id (one of payee_ids), else the selected payee already called name, else the first id; it is renamed to name (trimmed) and keeps its own category settings. The other payees' transactions (split lines included) and scheduled transactions move to it, their renaming rules move to it too (a rule the survivor already has, or an earlier merged payee has, with the same kind and text is dropped), and the other payees are deleted. The change is one undoable step. Errors: 422 for fewer than 2 distinct ids, a transfer entry, a system payee, an unknown id, a target outside payee_ids or an empty name; 409 when name belongs to a payee outside the selection or to a selected payee other than the target, or when the payees changed meanwhile. Returns { payee, merged, rules_moved, rules_dropped }: payee is the survivor as list_payees gives it (with its new counts), merged lists id, name, replacement_payee_id, transactions_moved and scheduled_moved for each deleted payee. ${MONEY}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      payee_ids: z.array(Id).min(2).max(PAYEE_BULK_MAX),
+      name: z.string().max(200),
+      target_payee_id: Id.optional(),
+    }),
+    run: async (
+      input: { budget_id: string; payee_ids: string[]; name: string; target_payee_id?: string },
+      { env, actor },
+    ) =>
+      combinePayees(env, actor, input.budget_id, {
+        ids: input.payee_ids,
+        name: input.name,
+        targetId: input.target_payee_id,
       }),
   },
   {
