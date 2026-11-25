@@ -821,20 +821,30 @@ export async function deletePayee(
 }
 
 /** A payee's live transactions and scheduled transactions, newest first, cut at the popover's limit. */
-export async function listPayeeTransactions(
+export function listPayeeTransactions(env: Env, budgetId: string, payeeId: string) {
+  return listPayeesTransactions(env, budgetId, [payeeId]);
+}
+
+/**
+ * The same for several payees at once (the several-selected `Show N Transactions`): the same four D1 calls however
+ * many payees. A transfer entry or system payee is refused (403), an unknown or deleted one is a 404.
+ */
+export async function listPayeesTransactions(
   env: Env,
   budgetId: string,
-  payeeId: string,
+  payeeIds: readonly string[],
 ): Promise<{ transactions: PayeeTransaction[]; total_count: number }> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  if (payeeId.startsWith(TRANSFER_PAYEE_PREFIX)) throw forbidden(PAYEE_ERRORS.transfer);
-  const row = await payeesRepo.findActive(db, budgetId, payeeId);
-  if (!row) throw new NotFound("Payee");
-  if (row.system) throw forbidden(PAYEE_ERRORS.system);
+  const ids = [...new Set(payeeIds)];
+  if (ids.length === 0) throw new PayeeRefused(422, "unprocessable_entity", PAYEE_ERRORS.noPayees);
+  if (ids.some((i) => i.startsWith(TRANSFER_PAYEE_PREFIX))) throw forbidden(PAYEE_ERRORS.transfer);
+  const rows = await payeesRepo.findActiveMany(db, budgetId, ids);
+  if (rows.length !== ids.length) throw new NotFound("Payee");
+  if (rows.some((r) => r.system)) throw forbidden(PAYEE_ERRORS.system);
   const [real, sched] = await Promise.all([
-    payeesRepo.transactionsOf(db, budgetId, payeeId, PAYEE_TRANSACTIONS_LIMIT),
-    payeesRepo.scheduledOf(db, budgetId, payeeId, PAYEE_TRANSACTIONS_LIMIT),
+    payeesRepo.transactionsOf(db, budgetId, ids, PAYEE_TRANSACTIONS_LIMIT),
+    payeesRepo.scheduledOf(db, budgetId, ids, PAYEE_TRANSACTIONS_LIMIT),
   ]);
   const tag = (kind: PayeeTransaction["kind"]) => (r: payeesRepo.PayeeTransactionRow) => ({
     created: r.created_at,
@@ -843,6 +853,7 @@ export async function listPayeeTransactions(
       kind,
       account_id: r.account_id,
       account_name: r.account_name,
+      payee_name: r.payee_name,
       date: r.date,
       category_id: r.category_id,
       category_name: r.category_name,

@@ -421,6 +421,7 @@ export type PayeeTransactionRow = {
   id: string;
   account_id: string;
   account_name: string;
+  payee_name: string;
   date: string;
   category_id: string | null;
   category_name: string | null;
@@ -432,22 +433,38 @@ export type PayeeTransactionRow = {
   total: number;
 };
 
-/** Live transactions (parents and lines) of the payee, newest first, with the full count in `total`. */
+/** The live payees among `ids` in the plan, by one call (json_each, so the ids are one bound value). */
+export function findActiveMany(db: Db, budgetId: string, ids: readonly string[]) {
+  return db
+    .select()
+    .from(payees)
+    .where(
+      and(
+        eq(payees.budgetId, budgetId),
+        isNull(payees.deletedAt),
+        sql`${payees.id} in (select value from json_each(${JSON.stringify(ids)}))`,
+      ),
+    );
+}
+
+/** Live transactions (parents and lines) of the payees, newest first, with the full count in `total`. */
 export function transactionsOf(
   db: Db,
   budgetId: string,
-  payeeId: string,
+  payeeIds: readonly string[],
   limit: number,
 ): Promise<PayeeTransactionRow[]> {
   return db.all<PayeeTransactionRow>(sql`
-    select t.id, t.account_id, a.name as account_name, t.date, t.category_id, c.name as category_name,
+    select t.id, t.account_id, a.name as account_name, p.name as payee_name, t.date, t.category_id, c.name as category_name,
       t.inflow_to_ready_to_assign as inflow,
       exists (select 1 from transactions l where l.parent_transaction_id = t.id and l.deleted_at is null) as is_split,
       t.memo, t.amount, t.created_at, count(*) over () as total
     from transactions t
     join accounts a on a.id = t.account_id and a.deleted_at is null
+    join payees p on p.id = t.payee_id
     left join categories c on c.id = t.category_id
-    where t.budget_id = ${budgetId} and t.payee_id = ${payeeId} and t.deleted_at is null
+    where t.budget_id = ${budgetId} and t.deleted_at is null
+      and t.payee_id in (select value from json_each(${JSON.stringify(payeeIds)}))
     order by t.date desc, t.created_at desc, t.id
     limit ${limit}`);
 }
@@ -455,17 +472,19 @@ export function transactionsOf(
 export function scheduledOf(
   db: Db,
   budgetId: string,
-  payeeId: string,
+  payeeIds: readonly string[],
   limit: number,
 ): Promise<PayeeTransactionRow[]> {
   return db.all<PayeeTransactionRow>(sql`
-    select s.id, s.account_id, a.name as account_name, s.date_next as date, s.category_id, c.name as category_name,
+    select s.id, s.account_id, a.name as account_name, p.name as payee_name, s.date_next as date, s.category_id, c.name as category_name,
       s.inflow_to_ready_to_assign as inflow, 0 as is_split,
       s.memo, s.amount, s.created_at, count(*) over () as total
     from scheduled_transactions s
     join accounts a on a.id = s.account_id and a.deleted_at is null
+    join payees p on p.id = s.payee_id
     left join categories c on c.id = s.category_id
-    where s.budget_id = ${budgetId} and s.payee_id = ${payeeId} and s.deleted_at is null
+    where s.budget_id = ${budgetId} and s.deleted_at is null
+      and s.payee_id in (select value from json_each(${JSON.stringify(payeeIds)}))
     order by s.date_next desc, s.created_at desc, s.id
     limit ${limit}`);
 }

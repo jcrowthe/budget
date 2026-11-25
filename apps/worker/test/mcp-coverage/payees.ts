@@ -8,6 +8,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "DELETE /budgets/{budget_id}/payees/{payee_id}": { tool: "delete_payee" },
   "POST /budgets/{budget_id}/payees/bulk": { tool: "bulk_update_payees" },
   "POST /budgets/{budget_id}/payees/combine": { tool: "combine_payees" },
+  "GET /budgets/{budget_id}/payees/transactions": { tool: "list_payee_transactions" },
   "GET /budgets/{budget_id}/payees/{payee_id}/transactions": { tool: "list_payee_transactions" },
   "GET /budgets/{budget_id}/payees/{payee_id}/recent-transactions": {
     tool: "list_payee_recent_transactions",

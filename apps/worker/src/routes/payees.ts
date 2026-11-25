@@ -12,6 +12,7 @@ import {
   PayeeRecentQuery,
   PayeeRecentResponse,
   PayeeResponse,
+  PayeeTransactionsQuery,
   PayeeTransactionsResponse,
   PayeeUpdate,
 } from "@budget/schema/payees";
@@ -24,6 +25,7 @@ import {
   deletePayee,
   listPayeeRecentTransactions,
   listPayees,
+  listPayeesTransactions,
   listPayeeTransactions,
   PayeeRefused,
   updatePayee,
@@ -191,6 +193,31 @@ export default app
           replacement_payee_id ?? null,
         );
         return c.json({ data: { deleted } }, 200);
+      }),
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/payees/transactions",
+      tags,
+      request: {
+        params: z.object({ budget_id: budgetParam }),
+        query: PayeeTransactionsQuery,
+      },
+      responses: {
+        200: json(PayeeTransactionsResponse, "The transactions of several payees"),
+        ...errors,
+      },
+    }),
+    (c) =>
+      refusals(c, async () => {
+        const { budget_id } = c.req.valid("param");
+        const ids = c.req
+          .valid("query")
+          .payee_ids.split(",")
+          .map((i) => i.trim())
+          .filter(Boolean);
+        return c.json({ data: await listPayeesTransactions(c.env, budget_id, ids) }, 200);
       }),
   )
   .openapi(
