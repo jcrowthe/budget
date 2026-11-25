@@ -2,15 +2,15 @@ import type { Coverage, OperationKey } from "../mcp-coverage-types";
 
 // Note text shared by the two list_transactions lines.
 const LIST_NOTE =
-  "sort and dir are left out: display order; the tools return newest first; list_unapproved_transactions is the needs=approval_or_category filter";
+  "sort and dir are left out: display order; the tools return newest first; list_unapproved_transactions is the needs=approval_or_category filter; q is search_transactions";
 
 export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/accounts/{account_id}/transactions": {
-    tool: ["list_transactions", "list_unapproved_transactions"],
+    tool: ["list_transactions", "list_unapproved_transactions", "search_transactions"],
     note: `with account_id; ${LIST_NOTE}`,
   },
   "GET /budgets/{budget_id}/transactions": {
-    tool: ["list_transactions", "list_unapproved_transactions"],
+    tool: ["list_transactions", "list_unapproved_transactions", "search_transactions"],
     note: `without account_id; ${LIST_NOTE}`,
   },
   "GET /budgets/{budget_id}/transactions/{transaction_id}": { tool: "get_transaction" },

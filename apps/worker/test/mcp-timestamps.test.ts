@@ -277,6 +277,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["get_account_summary", (c) => ({ budget_id: c.bid })],
   ["list_transactions", (c) => ({ budget_id: c.bid })],
   ["list_unapproved_transactions", (c) => ({ budget_id: c.bid })],
+  ["search_transactions", (c) => ({ budget_id: c.bid, query: "ZZ" })],
   ["get_account_balances", (c) => ({ budget_id: c.bid, account_id: c.checking })],
   ["get_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.tx })],
   ["list_payees", (c) => ({ budget_id: c.bid })],

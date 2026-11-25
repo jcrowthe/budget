@@ -14,25 +14,30 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recordChange } from "../undo/store";
 import { apiFetch } from "./client";
+import { keepPreviousInPlan } from "./placeholder";
 
 /** The register records each of its writes on the plan's Undo stack (EXF-530); the raw requests record nothing. */
 const record = (budgetId: string) => (id: string) => recordChange(budgetId, id, "register");
 
 type Listed = { transactions: { id: string; cleared: string }[] };
 
-export const listTransactions = async (budgetId: string, accountId: string) =>
+/** `q` is the register search (EXF-528); it is sent only when it is not empty. */
+export const listTransactions = async (budgetId: string, accountId: string, q = "") =>
   (
     await apiFetch(
-      `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}/transactions?include=running_balance`,
+      `/api/v1/budgets/${budgetId}/accounts/${encodeURIComponent(accountId)}/transactions?include=running_balance${q ? `&q=${encodeURIComponent(q)}` : ""}`,
       { schema: TransactionListResponse },
     )
   ).data;
 
-export const listPlanTransactions = async (budgetId: string) =>
+export const listPlanTransactions = async (budgetId: string, q = "") =>
   (
-    await apiFetch(`/api/v1/budgets/${budgetId}/transactions`, {
-      schema: PlanTransactionListResponse,
-    })
+    await apiFetch(
+      `/api/v1/budgets/${budgetId}/transactions${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+      {
+        schema: PlanTransactionListResponse,
+      },
+    )
   ).data;
 
 export const updateTransaction = async (
@@ -78,21 +83,39 @@ export function useSaveTransaction(budgetId: string) {
   });
 }
 
-export const useAccountTransactions = (budgetId: string, accountId: string, enabled = true) =>
+/** The cache key of a register's list; a search adds its text, so it never replaces the full list. */
+export const transactionsKey = (budgetId: string, accountId: string | "all", q = "") =>
+  q
+    ? (["transactions", budgetId, accountId, q] as const)
+    : (["transactions", budgetId, accountId] as const);
+
+export const useAccountTransactions = (
+  budgetId: string,
+  accountId: string,
+  enabled = true,
+  q = "",
+) =>
   useQuery({
-    queryKey: ["transactions", budgetId, accountId],
-    queryFn: () => listTransactions(budgetId, accountId),
+    queryKey: transactionsKey(budgetId, accountId, q),
+    queryFn: () => listTransactions(budgetId, accountId, q),
     retry: false,
     enabled,
+    // Typing does not flash "Loading" between two searches.
+    placeholderData: q
+      ? keepPreviousInPlan<Awaited<ReturnType<typeof listTransactions>>>(budgetId)
+      : undefined,
   });
 
 /** Every account's rows (All Accounts); the balances there are summed over the open accounts. */
-export const usePlanTransactions = (budgetId: string, enabled = true) =>
+export const usePlanTransactions = (budgetId: string, enabled = true, q = "") =>
   useQuery({
-    queryKey: ["transactions", budgetId, "all"],
-    queryFn: () => listPlanTransactions(budgetId),
+    queryKey: transactionsKey(budgetId, "all", q),
+    queryFn: () => listPlanTransactions(budgetId, q),
     retry: false,
     enabled,
+    placeholderData: q
+      ? keepPreviousInPlan<Awaited<ReturnType<typeof listPlanTransactions>>>(budgetId)
+      : undefined,
   });
 
 type Balances = { cleared: number; uncleared: number; working: number };
