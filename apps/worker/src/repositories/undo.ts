@@ -119,7 +119,7 @@ export const TYPE_MAPS: Record<UndoType, { table: string; keys: Key[] }> = {
   },
   month_category: { table: "month_categories", keys: [K("assigned")] },
   target: { table: "targets", keys: TARGET_KEYS },
-  account: { table: "accounts", keys: [K("starred")] },
+  account: { table: "accounts", keys: [K("starred"), K("paired_category_id")] },
 };
 
 /** Keys a target row may carry that the map does not write: identity and derived ones. */
@@ -330,7 +330,7 @@ export function postChecks(c: Ctx, present: ReadonlySet<UndoType>): BatchItem<"s
       where n.kind in ('update', 'delete') and not exists (select 1 from categories k where k.id = t.category_id and k.deleted_at is null))`);
   if (present.has("account"))
     refused(
-      sql`exists (select 1 from ${net(c, "account")} join accounts a on a.id = n.eid where a.closed = 1 and a.starred = 1)`,
+      sql`exists (select 1 from ${net(c, "account")} join accounts a on a.id = n.eid where a.closed = 1 and a.starred = 1 and json_type(n.after_json, '$.starred') is not null)`,
     );
   return out;
 }

@@ -20,7 +20,7 @@ const SITE = /inArray\(|notInArray\(|idList\(|\bin \(\$\{/g;
 
 /** Sites per file on the design's base plus its fixes. A new site fails here: audit it, add it to the design table, then update the count. */
 const AUDITED: Record<string, number> = {
-  "repositories/accounts.ts": 6,
+  "repositories/accounts.ts": 8, // +2: the loan-pairing log and update (EXF-990), json_each
   "repositories/bank-connections.ts": 2,
   "repositories/card-flows.ts": 1,
   "repositories/categories.ts": 14,

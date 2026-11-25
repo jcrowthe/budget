@@ -94,7 +94,10 @@ function refusals(nets: readonly Net[], system: ReadonlySet<string>) {
     if (n.type === "account") {
       const keys = new Set([...Object.keys(b ?? {}), ...Object.keys(a ?? {})]);
       const other = [...keys].some(
-        (k) => k !== "starred" && JSON.stringify(b?.[k]) !== JSON.stringify(a?.[k]),
+        (k) =>
+          k !== "starred" &&
+          k !== "paired_category_id" &&
+          JSON.stringify(b?.[k]) !== JSON.stringify(a?.[k]),
       );
       if (n.kind !== "update" || other) refuse(`${UNDO_ERRORS.undo_refused}: account`);
     }

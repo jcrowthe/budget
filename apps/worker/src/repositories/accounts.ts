@@ -17,6 +17,7 @@ import { bankConnections } from "../db/schema/bank-connections";
 import { budgets } from "../db/schema/budgets";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
+import { idList, type LogBase, logSelectStmt } from "./guards";
 import { insertSelect } from "./insert-select";
 import { idsIn } from "./payees";
 import { countsInBalance } from "./transactions";
@@ -665,4 +666,42 @@ export function unlinkAfterDeleteStmt(db: Db, before: AccountRow, at: string) {
     .update(accounts)
     .set({ bankAccountId: null, importStartDate: null, linkMissingSince: null })
     .where(unlinkAfterDeleteCondition(before, at));
+}
+
+const pairedIn = (budgetId: string, fromIds: readonly string[]) =>
+  sql`${accounts.budgetId} = ${budgetId} and ${accounts.pairedCategoryId} in (${idList(fromIds)})`;
+
+/** One change_log row per account paired with a category of `fromIds`: moved to `targetId`, or cleared (null). Put it before the update. */
+export function logPairingChangeStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  fromIds: readonly string[],
+  targetId: string | null,
+  guard: SQL,
+) {
+  return logSelectStmt(
+    db,
+    base,
+    sql`select id, paired_category_id from accounts where ${pairedIn(budgetId, fromIds)} and ${guard}`,
+    {
+      entityId: sql`id`,
+      before: sql`json_object('id', id, 'paired_category_id', paired_category_id)`,
+      after: sql`json_object('id', id, 'paired_category_id', ${targetId})`,
+    },
+  );
+}
+
+/** Points the loans paired with a category of `fromIds` at the target (or at no category). */
+export function changePairingStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  targetId: string | null,
+  guard: SQL,
+) {
+  return db
+    .update(accounts)
+    .set({ pairedCategoryId: targetId })
+    .where(sql`${pairedIn(budgetId, fromIds)} and ${guard}`);
 }

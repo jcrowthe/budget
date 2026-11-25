@@ -87,7 +87,10 @@ Assign rule.
   error there.
 - **D12 Type picker.** `shell/AccountTypePicker.tsx` disables the loan tiles and is closed to this Build. A
   new `AddAccountTypePicker.tsx` beside the dialog renders the same markup without `disabled`, and the dialog
-  uses it. The old file becomes unused.
+  uses it. The old file became unused and was removed (EXF-989).
+- **D13 Deleting a category (EXF-990).** A category or group delete moves the `paired_category_id` of loans
+  paired with it to `reassign_to`, or clears it without one, in the delete's batch with an `account`
+  change_log row each (before/after `paired_category_id`); undoing the delete restores it.
 
 ## One batch
 
