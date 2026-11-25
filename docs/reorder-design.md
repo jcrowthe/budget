@@ -112,3 +112,19 @@ groups keep their place in the scope (the server places relative to the target i
   the subtotals. A failure shows the grid notice and refetches.
 
 Keyboard reordering is not offered (the source has none). Colours come only from `shell/tokens.css`.
+
+## Keyboard reorder (our addition)
+
+The source app has no keyboard reorder; this is ours, so keyboard users can reorder what a mouse drags.
+
+- Group and category rows are focusable (`tabIndex 0`). **Alt+Shift+ArrowUp / ArrowDown** on a focused row (or on a
+  control inside it, but not in an input) moves it one place: a category among the visible categories of its group, a
+  group among the visible groups. A move past either end does nothing. A payment category stays in its group; the
+  Credit Card Payments group is pinned first, so it doesn't move and nothing moves above it. Moving a category into
+  another group is still drag only.
+- It sends the same `POST …/categories/{id}/move` and `…/category_groups/{id}/move` bodies as a drop (`before_*` for
+  up, `after_*` for down); no new endpoint. One change set per move, so Undo works as for a drag.
+- Focus goes back to the moved row once the order has changed.
+- The grid has one visually hidden `aria-live="polite"` region (`role="status"`) that says, for example, "Moved
+  Utilities to position 2 of 3 in Bills." (`keyboardMove` in `apps/web/src/plan/dnd.ts`).
+- Proven by `e2e/reorder-keyboard.spec.ts`.

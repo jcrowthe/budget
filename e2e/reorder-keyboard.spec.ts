@@ -95,7 +95,10 @@ test("an account reorder is undone from the Plan toolbar, and by Ctrl+Z", async 
   await undo.click();
   await expect.poll(() => cashNames(page)).toEqual(["ZZ-TEST A", "ZZ-TEST B", "ZZ-TEST C"]);
   await reorder();
-  await page.locator(".plan-header, body").first().click({ position: { x: 1, y: 1 } });
+  await page
+    .locator(".plan-header, body")
+    .first()
+    .click({ position: { x: 1, y: 1 } });
   await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => cashNames(page)).toEqual(["ZZ-TEST A", "ZZ-TEST B", "ZZ-TEST C"]);
 });

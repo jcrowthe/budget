@@ -24,3 +24,13 @@
 .nav-account-row[draggable="true"] {
   cursor: grab;
 }
+
+/* Keyboard reorder announcement (aria-live): present for screen readers, not drawn. */
+.reorder-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

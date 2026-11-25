@@ -124,3 +124,15 @@ unchanged. The pure placement function and the hook live in `apps/web/src/shell/
   persists; clicks still navigate; new accounts are appended.
 - Assumed: unknown ids answer 404, and the response is the full account list. STARRED reorders only among starred
   rows of one type group.
+
+## Keyboard reorder and Undo (follow-ups)
+
+- **Keyboard (our addition; the source app has none):** with an account's link focused, **Alt+Shift+ArrowUp /
+  ArrowDown** moves it one place within its section (STARRED: within its type group; Closed doesn't reorder). It sends
+  the same `PUT …/accounts/order` as a drop, and focus returns to the moved account. The sidebar has a visually hidden
+  `aria-live="polite"` region ("Moved ZZ-TEST C to position 2 of 3.").
+- **Undo:** the reorder's change set is recorded with origin `plan` (was `register`). The Plan page's Undo button and
+  Ctrl+Z take the top entry of the shared stack (docs/undo-design.md), so they undo an account reorder; the register's
+  own Undo is unscoped too, so it still can. Only a scoped consumer (Manage Payees, origin `payees`) ignores it.
+  `plan` is the simplest consistent choice: the sidebar sits beside the Plan, and an account reorder is a
+  plan-level layout change, like a category reorder.

@@ -1,5 +1,12 @@
 import type { MonthDetail } from "@budget/schema/months";
-import { type DragEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type DragEvent,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   type CategoryMoveBody,
   type GroupMoveBody,
@@ -99,6 +106,48 @@ export function groupPlacement(
   return { kind: "group", body, gap: top ? { before: over.id } : { after: over.id } };
 }
 
+export type KeyMove =
+  | { kind: "category"; body: CategoryMoveBody; text: string }
+  | { kind: "group"; body: GroupMoveBody; text: string };
+
+/**
+ * Keyboard reorder (our addition; the source app has none): Alt+Shift+ArrowUp/ArrowDown moves the row one place among
+ * the visible rows of its group (a category) or of the plan (a group). Null at either end, for the pinned Credit Card
+ * Payments group, and for a move above it. Sends the same bodies as a drop.
+ */
+export function keyboardMove(item: DragItem, groups: Groups, dir: -1 | 1): KeyMove | null {
+  if (item.kind === "category") {
+    const g = groups.find((x) => x.id === item.groupId);
+    if (!g) return null;
+    const vis = g.categories.filter((c) => !c.hidden);
+    const i = vis.findIndex((c) => c.id === item.id);
+    const n = vis[i + dir];
+    const me = vis[i];
+    if (!me || !n) return null;
+    const body: CategoryMoveBody =
+      dir < 0
+        ? { group_id: g.id, before_category_id: n.id }
+        : { group_id: g.id, after_category_id: n.id };
+    return {
+      kind: "category",
+      body,
+      text: `Moved ${me.name} to position ${i + dir + 1} of ${vis.length} in ${g.name}.`,
+    };
+  }
+  if (item.payment) return null;
+  const vis = groups.filter((x) => !x.hidden);
+  const i = vis.findIndex((x) => x.id === item.id);
+  const n = vis[i + dir];
+  const me = vis[i];
+  if (!me || !n || (dir < 0 && n.kind !== null)) return null;
+  const body: GroupMoveBody = dir < 0 ? { before_group_id: n.id } : { after_group_id: n.id };
+  return {
+    kind: "group",
+    body,
+    text: `Moved ${me.name} to position ${i + dir + 1} of ${vis.length} groups.`,
+  };
+}
+
 /** A drag that starts in an editor (or the Assigned cell) is not a row drag. */
 const NOT_A_HANDLE = "input, textarea, [contenteditable], .cell-assigned";
 
@@ -108,6 +157,10 @@ export interface RowDragProps {
   onDragOver: (e: DragEvent<HTMLElement>) => void;
   onDrop: (e: DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
+  /** Keyboard reorder: the row is focusable, and Alt+Shift+Arrow moves it. */
+  tabIndex: number;
+  "data-row-id": string;
+  onKeyDown: (e: KeyboardEvent<HTMLElement>) => void;
 }
 
 interface State {
@@ -179,9 +232,43 @@ export function usePlanDnd({
     else handlers.current.onMoveGroup(cur.item.id, t.body);
   };
 
+  const [announcement, setAnnouncement] = useState("");
+  const refocus = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const orderKey = order(groups);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the order changes, to put focus back on the moved row
+  useEffect(() => {
+    const r = refocus.current;
+    if (!r) return;
+    clearTimeout(r.timer);
+    refocus.current = null;
+    document.querySelector<HTMLElement>(`[data-row-id="${r.id}"]`)?.focus();
+  }, [orderKey]);
+
+  const keys = (item: DragItem) => (e: KeyboardEvent<HTMLElement>) => {
+    if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey) return;
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    if ((e.target as HTMLElement).closest("input, textarea, [contenteditable]")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const m = keyboardMove(item, groupsRef.current, e.key === "ArrowUp" ? -1 : 1);
+    if (!m) return;
+    setAnnouncement(m.text);
+    if (refocus.current) clearTimeout(refocus.current.timer);
+    refocus.current = {
+      id: item.id,
+      timer: setTimeout(() => {
+        refocus.current = null;
+      }, 3000),
+    };
+    if (m.kind === "category") handlers.current.onMoveCategory(item.id, m.body);
+    else handlers.current.onMoveGroup(item.id, m.body);
+  };
+
   const rect = (e: DragEvent<HTMLElement>) => e.currentTarget.getBoundingClientRect();
 
   return {
+    /** The text of the last keyboard move, for an aria-live region. */
+    announcement,
     /** The dragged row's id, once the drag has started. */
     draggingId: state?.item.id ?? null,
     /** Where the gap row goes, or null. */
@@ -192,6 +279,12 @@ export function usePlanDnd({
         onDragStart:
           g.kind === null
             ? start({ kind: "group", id: g.id, groupId: null, payment: false })
+            : () => {},
+        tabIndex: 0,
+        "data-row-id": g.id,
+        onKeyDown:
+          g.kind === null
+            ? keys({ kind: "group", id: g.id, groupId: null, payment: false })
             : () => {},
         onDragOver: (e) => {
           const cur = ref.current;
@@ -207,6 +300,9 @@ export function usePlanDnd({
       return {
         draggable: true,
         onDragStart: start({ kind: "category", id: c.id, groupId: g.id, payment: c.kind !== null }),
+        tabIndex: 0,
+        "data-row-id": c.id,
+        onKeyDown: keys({ kind: "category", id: c.id, groupId: g.id, payment: c.kind !== null }),
         onDragOver: (e) => {
           const cur = ref.current;
           if (cur?.item.kind !== "category") return;

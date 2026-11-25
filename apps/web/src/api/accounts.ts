@@ -260,7 +260,7 @@ export function useReorderAccounts(budgetId: string) {
   const listKey = ["accounts", budgetId];
   return useMutation({
     mutationFn: (ids: string[]) =>
-      reorderAccounts(budgetId, ids, (id) => recordChange(budgetId, id, "register")),
+      reorderAccounts(budgetId, ids, (id) => recordChange(budgetId, id, "plan")),
     onMutate: async (ids) => {
       await qc.cancelQueries({ queryKey: listKey });
       const list = qc.getQueryData<Account[]>(listKey);
