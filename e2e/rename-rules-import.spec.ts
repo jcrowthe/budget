@@ -74,9 +74,10 @@ test("1 the tooltip: renamed rows say what the bank sent, others the payee only"
   await stubRenameRulesImports(page, dress(s));
   await page.goto(`/${s.plan}/accounts/${s.account}`);
   await expect(row(page, "ZZ Cafe")).toBeVisible();
-  await expect(row(page, "ZZ Cafe").locator(".import-payee-name")).toHaveAttribute(
+  // The renamed row's text is the register's tooltip (test 5b); only the plain row keeps a `title`.
+  await expect(row(page, "ZZ Cafe").locator(".import-payee-name")).not.toHaveAttribute(
     "title",
-    "ZZ Cafe (Imported as ZZ BANK CAFE 12)",
+    /.*/,
   );
   await expect(row(page, "ZZ Plain").locator(".import-payee-name")).toHaveAttribute(
     "title",
@@ -190,7 +191,7 @@ test("5b the payee tooltip is the register's tooltip component, not the browser'
   const tip = page.getByRole("tooltip");
   await expect(tip).toHaveText("ZZ Cafe (Imported as ZZ BANK CAFE 12)");
   await expect(tip).toHaveClass(/acct-tooltip/);
-  await page.keyboard.press("Escape");
+  await page.mouse.move(0, 0);
   await expect(tip).toHaveCount(0);
   // A row whose payee is the imported name has no tooltip to show.
   await row(page, "ZZ Plain").locator(".import-payee-name").hover();

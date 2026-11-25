@@ -50,7 +50,7 @@ import { useOpenAccounts } from "./openAccounts";
 import type { RegisterSearchState } from "./RegisterSearch";
 import { firstTokenText } from "./register-search";
 import { useRegisterView } from "./register-view";
-import { BankImportButton, payeeTitle } from "./rename-rules-bank-import";
+import { BankImportButton, ImportedPayeeName } from "./rename-rules-bank-import";
 import { ScheduledSection, useScheduledRows } from "./ScheduledSection";
 import { useSelection } from "./selection";
 
@@ -408,12 +408,10 @@ export function RegisterTable({
                 </button>
               </span>
             </td>
-          ) : tx.source !== null ? (
+          ) : tx.source !== null || tx.import_payee_name !== null ? (
             <td data-field="payee">
               <span className="import-payee">
-                <span className="import-payee-name" title={payeeTitle(tx)}>
-                  {tx.payee_name}
-                </span>
+                <ImportedPayeeName tx={tx} />
                 <BankImportButton budgetId={budgetId} tx={tx} />
               </span>
             </td>

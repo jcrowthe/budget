@@ -1195,6 +1195,9 @@
   gap: 6px;
   max-width: 100%;
 }
+.import-payee .acct-tip-anchor {
+  min-width: 0;
+}
 .import-payee-name {
   min-width: 0;
   overflow: hidden;

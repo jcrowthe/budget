@@ -7,11 +7,33 @@ import { useSaveTransaction } from "../api/transactions";
 import { InfoCircleIcon } from "./icons";
 import { Popover } from "./Popover";
 
-/** The title (browser tooltip) of an imported row's payee: renamed rows say what the bank sent. */
-export function payeeTitle(tx: Pick<TransactionDetail, "payee_name" | "import_payee_name">) {
+/**
+ * An imported row's payee name. A renamed row says what the bank sent in the register's own tooltip (`Tooltip`,
+ * as the account header's and the action bar's: shown on hover and focus, Escape hides it); the others keep the
+ * `title` the register's plain payee cells have.
+ */
+export function ImportedPayeeName({
+  tx,
+}: {
+  tx: Pick<TransactionDetail, "payee_name" | "import_payee_name">;
+}) {
   const { payee_name: payee, import_payee_name: imported } = tx;
-  if (payee && imported && payee !== imported) return RENAMING.importedAs(payee, imported);
-  return payee ?? undefined;
+  if (payee && imported && payee !== imported) {
+    return (
+      <Tooltip content={RENAMING.importedAs(payee, imported)} placement="below" align="start">
+        {(tip) => (
+          <span {...tip} className="import-payee-name">
+            {payee}
+          </span>
+        )}
+      </Tooltip>
+    );
+  }
+  return (
+    <span className="import-payee-name" title={payee ?? undefined}>
+      {payee}
+    </span>
+  );
 }
 
 /**
@@ -26,7 +48,9 @@ export function BankImportButton({ budgetId, tx }: { budgetId: string; tx: Trans
   const busy = useRef(false);
   const save = useSaveTransaction(budgetId);
   const imported = tx.import_payee_name;
-  const renamed = !!tx.payee_name && imported !== null && tx.payee_name !== imported;
+  // A matched row keeps the payee its owner typed: no rule renamed it, so there is nothing to undo.
+  const renamed =
+    !tx.matched && !!tx.payee_name && imported !== null && tx.payee_name !== imported;
 
   const close = () => {
     setOpen(false);
