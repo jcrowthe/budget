@@ -212,6 +212,36 @@ test("6 lists a new move and an undo the next time it is opened", async ({ page 
   await expect(back.getByRole("button").nth(1)).toContainText("Rent/Mortgage");
 });
 
+test("8 a redo of a move reads Redo, not Undo", async ({ page }) => {
+  await plan.create("recent-moves");
+  await plan.inflow(2000);
+  await plan.assign(RENT, 450);
+  await open(page);
+  await realClick(page, catRow(page, RENT).locator(".available-pill"));
+  const dlg = page.getByRole("dialog", { name: "Move money", exact: true });
+  await dlg.getByRole("textbox", { name: "Amount", exact: true }).fill("40");
+  await realClick(page, dlg.getByRole("combobox", { name: "To", exact: true }));
+  await realClick(page, page.getByRole("option").filter({ hasText: GROC }).first());
+  await realClick(page, dlg.getByRole("button", { name: "OK", exact: true }));
+  await expect(dlg).toHaveCount(0);
+  for (const name of ["Undo", "Redo"]) {
+    const done = page.waitForResponse(
+      (r) => r.request().method() === "POST" && /\/changes\/.+\/undo$/.test(r.url()),
+    );
+    await page.getByRole("button", { name, exact: true }).click();
+    await done;
+  }
+  await recentBtn(page).click();
+  await expect(cards(page)).toHaveCount(4);
+  const back = cards(page).nth(0);
+  await expect(back).toContainText("Redo");
+  await expect(back).not.toContainText("Undo");
+  await expect(back).toContainText("moved $40.00 from");
+  await expect(back.getByRole("button").first()).toContainText("Rent/Mortgage");
+  await expect(back.getByRole("button").nth(1)).toContainText("Groceries");
+  await expect(cards(page).nth(1)).toContainText("Undo");
+});
+
 test("7 the toolbar keeps its order, its tooltip and the Undo/Redo states", async ({ page }) => {
   await plan.create("recent-moves");
   await plan.inflow(1000);
