@@ -298,7 +298,7 @@ describe("MCP tools of the payee category (EXF-515)", () => {
     expect(names).toEqual(
       expect.arrayContaining(["set_payee_category_mode", "list_payee_recent_transactions"]),
     );
-    expect(names).toHaveLength(111);
+    expect(names).toHaveLength(112);
   });
 });
 

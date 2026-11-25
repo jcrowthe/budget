@@ -12,7 +12,8 @@ pinPlanClock();
 
 // 16: EXF-537 adds one set query (the card flows) to getPlanMonths, which the export reads (was 15).
 // 17: EXF-505 adds one set query (the schedules) to getPlanMonths, which the export reads (was 16).
-const CALLS = 17;
+// 18: EXF-545 adds one set query (paired loans).
+const CALLS = 18;
 
 const ins =
   "insert into transactions (id, budget_id, account_id, date, payee_name, category_id, inflow_to_ready_to_assign, memo, amount, cleared, approved, created_at, updated_at, transfer_account_id, transfer_transaction_id, parent_transaction_id, split_index) values (?, ?, ?, ?, ?, ?, 0, ?, ?, 'cleared', 1, ?, ?, ?, ?, ?, ?)";
@@ -118,7 +119,7 @@ async function large(n: number) {
 }
 
 describe("EXF-476 D1 calls", () => {
-  it("makes 17 calls for a small plan and for 1,000 transactions over 24 months", async () => {
+  it("makes 18 calls for a small plan and for 1,000 transactions over 24 months", async () => {
     const f = await buildF();
     const c = counting();
     await exportPlan(c.env, f.bid, { now: NOW });

@@ -1,5 +1,6 @@
 import {
   type CardTargetBody,
+  type DebtPaymentTargetBody,
   type Target,
   type TargetBody,
   TargetDeletedResponse,
@@ -19,7 +20,7 @@ const path = (budgetId: string, categoryId: string): `/api/v1/${string}` =>
 export const putTarget = async (
   budgetId: string,
   categoryId: string,
-  body: TargetBody | CardTargetBody,
+  body: TargetBody | CardTargetBody | DebtPaymentTargetBody,
   onChangeSet?: (id: string) => void,
 ): Promise<Target> =>
   (
@@ -53,8 +54,10 @@ const planRecord = (budgetId: string, categoryId: string) =>
 export function useSaveTarget(budgetId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { categoryId: string; body: TargetBody | CardTargetBody }) =>
-      putTarget(budgetId, v.categoryId, v.body, planRecord(budgetId, v.categoryId)),
+    mutationFn: (v: {
+      categoryId: string;
+      body: TargetBody | CardTargetBody | DebtPaymentTargetBody;
+    }) => putTarget(budgetId, v.categoryId, v.body, planRecord(budgetId, v.categoryId)),
     onMutate: () => beginWrite(qc, budgetId),
     onSettled: () => endWrite(qc, budgetId),
   });

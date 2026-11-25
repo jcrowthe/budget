@@ -87,6 +87,8 @@ const cat = (id: string, assigned: number, available: number) => ({
   upcoming: 0,
   upcoming_count: 0,
   available_after_upcoming: 0,
+  paired_account_id: null,
+  paid_this_month: 0,
   payment: null,
 });
 const detail = (): MonthDetail => ({

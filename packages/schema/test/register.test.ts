@@ -238,6 +238,8 @@ const cat = (id: string, name: string, available: number, hidden = false) => ({
   upcoming: 0,
   upcoming_count: 0,
   available_after_upcoming: available,
+  paired_account_id: null,
+  paid_this_month: 0,
   payment: null,
 });
 const groups = [

@@ -28,6 +28,11 @@ export const CardTargetType = z
   .enum(["card_payoff_by_date", "card_monthly"])
   .openapi("CardTargetType");
 
+/** Every kind of target `Target.type` names (EXF-538 card targets, EXF-545 the debt payment target). */
+export const TargetType = z
+  .enum(["card_payoff_by_date", "card_monthly", "debt_payment"])
+  .openapi("TargetType");
+
 export const TargetRepeat = z
   .object({ every: z.number().int().min(1).max(11), unit: RepeatUnit })
   .openapi("TargetRepeat");
@@ -66,8 +71,9 @@ export const Target = TargetDefinition.extend({
   budget_id: z.uuid(),
   category_id: z.uuid(),
   created_month: Month,
-  type: CardTargetType.nullable().openapi({
-    description: "The card target kind of a credit card payment category's target; null for others",
+  type: TargetType.nullable().openapi({
+    description:
+      "The card target kind of a credit card payment category's target; debt_payment for a monthly set-aside on a category paired with an open loan; null for others",
   }),
 }).openapi("Target");
 
@@ -191,8 +197,29 @@ export const CardTargetSet = z
   )
   .openapi("CardTargetSet");
 
-/** The body of PUT .../target: an ordinary target, or (payment categories only) a card target. */
-export const TargetPutBody = z.union([TargetBody, CardTargetBody]).openapi("TargetPutBody");
+/** Which day of the month a debt payment target is due: the last day, or 1 to 31. */
+export const DebtTargetDay = z.union([z.literal("last"), z.number().int().min(1).max(31)]);
+
+const debtTargetFields = {
+  type: z.literal("debt_payment"),
+  amount: Milliunits.positive({ message: "amount must be greater than 0" }),
+  day: DebtTargetDay.openapi({ description: '"last" (the last day of the month) or 1 to 31' }),
+};
+
+/** A loan-paired category's target: pay `amount` each month, by `day`. */
+export const DebtPaymentTargetBody = z.object(debtTargetFields).openapi("DebtPaymentTargetBody");
+
+export const DebtPaymentTargetSet = z
+  .object({ budget_id: z.uuid(), category_id: z.uuid(), ...debtTargetFields })
+  .openapi("DebtPaymentTargetSet");
+
+/**
+ * The body of PUT .../target: an ordinary target, or (by `type`) a card target of a payment category or a debt
+ * payment target of a loan-paired category.
+ */
+export const TargetPutBody = z
+  .union([TargetBody, CardTargetBody, DebtPaymentTargetBody])
+  .openapi("TargetPutBody");
 
 /** The owner's local date, sent with reads and writes so that targets use their calendar. */
 export const Today = IsoDate.refine((s) => isCalendarDate(s) && YEAR_RANGE.test(s), {
@@ -224,6 +251,9 @@ export type CategoryTargetMonth = z.infer<typeof CategoryTargetMonth>;
 export type Target = z.infer<typeof Target>;
 export type TargetSet = z.input<typeof TargetSet>;
 export type CardTargetType = z.infer<typeof CardTargetType>;
+export type TargetType = z.infer<typeof TargetType>;
+export type DebtPaymentTargetBody = z.input<typeof DebtPaymentTargetBody>;
+export type DebtPaymentTargetSet = z.input<typeof DebtPaymentTargetSet>;
 export type CardTargetBody = z.input<typeof CardTargetBody>;
 export type CardTargetSet = z.input<typeof CardTargetSet>;
 export type TargetBody = z.input<typeof TargetBody>;

@@ -17,6 +17,7 @@ import {
   deleteTarget,
   SnoozeRefused,
   setCardPaymentTarget,
+  setDebtPaymentTarget,
   setTarget,
   setTargetSnooze,
   TargetRefused,
@@ -33,24 +34,26 @@ const errors = {
   409: json(ErrorBody, "The target was changed concurrently"),
   422: json(
     ErrorBody,
-    "Invalid target or date; payment_category_target: an ordinary target on a credit card payment category; card_target_requires_payment_category: a card target on an ordinary category",
+    "Invalid target or date; payment_category_target: an ordinary target on a credit card payment category; card_target_requires_payment_category: a card target on an ordinary category; debt_target_requires_loan_category: a debt payment target on a category not paired with an open loan",
   ),
 };
 
 /**
- * The readable text of a failed body. TargetPutBody is a union of an ordinary and a card body: a bare union
- * says only "Invalid input", so the issues of the branch the body meant (`type` present: the card one) are used.
+ * The readable text of a failed body. TargetPutBody is a union of an ordinary, a card and a debt body: a bare
+ * union says only "Invalid input", so the issues of the branch the body meant are used (`type` "debt_payment":
+ * the debt one; any other `type`: the card one).
  */
 async function issueText(
   error: ZodError,
   c: { req: { json: () => Promise<unknown> } },
 ): Promise<string> {
   const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
-  const card = typeof body === "object" && body !== null && "type" in body;
+  const typed = typeof body === "object" && body !== null && "type" in body;
+  const branch = !typed ? 0 : body?.type === "debt_payment" ? 2 : 1;
   const flat = error.issues.flatMap((i) => {
     if (i.code !== "invalid_union") return [i];
-    const branch = (i as { errors?: ZodError["issues"][] }).errors?.[card ? 1 : 0];
-    return branch ?? [i];
+    const issues = (i as { errors?: ZodError["issues"][] }).errors?.[branch];
+    return issues ?? [i];
   });
   return flat.map((i) => i.message).join("; ");
 }
@@ -107,12 +110,19 @@ export default app
         const actor = c.get("identity").actor;
         const target =
           "type" in body
-            ? await setCardPaymentTarget(
-                c.env,
-                actor,
-                { budget_id, category_id, ...body },
-                { today },
-              )
+            ? body.type === "debt_payment"
+              ? await setDebtPaymentTarget(
+                  c.env,
+                  actor,
+                  { budget_id, category_id, ...body },
+                  { today },
+                )
+              : await setCardPaymentTarget(
+                  c.env,
+                  actor,
+                  { budget_id, category_id, ...body },
+                  { today },
+                )
             : await setTarget(c.env, actor, { budget_id, category_id, ...body }, { today });
         return c.json({ data: { target } }, 200);
       } catch (e) {

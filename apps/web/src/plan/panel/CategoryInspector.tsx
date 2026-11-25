@@ -1,3 +1,4 @@
+import { isDebtTargetDef } from "@budget/core/debt-targets";
 import type { Month } from "@budget/core/month";
 import type { MonthCategoryDetail } from "@budget/schema/months";
 import type { PlanView } from "@budget/schema/plan-views";
@@ -7,6 +8,8 @@ import { AvailablePill } from "../AvailablePill";
 import { categoryPill } from "../format";
 import { PencilIcon } from "../icons";
 import { UpcomingBox } from "../upcoming/UpcomingBox";
+import { DebtTargetCard } from "./DebtTargetCard";
+import { LoanPairedCard } from "./LoanPairedCard";
 import { NotesCard } from "./NotesCard";
 import { OverspentMessage } from "./overspentMessage";
 import { PanelCard } from "./PanelCard";
@@ -54,6 +57,9 @@ export function CategoryInspector({
   const pill = categoryPill(c, fmt);
   // A credit card payment category belongs to its account: no pencil and no target until its own inspector.
   const payment = c.kind !== null;
+  // EXF-545: a category paired with an open loan has the loan header, and the debt kind of Target card.
+  const paired = !payment && c.paired_account_id !== null;
+  const debtCard = paired && (!c.target || isDebtTargetDef(c.target.definition));
   return (
     <>
       <div className="panel-heading">
@@ -89,6 +95,7 @@ export function CategoryInspector({
         />
       ) : (
         <>
+          {paired && <LoanPairedCard budgetId={budgetId} month={month} c={c} />}
           <PanelCard
             id="panel-balance"
             title="Available Balance"
@@ -109,7 +116,17 @@ export function CategoryInspector({
             <UpcomingBox budgetId={budgetId} month={month} c={c} />
             <OverspentMessage c={c} />
           </PanelCard>
-          {!payment && (
+          {debtCard && (
+            <DebtTargetCard
+              key={c.id}
+              budgetId={budgetId}
+              month={month}
+              category={c}
+              collapsed={targetCollapsed}
+              onToggle={onToggleTarget}
+            />
+          )}
+          {!payment && !debtCard && (
             <TargetCard
               key={c.id}
               budgetId={budgetId}

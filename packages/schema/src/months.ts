@@ -55,6 +55,10 @@ export const MonthCategoryDetail = z
     upcoming_count: z.number().int(),
     /** available + upcoming; not clamped. */
     available_after_upcoming: Milliunits,
+    /** EXF-545: the open loan paired with this category (the first created, if several); null for others. */
+    paired_account_id: z.string().nullable(),
+    /** EXF-545: that loan's payments dated inside this month (milliunits; 0 when unpaired). */
+    paid_this_month: Milliunits,
   })
   .openapi("MonthCategoryDetail");
 

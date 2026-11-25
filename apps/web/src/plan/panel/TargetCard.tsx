@@ -7,10 +7,6 @@ import {
   type TargetDraft,
 } from "@budget/schema/target-form";
 import {
-  SNOOZE_LABEL,
-  SNOOZE_ONLY_CURRENT,
-  SNOOZE_TIP_BODY,
-  SNOOZE_TIP_TITLE,
   targetBreakdown,
   targetDonut,
   targetEmptyText,
@@ -19,17 +15,13 @@ import {
 } from "@budget/schema/target-wording";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useCommitAssigned } from "../../api/assigned";
 import { useDeleteTarget, useSaveTarget } from "../../api/targets";
 import { localToday } from "../../api/today";
-import { localCurrentMonth } from "../../shell/planPaths";
 
-import { QuestionCircleIcon, TargetRingIcon } from "../icons";
-import { useToggleSnooze } from "../snooze";
+import { TargetRingIcon } from "../icons";
 import { PanelCard } from "./PanelCard";
-import { PanelTooltip } from "./PanelTooltip";
-import { Switch } from "./Switch";
 import { TargetForm } from "./TargetForm";
+import { TargetSavedView } from "./TargetSavedView";
 import "./target.css";
 import { usePlanFormatter } from "../../shell/plan-formats-context";
 
@@ -88,13 +80,6 @@ export function TargetCard({
   const [waitingFor, setWaitingFor] = useState<number | null>(null);
   const save = useSaveTarget(budgetId);
   const del = useDeleteTarget(budgetId);
-  const [assignError, setAssignError] = useState(false);
-  // The to-go the Assign button has added; the button stays disabled until the month read shows another figure.
-  const [assigning, setAssigning] = useState<number | null>(null);
-  const assign = useCommitAssigned(budgetId, month, () => {
-    setAssigning(null);
-    setAssignError(true);
-  });
   // Subscribes the card to the month query, so a refetch that changes nothing still re-renders it.
   useQuery<MonthDetail>({ queryKey: ["month", budgetId, month], enabled: false });
   const reads = qc.getQueryState(["month", budgetId, month])?.dataUpdateCount ?? 0;
@@ -109,14 +94,6 @@ export function TargetCard({
     }
   }, [reads, waitingFor]);
 
-  // A new to-go figure means the month was read again after the Assign.
-  const toGo = targetMessage(c, fmt)?.assign ?? null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: clears when the figure changes
-  useEffect(() => {
-    setAssigning((a) => (a !== null && a !== toGo ? null : a));
-  }, [toGo]);
-
-  const snooze = useToggleSnooze(budgetId, month);
   const today = localToday();
   const busy = waitingFor !== null;
   const open = (d: TargetDraft) => {
@@ -199,7 +176,6 @@ export function TargetCard({
 
   const { heading, subheading } = targetHeading(t, fmt);
   const message = targetMessage(c, fmt);
-  const donut = targetDonut(c);
   return (
     <PanelCard
       id="panel-target"
@@ -208,95 +184,21 @@ export function TargetCard({
       onToggle={onToggle}
       icon={<TargetRingIcon className="target-ring-icon" width={16} height={16} />}
     >
-      <div className="target-view">
-        <div className="target-summary">
-          <div className="target-heading-block">
+      <TargetSavedView
+        budgetId={budgetId}
+        month={month}
+        c={c}
+        head={
+          <>
             <h3 className="target-heading">{heading}</h3>
             <p className="target-subheading">{subheading}</p>
-          </div>
-          {donut !== null && (
-            <Donut percent={donut} tone={message?.tone === "positive" ? "positive" : "cautious"} />
-          )}
-        </div>
-        {message && (
-          <div className={`target-message is-${message.tone}`} role="status">
-            <span>{message.text}</span>
-            {message.assign !== null && (
-              <button
-                type="button"
-                className="target-assign"
-                disabled={assigning !== null}
-                onClick={() => {
-                  if (assigning !== null) return;
-                  setAssignError(false);
-                  setAssigning(message.assign as number);
-                  void assign(c.id, c.assigned, c.assigned + (message.assign as number));
-                }}
-              >
-                Assign
-              </button>
-            )}
-          </div>
-        )}
-        {assignError && (
-          <p className="target-error" role="alert">
-            Couldn't assign.
-          </p>
-        )}
-        <div className="target-breakdown">
-          {targetBreakdown(c).map((r) => (
-            <div key={r.label}>
-              {r.rule && <hr />}
-              <div className="panel-row">
-                <span className="panel-row-label">{r.label}</span>
-                <span className="panel-row-value">{fmt.money(r.amount)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="target-edit"
-          onClick={() => open(draftFromTarget(t.definition, today, fmt))}
-        >
-          Edit Target
-        </button>
-        <div className="target-snooze">
-          <Switch
-            label={SNOOZE_LABEL}
-            checked={c.target_snoozed}
-            disabled={month !== localCurrentMonth() || snooze.waiting}
-            onChange={(on) => snooze.toggle(c.id, on)}
-          />
-          <PanelTooltip
-            align="end"
-            text={
-              <>
-                <strong>{SNOOZE_TIP_TITLE}</strong>
-                <br />
-                {SNOOZE_TIP_BODY}
-                {month !== localCurrentMonth() && (
-                  <>
-                    <br />
-                    {SNOOZE_ONLY_CURRENT}
-                  </>
-                )}
-              </>
-            }
-          >
-            {(trigger) => (
-              <button
-                type="button"
-                {...trigger}
-                className="snooze-help"
-                aria-label="About snoozing"
-              >
-                <QuestionCircleIcon />
-              </button>
-            )}
-          </PanelTooltip>
-        </div>
-      </div>
+          </>
+        }
+        message={message}
+        donut={targetDonut(c)}
+        breakdown={targetBreakdown(c)}
+        onEdit={() => open(draftFromTarget(t.definition, today, fmt))}
+      />
     </PanelCard>
   );
 }
