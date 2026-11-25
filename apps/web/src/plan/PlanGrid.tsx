@@ -227,7 +227,7 @@ export function PlanGrid({
     });
     try {
       const usage = await (what === "group" ? actions.groupUsage(id) : actions.categoryUsage(id));
-      if (usage.has_history) {
+      if (usage.has_history || usage.scheduled_count > 0) {
         setPop(dialog(usage.transaction_count, usage.scheduled_count));
         return;
       }
