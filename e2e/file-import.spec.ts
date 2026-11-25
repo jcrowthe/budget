@@ -262,6 +262,31 @@ test("EXF-988 a file already imported is marked row by row, with the count", asy
   );
 });
 
+test("EXF-1007 the header counts only new rows: a partly-overlapping file, then a fully re-imported one", async ({
+  page,
+  request,
+}) => {
+  const s = await seedFileImport(request, { kind: "worked" });
+  // The worked example already holds one of the three rows: two are new.
+  await toPreview(page, s, "three-rows.csv");
+  await expect(d2(page).locator(".file-import-mark")).toHaveCount(1);
+  await expect(d2(page).locator(".file-import-header")).toContainText(
+    "2 Transactions from three-rows.csv will be imported into",
+  );
+  await runImport(page);
+  await realClick(page, result(page).getByRole("button", { name: "OK", exact: true }));
+
+  // The same file again: nothing is new, and Import stays enabled (it matches, imports no new row).
+  await realClick(page, toolbarButton(page));
+  await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
+  await input(page).setInputFiles(fixture("three-rows.csv"));
+  await expect(d2(page).locator(".file-import-mark")).toHaveCount(3);
+  const head = d2(page).locator(".file-import-header");
+  await expect(head).toContainText("No new transactions in three-rows.csv");
+  await expect(head).not.toContainText("will be imported into");
+  await expect(importButton(page)).toBeEnabled();
+});
+
 test("AC9 OFX and QIF preview without field selects and with exactly four options", async ({
   page,
   request,
