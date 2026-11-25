@@ -1,0 +1,102 @@
+# Reorder design (EXF-496)
+
+Reorder categories inside a group, move a category to another group, and reorder groups, by dragging rows in
+the Plan grid. REST `POST …/categories/{category_id}/move` and `POST …/category_groups/{group_id}/move`, MCP
+`move_category` and `move_category_group`. Spec: `/workspace/thread/spec.md` in the Build Thread. EXF-490 is a
+different ask (sidebar **accounts**, `PUT /accounts/order`) and is out of scope.
+
+## Data
+
+No migration. `categories.sort_order` and `category_groups.sort_order` (INTEGER, no unique index) already exist.
+The display order is `(sort_order, id)` (`repositories/categories.ts` `listActive`, `listActiveInGroup`;
+`repositories/category-groups.ts` `listActive`). The order is one per plan, not per month: `months.ts`
+reads the same two lists for every month.
+
+`month_categories` is keyed `(budget_id, month, category_id)` with no group column
+(`db/schema/month-categories.ts`), so a cross-group move only changes `categories.group_id`: no statement of a
+move touches `month_categories`, Assigned/Activity/Available stay with the category in every month, the two
+groups' subtotals change because they are sums over their categories, and Ready to Assign cannot change (it
+does not depend on groups).
+
+## Sort numbers: midpoint with a gap, renormalize when there is none
+
+A move reads the destination scope once (the destination group's active categories, or the plan's active
+groups), in display order, and removes the moved row from it. The target position is between `prev` and
+`next` (either may be missing).
+
+| Case | New `sort_order` of the moved row | Rows written |
+|---|---|---|
+| empty scope | `0` | 1 |
+| first (no `prev`) | `next.sort - STRIDE` | 1 |
+| last (no `next`) | `prev.sort + STRIDE` | 1 |
+| `next.sort - prev.sort >= 2` | `floor((prev.sort + next.sort) / 2)` | 1 |
+| otherwise (adjacent or tied) | renormalize the scope with the moved row in place | the rows whose sort changes |
+
+`STRIDE = 1024`. Existing rows are consecutive (creates use `max + 1` / `min - 1`, default categories use
+`0, 1, 2…`), so the first move inside an old group usually renormalizes; after that, moves are one row until a
+gap is used up. Creates stay correct with gaps: they only need "above the min" or "below the max".
+
+**Renormalize** keeps one anchor row's value and spaces the others `STRIDE` apart around it, in the new order:
+`sort(i) = anchor.sort + (i - anchorIndex) * STRIDE`. The anchor is the scope's system row when it has one (the
+Credit Card Payments group among groups), else the first row. So a group move never writes a change_log row for
+the payment group unless the payment group itself is the one moved (the undo engine refuses any set that touches
+a payment row: `services/undo.ts` `refusals`, "A credit card payment category can't be undone").
+
+The plan is computed in TypeScript from the one read; the writes ride **one JSON parameter**
+(`json_each`), so the statement count and the bound-parameter count do not grow with the scope.
+
+## One batch per move
+
+Every move is `requirePlan`, one read of the moved row, one read of the destination group (category move), one
+read of the scope, then **one `db.batch`**:
+
+1. `change_log` rows, `action = 'update'`, `entity_type = 'category'` (or `'category_group'`), one per written
+   row (the moved row and every renumbered row), each with the full API `before` and `after` (`categoryToApi` /
+   `groupToApi` shape: `group_id`, `sort`, …). Not a single "reorder" entry: the undo engine restores per entity
+   from these rows, with its existing type maps (`repositories/undo.ts` `TYPE_MAPS.category` already has
+   `group_id` and `sort`; `category_group` has `sort`), so no map change is needed.
+2. One `update … from json_each(?)` (or a correlated `set … = (select … from json_each(?))`) writing
+   `sort_order`, `group_id` (moved category only) and `updated_at` for the same rows.
+
+Both statements carry the same guard: the moved row still has the `updated_at` read, every row in the JSON (and
+the `prev`/`next` neighbours) still has the `sort_order` and `group_id` read and is active, the destination group
+is active, and (cross-group) no other active category of the destination has the moved category's name. A lost
+race writes nothing and is retried (`MAX_ATTEMPTS = 5`, then 409 `Conflict`). D1 calls per move are constant
+(about 5, counted by a test for 10 and 100 rows, with and without a renormalize).
+
+## Rules and errors
+
+| Request | Answer |
+|---|---|
+| unknown plan, category or group in the path; unknown or deleted `group_id` in the body | 404 |
+| both `before_*` and `after_*` | 422 `unprocessable_entity` |
+| neither | the end of the destination (category) / of the plan (group) |
+| `before_*`/`after_*` not active, not in `group_id` (category), or the moved row itself | 422 `invalid_move_target` |
+| a credit card payment category to another group | 422 `payment_category_locked` |
+| any other category into the Credit Card Payments group | 422 `payment_group_locked` |
+| cross-group move where the destination already has the name (case-insensitive, trimmed) | 422 `name_taken` |
+| already at that position | 200, the row unchanged, no write, no change_log row |
+
+Decided: payment categories may be **reordered inside** their group, and the payment group may be **reordered
+among groups** (new groups are already created above it, so it is not pinned today). Their undo is refused by
+the existing system-row rule; the UI never offers a drop that the server would refuse. The Uncategorized row and
+the hidden-categories row are not categories and are neither draggable nor drop targets. Hidden categories and
+groups keep their place in the scope (the server places relative to the target id, not to what is visible).
+
+## Web (Plan grid)
+
+`apps/web/src/plan/dnd.ts`: native HTML5 drag and drop on whole `.group-row` / `.category-row` rows.
+
+- Drag start: the row gets `is-drag-source` (dimmed, opacity from a token-coloured rule); a drag that starts
+  inside an input, button or the open Assigned editor is not a row drag.
+- Over a category row while dragging a category: top half → before it, bottom half → after it (its group).
+  Over a group header while dragging a category: first in that group (works for empty and collapsed groups).
+- Dragging a group: over a group block (its header and its visible categories), the top half of the block →
+  before that group, the bottom half → after it ("below the last category places it after that group").
+- A `.drop-gap` row (one row high, `role="presentation"`) is rendered at the landing position; no gap and no
+  drop where the server would refuse (payment rules above) or where the drop changes nothing.
+- Drop: the cached month is patched in place (row moved), the move is sent through `useCategoryActions` (one
+  `beginWrite`/`endWrite`, recorded on the Undo stack like the other category writes), and the refetch brings
+  the subtotals. A failure shows the grid notice and refetches.
+
+Keyboard reordering is not offered (the source has none). Colours come only from `shell/tokens.css`.
