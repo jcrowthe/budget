@@ -15,7 +15,8 @@
   position: relative;
 }
 .loan-rate-box .account-field {
-  padding-right: var(--space-5);
+  /* room for the % suffix: the field's own inset plus the glyph */
+  padding-right: var(--space-4);
 }
 .loan-rate-suffix {
   position: absolute;
@@ -33,11 +34,18 @@
   font-weight: 400;
   color: var(--labelMuted);
 }
+.account-modal .loan-step-heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
 .loan-step-text {
   margin: 0 0 var(--space-3);
   font-weight: 400;
+  color: var(--labelSecondary);
 }
-.loan-choice {
+/* Beats the generic `.account-modal label` block rule so each choice keeps its radio-beside-text row. */
+.account-modal .loan-choice {
   display: flex;
   gap: var(--space-2);
   align-items: flex-start;
@@ -45,13 +53,16 @@
   padding: var(--space-2) 0;
   cursor: pointer;
 }
-.loan-choice input {
-  margin-top: 4px;
+.account-modal .loan-choice input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--actionPrimary);
 }
-.loan-choice .loan-choice-sub {
+.account-modal .loan-choice .loan-choice-sub {
   display: block;
+  margin-top: 2px;
   font-weight: 400;
-  color: var(--labelMuted);
+  color: var(--labelSecondary);
 }
 select.account-field {
   appearance: auto;
