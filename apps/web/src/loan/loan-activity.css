@@ -127,6 +127,10 @@
 .loan-pay-form .loan-intro {
   margin: 0 0 var(--space-3);
 }
+/* Stacked intro paragraphs read as one block; the last keeps the full gap before the first field. */
+.loan-pay-form .loan-intro:has(+ .loan-intro) {
+  margin-bottom: var(--space-2);
+}
 /* The From Account select sits under its label like the text inputs do. */
 .loan-pay-form select.field {
   margin-top: var(--space-2);
@@ -137,7 +141,12 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 2px;
+  gap: var(--space-half);
+}
+/* Keyboard focus on a menu item, like the month arrows' ring. */
+.bulk-item.loan-add-item:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: -2px;
 }
 .loan-add-label {
   color: var(--labelPrimary);
