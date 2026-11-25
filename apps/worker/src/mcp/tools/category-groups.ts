@@ -41,7 +41,7 @@ export const tools: McpToolDef[] = [
   {
     name: "move_category_group",
     description:
-      "Move a category group before_group_id or after_group_id (another group of the plan); with neither it goes last. The group keeps its categories, the order is the same in every month, and no amount changes (Ready to Assign and every month's Assigned/Activity/Available stay as they are). The Credit Card Payments group can be moved like any other. Returns {category_group} with id, name, sort, hidden and collapsed. (A before/after group that is not in the plan is a 422.)",
+      "Move a category group before_group_id or after_group_id (another group of the plan); with neither it goes last. The group keeps its categories, the order is the same in every month, and no amount changes (Ready to Assign and every month's Assigned/Activity/Available stay as they are). The Credit Card Payments group is pinned first: moving it is a 422 (payment_group_locked); nothing can be placed before it (422 invalid_move_target); after_group_id = it places the group first among the others. Returns {category_group} with id, name, sort, hidden and collapsed. (A before/after group that is not in the plan is also a 422.)",
     inputSchema: z.object({
       budget_id,
       group_id,

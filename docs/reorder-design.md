@@ -37,10 +37,12 @@ groups), in display order, and removes the moved row from it. The target positio
 gap is used up. Creates stay correct with gaps: they only need "above the min" or "below the max".
 
 **Renormalize** keeps one anchor row's value and spaces the others `STRIDE` apart around it, in the new order:
-`sort(i) = anchor.sort + (i - anchorIndex) * STRIDE`. The anchor is the scope's system row when it has one (the
-Credit Card Payments group among groups), else the first row. So a group move never writes a change_log row for
-the payment group unless the payment group itself is the one moved (the undo engine refuses any set that touches
-a payment row: `services/undo.ts` `refusals`, "A credit card payment category can't be undone").
+`sort(i) = anchor.sort + (i - anchorIndex) * STRIDE`. The anchor is the scope's first system row when it has one
+(a payment category among its group's categories), else the first row. A group move plans over the **displayed**
+order of the ordinary groups only: the Credit Card Payments group is outside its scope (the month engine always
+shows it first, and a group created after a card sorts before it in the data), so the anchor is the first ordinary
+group and a group move never writes a change_log row for the payment group. (The undo engine refuses any set that
+touches a payment row: `services/undo.ts` `refusals`.)
 
 The plan is computed in TypeScript from the one read; the writes ride **one JSON parameter**
 (`json_each`), so the statement count and the bound-parameter count do not grow with the scope.
@@ -78,6 +80,8 @@ scope (hundreds of rows) approaches D1's statement size; a group or plan of that
 | `before_*`/`after_*` not active, not in `group_id` (category), or the moved row itself | 422 `invalid_move_target` |
 | a credit card payment category to another group | 422 `payment_category_locked` |
 | the Credit Card Payments group itself | 422 `payment_group_locked` |
+| `before_group_id` = the Credit Card Payments group (nothing goes above it) | 422 `invalid_move_target` |
+| `after_group_id` = the Credit Card Payments group | the group lands first among the ordinary groups |
 | any other category into the Credit Card Payments group | 422 `payment_group_locked` |
 | cross-group move where the destination already has the name (case-insensitive, trimmed) | 422 `name_taken` |
 | already at that position | 200, the row unchanged, no write, no change_log row |
