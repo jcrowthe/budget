@@ -34,15 +34,18 @@ function toEntry(r: MoveRow, actor: string): RecentMove {
         };
   const from = side(r.from_id, r.from_name, r.from_deleted);
   const to = side(r.to_id, r.to_name, r.to_deleted);
+  const undoOrRedo = r.redo ? "redo" : "undo";
   const method: RecentMove["method"] =
     r.move_id !== null
-      ? r.move_kind === "cover" || r.move_kind === "undo"
-        ? r.move_kind
-        : "move"
+      ? r.move_kind === "cover"
+        ? "cover"
+        : r.move_kind === "undo"
+          ? undoOrRedo
+          : "move"
       : r.auto_assign
         ? "auto_assign"
         : r.undo_of
-          ? "undo"
+          ? undoOrRedo
           : "edit";
   return {
     id: r.id,
@@ -65,15 +68,32 @@ function toEntry(r: MoveRow, actor: string): RecentMove {
 export async function listRecentMoves(
   env: Env,
   _actor: string,
-  input: { budget_id: string; since?: string; type?: string },
+  input: {
+    budget_id: string;
+    since?: string;
+    type?: string;
+    month?: string;
+    category_id?: string;
+  },
 ): Promise<RecentMove[]> {
-  const q = RecentMovesQuery.parse({ since: input.since, type: input.type });
+  const q = RecentMovesQuery.parse({
+    since: input.since,
+    type: input.type,
+    month: input.month,
+    category_id: input.category_id,
+  });
   if (!isUuid(input.budget_id)) throw new NotFound("Plan");
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, input.budget_id))) throw new NotFound("Plan");
+  // A month's list has no time window of its own; since still applies when given.
   const since = q.since
     ? sinceIso(q.since)
-    : new Date(recentMovesClock.now().getTime() - RECENT_MOVES_DAYS * DAY_MS).toISOString();
-  const rows = await listMoveRows(db, input.budget_id, since);
+    : q.month
+      ? null
+      : new Date(recentMovesClock.now().getTime() - RECENT_MOVES_DAYS * DAY_MS).toISOString();
+  const rows = await listMoveRows(db, input.budget_id, since, {
+    month: q.month,
+    categoryId: q.category_id,
+  });
   return rows.map((r) => toEntry(r, r.actor)).filter((e) => matchesType(e, q.type));
 }

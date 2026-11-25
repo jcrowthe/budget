@@ -1,14 +1,17 @@
 import {
+  categoryMoveRow,
   dayGroups,
   entryText,
+  METHOD_LABEL,
   matchesType,
   type RecentMove,
   type RecentMovesType,
 } from "@budget/schema/recent-moves";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRecentMoves } from "../../api/recent-moves";
+import { useCategoryMoves, useRecentMoves } from "../../api/recent-moves";
 import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { usePlanMonth } from "../../shell/planPaths";
+import { amountClass } from "../format";
 import { monthLabel } from "../monthNav";
 import { Popover } from "../Popover";
 import "./recent-moves.css";
@@ -22,11 +25,6 @@ const FILTERED_EMPTY: Record<RecentMovesType, string> = {
   all: "No recent moves",
   moved: "No moved money in the last 34 days",
   assigned: "No assigned money in the last 34 days",
-};
-const METHOD: Partial<Record<RecentMove["method"], string>> = {
-  cover: "Cover",
-  auto_assign: "Auto-Assign",
-  undo: "Undo",
 };
 
 type Side = NonNullable<RecentMove["from"]>;
@@ -71,10 +69,18 @@ function Icon({ moved }: { moved: boolean }) {
   );
 }
 
+function Avatar({ actor }: { actor: RecentMove["actor"] }) {
+  return (
+    <span className="recent-move-avatar" title={actor.name} aria-hidden="true">
+      {actor.initial}
+    </span>
+  );
+}
+
 function Card({ e, onPick }: { e: RecentMove; onPick: (s: Side) => void }) {
   const fmt = usePlanFormatter();
   const t = entryText(e, fmt.money);
-  const method = METHOD[e.method];
+  const method = METHOD_LABEL[e.method];
   return (
     <li className="recent-move">
       <Icon moved={e.kind === "moved"} />
@@ -87,9 +93,7 @@ function Card({ e, onPick }: { e: RecentMove; onPick: (s: Side) => void }) {
         </div>
         {method && <div className="recent-move-method">{method}</div>}
       </div>
-      <span className="recent-move-avatar" title={e.actor.name} aria-hidden="true">
-        {e.actor.initial}
-      </span>
+      <Avatar actor={e.actor} />
     </li>
   );
 }
@@ -178,6 +182,104 @@ export function RecentMovesPopover({
             </ul>
           </section>
         ))}
+      </div>
+    </Popover>
+  );
+}
+
+/** A move's local day as the plan's ISO date, for `fmt.date`. */
+const localIso = (at: string) => {
+  const d = new Date(at);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+/**
+ * One category's Moves in the viewed month (EXF-506 acceptance 4): a table of DATE | MOVE | AMOUNT | who, newest
+ * first, from the same read as Recent Moves narrowed to the month and the category. Escape or Close closes it and
+ * returns focus to the clock icon.
+ */
+export function CategoryMovesPopover({
+  anchor,
+  month,
+  category,
+  onClose,
+}: {
+  anchor: HTMLElement;
+  month: string;
+  category: { id: string; name: string };
+  onClose: () => void;
+}) {
+  const { budgetId } = usePlanMonth();
+  const fmt = usePlanFormatter();
+  const q = useCategoryMoves(budgetId, month, category.id);
+  const close = useRef<HTMLButtonElement>(null);
+  useEffect(() => close.current?.focus(), []);
+  const all = q.data;
+  return (
+    <Popover
+      anchor={anchor}
+      width={546}
+      label="Moves"
+      className="category-moves-popover"
+      dismissOnOutside
+      onClose={onClose}
+    >
+      <div className="category-moves-head">
+        <h2 className="category-moves-title">Moves</h2>
+        <p className="category-moves-subtitle">{category.name}</p>
+      </div>
+      <div className="category-moves-body" aria-busy={q.isPending}>
+        {q.isPending && <p className="recent-moves-loading">Loading…</p>}
+        {q.isError && <p className="recent-moves-filtered-zero">Moves could not be loaded.</p>}
+        {all && all.length === 0 && (
+          <p className="recent-moves-filtered-zero">No moves this month</p>
+        )}
+        {all && all.length > 0 && (
+          <table className="category-moves-table" aria-label={`Moves for ${category.name}`}>
+            <thead>
+              <tr>
+                <th scope="col">DATE</th>
+                <th scope="col">MOVE</th>
+                <th scope="col" className="num">
+                  AMOUNT
+                </th>
+                <th scope="col" aria-label="By" />
+              </tr>
+            </thead>
+            <tbody>
+              {all.map((e) => {
+                const r = categoryMoveRow(e, category.id, fmt.money);
+                return (
+                  <tr key={e.id}>
+                    <td>{fmt.date(localIso(e.at))}</td>
+                    <td className="category-moves-move" title={r.text}>
+                      {r.text}
+                      {r.note && <span className="category-moves-note">{r.note}</span>}
+                    </td>
+                    <td className={`num ${amountClass(r.amount)}`}>{r.signed}</td>
+                    <td className="category-moves-by">
+                      <Avatar actor={e.actor} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div className="category-moves-actions">
+        <button
+          ref={close}
+          type="button"
+          className="popover-button is-secondary"
+          onClick={() => {
+            onClose();
+            anchor.focus();
+          }}
+        >
+          Close
+        </button>
       </div>
     </Popover>
   );
