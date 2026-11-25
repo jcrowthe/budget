@@ -17,3 +17,16 @@ beyond the Thread's recorded observations (the contract's "Source facts"); the p
 | 10 | The ▸ / ▾ caret is a text glyph; an SVG caret would not depend on the font | open |
 | 11 | The import is not on the Undo stack (`apps/web/src/undo/**` was closed to this unit) | open (follow-up) |
 | 12 | Learn More: left out (driver decision Q9) | n/a |
+
+## Design pass (after review)
+
+CSS only (`apps/web/src/file-import/file-import.css`), tokens from `shell/tokens.css`, no behaviour change.
+
+| # | Item | Status |
+|---|------|--------|
+| 13 | Body bottom padding: the global `.dialog.form .form-body` zeroed it, so the help box and the "Include…" line touched the footer rule; now `--space-3` | applied |
+| 14 | Close X in `--actionPrimary`, flush, as in the Plan Import / Export dialogs | applied |
+| 15 | Date popover lifted with `--shadowMenu`; its Save takes the primary hover (`--actionPrimary`) | applied |
+| 16 | Focus ring (`--actionPrimary`, 2px) on the amber ⓘ, the skipped toggle and Save | applied |
+| 17 | Preview table: header in `--labelSecondary` with a rule under it that stays with the sticky row; cells 6px × `--space-2`; frame radius `--radius-md` like the selects | applied |
+| 18 | A little air above the skipped note | applied |

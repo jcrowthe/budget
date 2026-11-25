@@ -27,6 +27,15 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
+/* `.dialog.form .form-body` (global) zeroes the bottom padding; the footer rule needs air above it. */
+.dialog.form .file-import-body {
+  padding-bottom: var(--space-3);
+}
+.file-import-dialog .dialog-head .icon-button {
+  display: flex;
+  padding: 0;
+  color: var(--actionPrimary);
+}
 .file-import-body p {
   margin: 0 0 var(--space-2);
 }
@@ -138,6 +147,7 @@
   border: 1px solid var(--borderSubtle);
   border-radius: var(--radius-lg);
   background: var(--backgroundTertiary);
+  box-shadow: var(--shadowMenu);
   color: var(--labelPrimary);
   font-weight: 400;
 }
@@ -154,13 +164,24 @@
   color: var(--labelPrimary);
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.15s;
+}
+.file-import-save:hover {
+  background: var(--actionPrimary);
+}
+.file-import-date-icon:focus-visible,
+.file-import-skip-toggle:focus-visible,
+.file-import-save:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
 }
 .file-import-table-wrap {
   flex: 1 1 200px;
   min-height: 120px;
   overflow: auto;
   border: 1px solid var(--borderSubtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
 }
 .file-import-table {
   width: 100%;
@@ -168,7 +189,7 @@
 }
 .file-import-table th,
 .file-import-table td {
-  padding: 4px 8px;
+  padding: 6px var(--space-2);
   text-align: left;
   vertical-align: top;
 }
@@ -176,6 +197,8 @@
   position: sticky;
   top: 0;
   background: var(--backgroundTertiary);
+  box-shadow: inset 0 -1px 0 var(--borderSubtle);
+  color: var(--labelSecondary);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -205,6 +228,9 @@
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
+}
+.file-import-skipped {
+  padding-top: var(--space-1);
 }
 .file-import-skipped p {
   margin: var(--space-1) 0;
