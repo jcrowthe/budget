@@ -98,6 +98,10 @@ test("6 button states: disabled on open, a register change does not enable Undo,
   await page.getByRole("textbox", { name: "Memo", exact: true }).press("Enter");
   await expect(page.getByRole("row").filter({ hasText: "ZZ Reg" })).toHaveCount(1);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  // The register change really was recorded: the register's own Undo is enabled.
+  await expect(
+    page.getByRole("toolbar", { name: "Register toolbar" }).getByRole("button", { name: "Undo" }),
+  ).toBeEnabled();
   const d = await openManagePayees(page, s.name);
   await expect(btn(d, "Undo")).toBeDisabled();
   await expect(btn(d, "Redo")).toBeDisabled();
