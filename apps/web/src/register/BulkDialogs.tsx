@@ -159,10 +159,13 @@ export function ReconciledSaveDialog({
   );
 }
 
+/** `reconciled`: the row is also reconciled, so this one dialog covers both warnings (EXF-981). */
 export function ClosedAccountSaveDialog({
+  reconciled = false,
   onCancel,
   onSave,
 }: {
+  reconciled?: boolean;
   onCancel: () => void;
   onSave: () => void;
 }) {
@@ -184,6 +187,12 @@ export function ClosedAccountSaveDialog({
       <p className="bulk-dialog-text">
         Editing transactions from closed accounts can result in unexpected changes to your plan.
       </p>
+      {reconciled && (
+        <p className="bulk-dialog-text">
+          This transaction is also reconciled: saving your changes may bring your reconciliation out
+          of balance.
+        </p>
+      )}
     </Modal>
   );
 }

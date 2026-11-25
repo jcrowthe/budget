@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { accountRows, seedBulk } from "./support/bulk-seed";
+import { accountRows, rewriteList, seedBulk } from "./support/bulk-seed";
 import { call, realClick } from "./support/register-seed";
+import { setViewSettings } from "./support/view-settings";
 
 const rowOf = (page: Page, payee: string) =>
   page.locator(".register-table tbody tr[data-tx]").filter({ hasText: payee });
@@ -72,6 +73,40 @@ test("saving an edit in a closed account asks first: Cancel keeps the row, Save 
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.locator(".entry-body")).toHaveCount(0);
   await expect(rowOf(page, "ZZ Rent")).toContainText("$120.00");
+  await expect.poll(amountOf).toBe(-120000);
+});
+
+test("a reconciled row in a closed account asks once, covering both facts (EXF-981)", async ({
+  page,
+  request,
+}) => {
+  const s = await seedBulk(request);
+  await call(request, "POST", `/api/v1/budgets/${s.plan}/accounts/${s.checking}/close`);
+  await setViewSettings(request, s.plan, s.checking, { show_reconciled: true });
+  await rewriteList(page, (t) => (t.id === s.rent ? { cleared: "reconciled" } : null));
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  await expect(rowOf(page, "ZZ Rent")).toBeVisible();
+  const dialogs = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: "Warning: Closed Account" });
+  const amountOf = async () =>
+    (await accountRows(request, s.plan, s.checking)).find((t) => t.id === s.rent)?.amount;
+  await rowOf(page, "ZZ Rent").locator('td[data-field="outflow"]').dblclick();
+  await outflow(page).fill("120");
+  await outflow(page).press("Enter");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("closed");
+  await expect(dialog).toContainText("reconciled");
+  await expect(dialogs).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(dialogs).toHaveCount(0);
+  await expect(page.locator(".entry-body")).toHaveCount(1);
+  expect(await amountOf()).toBe(-100000);
+  await outflow(page).press("Enter");
+  await expect(dialogs).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  // Confirming saves at once: no second dialog follows.
+  await expect(page.locator(".entry-body")).toHaveCount(0);
+  await expect(dialogs).toHaveCount(0);
   await expect.poll(amountOf).toBe(-120000);
 });
 
