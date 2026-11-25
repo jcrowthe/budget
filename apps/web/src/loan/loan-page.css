@@ -153,6 +153,9 @@
 .loan-line.current {
   stroke: var(--statusPositive);
 }
+.loan-line.simulation {
+  stroke: var(--labelWarning);
+}
 .loan-legend {
   display: flex;
   flex-wrap: wrap;
@@ -178,6 +181,9 @@
 .loan-swatch.current {
   border-top-style: dashed;
   border-color: var(--statusPositive);
+}
+.loan-swatch.simulation {
+  border-color: var(--labelWarning);
 }
 .loan-info-wrap {
   position: relative;
@@ -286,4 +292,117 @@
 .loan-step-heading {
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-md);
+}
+.loan-sim {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--space-4));
+}
+.loan-sim-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  overflow-y: auto;
+}
+.loan-sim-left,
+.loan-sim-right {
+  min-width: 0;
+}
+.loan-sim-left .field {
+  width: 100%;
+}
+.loan-sim-min,
+.loan-sim-payoff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+.loan-sim-min strong {
+  font-size: var(--font-size-lg);
+  font-variant-numeric: tabular-nums;
+}
+.loan-sim-payoff {
+  margin-bottom: var(--space-1);
+}
+.loan-sim-payoff strong {
+  font-size: var(--font-size-xl);
+  font-variant-numeric: tabular-nums;
+}
+.loan-sim-hint {
+  margin: var(--space-1) 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-sim-payoff + .loan-sim-hint {
+  margin-top: 0;
+}
+.loan-sim-label {
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-sim-right .loan-legend {
+  margin-bottom: var(--space-3);
+}
+.loan-sim-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.loan-sim-change {
+  margin: 0;
+  font-weight: 600;
+}
+.loan-sim-change + .loan-sim-change {
+  margin-top: calc(-1 * var(--space-2));
+}
+.loan-sim-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.loan-sim-figures .loan-tile {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.loan-sim-figures .loan-tile-value {
+  font-size: var(--font-size-lg);
+}
+.loan-sim-savings .loan-tile-value {
+  color: var(--labelPositiveActive);
+}
+.loan-sim-breakdown {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--separatorStandard);
+}
+.loan-sim-breakdown .loan-tile-value {
+  font-size: var(--font-size-md);
+}
+.loan-sim-summary > .loan-sim-hint {
+  margin: 0;
+  color: var(--labelTertiary);
+}
+.loan-sim-error {
+  margin: 0;
+  padding: var(--space-2) var(--space-3) 0;
+  color: var(--labelNegative);
+}
+.dialog.form .dialog-footer .loan-sim-reset {
+  margin-right: auto;
+}
+@media (max-width: 640px) {
+  .loan-sim-body {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+  .loan-sim-breakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

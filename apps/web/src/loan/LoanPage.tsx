@@ -13,12 +13,13 @@ import {
   rateLabel,
   trackSentence,
 } from "@budget/schema/loan-summary";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useLoanSummary } from "../api/loans";
 import { localToday } from "../api/today";
 import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from "../shell/icons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { LoanActivity } from "./LoanActivity";
+import { Legend, Tile } from "./LoanParts";
 import { LoanProgressChart } from "./LoanProgressChart";
 import { PairedCategoryPanel } from "./PairedCategoryPanel";
 import { PayoffSimulatorDialog } from "./PayoffSimulatorDialog";
@@ -26,39 +27,6 @@ import "./loan-page.css";
 
 /** Plans whose promo banner was dismissed this page session (B12: in memory, not persisted). */
 const dismissedPlans = new Set<string>();
-
-function Tile({ label, value }: { label: string; value: string }) {
-  return (
-    // biome-ignore lint/a11y/useSemanticElements: a fieldset would add form semantics and its own box
-    <div className="loan-tile" role="group" aria-label={label}>
-      <span className="loan-tile-label">{label}</span>
-      <span className="loan-tile-value">{value}</span>
-    </div>
-  );
-}
-
-function Legend({ cls, label, tip }: { cls: string; label: string; tip: string }) {
-  const id = useId();
-  return (
-    <li className="loan-legend-item">
-      <span className={`loan-swatch ${cls}`} aria-hidden="true" />
-      {label}
-      <span className="loan-info-wrap">
-        <button
-          type="button"
-          className="loan-info"
-          aria-label={`About ${label}`}
-          aria-describedby={id}
-        >
-          i
-        </button>
-        <span role="tooltip" id={id} className="loan-tip">
-          {tip}
-        </span>
-      </span>
-    </li>
-  );
-}
 
 /** A loan's page: summary tiles, promo banner, progress chart and paired category, above Account Activity. */
 export function LoanPage({ budgetId, account }: { budgetId: string; account: Account }) {
@@ -178,7 +146,13 @@ export function LoanPage({ budgetId, account }: { budgetId: string; account: Acc
             paired={s.paired_category}
           />
           {simulator ? (
-            <PayoffSimulatorDialog summary={s} onClose={() => setSimulator(false)} />
+            <PayoffSimulatorDialog
+              budgetId={budgetId}
+              account={account}
+              month={month}
+              summary={s}
+              onClose={() => setSimulator(false)}
+            />
           ) : null}
         </>
       ) : null}
