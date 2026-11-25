@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { addCategoryGroup, updateCategoryGroup } from "../../services/categories";
 import { deleteCategoryGroup, groupUsage } from "../../services/category-delete";
+import { moveCategoryGroup } from "../../services/category-groups";
 import type { McpToolDef } from "../types";
 
 const budget_id = z.string().min(1);
@@ -36,6 +37,26 @@ export const tools: McpToolDef[] = [
     ) => ({
       category_group: await updateCategoryGroup(env, actor, input),
     }),
+  },
+  {
+    name: "move_category_group",
+    description:
+      "Move a category group before_group_id or after_group_id (another group of the plan); with neither it goes last. The group keeps its categories, the order is the same in every month, and no amount changes (Ready to Assign and every month's Assigned/Activity/Available stay as they are). The Credit Card Payments group can be moved like any other. Returns {category_group} with id, name, sort, hidden and collapsed. (A before/after group that is not in the plan is a 422.)",
+    inputSchema: z.object({
+      budget_id,
+      group_id,
+      before_group_id: z.string().min(1).optional(),
+      after_group_id: z.string().min(1).optional(),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        group_id: string;
+        before_group_id?: string;
+        after_group_id?: string;
+      },
+      { env, actor },
+    ) => ({ category_group: await moveCategoryGroup(env, actor, input) }),
   },
   {
     name: "delete_category_group",

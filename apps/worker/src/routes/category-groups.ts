@@ -1,5 +1,6 @@
 import {
   CategoryDeletedResponse,
+  CategoryGroupMove,
   CategoryGroupNew,
   CategoryGroupResponse,
   CategoryGroupUpdate,
@@ -13,11 +14,13 @@ import { apiError } from "../middleware/errors";
 import {
   addCategoryGroup,
   HistoryExists,
+  InvalidMoveTarget,
   InvalidReassignTarget,
   NameTaken,
   updateCategoryGroup,
 } from "../services/categories";
 import { deleteCategoryGroup, groupUsage } from "../services/category-delete";
+import { moveCategoryGroup } from "../services/category-groups";
 import { PaymentLocked } from "../services/credit-payments";
 
 const tags = ["Categories"];
@@ -36,7 +39,7 @@ const errors = {
   409: json(ErrorBody, "The group has history and reassign_to is missing, or a concurrent change"),
   422: json(
     ErrorBody,
-    "Invalid request, duplicate name, invalid reassign_to, or payment_group_locked / payment_category_locked (the Credit Card Payments group and its categories)",
+    "Invalid request, duplicate name, invalid reassign_to, invalid_move_target, or payment_group_locked / payment_category_locked (the Credit Card Payments group and its categories)",
   ),
 };
 
@@ -59,6 +62,7 @@ export function categoryError(c: Context, e: unknown) {
   if (e instanceof InvalidReassignTarget) {
     return apiError(c, 422, "invalid_reassign_target", e.message);
   }
+  if (e instanceof InvalidMoveTarget) return apiError(c, 422, "invalid_move_target", e.message);
   if (e instanceof PaymentLocked) return apiError(c, 422, e.code, e.message);
   if (e instanceof HistoryExists) return apiError(c, 409, "history_exists", e.message);
   throw e;
@@ -104,6 +108,34 @@ export default app
       const { budget_id, group_id } = c.req.valid("param");
       try {
         const category_group = await updateCategoryGroup(c.env, c.get("identity").actor, {
+          budget_id,
+          group_id,
+          ...c.req.valid("json"),
+        });
+        return c.json({ data: { category_group } }, 200);
+      } catch (e) {
+        return categoryError(c, e) as never;
+      }
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/category_groups/{group_id}/move",
+      tags,
+      request: {
+        params: z.object({ budget_id: param("budget_id"), group_id: param("group_id") }),
+        body: { content: { "application/json": { schema: CategoryGroupMove } }, required: true },
+      },
+      responses: {
+        200: json(CategoryGroupResponse, "The moved group, in its new position"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, group_id } = c.req.valid("param");
+      try {
+        const category_group = await moveCategoryGroup(c.env, c.get("identity").actor, {
           budget_id,
           group_id,
           ...c.req.valid("json"),

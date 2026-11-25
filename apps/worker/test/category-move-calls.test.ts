@@ -101,7 +101,7 @@ describe("category moves: D1 calls do not grow with the rows", () => {
       };
       const [small, large] = [await measure(10), await measure(100)];
       expect(large).toBe(small);
-      expect(small).toBeLessThanOrEqual(6);
+      expect(small).toBe(5);
     });
 
     it(`${label} of a group: one batch, the same calls for 10 and 100`, async () => {
@@ -118,7 +118,7 @@ describe("category moves: D1 calls do not grow with the rows", () => {
       };
       const [small, large] = [await measure(10), await measure(100)];
       expect(large).toBe(small);
-      expect(small).toBeLessThanOrEqual(5);
+      expect(small).toBe(3);
     });
   }
 });

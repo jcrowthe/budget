@@ -6,6 +6,7 @@ import {
   CategoryGroupCreate,
   CategoryGroupNew,
   CategoryGroupUpdate,
+  CategoryMove,
   CategoryNew,
   CategoryUpdate,
 } from "@budget/schema/categories";
@@ -170,7 +171,7 @@ export const CATEGORY_NAME_TAKEN = "A category with this name already exists in 
 
 const isUuid = (s: string) => z.uuid().safeParse(s).success;
 
-async function requirePlan(db: Db, budgetId: string) {
+export async function requirePlan(db: Db, budgetId: string) {
   if (!isUuid(budgetId) || !(await budgetsRepo.findActive(db, budgetId)))
     throw new NotFound("Plan");
 }
@@ -573,4 +574,200 @@ export async function unhideAll(
     categoriesRepo.unhideAllStmt(db, budgetId, now),
   ]);
   return { group_ids: groups.map((g) => g.id), category_ids: cats.map((c) => c.id) };
+}
+
+// EXF-496: move (reorder) a category or a group. See docs/reorder-design.md.
+
+/** `before_*`/`after_*` is not an active row of the destination, or is the moved row itself. */
+export class InvalidMoveTarget extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidMoveTarget";
+  }
+}
+
+/** A PaymentLocked whose text says what a move can't do (the generic text is about rename/hide/delete). */
+export class MoveLocked extends PaymentLocked {
+  constructor(code: "payment_group_locked" | "payment_category_locked", message: string) {
+    super(code);
+    this.message = message;
+  }
+}
+
+const NO_ENTRY =
+  "Only the Credit Card Payments group's own payment categories can be in it: other categories can't be moved into it.";
+const CATEGORY_STAYS =
+  "A credit card payment category belongs to the Credit Card Payments group: it can only be reordered inside it.";
+export const GROUP_PINNED =
+  "The Credit Card Payments group stays at the top of the plan: it can't be moved.";
+
+export const STRIDE = 1024;
+
+export interface MoveScopeRow {
+  id: string;
+  sort: number;
+  kind: string | null;
+}
+export interface Placement {
+  before?: string;
+  after?: string;
+}
+export interface MovePlan {
+  sort: number;
+  /** The other rows whose sort changes (a renormalize), in display order. */
+  renumber: { id: string; from: number; to: number }[];
+}
+
+/** The scope without the moved row, the index the moved row lands at, and the rows it lands between. */
+export function placeInScope(scope: readonly MoveScopeRow[], movedId: string, p: Placement) {
+  const rest = scope.filter((r) => r.id !== movedId);
+  const ref = p.before ?? p.after;
+  let at = rest.length;
+  if (ref !== undefined) {
+    const i = rest.findIndex((r) => r.id === ref);
+    if (i < 0) throw new InvalidMoveTarget("The row to place it next to is not in the destination");
+    at = p.before !== undefined ? i : i + 1;
+  }
+  return { rest, at, prev: rest[at - 1], next: rest[at] };
+}
+
+/**
+ * Where a move lands: the new `sort` of the moved row between its neighbours (a midpoint, or STRIDE past the end),
+ * or, with no room, a renormalize of the scope around an anchor that keeps its value (the first system row, else
+ * the first row). "noop" when the row already is there.
+ */
+export function planMove(
+  scope: readonly MoveScopeRow[],
+  movedId: string,
+  p: Placement,
+): MovePlan | "noop" {
+  const { rest, at, prev, next } = placeInScope(scope, movedId, p);
+  const was = scope.findIndex((r) => r.id === movedId);
+  if (was >= 0 && was === at) return "noop";
+  if (!prev && !next) return { sort: 0, renumber: [] };
+  if (!prev && next) return { sort: next.sort - STRIDE, renumber: [] };
+  if (prev && !next) return { sort: prev.sort + STRIDE, renumber: [] };
+  if (prev && next && next.sort - prev.sort >= 2) {
+    return { sort: Math.floor((prev.sort + next.sort) / 2), renumber: [] };
+  }
+  const order: (MoveScopeRow | null)[] = [...rest.slice(0, at), null, ...rest.slice(at)];
+  const sys = rest.find((r) => r.kind !== null) ?? rest[0];
+  const anchorAt = order.indexOf(sys ?? null);
+  const base = (sys as MoveScopeRow).sort;
+  const target = (i: number) => base + (i - anchorAt) * STRIDE;
+  const renumber: MovePlan["renumber"] = [];
+  order.forEach((r, i) => {
+    if (r && r !== sys && r.sort !== target(i))
+      renumber.push({ id: r.id, from: r.sort, to: target(i) });
+  });
+  return { sort: target(at), renumber };
+}
+
+/** The `{ i, o, g, n, d, w }` JSON of a move: the moved row, the renumbered rows and the neighbours (checked only). */
+export function categoryMoveEntries(
+  scope: readonly categoriesRepo.CategoryRow[],
+  moved: categoriesRepo.CategoryRow,
+  destId: string,
+  plan: MovePlan,
+  p: Placement,
+): categoriesRepo.MoveEntry[] {
+  const { prev, next } = placeInScope(
+    scope.map((r) => ({ id: r.id, sort: r.sortOrder, kind: r.kind })),
+    moved.id,
+    p,
+  );
+  const byId = new Map(scope.map((r) => [r.id, r]));
+  const out = new Map<string, categoriesRepo.MoveEntry>();
+  out.set(moved.id, {
+    i: moved.id,
+    o: moved.sortOrder,
+    g: moved.groupId,
+    n: plan.sort,
+    d: destId,
+    w: 1,
+  });
+  for (const r of plan.renumber) {
+    out.set(r.id, { i: r.id, o: r.from, g: destId, n: r.to, d: destId, w: 1 });
+  }
+  for (const n of [prev, next]) {
+    const row = n && byId.get(n.id);
+    if (row && !out.has(row.id)) {
+      out.set(row.id, {
+        i: row.id,
+        o: row.sortOrder,
+        g: destId,
+        n: row.sortOrder,
+        d: destId,
+        w: 0,
+      });
+    }
+  }
+  return [...out.values()];
+}
+
+/**
+ * Moves a category within its group or to another group, before or after a sibling (neither: the end).
+ * One batch: change_log rows for the moved row (and any renumbered rows), then the sort/group update.
+ * month_categories is keyed by category, so a group change touches none of it and Ready to Assign cannot change.
+ */
+export async function moveCategory(
+  env: Env,
+  actor: string,
+  input: { budget_id: string; category_id: string } & CategoryMove,
+): Promise<Category> {
+  const v = CategoryMove.parse({
+    group_id: input.group_id,
+    before_category_id: input.before_category_id,
+    after_category_id: input.after_category_id,
+  });
+  const db = getDb(env);
+  await requirePlan(db, input.budget_id);
+  const placement: Placement = { before: v.before_category_id, after: v.after_category_id };
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const moved = await requireCategory(db, input.budget_id, input.category_id);
+    const dest = await requireGroup(db, input.budget_id, v.group_id);
+    const cross = dest.id !== moved.groupId;
+    if (moved.kind !== null && cross)
+      throw new MoveLocked("payment_category_locked", CATEGORY_STAYS);
+    if (moved.kind === null && dest.kind !== null)
+      throw new MoveLocked("payment_group_locked", NO_ENTRY);
+    if (cross && (await categoriesRepo.nameTaken(db, dest.id, moved.name, moved.id))) {
+      throw new NameTaken(CATEGORY_NAME_TAKEN);
+    }
+    if ([placement.before, placement.after].includes(moved.id)) {
+      throw new InvalidMoveTarget("A category can't be moved next to itself");
+    }
+    const scope = await categoriesRepo.listActiveInGroup(db, dest.id);
+    const plan = planMove(
+      scope.map((r) => ({ id: r.id, sort: r.sortOrder, kind: r.kind })),
+      moved.id,
+      placement,
+    );
+    if (plan === "noop") return categoryToApi(moved);
+    const json = JSON.stringify(categoryMoveEntries(scope, moved, dest.id, plan, placement));
+    const now = new Date().toISOString();
+    const guard = categoriesRepo.moveGuard(moved.budgetId, json, moved, {
+      id: dest.id,
+      crossGroup: cross,
+    });
+    const base: LogBase = {
+      budgetId: moved.budgetId,
+      actor,
+      action: "update",
+      entityType: "category",
+      createdAt: now,
+    };
+    const [, result] = await db.batch([
+      logSelectStmt(db, base, categoriesRepo.moveInner(moved.budgetId, json, guard), {
+        entityId: sql`id`,
+        before: categoriesRepo.categoryJson(),
+        after: categoriesRepo.categoryMovedJson(),
+      }),
+      categoriesRepo.moveSortsStmt(db, moved.budgetId, json, now, guard),
+    ]);
+    if (result.meta.changes > 0) {
+      return categoryToApi({ ...moved, groupId: dest.id, sortOrder: plan.sort, updatedAt: now });
+    }
+  }
+  throw new Conflict("Category order");
 }

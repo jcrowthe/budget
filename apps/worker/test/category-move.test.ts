@@ -400,7 +400,7 @@ describe("refusals change nothing", () => {
     expect((await moveGroup(bid, nope, {})).status).toBe(404);
   });
 
-  it("payment categories reorder inside their group; the payment group moves among groups", async () => {
+  it("payment categories reorder inside their group; the payment group is pinned", async () => {
     const bid = await plan();
     await account(bid, "creditCard", 0, "ZZ Visa");
     await account(bid, "creditCard", 0, "ZZ Amex");
@@ -410,9 +410,17 @@ describe("refusals change nothing", () => {
     expect((await moveCat(bid, p2, { group_id: pg.id, before_category_id: p1 })).status).toBe(200);
     const m1 = await month(bid, NOV);
     expect(m1.groups.find((g) => g.id === pg.id)?.categories.map((c) => c.id)).toEqual([p2, p1]);
-    const first = m1.groups[0] as { id: string };
-    expect((await moveGroup(bid, pg.id, { before_group_id: first.id })).status).toBe(200);
-    expect(groupIds(await month(bid, NOV))[0]).toBe(pg.id);
+    // The month engine pins the payment group first, so moving it is refused; others may sit after it.
+    const before = await counts2(bid);
+    const refused = await moveGroup(bid, pg.id, { after_group_id: groupIds(m1).at(-1) });
+    expect(refused.status).toBe(422);
+    expect((await body(refused)).error.name).toBe("payment_group_locked");
+    expect(await counts2(bid)).toEqual(before);
+    const last = m1.groups.at(-1) as { id: string };
+    expect((await moveGroup(bid, last.id, { after_group_id: pg.id })).status).toBe(200);
+    const m2 = await month(bid, NOV);
+    expect(groupIds(m2)[0]).toBe(pg.id);
+    expect(groupIds(m2)[1]).toBe(last.id);
   });
 });
 
@@ -433,7 +441,7 @@ describe("REST and MCP agree", () => {
   it("the same moves give the same order, payload shape and actor; refusals carry the same text", async () => {
     const run = async (via: "rest" | "mcp") => {
       const bid = await plan();
-      await account(bid, "creditCard", 0);
+      await account(bid, "creditCard", 0, "ZZ Visa");
       const m = await month(bid, NOV);
       const needs = group(m, "Needs");
       const bills = group(m, "Bills");
