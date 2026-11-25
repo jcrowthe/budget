@@ -241,6 +241,27 @@ test("AC7 and AC8 the worked example merges one row, and a re-import matches all
   expect((await imports(request, s.plan, s.checking)).length).toBe(before);
 });
 
+test("EXF-988 a file already imported is marked row by row, with the count", async ({
+  page,
+  request,
+}) => {
+  const s = await seedFileImport(request, { kind: "worked" });
+  await toPreview(page, s, "three-rows.csv");
+  await expect(d2(page).locator(".file-import-mark")).toHaveCount(1);
+  await runImport(page);
+  await realClick(page, result(page).getByRole("button", { name: "OK", exact: true }));
+
+  await realClick(page, toolbarButton(page));
+  await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
+  await input(page).setInputFiles(fixture("three-rows.csv"));
+  await expect(previewRows(page).first()).toBeVisible();
+  await expect(d2(page).locator(".file-import-mark")).toHaveCount(3);
+  await expect(previewRows(page).first()).toContainText("Already imported");
+  await expect(d2(page).getByRole("status")).toHaveText(
+    "3 transactions will be matched or skipped",
+  );
+});
+
 test("AC9 OFX and QIF preview without field selects and with exactly four options", async ({
   page,
   request,
