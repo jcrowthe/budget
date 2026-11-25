@@ -139,6 +139,11 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
       payeeSystem: payee.system,
       payeeName: sql<string | null>`${payee.name}`.as("payee_label"),
       rowPayeeName: transactions.payeeName,
+      payeeId: sql<string | null>`${transactions.payeeId}`.as("payee_ref"),
+      isSplit:
+        sql<number>`exists (select 1 from transactions c where c.parent_transaction_id = ${transactions.id} and c.deleted_at is null)`.as(
+          "is_split",
+        ),
     })
     .from(transactions)
     .leftJoin(payee, eq(payee.id, transactions.payeeId))
@@ -158,11 +163,15 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
 
 /**
  * EXF-542: the latest date of the loan's live interest rows in `month` that are not reconciled (the edited line's
- * "Edited on"); one row, `edited_on` null when there are none.
+ * "Edited on"), and the id of the row with that date (the line's handle for edit and delete): one statement, no
+ * row when there are none.
  */
 export function editedOnQuery(db: Db, budgetId: string, loanId: string, month: Month) {
   return db
-    .select({ editedOn: sql<string | null>`max(${transactions.date})`.as("edited_on") })
+    .select({
+      editedOn: sql<string | null>`max(${transactions.date}) over ()`.as("edited_on"),
+      latestId: sql<string>`${transactions.id}`.as("latest_id"),
+    })
     .from(transactions)
     .innerJoin(payee, eq(payee.id, transactions.payeeId))
     .where(
@@ -175,7 +184,9 @@ export function editedOnQuery(db: Db, budgetId: string, loanId: string, month: M
         eq(payee.system, LOAN_INTEREST_SYSTEM),
         sql`${transactions.cleared} <> 'reconciled'`,
       ),
-    );
+    )
+    .orderBy(desc(transactions.date), desc(transactions.createdAt))
+    .limit(1);
 }
 
 /** The source of the loan's latest payment, when it is still an open, live, on-plan cash account. */

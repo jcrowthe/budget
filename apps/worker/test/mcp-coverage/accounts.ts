@@ -23,6 +23,12 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/accounts/{account_id}/activity": { tool: "get_loan_activity" },
   "GET /budgets/{budget_id}/accounts/{account_id}/summary": { tool: "get_loan_summary" },
   "POST /budgets/{budget_id}/accounts/{account_id}/activity": { tool: "add_loan_activity" },
+  "PATCH /budgets/{budget_id}/accounts/{account_id}/activity/{transaction_id}": {
+    tool: "update_loan_activity",
+  },
+  "DELETE /budgets/{budget_id}/accounts/{account_id}/activity/{transaction_id}": {
+    tool: "delete_loan_activity",
+  },
   "POST /budgets/{budget_id}/accounts/{account_id}/payoff-simulation": {
     tool: "simulate_loan_payoff",
   },

@@ -155,11 +155,11 @@ describe("pair with a new category", () => {
     const t = await put(w.bid, w.auto.id, {
       new_category: { name: "x", new_group_name: takenGroup },
     });
-    expect((await errorOf(t)).message).toBe("This group name already exists");
+    expect((await errorOf(t)).detail).toBe("This group name already exists");
     const c = await put(w.bid, w.auto.id, {
       new_category: { name: takenCat, group_id: taken.group_id },
     });
-    expect((await errorOf(c)).message).toBe(
+    expect((await errorOf(c)).detail).toBe(
       "A category with this name already exists in this group",
     );
     expect(await paired(w.bid, w.auto.id)).toBeNull();

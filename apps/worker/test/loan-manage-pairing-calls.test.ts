@@ -115,8 +115,9 @@ async function measure(n: number, kind: Kind) {
   return c.calls();
 }
 
-// Measured on this build: see docs/loan-manage-design.md "Build notes".
-const PINNED: Record<Kind, number> = { unpair: -1, "new-group": -1, "existing-group": -1 };
+// Measured: unpair = plan, account, facts reads, one batch; new category adds the checks and the sort reads of
+// EXF-482's statements (a new group needs one sort read less than an existing one needs, plus the group's name check).
+const PINNED: Record<Kind, number> = { unpair: 6, "new-group": 8, "existing-group": 9 };
 
 describe("pairing writes: constant D1 calls", () => {
   it.each(Object.keys(PINNED) as Kind[])("%s: the same for 10 and 100", async (kind) => {

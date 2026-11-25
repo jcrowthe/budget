@@ -3,6 +3,7 @@ import { LoanPairingRequest, LoanPairingResponse } from "@budget/schema/loan-sum
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
+import { LoanRefused } from "../services/accounts";
 import { pairLoanCategory } from "../services/loan-pairing";
 import { TransactionRefused } from "../services/transactions";
 
@@ -34,7 +35,7 @@ export default app.openapi(
     method: "put",
     path: "/budgets/{budget_id}/accounts/{account_id}/paired-category",
     tags: ["Accounts"],
-    summary: "Pair a loan with an existing plan category (or re-pair it)",
+    summary: "Pair a loan with a category, a new category, or unpair it",
     request: {
       params: z.object({ budget_id: param("budget_id"), account_id: param("account_id") }),
       body: { content: { "application/json": { schema: LoanPairingRequest } }, required: true },
@@ -43,7 +44,10 @@ export default app.openapi(
       200: json(LoanPairingResponse, "The updated loan account"),
       403: json(ErrorBody, "Forbidden"),
       404: json(ErrorBody, "Plan or account not found"),
-      422: json(ErrorBody, "Not a loan, closed, or a category that cannot be paired"),
+      422: json(
+        ErrorBody,
+        "Not a loan, closed, a category or group that cannot be used, a taken name, or both/neither of category_id and new_category",
+      ),
     },
   }),
   async (c) => {
@@ -58,6 +62,9 @@ export default app.openapi(
       );
       return c.json({ data: { account } }, 200);
     } catch (e) {
+      if (e instanceof LoanRefused) {
+        return apiError(c, 422, "unprocessable_entity", e.message) as never;
+      }
       if (e instanceof TransactionRefused) {
         return apiError(c, e.status, e.code, e.message) as never;
       }

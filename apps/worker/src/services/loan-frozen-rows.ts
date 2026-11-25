@@ -1,4 +1,8 @@
-import { type LOAN_ESCROW_SYSTEM, LOAN_INTEREST_SYSTEM } from "@budget/core/loan-engine";
+import {
+  type LOAN_ESCROW_SYSTEM,
+  LOAN_INTEREST_SYSTEM,
+  type LoanMonthIn,
+} from "@budget/core/loan-engine";
 import type { Month } from "@budget/core/month";
 import { LOAN_ESCROW_PAYEE, LOAN_INTEREST_PAYEE } from "@budget/schema/loan-balance-update";
 import type { TransactionRow } from "../repositories/transactions";
@@ -46,4 +50,19 @@ export function frozenLoanRow(o: {
     deletedAt: null,
     updatedAt: o.now,
   };
+}
+
+/** `months` with `change` applied to `month` (a blank month is added when it has no row yet). */
+export function changeMonth(
+  months: readonly LoanMonthIn[],
+  month: Month,
+  change: (m: LoanMonthIn) => LoanMonthIn,
+): LoanMonthIn[] {
+  const base: LoanMonthIn[] = months.some((m) => m.month === month)
+    ? [...months]
+    : [
+        ...months,
+        { month, payments: 0, starting: 0, other: 0, interest_rows: null, escrow_rows: null },
+      ];
+  return base.map((m) => (m.month === month ? change(m) : m));
 }

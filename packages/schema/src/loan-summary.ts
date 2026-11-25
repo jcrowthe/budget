@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { Account } from "./accounts";
+import { Account, LoanNewCategory } from "./accounts";
 import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
@@ -88,11 +88,23 @@ export const LoanSummaryResponse = dataEnvelope(LoanSummary);
 export const LoanSummaryQuery = z.object({ month: Month.optional() }).openapi("LoanSummaryQuery");
 
 export const LoanPairingRequest = z
-  .object({ category_id: z.string().min(1) })
+  .object({
+    category_id: z.string().min(1).nullable().optional().openapi({
+      description: "Pair with this existing category, or null to unpair the loan",
+    }),
+    new_category: LoanNewCategory.optional(),
+  })
   .strict()
+  .refine((o) => (o.category_id !== undefined) !== (o.new_category !== undefined), {
+    message: "send exactly one of category_id (an id, or null to unpair) and new_category",
+  })
   .openapi("LoanPairingRequest");
 export type LoanPairingRequest = z.infer<typeof LoanPairingRequest>;
 export const LoanPairingResponse = dataEnvelope(z.object({ account: Account }));
+
+export const UNPAIR_LABEL = "Unpair";
+export const UNPAIR_TITLE = "Unpair this loan?";
+export const UNPAIR_BODY = "The category stays in your plan with its money and target.";
 
 export const UNPAIRABLE_CATEGORY_TEXT =
   "paired_category_id must be an active, visible category of this plan that is not a payment category";

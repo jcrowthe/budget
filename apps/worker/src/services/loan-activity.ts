@@ -80,6 +80,12 @@ export async function getLoanActivity(
                 r.otherName ??
                 (r.amount < 0 ? FEE_LABEL : r.amount > 0 ? CREDIT_LABEL : "Transaction")),
         memo: r.memo,
+        reconciled: r.cleared === "reconciled",
+        editable:
+          r.payeeId === null &&
+          r.transferAccountId === null &&
+          !r.isSplit &&
+          r.cleared !== "reconciled",
       });
     }
   }
@@ -92,9 +98,11 @@ export async function getLoanActivity(
       ? {
           ...result.interest,
           edited_on: result.interest.state === "edited" ? (edited[0]?.editedOn ?? null) : null,
+          transaction_id: result.interest.state === "edited" ? (edited[0]?.latestId ?? null) : null,
+          editable: result.interest.state === "edited",
         }
       : null,
-    escrow: result.escrow,
+    escrow: result.escrow ? { ...result.escrow, editable: false } : null,
     other,
     last_payment_from_account_id: last[0]?.id ?? null,
   };

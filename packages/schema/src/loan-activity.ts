@@ -36,11 +36,25 @@ export const LoanInterestLine = z
       description:
         "state edited: the latest date of the month's stored interest rows that are not reconciled (Add Interest); null otherwise",
     }),
+    transaction_id: z.string().nullable().openapi({
+      description:
+        "state edited: the id of the latest stored interest row that is not reconciled; PATCH or DELETE it to change the whole line. null otherwise",
+    }),
+    editable: z.boolean().openapi({
+      description:
+        "true when the line is edited (has stored rows that are not reconciled): it can be edited or deleted. False for an estimated or reconciled line",
+    }),
   })
   .openapi("LoanInterestLine");
 
 export const LoanEscrowLine = z
-  .object({ amount: Milliunits.openapi({ description: "Escrow booked, negative" }), state: State })
+  .object({
+    amount: Milliunits.openapi({ description: "Escrow booked, negative" }),
+    state: State,
+    editable: z
+      .boolean()
+      .openapi({ description: "Always false: escrow lines are not edited here" }),
+  })
   .openapi("LoanEscrowLine");
 
 export const LoanOtherRow = z
@@ -53,6 +67,14 @@ export const LoanOtherRow = z
         'The payee name, "Initial Balance" for the Starting Balance row, or "Fee or Charge" / "Credit" for a row with no payee',
     }),
     memo: z.string().nullable(),
+    editable: z.boolean().openapi({
+      description:
+        "true for a fee or credit (no payee, no transfer, not a split) that is not reconciled: PATCH or DELETE it. False for Initial Balance, a payee's row and a reconciled row",
+    }),
+    reconciled: z.boolean().openapi({
+      description:
+        "The row was reconciled (a Balance adjustment from Update Balance): not editable",
+    }),
   })
   .openapi("LoanOtherRow");
 
@@ -89,6 +111,9 @@ export const NO_PAYMENTS_TEXT = "No payments this month";
 export const ESCROW_NOTE = "Set aside by your lender";
 export const LOAN_PAYMENT_SOURCE_TEXT =
   "Pay a loan from an on-plan cash account (checking, savings or cash)";
+export const NOT_EDITABLE_TEXT = "Reconciled, not editable";
+export const RECONCILED_LINE_TEXT =
+  "This line was reconciled by Update Balance and can't be changed";
 export const NOT_A_LOAN_TEXT = (name: string) => `${name} is not a loan account`;
 export const AMOUNT_REQUIRED_TEXT = (name: string) =>
   `${name} has no paired category with money available to pay; send an amount`;
