@@ -189,8 +189,8 @@ export function ClosedAccountSaveDialog({
       </p>
       {reconciled && (
         <p className="bulk-dialog-text">
-          This transaction is also reconciled: saving your changes may bring your reconciliation
-          out of balance.
+          This transaction is also reconciled: saving your changes may bring your reconciliation out
+          of balance.
         </p>
       )}
     </Modal>
