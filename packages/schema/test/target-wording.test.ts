@@ -594,3 +594,49 @@ describe("snoozed target", () => {
     expect(c.target && targetBreakdown(c).length).toBeGreaterThan(0);
   });
 });
+
+// EXF-545: a loan's paired category says "needed by", never "more", until something is assigned.
+describe("debt payment target wording", () => {
+  const paired = (o: Partial<TargetCategory> & { paired_account_id: string | null }) => {
+    const def = D({ amount: 1500000 });
+    return {
+      carried: 0,
+      assigned: 0,
+      activity: 0,
+      available: 0,
+      target: {
+        definition: def,
+        status: "underfunded",
+        needed_this_month: 1500000,
+        amount_this_month: 1500000,
+        funded: 0,
+        to_go_this_month: 1500000,
+        overall_to_go: 1500000,
+        overfunded: 0,
+        percent: 0,
+        due_this_month: true,
+        period_due_date: "2026-11-30",
+      },
+      ...o,
+    } as TargetCategory;
+  };
+  const say = (c: TargetCategory) => targetStatusText(c);
+  it("underfunded: needed by the 30th", () => {
+    expect(say(paired({ paired_account_id: "loan-1" }))).toEqual({
+      amount: "$1,500.00",
+      text: " needed by the 30th",
+    });
+  });
+  it("funded and fully spent: Fully Spent", () => {
+    const c = paired({ paired_account_id: "loan-1", assigned: 1500000, activity: -1500000 });
+    (c.target as CategoryTargetMonth).status = "funded";
+    (c.target as CategoryTargetMonth).funded = 1500000;
+    expect(say(c)).toEqual({ amount: null, text: "Fully Spent" });
+  });
+  it("an unpaired category keeps its wording", () => {
+    expect(say(paired({ paired_account_id: null }))).toEqual({
+      amount: "$1,500.00",
+      text: " more needed by the 30th",
+    });
+  });
+});
