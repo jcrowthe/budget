@@ -8,6 +8,7 @@ import {
   otherLine,
   paymentLine,
 } from "@budget/schema/loan-activity";
+import type { AddActivityId } from "@budget/schema/loan-add-activity";
 import { useState } from "react";
 import { useLoanActivity } from "../api/loans";
 import { useMonthRange } from "../api/months";
@@ -16,6 +17,8 @@ import { canNext, canPrev, navLimits } from "../plan/monthNav";
 import { ChevronCircleLeftIcon, ChevronCircleRightIcon } from "../plan/monthNavIcons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import "./loan-activity.css";
+import { AddActivityMenu } from "./AddActivityMenu";
+import { type AddKind, AddLoanActivityDialog } from "./AddLoanActivityDialog";
 import { RecordLoanPaymentDialog } from "./RecordLoanPaymentDialog";
 
 /** "2026-11-01" -> "November 2026". */
@@ -47,6 +50,7 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
   const current = `${localToday().slice(0, 7)}-01` as Month;
   const [month, setMonth] = useState<Month>(current);
   const [paying, setPaying] = useState(false);
+  const [adding, setAdding] = useState<AddKind | null>(null);
   const limits = navLimits(useMonthRange(budgetId).data, current);
   const { data: a, isError } = useLoanActivity(budgetId, account.id, month);
   const mag = (n: number) => fmt.abs(n);
@@ -78,9 +82,12 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
             <ChevronCircleRightIcon size={24} />
           </button>
         </div>
-        <button type="button" className="primary" onClick={() => setPaying(true)}>
+        <button type="button" className="secondary" onClick={() => setPaying(true)}>
           Record Payment
         </button>
+        <AddActivityMenu
+          onPick={(id: AddActivityId) => (id === "payment" ? setPaying(true) : setAdding(id))}
+        />
       </div>
       {isError ? (
         <p className="error-bar" role="alert">
@@ -151,6 +158,14 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
             </section>
           ) : null}
         </>
+      ) : null}
+      {adding ? (
+        <AddLoanActivityDialog
+          budgetId={budgetId}
+          loanId={account.id}
+          kind={adding}
+          onClose={() => setAdding(null)}
+        />
       ) : null}
       {paying ? (
         <RecordLoanPaymentDialog

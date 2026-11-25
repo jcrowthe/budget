@@ -3,6 +3,10 @@ import type { CardPaymentRequest as CardPaymentRequestSchema } from "@budget/sch
 import { CardPaymentResponse } from "@budget/schema/card-payments";
 import { LoanActivityResponse } from "@budget/schema/loan-activity";
 import {
+  type LoanAddActivityRequest,
+  LoanAddActivityResponse,
+} from "@budget/schema/loan-add-activity";
+import {
   type LoanBalanceUpdateRequest,
   LoanBalanceUpdateResponse,
 } from "@budget/schema/loan-balance-update";
@@ -53,6 +57,30 @@ export function useRecordLoanPayment(budgetId: string, loanId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CardPaymentRequest) => recordLoanPayment(budgetId, loanId, input),
+    onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
+  });
+}
+
+export const addLoanActivity = async (
+  budgetId: string,
+  loanId: string,
+  input: LoanAddActivityRequest,
+) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/activity`, {
+      method: "POST",
+      body: input,
+      idempotencyKey: crypto.randomUUID(),
+      onChangeSet: (id) => recordChange(budgetId, id, "register"),
+      schema: LoanAddActivityResponse,
+    })
+  ).data;
+
+/** Add Interest, Fee or Charge, Credit. On success every query of the plan refetches. */
+export function useAddLoanActivity(budgetId: string, loanId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LoanAddActivityRequest) => addLoanActivity(budgetId, loanId, input),
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });
 }

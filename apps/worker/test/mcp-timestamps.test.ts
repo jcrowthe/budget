@@ -560,6 +560,7 @@ const NOT_CALLED: Record<string, string> = {
     "the seed has no loan account; covered by loan-summary.test.ts; balance_updated_at is the account's last_reconciled_at",
   pair_loan_category:
     "the seed has no loan account; covered by loan-pairing.test.ts; returns the account as update_account does",
+  add_loan_activity: "the seed has no loan account; covered by loan-add-activity.test.ts",
   update_loan_balance:
     "the seed has no loan account; covered by loan-balance-update.test.ts; balance_updated_at is the account's last_reconciled_at",
   cancel_budget_import: "needs an unfinished import; covered by plan-import-steps.test.ts",
