@@ -159,7 +159,8 @@ export function PayoffSimulatorDialog({
         <div className="form-body loan-sim-body">
           <div className="loan-sim-left">
             <div className="loan-sim-min">
-              <strong>{money(s.minimum_payment)}</strong> Required Minimum Payment
+              <span className="loan-sim-label">Required Minimum Payment</span>
+              <strong>{money(s.minimum_payment)}</strong>
             </div>
             <label htmlFor="sim-payment">Monthly Payment</label>
             <input
@@ -228,7 +229,7 @@ export function PayoffSimulatorDialog({
                       {l}
                     </p>
                   ))}
-                  <div className="loan-sim-figures">
+                  <div className="loan-sim-figures loan-sim-savings">
                     <Tile label="Interest Savings" value={money(sim.interest_savings)} />
                     <Tile
                       label="Time Savings"
@@ -252,7 +253,7 @@ export function PayoffSimulatorDialog({
                   </div>
                 </>
               )}
-              <div className="loan-sim-figures">
+              <div className="loan-sim-figures loan-sim-breakdown">
                 <Tile label="Remaining to Pay" value={fmt.abs(remainingToPay)} />
                 <Tile label="Principal" value={fmt.abs(principal)} />
                 <Tile label="Interest" value={fmt.abs(interest)} />
@@ -267,6 +268,11 @@ export function PayoffSimulatorDialog({
           </p>
         ) : null}
         <div className="dialog-footer">
+          {canReset ? (
+            <button type="button" className="ghost loan-sim-reset" onClick={resetAll}>
+              {RESET_ALL}
+            </button>
+          ) : null}
           {canCopy ? (
             <button
               type="button"
@@ -275,11 +281,6 @@ export function PayoffSimulatorDialog({
               onClick={() => void copyToPlan()}
             >
               {COPY_TO_PLAN}
-            </button>
-          ) : null}
-          {canReset ? (
-            <button type="button" className="secondary" onClick={resetAll}>
-              {RESET_ALL}
             </button>
           ) : null}
           <button type="button" className="primary" onClick={onClose}>
