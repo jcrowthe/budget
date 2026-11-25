@@ -16,7 +16,7 @@ import {
 import { useId, useState } from "react";
 import { useLoanSummary } from "../api/loans";
 import { localToday } from "../api/today";
-import { CloseIcon } from "../shell/icons";
+import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from "../shell/icons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { LoanActivity } from "./LoanActivity";
 import { LoanProgressChart } from "./LoanProgressChart";
@@ -116,6 +116,7 @@ export function LoanPage({ budgetId, account }: { budgetId: string; account: Acc
                 aria-expanded={open}
                 onClick={() => setOpen(!open)}
               >
+                {open ? <ChevronDownIcon /> : <ChevronRightIcon />}
                 <h2>Your Loan's Progress</h2>
               </button>
               {open ? (

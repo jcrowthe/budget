@@ -95,7 +95,7 @@ export function LoanProgressChart({
             className="loan-tick"
             x={xAt(l.at)}
             y={PAD.top + plotH + 8}
-            textAnchor="middle"
+            textAnchor={xAt(l.at) > width - PAD.right - 24 ? "end" : "middle"}
             dominantBaseline="hanging"
           >
             {l.text}

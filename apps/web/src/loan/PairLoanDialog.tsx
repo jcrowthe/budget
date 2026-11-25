@@ -38,7 +38,7 @@ export function PairLoanDialog({
   return (
     <div className="dialog-backdrop">
       <form
-        className="dialog form edit-account"
+        className="dialog form edit-account loan-pair"
         role="dialog"
         aria-modal="true"
         aria-label="Pair a Category"

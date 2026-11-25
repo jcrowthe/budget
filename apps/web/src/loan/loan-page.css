@@ -21,6 +21,7 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
   border-radius: var(--radius-lg);
   background: var(--backgroundSecondary);
 }
@@ -47,8 +48,50 @@
   flex-direction: column;
   gap: var(--space-1);
 }
+.loan-promo-text span {
+  color: var(--labelSecondary);
+}
+/* The global .primary carries a top margin for forms; in these rows it would sit off-centre. */
+.loan-promo .primary,
+.loan-unpaired .primary,
+.loan-progress-head .secondary {
+  flex-shrink: 0;
+  margin: 0;
+}
+.loan-promo .icon-button {
+  display: inline-flex;
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  color: var(--labelSecondary);
+}
+.loan-promo .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.loan-promo .icon-button:hover {
+  color: var(--labelPrimary);
+}
+.loan-progress-head .secondary {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font-weight: 600;
+  cursor: pointer;
+}
+.loan-progress-head .secondary:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.loan-promo .icon-button:focus-visible,
+.loan-progress-head .secondary:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
 .loan-card {
   padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
   border-radius: var(--radius-lg);
   background: var(--backgroundSecondary);
 }
@@ -64,12 +107,20 @@
   gap: var(--space-3);
 }
 .loan-collapse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+.loan-collapse svg {
+  width: 12px;
+  height: 12px;
+  color: var(--labelSecondary);
 }
 .loan-collapse:focus-visible,
 .loan-info:focus-visible {
@@ -157,6 +208,7 @@
   background: var(--tooltipBackground);
   box-shadow: var(--tooltipShadow);
   color: var(--tooltipLabel);
+  line-height: 1.35;
 }
 .loan-info-wrap:hover .loan-tip,
 .loan-info-wrap:focus-within .loan-tip {
@@ -179,6 +231,11 @@
 .loan-paired-rows dd,
 .loan-sim-rows dd {
   margin: var(--space-1) 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.loan-sim-rows dd {
+  font-size: var(--font-size-md);
+  font-weight: 600;
 }
 .loan-pill {
   display: inline-block;
@@ -215,9 +272,16 @@
 }
 .loan-sim-rows {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: var(--space-3);
   margin: 0 0 var(--space-3);
+}
+.loan-sim .loan-sim-rows + p {
+  margin: 0 0 var(--space-2);
+}
+.loan-pair .loan-intro {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
 }
 .loan-step-heading {
   margin: 0 0 var(--space-2);
