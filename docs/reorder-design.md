@@ -62,7 +62,11 @@ Both statements carry the same guard: the moved row still has the `updated_at` r
 the `prev`/`next` neighbours) still has the `sort_order` and `group_id` read and is active, the destination group
 is active, and (cross-group) no other active category of the destination has the moved category's name. A lost
 race writes nothing and is retried (`MAX_ATTEMPTS = 5`, then 409 `Conflict`). D1 calls per move are constant
-(about 5, counted by a test for 10 and 100 rows, with and without a renormalize).
+(counted by `test/category-move-calls.test.ts` for 10 and 100 rows, with and without a renormalize):
+**5** for a category move inside its group (plan, category, destination group, scope, batch), **6** across groups
+(plus the name check), **3** for a group move (plan, scope, batch). The JSON carries only the moved row, the
+renumbered rows and the two neighbours, and appears a few times per statement, so a renormalize of a very large
+scope (hundreds of rows) approaches D1's statement size; a group or plan of that size is not expected.
 
 ## Rules and errors
 
@@ -73,12 +77,16 @@ race writes nothing and is retried (`MAX_ATTEMPTS = 5`, then 409 `Conflict`). D1
 | neither | the end of the destination (category) / of the plan (group) |
 | `before_*`/`after_*` not active, not in `group_id` (category), or the moved row itself | 422 `invalid_move_target` |
 | a credit card payment category to another group | 422 `payment_category_locked` |
+| the Credit Card Payments group itself | 422 `payment_group_locked` |
 | any other category into the Credit Card Payments group | 422 `payment_group_locked` |
 | cross-group move where the destination already has the name (case-insensitive, trimmed) | 422 `name_taken` |
 | already at that position | 200, the row unchanged, no write, no change_log row |
 
-Decided: payment categories may be **reordered inside** their group, and the payment group may be **reordered
-among groups** (new groups are already created above it, so it is not pinned today). Their undo is refused by
+Decided: payment categories may be **reordered inside** their group. The payment group **cannot be moved**: the
+month engine (`packages/core` `budget-engine.ts` `groupOrder`) always lists it first whatever its `sort_order`,
+so a move could change nothing the user sees, and it answers 422 `payment_group_locked` (found while testing: the
+first draft allowed it and the grid ignored the result). Other groups may be placed *after* it (they land first
+among the ordinary groups); nothing can be placed above it in the grid. A payment category's undo is refused by
 the existing system-row rule; the UI never offers a drop that the server would refuse. The Uncategorized row and
 the hidden-categories row are not categories and are neither draggable nor drop targets. Hidden categories and
 groups keep their place in the scope (the server places relative to the target id, not to what is visible).
@@ -87,8 +95,8 @@ groups keep their place in the scope (the server places relative to the target i
 
 `apps/web/src/plan/dnd.ts`: native HTML5 drag and drop on whole `.group-row` / `.category-row` rows.
 
-- Drag start: the row gets `is-drag-source` (dimmed, opacity from a token-coloured rule); a drag that starts
-  inside an input, button or the open Assigned editor is not a row drag.
+- Drag start: the row (for a group, its block) gets `is-drag-source` (dimmed); a drag that starts inside an
+  input or the Assigned cell is not a row drag (buttons such as the name can start one; a click still clicks).
 - Over a category row while dragging a category: top half → before it, bottom half → after it (its group).
   Over a group header while dragging a category: first in that group (works for empty and collapsed groups).
 - Dragging a group: over a group block (its header and its visible categories), the top half of the block →

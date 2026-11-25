@@ -1134,3 +1134,20 @@ button.category-name {
 .plan-body[data-fold] .plan-inspector {
   display: none;
 }
+
+/* EXF-496: drag and drop of rows. The row being dragged is dimmed; the gap row marks where it will land. */
+.category-row.is-drag-source,
+.group-block.is-drag-source {
+  opacity: 0.4;
+}
+.drop-gap {
+  height: 36px;
+  margin: 0 14px;
+  width: auto;
+  background: var(--rowSelected);
+  border: 1px dashed var(--actionPrimary);
+  border-radius: 4px;
+}
+.bars-on .drop-gap {
+  height: 44px;
+}

@@ -105,6 +105,7 @@ test("AC2: a category dragged into another group keeps its amounts, both subtota
     data: { assigned: 120000 },
   });
   expect(res.ok()).toBe(true);
+  const rtaApi = (await month(request)).ready_to_assign;
   await open(page);
   const cells = (name: string) => catRow(page, name).locator(".num");
   const rta = page.locator(".rta-amount");
@@ -128,7 +129,7 @@ test("AC2: a category dragged into another group keeps its amounts, both subtota
   expect(moved.groups.find((g) => g.name === "Bills")?.categories.map((c) => c.name)).toContain(
     GROCERIES,
   );
-  expect(moved.ready_to_assign).toBe((await month(request)).ready_to_assign);
+  expect(moved.ready_to_assign).toBe(rtaApi);
   // The next month shows the same order.
   await page.getByRole("button", { name: "Next month" }).click();
   await expect(blockNames(page, "Bills")).toHaveText([RENT, PHONE, GROCERIES, UTILITIES]);
