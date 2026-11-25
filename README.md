@@ -3,3 +3,4 @@
 - Loans: **Update Balance** on a loan's header confirms or corrects the balance at the lender and freezes the month's interest and escrow as Reconciled ([design](docs/loan-update-balance-design.md)).
 - Loans: **Payoff Simulator** on a loan's page tries a monthly payment and a one-time extra, shows the interest and time saved, and copies the payment to the paired category's Debt Payment Target ([design](docs/loan-simulator-design.md)).
 - Loans: **Add Activity** on a loan's page records a payment, a credit, a fee or charge, or known interest ([design](docs/loan-add-activity-design.md)).
+- Loans: **Edit** or delete a recorded interest, fee or credit line; **Unpair** a loan or pair it with a new category ([design](docs/loan-manage-design.md)).

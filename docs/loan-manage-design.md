@@ -172,3 +172,25 @@ tool-count change for pairing.
 ## Not in this Build
 
 Add Escrow and editing escrow, editing payments from the loan page, plan export/import of loan rows and pairings.
+
+## Build notes
+
+- **D1 calls, measured.** PATCH and DELETE of an activity row: **4** for an interest line, a fee and a credit, for 1 vs
+  24 months, 10 vs 100 payments and 1 vs 10 interest rows in the month; a refusal (reconciled line) **3**. Account
+  Activity GET stays **3** (`editedOnQuery` is one statement with a window `max(date) over ()` and `limit 1`).
+  Pairing: unpair **6**, pair with a new category in a new group **8**, in an existing group **9**; the same for 10 vs
+  100 categories/groups and 10 vs 100 payments (`loan-manage-pairing-calls.test.ts`).
+- **Departures from the spec's order of work.**
+  - The read batch is three statements (the addressed row, the month's interest rows, `balanceGroupsQuery`); the loan
+    system payees query is not needed: an interest edit reuses the replaced rows' own payee id, so the call count is the
+    same (4).
+  - Reconciled refusals: a reconciled interest line, escrow row, Balance adjustment row and a payee-less (fee/credit)
+    row are 409 `reconciled_line`; every other row that is not a fee, credit or interest line is 422
+    `not_editable_activity`, including a reconciled payment.
+  - Moving a fee to an earlier month also moves the interest that carries into later months, so the answer's `balance`
+    is the engine's balance after the write (equal to the account's), not the old balance minus the change.
+- **Undo type maps** were not changed: every undo test passes on the existing maps (`account` update of
+  `paired_category_id`, `transaction` create/update/delete, `category` and `category_group` create).
+- **Surface.** Tool count 118 -> 120 (`update_loan_activity`, `delete_loan_activity`); `pair_loan_category` gained
+  `category_id: null` and `new_category` and no new tool. `services/accounts.ts` exports `checkNewCategory`,
+  `pairingStmts` and `explainNewCategoryRefusal` with no behaviour change (the loan-accounts specs pass unchanged).
