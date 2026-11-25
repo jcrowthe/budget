@@ -2,6 +2,7 @@ import {
   PAYEE_BULK_MAX,
   type Payee,
   PayeeBulkResponse,
+  PayeeCombineResponse,
   PayeeDeleteResponse,
   PayeeListResponse,
   PayeeRecentResponse,
@@ -119,6 +120,20 @@ export async function bulkPayees(
     });
   }
 }
+
+/** Combine and Rename: the payees become one, `targetId` (one of them) survives under `name`. */
+export const combinePayees = async (
+  b: string,
+  body: { ids: string[]; name: string; targetId: string },
+) =>
+  (
+    await apiFetch(`${base(b)}/combine`, {
+      method: "POST",
+      body: { payee_ids: body.ids, name: body.name, target_payee_id: body.targetId },
+      schema: PayeeCombineResponse,
+      ...recorded(b),
+    })
+  ).data;
 
 /** The payee's transactions for the popover; off while no payee is open. */
 export const usePayeeTransactions = (b: string, id: string | null) =>

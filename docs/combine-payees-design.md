@@ -100,7 +100,7 @@ The batch reuses the delete-with-replacement statements of EXF-882 with `replace
 
 Every statement carries the guard `liveOrdinaryCountSql(budgetId, allIds)`. The rename also carries `unchangedSql`, so a
 rename that raced the combine changes nothing, and the check then rolls everything back. Ids ride `json_each` (one bound
-parameter, `idsIn`). The batch has a fixed number of statements whatever the payees, rules or rows.
+parameter, `idsIn`). The batch has 13 statements whatever the payees, rules or rows (the rename is two no-op statements when the name stays, so the count never changes).
 
 **change_log.** The ticket asks for "one entry per affected payee". There is one per payee, plus one per moved row and
 per moved or dropped rule. The undo needs those rows: a payee `delete` whose `transactions_moved > 0` has no logged move
@@ -154,6 +154,15 @@ transactions. It also asserts the statement count of `buildPayeeCombineBatch`.
   dialog's undo stack (`recorded(b)` → `recordChange(b, id, "payees")`).
 - A refusal shows its `detail` in the card's alert. The card hides while the `New payee` delete question is open.
 - Colours come only from `shell/tokens.css` variables.
+
+## Built, as observed
+
+- A rename has never rewritten the stored `transactions.payee_name`; the reads join the live payee's name. So after a
+  combine the moved rows are stored under the new name and the survivor's own rows keep the old stored text. Every read
+  shows the new name.
+- The account register also lists a moved schedule as an upcoming row, so the live check's register shows
+  `ZZ-TEST AB` on 5 transactions and 1 upcoming row.
+- Undo needed no type-map key (the test fails only before the server code exists).
 
 ## Found, not built
 

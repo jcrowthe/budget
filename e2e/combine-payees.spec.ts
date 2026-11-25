@@ -16,7 +16,7 @@ const nameBox = (d: Dialog) => d.getByRole("textbox", { name: "New Payee Name", 
 const NOTE =
   "Combining these payees will also combine all their renaming rules and categorization rules.";
 
-/** A: 3 Groceries rows; B: 2 newer Fun rows, the rule `Contains ZZB` and a schedule. */
+/** A: 3 Groceries rows and the rule `Is ZZA`; B: 2 newer Fun rows, the rule `Contains ZZB` and a schedule. */
 async function seed(request: Parameters<typeof seedCategorization>[0]) {
   const s = await seedCategorization(request);
   for (const date of ["2026-11-01", "2026-11-02", "2026-11-03"]) {
@@ -34,6 +34,7 @@ async function seed(request: Parameters<typeof seedCategorization>[0]) {
   });
   const a = await s.payeeId("ZZ-TEST A");
   const b = await s.payeeId("ZZ-TEST B");
+  await addRuleVia(request, s.plan, a, "is", "ZZA");
   await addRuleVia(request, s.plan, b, "contains", "ZZB");
   return { ...s, a, b };
 }
@@ -74,13 +75,16 @@ test("2 Combine: one payee with the rows, the schedule, both rules and the first
   await expect(pick(d, "ZZ-TEST B")).toHaveCount(0);
   await realClick(page, pick(d, "ZZ-TEST AB"));
   await expect(btn(d, "Show 6 Transactions")).toBeVisible();
-  const rules = d.locator(".mp-rules");
-  await expect(rules.getByText("ZZB", { exact: false }).first()).toBeVisible();
-  await expect(rules.getByText("ZZ-TEST A", { exact: false }).first()).toBeVisible();
+  const ruleBoxes = d.locator(".mp-rules").getByRole("textbox", { name: "Rule text" });
+  await expect(ruleBoxes).toHaveCount(3); // the two rules and the empty row to add one
+  await expect(ruleBoxes.nth(0)).toHaveValue("ZZA");
+  await expect(ruleBoxes.nth(1)).toHaveValue("ZZB");
   await expect(d.locator(".mp-categorization")).toContainText("Groceries");
   await expect(d.locator(".mp-categorization")).not.toContainText("Fun");
   await realClick(page, btn(d, "Done"));
-  await expect(page.getByRole("row").filter({ hasText: "ZZ-TEST AB" })).toHaveCount(5);
+  // The 5 transactions and the moved schedule's upcoming row.
+  await expect(page.getByRole("row").filter({ hasText: "ZZ-TEST AB" })).toHaveCount(6);
+  await expect(page.getByRole("row").filter({ hasText: /ZZ-TEST [AB]\b(?! )/ })).toHaveCount(0);
   const list = await payees(request, s.plan);
   expect(list.filter((p) => p.name === "ZZ-TEST AB")).toHaveLength(1);
   expect(list.some((p) => p.name === "ZZ-TEST B")).toBe(false);

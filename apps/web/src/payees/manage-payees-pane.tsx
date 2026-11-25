@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { bulkPayees, deletePayee, invalidatePayeeViews, updatePayee } from "../api/payees";
 import { CategorizationCard } from "./categorization-card";
+import { CombineCard } from "./combine-card";
 import { NewPayeeSection } from "./manage-payees-delete";
 import { PayeesIllustration } from "./manage-payees-illustration";
 import { RenamingCard } from "./rename-rules-card";
@@ -170,7 +171,12 @@ export function EditPane({
   return (
     <div className={`mp-pane${deleting ? " mp-deleting" : ""}`}>
       {several ? (
-        <SelectedNames selected={selected} />
+        <>
+          <SelectedNames selected={selected} />
+          {deleting ? null : (
+            <CombineCard budgetId={budgetId} selected={selected} onDone={onClear} />
+          )}
+        </>
       ) : (
         <>
           <NameCard
