@@ -116,7 +116,7 @@ describe("category delete and the loan pairing", () => {
   it("a group delete moves or clears every pairing in it", async () => {
     const a = await seed(3);
     const r1 = await send(
-      `${B(a.bid)}/category-groups/${a.g.id}?reassign_to=${a.target}`,
+      `${B(a.bid)}/category_groups/${a.g.id}?reassign_to=${a.target}`,
       "DELETE",
     );
     expect(r1.status, await r1.clone().text()).toBe(200);
@@ -125,7 +125,7 @@ describe("category delete and the loan pairing", () => {
     expect(await acctLogs(a.bid)).toHaveLength(3);
 
     const b = await seed(3);
-    const r2 = await send(`${B(b.bid)}/category-groups/${b.g.id}`, "DELETE");
+    const r2 = await send(`${B(b.bid)}/category_groups/${b.g.id}`, "DELETE");
     expect(r2.status, await r2.clone().text()).toBe(200);
     for (const l of b.loans) expect(await paired(l)).toBeNull();
     expect(await paired(b.untouched)).toBe(b.other);

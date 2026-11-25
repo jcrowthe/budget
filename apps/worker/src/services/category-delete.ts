@@ -7,6 +7,7 @@ import { targets } from "../db/schema/targets";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
+import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
@@ -33,6 +34,8 @@ export interface DeletePlan {
   targets: targetsRepo.TargetRow[];
   /** Live schedules in the deleted categories: moved to the target, or cleared when there is none. */
   schedules?: number;
+  /** Where a loan paired with a deleted category goes: the validated `reassign_to`, even with nothing else to move; null clears it. */
+  pairTo?: string | null;
 }
 
 /**
@@ -103,6 +106,12 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
       scheduledRepo.changeCategoryStmt(db, budgetId, ids, targetId, p.now, full),
     );
   }
+  // Loans paired with a deleted category: always present (no read), a no-op when none is paired.
+  const pairTo = p.pairTo ?? null;
+  stmts.push(
+    accountsRepo.logPairingChangeStmt(db, log("account", "update"), budgetId, ids, pairTo, full),
+    accountsRepo.changePairingStmt(db, budgetId, ids, pairTo, full),
+  );
   for (const t of p.targets) {
     stmts.push(
       changeLogInsertIf(
@@ -297,6 +306,7 @@ async function run(
       targetId: useTarget,
       targets: allTargets.filter((t) => ids.includes(t.categoryId)),
       schedules,
+      pairTo: targetId,
     };
     const results = await db.batch(
       buildDeleteBatch(db, plan) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
