@@ -121,7 +121,15 @@ export const TYPE_MAPS: Record<UndoType, { table: string; keys: Key[] }> = {
   target: { table: "targets", keys: TARGET_KEYS },
   account: {
     table: "accounts",
-    keys: [K("starred"), K("paired_category_id"), K("sort", "sort_order")],
+    keys: [
+      K("starred"),
+      K("paired_category_id"),
+      K("sort", "sort_order"),
+      // EXF-543: a loan balance update stores these.
+      K("interest_rate"),
+      K("escrow_amount"),
+      K("last_reconciled_at"),
+    ],
   },
 };
 
@@ -189,6 +197,9 @@ export function netRows(c: Ctx, type: UndoType): SQL {
 
 const net = (c: Ctx, t: UndoType) => sql`${netRows(c, t)} n`;
 
+/** EXF-543: a system payee a set created is plan furniture: undo leaves it in place (no stale check, no removal). */
+const keptSystemPayee = sql`(n.kind = 'create' and json_extract(n.after_json, '$.system') is not null)`;
+
 // ---------------------------------------------------------------------------------------------------------------
 // Stale finders: the same fragment is the pre-read (a detail for the 409) and the write-time check.
 
@@ -211,7 +222,7 @@ export function staleFinder(c: Ctx, type: UndoType): SQL {
       when 'delete' then not exists (select 1 from targets x where x.category_id = n.eid)
       else ${row("1", "n.after_json")} end)`;
   }
-  const first = sql`select ${type} as t, n.eid as id from ${net(c, type)} where n.kind <> 'noop' and not (case n.kind
+  const first = sql`select ${type} as t, n.eid as id from ${net(c, type)} where n.kind <> 'noop' ${type === "payee" ? sql`and not ${keptSystemPayee}` : sql``} and not (case n.kind
       when 'delete' then ${row("x.deleted_at is not null", "n.before_json")}
       else ${row("x.deleted_at is null", "n.after_json")} end)`;
   if (type !== "transaction") return first;
@@ -299,7 +310,7 @@ export function postChecks(c: Ctx, present: ReadonlySet<UndoType>): BatchItem<"s
   const stale = (cond: SQL) => out.push(abort(c, "undo_change_set_id", cond));
   const refused = (cond: SQL) => out.push(abort(c, "actor", cond));
   if (present.has("payee"))
-    stale(sql`exists (select 1 from ${net(c, "payee")} where n.kind = 'create' and (
+    stale(sql`exists (select 1 from ${net(c, "payee")} where n.kind = 'create' and not ${keptSystemPayee} and (
       exists (select 1 from transactions t where t.payee_id = n.eid and t.deleted_at is null)
       or exists (select 1 from scheduled_transactions s where s.payee_id = n.eid and s.deleted_at is null)
       or exists (select 1 from payee_rename_rules r where r.payee_id = n.eid and r.deleted_at is null)))`);
@@ -522,7 +533,7 @@ export function softDeleteStmts(c: Ctx, type: UndoType): BatchItem<"sqlite">[] {
     default:
       return [
         run(sql`update ${t} set deleted_at = ${c.now}, updated_at = ${c.now}${type === "scheduled_transaction" ? TOKEN : sql``}
-          from ${net(c, type)} where ${t}.id = n.eid and n.kind = 'create'`),
+          from ${net(c, type)} where ${t}.id = n.eid and n.kind = 'create'${type === "payee" ? sql` and not ${keptSystemPayee}` : sql``}`),
       ];
   }
 }

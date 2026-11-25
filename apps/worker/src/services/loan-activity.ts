@@ -2,6 +2,7 @@ import { isLoanType } from "@budget/core/account-types";
 import { loanAt, runLoan } from "@budget/core/loan-engine";
 import { currentMonth, type Month } from "@budget/core/month";
 import { type LoanActivity, NOT_A_LOAN_TEXT } from "@budget/schema/loan-activity";
+import { BALANCE_ADJUSTMENT_LABEL } from "@budget/schema/loan-balance-update";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
@@ -70,7 +71,9 @@ export async function getLoanActivity(
         label:
           r.payeeSystem === "starting_balance"
             ? INITIAL_BALANCE_LABEL
-            : (r.payeeName ?? r.rowPayeeName ?? r.otherName ?? "Transaction"),
+            : r.payeeSystem === "reconciliation_adjustment" || r.payeeSystem === "manual_adjustment"
+              ? BALANCE_ADJUSTMENT_LABEL
+              : (r.payeeName ?? r.rowPayeeName ?? r.otherName ?? "Transaction"),
         memo: r.memo,
       });
     }

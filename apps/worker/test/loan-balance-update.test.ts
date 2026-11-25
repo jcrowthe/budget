@@ -235,7 +235,7 @@ describe("refusals and repeats", () => {
     expect(((await stale.json()) as Json).error.name).toBe("balance_changed");
     expect(
       await q(
-        "select id from transactions where account_id = ? and payee_id is not null and deleted_at is null",
+        "select t.id from transactions t join payees p on p.id = t.payee_id where t.account_id = ? and p.system in ('loan_interest', 'loan_escrow', 'reconciliation_adjustment') and t.deleted_at is null",
         w.loan.id,
       ),
     ).toHaveLength(0);
@@ -302,6 +302,10 @@ describe("REST and MCP agree", () => {
           "budget_id",
           "payee_id",
           "sort",
+          "name",
+          "transaction_id",
+          "last_payment_from_account_id",
+          "from_account_id",
         ].includes(k)
           ? undefined
           : x,

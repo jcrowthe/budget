@@ -128,10 +128,11 @@ export function paymentLine(
 }
 
 export function otherLine(
-  o: Pick<z.infer<typeof LoanOtherRow>, "amount" | "date" | "label">,
+  o: Pick<z.infer<typeof LoanOtherRow>, "amount" | "date" | "label"> & { memo?: string | null },
   fmt: (magnitude: number) => string,
 ): string {
-  return `${o.amount < 0 ? "-" : ""}${fmt(Math.abs(o.amount))} ${o.label} on ${dayLabel(o.date)}`;
+  const base = `${o.amount < 0 ? "-" : ""}${fmt(Math.abs(o.amount))} ${o.label} on ${dayLabel(o.date)}`;
+  return o.memo ? `${base}: ${o.memo}` : base;
 }
 
 export const RECORD_PAYMENT_TITLE = "Record Payment";
