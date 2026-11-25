@@ -2,6 +2,7 @@ import { isLoanType } from "@budget/core/account-types";
 import { loanAt, runLoan } from "@budget/core/loan-engine";
 import { currentMonth, type Month } from "@budget/core/month";
 import { type LoanActivity, NOT_A_LOAN_TEXT } from "@budget/schema/loan-activity";
+import { CREDIT_LABEL, FEE_LABEL } from "@budget/schema/loan-add-activity";
 import { BALANCE_ADJUSTMENT_LABEL } from "@budget/schema/loan-balance-update";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
@@ -15,7 +16,7 @@ export const INITIAL_BALANCE_LABEL = "Initial Balance";
 
 /**
  * One month of a loan's Account Activity. D1 calls: the plan, the account, then one batch (the loan's grouped
- * rows, the month's rows, the last payment source): the same for any number of months or payments.
+ * rows, the month's rows, the last payment source, the edited line's date): the same for any number of months or payments.
  */
 export async function getLoanActivity(
   env: Env,
@@ -31,10 +32,11 @@ export async function getLoanActivity(
     throw new TransactionRefused(422, "not_a_loan_account", NOT_A_LOAN_TEXT(loan.name));
   }
   const m = month ?? currentMonth();
-  const [grouped, rows, last] = await db.batch([
+  const [grouped, rows, last, edited] = await db.batch([
     loanRepo.loanMonthsQuery(db, budgetId, loanId),
     loanRepo.monthRowsQuery(db, budgetId, loanId, m),
     loanRepo.lastPaymentSourceQuery(db, budgetId, loanId),
+    loanRepo.editedOnQuery(db, budgetId, loanId, m),
   ]);
   const found = loanRepo.loanMonthsFromRows(grouped).get(loanId);
   const result = loanAt(
@@ -73,7 +75,10 @@ export async function getLoanActivity(
             ? INITIAL_BALANCE_LABEL
             : r.payeeSystem === "reconciliation_adjustment" || r.payeeSystem === "manual_adjustment"
               ? BALANCE_ADJUSTMENT_LABEL
-              : (r.payeeName ?? r.rowPayeeName ?? r.otherName ?? "Transaction"),
+              : (r.payeeName ??
+                r.rowPayeeName ??
+                r.otherName ??
+                (r.amount < 0 ? FEE_LABEL : r.amount > 0 ? CREDIT_LABEL : "Transaction")),
         memo: r.memo,
       });
     }
@@ -83,7 +88,12 @@ export async function getLoanActivity(
     ending_balance: result.closing,
     principal: result.principal,
     payments,
-    interest: result.interest,
+    interest: result.interest
+      ? {
+          ...result.interest,
+          edited_on: result.interest.state === "edited" ? (edited[0]?.editedOn ?? null) : null,
+        }
+      : null,
     escrow: result.escrow,
     other,
     last_payment_from_account_id: last[0]?.id ?? null,

@@ -31,14 +31,8 @@ import * as repo from "../repositories/loan-balance-update";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { accountToApi, adjustmentRow, type BatchItem, systemPayee } from "./accounts";
+import { frozenLoanRow, frozenRowDate, monthOf, utcToday } from "./loan-frozen-rows";
 import { TransactionRefused, transactionToApi } from "./transactions";
-
-const utcToday = () => new Date().toISOString().slice(0, 10);
-const monthOf = (date: string): Month => `${date.slice(0, 7)}-01`;
-const lastDayOf = (month: Month): string =>
-  new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
-    .toISOString()
-    .slice(0, 10);
 
 const refused = (balance: number) =>
   new TransactionRefused(
@@ -193,7 +187,7 @@ export async function updateLoanBalance(
     if (!line || line.state === "reconciled") return;
     const e = edited.get(`${month}|${system}`);
     const amount = line.state === "edited" ? (e?.sum ?? line.amount) : line.amount;
-    const date = e?.date ?? (month === M ? today : lastDayOf(month));
+    const date = e?.date ?? frozenRowDate(month, today);
     const sys = sysOf(system, name);
     const id = crypto.randomUUID();
     frozen.push({
@@ -202,23 +196,19 @@ export async function updateLoanBalance(
       name,
       date,
       amount,
-      img: transactionToApi({
-        id,
-        budgetId,
-        accountId: loanId,
-        date,
-        payeeId: sys.id,
-        payeeName: name,
-        categoryId: null,
-        inflowToReadyToAssign: false,
-        memo: null,
-        amount,
-        cleared: "reconciled",
-        approved: true,
-        createdAt: now,
-        deletedAt: null,
-        updatedAt: now,
-      }),
+      img: transactionToApi(
+        frozenLoanRow({
+          id,
+          budgetId,
+          accountId: loanId,
+          payeeId: sys.id,
+          system: system as typeof LOAN_INTEREST_SYSTEM | typeof LOAN_ESCROW_SYSTEM,
+          date,
+          amount,
+          cleared: "reconciled",
+          now,
+        }),
+      ),
     });
   };
   for (const m of months) {

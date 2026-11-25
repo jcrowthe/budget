@@ -32,6 +32,10 @@ export const LoanInterestLine = z
     still_due: Milliunits.openapi({
       description: "Estimated interest the payments did not cover, a magnitude >= 0",
     }),
+    edited_on: IsoDate.nullable().openapi({
+      description:
+        "state edited: the latest date of the month's stored interest rows that are not reconciled (Add Interest); null otherwise",
+    }),
   })
   .openapi("LoanInterestLine");
 
@@ -45,7 +49,8 @@ export const LoanOtherRow = z
     date: IsoDate,
     amount: Milliunits,
     label: z.string().openapi({
-      description: 'The payee name, or "Initial Balance" for the Starting Balance row',
+      description:
+        'The payee name, "Initial Balance" for the Starting Balance row, or "Fee or Charge" / "Credit" for a row with no payee',
     }),
     memo: z.string().nullable(),
   })
@@ -106,11 +111,15 @@ const dayLabel = (date: string) =>
   `${MONTHS[Number(date.slice(5, 7)) - 1]} ${Number(date.slice(8, 10))}`;
 
 export function interestNote(
-  line: Pick<z.infer<typeof LoanInterestLine>, "state" | "still_due" | "estimated_total">,
+  line: Pick<z.infer<typeof LoanInterestLine>, "state" | "still_due" | "estimated_total"> & {
+    edited_on?: string | null;
+  },
   fmt: (magnitude: number) => string,
 ): string {
   if (line.state === "reconciled") return "Reconciled";
-  if (line.state === "edited") return "Edited";
+  if (line.state === "edited") {
+    return line.edited_on ? `Edited on ${dayLabel(line.edited_on)}` : "Edited";
+  }
   return line.still_due > 0
     ? `Estimated, ${fmt(line.still_due)} still due (${fmt(Math.abs(line.estimated_total))} total this month)`
     : "Estimated";

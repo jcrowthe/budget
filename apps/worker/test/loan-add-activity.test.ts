@@ -4,7 +4,7 @@ import { type Json, q } from "./bulk-helpers";
 import { json } from "./helpers";
 import { activity, balanceOf, mortgageWorld, rows, rta, TODAY, update } from "./loan-update-world";
 import { D15, monthRead, NOV, send, tool } from "./loan-world";
-import { apiPaths, listedToolNames } from "./surface";
+import { apiDocument, apiPaths, listedToolNames } from "./surface";
 import { setOf, undo } from "./undo-helpers";
 
 // EXF-542: Add Activity on a loan (interest, fee, credit), REST and MCP. The mortgage world: 200,000.00 at 6%,
@@ -216,7 +216,18 @@ describe("REST equals MCP (AC2)", () => {
     const strip = (v: Json): Json =>
       JSON.parse(
         JSON.stringify(v, (k, x) =>
-          ["id", "account_id", "payee_id", "created_at", "updated_at", "transaction_id"].includes(k)
+          [
+            "id",
+            "account_id",
+            "budget_id",
+            "payee_id",
+            "created_at",
+            "updated_at",
+            "transaction_id",
+            "from_account_id",
+            "from_account_name",
+            "last_payment_from_account_id",
+          ].includes(k)
             ? undefined
             : x,
         ),
@@ -298,7 +309,9 @@ describe("change_log", () => {
 
 describe("surface", () => {
   it("the route and the tool exist", async () => {
-    expect(await apiPaths()).toContain("POST /budgets/{budget_id}/accounts/{account_id}/activity");
+    const route = "/api/v1/budgets/{budget_id}/accounts/{account_id}/activity";
+    expect(await apiPaths()).toContain(route);
+    expect(((await apiDocument()).paths[route] as Json).post).toBeDefined();
     expect(await listedToolNames()).toContain("add_loan_activity");
   });
 });

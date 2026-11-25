@@ -156,6 +156,28 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
     .orderBy(asc(transactions.date), asc(transactions.createdAt));
 }
 
+/**
+ * EXF-542: the latest date of the loan's live interest rows in `month` that are not reconciled (the edited line's
+ * "Edited on"); one row, `edited_on` null when there are none.
+ */
+export function editedOnQuery(db: Db, budgetId: string, loanId: string, month: Month) {
+  return db
+    .select({ editedOn: sql<string | null>`max(${transactions.date})`.as("edited_on") })
+    .from(transactions)
+    .innerJoin(payee, eq(payee.id, transactions.payeeId))
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        eq(transactions.accountId, loanId),
+        counts,
+        gte(transactions.date, month),
+        lt(transactions.date, addMonths(month, 1)),
+        eq(payee.system, LOAN_INTEREST_SYSTEM),
+        sql`${transactions.cleared} <> 'reconciled'`,
+      ),
+    );
+}
+
 /** The source of the loan's latest payment, when it is still an open, live, on-plan cash account. */
 export function lastPaymentSourceQuery(db: Db, budgetId: string, loanId: string) {
   return db
