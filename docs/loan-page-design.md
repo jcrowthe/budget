@@ -120,6 +120,20 @@ category batch in `services/accounts.ts`).
 - **The header's "Updated …" line** is not drawn (B13).
 - **The banner's dismissal** is not persisted across reloads (B12).
 
+## Build notes
+
+- `durationText` lives in `packages/schema/src/loan-summary.ts` (the schema package cannot import core), not in core;
+  core's change is the one file `loan-projection.ts`.
+- Pairing refusals use the account-closed code `account_closed` for a closed loan (no pairing a closed loan) and
+  `unprocessable_entity` with EXF-482's text for an unusable category; the route maps `TransactionRefused`.
+- The paired panel's Target rows use a small local wording (Frequency "Monthly", Due "by the End of the Month" or
+  "by the Nth"): no `target-wording.ts` exists in the repo. EXF-545 replaces it with "Monthly Debt Payment".
+- Tile groups are `role="group"` with the tile's label as the name; the dismissal (B12) is a module-level set.
+- The paired-panel pill colours use `shell/tokens.css` only (`--statusPositive`, `--statusNegative`,
+  `--inputBackground`), not the plan grid's local tokens.
+- D1 counts proven in `loan-summary-calls.test.ts`: constant for 10 vs 100 payments and 1 vs 24 months, paired and
+  unpaired; the pairing write is constant too.
+
 ## Not in this Build
 
 EXF-542 (Add Activity), EXF-543 (Update Balance, the header's "Updated …" line and frozen rows), EXF-544 (the
