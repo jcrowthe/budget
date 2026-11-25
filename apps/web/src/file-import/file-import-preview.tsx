@@ -149,6 +149,8 @@ export function FileImportPreview({
   );
   const n = kept.length;
   const known = kept.filter((r) => r.outcome !== null && r.outcome !== "new").length;
+  // The header counts what will be created: rows the import already knows are not new (EXF-1007).
+  const fresh = n - known;
 
   const edit = (patch: Partial<FileImportOptions>) =>
     setOptions((o) => (o ? { ...o, ...patch } : o));
@@ -242,7 +244,11 @@ export function FileImportPreview({
           ) : (
             <>
               <div className="file-import-header">
-                <span>{FILE_IMPORT_COPY.header(n, file.name)}</span>
+                <span>
+                  {fresh === 0
+                    ? `No new transactions in ${file.name}`
+                    : FILE_IMPORT_COPY.header(fresh, file.name)}
+                </span>
                 <select
                   aria-label="Account"
                   value={target}
