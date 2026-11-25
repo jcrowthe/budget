@@ -379,6 +379,8 @@ describe("SYSTEM_PAYEE_NAMES", () => {
       starting_balance: "Starting Balance",
       manual_adjustment: "Manual Balance Adjustment",
       reconciliation_adjustment: "Reconciliation Balance Adjustment",
+      loan_interest: "Loan Interest",
+      loan_escrow: "Loan Escrow",
     });
   });
 });
