@@ -129,6 +129,36 @@ test("7 Show N Transactions: the popover, sorted by date, Close", async ({ page,
   await expect(d).toBeVisible();
 });
 
+test("7b several selected: Show N Transactions opens a popover with a PAYEE column", async ({
+  page,
+  request,
+}) => {
+  const s = await seedPayees(request);
+  const d = await open(page, s);
+  await realClick(page, pick(d, "ZZ Cafe A"));
+  await realClick(page, tick(d, "ZZ Cafe B"));
+  await expect(btn(d, "Show 5 Transactions")).toBeVisible();
+  await realClick(page, btn(d, "Show 5 Transactions"));
+  const pop = page.getByRole("dialog", { name: "Transactions", exact: true });
+  await expect(pop.getByRole("columnheader")).toHaveText([
+    "PAYEE",
+    "ACCOUNT",
+    "DATE",
+    "CATEGORY",
+    "MEMO",
+    "AMOUNT",
+  ]);
+  await expect(pop.locator("tbody tr")).toHaveCount(5);
+  await expect(
+    pop.locator("tbody tr td:nth-child(1)").filter({ hasText: "ZZ Cafe A" }),
+  ).toHaveCount(3);
+  await expect(
+    pop.locator("tbody tr td:nth-child(1)").filter({ hasText: "ZZ Cafe B" }),
+  ).toHaveCount(2);
+  await realClick(page, pop.getByRole("button", { name: "Close", exact: true }));
+  await expect(pop).toHaveCount(0);
+});
+
 test("8 a transfer payee is read-only; mixing it with another asks to deselect it", async ({
   page,
   request,
