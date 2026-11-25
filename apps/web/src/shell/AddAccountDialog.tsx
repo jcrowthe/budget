@@ -1,13 +1,22 @@
-import type { AccountType } from "@budget/core/account-types";
-import type { Account } from "@budget/schema/accounts";
+import { type AccountType, isLoanType } from "@budget/core/account-types";
+import { type Account, InterestRate } from "@budget/schema/accounts";
 import { parseAmountInput } from "@budget/schema/amount-input";
 import type { BankConnection } from "@budget/schema/bank-connections";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { localToday, useCreateAccount } from "../api/accounts";
 import { ApiError } from "../api/client";
-import { AccountTypePicker } from "./AccountTypePicker";
+import { AddAccountTypePicker } from "./AddAccountTypePicker";
 import { ACCOUNT_TYPE_LABEL } from "./accountTypeLabels";
+import {
+  EscrowStep,
+  emptyPair,
+  LoanBalanceFields,
+  PairCategoryStep,
+  type PairState,
+  pairReady,
+  pairRequest,
+} from "./add-account-loan-steps";
 import { BankSearch } from "./BankSearch";
 import { BANK_LINK_TITLES, BankLinkAccounts, type BankLinkScreen } from "./bank-link-accounts";
 import { CaretRightIcon, CheckCircleIcon, ChevronLeftIcon, CloseIcon } from "./icons";
@@ -15,13 +24,15 @@ import { usePlanFormatter } from "./plan-formats-context";
 import { accountPath } from "./planPaths";
 import { useCurrentPlan } from "./useCurrentPlan";
 
-type Screen = "start" | "form" | "types" | "success" | "link";
-type Errors = { name?: string; balance?: string; other?: string };
+type Screen = "start" | "form" | "types" | "escrow" | "pair" | "success" | "link";
+type Errors = { name?: string; balance?: string; rate?: string; other?: string };
 
 const TITLES: Record<Screen, string> = {
   start: "Add Accounts",
   form: "Add Unlinked Account",
   types: "Select Account Type",
+  escrow: "Add Unlinked Account",
+  pair: "Optional: Pair a Category",
   success: "Add Unlinked Account",
   link: "Add Accounts",
 };
@@ -47,6 +58,11 @@ export function AddAccountDialog({
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType | null>(null);
   const [balance, setBalance] = useState("");
+  const [rate, setRate] = useState("");
+  const [payment, setPayment] = useState("");
+  const [escrowYes, setEscrowYes] = useState(false);
+  const [escrow, setEscrow] = useState("");
+  const [pair, setPair] = useState<PairState>(emptyPair);
   const [errors, setErrors] = useState<Errors>({});
   const [created, setCreated] = useState<Account | null>(null);
   const [connection, setConnection] = useState<BankConnection | null>(null);
@@ -57,9 +73,17 @@ export function AddAccountDialog({
   const canGoBack =
     screen === "form" ||
     screen === "types" ||
+    screen === "escrow" ||
+    screen === "pair" ||
     (screen === "link" && linkScreen !== "select") ||
     (screen === "start" && variant === "connections");
-  const canSubmit = !!name.trim() && !!type && balance !== "" && !create.isPending;
+  const loan = !!type && isLoanType(type);
+  const canSubmit =
+    !!name.trim() &&
+    !!type &&
+    balance !== "" &&
+    (!loan || (rate !== "" && payment !== "")) &&
+    !create.isPending;
 
   function closeDialog() {
     onClose();
@@ -69,6 +93,8 @@ export function AddAccountDialog({
   function back() {
     if (screen === "link") setLinkScreen("select");
     else if (screen === "start") (onBack ?? onClose)();
+    else if (screen === "pair") setScreen(type === "mortgage" ? "escrow" : "form");
+    else if (screen === "escrow") setScreen("form");
     else setScreen(screen === "types" ? "form" : "start");
   }
 
@@ -92,21 +118,72 @@ export function AddAccountDialog({
     setName("");
     setType(null);
     setBalance("");
+    setRate("");
+    setPayment("");
+    setEscrowYes(false);
+    setEscrow("");
+    setPair(emptyPair);
     setErrors({});
     setCreated(null);
     setScreen("start");
   }
 
-  function submit() {
-    if (!type) return;
+  /** Checks the typed amounts (and the rate) of the form; sets the errors and returns null when one is bad. */
+  function parseForm() {
+    if (!type) return null;
     const milli = parseAmountInput(fmt.typedAmount(balance), fmt.digits);
-    if (milli === null) {
-      setErrors({ balance: "Enter an amount" });
+    const next: Errors = {};
+    if (milli === null) next.balance = "Enter an amount";
+    let payMilli: number | null = null;
+    if (loan) {
+      payMilli = parseAmountInput(fmt.typedAmount(payment), fmt.digits);
+      if (payMilli === null || payMilli < 0) next.balance = "Enter an amount";
+      if (!InterestRate.safeParse(rate.trim()).success) {
+        next.rate = "Enter a rate between 0 and 100";
+      }
+    }
+    setErrors(next);
+    if (next.balance || next.rate || milli === null) return null;
+    return { milli, payMilli };
+  }
+
+  function nextFromForm() {
+    if (!loan) return submit();
+    if (!parseForm()) return;
+    setScreen(type === "mortgage" ? "escrow" : "pair");
+  }
+
+  function submit(withPairing = false) {
+    if (!type) return;
+    const parsed = parseForm();
+    if (!parsed) {
+      if (screen !== "form") setScreen("form");
       return;
     }
-    setErrors({});
+    const escrowMilli =
+      type === "mortgage" && escrowYes && escrow.trim() !== ""
+        ? parseAmountInput(fmt.typedAmount(escrow), fmt.digits)
+        : 0;
+    if (escrowMilli === null || escrowMilli < 0) {
+      setErrors({ other: "Enter a monthly escrow amount" });
+      setScreen("escrow");
+      return;
+    }
     create.mutate(
-      { name, type, balance: milli, date: localToday() },
+      {
+        name,
+        type,
+        balance: parsed.milli,
+        date: localToday(),
+        ...(loan
+          ? {
+              interest_rate: rate.trim(),
+              minimum_payment: parsed.payMilli ?? 0,
+              escrow_amount: escrowMilli,
+              ...(withPairing ? pairRequest(pair) : {}),
+            }
+          : {}),
+      },
       {
         onSuccess: (r) => {
           setCreated(r.account);
@@ -115,6 +192,7 @@ export function AddAccountDialog({
         onError: (e) => {
           if (e instanceof ApiError && e.errorName === "name_taken") {
             setErrors({ name: "This account name already exists." });
+            setScreen("form");
           } else {
             setErrors({ other: e.message });
           }
@@ -184,29 +262,72 @@ export function AddAccountDialog({
                   <span>{type ? ACCOUNT_TYPE_LABEL[type] : "Select account type..."}</span>
                   <CaretRightIcon />
                 </button>
-                <label htmlFor="account-balance">What is your current account balance?</label>
-                <input
-                  id="account-balance"
-                  className="account-field"
-                  inputMode="decimal"
-                  value={balance}
-                  onChange={(e) => {
-                    setBalance(e.target.value);
-                    setErrors((s) => ({ ...s, balance: undefined, other: undefined }));
-                  }}
-                />
+                {loan ? (
+                  <LoanBalanceFields
+                    balance={balance}
+                    rate={rate}
+                    payment={payment}
+                    onBalance={(v) => {
+                      setBalance(v);
+                      setErrors((s) => ({ ...s, balance: undefined, other: undefined }));
+                    }}
+                    onRate={(v) => {
+                      setRate(v);
+                      setErrors((s) => ({ ...s, rate: undefined, other: undefined }));
+                    }}
+                    onPayment={(v) => {
+                      setPayment(v);
+                      setErrors((s) => ({ ...s, balance: undefined, other: undefined }));
+                    }}
+                  />
+                ) : (
+                  <>
+                    <label htmlFor="account-balance">What is your current account balance?</label>
+                    <input
+                      id="account-balance"
+                      className="account-field"
+                      inputMode="decimal"
+                      value={balance}
+                      onChange={(e) => {
+                        setBalance(e.target.value);
+                        setErrors((s) => ({ ...s, balance: undefined, other: undefined }));
+                      }}
+                    />
+                  </>
+                )}
+                {errors.rate ? <p className="field-error">{errors.rate}</p> : null}
                 {errors.balance ? <p className="field-error">{errors.balance}</p> : null}
                 {errors.other ? <p className="field-error">{errors.other}</p> : null}
               </>
             ) : null}
             {screen === "types" ? (
-              <AccountTypePicker
+              <AddAccountTypePicker
                 value={type}
                 onPick={(t) => {
                   setType(t);
                   setScreen("form");
                 }}
               />
+            ) : null}
+            {screen === "escrow" ? (
+              <>
+                <EscrowStep
+                  yes={escrowYes}
+                  amount={escrow}
+                  onYes={setEscrowYes}
+                  onAmount={(v) => {
+                    setEscrow(v);
+                    setErrors({});
+                  }}
+                />
+                {errors.other ? <p className="field-error">{errors.other}</p> : null}
+              </>
+            ) : null}
+            {screen === "pair" ? (
+              <>
+                <PairCategoryStep budgetId={budgetId} value={pair} onChange={setPair} />
+                {errors.other ? <p className="field-error">{errors.other}</p> : null}
+              </>
             ) : null}
             {screen === "success" ? (
               <div className="account-success">
@@ -221,7 +342,39 @@ export function AddAccountDialog({
         )}
         {screen === "form" ? (
           <div className="account-modal-footer">
-            <button type="button" className="primary large" disabled={!canSubmit} onClick={submit}>
+            <button
+              type="button"
+              className="primary large"
+              disabled={!canSubmit}
+              onClick={nextFromForm}
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
+        {screen === "escrow" ? (
+          <div className="account-modal-footer">
+            <button type="button" className="primary large" onClick={() => setScreen("pair")}>
+              Next
+            </button>
+          </div>
+        ) : null}
+        {screen === "pair" ? (
+          <div className="account-modal-footer two">
+            <button
+              type="button"
+              className="secondary large"
+              disabled={create.isPending}
+              onClick={() => submit(false)}
+            >
+              Skip
+            </button>
+            <button
+              type="button"
+              className="primary large"
+              disabled={!pairReady(pair) || create.isPending}
+              onClick={() => submit(true)}
+            >
               Next
             </button>
           </div>

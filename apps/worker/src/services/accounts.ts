@@ -20,6 +20,7 @@ import {
   AccountUpdateRequest,
   type AccountUpdateRequest as AccountUpdateRequestInput,
   CLOSED_ACCOUNT_MEMO,
+  canonicalInterestRate,
   MANUAL_ADJUSTMENT_PAYEE,
 } from "@budget/schema/accounts";
 import type { PayeeSystem } from "@budget/schema/payees";
@@ -34,8 +35,11 @@ import * as accountsRepo from "../repositories/accounts";
 import * as bankRepo from "../repositories/bank-connections";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
+import * as groupsRepo from "../repositories/category-groups";
+import { whenQuery } from "../repositories/guards";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
+import { CATEGORY_NAME_TAKEN, categoryToApi, GROUP_NAME_TAKEN, groupToApi } from "./categories";
 import {
   PAYMENT_HISTORY_TEXT,
   paymentCreateStmts,
@@ -64,13 +68,24 @@ export class LinkRefused extends Error {
   }
 }
 
-export class UnsupportedAccountType extends Error {
-  constructor() {
-    super(
-      "Loan accounts (mortgage, autoLoan, studentLoan, personalLoan, medicalDebt, otherDebt) are not supported yet",
-    );
+/** A loan rule failed (an unusable pairing target, a taken category or group name): the route answers 422. */
+export class LoanRefused extends Error {
+  constructor(detail: string) {
+    super(detail);
+    this.name = "LoanRefused";
   }
 }
+
+/** What a loan create records, resolved against the plan before the batch. */
+type LoanSpec = {
+  interestRate: string;
+  minimumPayment: number;
+  escrowAmount: number;
+  /** An existing category to pair with. */
+  pairedCategoryId: string | null;
+  /** A category to create and pair: in `groupId`, or in a new group named `newGroupName`. */
+  newCategory: { name: string; groupId: string | null; newGroupName: string | null } | null;
+};
 
 export type AccountFacts = {
   cleared: number;
@@ -157,6 +172,10 @@ export function accountToApi(
         ? null
         : statusReason(row.connectionStatus ?? "", row.connectionErrorCode ?? null),
     link_missing_since: row.bankAccountId === null ? null : row.linkMissingSince,
+    interest_rate: row.interestRate,
+    minimum_payment: row.minimumPayment,
+    escrow_amount: row.escrowAmount,
+    paired_category_id: row.pairedCategoryId,
   };
 }
 
@@ -186,6 +205,10 @@ export async function createAccount(
       importStartDate: null,
       lastReconciledAt: null,
       linkMissingSince: null,
+      interestRate: null,
+      minimumPayment: null,
+      escrowAmount: null,
+      pairedCategoryId: null,
     };
     // Log first, both guarded on "this sort_order is still the next free one": a lost race writes neither.
     const [, result] = await db.batch([
@@ -759,6 +782,8 @@ export async function getAccountSummary(env: Env, budgetId: string): Promise<Acc
 /**
  * Creates an unlinked account and its Starting Balance transaction in one batch. The guards make the name
  * check and the sort order hold inside the write, so two simultaneous creates with one name leave one account.
+ * A loan also records its rate, payment, escrow and pairing; a new paired category (and group) is created in
+ * the same batch.
  */
 export async function addUnlinkedAccount(
   env: Env,
@@ -768,10 +793,10 @@ export async function addUnlinkedAccount(
   opts: { today?: string } = {},
 ): Promise<{ account: Account; starting_balance: Transaction }> {
   const v = AccountCreateRequest.parse(input);
-  if (isLoanType(v.type)) throw new UnsupportedAccountType();
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   if (await accountsRepo.nameTaken(db, budgetId, v.name)) throw new NameTaken();
+  const loan = isLoanType(v.type) ? await resolveLoan(db, budgetId, v) : undefined;
   return insertAccountWithStartingBalance(env, actor, budgetId, {
     name: v.name,
     type: v.type,
@@ -779,12 +804,62 @@ export async function addUnlinkedAccount(
     date: v.date ?? opts.today ?? new Date().toISOString().slice(0, 10),
     bankAccountId: null,
     importStartDate: null,
+    loan,
   });
+}
+
+const UNPAIRABLE_CATEGORY =
+  "paired_category_id must be an active, visible category of this plan that is not a payment category";
+const UNPAIRABLE_GROUP =
+  "group_id must be an active, visible category group of this plan that is not Credit Card Payments";
+
+/** The loan fields as stored, and the pairing checked with constant reads (the batch guards repeat the checks). */
+async function resolveLoan(
+  db: Db,
+  budgetId: string,
+  v: ReturnType<typeof AccountCreateRequest.parse>,
+): Promise<LoanSpec> {
+  const spec: LoanSpec = {
+    interestRate: canonicalInterestRate(v.interest_rate ?? "0"),
+    minimumPayment: v.minimum_payment ?? 0,
+    escrowAmount: v.escrow_amount ?? 0,
+    pairedCategoryId: null,
+    newCategory: null,
+  };
+  if (v.paired_category_id !== undefined) {
+    const cat = await categoriesRepo.findActive(db, budgetId, v.paired_category_id);
+    const group = cat ? await groupsRepo.findActive(db, budgetId, cat.groupId) : undefined;
+    if (!cat || !group || cat.hidden || cat.kind !== null || group.hidden || group.kind !== null) {
+      throw new LoanRefused(UNPAIRABLE_CATEGORY);
+    }
+    spec.pairedCategoryId = cat.id;
+  }
+  const nc = v.new_category;
+  if (nc) {
+    if (nc.group_id !== undefined) {
+      const group = await groupsRepo.findActive(db, budgetId, nc.group_id);
+      if (!group || group.hidden || group.kind !== null) throw new LoanRefused(UNPAIRABLE_GROUP);
+      if (await categoriesRepo.nameTaken(db, group.id, nc.name)) {
+        throw new LoanRefused(CATEGORY_NAME_TAKEN);
+      }
+    } else if (nc.new_group_name !== undefined) {
+      if (await groupsRepo.nameTaken(db, budgetId, nc.new_group_name)) {
+        throw new LoanRefused(GROUP_NAME_TAKEN);
+      }
+    }
+    spec.newCategory = {
+      name: nc.name,
+      groupId: nc.group_id ?? null,
+      newGroupName: nc.new_group_name ?? null,
+    };
+  }
+  return spec;
 }
 
 /**
  * The guarded create behind Add Account and "add from bank": the account, the system payee when missing
- * and the Starting Balance, each with its change_log row, in one batch.
+ * and the Starting Balance, each with its change_log row, in one batch. A loan with a new paired category
+ * also creates that category (and its group) first, in the same batch.
  */
 export async function insertAccountWithStartingBalance(
   env: Env,
@@ -797,6 +872,8 @@ export async function insertAccountWithStartingBalance(
     date: string;
     bankAccountId: string | null;
     importStartDate: string | null;
+    /** The loan's recorded fields and pairing (loan types from Add Unlinked Account only). */
+    loan?: LoanSpec;
     /** The bank connection's state, for the answer and the log row (the row itself does not hold it). */
     link?: {
       connectionStatus: string;
@@ -806,7 +883,7 @@ export async function insertAccountWithStartingBalance(
   },
 ): Promise<{ account: Account; starting_balance: Transaction }> {
   const db = getDb(env);
-  const { amount } = spec;
+  const { amount, loan } = spec;
   const existingSystem = await payeesRepo.findSystem(db, budgetId, "starting_balance");
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const now = new Date().toISOString();
@@ -826,6 +903,10 @@ export async function insertAccountWithStartingBalance(
       importStartDate: spec.importStartDate,
       lastReconciledAt: null,
       linkMissingSince: null,
+      interestRate: loan?.interestRate ?? null,
+      minimumPayment: loan?.minimumPayment ?? null,
+      escrowAmount: loan?.escrowAmount ?? null,
+      pairedCategoryId: loan?.pairedCategoryId ?? null,
     };
     const { sys, stmts: payeeStmts } = systemPayee(
       db,
@@ -853,10 +934,6 @@ export async function insertAccountWithStartingBalance(
       deletedAt: null,
       updatedAt: now,
     };
-    const account = accountToApi(
-      { ...row, ...spec.link },
-      { cleared: amount, uncleared: 0, canDelete: true },
-    );
     const g1 = accountsRepo.newAccountGuard(
       db,
       budgetId,
@@ -864,8 +941,27 @@ export async function insertAccountWithStartingBalance(
       row.name,
       spec.bankAccountId,
     );
+    const g1ok = sql`exists ${g1}`;
+    const pairing = loan?.newCategory
+      ? await pairingStmts(db, actor, budgetId, loan.newCategory, g1ok, now)
+      : null;
+    if (pairing) row.pairedCategoryId = pairing.categoryId;
+    const accountGuard = whenQuery(
+      db,
+      loan?.pairedCategoryId
+        ? sql`${g1ok} and ${accountsRepo.pairableCategory(budgetId, loan.pairedCategoryId)}`
+        : pairing
+          ? sql`${g1ok} and exists (select 1 from categories where id = ${pairing.categoryId})`
+          : g1ok,
+    );
+    const account = accountToApi(
+      { ...row, ...spec.link },
+      { cleared: amount, uncleared: 0, canDelete: true },
+    );
     const g2 = accountsRepo.existsStmt(db, row.id);
-    const [, result] = await db.batch([
+    const pre = pairing?.stmts ?? [];
+    const results = await db.batch([
+      ...pre,
       changeLogInsertIf(
         db,
         {
@@ -877,9 +973,9 @@ export async function insertAccountWithStartingBalance(
           before: null,
           after: account,
         },
-        g1,
+        accountGuard,
       ),
-      accountsRepo.insertIfStmt(db, row, g1),
+      accountsRepo.insertIfStmt(db, row, accountGuard),
       ...payeeStmts,
       txRepo.insertIfStmt(db, tx, g2, payeesRepo.systemIdSql(budgetId, "starting_balance")),
       changeLogInsertIf(
@@ -904,8 +1000,8 @@ export async function insertAccountWithStartingBalance(
         now,
         accountExists: sql`exists ${g2}`,
       }),
-    ]);
-    if (result.meta.changes > 0) {
+    ] as unknown as [BatchItem, ...BatchItem[]]);
+    if ((results[pre.length + 1]?.meta.changes ?? 0) > 0) {
       const linked = await payeesRepo.findSystem(db, budgetId, "starting_balance");
       return {
         account,
@@ -913,6 +1009,7 @@ export async function insertAccountWithStartingBalance(
       };
     }
     if (await accountsRepo.nameTaken(db, budgetId, spec.name)) throw new NameTaken();
+    if (loan) await explainLoanRefusal(db, budgetId, loan);
     if (spec.bankAccountId !== null) {
       const holder = await accountsRepo.findByBankAccount(db, budgetId, spec.bankAccountId);
       if (holder) {
@@ -928,4 +1025,111 @@ export async function insertAccountWithStartingBalance(
     }
   }
   throw new Conflict("Account order");
+}
+
+/**
+ * The new paired category's statements, group first when it is new: each with its change_log row (log first),
+ * guarded on the account guard `g1` so the group, the category and the account are written together or not at
+ * all. The category's guard also needs its group, which a failed group guard leaves missing.
+ */
+async function pairingStmts(
+  db: Db,
+  actor: string,
+  budgetId: string,
+  nc: NonNullable<LoanSpec["newCategory"]>,
+  g1: SQL,
+  now: string,
+) {
+  const stmts: BatchItem[] = [];
+  let groupId = nc.groupId;
+  let categorySort = 0;
+  if (groupId === null) {
+    const group: groupsRepo.CategoryGroupRow = {
+      id: crypto.randomUUID(),
+      budgetId,
+      name: nc.newGroupName ?? "",
+      sortOrder: (await groupsRepo.maxSort(db, budgetId)) + 1,
+      hidden: false,
+      collapsed: false,
+      kind: null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    groupId = group.id;
+    const guard = sql`${g1} and ${groupsRepo.nameFree(budgetId, group.name)} and exists ${groupsRepo.sortIsNext(db, budgetId, group.sortOrder)}`;
+    stmts.push(
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "create",
+          entityType: "category_group",
+          entityId: group.id,
+          before: null,
+          after: groupToApi(group),
+        },
+        whenQuery(db, guard),
+      ),
+      groupsRepo.insertIfStmt(db, group, guard),
+    );
+  } else {
+    categorySort = (await categoriesRepo.maxSort(db, groupId)) + 1;
+  }
+  const category: categoriesRepo.CategoryRow = {
+    id: crypto.randomUUID(),
+    budgetId,
+    groupId,
+    name: nc.name,
+    sortOrder: categorySort,
+    hidden: false,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    note: null,
+    kind: null,
+    accountId: null,
+  };
+  const guard = sql`${g1} and ${accountsRepo.pairableGroup(budgetId, groupId)} and ${categoriesRepo.nameFree(groupId, category.name)} and exists ${categoriesRepo.sortIsNext(db, groupId, categorySort)}`;
+  stmts.push(
+    changeLogInsertIf(
+      db,
+      {
+        budgetId,
+        actor,
+        action: "create",
+        entityType: "category",
+        entityId: category.id,
+        before: null,
+        after: categoryToApi(category),
+      },
+      whenQuery(db, guard),
+    ),
+    categoriesRepo.insertIfStmt(db, category, guard),
+  );
+  return { stmts, categoryId: category.id };
+}
+
+/** After a batch that wrote nothing: say which loan rule was lost to a concurrent change (else the caller retries). */
+async function explainLoanRefusal(db: Db, budgetId: string, loan: LoanSpec): Promise<void> {
+  if (loan.pairedCategoryId) {
+    const cat = await categoriesRepo.findActive(db, budgetId, loan.pairedCategoryId);
+    const group = cat ? await groupsRepo.findActive(db, budgetId, cat.groupId) : undefined;
+    if (!cat || !group || cat.hidden || group.hidden) throw new LoanRefused(UNPAIRABLE_CATEGORY);
+  }
+  const nc = loan.newCategory;
+  if (!nc) return;
+  if (nc.groupId !== null) {
+    const group = await groupsRepo.findActive(db, budgetId, nc.groupId);
+    if (!group || group.hidden || group.kind !== null) throw new LoanRefused(UNPAIRABLE_GROUP);
+    if (await categoriesRepo.nameTaken(db, group.id, nc.name)) {
+      throw new LoanRefused(CATEGORY_NAME_TAKEN);
+    }
+  } else if (
+    nc.newGroupName !== null &&
+    (await groupsRepo.nameTaken(db, budgetId, nc.newGroupName))
+  ) {
+    throw new LoanRefused(GROUP_NAME_TAKEN);
+  }
 }

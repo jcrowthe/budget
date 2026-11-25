@@ -22,10 +22,10 @@ import {
   deleteAccount,
   getAccount,
   getAccountSummary,
+  LoanRefused,
   listAccounts,
   NameTaken,
   reopenAccount,
-  UnsupportedAccountType,
   updateAccount,
 } from "../services/accounts";
 
@@ -179,6 +179,10 @@ export default app
         201: json(AccountCreateResponse, "The account and its Starting Balance transaction"),
         409: json(ErrorBody, "The account name already exists"),
         ...errors,
+        422: json(
+          ErrorBody,
+          "A loan field on a non-loan type, a loan without interest_rate or minimum_payment, a bad rate, both pairing forms, an unusable category or group, or a category or group name already used",
+        ),
       },
     }),
     async (c) => {
@@ -193,7 +197,7 @@ export default app
         return c.json({ data }, 201);
       } catch (e) {
         if (e instanceof NameTaken) return apiError(c, 409, "name_taken", e.message) as never;
-        if (e instanceof UnsupportedAccountType) {
+        if (e instanceof LoanRefused) {
           return apiError(c, 422, "unprocessable_entity", e.message) as never;
         }
         throw e;
