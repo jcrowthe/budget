@@ -1,0 +1,55 @@
+/* A loan's paired category in the inspector (EXF-545). Colours from shell/tokens.css only. */
+.loan-paired-with {
+  margin: 0 0 8px;
+  color: var(--labelSecondary);
+}
+.loan-paired-with a {
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.loan-paired-body {
+  padding: 16px;
+}
+.loan-paired-available {
+  margin: 0 0 12px;
+  color: var(--labelPrimary);
+}
+.loan-paired-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.loan-paired-actions button {
+  height: 32px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.loan-paired-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.loan-paired-paid {
+  margin: 12px 0 0;
+  color: var(--labelSecondary);
+}
+
+/* The Debt Payment Target editor's Summary block. */
+.debt-minimum-line {
+  margin: 0 0 12px;
+  color: var(--labelSecondary);
+}
+.debt-minimum-line strong {
+  color: var(--labelPrimary);
+}
+.debt-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}

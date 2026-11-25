@@ -97,11 +97,12 @@ describe("upcoming: D1 calls", { timeout: 30_000 }, () => {
       note("previewAutoAssign", c.calls());
     }
     const PINNED: Record<string, number> = {
-      getPlanMonth: 10,
-      getMonthCategory: 10,
-      listUpcomingForCategory: 10,
-      "mcp list_upcoming_for_category": 10,
-      previewAutoAssign: 11,
+      // EXF-545 adds one set query (paired loans) to the full month read: each of these is one more.
+      getPlanMonth: 11,
+      getMonthCategory: 11,
+      listUpcomingForCategory: 11,
+      "mcp list_upcoming_for_category": 11,
+      previewAutoAssign: 12,
     };
     for (const [k, v] of Object.entries(seen)) {
       expect(v[0], `${k} at 10 and 100: ${v.join(" / ")}`).toBe(v[1]);

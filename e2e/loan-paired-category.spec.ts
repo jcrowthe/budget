@@ -83,7 +83,7 @@ test("AC2 to AC4: create the target, meet it, record the payment", async ({ page
   // AC2
   await realClick(page, target(page).getByRole("button", { name: "Create Debt Payment Target" }));
   const f = form(page);
-  await expect(f.getByRole("heading", { name: "Debt Payment Target" })).toBeVisible();
+  await expect(panel(page).getByRole("heading", { name: "Debt Payment Target" })).toBeVisible();
   await expect(f.getByRole("textbox", { name: "Monthly Payment" })).toHaveValue("1,500.00");
   await expect(
     f.getByRole("combobox", { name: "Payoff Date" }).locator("option:checked"),

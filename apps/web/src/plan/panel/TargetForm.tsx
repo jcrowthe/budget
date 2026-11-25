@@ -42,11 +42,14 @@ export function TargetAmountField({
   onChange,
   disabled,
   invalid,
+  label = "Target Amount",
 }: {
   value: number;
   onChange: (m: number) => void;
   disabled?: boolean;
   invalid?: boolean;
+  /** The field's accessible name (the Debt Payment Target calls it "Monthly Payment"). */
+  label?: string;
 }) {
   const fmt = usePlanFormatter();
   const [text, setText] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export function TargetAmountField({
         ref={input}
         type="text"
         className="target-input"
-        aria-label="Target Amount"
+        aria-label={label}
         aria-invalid={invalid || undefined}
         autoComplete="off"
         spellCheck={false}

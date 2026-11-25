@@ -8,7 +8,11 @@ import type { CategoryTargetMonth, TargetBehavior } from "./targets";
 export type TargetCategory = Pick<
   MonthCategoryDetail,
   "carried" | "assigned" | "activity" | "available"
-> & { target: CategoryTargetMonth | null };
+> & {
+  target: CategoryTargetMonth | null;
+  /** EXF-545: set on a category paired with an open loan (its monthly set-aside is the Debt Payment Target). */
+  paired_account_id?: string | null;
+};
 
 export function ordinal(n: number): string {
   const tens = n % 100;
@@ -100,6 +104,14 @@ export function targetStatusText(
   const spent = c.activity < 0 ? -c.activity : 0;
   const spentText =
     spent > 0 ? `. Spent ${fmt.money(spent)} of ${fmt.money(c.carried + c.assigned)}` : "";
+  // EXF-545 (A8): a loan's Debt Payment Target says "needed by" until something is assigned, and "Fully Spent".
+  const debt =
+    !!c.paired_account_id &&
+    t.definition.cadence === "monthly" &&
+    t.definition.behavior === "set_aside";
+  if (debt && t.status === "funded" && c.available === 0 && c.activity < 0) {
+    return { amount: null, text: "Fully Spent" };
+  }
   switch (t.status) {
     case "funded":
     case "complete":
@@ -112,7 +124,7 @@ export function targetStatusText(
         text: ` ${t.funded > 0 ? "more " : ""}needed eventually`,
       };
     default: {
-      const more = t.definition.behavior === "set_aside" || t.funded > 0 ? "more " : "";
+      const more = (!debt && t.definition.behavior === "set_aside") || t.funded > 0 ? "more " : "";
       let when = "this month";
       if (t.definition.cadence === "monthly" && t.period_due_date) {
         when = `by the ${ordinal(parts(t.period_due_date).d)}`;

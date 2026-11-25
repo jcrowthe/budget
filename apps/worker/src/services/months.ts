@@ -31,6 +31,7 @@ import * as budgetsRepo from "../repositories/budgets";
 import * as cardFlowsRepo from "../repositories/card-flows";
 import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
+import * as loanRepo from "../repositories/loan-activity";
 import * as monthCatRepo from "../repositories/month-categories";
 import * as monthRangeRepo from "../repositories/month-range";
 import * as monthsRepo from "../repositories/months";
@@ -47,7 +48,13 @@ type EngineShape = Omit<MonthDetail, "groups"> & {
   groups: (Omit<MonthGroupDetail, "categories"> & {
     categories: Omit<
       MonthCategoryDetail,
-      "note" | "target_snoozed" | "upcoming" | "upcoming_count" | "available_after_upcoming"
+      | "note"
+      | "target_snoozed"
+      | "upcoming"
+      | "upcoming_count"
+      | "available_after_upcoming"
+      | "paired_account_id"
+      | "paid_this_month"
     >[];
   })[];
 };
@@ -279,7 +286,11 @@ async function loadInput(
   activityBefore: string,
   full = false,
 ): Promise<
-  EngineInput & { categoryNotes: Map<string, string | null>; upcomingSources: UpcomingSource[] }
+  EngineInput & {
+    categoryNotes: Map<string, string | null>;
+    upcomingSources: UpcomingSource[];
+    pairedLoans: PairedLoans;
+  }
 > {
   const [
     groups,
@@ -291,6 +302,7 @@ async function loadInput(
     snoozeRows,
     flows,
     upcomingSources,
+    pairedRows,
   ] = await Promise.all([
     groupsRepo.listActive(db, budgetId),
     categoriesRepo.listActive(db, budgetId),
@@ -304,12 +316,15 @@ async function loadInput(
     full
       ? scheduledRepo.listUpcomingSources(db, budgetId, dayBefore(activityBefore))
       : Promise.resolve([]),
+    // EXF-545: one set query for the open paired loans and their payments by month.
+    full ? loanRepo.pairedLoansQuery(db, budgetId, activityBefore) : Promise.resolve([]),
   ]);
   const snoozedBy = new Map<string, Month[]>();
   for (const r of snoozeRows)
     snoozedBy.set(r.categoryId, [...(snoozedBy.get(r.categoryId) ?? []), r.month]);
   return {
     upcomingSources,
+    pairedLoans: loanRepo.pairedByCategory(pairedRows),
     categoryNotes: new Map(categories.map((c) => [c.id, c.note ?? null])),
     groups,
     categories,
@@ -329,11 +344,17 @@ async function loadInput(
   };
 }
 
-/** Attaches what the engine does not know: each category's note, snooze flag and upcoming (EXF-505). */
+type PairedLoans = ReturnType<typeof loanRepo.pairedByCategory>;
+
+/**
+ * Attaches what the engine does not know: each category's note, snooze flag, upcoming (EXF-505) and the loan
+ * paired with it with that loan's payments this month (EXF-545).
+ */
 function withNotes(
   detail: CoreMonthDetail,
   notes: Map<string, string | null>,
   sources: readonly UpcomingSource[] = [],
+  paired: PairedLoans = new Map(),
 ): MonthDetail {
   const upcoming = upcomingByCategory(sources, detail.month);
   return {
@@ -343,8 +364,11 @@ function withNotes(
       categories: g.categories.map((c) => {
         // A credit card payment category never gets an upcoming figure.
         const u = c.kind === "credit_card_payment" ? undefined : upcoming.get(c.id);
+        const loan = paired.get(c.id);
         return {
           ...c,
+          paired_account_id: loan?.accountId ?? null,
+          paid_this_month: loan?.paid.get(detail.month.slice(0, 7)) ?? 0,
           note: notes.get(c.id) ?? null,
           target_snoozed: c.target?.status === "snoozed",
           upcoming: u?.upcoming ?? 0,
@@ -390,6 +414,7 @@ export async function getPlanMonthWithSources(
         computeMonth({ ...input, today }, month),
         input.categoryNotes,
         input.upcomingSources,
+        input.pairedLoans,
       ),
       view,
     ),
@@ -419,7 +444,12 @@ export async function getPlanMonths(
   const latest = months.reduce((a, b) => (a > b ? a : b));
   const input = await loadInput(db, budgetId, addMonths(latest, 1), true);
   return months.map((m) =>
-    withNotes(computeMonth({ ...input, today }, m), input.categoryNotes, input.upcomingSources),
+    withNotes(
+      computeMonth({ ...input, today }, m),
+      input.categoryNotes,
+      input.upcomingSources,
+      input.pairedLoans,
+    ),
   );
 }
 

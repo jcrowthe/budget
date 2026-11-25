@@ -19,7 +19,8 @@ import {
 } from "./bulk-helpers";
 
 /** The Free plan allows 50 D1 calls per invocation: a request's calls must not grow with its rows. */
-const LIMIT = 20;
+// EXF-545 adds one set query (paired loans) to the month read that paying a card makes: 20 -> 21.
+const LIMIT = 21;
 
 /** `env` whose database counts each executed statement (run, all, first, raw) and each batch as one call. */
 function counting(): { env: Env; calls: () => number; reset: () => void } {

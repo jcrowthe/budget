@@ -75,7 +75,7 @@ async function world() {
   const rta = async () => (await read()).ready_to_assign as number;
   const targetLogs = () =>
     q(
-      "select action, before, after from change_log where budget_id = ? and entity_type = 'target' order by rowid",
+      "select action, before_json as before, after_json as after from change_log where budget_id = ? and entity_type = 'target' order by rowid",
       b,
     );
   const stored = () => q("select * from targets where budget_id = ?", b);
@@ -132,14 +132,14 @@ describe("setting a Debt Payment Target", () => {
   it("is refused for an unpaired category, a payment category and a closed loan's category", async () => {
     const w = await world();
     const closed = await w.openLoan({
-      new_category: { name: "ZZ-TEST Closed Pay", new_group_name: "ZZ-TEST Loans" },
+      new_category: { name: "ZZ-TEST Closed Pay", new_group_name: "ZZ-TEST Closed Loans" },
     });
     await env.DB.prepare("update accounts set closed = 1 where id = ?").bind(closed.id).run();
     const logsBefore = (await q("select count(*) n from change_log where budget_id = ?", w.b))[0].n;
     for (const category of [w.ordinary, w.payCat, closed.paired_category_id]) {
       const res = await w.put(DEBT, category);
       expect(res.status).toBe(422);
-      expect(((await res.json()) as Json).error.code).toBe("debt_target_requires_loan_category");
+      expect(((await res.json()) as Json).error.name).toBe("debt_target_requires_loan_category");
     }
     for (const bad of [
       { ...DEBT, amount: 0 },
@@ -149,7 +149,7 @@ describe("setting a Debt Payment Target", () => {
     ]) {
       const res = await w.put(bad);
       expect(res.status).toBe(422);
-      expect(((await res.json()) as Json).error.code).toBe("unprocessable_entity");
+      expect(((await res.json()) as Json).error.name).toBe("unprocessable_entity");
     }
     expect(await w.stored()).toHaveLength(0);
     expect((await q("select count(*) n from change_log where budget_id = ?", w.b))[0].n).toBe(

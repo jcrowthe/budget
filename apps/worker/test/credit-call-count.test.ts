@@ -100,25 +100,26 @@ const SIZES = [10, 100];
 const SETUP_TIMEOUT_MS = 30_000;
 
 // EXF-505 adds one set query, the schedules, to the full month read (9 -> 10); listPlanMonths does not read it.
+// EXF-545 adds one set query (paired loans) to the full month read (10 -> 11); listPlanMonths still does not.
 describe("EXF-532/535 D1 calls", { timeout: SETUP_TIMEOUT_MS }, () => {
-  it("the month read makes 10 D1 calls (EXF-537 adds the card flows, EXF-505 the schedules) whatever the plan's size", async () => {
+  it("the month read makes 11 D1 calls (EXF-537 adds the card flows, EXF-505 the schedules, EXF-545 the paired loans) whatever the plan's size", async () => {
     for (const n of SIZES) {
       const w = await world(n);
       const c = counting();
       await getPlanMonth(c.env, w.bid, "2026-11-01");
-      expect(c.calls(), `getPlanMonth at ${n}`).toBe(10);
+      expect(c.calls(), `getPlanMonth at ${n}`).toBe(11);
       c.reset();
       await getPlanMonths(c.env, w.bid, ["2026-09-01", "2026-10-01", "2026-11-01"]);
-      expect(c.calls(), `getPlanMonths at ${n}`).toBe(10);
+      expect(c.calls(), `getPlanMonths at ${n}`).toBe(11);
       c.reset();
       await listPlanMonths(c.env, w.bid, "2026-01-01", "2026-12-01");
       expect(c.calls(), `listPlanMonths at ${n}`).toBe(6);
       c.reset();
       await getMonthCategory(c.env, w.bid, "2026-11-01", w.cats[0] as string);
-      expect(c.calls(), `getMonthCategory at ${n}`).toBe(10);
+      expect(c.calls(), `getMonthCategory at ${n}`).toBe(11);
       c.reset();
       await getCardPaymentStatus(c.env, w.bid, "2026-11-01", w.cards[0] as string);
-      expect(c.calls(), `getCardPaymentStatus at ${n}`).toBe(10);
+      expect(c.calls(), `getCardPaymentStatus at ${n}`).toBe(11);
     }
   });
 

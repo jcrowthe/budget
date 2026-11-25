@@ -256,3 +256,94 @@ export function balancesFromGroups(
   }
   return sums;
 }
+
+export type PairedLoanRow = {
+  accountId: string;
+  categoryId: string;
+  createdAt: string;
+  /** The month of the payments summed in `paid`; null for a loan with no transaction yet. */
+  ym: string | null;
+  paid: number;
+};
+
+/**
+ * EXF-545: the open, live loans paired with a category and, per loan and month, the sum of their payments dated
+ * before `before` (the loan engine's "payment" rule). One statement: a row per loan and month with a
+ * transaction, never per payment, and no bound list.
+ */
+export function pairedLoansQuery(db: Db, budgetId: string, before: Month) {
+  const ym = sql<string | null>`substr(${transactions.date}, 1, 7)`;
+  return db
+    .select({
+      accountId: accounts.id,
+      categoryId: sql<string>`${accounts.pairedCategoryId}`,
+      createdAt: accounts.createdAt,
+      ym,
+      paid: sql<number>`coalesce(sum(case when ${kindOf} = 'payment' then ${transactions.amount} else 0 end), 0)`,
+    })
+    .from(accounts)
+    .leftJoin(
+      transactions,
+      and(eq(transactions.accountId, accounts.id), counts, lt(transactions.date, before)),
+    )
+    .leftJoin(payee, eq(payee.id, transactions.payeeId))
+    .leftJoin(other, eq(other.id, transactions.transferAccountId))
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        eq(accounts.closed, false),
+        isLoan,
+        sql`${accounts.pairedCategoryId} is not null`,
+      ),
+    )
+    .groupBy(accounts.id, ym);
+}
+
+/**
+ * The loan a category's Debt Payment Target and header belong to (A3): the first created open, live loan paired
+ * with it, then the lowest id. One statement.
+ */
+export async function pairedLoanFor(
+  db: Db,
+  budgetId: string,
+  categoryId: string,
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        eq(accounts.pairedCategoryId, categoryId),
+        isNull(accounts.deletedAt),
+        eq(accounts.closed, false),
+        isLoan,
+      ),
+    )
+    .orderBy(asc(accounts.createdAt), asc(accounts.id))
+    .limit(1);
+  return row?.id;
+}
+
+/** Per category: the A3 loan and its payments by month ("YYYY-MM" to milliunits), from `pairedLoansQuery`'s rows. */
+export function pairedByCategory(
+  rows: readonly PairedLoanRow[],
+): Map<string, { accountId: string; paid: Map<string, number> }> {
+  const key = (r: { createdAt: string; accountId: string }) => `${r.createdAt}\u0000${r.accountId}`;
+  const first = new Map<string, PairedLoanRow>();
+  for (const r of rows) {
+    const cur = first.get(r.categoryId);
+    if (!cur || key(r) < key(cur)) first.set(r.categoryId, r);
+  }
+  const out = new Map<string, { accountId: string; paid: Map<string, number> }>();
+  for (const [categoryId, f] of first)
+    out.set(categoryId, { accountId: f.accountId, paid: new Map() });
+  for (const r of rows) {
+    const o = out.get(r.categoryId);
+    if (o && o.accountId === r.accountId && r.ym !== null) {
+      o.paid.set(r.ym, (o.paid.get(r.ym) ?? 0) + r.paid);
+    }
+  }
+  return out;
+}

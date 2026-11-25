@@ -1,8 +1,10 @@
 import { cardTargetFields, cardTargetType } from "@budget/core/card-targets";
+import { DEBT_TARGET_TYPE, debtTargetFields, isDebtTargetDef } from "@budget/core/debt-targets";
 import { toMonth } from "@budget/core/month";
 import { IsoDate } from "@budget/schema/common/dates";
 import {
   CardTargetSet,
+  DebtPaymentTargetSet,
   type Target,
   TargetDelete,
   TargetSet,
@@ -15,6 +17,7 @@ import { type ChangeLogEntry, changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
 import * as categoriesRepo from "../repositories/categories";
+import * as loanRepo from "../repositories/loan-activity";
 import * as snoozesRepo from "../repositories/target-snoozes";
 import * as repo from "../repositories/targets";
 import { PaymentLocked } from "./credit-payments";
@@ -37,9 +40,18 @@ export function targetToApi(row: repo.TargetRow): Omit<Target, "type"> {
   };
 }
 
-/** The target as REST and MCP return it. `kind`: its category's kind; a payment category's target carries its card type. */
-export function targetResponse(row: repo.TargetRow, kind: string | null): Target {
-  return { ...targetToApi(row), type: kind ? cardTargetType(repo.toDefinition(row)) : null };
+/**
+ * The target as REST and MCP return it. `kind`: its category's kind; a payment category's target carries its card
+ * type. `paired`: the category is paired with an open loan; its monthly set-aside is the debt payment kind (A2).
+ */
+export function targetResponse(row: repo.TargetRow, kind: string | null, paired = false): Target {
+  const def = repo.toDefinition(row);
+  const type = kind
+    ? cardTargetType(def)
+    : paired && isDebtTargetDef(def)
+      ? DEBT_TARGET_TYPE
+      : null;
+  return { ...targetToApi(row), type };
 }
 
 /** Test seam: the setTarget batch with a custom change_log entry (to prove atomicity). */
@@ -79,6 +91,7 @@ async function writeTarget(
   fields: Fields,
   kind: string | null,
   today: string | undefined,
+  paired = false,
 ): Promise<Target> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const before = await repo.find(db, fields.budgetId, fields.categoryId);
@@ -106,7 +119,7 @@ async function writeTarget(
         before?.updatedAt,
       ),
     ]);
-    if (write.meta.changes > 0) return targetResponse(row, kind);
+    if (write.meta.changes > 0) return targetResponse(row, kind, paired);
   }
   throw new Conflict("Target");
 }
@@ -127,6 +140,7 @@ export async function setTarget(
   if (cat.kind !== null) {
     throw new PaymentLocked("payment_category_target");
   }
+  const paired = (await loanRepo.pairedLoanFor(db, v.budget_id, v.category_id)) !== undefined;
   return writeTarget(
     db,
     actor,
@@ -145,6 +159,7 @@ export async function setTarget(
     },
     null,
     today,
+    paired,
   );
 }
 
@@ -192,6 +207,48 @@ export async function setCardPaymentTarget(
   );
 }
 
+/** Creates or replaces the Debt Payment Target of a category paired with an open loan (EXF-545). */
+export async function setDebtPaymentTarget(
+  env: Env,
+  actor: string,
+  input: DebtPaymentTargetSet,
+  opts: { today?: string } = {},
+): Promise<Target> {
+  const v = DebtPaymentTargetSet.parse(input);
+  const today = opts.today === undefined ? undefined : IsoDate.parse(opts.today);
+  const db = getDb(env);
+  await requirePlan(db, v.budget_id);
+  const cat = await categoriesRepo.findActive(db, v.budget_id, v.category_id);
+  if (!cat) throw new NotFound("Category");
+  if (cat.kind !== null || !(await loanRepo.pairedLoanFor(db, v.budget_id, v.category_id))) {
+    throw new TargetRefused(
+      "debt_target_requires_loan_category",
+      "Debt payment targets are only for categories paired with a loan.",
+    );
+  }
+  const f = debtTargetFields(v.amount, v.day);
+  return writeTarget(
+    db,
+    actor,
+    {
+      categoryId: v.category_id,
+      budgetId: v.budget_id,
+      cadence: f.cadence,
+      behavior: f.behavior,
+      amount: f.amount,
+      dayOfWeek: null,
+      dayOfMonth: f.day_of_month,
+      dueDate: null,
+      dueMonth: null,
+      repeatEvery: null,
+      repeatUnit: null,
+    },
+    null,
+    today,
+    true,
+  );
+}
+
 export async function deleteTarget(env: Env, actor: string, input: TargetDelete): Promise<Target> {
   const v = TargetDelete.parse(input);
   const db = getDb(env);
@@ -200,6 +257,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
     const before = await repo.find(db, v.budget_id, v.category_id);
     if (!before) throw new NotFound("Target");
     const kind = (await categoriesRepo.findActive(db, v.budget_id, v.category_id))?.kind ?? null;
+    const paired = (await loanRepo.pairedLoanFor(db, v.budget_id, v.category_id)) !== undefined;
     const [, del] = await db.batch([
       changeLogInsertIf(
         db,
@@ -218,7 +276,7 @@ export async function deleteTarget(env: Env, actor: string, input: TargetDelete)
       // The target's snoozes go with it (only when the delete above changed a row).
       snoozesRepo.deleteForCategoryStmt(db, v.budget_id, v.category_id, sql`changes() > 0`),
     ]);
-    if (del.meta.changes > 0) return targetResponse(before, kind);
+    if (del.meta.changes > 0) return targetResponse(before, kind, paired);
   }
   throw new Conflict("Target");
 }
