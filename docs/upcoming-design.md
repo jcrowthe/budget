@@ -117,7 +117,7 @@ What the build took from the ticket (as the Architect's spec records it) is not 
 | AC6 Ready to Assign has no upcoming | PASS | `upcoming.test.ts` AC6; e2e AC6 |
 | AC7 server fields on the month-category read and list | PASS | `upcoming.test.ts`, parity test |
 
-AC6 fails on main only because the field is missing (server test): the Ready to Assign rule already held there. The
+AC6 fails on main only because the field is missing (server test): the Ready to Assign rule already held there.
 The e2e AC6 also asserts, in the same scenario, that the category with a schedule has `upcoming_count` 2 and shows
 the calendar pill, so it fails on main too.
 The R8 test "takes the larger of the target's to-go and the shortfall" also passes on main, where the target to-go
