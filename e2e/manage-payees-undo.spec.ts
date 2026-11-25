@@ -13,6 +13,11 @@ const open = async (page: Page, s: Seed) => {
 const btn = (d: Dialog, name: string) => d.getByRole("button", { name, exact: true });
 const pick = (d: Dialog, name: string) => btn(d, `Select ${name}`);
 const nameField = (d: Dialog) => d.getByRole("textbox", { name: "Payee Name", exact: true });
+// A step turns the buttons off until the dialog has settled: wait for the button before pressing it.
+const press = async (page: Page, d: Dialog, name: "Undo" | "Redo") => {
+  await expect(btn(d, name)).toBeEnabled();
+  await realClick(page, btn(d, name));
+};
 const rename = async (d: Dialog, to: string) => {
   await nameField(d).fill(to);
   await nameField(d).press("Enter");
@@ -27,11 +32,11 @@ test("3 rename: Undo gives A, Redo gives B", async ({ page, request }) => {
   await realClick(page, pick(d, "ZZ-TEST Cafe A"));
   await rename(d, "ZZ-TEST Cafe B");
   await expect(pick(d, "ZZ-TEST Cafe B")).toBeVisible();
-  await realClick(page, btn(d, "Undo"));
+  await press(page, d, "Undo");
   await expect(pick(d, "ZZ-TEST Cafe A")).toBeVisible();
   await expect(pick(d, "ZZ-TEST Cafe B")).toHaveCount(0);
   await expect(nameField(d)).toHaveValue("ZZ-TEST Cafe A");
-  await realClick(page, btn(d, "Redo"));
+  await press(page, d, "Redo");
   await expect(pick(d, "ZZ-TEST Cafe B")).toBeVisible();
   await expect(pick(d, "ZZ-TEST Cafe A")).toHaveCount(0);
   await expect(nameField(d)).toHaveValue("ZZ-TEST Cafe B");
@@ -46,11 +51,11 @@ test("4 hide: Undo puts it back in Payees, Redo moves it to Hidden Payees", asyn
   await realClick(page, pick(d, "ZZ Cafe A"));
   await realClick(page, btn(d, "Hide"));
   await expect(d.locator(".mp-payee.is-hidden .mp-name")).toHaveText(["ZZ Cafe A"]);
-  await realClick(page, btn(d, "Undo"));
+  await press(page, d, "Undo");
   await expect(d.getByText(/^Hidden Payees/)).toHaveCount(0);
   await expect(pick(d, "ZZ Cafe A")).toBeVisible();
   expect(await hiddenOf(request, s, "ZZ Cafe A")).toBe(false);
-  await realClick(page, btn(d, "Redo"));
+  await press(page, d, "Redo");
   await expect(d.locator(".mp-payee.is-hidden .mp-name")).toHaveText(["ZZ Cafe A"]);
   expect(await hiddenOf(request, s, "ZZ Cafe A")).toBe(true);
 });
@@ -69,7 +74,7 @@ test("5 delete with a new payee: Undo brings the payee, its count and its regist
     .selectOption({ label: "ZZ Cafe B" });
   await realClick(page, btn(d, "Delete"));
   await expect(pick(d, "ZZ Cafe A")).toHaveCount(0);
-  await realClick(page, btn(d, "Undo"));
+  await press(page, d, "Undo");
   await expect(pick(d, "ZZ Cafe A")).toBeVisible();
   await realClick(page, pick(d, "ZZ Cafe A"));
   await expect(btn(d, "Show 3 Transactions")).toBeVisible();
@@ -101,7 +106,7 @@ test("6 button states: disabled on open, a register change does not enable Undo,
   await expect(pick(d, "ZZ Cafe A2")).toBeVisible();
   await expect(btn(d, "Undo")).toBeEnabled();
   await expect(btn(d, "Redo")).toBeDisabled();
-  await realClick(page, btn(d, "Undo"));
+  await press(page, d, "Undo");
   await expect(btn(d, "Redo")).toBeEnabled();
   await page.screenshot({ path: "test-results/manage-payees-redo-footer.png" });
   await realClick(page, pick(d, "ZZ Cafe A"));
@@ -118,7 +123,7 @@ test("7 AC10: Undo reverts the last change and Done closes", async ({ page, requ
   await realClick(page, pick(d, "ZZ Cafe A"));
   await realClick(page, btn(d, "Hide"));
   await expect(d.locator(".mp-payee.is-hidden")).toHaveCount(1);
-  await realClick(page, btn(d, "Undo"));
+  await press(page, d, "Undo");
   await expect(d.locator(".mp-payee.is-hidden")).toHaveCount(0);
   await realClick(page, btn(d, "Done"));
   await expect(d).toHaveCount(0);
