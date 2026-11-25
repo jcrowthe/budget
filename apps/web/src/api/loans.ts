@@ -2,6 +2,10 @@ import type { Month } from "@budget/core/month";
 import type { CardPaymentRequest as CardPaymentRequestSchema } from "@budget/schema/card-payments";
 import { CardPaymentResponse } from "@budget/schema/card-payments";
 import { LoanActivityResponse } from "@budget/schema/loan-activity";
+import {
+  type LoanBalanceUpdateRequest,
+  LoanBalanceUpdateResponse,
+} from "@budget/schema/loan-balance-update";
 import { LoanPairingResponse, LoanSummaryResponse } from "@budget/schema/loan-summary";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
@@ -84,6 +88,46 @@ export function usePairLoanCategory(budgetId: string, loanId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (categoryId: string) => pairLoanCategory(budgetId, loanId, categoryId),
+    onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
+  });
+}
+
+/** The Update Balance write: one change set (undo restores the lines, the adjustment and the terms). */
+export const updateLoanBalance = async (
+  budgetId: string,
+  loanId: string,
+  input: LoanBalanceUpdateRequest,
+) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/balance-update`, {
+      method: "POST",
+      body: input,
+      idempotencyKey: crypto.randomUUID(),
+      onChangeSet: (id) => recordChange(budgetId, id, "register"),
+      schema: LoanBalanceUpdateResponse,
+    })
+  ).data;
+
+/** The same answer with nothing written: no change set to record, no query to invalidate. */
+export const previewLoanBalance = async (
+  budgetId: string,
+  loanId: string,
+  input: LoanBalanceUpdateRequest,
+) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/balance-update`, {
+      method: "POST",
+      body: { ...input, preview: true },
+      idempotencyKey: crypto.randomUUID(),
+      schema: LoanBalanceUpdateResponse,
+    })
+  ).data;
+
+/** On success every query of the plan (header balances, summary, activity, plan months) refetches. */
+export function useUpdateLoanBalance(budgetId: string, loanId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LoanBalanceUpdateRequest) => updateLoanBalance(budgetId, loanId, input),
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });
 }

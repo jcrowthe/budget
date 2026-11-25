@@ -1,10 +1,16 @@
+import { isLoanType } from "@budget/core/account-types";
+import type { Month } from "@budget/core/month";
 import type { Account, AccountType } from "@budget/schema/accounts";
 import { isCredit } from "@budget/schema/card-payments";
+import { NOT_YET_UPDATED } from "@budget/schema/loan-balance-update";
 import { reconciledAgo, reconciledTitle } from "@budget/schema/reconcile";
 
 import type { AccountBalances } from "@budget/schema/transactions";
 import { Fragment, type ReactNode, useEffect, useState } from "react";
 import { useAccountSummary, useSetStarred } from "../api/accounts";
+import { useLoanSummary } from "../api/loans";
+import { localToday } from "../api/today";
+import { UpdateBalanceDialog } from "../loan/UpdateBalanceDialog";
 import { ClearedFilledIcon, ClearedOutlineIcon } from "../register/icons";
 import { SelectedTotal } from "../register/selection";
 import { ACCOUNT_BADGE, ACCOUNT_TYPE_LABEL } from "../shell/accountTypeLabels";
@@ -108,7 +114,7 @@ function badgeIcon(type: AccountType): ReactNode {
 }
 
 /** The lock and "Not Yet Reconciled", or "Reconciled <relative time>" with the exact time in its title. */
-function ReconciledLabel({ at }: { at: string | null }) {
+function ReconciledLabel({ at, verb = "Reconciled" }: { at: string | null; verb?: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     setNow(Date.now());
@@ -118,8 +124,37 @@ function ReconciledLabel({ at }: { at: string | null }) {
   return (
     <span className="acct-info-item" title={at ? reconciledTitle(at) : undefined}>
       <LockIcon />
-      {at ? `Reconciled ${reconciledAgo(at, now)}` : "Not Yet Reconciled"}
+      {at
+        ? `${verb} ${reconciledAgo(at, now)}`
+        : verb === "Updated"
+          ? NOT_YET_UPDATED
+          : "Not Yet Reconciled"}
     </span>
+  );
+}
+
+/** A loan's "Updated <relative time>" / "Not Yet Updated", from the loan summary's balance_updated_at. */
+function UpdatedLabel({ account }: { account: Account }) {
+  const month = `${localToday().slice(0, 7)}-01` as Month;
+  const { data } = useLoanSummary(account.budget_id, account.id, month);
+  return (
+    <ReconciledLabel
+      at={data ? data.balance_updated_at : account.last_reconciled_at}
+      verb="Updated"
+    />
+  );
+}
+
+/** A loan's header button: opens the Update Balance wizard (a loan has no register to reconcile). */
+function UpdateBalanceButton({ account }: { account: Account }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="acct-reconcile" onClick={() => setOpen(true)}>
+        Update Balance
+      </button>
+      {open ? <UpdateBalanceDialog loan={account} onClose={() => setOpen(false)} /> : null}
+    </>
   );
 }
 
@@ -148,6 +183,7 @@ export function AccountHeader({ account }: { account?: Account }) {
       </header>
     );
   }
+  const loan = isLoanType(account.type);
   const badge = ACCOUNT_BADGE[account.type] ?? ACCOUNT_TYPE_LABEL[account.type];
   return (
     <header className="acct-head">
@@ -163,7 +199,11 @@ export function AccountHeader({ account }: { account?: Account }) {
               {badge}
             </span>
             <LinkStatusBadge account={account} className="acct-info-item acct-link-status" />
-            <ReconciledLabel at={account.last_reconciled_at} />
+            {loan ? (
+              <UpdatedLabel account={account} />
+            ) : (
+              <ReconciledLabel at={account.last_reconciled_at} />
+            )}
           </div>
         </div>
         <div className="acct-actions">
@@ -180,7 +220,7 @@ export function AccountHeader({ account }: { account?: Account }) {
               </button>
             )}
           </Tooltip>
-          <ReconcileButton />
+          {loan ? <UpdateBalanceButton account={account} /> : <ReconcileButton />}
         </div>
       </div>
       <hr className="acct-rule" />

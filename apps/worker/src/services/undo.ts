@@ -98,12 +98,17 @@ function refusals(nets: readonly Net[], system: ReadonlySet<string>) {
           k !== "starred" &&
           k !== "sort" &&
           k !== "paired_category_id" &&
+          k !== "interest_rate" &&
+          k !== "escrow_amount" &&
+          k !== "last_reconciled_at" &&
           JSON.stringify(b?.[k]) !== JSON.stringify(a?.[k]),
       );
       if (n.kind !== "update" || other) refuse(`${UNDO_ERRORS.undo_refused}: account`);
     }
     if (n.type === "payee") {
-      if ((b?.system ?? a?.system) != null) refuse("A system payee can't be undone");
+      // EXF-543: a system payee a set created stays (a balance update makes its own); any other change refuses.
+      if ((b?.system ?? a?.system) != null && !(n.kind === "create" && a?.system != null))
+        refuse("A system payee can't be undone");
       // Sets written before the move rows were logged (EXF-882) can't return what moved; new sets can.
       if (n.kind === "delete") {
         const logged = (type: string) =>
