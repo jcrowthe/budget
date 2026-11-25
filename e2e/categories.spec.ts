@@ -17,7 +17,9 @@ test.beforeEach(async ({ request }: { request: Req }) => {
   planId = (await res.json()).data.budget.id;
 });
 test.afterEach(async ({ request }: { request: Req }) => {
-  await request.delete(`/api/v1/budgets/${planId}`, { headers: await authHeaders() });
+  await request.delete(`/api/v1/budgets/${planId}`, {
+    headers: await authHeaders(),
+  });
 });
 
 const RENT = "🏠 Rent/Mortgage";
@@ -42,7 +44,12 @@ type Month = {
   groups: {
     id: string;
     name: string;
-    categories: { id: string; name: string; assigned: number; hidden: boolean }[];
+    categories: {
+      id: string;
+      name: string;
+      assigned: number;
+      hidden: boolean;
+    }[];
   }[];
 };
 async function month(request: Req): Promise<Month> {
@@ -246,7 +253,10 @@ test("collapse is saved on the server: a fresh browser profile sees it, no stora
   // Only the auth cookie: no localStorage, so what shows comes from the server.
   const fresh = await browser.newContext({
     baseURL,
-    storageState: { cookies: (await context.storageState()).cookies, origins: [] },
+    storageState: {
+      cookies: (await context.storageState()).cookies,
+      origins: [],
+    },
   });
   const p2 = await fresh.newPage();
   await p2.goto(`/${planId}/budget`);
@@ -276,7 +286,9 @@ async function collapsedNames(request: Req): Promise<string[]> {
   const res = await request.get(`/api/v1/budgets/${planId}/months/${ISO}`, {
     headers: await authHeaders(),
   });
-  const d = (await res.json()).data as { groups: { name: string; collapsed: boolean }[] };
+  const d = (await res.json()).data as {
+    groups: { name: string; collapsed: boolean }[];
+  };
   return d.groups.filter((g) => g.collapsed).map((g) => g.name);
 }
 
@@ -314,4 +326,50 @@ test("a month fetch started before a collapse cannot reopen the group or undo an
   await expect(groupRow(page, "Bills").locator(".num").first()).toHaveText("$12.00");
   await page.getByRole("button", { name: "Expand Bills categories" }).click();
   await expect(catRow(page, RENT).locator(".assigned-box .amount")).toHaveText("$12.00");
+});
+
+test("delete group wording: singular for one category, plural for two", async ({
+  page,
+  request,
+}) => {
+  const base = `/api/v1/budgets/${planId}`;
+  const headers = await authHeaders();
+  const mk = async (group: string, cats: string[]) => {
+    const g = (
+      await (
+        await request.post(`${base}/category_groups`, {
+          headers,
+          data: { name: group },
+        })
+      ).json()
+    ).data.category_group;
+    for (const name of cats)
+      await request.post(`${base}/categories`, {
+        headers,
+        data: { group_id: g.id, name },
+      });
+  };
+  await mk("Solo", ["Only one"]);
+  await mk("Pair", ["First", "Second"]);
+  // A group with no history is deleted without a dialog, so give one category of each group an assignment.
+  await assign(request, "Only one", 1000);
+  await assign(request, "First", 1000);
+  await open(page);
+  const check = async (group: string, text: RegExp) => {
+    await page.locator(".group-name", { hasText: group }).click();
+    await popover(page, "Edit Category Group").getByRole("button", { name: "Delete" }).click();
+    const dialog = page.getByRole("dialog", { name: "Delete Category Group" });
+    await expect(dialog.getByText(text)).toBeVisible();
+    await page.keyboard.press("Escape"); // closes the category list
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+  };
+  await check(
+    "Solo",
+    /^The 1 category in the group Solo will be reassigned to the selected category\.$/,
+  );
+  await check(
+    "Pair",
+    /^All 2 categories in the group Pair will be reassigned to the selected category\.$/,
+  );
 });

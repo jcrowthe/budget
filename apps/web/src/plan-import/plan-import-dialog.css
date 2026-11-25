@@ -87,6 +87,20 @@
   gap: 4px;
   margin-bottom: var(--space-2);
 }
+.plan-import-dialog-currency-text {
+  display: flex;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+.plan-import-dialog-change {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--actionPrimary);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
 .plan-import-dialog-currency small {
   display: block;
 }

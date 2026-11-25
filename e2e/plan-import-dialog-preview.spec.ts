@@ -106,3 +106,26 @@ test("15 a symbol the app does not know: the person chooses the plan's currency,
   await expect(choice).toHaveValue("EUR");
   await expect(d.getByRole("button", { name: "Import", exact: true })).toBeEnabled();
 });
+
+test("15b a plain '$' file: USD is chosen without a select, and Change reveals the select", async ({
+  page,
+}) => {
+  const requests = importRequests(page);
+  await recordImportForms(page);
+  await openImport(page);
+  await chooseFiles(page, symbolPair("$"));
+  const d = dialog(page);
+  const block = d.locator(".plan-import-dialog-currency");
+  await expect(block).toContainText("USD");
+  await expect(d.getByLabel("Plan currency", { exact: true })).toHaveCount(0);
+  await block.getByRole("button", { name: "Change", exact: true }).click();
+  const choice = d.getByLabel("Plan currency", { exact: true });
+  await expect(choice).toHaveValue("USD");
+  const before = requests.length;
+  await choice.selectOption("CAD");
+  await expect.poll(() => requests.length).toBe(before + 1);
+  expect(JSON.parse((await importForms(page))[before]?.currency_format ?? "{}")).toMatchObject({
+    iso_code: "CAD",
+  });
+  await expect(choice).toHaveValue("CAD");
+});
