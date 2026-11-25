@@ -55,13 +55,23 @@ export async function moveCategoryGroup(
   });
   const db = getDb(env);
   await requirePlan(db, input.budget_id);
-  const placement: Placement = { before: v.before_group_id, after: v.after_group_id };
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const scope = await groupsRepo.listActive(db, input.budget_id);
-    const moved = scope.find((g) => g.id === input.group_id);
+    const all = await groupsRepo.listActive(db, input.budget_id);
+    const moved = all.find((g) => g.id === input.group_id);
     if (!moved) throw new NotFound("Category group");
-    // The month engine always lists the Credit Card Payments group first, so moving it could change nothing.
+    // The month engine lists the Credit Card Payments group first whatever its sort_order, and a group created
+    // after a card sorts BEFORE it in the data. So plan over the displayed order of the ordinary groups only.
     if (moved.kind !== null) throw new MoveLocked("payment_group_locked", GROUP_PINNED);
+    const scope = all.filter((g) => g.kind === null);
+    const pinned = new Set(all.filter((g) => g.kind !== null).map((g) => g.id));
+    let placement: Placement = { before: v.before_group_id, after: v.after_group_id };
+    if (placement.before && pinned.has(placement.before)) {
+      throw new InvalidMoveTarget("Nothing can be placed above the Credit Card Payments group");
+    }
+    // After the pinned group = first among the ordinary groups.
+    if (placement.after && pinned.has(placement.after)) {
+      placement = { before: scope.find((g) => g.id !== moved.id)?.id };
+    }
     if ([placement.before, placement.after].includes(moved.id)) {
       throw new InvalidMoveTarget("A group can't be moved next to itself");
     }

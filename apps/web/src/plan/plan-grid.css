@@ -1144,7 +1144,7 @@ button.category-name {
   height: 36px;
   margin: 0 14px;
   width: auto;
-  background: var(--rowSelected);
+  background: var(--backgroundSecondary);
   border: 1px dashed var(--actionPrimary);
   border-radius: 4px;
 }

@@ -196,3 +196,46 @@ test("Undo restores the order after a drag", async ({ page }) => {
   await undo.click();
   await expect(blockNames(page, "Bills")).toHaveText([RENT, PHONE, UTILITIES]);
 });
+
+test("a group dropped below the Credit Card Payments block lands second, even after a later-added group", async ({
+  page,
+  request,
+}) => {
+  const h = await authHeaders();
+  const base = `/api/v1/budgets/${planId}`;
+  await request.post(`${base}/accounts`, {
+    headers: h,
+    data: { name: "ZZ Visa", type: "creditCard", balance: 0, date: `${ISO.slice(0, 8)}02` },
+  });
+  await request.post(`${base}/category_groups`, { headers: h, data: { name: "ZZ New" } });
+  await page.setViewportSize({ width: 1280, height: 1600 });
+  await open(page);
+  await expect(groupNames(page)).toHaveText([
+    "Credit Card Payments",
+    "ZZ New",
+    "Bills",
+    "Needs",
+    "Wants",
+  ]);
+  await drag(
+    page,
+    block(page, "Wants").locator(".group-row"),
+    block(page, "Credit Card Payments"),
+    "bottom",
+  );
+  await expect(groupNames(page)).toHaveText([
+    "Credit Card Payments",
+    "Wants",
+    "ZZ New",
+    "Bills",
+    "Needs",
+  ]);
+  await page.reload();
+  await expect(groupNames(page)).toHaveText([
+    "Credit Card Payments",
+    "Wants",
+    "ZZ New",
+    "Bills",
+    "Needs",
+  ]);
+});

@@ -188,6 +188,29 @@ describe("move a group (AC3)", () => {
   });
 });
 
+describe("group moves follow the displayed order (payment group pinned first)", () => {
+  it("after the payment group lands second even when a later group sorts before it in the data", async () => {
+    const bid = await plan();
+    await account(bid, "creditCard", 0);
+    const added = await send("POST", api(bid, "/category_groups"), { name: "ZZ New" });
+    expect(added.status).toBe(201);
+    const m0 = await month(bid, NOV);
+    const names = m0.groups.map((g) => g.name);
+    expect(names).toEqual(["Credit Card Payments", "ZZ New", "Bills", "Needs", "Wants"]);
+    const ccp = m0.groups[0]?.id as string;
+    for (const target of ["Wants", "Needs"]) {
+      const res = await moveGroup(bid, group(await month(bid, NOV), target).id, {
+        after_group_id: ccp,
+      });
+      expect(res.status).toBe(200);
+      expect((await month(bid, NOV)).groups[1]?.name).toBe(target);
+    }
+    const refused = await moveGroup(bid, group(m0, "Bills").id, { before_group_id: ccp });
+    expect(refused.status).toBe(422);
+    expect((await body(refused)).error.name).toBe("invalid_move_target");
+  });
+});
+
 describe("change_log, one batch, renormalize", () => {
   it("a midpoint move logs the moved row only; a renormalize logs every renumbered row", async () => {
     const bid = await plan();
@@ -446,7 +469,7 @@ describe("REST and MCP agree", () => {
       const needs = group(m, "Needs");
       const bills = group(m, "Bills");
       const ids = needs.categories.map((c) => c.id) as string[];
-      const [g1, , g3] = groupIds(m) as string[];
+      const [, g1, , g3] = groupIds(m) as string[];
       const catArgs = {
         budget_id: bid,
         category_id: ids[3],
