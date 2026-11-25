@@ -3,6 +3,7 @@ import { Account } from "./accounts";
 import { Month } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
+import { durationText } from "./debt-target";
 
 // EXF-541: a loan's summary (tiles, payoff, progress chart, paired category) and the pairing write, and their copy.
 
@@ -16,6 +17,10 @@ const Point = z
 const TargetFigures = z
   .object({
     amount: Milliunits,
+    type: z.literal("debt_payment").nullable().openapi({
+      description:
+        "debt_payment: the paired category's Debt Payment Target (a monthly set-aside); null for any other target",
+    }),
     cadence: z.enum(["weekly", "monthly", "yearly", "custom"]),
     behavior: z.enum(["set_aside", "refill", "fill_up", "balance"]),
     day_of_month: z.number().int().nullable(),
@@ -119,15 +124,7 @@ export function payoffLabel(month: string | null): string {
   return `${MONTHS[Number(month.slice(5, 7)) - 1] ?? ""} ${month.slice(0, 4)}`;
 }
 
-/** "30 years", "29 yrs, 11 mos", "10 months", "1 month", "1 yr, 1 mo". */
-export function durationText(n: number): string {
-  const plural = (v: number, one: string, many: string) => `${v} ${v === 1 ? one : many}`;
-  if (n < 12) return plural(n, "month", "months");
-  const y = Math.floor(n / 12);
-  const m = n % 12;
-  if (m === 0) return plural(y, "year", "years");
-  return `${plural(y, "yr", "yrs")}, ${plural(m, "mo", "mos")}`;
-}
+export { durationText };
 
 /** "Balance Remaining $200,000 (100.0%)": `whole` is the plan formatter's money without decimals. */
 export function progressLine(

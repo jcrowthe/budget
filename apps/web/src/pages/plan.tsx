@@ -1,7 +1,7 @@
 import type { Month } from "@budget/core/month";
 import { overspentCount, type PlanView, viewCategories } from "@budget/schema/plan-views";
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useParams } from "react-router";
+import { Navigate, useLocation, useParams } from "react-router";
 import { useMonth } from "../api/months";
 import { useEnterDueOnOpen } from "../api/scheduledTransactions";
 import { KeyboardTip } from "../plan/KeyboardTip";
@@ -9,7 +9,7 @@ import { type EditRequest, PlanGrid } from "../plan/PlanGrid";
 import { PlanHeader } from "../plan/PlanHeader";
 import { PlanPanel } from "../plan/panel/PlanPanel";
 import { usePlanLayout } from "../plan/panel/planLayout";
-import { useSelection, visibleSelection } from "../plan/selection";
+import { selectOnly, useSelection, visibleSelection } from "../plan/selection";
 import { ViewChips } from "../plan/ViewChips";
 import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
@@ -17,6 +17,13 @@ import { usePageTitle } from "../shell/useCurrentPlan";
 /** Everything below the URL logic. Keyed by plan, so the selection and every open editor reset on a plan switch. */
 function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
   const [selection, setSelection] = useSelection();
+  // EXF-541: a loan's page links here with the paired category to select, so its Target card (the Debt Payment
+  // Target editor) is open in the inspector.
+  const wanted = (useLocation().state as { selectCategory?: string } | null)?.selectCategory;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applies the requested selection once, on arrival
+  useEffect(() => {
+    if (wanted) setSelection(() => selectOnly(wanted));
+  }, [wanted]);
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const layout = usePlanLayout(bodyRef);

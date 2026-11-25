@@ -1,4 +1,5 @@
 import { isLoanType } from "@budget/core/account-types";
+import { isDebtTargetDef } from "@budget/core/debt-targets";
 import { runLoan } from "@budget/core/loan-engine";
 import { projectLoan } from "@budget/core/loan-projection";
 import { currentMonth, type Month } from "@budget/core/month";
@@ -71,6 +72,7 @@ export async function getLoanSummary(
         available: c.available,
         target: t
           ? {
+              type: isDebtTargetDef(t.definition) ? "debt_payment" : null,
               amount: t.definition.amount,
               cadence: t.definition.cadence,
               behavior: t.definition.behavior,
@@ -80,7 +82,7 @@ export async function getLoanSummary(
             }
           : null,
       };
-      if (t && t.definition.cadence === "monthly" && t.definition.repeat === null) {
+      if (t && isDebtTargetDef(t.definition) && t.definition.repeat === null) {
         targetPayment = t.definition.amount;
       }
     }

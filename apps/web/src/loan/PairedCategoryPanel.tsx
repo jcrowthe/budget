@@ -1,6 +1,8 @@
 import type { Month } from "@budget/core/month";
+import { CREATE_DEBT_TARGET, debtTargetHeading } from "@budget/schema/debt-target";
 import type { LoanSummary } from "@budget/schema/loan-summary";
 import { UNPAIRED_BODY, UNPAIRED_TITLE } from "@budget/schema/loan-summary";
+import type { PlanFormatter } from "@budget/schema/plan-formats";
 import { useState } from "react";
 import { Link } from "react-router";
 import { usePlanFormatter } from "../shell/plan-formats-context";
@@ -9,22 +11,27 @@ import { PairLoanDialog } from "./PairLoanDialog";
 
 type Target = NonNullable<NonNullable<LoanSummary["paired_category"]>["target"]>;
 
-const FREQUENCY: Record<Target["cadence"], string> = {
+const CADENCE: Record<Target["cadence"], string> = {
   weekly: "Weekly",
   monthly: "Monthly",
   yearly: "Yearly",
   custom: "Custom",
 };
-const ordinal = (n: number) => {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
-};
-function dueText(t: Target): string {
-  if (t.cadence === "monthly") {
-    return t.day_of_month ? `by the ${ordinal(t.day_of_month)}` : "by the End of the Month";
+
+/** Target, Frequency and Due in the plan's own wording (EXF-545's debt wording, else the target's heading). */
+function targetRows(
+  t: Target,
+  fmt: PlanFormatter,
+): { target: string; frequency: string; due: string } {
+  if (t.type === "debt_payment") {
+    const h = debtTargetHeading(t, fmt);
+    return { target: h.heading, frequency: h.label, due: h.by.replace(/^By/, "by") };
   }
-  return t.due_date ?? "—";
+  return {
+    target: fmt.abs(t.amount),
+    frequency: CADENCE[t.cadence],
+    due: t.due_date ? fmt.date(t.due_date) : "—",
+  };
 }
 
 /** "Paired Plan Category": the paired category's Available and target, or the pairing prompt. */
@@ -43,6 +50,7 @@ export function PairedCategoryPanel({
   const [pairing, setPairing] = useState(false);
   const tone =
     !paired || paired.available === 0 ? "zero" : paired.available > 0 ? "positive" : "negative";
+  const rows = paired?.target ? targetRows(paired.target, fmt) : null;
   return (
     <section className="loan-card loan-paired" aria-label="Paired Plan Category">
       {paired ? (
@@ -63,26 +71,28 @@ export function PairedCategoryPanel({
                 </span>
               </dd>
             </div>
-            {paired.target ? (
+            {rows ? (
               <>
                 <div>
                   <dt>Target</dt>
-                  <dd>{fmt.abs(paired.target.amount)}</dd>
+                  <dd>{rows.target}</dd>
                 </div>
                 <div>
                   <dt>Frequency</dt>
-                  <dd>{FREQUENCY[paired.target.cadence]}</dd>
+                  <dd>{rows.frequency}</dd>
                 </div>
                 <div>
                   <dt>Due</dt>
-                  <dd>{dueText(paired.target)}</dd>
+                  <dd>{rows.due}</dd>
                 </div>
               </>
             ) : (
               <div>
                 <dt>Target</dt>
                 <dd>
-                  <Link to={planPath(budgetId, month)}>(+) Create Debt Payment Target</Link>
+                  <Link to={planPath(budgetId, month)} state={{ selectCategory: paired.id }}>
+                    (+) {CREATE_DEBT_TARGET}
+                  </Link>
                 </dd>
               </div>
             )}

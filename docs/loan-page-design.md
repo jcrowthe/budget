@@ -139,3 +139,15 @@ category batch in `services/accounts.ts`).
 EXF-542 (Add Activity), EXF-543 (Update Balance, the header's "Updated …" line and frozen rows), EXF-544 (the
 simulator's inputs, Simulation line, savings and Copy to plan), EXF-545 (Debt Payment Target, "Monthly Debt Payment"
 wording, the paired inspector; "Create Debt Payment Target" here links to the plan until then).
+
+## Rework after EXF-545 (rebase)
+
+- **One payoff arithmetic.** `loanPayoff` (EXF-545, `debt-targets.ts`) now calls `projectLoan` (`loan-projection.ts`)
+  and `MAX_PAYOFF_MONTHS` is `MAX_PROJECTION_MONTHS`. The two already agreed on every case tested
+  (`loan-payoff-agreement.test.ts`: 200,000 @ 6% escrow 300 at 1,500 → 360; 15,000 @ 4.5% at 350 → 47; never; paid
+  off), so no EXF-545 number changed. `durationText` is EXF-545's (`debt-target.ts`); `loan-summary.ts` re-exports it.
+- **Debt target kind.** `paired_category.target` carries `type: "debt_payment" | null` (`isDebtTargetDef`: a monthly
+  set-aside). B3 now uses the target only for that kind (a monthly refill falls back to the minimum).
+- **Panel.** A debt target reads "Monthly Debt Payment" / "by the End of the Month" through `debtTargetHeading`. Another
+  target kind shows its cadence and due date. "(+) Create Debt Payment Target" opens the plan with the paired category
+  selected (router state read by `pages/plan.tsx`), so the inspector's Target card offers the editor.

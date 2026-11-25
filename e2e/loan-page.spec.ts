@@ -128,6 +128,11 @@ test("AC3: the paired panel with and without a target; Get Started pairs", async
   await expect(panel.getByRole("link", { name: "ZZ Loans: ZZ Mortgage Pay" })).toBeVisible();
   await expect(panel.getByTestId("loan-available")).toHaveText("$1,500.00");
   await expect(panel.getByRole("link", { name: "(+) Create Debt Payment Target" })).toBeVisible();
+  // The link opens the plan with the paired category selected: its Target card offers the editor (EXF-545).
+  await panel.getByRole("link", { name: "(+) Create Debt Payment Target" }).click();
+  await expect(page.getByRole("button", { name: "Create Debt Payment Target" })).toBeVisible();
+  await page.goBack();
+  await expect(panel).toBeVisible();
 
   await call(request, "PUT", `/api/v1/budgets/${s.plan}/categories/${s.cat}/target`, {
     cadence: "monthly",
@@ -136,7 +141,8 @@ test("AC3: the paired panel with and without a target; Get Started pairs", async
   });
   await page.reload();
   await expect(panel.getByText("$1,600.00")).toBeVisible();
-  await expect(panel.getByText("Frequency")).toBeVisible();
+  await expect(panel.getByText("Monthly Debt Payment")).toBeVisible();
+  await expect(panel.getByText("by the End of the Month")).toBeVisible();
   await expect(panel.getByRole("link", { name: "(+) Create Debt Payment Target" })).toHaveCount(0);
   await expect(sentence(page)).toContainText("Your monthly target of $1,600.00 keeps you on track");
 

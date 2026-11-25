@@ -83,9 +83,25 @@ describe("loan summary", () => {
     expect(put.status).toBe(200);
     const t = await summary(w.bid, w.mortgage.id);
     expect(t).toMatchObject({ payment_source: "target", payment_used: 1600000 });
-    expect(t.paired_category.target).toMatchObject({ amount: 1600000, cadence: "monthly" });
+    expect(t.paired_category.target).toMatchObject({
+      type: "debt_payment",
+      amount: 1600000,
+      cadence: "monthly",
+    });
     expect(t.payments_remaining).toBeLessThan(360);
     expect(t.payoff_month < "2056-11-01").toBe(true);
+  });
+  it("a monthly refill target is not the debt kind and falls back to the minimum", async () => {
+    const w = await world();
+    const cat = await findCategory(w.bid, "Mortgage Pay");
+    await send(`/api/v1/budgets/${w.bid}/categories/${cat.id}/target`, "PUT", {
+      cadence: "monthly",
+      behavior: "refill",
+      amount: 1600000,
+    });
+    const s = await summary(w.bid, w.mortgage.id);
+    expect(s.paired_category.target.type).toBeNull();
+    expect(s).toMatchObject({ payment_source: "minimum", payment_used: 1500000 });
   });
   it("a weekly target falls back to the minimum", async () => {
     const w = await world();
