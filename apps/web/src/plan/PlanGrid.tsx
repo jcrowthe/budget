@@ -463,9 +463,9 @@ export function PlanGrid({
             {groups.map((g) => {
               const collapsed = isCollapsed(g.id);
               const t = dnd.target;
-              const gapRow = (
+              const gap = (kind: "category" | "group") => (
                 <div
-                  className="grid-row drop-gap"
+                  className={`grid-row drop-gap drop-gap-${kind}`}
                   role="presentation"
                   data-testid="drop-gap"
                   {...dnd.gap}
@@ -476,7 +476,7 @@ export function PlanGrid({
               const visible = g.categories.filter((c) => !c.hidden);
               return (
                 <Fragment key={g.id}>
-                  {groupGap?.before === g.id && gapRow}
+                  {groupGap?.before === g.id && gap("group")}
                   <div
                     className={`group-block${dnd.draggingId === g.id ? " is-drag-source" : ""}`}
                     role="presentation"
@@ -505,11 +505,11 @@ export function PlanGrid({
                         )
                       }
                     />
-                    {catGap?.top === g.id && gapRow}
+                    {catGap?.top === g.id && gap("category")}
                     {!collapsed &&
                       visible.map((c) => (
                         <Fragment key={c.id}>
-                          {catGap?.before === c.id && gapRow}
+                          {catGap?.before === c.id && gap("category")}
                           <CategoryRow
                             drag={dnd.categoryRow(c, g)}
                             dragging={dnd.draggingId === c.id}
@@ -560,11 +560,11 @@ export function PlanGrid({
                               })
                             }
                           />
-                          {catGap?.after === c.id && gapRow}
+                          {catGap?.after === c.id && gap("category")}
                         </Fragment>
                       ))}
                   </div>
-                  {groupGap?.after === g.id && gapRow}
+                  {groupGap?.after === g.id && gap("group")}
                 </Fragment>
               );
             })}

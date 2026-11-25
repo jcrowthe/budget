@@ -1142,12 +1142,24 @@ button.category-name {
 }
 .drop-gap {
   height: 36px;
+  /* The slot sits inside the row's margins, inset 3px from its neighbours so the dashes don't meet their separators. */
   margin: 0 14px;
+  border-block: 3px solid transparent;
   width: auto;
+  flex: none;
+}
+.drop-gap::before {
+  content: "";
+  flex: 1;
+  align-self: stretch;
   background: var(--backgroundSecondary);
   border: 1px dashed var(--actionPrimary);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
-.bars-on .drop-gap {
+.bars-on .drop-gap-category {
   height: 44px;
+}
+/* A group lands as a group header: the slot is header height. */
+.drop-gap-group {
+  height: 40px;
 }
