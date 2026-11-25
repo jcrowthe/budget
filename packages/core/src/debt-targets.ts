@@ -1,4 +1,5 @@
 import { estimatedInterest } from "./loan-engine";
+import { MAX_PROJECTION_MONTHS, projectLoan } from "./loan-projection";
 import type { Milliunits } from "./money";
 import type { TargetDefinition } from "./targets";
 
@@ -40,7 +41,7 @@ export type LoanPayoffInput = {
 export type LoanPayoff = { months: number | null; interest: Milliunits; total: Milliunits };
 
 /** The most payments counted before a payoff is called unreachable. */
-export const MAX_PAYOFF_MONTHS = 1200;
+export const MAX_PAYOFF_MONTHS = MAX_PROJECTION_MONTHS;
 
 /**
  * Amortizes `owed` with P&I = payment - escrow: each month's interest is `estimatedInterest` on the balance, the
@@ -49,18 +50,21 @@ export const MAX_PAYOFF_MONTHS = 1200;
  */
 export function loanPayoff(v: LoanPayoffInput): LoanPayoff {
   const owed = Math.max(0, v.owed);
-  const pi = v.payment - v.escrow;
-  if (owed === 0) return { months: 0, interest: 0, total: 0 };
-  if (pi <= estimatedInterest(owed, v.rate)) return { months: null, interest: 0, total: owed };
-  let balance = owed;
-  let interest = 0;
-  for (let n = 1; n <= MAX_PAYOFF_MONTHS; n++) {
-    const i = estimatedInterest(balance, v.rate);
-    interest += i;
-    if (balance + i <= pi) return { months: n, interest, total: owed + interest };
-    balance = balance + i - pi;
-  }
-  return { months: null, interest: 0, total: owed };
+  // One arithmetic: the loan engine's projection (loan-projection.ts). A positive escrow is the mortgage rule.
+  const p = projectLoan(
+    {
+      type: v.escrow > 0 ? "mortgage" : "otherDebt",
+      interest_rate: v.rate,
+      escrow_amount: v.escrow,
+    },
+    { balance: owed, payment: v.payment, from: "2000-01-01" },
+  );
+  if (p.payments_remaining === null) return { months: null, interest: 0, total: owed };
+  return {
+    months: p.payments_remaining,
+    interest: p.interest_total,
+    total: owed + p.interest_total,
+  };
 }
 
 /**

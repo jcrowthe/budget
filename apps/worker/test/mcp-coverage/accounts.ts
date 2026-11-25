@@ -21,4 +21,6 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
     tool: ["pay_credit_card", "record_loan_payment"],
   },
   "GET /budgets/{budget_id}/accounts/{account_id}/activity": { tool: "get_loan_activity" },
+  "GET /budgets/{budget_id}/accounts/{account_id}/summary": { tool: "get_loan_summary" },
+  "PUT /budgets/{budget_id}/accounts/{account_id}/paired-category": { tool: "pair_loan_category" },
 };
