@@ -224,6 +224,14 @@ export const FILE_ROW_SKIPS = [
   "duplicate_in_file",
 ] as const;
 
+/**
+ * What the import will do with a row (EXF-988), set by the Worker's preview from the same decision the import makes:
+ * `new` is created; `matched` merges into a row entered by hand; `already_imported` has a key the account (or a
+ * thrown-away row) already holds, so the import counts it matched and writes nothing; `bank_duplicate` equals a
+ * bank-synced row, so the import skips it. `null` for a row with a `skip` reason, and for rows built in the browser.
+ */
+export const FILE_ROW_OUTCOMES = ["new", "matched", "already_imported", "bank_duplicate"] as const;
+
 export const FileImportRow = z
   .object({
     date: IsoDate.nullable(),
@@ -234,6 +242,7 @@ export const FileImportRow = z
     line: z.number().int().min(1),
     key: z.string().nullable(),
     skip: z.enum(FILE_ROW_SKIPS).nullable(),
+    outcome: z.enum(FILE_ROW_OUTCOMES).nullable(),
   })
   .openapi("FileImportRow");
 export type FileImportRow = z.infer<typeof FileImportRow>;
@@ -466,6 +475,7 @@ export async function buildFileRows(
         line: s.line,
         key: null,
         skip: null,
+        outcome: null,
       }),
     );
     return { rows, skippedBefore: 0, dateQuestion, dateFormat: null };
@@ -505,6 +515,7 @@ export async function buildFileRows(
         line: s.line,
         key: null,
         skip: "invalid",
+        outcome: null,
       });
       continue;
     }
@@ -552,6 +563,7 @@ export async function buildFileRows(
       line: s.line,
       key,
       skip,
+      outcome: null,
     });
   }
   return { rows, skippedBefore, dateQuestion: null, dateFormat };

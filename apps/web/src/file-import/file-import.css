@@ -245,3 +245,13 @@ fieldset.file-import-options {
 .file-import-caret {
   font-family: "Segoe UI Symbol", "DejaVu Sans", system-ui, sans-serif;
 }
+.file-import-marked {
+  margin: 0;
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.file-import-mark {
+  display: block;
+  color: var(--labelSecondary);
+  font-size: 12px;
+}

@@ -44,7 +44,8 @@ describe("file import preview (EXF-531, AC1)", () => {
       },
       sha,
     );
-    expect(p.rows).toEqual(built.rows);
+    // The Worker adds the outcome of each row (EXF-988); everything else is what buildFileRows gives.
+    expect(p.rows).toEqual(built.rows.map((r) => ({ ...r, outcome: "new" })));
     expect(p.row_count).toBe(2);
   });
 

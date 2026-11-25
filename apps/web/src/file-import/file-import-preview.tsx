@@ -37,6 +37,18 @@ const SKIP_COPY = {
     `Include ${n} transactions dated before account start date or last reconciliation`,
 };
 
+/** What the import will do with a row it already knows (EXF-988); a new row carries no mark. */
+const MARK_COPY: Record<string, string> = {
+  already_imported: "Already imported",
+  matched: "Matches an entered transaction",
+  bank_duplicate: "Duplicate of a bank transaction",
+};
+const marked = (n: number) =>
+  `${n} ${n === 1 ? "transaction" : "transactions"} will be matched or skipped`;
+
+const marksOf = (rows: readonly FileImportRow[]) =>
+  new Map(rows.flatMap((r) => (r.key && r.outcome ? [[r.key, r.outcome] as const] : [])));
+
 const CSV_FIELDS = Object.keys(CSV_FIELD_LABELS) as CsvField[];
 const ASCII = (s: string) => s.replace("−", "-");
 
@@ -68,6 +80,8 @@ export function FileImportPreview({
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
   const [options, setOptions] = useState<FileImportOptions | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
+  // The Worker's outcome per row key, from the last upload: the marks of rows the import already knows.
+  const [marks, setMarks] = useState<ReadonlyMap<string, FileImportRow["outcome"]>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
@@ -96,6 +110,7 @@ export function FileImportPreview({
         setParsed(parsed);
         setOptions(pinned);
         setFileId(up.file_id);
+        setMarks(marksOf(up.rows));
       } catch (e) {
         if (ctl.signal.aborted) return;
         const detail =
@@ -123,8 +138,17 @@ export function FileImportPreview({
   }, [txs.data, account?.import_start_date, target, today, fmt.dateFormat]);
   const built: FileRows | null = useFileRows(parsed, options, ctx);
 
-  const kept = useMemo(() => (built ? built.rows.filter((r) => r.skip === null) : []), [built]);
+  const kept = useMemo(
+    () =>
+      built
+        ? built.rows
+            .filter((r) => r.skip === null)
+            .map((r) => ({ ...r, outcome: (r.key && marks.get(r.key)) || null }))
+        : [],
+    [built, marks],
+  );
   const n = kept.length;
+  const known = kept.filter((r) => r.outcome !== null && r.outcome !== "new").length;
 
   const edit = (patch: Partial<FileImportOptions>) =>
     setOptions((o) => (o ? { ...o, ...patch } : o));
@@ -140,11 +164,15 @@ export function FileImportPreview({
     if (!options || id === target) return;
     setTarget(id);
     setFileId(null);
+    setMarks(new Map());
     setError(null);
     const mine = ++seq.current;
     try {
       const up = await previewFileImport(budgetId, id, file, { ...options, today });
-      if (seq.current === mine) setFileId(up.file_id);
+      if (seq.current === mine) {
+        setFileId(up.file_id);
+        setMarks(marksOf(up.rows));
+      }
     } catch (e) {
       if (seq.current === mine)
         setError(e instanceof ApiError ? e.detail : "The file could not be sent.");
@@ -156,7 +184,10 @@ export function FileImportPreview({
     const mine = ++seq.current;
     setFileId(null);
     const up = await previewFileImport(budgetId, target, file, { ...options, today });
-    if (seq.current === mine) setFileId(up.file_id);
+    if (seq.current === mine) {
+      setFileId(up.file_id);
+      setMarks(marksOf(up.rows));
+    }
   };
 
   const run = async () => {
@@ -281,6 +312,11 @@ export function FileImportPreview({
                   ) : null}
                 </div>
               )}
+              {known > 0 ? (
+                <p className="file-import-marked" role="status">
+                  {marked(known)}
+                </p>
+              ) : null}
               <div className="file-import-table-wrap">
                 <PreviewTable rows={kept} csv={isCsv} fmt={fmt} />
               </div>
@@ -416,7 +452,14 @@ function PreviewTable({
         {rows.map((r) => (
           <tr key={r.line}>
             <td>{r.date ? fmt.date(r.date) : ""}</td>
-            <td>{r.payee_text}</td>
+            <td>
+              {r.payee_text}
+              {r.outcome && MARK_COPY[r.outcome] ? (
+                <span className="file-import-mark" data-outcome={r.outcome}>
+                  {MARK_COPY[r.outcome]}
+                </span>
+              ) : null}
+            </td>
             <td>{r.memo ?? ""}</td>
             {csv ? (
               <td className="num">{r.amount === null ? "" : ASCII(fmt.signed(r.amount))}</td>

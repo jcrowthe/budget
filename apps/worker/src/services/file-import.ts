@@ -144,6 +144,98 @@ const dayOf = (iso: string) => iso.slice(0, 10);
 
 const keyOf = (fileId: string, budgetId: string) => `file-imports/${budgetId}/${fileId}`;
 
+// ---------------------------------------------------------------------------------------------------- deciding
+
+/** What the import does with a kept row: the one decision both the preview and the import read (EXF-988). */
+export type RowDecision =
+  | { kind: "known" }
+  | { kind: "merge"; candidateId: string }
+  | { kind: "bank_duplicate" }
+  | { kind: "create" };
+
+/**
+ * The decision for each kept row, in order: a key already imported (or thrown away) is known; else a hand-entered
+ * row within the match window is merged; else a bank-synced row of the same date and amount makes it a duplicate;
+ * else it is created. Pure: the preview and the import both call it with the same reads.
+ */
+export function decideRows(
+  kept: readonly { key: string; date: string; amount: number }[],
+  reads: {
+    known: ReadonlySet<string>;
+    candidates: readonly { id: string; date: string; amount: number; createdAt: string }[];
+    directRows: readonly { id: string; date: string; amount: number }[];
+  },
+): RowDecision[] {
+  const used = new Set<string>();
+  const directUsed = new Set<string>();
+  return kept.map((r): RowDecision => {
+    if (reads.known.has(r.key)) return { kind: "known" };
+    const pick = pickMatch({ date: r.date, amount: r.amount }, [...reads.candidates], used);
+    if (pick) {
+      used.add(pick);
+      return { kind: "merge", candidateId: pick };
+    }
+    const dup = reads.directRows.find(
+      (d) => !directUsed.has(d.id) && d.date === r.date && d.amount === r.amount,
+    );
+    if (dup) {
+      directUsed.add(dup.id);
+      return { kind: "bank_duplicate" };
+    }
+    return { kind: "create" };
+  });
+}
+
+const OUTCOME_OF: Record<RowDecision["kind"], NonNullable<FileImportRow["outcome"]>> = {
+  known: "already_imported",
+  merge: "matched",
+  bank_duplicate: "bank_duplicate",
+  create: "new",
+};
+
+/** The rows a file import acts on: no skip reason and a key, a date and an amount. */
+const keptOf = (rows: readonly FileImportRow[]) =>
+  rows.filter(
+    (r) => r.skip === null && r.key !== null && r.date !== null && r.amount !== null,
+  ) as (FileImportRow & {
+    key: string;
+    date: string;
+    amount: number;
+  })[];
+
+const windowOf = (kept: readonly { date: string }[]) => {
+  const dates = kept.map((r) => r.date);
+  const lo = dates.reduce((a, b) => (a < b ? a : b));
+  const hi = dates.reduce((a, b) => (a > b ? a : b));
+  return { from: minusDays(lo, MATCH_WINDOW_DAYS), to: minusDays(hi, -MATCH_WINDOW_DAYS) };
+};
+
+/** The rows with the outcome the import will reach for each. D1 calls: 1, none when no row is kept. */
+async function markOutcomes(
+  db: Db,
+  budgetId: string,
+  accountId: string,
+  rows: FileImportRow[],
+): Promise<FileImportRow[]> {
+  const kept = keptOf(rows);
+  if (kept.length === 0) return rows;
+  const { from, to } = windowOf(kept);
+  const [knownRows, candRows, directRows] = (await batch(db, [
+    repo.knownKeysQuery(db, budgetId, JSON.stringify(kept.map((r) => r.key))),
+    importsRepo.matchCandidatesQuery(db, accountId, from, to),
+    repo.directRowsQuery(db, accountId, from, to),
+  ])) as [{ key: string }[], TransactionRow[], { id: string; date: string; amount: number }[]];
+  const decisions = decideRows(kept, {
+    known: new Set(knownRows.map((r) => r.key)),
+    candidates: candRows.map(importsRepo.toCandidate),
+    directRows,
+  });
+  const byLine = new Map(
+    kept.map((r, i) => [r.line, OUTCOME_OF[(decisions[i] as RowDecision).kind]]),
+  );
+  return rows.map((r) => ({ ...r, outcome: byLine.get(r.line) ?? null }));
+}
+
 // ---------------------------------------------------------------------------------------------------- preview
 
 export interface PreviewInput {
@@ -156,7 +248,8 @@ export interface PreviewInput {
 }
 
 /**
- * Reads the file against the account, stores it (R2 and one `file_imports` row) and sweeps expired files. D1 calls: 2.
+ * Reads the file against the account, marks each row with the outcome the import will reach, stores it (R2 and one
+ * `file_imports` row) and sweeps expired files. D1 calls: 3 (2 when no row is kept).
  * R2: one put, and at most FILE_IMPORT_SWEEP deletes.
  */
 export async function previewFile(
@@ -238,6 +331,8 @@ export async function previewFile(
     sha256Hex,
   );
 
+  const marked = await markOutcomes(db, budgetId, accountId, built.rows);
+
   const fileId = crypto.randomUUID();
   const r2Key = keyOf(fileId, budgetId);
   const expiresAt = new Date(now.getTime() + FILE_IMPORT_KEEP_DAYS * DAY_MS).toISOString();
@@ -273,7 +368,7 @@ export async function previewFile(
     mapping: labels ? (options.mapping ?? autoMap(labels)) : null,
     date_format: built.dateFormat,
     date_question: built.dateQuestion,
-    rows: built.rows,
+    rows: marked,
     skipped_before: built.skippedBefore,
     row_count: read.rowCount,
     file_id: fileId,
@@ -432,13 +527,7 @@ export async function prepareImport(
   }
 
   const ctx: repo.WriteCtx = { budgetId, accountId, actor, now: nowIso };
-  const kept = built.rows.filter(
-    (r) => r.skip === null && r.key !== null && r.date !== null && r.amount !== null,
-  ) as (FileImportRow & {
-    key: string;
-    date: string;
-    amount: number;
-  })[];
+  const kept = keptOf(built.rows);
   let skipped = built.rows.length - kept.length;
   let matched = 0;
   let imported = 0;
@@ -453,11 +542,7 @@ export async function prepareImport(
   };
 
   if (kept.length > 0) {
-    const dates = kept.map((r) => r.date);
-    const lo = dates.reduce((a, b) => (a < b ? a : b));
-    const hi = dates.reduce((a, b) => (a > b ? a : b));
-    const from = minusDays(lo, MATCH_WINDOW_DAYS);
-    const to = minusDays(hi, -MATCH_WINDOW_DAYS);
+    const { from, to } = windowOf(kept);
     const [knownRows, candRows, lineRows, directRows, ruleRows, nameRows] = (await batch(db, [
       repo.knownKeysQuery(db, budgetId, JSON.stringify(kept.map((r) => r.key))),
       importsRepo.matchCandidatesQuery(db, accountId, from, to),
@@ -493,8 +578,6 @@ export async function prepareImport(
       takesCategory: isOnBudget(account.type) && !isLoanType(account.type),
       rtaInflow: account.type === "checking" || account.type === "savings",
     };
-    const used = new Set<string>();
-    const directUsed = new Set<string>();
     const newIds = new Map<string, string>();
     let earliest: string | null = null;
     const touch = (d: string) => {
@@ -558,15 +641,15 @@ export async function prepareImport(
       return [after, payeeId, r.memo];
     };
 
-    for (const r of kept) {
-      if (known.has(r.key)) {
+    const decisions = decideRows(kept, { known, candidates: candidateList, directRows });
+    for (const [i, r] of kept.entries()) {
+      const d = decisions[i] as RowDecision;
+      if (d.kind === "known") {
         matched++;
         continue;
       }
-      const pick = pickMatch({ date: r.date, amount: r.amount }, candidateList, used);
-      if (pick) {
-        used.add(pick);
-        const c = (candidateById.get(pick) as importsRepo.MatchCandidate).row;
+      if (d.kind === "merge") {
+        const c = (candidateById.get(d.candidateId) as importsRepo.MatchCandidate).row;
         const cl = linesOf(c.id);
         const names2 = forExisting(names, c.categoryId);
         const cleared = c.cleared === "reconciled" ? "reconciled" : "cleared";
@@ -598,11 +681,7 @@ export async function prepareImport(
         touch(c.date);
         continue;
       }
-      const dup = directRows.find(
-        (d) => !directUsed.has(d.id) && d.date === r.date && d.amount === r.amount,
-      );
-      if (dup) {
-        directUsed.add(dup.id);
+      if (d.kind === "bank_duplicate") {
         skipped++;
         continue;
       }

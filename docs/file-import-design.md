@@ -384,3 +384,15 @@ Each row statement takes one `json_each(?)` parameter, split at 900 KB, so there
   `LinkCols` (one type-only line in `repositories/transactions.ts`), so the other writers' row literals compile
   without it and insert it as NULL.
 - The route writes 410 and 413 itself; the MCP tools throw `<code>: <message>`.
+
+## The preview marks what the import will do (EXF-988)
+
+Each preview row carries `outcome` (REST and the MCP `preview_transactions_file` alike): `new` (created), `matched`
+(merged into a hand-entered row), `already_imported` (its import key is already held, or thrown away; the import
+counts it matched and writes nothing), `bank_duplicate` (equal to a bank-synced row; skipped), or `null` (a row with a
+`skip` reason, or a row built in the browser). The Worker computes it with `decideRows` in `services/file-import.ts`,
+the same function `prepareImport` runs, over the same three reads (known keys by `json_each`, match candidates, bank
+rows), so the marks equal the import's result row by row. The preview costs one more D1 call (3, constant in the row
+count; none extra when no row is kept). The dialog marks rows by import key from the last upload and shows
+"N transactions will be matched or skipped"; changing an option that changes a row's key drops that row's mark until
+the file is uploaded again (a new account, or a 410).
