@@ -90,6 +90,22 @@ export const Account = z
       description:
         "When the bank first stopped listing this linked account's bank account (ISO 8601 UTC): the account reads Linked Account Not Found and imports to it have stopped. Null when the bank lists it, and null when the account is not linked",
     }),
+    interest_rate: z.string().nullable().default(null).openapi({
+      description:
+        'A loan account\'s annual interest rate in percent, as a decimal string ("6.5", "0"); null for every other account',
+    }),
+    minimum_payment: Milliunits.nullable().default(null).openapi({
+      description:
+        "A loan account's required monthly payment in milliunits, as the lender asks it (principal, interest, escrow, fees); null for every other account",
+    }),
+    escrow_amount: Milliunits.nullable().default(null).openapi({
+      description:
+        "A loan account's monthly escrow or fees in milliunits (0 when none); null for every other account",
+    }),
+    paired_category_id: z.string().nullable().default(null).openapi({
+      description:
+        "The plan category the loan is paired with; null when none, and null for every other account",
+    }),
   })
   .openapi("Account");
 
@@ -108,12 +124,103 @@ export const PlanDate = IsoDate.regex(
   "Year must be between 1900 and 2199",
 ).refine(isCalendarDate, "date must be a real calendar date");
 
-export const AccountCreateRequest = z
+// Repeats core's LOAN_ACCOUNT_TYPES (schema does not depend on core); a Worker test asserts they are equal.
+const LOAN_TYPES: readonly string[] = [
+  "mortgage",
+  "autoLoan",
+  "studentLoan",
+  "personalLoan",
+  "medicalDebt",
+  "otherDebt",
+];
+
+/** A percent as a decimal string: 1-3 integer digits, up to 3 fraction digits, 0 to 100. */
+export const InterestRate = z
+  .string()
+  .regex(/^\d{1,3}(\.\d{1,3})?$/, "interest_rate must be a decimal string such as 6.5")
+  .refine((v) => {
+    const [int = "", frac = ""] = v.split(".");
+    return Number(int) < 100 || (Number(int) === 100 && /^0*$/.test(frac));
+  }, "interest_rate must be between 0 and 100")
+  .openapi({
+    description: "Annual interest rate in percent as a decimal string, 0 to 100, up to 3 decimals",
+    example: "6.5",
+  });
+
+/** "06.50" → "6.5", "0.0" → "0": string operations only, never a float. */
+export function canonicalInterestRate(v: string): string {
+  const [int = "0", frac = ""] = v.split(".");
+  const i = int.replace(/^0+(?=\d)/, "");
+  const f = frac.replace(/0+$/, "");
+  return f ? `${i}.${f}` : i;
+}
+
+const pairName = z.string().trim().min(1, "name is required").max(100);
+
+export const LoanNewCategory = z
   .object({
-    name: z.string().trim().min(1, "Name is required").max(100),
-    type: AccountType,
-    balance: Milliunits,
-    date: PlanDate.optional(),
+    name: pairName,
+    group_id: z.string().min(1).optional(),
+    new_group_name: pairName.optional(),
+  })
+  .refine((o) => (o.group_id === undefined) !== (o.new_group_name === undefined), {
+    message: "new_category needs exactly one of group_id and new_group_name",
+  })
+  .openapi("LoanNewCategory", {
+    description:
+      "A category to create and pair with the loan: name, and either group_id (an existing group) or new_group_name (a new group created with it)",
+  });
+
+/** The POST fields without the cross-field rules, for the MCP tool's input shape. */
+export const accountCreateFields = {
+  name: z.string().trim().min(1, "Name is required").max(100),
+  type: AccountType,
+  balance: Milliunits,
+  date: PlanDate.optional(),
+  interest_rate: InterestRate.optional(),
+  minimum_payment: Milliunits.min(0).optional().openapi({
+    description: "Loan types only, required for them: the monthly payment the lender requires",
+  }),
+  escrow_amount: Milliunits.min(0).optional().openapi({
+    description: "Loan types only: monthly escrow or fees in milliunits (stored 0 when absent)",
+  }),
+  paired_category_id: z.string().min(1).optional().openapi({
+    description: "Loan types only: pair with this existing category (not with new_category)",
+  }),
+  new_category: LoanNewCategory.optional(),
+};
+
+export const AccountCreateRequest = z
+  .object(accountCreateFields)
+  .superRefine((o, ctx) => {
+    const isLoan = LOAN_TYPES.includes(o.type);
+    const loanFields = [
+      "interest_rate",
+      "minimum_payment",
+      "escrow_amount",
+      "paired_category_id",
+      "new_category",
+    ] as const;
+    if (!isLoan) {
+      for (const f of loanFields) {
+        if (o[f] !== undefined) {
+          ctx.addIssue({ code: "custom", path: [f], message: `${f} is only for loan accounts` });
+        }
+      }
+      return;
+    }
+    for (const f of ["interest_rate", "minimum_payment"] as const) {
+      if (o[f] === undefined) {
+        ctx.addIssue({ code: "custom", path: [f], message: `${f} is required for loan accounts` });
+      }
+    }
+    if (o.paired_category_id !== undefined && o.new_category !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["new_category"],
+        message: "send paired_category_id or new_category, not both",
+      });
+    }
   })
   .openapi("AccountCreateRequest");
 

@@ -133,6 +133,8 @@ test("AC5: a mortgage lands last in LOANS, negative, off-plan, Ready to Assign u
   await expect(last).toContainText("−$180,000.00");
   expect(await readyToAssign(request, id)).toBe(before);
   await page.getByRole("button", { name: "Done" }).click();
+  // The account's own register has no category column; All Accounts shows the Starting Balance row whole.
+  await page.goto(`/${id}/accounts`);
   const row = page
     .locator(".register-table tbody tr[data-tx]")
     .filter({ hasText: "Starting Balance" });

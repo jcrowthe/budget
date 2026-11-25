@@ -1,11 +1,12 @@
 import {
   type AccountAdjustBalanceRequest,
   type AccountCloseRequest,
-  AccountCreateRequest,
+  type AccountCreateRequest as AccountCreateRequestInput,
   type AccountLinkRequest,
   type AccountsFromBankRequest,
   accountAdjustFields,
   accountCloseFields,
+  accountCreateFields,
   accountLinkFields,
   accountsFromBankFields,
   accountUpdateShape,
@@ -29,7 +30,7 @@ import type { McpToolDef } from "../types";
 export const tools: McpToolDef[] = [
   {
     name: "list_accounts",
-    description: `List a plan's accounts in display order; closed accounts only when include_closed is true. ${MONEY} Debts are negative. Returns { accounts }: each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
+    description: `List a plan's accounts in display order; closed accounts only when include_closed is true. ${MONEY} Debts are negative. Returns { accounts }: each with id, name, type, on_budget, starred, closed, group (cash, credit, loans, tracking or closed), cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category), plus interest_rate, minimum_payment, escrow_amount and paired_category_id (loan accounts only, null otherwise). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, include_closed: z.boolean().optional() }),
     run: async (input: { budget_id: string; include_closed?: boolean }, { env }) => ({
       accounts: await listAccounts(env, input.budget_id, { includeClosed: input.include_closed }),
@@ -37,7 +38,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_account",
-    description: `Read one account of a plan. ${MONEY} Debts are negative. Returns { account } with id, name, type, on_budget, starred, closed, group, cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
+    description: `Read one account of a plan. ${MONEY} Debts are negative. Returns { account } with id, name, type, on_budget, starred, closed, group, cleared_balance, uncleared_balance and balance, plus bank_account_id, linked and import_start_date (YYYY-MM-DD, null when not linked), unapproved_count (transactions to approve) and needs_attention_count (unapproved or needing a category), plus interest_rate, minimum_payment, escrow_amount and paired_category_id (loan accounts only, null otherwise). Each account also has ${LINK_STATE}. ${timestamps(["created_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])}`,
     inputSchema: z.object({ budget_id: Id, account_id: Id }),
     run: async (input: { budget_id: string; account_id: string }, { env }) => ({
       account: await getAccount(env, input.budget_id, input.account_id),
@@ -106,12 +107,9 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "create_account",
-    description: `Add an unlinked account with a Starting Balance transaction. ${MONEY} balance is entered as shown: for credit cards, lines of credit and other liabilities a positive number means money owed and is stored negative. Loan types are not supported yet. ${dates("date")} date defaults to today (UTC). Returns { account, starting_balance }: the new account with its balances, and the Starting Balance transaction. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
-    inputSchema: z.object({ budget_id: Id, ...AccountCreateRequest.shape }),
-    run: async (
-      input: { budget_id: string } & z.input<typeof AccountCreateRequest>,
-      { env, actor },
-    ) => {
+    description: `Add an unlinked account with a Starting Balance transaction. ${MONEY} balance is entered as shown: for credit cards, lines of credit and other liabilities a positive number means money owed and is stored negative. Loan types (mortgage, autoLoan, studentLoan, personalLoan, medicalDebt, otherDebt) are recorded as off-plan debts and require interest_rate (a decimal string, 0 to 100, e.g. "6.5") and minimum_payment (the monthly payment the lender requires, in milliunits); they accept escrow_amount (milliunits, stored 0 when absent) and at most one pairing: paired_category_id (an existing category) or new_category { name, group_id | new_group_name } (creates the category, and the group when new_group_name is given, with the account). Those fields on any other type, a bad rate, both pairings, an unusable or hidden category or group, or a name already used are a tool error and nothing is created. The values are only recorded. ${dates("date")} date defaults to today (UTC). Returns { account, starting_balance }: the new account with its balances and interest_rate, minimum_payment, escrow_amount and paired_category_id (null on other types), and the Starting Balance transaction. Each account also has ${LINK_STATE}. ${timestamps(["created_at", "updated_at", "last_reconciled_at", "last_synced_at", "link_missing_since"], ["last_reconciled_at", "last_synced_at", "link_missing_since"])} A Credit Card or Line of Credit also gets a payment category named like the account in the Credit Card Payments group.`,
+    inputSchema: z.object({ budget_id: Id, ...accountCreateFields }),
+    run: async (input: { budget_id: string } & AccountCreateRequestInput, { env, actor }) => {
       const { budget_id, ...rest } = input;
       return addUnlinkedAccount(env, actor, budget_id, rest);
     },

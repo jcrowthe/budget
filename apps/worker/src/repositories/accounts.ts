@@ -95,6 +95,10 @@ export function insertIfSortStmt(db: Db, row: AccountRow) {
       importStartDate: r.importStartDate,
       lastReconciledAt: r.lastReconciledAt,
       linkMissingSince: r.linkMissingSince,
+      interestRate: r.interestRate,
+      minimumPayment: r.minimumPayment,
+      escrowAmount: r.escrowAmount,
+      pairedCategoryId: r.pairedCategoryId,
     },
     sql`where exists ${sortIsNext(db, r.budgetId, r.sortOrder)}`,
   );
@@ -171,6 +175,16 @@ export function newAccountGuard(
     );
 }
 
+/** Holds while the category can take a loan pairing: active, visible, not a payment category, in an active visible group that is not Credit Card Payments. */
+export function pairableCategory(budgetId: string, categoryId: string): SQL {
+  return sql`exists (select 1 from categories c join category_groups g on g.id = c.group_id where c.id = ${categoryId} and c.budget_id = ${budgetId} and c.deleted_at is null and c.hidden = 0 and c.kind is null and g.deleted_at is null and g.hidden = 0 and g.kind is null)`;
+}
+
+/** Holds while the group can take a new paired category: active, visible, not Credit Card Payments. */
+export function pairableGroup(budgetId: string, groupId: string): SQL {
+  return sql`exists (select 1 from category_groups g where g.id = ${groupId} and g.budget_id = ${budgetId} and g.deleted_at is null and g.hidden = 0 and g.kind is null)`;
+}
+
 /** Inserts the row only while `guard` holds. */
 export function insertIfStmt(db: Db, row: AccountRow, guard: SQLWrapper) {
   const r = row;
@@ -193,6 +207,10 @@ export function insertIfStmt(db: Db, row: AccountRow, guard: SQLWrapper) {
       importStartDate: r.importStartDate,
       lastReconciledAt: r.lastReconciledAt,
       linkMissingSince: r.linkMissingSince,
+      interestRate: r.interestRate,
+      minimumPayment: r.minimumPayment,
+      escrowAmount: r.escrowAmount,
+      pairedCategoryId: r.pairedCategoryId,
     },
     sql`where exists ${guard}`,
   );

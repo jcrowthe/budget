@@ -20,6 +20,10 @@ export const accounts = sqliteTable(
     importStartDate: text("import_start_date"),
     lastReconciledAt: text("last_reconciled_at"),
     linkMissingSince: text("link_missing_since"),
+    interestRate: text("interest_rate"),
+    minimumPayment: integer("minimum_payment"),
+    escrowAmount: integer("escrow_amount"),
+    pairedCategoryId: text("paired_category_id"),
   },
   (t) => [
     index("accounts_budget").on(t.budgetId),

@@ -32,11 +32,11 @@ async function initMcp() {
 /** The MCP outcome: the tool result, or a protocol error when the input check refuses it. */
 async function mcpCreate(bid: string, args: Json) {
   await initMcp();
-  const { body } = await mcpRpc(
+  const { body } = (await mcpRpc(
     "tools/call",
     { name: "create_account", arguments: { budget_id: bid, ...args } },
     2,
-  );
+  )) as { body: Json };
   const text = body.result?.content?.[0]?.text ?? JSON.stringify(body.error ?? "");
   return {
     refused: body.result?.isError === true || body.error !== undefined,
@@ -399,8 +399,9 @@ describe("loan accounts: one batch, change log, MCP parity", () => {
   it("create_account takes every REST body property", async () => {
     const doc = (await apiDocument()) as Json;
     let schema =
-      doc.paths["/budgets/{budget_id}/accounts"]?.post?.requestBody?.content?.["application/json"]
-        ?.schema;
+      doc.paths["/api/v1/budgets/{budget_id}/accounts"]?.post?.requestBody?.content?.[
+        "application/json"
+      ]?.schema;
     if (schema?.$ref)
       schema = doc.components.schemas[String(schema.$ref).split("/").pop() as string];
     const props = Object.keys(schema?.properties ?? {});
