@@ -260,6 +260,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     }),
   ],
   ["list_budgets", () => ({})],
+  ["get_backup_status", () => ({})],
   ["get_budget", (c) => ({ budget_id: c.bid })],
   ["export_budget", (c) => ({ budget_id: c.bid })],
   [

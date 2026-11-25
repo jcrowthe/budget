@@ -6,6 +6,7 @@ import { ImportPlanIcon } from "../plan-import/plan-import-dialog-icon";
 import { PlusCircleIcon } from "../shell/icons";
 import { NewPlanDialog } from "../shell/NewPlanDialog";
 import { recentOtherPlans, useDocumentTitle } from "../shell/useCurrentPlan";
+import { BackupWarning } from "./backup-warning";
 import { PlansListCard } from "./plans-list-card";
 import { DeletePlanDialog } from "./plans-list-delete";
 import "./plans-list.css";
@@ -28,6 +29,7 @@ export function PlansListPage() {
   return (
     <section className="plans-list" aria-labelledby="plans-list-heading">
       <h1 id="plans-list-heading">Your Plans</h1>
+      <BackupWarning />
       <ul className="plans-list-grid" aria-label="Plans">
         {ordered.map((p) => (
           <PlansListCard

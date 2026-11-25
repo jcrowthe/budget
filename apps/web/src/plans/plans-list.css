@@ -145,3 +145,41 @@
 .plans-list-delete-dialog .close-text {
   overflow-wrap: anywhere;
 }
+
+/* The nightly backup's warning: a callout strip in the warning tokens, above the plans. */
+.backup-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  margin: var(--space-2) 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--calloutWarningSubtleBackground);
+  color: var(--labelPrimary);
+  font-size: var(--font-size-md);
+}
+.backup-warning p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.backup-warning-dismiss {
+  flex: none;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--buttonSubtleBackground);
+  color: var(--labelWarning);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.backup-warning-dismiss:hover {
+  background: var(--buttonSubtleBackgroundHover);
+}
+.backup-warning-dismiss:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 1px;
+}

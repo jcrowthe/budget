@@ -62,7 +62,11 @@ describe("backup status", () => {
     expect(s.last_success_at).toBe("2031-04-02T04:00:00.000Z");
     expect(s.last_failure_at).toBe("2031-04-03T04:00:00.000Z");
     expect(s.last_error_code).toMatch(/^[a-z_]{1,32}$/);
-    expect(Object.keys(s).sort()).toEqual(["last_error_code", "last_failure_at", "last_success_at"]);
+    expect(Object.keys(s).sort()).toEqual([
+      "last_error_code",
+      "last_failure_at",
+      "last_success_at",
+    ]);
     expect(JSON.stringify(s)).not.toMatch(/ZZ|payee|secret/i);
   });
 
@@ -90,7 +94,11 @@ describe("backup status", () => {
     const put = (h: number) =>
       env.FILES.put(
         STATUS_KEY,
-        JSON.stringify({ last_success_at: hoursAgo(h), last_failure_at: null, last_error_code: null }),
+        JSON.stringify({
+          last_success_at: hoursAgo(h),
+          last_failure_at: null,
+          last_error_code: null,
+        }),
       );
     await put(37);
     expect((await rest()).stale).toBe(true);
