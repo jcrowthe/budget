@@ -115,11 +115,34 @@ Made here:
 
 - **Bank Import Details** shows for every imported row (`tx.source !== null`), so file rows (`source: "file"`) get the
   button too. `BankImportButton` reads only `import_payee_name`, which FI-2 writes.
-- **Editing an unapproved row** shows "Cancel" and "Approve". The save already sends `approved: true`
-  (`entryDraft.ts`), so only the label changes.
+- **Editing an unapproved row** shows "Cancel" and "Approve". The Worker approves on any PATCH, but `draftToPatch`
+  sends only what changed and `EntryRow` closed without a request when nothing had. So the label changes and an
+  unedited unapproved row sends `{ approved: true }` (see As built).
 
 ## Tests
 
 `e2e/file-import.spec.ts` covers AC1–AC12 (titles `AC<n> …`), with `e2e/support/file-import-seed.ts` (an API-made
 `ZZ-TEST` plan, `showOnlyPlans`) and fixtures in `e2e/fixtures/file-import/` (`sample.csv`, `three-rows.csv`,
 `sample.ofx`, `sample.qif`, all hand-made). AC3 records `/api/v1` requests and expects none on Swap.
+
+## As built
+
+- Files: `apps/web/src/file-import/` (`file-import.tsx` the controller and the one hidden input,
+  `file-import-dialog.tsx`, `file-import-preview.tsx`, `file-import-date.tsx`, `file-import-result.tsx`,
+  `file-import-rows.ts` the browser's reader, cutoffs, SHA-256 and `useFileRows`, `file-import.css`) and
+  `api/file-imports.ts`. `Register.tsx` holds a ref and mounts `<FileImport>`; the toolbar has `onFileImport`.
+- **The approval fix is two lines in `EntryRow.tsx`.** F6 above read the create path (`draftToCreate`) as the save.
+  `draftToPatch` sends only the differences, and an empty patch closed the row with no request, so "Approve" on an
+  unedited imported row approved nothing. An unapproved row with an empty patch now sends `{ approved: true }`. The
+  label reads "Approve" only for an unapproved row being edited. Departure from "label only".
+- **Departures kept:** D1 (account change uploads the same `File` again, new `file_id`); D2 always-plural skipped and
+  Include lines; D3 Cancel in dialog 1; D4 no Learn More; D5 All Accounts enabled with the first open account; D6
+  cutoffs from the target account's transaction list; D7 every plan query invalidated; D8 ASCII minus in the CSV
+  preview.
+- **Dialog 2 while loading:** it opens at once with "Reading the file…" and Import disabled; a file that cannot be read
+  or uploaded sends the person back to dialog 1 with "This file cannot be imported: <reason>".
+- **Only dialog 2 reads the file.** The browser's parse and the Worker's upload start together; the rows shown are
+  the browser's, the Worker's file id and settled options (remembered settings, the mapping used, pinned so "No
+  header row" keeps the column indices) come from the upload.
+- **The ▸ / ▾ in the skipped line is text** with a symbol-font fallback (a headless Chromium without that glyph draws
+  an empty box; the test reads the text).

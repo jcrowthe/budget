@@ -216,3 +216,6 @@ fieldset.file-import-options {
   padding: 0;
   border: 0;
 }
+.file-import-caret {
+  font-family: "Segoe UI Symbol", "DejaVu Sans", system-ui, sans-serif;
+}

@@ -325,7 +325,8 @@ export function FileImportPreview({
                     aria-expanded={skipOpen}
                     onClick={() => setSkipOpen((v) => !v)}
                   >
-                    {SKIP_COPY.willSkip(built.skippedBefore)} {skipOpen ? "▾" : "▸"}
+                    {SKIP_COPY.willSkip(built.skippedBefore)}{" "}
+                    <span className="file-import-caret">{skipOpen ? "▾" : "▸"}</span>
                   </button>
                   {skipOpen ? <p>{FILE_IMPORT_COPY.skipExplanation}</p> : null}
                   <Check
@@ -391,14 +392,14 @@ function PreviewTable({
   const cols = FILE_IMPORT_COPY.columns;
   return (
     <table className="file-import-table" aria-label={csv ? "Preview" : undefined}>
-      <thead>
+      <thead className={csv ? "file-import-sr" : undefined}>
         <tr>
           {csv ? (
             <>
-              <th className="file-import-sr">Date</th>
-              <th className="file-import-sr">Payee</th>
-              <th className="file-import-sr">Memo</th>
-              <th className="file-import-sr">Amount</th>
+              <th>Date</th>
+              <th>Payee</th>
+              <th>Memo</th>
+              <th>Amount</th>
             </>
           ) : (
             <>
