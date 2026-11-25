@@ -112,9 +112,9 @@ export function RecordLoanPaymentDialog({
           </button>
         </div>
         <div className="form-body">
-          <p>{RECORD_PAYMENT_INTRO_LOAN}</p>
+          <p className="loan-intro">{RECORD_PAYMENT_INTRO_LOAN}</p>
           {paired && available !== null ? (
-            <p className="loan-available">
+            <p className="info-box loan-available">
               {RECORD_PAYMENT_AVAILABLE(fmt.abs(available), paired.name)}
             </p>
           ) : null}

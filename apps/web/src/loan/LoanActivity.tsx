@@ -13,6 +13,7 @@ import { useLoanActivity } from "../api/loans";
 import { useMonthRange } from "../api/months";
 import { localToday } from "../api/today";
 import { canNext, canPrev, navLimits } from "../plan/monthNav";
+import { ChevronCircleLeftIcon, ChevronCircleRightIcon } from "../plan/monthNavIcons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import "./loan-activity.css";
 import { RecordLoanPaymentDialog } from "./RecordLoanPaymentDialog";
@@ -57,24 +58,24 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
         <div className="loan-month-switch">
           <button
             type="button"
-            className="icon-button"
+            className="loan-month-arrow"
             aria-label="Previous month"
             disabled={!canPrev(month, limits)}
             onClick={() => setMonth(addMonths(month, -1))}
           >
-            ‹
+            <ChevronCircleLeftIcon size={24} />
           </button>
           <span className="loan-month-label" aria-live="polite">
             {longMonth(month)}
           </span>
           <button
             type="button"
-            className="icon-button"
+            className="loan-month-arrow"
             aria-label="Next month"
             disabled={!canNext(month, limits)}
             onClick={() => setMonth(addMonths(month, 1))}
           >
-            ›
+            <ChevronCircleRightIcon size={24} />
           </button>
         </div>
         <button type="button" className="primary" onClick={() => setPaying(true)}>

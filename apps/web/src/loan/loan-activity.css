@@ -5,6 +5,7 @@
 }
 .loan-activity-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
@@ -12,23 +13,29 @@
 .loan-activity-head h2 {
   margin: 0;
   margin-right: auto;
-  font-size: var(--font-size-lg, 1.25rem);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
 }
 .loan-month-switch {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
-.loan-month-switch .icon-button {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--inputBorderSubtle);
-  border-radius: var(--radius-sm);
-  background: transparent;
+.loan-month-arrow {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
   color: var(--actionPrimary);
+  line-height: 0;
   cursor: pointer;
 }
-.loan-month-switch .icon-button:disabled {
+.loan-month-arrow:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+.loan-month-arrow:disabled {
   color: var(--buttonDisabledLabel);
   cursor: default;
 }
@@ -77,10 +84,19 @@
   color: var(--labelSecondary);
 }
 .loan-row-amount {
+  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 .loan-check {
+  flex-shrink: 0;
   color: var(--statusPositive);
+}
+/* Rows without the cleared check keep a 16px slot, so amounts line up across the sections. */
+.loan-section li:not(:has(.loan-check))::after {
+  content: "";
+  flex-shrink: 0;
+  width: 16px;
 }
 .loan-empty {
   margin: 0;
@@ -88,6 +104,7 @@
 }
 .loan-badge {
   display: inline-block;
+  box-sizing: border-box;
   min-width: 1.4em;
   margin-left: var(--space-1);
   padding: 0 var(--space-1);
@@ -95,6 +112,8 @@
   background: var(--buttonSubtleBackground);
   color: var(--labelSecondary);
   font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
 .loan-pay-form .loan-help {
@@ -103,6 +122,12 @@
   font-size: var(--font-size-sm);
 }
 .loan-pay-form .loan-available {
-  margin: 0 0 var(--space-3);
   color: var(--labelPrimary);
+}
+.loan-pay-form .loan-intro {
+  margin: 0 0 var(--space-3);
+}
+/* The From Account select sits under its label like the text inputs do. */
+.loan-pay-form select.field {
+  margin-top: var(--space-2);
 }
