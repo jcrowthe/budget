@@ -50,6 +50,7 @@ export function Toolbar({
         className="toolbar-button"
         disabled={!canUndo}
         title={canUndo ? UNDO_TITLE : undefined}
+        aria-keyshortcuts="Control+Z Meta+Z"
         onClick={onUndo}
       >
         <UndoIcon />
@@ -60,6 +61,7 @@ export function Toolbar({
         className="toolbar-button"
         disabled={!canRedo}
         title={canRedo ? REDO_TITLE : undefined}
+        aria-keyshortcuts="Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z"
         onClick={onRedo}
       >
         <RedoIcon />
