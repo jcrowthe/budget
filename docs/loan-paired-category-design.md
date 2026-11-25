@@ -141,4 +141,4 @@ Where the build differs from the design above, and what was measured.
   `setDebtPaymentTarget` one `DB.batch`.
 - **Pins moved** (each carries a comment): `credit-call-count` 10→11, `plan-export-calls` 17→18,
   `plan-export-now` 17→18, `upcoming-calls` +1 per entry, `bulk-call-count` `LIMIT` 20→21 (paying a card reads
-  the month), tool count 110→111 in `rename-rules` and `payee-category-api`.
+  the month), tool count 110→111 in `rename-rules` and `payee-category-api`, then 112 after the rebase onto EXF-512 (`combine_payees`).
