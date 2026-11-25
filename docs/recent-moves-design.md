@@ -113,3 +113,16 @@ Entries cover every month (a move in December made today is listed).
 - **The button stays enabled** with no moves (the source disables it); the popover shows an empty state.
 - **A popover anchored to the button** (ticket), sized from the source's modal rules.
 - **Empty-state copy** is assumed: the source's panel could not be opened.
+- **`from_move` on every entry** (not in the first draft of the shape): an undone edit that lowered a cell and an
+  undone move to a category look the same by `kind`, `from` and `method`; `from_move` says whether a move record
+  made the entry, so `matchesType` keeps undone edits under Assigned and undone Assign Manually / category moves
+  under Moved.
+- **MCP returns `{ moves: [...] }`**, not the bare array: MCP structured content must be an object (as
+  `list_budgets` returns `{ budgets }`). REST and MCP carry the same array.
+- **`useRecentMoves` has `gcTime: 0`** so a reopen never shows the previous list while the new one loads.
+- **Two existing tests pin the tool count** (`payee-category-api.test.ts`, `rename-rules.test.ts`): 103 became 104.
+- **`e2e/plan-panel.spec.ts`** clicked the toolbar's centre to blur a note; that point is now the live Recent Moves
+  button (it opened the popover and the next click was blocked). Those three clicks now use empty toolbar space
+  (`position: { x: 600, y: 5 }`, as `plan-selection.spec.ts` does).
+- **Browser used for e2e:** this box has no Playwright browser download, only the system Chrome; the runs used a
+  config outside the repo (`/workspace/scratch/pw/chrome.config.ts`) that sets `channel: "chrome"`.
