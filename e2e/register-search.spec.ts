@@ -5,7 +5,7 @@ import { searchIds, seedSearch } from "./support/register-search-seed";
 // EXF-528 (screens): the register search box. Suggestion wording follows the ticket; nothing was compared with
 // the source beyond it.
 
-const box = (page: Page) => page.getByRole("combobox", { name: /Find the transactions/ });
+const box = (page: Page) => page.getByRole("searchbox", { name: /Find the transactions/ });
 const options = (page: Page) => page.getByRole("option");
 const labels = (page: Page) => page.locator('[role="option"] .search-option-description');
 const rows = (page: Page) => page.locator(".register-table tbody tr[data-tx]");

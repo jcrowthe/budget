@@ -1279,6 +1279,9 @@
 }
 
 /* EXF-528: the search box's clear button and its suggestions. */
+.search-box input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
 .search-clear {
   position: absolute;
   right: 4px;

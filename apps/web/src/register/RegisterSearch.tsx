@@ -142,9 +142,7 @@ export function RegisterSearch({
       <SearchIcon />
       <input
         ref={input}
-        type="text"
-        role="combobox"
-        aria-expanded={shown}
+        type="search"
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}

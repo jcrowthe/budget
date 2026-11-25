@@ -62,7 +62,7 @@ and returns the same `data`. The two list operations name it in `test/mcp-covera
 
 ## UI
 
-- The search box at the toolbar's right (`Search <account name>`, magnifier, ⓧ once there is text) is a combobox.
+- The search box at the toolbar's right (`Search <account name>`, magnifier, ⓧ once there is text) is a search input with a listbox of suggestions.
   Suggestions are computed in the browser for the segment after the last comma: context suggestions (categories,
   accounts, flags, the ten Is options, dates, amounts, the Income hint), then the four "Find" entries.
 - Choosing a suggestion, or Enter, writes the token and `, `, keeps focus in the box and applies the search. Typing
@@ -100,3 +100,7 @@ and returns the same `data`. The two list operations name it in `test/mcp-covera
   View options read (`useRegisterViewState`) stays loaded and the first search does not replace it.
 - **Today** for dates without a year is the server's UTC date (the browser sends its own local date format
   as the plan's; the year comes from the same clock).
+- **Input role**: the box stays `<input type="search">` (role `searchbox`) with `aria-controls` and
+  `aria-activedescendant` to its `role="listbox"`, not `role="combobox"` as the spec's T7 says: the existing
+  register-view spec finds the box with `getByRole("searchbox")` (contract Acceptance 4 keeps it passing). The
+  browser's own clear button is hidden; the ⓧ is ours.
