@@ -1,0 +1,44 @@
+/* EXF-505: the Upcoming box under the Available Balance rows. Colours only from shell/tokens.css; the two tones
+   copy the variables the .available-pill.cautious and .positive rules use. */
+.upcoming-box {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--separatorStandard);
+}
+.upcoming-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 14px;
+}
+.upcoming-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--labelPrimary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.upcoming-amount {
+  color: var(--labelPrimary);
+  font-variant-numeric: tabular-nums;
+}
+.upcoming-after-label {
+  color: var(--labelPrimary);
+}
+.upcoming-after-value {
+  padding: 0 8px;
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.upcoming-row[data-tone="cautious"] .upcoming-after-value {
+  background: var(--categoryBalanceWarningBackground);
+  color: var(--categoryBalanceCautiousLabel);
+}
+.upcoming-row[data-tone="positive"] .upcoming-after-value {
+  background: var(--statusPositive);
+  color: var(--categoryBalancePositiveLabel);
+}

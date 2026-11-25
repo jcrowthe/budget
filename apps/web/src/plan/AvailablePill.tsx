@@ -9,9 +9,18 @@ import {
   SnoozeIcon,
   TargetRingIcon,
 } from "./icons";
+import { CalendarIcon } from "./upcoming/CalendarIcon";
 
 export type PillTone = "zero" | "positive" | "negative" | "cautious";
-export type PillIcon = "clock" | "check" | "clockCheck" | "snooze" | "card" | "target" | null;
+export type PillIcon =
+  | "clock"
+  | "check"
+  | "clockCheck"
+  | "snooze"
+  | "card"
+  | "target"
+  | "calendar"
+  | null;
 
 const ICONS = {
   clock: ClockIcon,
@@ -20,6 +29,7 @@ const ICONS = {
   snooze: SnoozeIcon,
   card: CreditCardIcon,
   target: TargetRingIcon,
+  calendar: CalendarIcon,
 };
 
 /**

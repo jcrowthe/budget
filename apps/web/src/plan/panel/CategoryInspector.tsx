@@ -6,6 +6,7 @@ import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { AvailablePill } from "../AvailablePill";
 import { categoryPill } from "../format";
 import { PencilIcon } from "../icons";
+import { UpcomingBox } from "../upcoming/UpcomingBox";
 import { NotesCard } from "./NotesCard";
 import { OverspentMessage } from "./overspentMessage";
 import { PanelCard } from "./PanelCard";
@@ -105,6 +106,7 @@ export function CategoryInspector({
                 </span>
               </div>
             ))}
+            <UpcomingBox budgetId={budgetId} month={month} c={c} />
             <OverspentMessage c={c} />
           </PanelCard>
           {!payment && (
