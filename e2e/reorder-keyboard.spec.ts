@@ -95,6 +95,7 @@ test("an account reorder is undone from the Plan toolbar, and by Ctrl+Z", async 
   await undo.click();
   await expect.poll(() => cashNames(page)).toEqual(["ZZ-TEST A", "ZZ-TEST B", "ZZ-TEST C"]);
   await reorder();
+  await expect(undo).toBeEnabled();
   await page
     .locator(".plan-header, body")
     .first()

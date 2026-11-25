@@ -50,7 +50,7 @@ export function SidebarAccounts({
 
   return (
     <section className="nav-accounts" aria-label="Accounts">
-      <div className="reorder-live" aria-live="polite" role="status">
+      <div className="reorder-live" aria-live="polite">
         {dnd.announcement}
       </div>
       {sidebarSections(accounts).map(({ name, rows, total }) => {

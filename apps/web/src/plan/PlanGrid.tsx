@@ -454,7 +454,7 @@ export function PlanGrid({
           </div>
         ) : (
           <div className="grid-body" role="rowgroup">
-            <div className="reorder-live" aria-live="polite" role="status">
+            <div className="reorder-live" aria-live="polite">
               {dnd.announcement}
             </div>
             {notice && (

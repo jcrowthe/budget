@@ -125,6 +125,6 @@ The source app has no keyboard reorder; this is ours, so keyboard users can reor
 - It sends the same `POST …/categories/{id}/move` and `…/category_groups/{id}/move` bodies as a drop (`before_*` for
   up, `after_*` for down); no new endpoint. One change set per move, so Undo works as for a drag.
 - Focus goes back to the moved row once the order has changed.
-- The grid has one visually hidden `aria-live="polite"` region (`role="status"`) that says, for example, "Moved
+- The grid has one visually hidden `aria-live="polite"` region that says, for example, "Moved
   Utilities to position 2 of 3 in Bills." (`keyboardMove` in `apps/web/src/plan/dnd.ts`).
 - Proven by `e2e/reorder-keyboard.spec.ts`.
