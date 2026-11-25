@@ -5,6 +5,7 @@
  */
 import { z } from "@hono/zod-openapi";
 import { MANUAL_ADJUSTMENT_PAYEE } from "./accounts";
+import { LOAN_ESCROW_PAYEE, LOAN_INTEREST_PAYEE } from "./loan-balance-update";
 import type { PayeeSystem } from "./payees";
 import { RECONCILE_ADJUSTMENT_PAYEE } from "./reconcile";
 import { REGISTER_STARTING_PAYEE } from "./register";
@@ -15,6 +16,8 @@ export const SYSTEM_PAYEE_NAMES: Record<PayeeSystem, string> = {
   starting_balance: REGISTER_STARTING_PAYEE,
   manual_adjustment: MANUAL_ADJUSTMENT_PAYEE,
   reconciliation_adjustment: RECONCILE_ADJUSTMENT_PAYEE,
+  loan_interest: LOAN_INTEREST_PAYEE,
+  loan_escrow: LOAN_ESCROW_PAYEE,
 };
 
 export const PLAN_HEADER: readonly string[] = [

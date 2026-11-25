@@ -8,6 +8,8 @@ export const PAYEE_SYSTEMS = [
   "starting_balance",
   "manual_adjustment",
   "reconciliation_adjustment",
+  "loan_interest",
+  "loan_escrow",
 ] as const;
 export const PayeeSystem = z.enum(PAYEE_SYSTEMS);
 export type PayeeSystem = z.infer<typeof PayeeSystem>;
