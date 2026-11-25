@@ -37,7 +37,7 @@ function Chip({ side, onPick }: { side: Side; onPick: (s: Side) => void }) {
       type="button"
       className="recent-move-chip"
       disabled={side.deleted}
-      title={side.category_name}
+      title={side.deleted ? `${side.category_name} (deleted)` : side.category_name}
       onClick={() => onPick(side)}
     >
       <span className="recent-move-chip-name">{side.category_name}</span>{" "}
@@ -149,6 +149,7 @@ export function RecentMovesPopover({
         </div>
       </div>
       <div className="recent-moves-body" aria-busy={q.isPending}>
+        {q.isPending && <p className="recent-moves-loading">Loading…</p>}
         {none && (
           <div className="recent-moves-zero">
             <p className="recent-moves-zero-title">No recent moves</p>
