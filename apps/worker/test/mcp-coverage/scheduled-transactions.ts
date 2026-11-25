@@ -22,4 +22,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "POST /budgets/{budget_id}/scheduled-transactions/enter-due": {
     tool: "enter_due_scheduled_transactions",
   },
+  "GET /budgets/{budget_id}/months/{month}/categories/{category_id}/upcoming": {
+    tool: "list_upcoming_for_category",
+  },
 };

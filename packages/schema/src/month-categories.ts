@@ -34,6 +34,10 @@ export const CategoryMonth = z
     credit_activity: Milliunits,
     available: Milliunits,
     note: z.string().nullable(),
+    /** Scheduled transactions dated inside the month: their sum, their count, and available + upcoming. */
+    upcoming: Milliunits,
+    upcoming_count: z.number().int(),
+    available_after_upcoming: Milliunits,
     /** A payment category's card status; null for an ordinary category. */
     payment: CardPayment.nullable(),
   })

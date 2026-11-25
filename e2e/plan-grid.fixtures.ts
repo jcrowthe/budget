@@ -26,6 +26,9 @@ const cat = (
   target: null,
   note: null,
   target_snoozed: false,
+  upcoming: 0,
+  upcoming_count: 0,
+  available_after_upcoming: v[3],
   payment: null,
   ...extra,
 });

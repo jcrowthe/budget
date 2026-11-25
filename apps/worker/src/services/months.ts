@@ -19,6 +19,8 @@ import {
   type MonthTotals,
 } from "@budget/schema/months";
 import { type PlanView, viewDetail } from "@budget/schema/plan-views";
+import { dayBefore } from "@budget/schema/recurrence";
+import { type UpcomingSource, upcomingByCategory } from "@budget/schema/scheduled-upcoming";
 import { sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { type Db, getDb } from "../db/client";
@@ -33,6 +35,7 @@ import * as monthCatRepo from "../repositories/month-categories";
 import * as monthRangeRepo from "../repositories/month-range";
 import * as monthsRepo from "../repositories/months";
 import { planActivity } from "../repositories/plan-activity";
+import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as snoozesRepo from "../repositories/target-snoozes";
 import * as targetsRepo from "../repositories/targets";
 import { todayUtc } from "./targets";
@@ -42,7 +45,10 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 // The API's category also carries its `note`, which the engine does not know: attached after computeMonth.
 type EngineShape = Omit<MonthDetail, "groups"> & {
   groups: (Omit<MonthGroupDetail, "categories"> & {
-    categories: Omit<MonthCategoryDetail, "note" | "target_snoozed">[];
+    categories: Omit<
+      MonthCategoryDetail,
+      "note" | "target_snoozed" | "upcoming" | "upcoming_count" | "available_after_upcoming"
+    >[];
   })[];
 };
 const _sameShape: Same<CoreMonthDetail, EngineShape> = true;
@@ -272,22 +278,38 @@ async function loadInput(
   budgetId: string,
   activityBefore: string,
   full = false,
-): Promise<EngineInput & { categoryNotes: Map<string, string | null> }> {
-  const [groups, categories, assignments, notes, activity, targetRows, snoozeRows, flows] =
-    await Promise.all([
-      groupsRepo.listActive(db, budgetId),
-      categoriesRepo.listActive(db, budgetId),
-      monthCatRepo.listForBudget(db, budgetId),
-      monthsRepo.listNotes(db, budgetId),
-      planActivity(db, budgetId, activityBefore),
-      full ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
-      full ? snoozesRepo.listForBudget(db, budgetId) : Promise.resolve([]),
-      full ? cardFlowsRepo.cardFlows(db, budgetId, activityBefore) : Promise.resolve([]),
-    ]);
+): Promise<
+  EngineInput & { categoryNotes: Map<string, string | null>; upcomingSources: UpcomingSource[] }
+> {
+  const [
+    groups,
+    categories,
+    assignments,
+    notes,
+    activity,
+    targetRows,
+    snoozeRows,
+    flows,
+    upcomingSources,
+  ] = await Promise.all([
+    groupsRepo.listActive(db, budgetId),
+    categoriesRepo.listActive(db, budgetId),
+    monthCatRepo.listForBudget(db, budgetId),
+    monthsRepo.listNotes(db, budgetId),
+    planActivity(db, budgetId, activityBefore),
+    full ? targetsRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+    full ? snoozesRepo.listForBudget(db, budgetId) : Promise.resolve([]),
+    full ? cardFlowsRepo.cardFlows(db, budgetId, activityBefore) : Promise.resolve([]),
+    // `activityBefore` is the first day after the latest month read: the day before it is that month's last.
+    full
+      ? scheduledRepo.listUpcomingSources(db, budgetId, dayBefore(activityBefore))
+      : Promise.resolve([]),
+  ]);
   const snoozedBy = new Map<string, Month[]>();
   for (const r of snoozeRows)
     snoozedBy.set(r.categoryId, [...(snoozedBy.get(r.categoryId) ?? []), r.month]);
   return {
+    upcomingSources,
     categoryNotes: new Map(categories.map((c) => [c.id, c.note ?? null])),
     groups,
     categories,
@@ -307,16 +329,29 @@ async function loadInput(
   };
 }
 
-function withNotes(detail: CoreMonthDetail, notes: Map<string, string | null>): MonthDetail {
+/** Attaches what the engine does not know: each category's note, snooze flag and upcoming (EXF-505). */
+function withNotes(
+  detail: CoreMonthDetail,
+  notes: Map<string, string | null>,
+  sources: readonly UpcomingSource[] = [],
+): MonthDetail {
+  const upcoming = upcomingByCategory(sources, detail.month);
   return {
     ...detail,
     groups: detail.groups.map((g) => ({
       ...g,
-      categories: g.categories.map((c) => ({
-        ...c,
-        note: notes.get(c.id) ?? null,
-        target_snoozed: c.target?.status === "snoozed",
-      })),
+      categories: g.categories.map((c) => {
+        // A credit card payment category never gets an upcoming figure.
+        const u = c.kind === "credit_card_payment" ? undefined : upcoming.get(c.id);
+        return {
+          ...c,
+          note: notes.get(c.id) ?? null,
+          target_snoozed: c.target?.status === "snoozed",
+          upcoming: u?.upcoming ?? 0,
+          upcoming_count: u?.upcoming_count ?? 0,
+          available_after_upcoming: c.available + (u?.upcoming ?? 0),
+        };
+      }),
     })),
   };
 }
@@ -338,6 +373,30 @@ export function planMonthError(month: Month, today: string = todayUtc()): string
   return null;
 }
 
+/** The month read and the schedules behind its upcoming figures, on the same single read (the Activity list). */
+export async function getPlanMonthWithSources(
+  env: Env,
+  budgetId: string,
+  month: Month,
+  today: string = todayUtc(),
+  view: PlanView = "all",
+): Promise<{ detail: MonthDetail; sources: UpcomingSource[] }> {
+  const db = getDb(env);
+  await requirePlan(db, budgetId);
+  const input = await loadInput(db, budgetId, addMonths(month, 1), true);
+  return {
+    detail: viewDetail(
+      withNotes(
+        computeMonth({ ...input, today }, month),
+        input.categoryNotes,
+        input.upcomingSources,
+      ),
+      view,
+    ),
+    sources: input.upcomingSources,
+  };
+}
+
 export async function getPlanMonth(
   env: Env,
   budgetId: string,
@@ -345,10 +404,7 @@ export async function getPlanMonth(
   today: string = todayUtc(),
   view: PlanView = "all",
 ): Promise<MonthDetail> {
-  const db = getDb(env);
-  await requirePlan(db, budgetId);
-  const input = await loadInput(db, budgetId, addMonths(month, 1), true);
-  return viewDetail(withNotes(computeMonth({ ...input, today }, month), input.categoryNotes), view);
+  return (await getPlanMonthWithSources(env, budgetId, month, today, view)).detail;
 }
 
 /** Several months on one read of the plan (no view), for Auto-Assign's history. */
@@ -362,7 +418,9 @@ export async function getPlanMonths(
   await requirePlan(db, budgetId);
   const latest = months.reduce((a, b) => (a > b ? a : b));
   const input = await loadInput(db, budgetId, addMonths(latest, 1), true);
-  return months.map((m) => withNotes(computeMonth({ ...input, today }, m), input.categoryNotes));
+  return months.map((m) =>
+    withNotes(computeMonth({ ...input, today }, m), input.categoryNotes, input.upcomingSources),
+  );
 }
 
 /**

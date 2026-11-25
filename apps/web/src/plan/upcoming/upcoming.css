@@ -1,0 +1,62 @@
+/* EXF-505: the Upcoming box under the Available Balance rows. Colours only from variables already declared
+   (tokens.css and the callout variables in panel/target.css); none is declared here. Spacing, row rhythm and
+   value weight follow the panel's own rows (.panel-row / .panel-row-value) and callouts (.target-message). */
+.upcoming-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2) 12px;
+  border-radius: 0.5rem;
+  color: var(--labelPrimary);
+}
+/* The whole box is tinted: amber below zero, green at zero and above (the callout backgrounds). */
+.upcoming-box[data-tone="cautious"] {
+  background: var(--calloutCautiousBackground);
+}
+.upcoming-box[data-tone="positive"] {
+  background: var(--calloutPositiveBackground);
+}
+.upcoming-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  line-height: 17px;
+}
+.upcoming-link {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.upcoming-link:hover {
+  text-decoration-thickness: 2px;
+}
+.upcoming-link:focus-visible {
+  outline: 1px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+.upcoming-amount,
+.upcoming-after-value {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The result row reads as the box's total: a hairline above it, the label in the heading colour. */
+.upcoming-row.is-after {
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--separatorStandard);
+}
+.upcoming-after-label {
+  color: var(--labelHeading);
+}

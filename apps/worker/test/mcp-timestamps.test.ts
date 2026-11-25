@@ -421,6 +421,10 @@ const CALLS: [string, (c: Ctx) => Json][] = [
     "update_scheduled_transaction",
     (c) => ({ budget_id: c.bid, id: c.sched, memo: "ZZ updated", today: "2026-11-15" }),
   ],
+  [
+    "list_upcoming_for_category",
+    (c) => ({ budget_id: c.bid, month: MONTH, category_id: c.category }),
+  ],
   ["enter_due_scheduled_transactions", (c) => ({ budget_id: c.bid, today: "2026-11-15" })],
   [
     "enter_scheduled_transaction_now",

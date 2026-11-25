@@ -119,7 +119,7 @@ export const creditOverspentTitle = (credit: number, fmt: PlanFormatter): string
 
 type CategoryPill = {
   tone: "zero" | "positive" | "negative" | "cautious";
-  icon: "clock" | "check" | "clockCheck" | "snooze" | "card" | "target" | null;
+  icon: "clock" | "check" | "clockCheck" | "snooze" | "card" | "target" | "calendar" | null;
   title: string;
 };
 
@@ -133,6 +133,10 @@ export function categoryPill(c: MonthCategoryDetail, fmt: PlanFormatter): Catego
         ? creditOverspentTitle(c.overspent.credit, fmt)
         : pillTitle(c.available, fmt);
     pill = { ...over, title };
+  } else if (c.kind !== "credit_card_payment" && c.upcoming !== 0 && c.available + c.upcoming < 0) {
+    // EXF-505: Available would not cover what is scheduled in the month: amber with a calendar, over a target's
+    // pill. It still shows Available, and it is computed here so an edit to Assigned moves it at once.
+    pill = { tone: "cautious", icon: "calendar", title: pillTitle(c.available, fmt) };
   } else if (c.target) pill = targetPill(c, fmt);
   if (c.kind === "credit_card_payment") {
     // EXF-537: red when overpaid, yellow when underfunded (even at $0.00), green with money set aside, else grey.

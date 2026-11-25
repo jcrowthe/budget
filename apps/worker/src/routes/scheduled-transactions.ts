@@ -1,4 +1,5 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
+import { AssignedMonth } from "@budget/schema/month-categories";
 import {
   EnterDueResponse,
   SCHEDULER_ACTOR,
@@ -12,11 +13,13 @@ import {
   ScheduledTransactionUpdate,
   TodayQuery,
 } from "@budget/schema/scheduled-transactions";
+import { CategoryUpcomingResponse } from "@budget/schema/scheduled-upcoming";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { getDb } from "../db/client";
 import type { AppEnv } from "../env";
 import { apiError, NotFound } from "../middleware/errors";
 import * as budgetsRepo from "../repositories/budgets";
+import { planMonthError } from "../services/months";
 import {
   bulkScheduled,
   createScheduled,
@@ -25,6 +28,7 @@ import {
   enterScheduledNow,
   getScheduled,
   listScheduled,
+  listUpcomingForCategory,
   updateScheduled,
 } from "../services/scheduled-transactions";
 import { TransactionRefused } from "../services/transactions";
@@ -284,6 +288,36 @@ export default app
           },
           201,
         ),
+      );
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/budgets/{budget_id}/months/{month}/categories/{category_id}/upcoming",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: param("budget_id"),
+          month: AssignedMonth.openapi({ param: { name: "month", in: "path" } }),
+          category_id: param("category_id"),
+        }),
+      },
+      responses: {
+        200: json(
+          CategoryUpcomingResponse,
+          "The scheduled transactions dated inside the month for one category, latest first, with the category's Available and Available After Upcoming",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, month, category_id } = c.req.valid("param");
+      const bad = planMonthError(month);
+      if (bad) return apiError(c, 422, "unprocessable_entity", bad) as never;
+      return c.json(
+        { data: await listUpcomingForCategory(c.env, budget_id, month, category_id) },
+        200,
       );
     },
   );

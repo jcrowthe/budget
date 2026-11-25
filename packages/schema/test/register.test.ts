@@ -235,6 +235,9 @@ const cat = (id: string, name: string, available: number, hidden = false) => ({
   target: null,
   note: null,
   target_snoozed: false,
+  upcoming: 0,
+  upcoming_count: 0,
+  available_after_upcoming: available,
   payment: null,
 });
 const groups = [
