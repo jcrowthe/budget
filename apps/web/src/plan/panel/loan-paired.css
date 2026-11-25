@@ -6,13 +6,30 @@
 .loan-paired-with a {
   color: var(--labelPrimary);
   font-weight: 600;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.loan-paired-with a:hover {
+  text-decoration-thickness: 2px;
+}
+.loan-paired-with a:focus-visible {
+  outline: 1px solid var(--actionPrimary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 .loan-paired-body {
   padding: 16px;
 }
 .loan-paired-available {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
+  color: var(--labelSecondary);
+}
+/* The figure leads the card: the one number the owner acts on. */
+.loan-paired-available strong {
   color: var(--labelPrimary);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .loan-paired-actions {
   display: flex;
@@ -31,22 +48,61 @@
   font-weight: 500;
   cursor: pointer;
 }
+.loan-paired-actions button:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+/* Record Payment is the card's main action; Open Payoff Simulator stays secondary. */
+.loan-paired-actions .loan-paired-record {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.loan-paired-actions .loan-paired-record:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.loan-paired-actions button:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+/* As the Target form's disabled controls. */
 .loan-paired-actions button:disabled {
   opacity: 0.5;
   cursor: default;
 }
 .loan-paired-paid {
-  margin: 12px 0 0;
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--borderSubtle);
   color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 /* The Debt Payment Target editor's Summary block. */
 .debt-minimum-line {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--calloutPrimarySubtleBackground);
   color: var(--labelSecondary);
+  line-height: 1.4;
 }
 .debt-minimum-line strong {
   color: var(--labelPrimary);
+  font-variant-numeric: tabular-nums;
+}
+.debt-summary {
+  margin: 0 0 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borderSubtle);
+}
+.debt-summary .target-label {
+  margin: 0 0 8px;
+  color: var(--labelPrimary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.debt-summary-row .panel-row-value {
+  font-variant-numeric: tabular-nums;
 }
 .debt-summary-row {
   display: flex;
