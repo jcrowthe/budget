@@ -198,6 +198,10 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
         a.onBudget ? 1 : 0,
         a.sort,
         started,
+        a.loan?.interestRate ?? null,
+        a.loan?.minimumPayment ?? null,
+        a.loan?.escrowAmount ?? null,
+        a.loan?.pairedCategory == null ? null : categoryIds[a.loan.pairedCategory],
       ]),
     },
     {

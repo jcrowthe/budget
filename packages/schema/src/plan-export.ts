@@ -40,6 +40,34 @@ export const REGISTER_HEADER: readonly string[] = [
   "Cleared",
 ];
 
+/**
+ * Loan account columns, appended to the Register header only when the plan has a loan account (EXF-991). A plan
+ * without one is written exactly as before, and the importer reads either header. They repeat on every row of the
+ * loan's account and are empty on other accounts' rows.
+ */
+export const REGISTER_LOAN_COLUMNS: readonly string[] = [
+  "Account Type",
+  "Interest Rate",
+  "Minimum Payment",
+  "Escrow Amount",
+  "Paired Category Group",
+  "Paired Category",
+];
+export const REGISTER_LOAN_HEADER: readonly string[] = [
+  ...REGISTER_HEADER,
+  ...REGISTER_LOAN_COLUMNS,
+];
+
+/** One loan account's fields as the export writes them (the pairing as names; null/empty when none). */
+export interface LoanExport {
+  type: string;
+  interestRate: string | null;
+  minimumPayment: number | null;
+  escrowAmount: number | null;
+  pairedGroup: string | null;
+  pairedCategory: string | null;
+}
+
 /** A plan's number, currency and date settings (EXF-468 will store them; today the default is used). */
 export interface PlanFormat {
   currency_symbol: string;
@@ -330,9 +358,28 @@ export function registerFile(
   entries: readonly RegisterEntry[],
   fmt: ExportFormat,
   flagLabel: (c: FlagColor) => string = (c) => FLAG_NAMES[c],
+  /** Loan accounts by name; when not empty the loan columns are written. */
+  loans: ReadonlyMap<string, LoanExport> = new Map(),
 ): string {
-  const lines: string[] = [REGISTER_HEADER.map(textField).join(fmt.delimiter)];
+  const withLoans = loans.size > 0;
+  const lines: string[] = [
+    (withLoans ? REGISTER_LOAN_HEADER : REGISTER_HEADER).map(textField).join(fmt.delimiter),
+  ];
   const zero = fmt.amount(0);
+  const noLoan = [textField(""), textField(""), "", "", textField(""), textField("")];
+  const loanCells = (account: string): string[] => {
+    if (!withLoans) return [];
+    const l = loans.get(account);
+    if (!l) return noLoan;
+    return [
+      textField(l.type),
+      textField(l.interestRate ?? ""),
+      l.minimumPayment === null ? "" : fmt.amount(l.minimumPayment),
+      l.escrowAmount === null ? "" : fmt.amount(l.escrowAmount),
+      textField(l.pairedGroup ?? ""),
+      textField(l.pairedCategory ?? ""),
+    ];
+  };
   const row = (
     e: RegisterEntry,
     payee: string,
@@ -353,6 +400,7 @@ export function registerFile(
       amount < 0 ? fmt.amount(-amount) : zero,
       amount > 0 ? fmt.amount(amount) : zero,
       textField(CLEARED[e.cleared]),
+      ...loanCells(e.account),
     ].join(fmt.delimiter);
   };
   for (const e of [...entries].sort(compareEntries)) {

@@ -40,6 +40,18 @@ export const IMPORT_ACCOUNT_TYPES = [
   "otherLiability",
 ] as const;
 export type ImportAccountType = (typeof IMPORT_ACCOUNT_TYPES)[number];
+/** Loan types an export names in its loan columns (EXF-991). Read from the file, never offered as a choice. */
+export const IMPORT_LOAN_TYPES = [
+  "mortgage",
+  "autoLoan",
+  "studentLoan",
+  "personalLoan",
+  "medicalDebt",
+  "otherDebt",
+] as const;
+/** Every type an imported account can end with: the choosable ones, and the loans the file names. */
+export const IMPORT_RESULT_TYPES = [...IMPORT_ACCOUNT_TYPES, ...IMPORT_LOAN_TYPES] as const;
+export type ImportResultType = (typeof IMPORT_RESULT_TYPES)[number];
 /** On the plan: the cash and credit types (a Worker test checks it against the core's `isOnBudget`). */
 export const IMPORT_ON_BUDGET: Record<ImportAccountType, boolean> = {
   checking: true,
@@ -51,6 +63,9 @@ export const IMPORT_ON_BUDGET: Record<ImportAccountType, boolean> = {
   otherLiability: false,
 };
 const CREDIT_TYPES: readonly string[] = ["creditCard", "lineOfCredit"];
+const isLoanType = (t: string): t is (typeof IMPORT_LOAN_TYPES)[number] =>
+  (IMPORT_LOAN_TYPES as readonly string[]).includes(t);
+const LOAN_RATE = /^\d{1,3}(\.\d{1,3})?$/;
 
 export const IMPORT_LIMITS = {
   uploadBytes: 20 * 2 ** 20,
@@ -78,7 +93,7 @@ export const PlanImportOptions = z
     name: z.string().trim().min(1).max(100).optional(),
     export_date: RealDate.optional(),
     date_format: z.enum(DATE_FORMATS).optional(),
-    account_types: z.record(z.string(), z.enum(IMPORT_ACCOUNT_TYPES)).optional(),
+    account_types: z.record(z.string(), z.enum(IMPORT_RESULT_TYPES)).optional(),
     currency_format: z
       .object({
         iso_code: z.string().max(3).optional(),
@@ -124,8 +139,8 @@ export type ImportMismatch = z.infer<typeof ImportMismatch>;
 export const ImportAccount = z
   .object({
     name: z.string(),
-    type: z.enum(IMPORT_ACCOUNT_TYPES),
-    proposed_type: z.enum(IMPORT_ACCOUNT_TYPES),
+    type: z.enum(IMPORT_RESULT_TYPES),
+    proposed_type: z.enum(IMPORT_RESULT_TYPES),
     reason: z.string(),
     on_budget: z.boolean(),
     transactions: z.number().int(),
@@ -217,12 +232,20 @@ export interface ImportPlan {
   fileNames: { plan: string; register: string };
   accounts: {
     name: string;
-    type: ImportAccountType;
-    proposedType: ImportAccountType;
+    type: ImportResultType;
+    proposedType: ImportResultType;
     reason: string;
     onBudget: boolean;
     sort: number;
     transactions: number;
+    /** The loan fields the file carries for a loan type; null for every other account (EXF-991). */
+    loan: {
+      interestRate: string | null;
+      minimumPayment: number | null;
+      escrowAmount: number | null;
+      /** Index into `categories`; null when none, or when the new plan has no such category. */
+      pairedCategory: number | null;
+    } | null;
   }[];
   groups: { name: string; sort: number; kind: "credit_card_payments" | null }[];
   categories: {
@@ -288,6 +311,17 @@ interface RegRow {
   memo: string;
   amount: number;
   cleared: Cleared;
+}
+
+/** The loan columns of one Register row, as text (EXF-991); absent in an older export. */
+interface LoanCells {
+  type: string;
+  rate: string;
+  payment: string;
+  escrow: string;
+  group: string;
+  category: string;
+  line: number;
 }
 
 export interface BuildInput {
@@ -499,6 +533,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     return ix;
   };
   const rows: RegRow[] = [];
+  const loanCells = new Map<number, LoanCells>();
   for (let i = 1; i < regRaw.length; i++) {
     const r = regRaw[i] as string[];
     const line = i + 1;
@@ -528,8 +563,21 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
       );
     const out = amount(r[8] as string, "Register file", line, "Outflow");
     const inflow = amount(r[9] as string, "Register file", line, "Inflow");
+    const accountIx = accountOf(accountName);
+    const loanType = unguard(r[11] ?? "").trim();
+    if (loanType !== "" && !loanCells.has(accountIx)) {
+      loanCells.set(accountIx, {
+        type: loanType,
+        rate: unguard(r[12] ?? "").trim(),
+        payment: (r[13] ?? "").trim(),
+        escrow: (r[14] ?? "").trim(),
+        group: unguard(r[15] ?? "").trim(),
+        category: unguard(r[16] ?? "").trim(),
+        line,
+      });
+    }
     rows.push({
-      account: accountOf(accountName),
+      account: accountIx,
       flag,
       date: isoOf.get((r[2] as string).trim()) as string,
       payee: unguard(r[3] as string),
@@ -612,7 +660,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
 
   // ---- Account types
   const nAccounts = accountNames.length;
-  const proposed: ImportAccountType[] = [];
+  const proposed: ImportResultType[] = [];
   const reasons: string[] = [];
   for (let a = 0; a < nAccounts; a++) {
     const nm = accountNames[a] as string;
@@ -620,6 +668,9 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     if (paymentNames.has(nm)) {
       proposed.push("creditCard");
       reasons.push("A Credit Card Payments category has this account's name");
+    } else if (loanCells.has(a) && isLoanType(loanCells.get(a)?.type ?? "")) {
+      proposed.push(loanCells.get(a)?.type as ImportResultType);
+      reasons.push("The export names this loan type");
     } else if (s && s.group === "" && s.cat === "" && s.amount >= 0) {
       proposed.push("otherAsset");
       reasons.push("Its Starting Balance is an uncategorized inflow");
@@ -633,7 +684,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
       reasons.push("Checking is the default type");
     }
   }
-  const types: ImportAccountType[] = [...proposed];
+  const types: ImportResultType[] = [...proposed];
   for (const [acct, type] of Object.entries(options.account_types ?? {})) {
     const a = accountIndex.get(acct);
     if (a === undefined)
@@ -641,7 +692,12 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
         "bad_option",
         `account_types names "${acct}", which is not an account in the file`,
       );
-    if (!IMPORT_ACCOUNT_TYPES.includes(type))
+    // A loan type is only the file's own (a preview's types are sent back whole), never a new choice.
+    const fileLoan = loanCells.get(a)?.type;
+    if (isLoanType(type)) {
+      if (type !== fileLoan || !isLoanType(proposed[a] as string))
+        throw new ImportError("bad_option", `The account type "${type}" cannot be created`);
+    } else if (!(IMPORT_ACCOUNT_TYPES as readonly string[]).includes(type))
       throw new ImportError("bad_option", `The account type "${type}" cannot be created`);
     if (paymentNames.has(acct) && !CREDIT_TYPES.includes(type)) {
       throw new ImportError(
@@ -661,7 +717,10 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
       );
     }
   });
-  const onBudget = types.map((t) => IMPORT_ON_BUDGET[t]);
+  // Loans are off the plan, like the other liability.
+  const onBudget = types.map((t) =>
+    isLoanType(t) ? false : IMPORT_ON_BUDGET[t as ImportAccountType],
+  );
 
   // ---- Groups and categories
   const groups: ImportPlan["groups"] = [];
@@ -1156,6 +1215,54 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     for (const b of succ[pick] as Set<number>) indeg[b] = (indeg[b] as number) - 1;
   }
 
+  // ---- Loan fields (EXF-991): only for an account that ends as a loan type; the pairing is looked up by names.
+  const loans: ImportPlan["accounts"][number]["loan"][] = accountNames.map((nm, a) => {
+    const cells = loanCells.get(a);
+    if (!cells) return null;
+    if (!isLoanType(types[a] as string)) {
+      warn(
+        "loan_fields_dropped",
+        nm,
+        `"${nm}" is not a loan type in the new plan: its interest rate, payment, escrow and paired category are not kept`,
+      );
+      return null;
+    }
+    const money = (text: string, column: string) =>
+      text === "" ? null : amount(text, "Register file", cells.line, column);
+    let interestRate: string | null = null;
+    if (cells.rate !== "") {
+      if (LOAN_RATE.test(cells.rate) && Number(cells.rate) <= 100) {
+        interestRate = cells.rate
+          .replace(/^0+(?=\d)/, "")
+          .replace(/(\.\d*?)0+$/, "$1")
+          .replace(/\.$/, "");
+      } else {
+        warn(
+          "loan_rate_invalid",
+          nm,
+          `The interest rate "${cells.rate}" of "${nm}" is not a number from 0 to 100: it is not kept`,
+        );
+      }
+    }
+    let pairedCategory: number | null = null;
+    if (cells.category !== "") {
+      const c = catByKey.get(`${cells.group}\u0000${cells.category}`);
+      if (c !== undefined && categories[c]?.paymentAccount === null) pairedCategory = c;
+      else
+        warn(
+          "loan_pairing_not_found",
+          nm,
+          `The category "${cells.group}: ${cells.category}" paired with "${nm}" is not in the new plan: the loan has no paired category`,
+        );
+    }
+    return {
+      interestRate,
+      minimumPayment: money(cells.payment, "Minimum Payment"),
+      escrowAmount: money(cells.escrow, "Escrow Amount"),
+      pairedCategory,
+    };
+  });
+
   // ---- Formats
   const f = fmt ?? fallback;
   const cf = options.currency_format ?? {};
@@ -1182,12 +1289,13 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     fileNames: { plan: input.plan.name, register: input.register.name },
     accounts: accountNames.map((nm, a) => ({
       name: nm,
-      type: types[a] as ImportAccountType,
-      proposedType: proposed[a] as ImportAccountType,
+      type: types[a] as ImportResultType,
+      proposedType: proposed[a] as ImportResultType,
       reason: reasons[a] as string,
       onBudget: onBudget[a] as boolean,
       sort: sortOf[a] as number,
       transactions: perAccount[a] as number,
+      loan: loans[a] ?? null,
     })),
     groups,
     categories,

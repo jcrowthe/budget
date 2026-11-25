@@ -1,9 +1,11 @@
+import { LOAN_ACCOUNT_TYPES } from "@budget/core/account-types";
 import { addMonths } from "@budget/core/month";
 import {
   categoryCell,
   exportFormat,
   exportMonthCeiling,
   exportNames,
+  type LoanExport,
   nowRangeText,
   nowWithinServerDays,
   planFile,
@@ -92,6 +94,21 @@ export async function exportPlan(
     else linesOf.set(l.parentTransactionId, [l]);
   }
 
+  // Loan accounts' fields (EXF-991); the pairing as the group and category names the Plan file writes.
+  const loans = new Map<string, LoanExport>();
+  for (const a of accounts) {
+    if (!LOAN_ACCOUNT_TYPES.includes(a.type)) continue;
+    const paired = a.pairedCategoryId ? known.get(a.pairedCategoryId) : undefined;
+    loans.set(a.name, {
+      type: a.type,
+      interestRate: a.interestRate,
+      minimumPayment: a.minimumPayment,
+      escrowAmount: a.escrowAmount,
+      pairedGroup: paired ? (paired.hidden ? "Hidden Categories" : paired.group) : null,
+      pairedCategory: paired?.name ?? null,
+    });
+  }
+
   const entries: RegisterEntry[] = [];
   for (const r of txs) {
     const a = acct.get(r.accountId);
@@ -167,7 +184,7 @@ export async function exportPlan(
   const bytes = storeZip(
     [
       { name: names.plan, data: utf8(planFile(details, fmt)) },
-      { name: names.register, data: utf8(registerFile(entries, fmt)) },
+      { name: names.register, data: utf8(registerFile(entries, fmt, undefined, loans)) },
     ],
     today,
     now.slice(11, 16),
