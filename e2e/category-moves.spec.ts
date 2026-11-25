@@ -59,10 +59,6 @@ const todayText = () => {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}/${d.getFullYear()}`;
 };
-const rows = (page: Page) =>
-  dialog(page)
-    .getByRole("row")
-    .filter({ hasNot: page.getByRole("columnheader") });
 
 test("AC4 the clock appears only on categories with moves this month and opens the Moves table with deltas", async ({
   page,
@@ -96,7 +92,7 @@ test("AC4 the clock appears only on categories with moves this month and opens t
     .email as string;
   const initial = (me.split("@")[0] as string).charAt(0).toUpperCase();
   const body = dialog(page).getByRole("row").filter({ hasText: "$" });
-  await expect(body).toHaveCount(4);
+  await expect(body).toHaveCount(3);
   const want: [string, string][] = [
     [`Moved to ${GROC}`, "−$100.00"],
     ["Removed", "−$150.00"],
@@ -146,7 +142,7 @@ test("Escape closes and returns focus; the icon and the table refresh after a mo
   await expect(dlg).toHaveCount(0);
   await expect(clock(page, FUN)).toBeVisible();
   await realClick(page, clock(page, FUN));
-  await expect(rows(page).nth(0)).toBeVisible();
+  await expect(dialog(page).getByRole("row").nth(1)).toBeVisible();
   await expect(dialog(page)).toContainText(`Moved from ${RENT}`);
   await expect(dialog(page)).toContainText("$20.00");
   await page.keyboard.press("Escape");

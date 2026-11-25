@@ -14,6 +14,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   ChevronRightSmallIcon,
+  ClockBackIcon,
   PlusCircleFillIcon,
   QuestionCircleIcon,
   SubtractIcon,
@@ -182,6 +183,8 @@ export function CategoryRow({
   selected,
   onContextMenu,
   onActivity,
+  hasMoves = false,
+  onMoves,
 }: {
   c: MonthCategoryDetail;
   selected: boolean;
@@ -200,6 +203,9 @@ export function CategoryRow({
   onPill: (anchor: HTMLElement) => void;
   /** A click on a non-zero Activity amount of an ordinary category: its transactions popover (EXF-509). */
   onActivity: (anchor: HTMLElement) => void;
+  /** The category has a move this month: the clock icon opens its Moves popover (EXF-506). */
+  hasMoves?: boolean;
+  onMoves?: (anchor: HTMLElement) => void;
 }) {
   const fmt = usePlanFormatter();
   const status =
@@ -278,7 +284,19 @@ export function CategoryRow({
           onCommit={onCommit}
         />
       </div>
-      <div className="cell-activity" role="cell">
+      <div className={`cell-activity${hasMoves ? " has-moves" : ""}`} role="cell">
+        {hasMoves && (
+          <button
+            type="button"
+            className="category-moves-button"
+            title="Changes to your assigned amount this month"
+            aria-label={`Moves for ${c.name}`}
+            aria-haspopup="dialog"
+            onClick={(e) => onMoves?.(e.currentTarget)}
+          >
+            <ClockBackIcon width={14} height={14} />
+          </button>
+        )}
         {c.kind === null && c.activity !== 0 ? (
           <button
             type="button"

@@ -15,6 +15,7 @@ import { ApiError } from "../api/client";
 import { beginWrite, endWrite, inOrder } from "../api/monthCache";
 import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
+import { useMovedCategories } from "../api/recent-moves";
 import { localCurrentMonth, usePlanMonth } from "../shell/planPaths";
 import { useShortcut } from "../shortcuts/dispatcher";
 import { getSnapshot, redo as redoStep, undo as undoStep } from "../undo/store";
@@ -30,6 +31,7 @@ import { ChevronDownIcon, ChevronRightSmallIcon } from "./icons";
 import { MovePopover } from "./MovePopover";
 import { NamePopover } from "./NamePopover";
 import { useProgressBars } from "./progressBars";
+import { CategoryMovesPopover } from "./recent-moves/RecentMovesPopover";
 import { CategoryRow, Checkbox, type FocusTarget, GroupRow, UncategorizedRow } from "./rows";
 import {
   checkState,
@@ -55,6 +57,7 @@ type Open =
   | { kind: "edit-group"; groupId: string; anchor: HTMLElement }
   | { kind: "edit-category"; categoryId: string; anchor: HTMLElement }
   | { kind: "activity"; categoryId: string; anchor: HTMLElement }
+  | { kind: "moves"; categoryId: string; anchor: HTMLElement }
   | { kind: "move"; categoryId: string; anchor: HTMLElement }
   | { kind: "cover"; categoryId: string; anchor: HTMLElement }
   | {
@@ -89,6 +92,7 @@ export function PlanGrid({
   onViewAll: () => void;
 }) {
   const q = useMonth(budgetId, month);
+  const moved = useMovedCategories(budgetId, month, q.dataUpdatedAt);
   const data = q.data;
   const [bars, setBars] = useProgressBars();
   const { isCollapsed, setCollapsed } = useCollapsedGroups(budgetId, data?.groups);
@@ -323,6 +327,18 @@ export function PlanGrid({
         />
       );
     }
+    if (pop.kind === "moves") {
+      const c = allGroups.flatMap((x) => x.categories).find((x) => x.id === pop.categoryId);
+      if (!c) return null;
+      return (
+        <CategoryMovesPopover
+          anchor={pop.anchor}
+          month={month}
+          category={{ id: c.id, name: c.name }}
+          onClose={close}
+        />
+      );
+    }
     if (pop.kind === "move" || pop.kind === "cover") {
       if (!data) return null;
       const Pop = pop.kind === "move" ? MovePopover : CoverPopover;
@@ -503,6 +519,8 @@ export function PlanGrid({
                           onActivity={(anchor) =>
                             setPop({ kind: "activity", categoryId: c.id, anchor })
                           }
+                          hasMoves={moved.data?.has(c.id) ?? false}
+                          onMoves={(anchor) => setPop({ kind: "moves", categoryId: c.id, anchor })}
                           onPill={(anchor) =>
                             setPop({
                               kind: c.available > 0 ? "move" : "cover",
