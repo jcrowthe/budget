@@ -93,7 +93,13 @@ async function world(n: number) {
 
 const SIZES = [10, 100];
 
-describe("EXF-532/535 D1 calls", () => {
+// Setup, not the counted calls, is the time: world(100) creates 100 categories and 100 transactions one by one
+// through the services and REST (about 2.6-3.8 s a test alone). Vitest's 5 s default leaves no room when the full
+// parallel `pnpm check` or a loaded host slows it, so give each test headroom. The counted calls and their
+// expected numbers are unchanged.
+const SETUP_TIMEOUT_MS = 30_000;
+
+describe("EXF-532/535 D1 calls", { timeout: SETUP_TIMEOUT_MS }, () => {
   it("the month read makes 9 D1 calls (EXF-537 adds the card flows) whatever the plan's size", async () => {
     for (const n of SIZES) {
       const w = await world(n);
