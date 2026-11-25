@@ -133,10 +133,11 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
       cleared: transactions.cleared,
       createdAt: transactions.createdAt,
       transferAccountId: transactions.transferAccountId,
-      otherName: other.name,
+      // Distinct labels: a D1 batch maps rows by column name, and `lo_other.name` and `lo_payee.name` would collide.
+      otherName: sql<string | null>`${other.name}`.as("other_name"),
       otherOnBudget: other.onBudget,
       payeeSystem: payee.system,
-      payeeName: payee.name,
+      payeeName: sql<string | null>`${payee.name}`.as("payee_name"),
       rowPayeeName: transactions.payeeName,
     })
     .from(transactions)

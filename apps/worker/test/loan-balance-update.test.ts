@@ -298,6 +298,7 @@ describe("REST and MCP agree", () => {
           "created_at",
           "balance_updated_at",
           "last_reconciled_at",
+          "from_account_name",
           "account_id",
           "budget_id",
           "payee_id",

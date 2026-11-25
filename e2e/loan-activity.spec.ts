@@ -86,6 +86,7 @@ test("AC4: Record Payment from the mortgage page, then the month's lines (AC1) a
   const payments = section(page, "Payments");
   await expect(payments.getByRole("listitem")).toHaveCount(1);
   await expect(payments).toContainText("$1,500.00");
+  await expect(payments).toContainText("from ZZ-TEST Checking");
   const interest = section(page, "Interest Charges This Month");
   await expect(interest).toContainText("Estimated");
   await expect(interest).toContainText("$1,000.00");

@@ -409,8 +409,13 @@ describe("EXF-1006: payments name their source account", () => {
   it("Record Payment and a typed transfer both carry from_account_name, in REST and MCP", async () => {
     const w = await world();
     expect(
-      (await pay(w.bid, w.mortgage.id, { from_account_id: w.checking.id, amount: 1000000, date: D15 }))
-        .status,
+      (
+        await pay(w.bid, w.mortgage.id, {
+          from_account_id: w.checking.id,
+          amount: 1000000,
+          date: D15,
+        })
+      ).status,
     ).toBe(201);
     const typed = await send(`/api/v1/budgets/${w.bid}/transactions`, "POST", {
       account_id: w.checking.id,
