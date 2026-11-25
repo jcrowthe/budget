@@ -7,6 +7,7 @@ import { budgets } from "../db/schema/budgets";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { monthCategories } from "../db/schema/month-categories";
+import { payeeRenameRules } from "../db/schema/payee-rename-rules";
 import { payees } from "../db/schema/payees";
 import { planImports } from "../db/schema/plan-imports";
 import { scheduledTransactions } from "../db/schema/scheduled-transactions";
@@ -29,6 +30,7 @@ export type ImportTable =
   | "category_groups"
   | "categories"
   | "payees"
+  | "payee_rename_rules"
   | "month_categories"
   | "transactions"
   | "scheduled_transactions";
@@ -130,6 +132,20 @@ const SPEC: Record<ImportTable, Spec> = {
     createdAt: 3,
     updatedAt: 4,
   }),
+  payee_rename_rules: spec(
+    payeeRenameRules,
+    ["id", "payee_id", "kind", "text", "match_text", "created_at"],
+    {
+      id: 0,
+      budgetId: "b",
+      payeeId: 1,
+      kind: 2,
+      text: 3,
+      matchText: 4,
+      createdAt: 5,
+      updatedAt: 5,
+    },
+  ),
   month_categories: spec(monthCategories, ["month", "category_id", "assigned", "updated_at"], {
     budgetId: "b",
     month: 0,
@@ -329,6 +345,7 @@ export function cleanupStmts(
     del("month_categories"),
     del("categories"),
     del("category_groups"),
+    del("payee_rename_rules"),
     del("payees"),
     del("accounts"),
     db.delete(budgets).where(sql`id = ${p.budgetId} and ${guard}`),
