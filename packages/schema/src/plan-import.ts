@@ -8,7 +8,7 @@ import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import type { PayeeSystem } from "./payees";
-import { SYSTEM_PAYEE_NAMES } from "./plan-export";
+import { REGISTER_RULE_COLUMNS, SYSTEM_PAYEE_NAMES } from "./plan-export";
 import {
   DATE_FORMATS,
   type DateFormat,
@@ -25,6 +25,12 @@ import {
   stripBom,
   unguard,
 } from "./plan-import-read";
+import {
+  checkRuleText,
+  foldRuleText,
+  RENAME_RULE_KINDS,
+  type RenameRuleKind,
+} from "./rename-rules";
 import { FLAG_NAMES, type FlagColor, isCalendarDate } from "./transactions";
 import { transferPayeeName } from "./transfers";
 
@@ -257,6 +263,8 @@ export interface ImportPlan {
   }[];
   assignments: { category: number; month: string; assigned: number }[];
   payees: { name: string; system: PayeeSystem | null }[];
+  /** Renaming rules (EXF-885 5a) in order of creation; `payee` indexes `payees`. */
+  renameRules: { payee: number; kind: RenameRuleKind; text: string; matchText: string }[];
   transactions: {
     account: number;
     date: string;
@@ -346,8 +354,27 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
 
   // ---- Raw rows
   const planRaw = readDelimited(stripBom(input.plan.text), input.planDelimiter ?? input.delimiter);
-  const regRaw = readDelimited(stripBom(input.register.text), input.delimiter);
-  if (regRaw.length - 1 > IMPORT_LIMITS.registerRows) {
+  const regAll = readDelimited(stripBom(input.register.text), input.delimiter);
+  // Rule rows (EXF-885 5a) follow the transactions: written only under a header with the rule columns, they have no
+  // account. They leave the Register's rows here, so every later index and line number is the transaction's own.
+  const header = regAll[0] ?? [];
+  const ruleCol = header.length - REGISTER_RULE_COLUMNS.length;
+  const hasRuleColumns =
+    header.length >= 11 + REGISTER_RULE_COLUMNS.length &&
+    REGISTER_RULE_COLUMNS.every((c, i) => (header[ruleCol + i] ?? "").trim() === c);
+  const regRaw: string[][] = [];
+  const ruleRows: { payee: string; kind: string; text: string; line: number }[] = [];
+  regAll.forEach((r, i) => {
+    if (i > 0 && hasRuleColumns && r[0] === "" && r.length === header.length) {
+      ruleRows.push({
+        payee: unguard(r[ruleCol] as string),
+        kind: (r[ruleCol + 1] as string).trim(),
+        text: unguard(r[ruleCol + 2] as string),
+        line: i + 1,
+      });
+    } else regRaw.push(r);
+  });
+  if (regAll.length - 1 > IMPORT_LIMITS.registerRows) {
     throw new ImportError(
       "too_large",
       `The Register file has more than ${IMPORT_LIMITS.registerRows} rows`,
@@ -1277,6 +1304,42 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     date_format: dateFormat,
   };
 
+  // ---- Renaming rules (EXF-885 5a): onto the new plan's payee of that name, in the file's order.
+  const renameRules: ImportPlan["renameRules"] = [];
+  const ruleSeen = new Set<string>();
+  for (const r of ruleRows) {
+    const p = payeeIx.get(r.payee);
+    if (p === undefined || (payees[p] as { system: PayeeSystem | null }).system !== null) {
+      warn(
+        "rename_rule_payee_missing",
+        r.payee,
+        "A renaming rule's payee is not in the new plan (no transaction of the file names it): the rule is not kept",
+      );
+      continue;
+    }
+    const checked = checkRuleText(r.text);
+    if (!(RENAME_RULE_KINDS as readonly string[]).includes(r.kind) || !checked.ok) {
+      warn(
+        "rename_rule_invalid",
+        `${r.line}`,
+        "A renaming rule has a kind other than is or contains, or a text that is empty or longer than 200 characters: the rule is not kept",
+      );
+      continue;
+    }
+    const matchText = foldRuleText(checked.text);
+    const key = `${p}\u0000${r.kind}\u0000${matchText}`;
+    if (ruleSeen.has(key)) {
+      warn(
+        "rename_rule_duplicate",
+        r.payee,
+        "A payee has the same renaming rule twice: the second is not kept",
+      );
+      continue;
+    }
+    ruleSeen.add(key);
+    renameRules.push({ payee: p, kind: r.kind as RenameRuleKind, text: checked.text, matchText });
+  }
+
   const kept = [...warnings.values()];
   const firstMonth = months[0] ?? null;
   return {
@@ -1301,6 +1364,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     categories,
     assignments,
     payees,
+    renameRules,
     transactions: out,
     schedules,
     planRows,

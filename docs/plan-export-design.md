@@ -146,6 +146,25 @@ Header after `Cleared`: `"Account Type","Interest Rate","Minimum Payment","Escro
 - A loan with no transaction has no row and so is not in the file (as every account without a row).
 - No new D1 call: the accounts are already read.
 
+## Payee renaming rules (EXF-885 5a)
+
+A plan's rules (`payee_rename_rules`: payee name, kind `is`/`contains`, text, order of creation) ride on the Register
+as **three more trailing columns** after the loan columns: `"Rename Payee","Rename Kind","Rename Text"`.
+
+- **Only when the plan has a live rule** (of an ordinary payee, hidden ones included; transfer payees' rules are not
+  written, as the import does not apply them). A plan with none is written byte for byte as before.
+- **Rows after the last transaction**, one per rule, oldest first (`created_at`, then id): every cell before the rule
+  columns is `""`, then the payee's name, the kind and the text (the formula guard applies to the name and the text).
+  A rule is not a property of any transaction (a payee can have more rules than rows, or no row), so it cannot ride on
+  the transaction rows as the loan fields do.
+- **Why this placement.** A third file breaks the two-entry layout. Rows in the Plan file have no place for a payee.
+  A delimited section inside the Register (a blank line, a title row) is not valid for the file's readers: the
+  reader skips blank lines and takes every other row as a transaction. Columns under a different header are the one
+  way a reader can be told apart: an importer that does not know the header refuses the file ("not recognised") rather
+  than reading a rule as a transaction, the same behaviour as for the loan columns (EXF-991). The current importer
+  reads all four headers (base, loan, rules, loan and rules).
+- **One more D1 call** (one set query for the rules; 19 in all, pinned in `plan-export-calls.test.ts`).
+
 ## API (note 9)
 
 | | Request | Response |

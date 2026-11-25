@@ -227,6 +227,18 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
       rows: plan.payees.map((p, i) => [payeeIds[i], p.name, p.system, started, started]),
     },
     {
+      // Each rule one millisecond after the one before it: the order of creation is the file's order.
+      t: "payee_rename_rules",
+      rows: plan.renameRules.map((r, i) => [
+        id(),
+        payeeIds[r.payee],
+        r.kind,
+        r.text,
+        r.matchText,
+        at(i),
+      ]),
+    },
+    {
       t: "month_categories",
       rows: plan.assignments.map((a) => [a.month, categoryIds[a.category], a.assigned, started]),
     },

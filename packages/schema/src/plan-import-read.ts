@@ -2,7 +2,13 @@
  * Import Plan, the reading half: delimited text, the formula guard, amounts, dates, file names and the
  * identification of the Plan and Register files. Pure. Design: docs/plan-import-design.md.
  */
-import { PLAN_HEADER, REGISTER_HEADER, REGISTER_LOAN_HEADER } from "./plan-export";
+import {
+  PLAN_HEADER,
+  REGISTER_HEADER,
+  REGISTER_LOAN_HEADER,
+  REGISTER_LOAN_RULES_HEADER,
+  REGISTER_RULES_HEADER,
+} from "./plan-export";
 import { isCalendarDate } from "./transactions";
 
 export type ImportErrorCode =
@@ -386,7 +392,12 @@ export function identifyFiles(files: readonly NamedText[]): {
     if (same(clean, PLAN_HEADER)) {
       if (plan) throw new ImportError("not_recognized", NOT_RECOGNIZED);
       plan = { file, delimiter: h.delimiter };
-    } else if (same(clean, REGISTER_HEADER) || same(clean, REGISTER_LOAN_HEADER)) {
+    } else if (
+      same(clean, REGISTER_HEADER) ||
+      same(clean, REGISTER_LOAN_HEADER) ||
+      same(clean, REGISTER_RULES_HEADER) ||
+      same(clean, REGISTER_LOAN_RULES_HEADER)
+    ) {
       if (register) throw new ImportError("not_recognized", NOT_RECOGNIZED);
       register = { file, delimiter: h.delimiter };
     }

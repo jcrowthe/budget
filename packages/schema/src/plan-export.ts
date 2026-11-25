@@ -61,6 +61,34 @@ export const REGISTER_LOAN_HEADER: readonly string[] = [
   ...REGISTER_LOAN_COLUMNS,
 ];
 
+/**
+ * Payee renaming rule columns (EXF-885 5a), appended after the loan columns, only when the plan has a live rule. The
+ * rules are not part of any transaction, so they ride as rows after the last transaction: every cell before the
+ * rule columns empty, then the payee's name, the kind (`is` or `contains`) and the text. Their order in the file is
+ * the order of creation. A plan without rules is written exactly as before; an importer that does not know the
+ * columns refuses the file at its header, as it does for the loan columns, never reading a rule as a transaction.
+ */
+export const REGISTER_RULE_COLUMNS: readonly string[] = [
+  "Rename Payee",
+  "Rename Kind",
+  "Rename Text",
+];
+export const REGISTER_RULES_HEADER: readonly string[] = [
+  ...REGISTER_HEADER,
+  ...REGISTER_RULE_COLUMNS,
+];
+export const REGISTER_LOAN_RULES_HEADER: readonly string[] = [
+  ...REGISTER_LOAN_HEADER,
+  ...REGISTER_RULE_COLUMNS,
+];
+
+/** One renaming rule as the export writes it. */
+export interface RuleExport {
+  payee: string;
+  kind: string;
+  text: string;
+}
+
 /** One loan account's fields as the export writes them (the pairing as names; null/empty when none). */
 export interface LoanExport {
   type: string;
@@ -363,11 +391,19 @@ export function registerFile(
   flagLabel: (c: FlagColor) => string = (c) => FLAG_NAMES[c],
   /** Loan accounts by name; when not empty the loan columns are written. */
   loans: ReadonlyMap<string, LoanExport> = new Map(),
+  /** Renaming rules in order of creation; when not empty the rule columns and rows are written. */
+  rules: readonly RuleExport[] = [],
 ): string {
   const withLoans = loans.size > 0;
-  const lines: string[] = [
-    (withLoans ? REGISTER_LOAN_HEADER : REGISTER_HEADER).map(textField).join(fmt.delimiter),
-  ];
+  const withRules = rules.length > 0;
+  const header = withLoans
+    ? withRules
+      ? REGISTER_LOAN_RULES_HEADER
+      : REGISTER_LOAN_HEADER
+    : withRules
+      ? REGISTER_RULES_HEADER
+      : REGISTER_HEADER;
+  const lines: string[] = [header.map(textField).join(fmt.delimiter)];
   const zero = fmt.amount(0);
   const noLoan = [textField(""), textField(""), "", "", textField(""), textField("")];
   const loanCells = (account: string): string[] => {
@@ -404,6 +440,7 @@ export function registerFile(
       amount > 0 ? fmt.amount(amount) : zero,
       textField(CLEARED[e.cleared]),
       ...loanCells(e.account),
+      ...(withRules ? [textField(""), textField(""), textField("")] : []),
     ].join(fmt.delimiter);
   };
   for (const e of [...entries].sort(compareEntries)) {
@@ -417,6 +454,13 @@ export function registerFile(
     } else {
       lines.push(row(e, e.payee, e.memo ?? "", e.category, e.amount));
     }
+  }
+  // Rule rows come last: empty up to the rule columns, which tells them from every transaction row.
+  const blank = textField("");
+  for (const r of rules) {
+    const cells = new Array<string>(header.length - REGISTER_RULE_COLUMNS.length).fill(blank);
+    cells.push(textField(r.payee), textField(r.kind), textField(r.text));
+    lines.push(cells.join(fmt.delimiter));
   }
   return delimitedFile(lines);
 }

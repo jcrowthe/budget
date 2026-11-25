@@ -23,6 +23,7 @@ import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
+import * as exportRepo from "../repositories/plan-export";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
 import { formatsOfRow } from "./budgets";
@@ -40,7 +41,8 @@ export class ExportNowOutOfRange extends Error {
 /**
  * Export Plan: the whole plan as a zip of the Plan file and the Register file (docs/plan-export-design.md).
  * Read-only. 15 D1 calls whatever the plan's size: the plan (1), the month range (2), the engine's read of the
- * plan (8), accounts (1), transactions (1), split lines (1) and schedules (1). Everything else is in memory.
+ * plan (8), accounts (1), transactions (1), split lines (1), schedules (1) and, since EXF-885 5a, renaming rules (1;
+ * the count above is older than the card, loan and rule reads, see plan-export-calls.test.ts). Everything else is in memory.
  */
 export async function exportPlan(
   env: Env,
@@ -69,12 +71,13 @@ export async function exportPlan(
   const months: string[] = [];
   for (let m = first; m <= last; m = addMonths(m, 1)) months.push(m);
 
-  const [details, accounts, txs, lines, schedules] = await Promise.all([
+  const [details, accounts, txs, lines, schedules, rules] = await Promise.all([
     getPlanMonths(env, budgetId, months, today),
     accountsRepo.list(db, budgetId, { includeClosed: true }),
     txRepo.listDetailForPlan(db, budgetId),
     txRepo.listLines(db, budgetId, {}),
     scheduledRepo.listForPlan(db, budgetId),
+    exportRepo.listRulesForExport(db, budgetId),
   ]);
 
   const known = new Map<string, { group: string; name: string; hidden: boolean }>();
@@ -184,7 +187,7 @@ export async function exportPlan(
   const bytes = storeZip(
     [
       { name: names.plan, data: utf8(planFile(details, fmt)) },
-      { name: names.register, data: utf8(registerFile(entries, fmt, undefined, loans)) },
+      { name: names.register, data: utf8(registerFile(entries, fmt, undefined, loans, rules)) },
     ],
     today,
     now.slice(11, 16),

@@ -149,6 +149,23 @@ it, the state machine can split call 1 (store / parse / compare) without changin
   warning_count, mismatch_count }`. **Imported rows get no history rows**: 45,000 log rows would double the writes
   and steps, nothing reads them, and the entry records the whole creation.
 
+## Payee renaming rules (EXF-885 5a)
+
+The Register header may end with `"Rename Payee","Rename Kind","Rename Text"` (after the loan columns when both are
+there). Rows of such a file whose Account is empty are rules, not transactions; they are taken out of the rows before
+any transaction is read, so line numbers and the date and amount reading are unchanged. An older export (no rule
+columns) imports unchanged, with no rules.
+
+- A rule attaches to the new plan's payee **of that name** (a payee exists only when a transaction of the file names
+  it). The rules are rows of the same chunked batch as the payees (table `payee_rename_rules`, after `payees`; cleaned
+  up before them), so no D1 call is added. `created_at` is the import's start plus the rule's position in ms, so the
+  order of creation is the file's order.
+- Dropped, each with a warning: `rename_rule_payee_missing` (no payee of that name in the new plan, or a system
+  payee), `rename_rule_invalid` (kind not `is`/`contains`, text empty or over 200 characters),
+  `rename_rule_duplicate` (the same payee, kind and folded text again). Text is stored trimmed; `match_text` is its
+  folded form (`foldRuleText`).
+- Not in `counts` (no change to the API result shape).
+
 ## Loan accounts (EXF-991)
 
 The Register header is either the 11 columns or those plus the six loan columns of the export design; both are

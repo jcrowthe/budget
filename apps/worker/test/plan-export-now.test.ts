@@ -54,7 +54,8 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
     const c = counting();
     const { bytes } = await exportPlan(c.env, f.bid, { now: "2026-11-16T09:05" });
     // EXF-545 adds one set query (paired loans): 17 -> 18.
-    expect(c.calls()).toBe(18);
+    // EXF-885 5a adds one set query (renaming rules): 18 -> 19.
+    expect(c.calls()).toBe(19);
     const plan = text(readZip(bytes)[0]?.data as Uint8Array);
     expect(plan).toContain('"Nov 2028"');
     expect(plan).not.toContain("2029");

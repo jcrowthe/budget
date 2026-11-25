@@ -212,11 +212,10 @@ tooltip element, not a `title` (the kind the clone now uses; see Built).
    smallest safe step: a rule that turns an import into a transfer needs the paired side made by the import (account
    choice, a pair in the other account, the import's matching of the other side), which is a design of its own. What
    the source's import does with such a rule is not observed (see departures 1 to 3, 8).
-3. Plan export and import do not carry rules (EXF-885, decided: left). Why: the export is our own file format
-   now (not the source's, as first assumed), so a place for rules could be added, and rules are real owner data: a
-   plan exported and imported again loses them, and the next import renames nothing. It is not built here. A
-   follow-up is proposed: carry `payee_rename_rules` (payee name, kind, text, order of creation) in the export and
-   import, with the loan fields' unit (EXF-991) in the same files, so it waits for that unit.
+3. Plan export and import carry rules (EXF-885 point 5a, built after being left): payee name, kind, text and order
+   of creation, as trailing Register columns and rows written only when the plan has a rule (see
+   `plan-export-design.md`, "Payee renaming rules"). A rule whose payee is not in the imported plan is dropped with a
+   warning.
 4. Matched rows had no `Bank Import Details` (built, EXF-885; see Built).
 
 ## Built (EXF-885)
