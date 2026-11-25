@@ -13,6 +13,7 @@ import {
 } from "../src/loan-summary";
 
 const fmt = (n: number) => `$${(n / 1000).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+const whole = (n: number) => "$" + Math.round(n / 1000).toLocaleString("en-US");
 const text = (s: { text: string }[]) => s.map((x) => x.text).join("");
 
 describe("loan summary copy", () => {
@@ -38,9 +39,9 @@ describe("loan summary copy", () => {
     expect(payoffLabel(null)).toBe("—");
   });
   it("progress line is whole currency with one decimal", () => {
-    expect(progressLine(200000000, 100)).toBe("Balance Remaining $200,000 (100.0%)");
-    expect(progressLine(199800000, 99.9)).toBe("Balance Remaining $199,800 (99.9%)");
-    expect(progressLine(5000, null)).toBe("Balance Remaining $5");
+    expect(progressLine(200000000, 100, whole)).toBe("Balance Remaining $200,000 (100.0%)");
+    expect(progressLine(199800000, 99.9, whole)).toBe("Balance Remaining $199,800 (99.9%)");
+    expect(progressLine(5000, null, whole)).toBe("Balance Remaining $5");
   });
   it("track sentences", () => {
     const min = trackSentence({ source: "minimum", payment: 1500000, n: 360 }, fmt);

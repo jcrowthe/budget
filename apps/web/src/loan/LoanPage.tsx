@@ -127,7 +127,7 @@ export function LoanPage({ budgetId, account }: { budgetId: string; account: Acc
             {open ? (
               <>
                 <p className="loan-remaining">
-                  {progressLine(s.remaining_balance, s.percent_remaining)}
+                  {progressLine(s.remaining_balance, s.percent_remaining, fmt.whole)}
                 </p>
                 <LoanProgressChart
                   past={s.history}

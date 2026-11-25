@@ -129,10 +129,13 @@ export function durationText(n: number): string {
   return `${plural(y, "yr", "yrs")}, ${plural(m, "mo", "mos")}`;
 }
 
-/** "Balance Remaining $200,000 (100.0%)": whole currency. */
-export function progressLine(remaining: number, percent: number | null): string {
-  const whole = Math.round(remaining / 1000).toLocaleString("en-US");
-  const base = `Balance Remaining $${whole}`;
+/** "Balance Remaining $200,000 (100.0%)": `whole` is the plan formatter's money without decimals. */
+export function progressLine(
+  remaining: number,
+  percent: number | null,
+  whole: (milliunits: number) => string,
+): string {
+  const base = `Balance Remaining ${whole(remaining)}`;
   return percent === null ? base : `${base} (${percent.toFixed(1)}%)`;
 }
 
