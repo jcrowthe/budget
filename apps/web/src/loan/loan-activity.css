@@ -1,0 +1,108 @@
+/* A loan's Account Activity and Record Payment (EXF-540). Colours only from shell/tokens.css. */
+.loan-activity {
+  padding: var(--space-3);
+  color: var(--labelPrimary);
+}
+.loan-activity-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.loan-activity-head h2 {
+  margin: 0;
+  margin-right: auto;
+  font-size: var(--font-size-lg, 1.25rem);
+}
+.loan-month-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.loan-month-switch .icon-button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--inputBorderSubtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.loan-month-switch .icon-button:disabled {
+  color: var(--buttonDisabledLabel);
+  cursor: default;
+}
+.loan-month-label {
+  min-width: 9em;
+  text-align: center;
+  font-weight: 600;
+}
+.loan-ending {
+  margin: 0 0 var(--space-3);
+  color: var(--labelSecondary);
+}
+.loan-ending-amount {
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.loan-section {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.loan-section h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+.loan-section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.loan-section li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--separatorStandard);
+}
+.loan-section li:first-child {
+  border-top: 0;
+}
+.loan-row-text {
+  flex: 1;
+  color: var(--labelSecondary);
+}
+.loan-row-amount {
+  font-variant-numeric: tabular-nums;
+}
+.loan-check {
+  color: var(--statusPositive);
+}
+.loan-empty {
+  margin: 0;
+  color: var(--labelTertiary);
+}
+.loan-badge {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--buttonSubtleBackground);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+.loan-pay-form .loan-help {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-pay-form .loan-available {
+  margin: 0 0 var(--space-3);
+  color: var(--labelPrimary);
+}

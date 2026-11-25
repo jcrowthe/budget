@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { interestNote, LoanActivityResponse } from "@budget/schema/loan-activity";
 import { describe, expect, it } from "vitest";
+import { createBudget } from "../src/services/budgets";
 import { setAssigned } from "../src/services/months";
 import { type Json, q } from "./bulk-helpers";
 import { json } from "./helpers";
@@ -16,9 +17,7 @@ const send = (path: string, method: string, body?: unknown) => json(path, { meth
 const rand = () => crypto.randomUUID().slice(0, 8);
 
 async function world() {
-  const bid = (
-    (await (await send("/api/v1/budgets", "POST", { name: `ZZ-TEST ${rand()}` })).json()) as Json
-  ).data.id as string;
+  const bid = (await createBudget(env, actor, { name: `ZZ-TEST ${rand()}` })).id;
   const open = async (body: Json) => {
     const res = await send(`/api/v1/budgets/${bid}/accounts`, "POST", {
       date: D15,
@@ -51,13 +50,16 @@ async function world() {
   const cat = (await month()).groups
     .flatMap((g: Json) => g.categories)
     .find((c: Json) => c.name === "Mortgage Pay");
+  expect(await rta(bid)).toBe(rtaBefore);
   await setAssigned(env, actor, {
     budget_id: bid,
     month: NOV,
     category_id: cat.id,
     assigned: 1500000,
   });
-  return { bid, checking, mortgage, auto, cat, rtaBefore, month };
+  const rtaAssigned = await rta(bid);
+  expect(rtaAssigned).toBe(rtaBefore - 1500000); // assigning moves money; the loans did not
+  return { bid, checking, mortgage, auto, cat, rtaBefore: rtaAssigned, month };
 }
 const rta = async (bid: string) =>
   ((await (await json(`/api/v1/budgets/${bid}/months/${NOV}`)).json()) as Json).data
@@ -325,7 +327,7 @@ describe("balances: one derivation", () => {
       `/api/v1/budgets/${w.bid}/accounts/${w.mortgage.id}/adjust-balance`,
       "POST",
       {
-        balance: 190000000,
+        balance: -190000000,
       },
     );
     expect(r.status).toBe(200);
@@ -398,6 +400,6 @@ describe("Acceptance 2: REST and MCP agree", () => {
       loan_account_id: w.checking.id,
     });
     expect(bad.isError).toBe(true);
-    expect(JSON.stringify(bad.content)).toContain("not_a_loan_account");
+    expect(JSON.stringify(bad.content)).toContain("is not a loan account");
   });
 });

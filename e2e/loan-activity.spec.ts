@@ -70,8 +70,9 @@ test("AC4: Record Payment from the mortgage page, then the month's lines (AC1) a
   await expect(d.getByRole("textbox", { name: "Payment Amount" })).toHaveValue("1,500.00");
   await expect(d.getByRole("combobox", { name: "From Account" })).toHaveValue("");
   await expect(d.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
-  await d.getByRole("combobox", { name: "From Account" }).click();
-  await page.getByRole("option", { name: /ZZ-TEST Checking/ }).click();
+  await d
+    .getByRole("combobox", { name: "From Account" })
+    .selectOption({ label: "ZZ-TEST Checking" });
   await d.getByRole("button", { name: "Save", exact: true }).click();
   await expect(d).toHaveCount(0);
 
@@ -98,7 +99,7 @@ test("AC4: Record Payment from the mortgage page, then the month's lines (AC1) a
   // Reopening preselects the last source.
   await page.getByRole("button", { name: "Record Payment", exact: true }).click();
   await expect(dialog(page).getByRole("combobox", { name: "From Account" })).toHaveValue(
-    /ZZ-TEST Checking/,
+    s.checking,
   );
   await dialog(page).getByRole("button", { name: "Cancel", exact: true }).click();
 

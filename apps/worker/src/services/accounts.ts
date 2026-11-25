@@ -90,6 +90,8 @@ type LoanSpec = {
 export type AccountFacts = {
   cleared: number;
   uncleared: number;
+  /** A loan's computed interest and escrow, already in `cleared`; SQL sums over stored rows lack it. */
+  estimated: number;
   canDelete: boolean;
   unapproved: number;
   attention: number;
@@ -118,6 +120,7 @@ export async function accountFacts(
   return (row) => ({
     cleared: balances.get(row.id)?.cleared ?? 0,
     uncleared: balances.get(row.id)?.uncleared ?? 0,
+    estimated: balances.get(row.id)?.estimated ?? 0,
     canDelete: canDeleteFrom(row, tx.get(row.id)),
     unapproved: attention.get(row.id)?.unapproved ?? 0,
     attention: attention.get(row.id)?.attention ?? 0,
@@ -467,7 +470,7 @@ export async function adjustBalance(
     const guard = accountsRepo.accountHolds(
       db,
       before,
-      accountsRepo.accountSumIs(accountId, working),
+      accountsRepo.accountSumIs(accountId, working - facts.estimated),
     );
     const after = accountToApi(before, {
       cleared: facts.cleared + delta,
@@ -567,12 +570,12 @@ export async function closeAccount(
     const guard = accountsRepo.accountHolds(
       db,
       before,
-      accountsRepo.accountSumIs(accountId, working),
+      accountsRepo.accountSumIs(accountId, working - facts.estimated),
     );
     const closeGuard =
       adjusting && tx
-        ? sql`${accountsRepo.accountSumIs(accountId, 0)} and exists ${accountsRepo.transactionExistsStmt(db, tx.id)}`
-        : accountsRepo.accountSumIs(accountId, 0);
+        ? sql`${accountsRepo.accountSumIs(accountId, -facts.estimated)} and exists ${accountsRepo.transactionExistsStmt(db, tx.id)}`
+        : accountsRepo.accountSumIs(accountId, -facts.estimated);
     const accountLog = changeLogInsertIf(
       db,
       {
@@ -776,7 +779,7 @@ export async function getAccountSummary(env: Env, budgetId: string): Promise<Acc
   const db = getDb(env);
   if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
   const b = await txRepo.openAccountsBalances(db, budgetId);
-  return { ...b, working: b.cleared + b.uncleared };
+  return { cleared: b.cleared, uncleared: b.uncleared, working: b.cleared + b.uncleared };
 }
 
 /**

@@ -3,7 +3,7 @@ import { ErrorBody } from "@budget/schema/common/envelope";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
-import { payCreditCard } from "../services/card-payments";
+import { payAccount } from "../services/loan-payments";
 import { TransactionRefused } from "../services/transactions";
 
 const param = (name: string) =>
@@ -34,7 +34,7 @@ export default app.openapi(
     method: "post",
     path: "/budgets/{budget_id}/accounts/{account_id}/payments",
     tags: ["Accounts"],
-    summary: "Pay a credit card or line of credit from an on-plan cash account",
+    summary: "Pay a credit card, line of credit or loan from an on-plan cash account",
     request: {
       params: z.object({ budget_id: param("budget_id"), account_id: param("account_id") }),
       body: { required: true, content: { "application/json": { schema: CardPaymentRequest } } },
@@ -49,7 +49,7 @@ export default app.openapi(
   async (c) => {
     const { budget_id, account_id } = c.req.valid("param");
     try {
-      const data = await payCreditCard(
+      const data = await payAccount(
         c.env,
         c.get("identity").actor,
         budget_id,

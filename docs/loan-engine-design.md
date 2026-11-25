@@ -98,8 +98,9 @@ The estimated part is computed in one place, the engine fed by one grouped query
 starting, interest, escrow or other). The readers that report a balance add it:
 
 - `repositories/transactions.ts` `balancesByAccount` and `openAccountsBalances`. These are the account list and
-  get (sidebar, header), the account register's `balances`, the summary and All Accounts. Each runs its sum and
-  `loanMonthsQuery` in **one `db.batch`**, so its D1 call count is unchanged. Each also returns the estimated
+  get (sidebar, header), the account register's `balances`, the summary and All Accounts. Each reads **one
+  statement** (`balanceGroupsQuery`: the sums per account, and for a loan per month and kind), so its D1 call count
+  is unchanged. Each also returns the estimated
   part as `estimated`. The estimated part counts as **cleared** (the lender booked it).
 - `repositories/reports.ts` `monthlySums` (Net Worth): the same batch, added per account and month.
 - Write guards that compare a balance with a raw SQL sum use `balance − estimated`. These are
@@ -179,3 +180,20 @@ state }, other: [{ transaction_id, date, amount, label, memo }], principal, last
 EXF-541 (summary tiles, payoff, chart, paired-category panel), EXF-542 (Add Activity: credit, fee, interest),
 EXF-543 (the Update Balance wizard, which writes the frozen rows above), EXF-545 (Debt Payment Target and the
 paired-category inspector), and plan export/import of loan terms and frozen rows.
+
+## Build notes (where the Build differs from the plan above)
+
+- **One statement, not a batch, for balances.** `balancesByAccount` and `openAccountsBalances` read
+  `balanceGroupsQuery`: cleared and uncleared sums per account, grouped by month and kind only for a loan account.
+  The first plan said "one `db.batch`", but `reconcile-race.test.ts` treats the first `DB.batch` as the write batch.
+  One statement keeps the call count and that test as it was. `monthlySums` (Net Worth) does use a two-statement
+  `db.batch` (one call).
+- **Card payments through the shared route** cost one more D1 read (`payAccount` looks at the account's type).
+  `payCreditCard` itself is unchanged.
+- **From Account is a native select** (open on-plan cash accounts, preselecting `last_payment_from_account_id`), and
+  Date is a text field in the plan's date format. The register's picker and calendar are register-specific.
+- **The month switcher label** is the long form ("November 2026"), built in `LoanActivity.tsx`; `monthLabel` in
+  `plan/monthNav.ts` gives "Nov 2026".
+- **Tool count** is 108 (two new tools). `rename-rules.test.ts` and `payee-category-api.test.ts` pin the count and
+  were updated. `mcp-timestamps.test.ts` lists both tools in `NOT_CALLED` (its seed has no loan).
+- A refused MCP call carries the refusal's text, not its code (the server rethrows the message).

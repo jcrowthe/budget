@@ -4,6 +4,12 @@ import {
   startingBalanceFeedsReadyToAssign,
 } from "@budget/core/account-types";
 import type { EngineActivity } from "@budget/core/budget-engine";
+import {
+  estimatedTotal,
+  type LoanMonthIn,
+  type LoanTerms,
+  runLoan,
+} from "@budget/core/loan-engine";
 import type { PayeeSystem } from "@budget/schema/payees";
 import type { SearchToken } from "@budget/schema/transaction-search";
 import { transferPayeeName } from "@budget/schema/transfers";
@@ -27,6 +33,7 @@ import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
 import { insertSelect } from "./insert-select";
+import { balanceGroupsQuery, balancesFromGroups } from "./loan-activity";
 
 type Sel = typeof transactions.$inferSelect;
 type LinkCols =
@@ -235,24 +242,22 @@ export async function attentionCountsByAccount(
   );
 }
 
-/** Per account: the sum of cleared (and reconciled) and of uncleared active transactions. */
+const estimatedOf = (terms: LoanTerms, months: LoanMonthIn[]) =>
+  estimatedTotal(runLoan(terms, months));
+
+/**
+ * Per account: the sum of cleared (and reconciled) and of uncleared active transactions, plus a loan's computed
+ * interest and escrow (`estimated`, counted as cleared: docs/loan-engine-design.md). One statement, one D1 call.
+ */
 export async function balancesByAccount(
   db: Db,
   budgetId: string,
   accountId?: string,
-): Promise<Map<string, { cleared: number; uncleared: number }>> {
-  const conds = [eq(transactions.budgetId, budgetId), countsInBalance()];
-  if (accountId) conds.push(eq(transactions.accountId, accountId));
-  const rows = await db
-    .select({
-      accountId: transactions.accountId,
-      cleared: sql<number>`coalesce(sum(case when ${transactions.cleared} = 'uncleared' then 0 else ${transactions.amount} end), 0)`,
-      uncleared: sql<number>`coalesce(sum(case when ${transactions.cleared} = 'uncleared' then ${transactions.amount} else 0 end), 0)`,
-    })
-    .from(transactions)
-    .where(and(...conds))
-    .groupBy(transactions.accountId);
-  return new Map(rows.map((r) => [r.accountId, { cleared: r.cleared, uncleared: r.uncleared }]));
+): Promise<Map<string, { cleared: number; uncleared: number; estimated: number }>> {
+  const rows = await balanceGroupsQuery(db, budgetId, { accountId });
+  const out = balancesFromGroups(rows, estimatedOf);
+  for (const b of out.values()) b.cleared += b.estimated;
+  return out;
 }
 
 // A new credit account's Starting Balance is on-plan with no category and no Ready to Assign flag, which the
@@ -321,27 +326,21 @@ export async function activityByMonth(
   }));
 }
 
-/** Cleared and uncleared sums over every open, non-deleted account of the plan. */
+/** Cleared and uncleared sums over every open, non-deleted account of the plan, loans' computed charges included. */
 export async function openAccountsBalances(
   db: Db,
   budgetId: string,
-): Promise<{ cleared: number; uncleared: number }> {
-  const [r] = await db
-    .select({
-      cleared: sql<number>`coalesce(sum(case when ${transactions.cleared} = 'uncleared' then 0 else ${transactions.amount} end), 0)`,
-      uncleared: sql<number>`coalesce(sum(case when ${transactions.cleared} = 'uncleared' then ${transactions.amount} else 0 end), 0)`,
-    })
-    .from(transactions)
-    .innerJoin(accounts, eq(accounts.id, transactions.accountId))
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        countsInBalance(),
-        isNull(accounts.deletedAt),
-        eq(accounts.closed, false),
-      ),
-    );
-  return { cleared: r?.cleared ?? 0, uncleared: r?.uncleared ?? 0 };
+): Promise<{ cleared: number; uncleared: number; estimated: number }> {
+  const rows = await balanceGroupsQuery(db, budgetId, { open: true });
+  let cleared = 0;
+  let uncleared = 0;
+  let estimated = 0;
+  for (const b of balancesFromGroups(rows, estimatedOf).values()) {
+    cleared += b.cleared + b.estimated;
+    uncleared += b.uncleared;
+    estimated += b.estimated;
+  }
+  return { cleared, uncleared, estimated };
 }
 
 export type TransactionDetailRow = TransactionRow & {

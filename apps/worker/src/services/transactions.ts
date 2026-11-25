@@ -314,11 +314,10 @@ export function linesByParent(lines: readonly txRepo.LineRow[]) {
 }
 
 async function balancesOf(db: Db, budgetId: string, accountId: string): Promise<AccountBalances> {
-  const b = (await txRepo.balancesByAccount(db, budgetId, accountId)).get(accountId) ?? {
-    cleared: 0,
-    uncleared: 0,
-  };
-  return { ...b, working: b.cleared + b.uncleared };
+  const b = (await txRepo.balancesByAccount(db, budgetId, accountId)).get(accountId);
+  const cleared = b?.cleared ?? 0;
+  const uncleared = b?.uncleared ?? 0;
+  return { cleared, uncleared, working: cleared + uncleared };
 }
 
 export async function getAccountBalances(
@@ -410,7 +409,11 @@ export async function listPlanTransactions(
   }));
   return {
     transactions: sortTransactions(detail, opts.sort ?? "date", opts.dir ?? "desc"),
-    balances: { ...open, working: open.cleared + open.uncleared },
+    balances: {
+      cleared: open.cleared,
+      uncleared: open.uncleared,
+      working: open.cleared + open.uncleared,
+    },
   };
 }
 
