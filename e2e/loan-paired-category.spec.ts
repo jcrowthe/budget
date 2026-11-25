@@ -137,3 +137,19 @@ test("AC2 to AC4: create the target, meet it, record the payment", async ({ page
   await expect(row(page, CAT)).toContainText("Fully Spent");
   expect(await rta(request)).toBe(rtaStart - 1500000);
 });
+
+// EXF-544 follow-up: Open Payoff Simulator opens the simulator dialog itself, on the loan page, flagged in the
+// URL (?simulate=1) so a reload keeps it open; closing it drops the flag.
+test("Open Payoff Simulator opens the simulator dialog and survives a reload", async ({ page }) => {
+  await select(page);
+  await loanCard(page).getByRole("button", { name: "Open Payoff Simulator" }).click();
+  const dialog = page.getByRole("dialog", { name: "Loan Payoff Simulator" });
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/${s.plan}/accounts/${s.loan}\\?simulate=1$`));
+  await expect(dialog.getByRole("textbox", { name: "Monthly Payment" })).toHaveValue("1,500.00");
+  await page.reload();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(new RegExp(`/${s.plan}/accounts/${s.loan}$`));
+});
