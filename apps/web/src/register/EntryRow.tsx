@@ -300,9 +300,11 @@ export function EntryRow({
     }
     afterClosedCheck({ next, body, iso });
   };
+  const needsReconciledAsk = (p: PendingSave) =>
+    mode === "edit" && tx?.cleared === "reconciled" && touchesLocked(p.body);
   const afterClosedCheck = (p: PendingSave) => {
     // A reconciled row asks before an amount, date or account change is saved (EXF-533).
-    if (mode === "edit" && tx?.cleared === "reconciled" && touchesLocked(p.body)) {
+    if (needsReconciledAsk(p)) {
       setAskReconciled(p);
       return;
     }
@@ -574,11 +576,14 @@ export function EntryRow({
       </tr>
       {askClosed && (
         <ClosedAccountSaveDialog
+          reconciled={needsReconciledAsk(askClosed)}
           onCancel={() => setAskClosed(null)}
           onSave={() => {
             const p = askClosed;
             setAskClosed(null);
-            afterClosedCheck(p);
+            // One dialog covers both facts: confirming it is also the reconciled confirmation (EXF-981).
+            if (needsReconciledAsk(p)) send(p, true);
+            else afterClosedCheck(p);
           }}
         />
       )}
