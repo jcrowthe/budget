@@ -297,6 +297,18 @@ export const AccountSummaryResponse = dataEnvelope(z.object({ balances: AccountB
 export const AccountResponse = dataEnvelope(z.object({ account: Account })).openapi(
   "AccountResponse",
 );
+/** The ids of one sidebar section's open accounts in their new order (a subset reorders only those). */
+export const AccountOrderRequest = z
+  .object({
+    account_ids: z
+      .array(z.string().min(1))
+      .min(1)
+      .max(500)
+      .refine((ids) => new Set(ids).size === ids.length, "account_ids must not repeat an id")
+      .openapi({ description: "Account ids in their new order: one section, open accounts only." }),
+  })
+  .openapi("AccountOrderRequest");
+export type AccountOrderRequest = z.input<typeof AccountOrderRequest>;
 export const AccountListResponse = dataEnvelope(z.object({ accounts: z.array(Account) })).openapi(
   "AccountListResponse",
 );

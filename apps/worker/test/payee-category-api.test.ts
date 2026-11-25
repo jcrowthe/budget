@@ -290,7 +290,7 @@ describe("MCP tools of the payee category (EXF-515)", () => {
     expect(bad.isError).toBe(true);
   });
 
-  it("the surface lists the path and both tools, 111 in all", async () => {
+  it("the surface lists the path and both tools, 112 in all", async () => {
     expect(await apiPaths()).toContain(
       "/api/v1/budgets/{budget_id}/payees/{payee_id}/recent-transactions",
     );

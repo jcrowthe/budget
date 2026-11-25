@@ -214,7 +214,7 @@ describe("PUT accounts/order", () => {
     expect(results.map((x) => x.actor)).toEqual([MCP]);
 
     const rest = await put(w.bid, [w.a, w.credit]);
-    const restText = ((await rest.json()) as Json).error.message;
+    const restText = ((await rest.json()) as Json).error.detail;
     const mixed = await callTool("reorder_accounts", {
       budget_id: w.bid,
       account_ids: [w.a, w.credit],
@@ -222,7 +222,7 @@ describe("PUT accounts/order", () => {
     expect(mixed.isError).toBe(true);
     expect(mixed.content[0].text).toContain(restText);
     await send(`${A(w.bid)}/${w.b}/close`, "POST");
-    const closedRest = ((await (await put(w.bid, [w.a, w.b])).json()) as Json).error.message;
+    const closedRest = ((await (await put(w.bid, [w.a, w.b])).json()) as Json).error.detail;
     const closed = await callTool("reorder_accounts", {
       budget_id: w.bid,
       account_ids: [w.a, w.b],

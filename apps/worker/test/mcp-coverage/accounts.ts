@@ -3,6 +3,7 @@ import type { Coverage, OperationKey } from "../mcp-coverage-types";
 export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/accounts": { tool: "list_accounts" },
   "POST /budgets/{budget_id}/accounts": { tool: "create_account" },
+  "PUT /budgets/{budget_id}/accounts/order": { tool: "reorder_accounts" },
   "GET /budgets/{budget_id}/accounts/{account_id}": { tool: "get_account" },
   "PATCH /budgets/{budget_id}/accounts/{account_id}": { tool: "update_account" },
   "POST /budgets/{budget_id}/accounts/{account_id}/adjust-balance": {

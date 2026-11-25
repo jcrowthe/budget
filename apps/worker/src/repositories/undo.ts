@@ -119,7 +119,10 @@ export const TYPE_MAPS: Record<UndoType, { table: string; keys: Key[] }> = {
   },
   month_category: { table: "month_categories", keys: [K("assigned")] },
   target: { table: "targets", keys: TARGET_KEYS },
-  account: { table: "accounts", keys: [K("starred"), K("paired_category_id")] },
+  account: {
+    table: "accounts",
+    keys: [K("starred"), K("paired_category_id"), K("sort", "sort_order")],
+  },
 };
 
 /** Keys a target row may carry that the map does not write: identity and derived ones. */

@@ -1,8 +1,8 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
-import { createAccount } from "../src/services/accounts";
 import { reorderAccounts } from "../src/services/account-order";
+import { createAccount } from "../src/services/accounts";
 import { plan } from "./account-helpers";
 
 /** `env` whose database counts each executed statement (run, all, first, raw) and each batch as one call. */
@@ -75,7 +75,7 @@ describe("account reorder: D1 calls do not grow with the accounts", () => {
       };
       const [small, large] = [await measure(5), await measure(50)];
       expect(large).toBe(small);
-      expect(small).toBe(4);
+      expect(small).toBe(7);
     });
   }
 });

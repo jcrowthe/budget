@@ -20,7 +20,7 @@ const NEW_TOOLS = [
 ];
 
 describe("payee renaming rules: the operations (EXF-467)", () => {
-  it("the surface has the paths and 111 tools", async () => {
+  it("the surface has the paths and 112 tools", async () => {
     expect(await apiPaths()).toEqual(
       expect.arrayContaining([
         "/api/v1/budgets/{budget_id}/payees/{payee_id}/rename-rules",
