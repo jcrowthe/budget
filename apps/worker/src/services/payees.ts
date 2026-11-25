@@ -20,6 +20,8 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { type Db as DbT, getDb } from "../db/client";
 import { accounts as accountsTable } from "../db/schema/accounts";
+import { changeLog } from "../db/schema/change-log";
+import { payeeRenameRules } from "../db/schema/payee-rename-rules";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
 import { NotFound } from "../middleware/errors";
@@ -408,24 +410,44 @@ export async function updatePayee(
   const now = new Date().toISOString();
   const same = payeesRepo.unchangedSql(budgetId, row.id, row);
   // A rename of a payee whose old name came from a bank import adds the rule `is <old name>` (before the update).
+  // The import's name may differ from the payee's in case (the sync title-cases ALL CAPS): SQL's lower() knows only
+  // ASCII, so a name with other letters still matches exactly.
+  const ruleId = crypto.randomUUID();
+  // The rule's text is the bank's own (an imported row of this payee whose folded name is the payee's), as imported.
+  const importedText = sql`(select trim(t.import_payee_name) from transactions t where t.budget_id = ${budgetId} and t.payee_id = ${row.id} and t.deleted_at is null and (t.import_payee_name = ${row.name} or lower(trim(t.import_payee_name)) = ${foldRuleText(row.name)}) order by (t.import_payee_name = ${row.name}) desc, t.rowid limit 1)`;
   const learn =
     name !== row.name && checkRuleText(row.name).ok
-      ? rulesRepo.addIfMissingStmts(
-          db,
-          { budgetId, actor, action: "create", entityType: "payee_rename_rule", createdAt: now },
-          {
-            id: crypto.randomUUID(),
-            budgetId,
-            payeeId: row.id,
-            kind: "is",
-            text: row.name.trim(),
-            matchText: foldRuleText(row.name),
-            createdAt: now,
-            updatedAt: now,
-            deletedAt: null,
-          },
-          sql`${same} and exists (select 1 from transactions t where t.budget_id = ${budgetId} and t.payee_id = ${row.id} and t.deleted_at is null and t.import_payee_name = ${row.name})`,
-        )
+      ? [
+          ...rulesRepo.addIfMissingStmts(
+            db,
+            { budgetId, actor, action: "create", entityType: "payee_rename_rule", createdAt: now },
+            {
+              id: ruleId,
+              budgetId,
+              payeeId: row.id,
+              kind: "is",
+              text: row.name.trim(),
+              matchText: foldRuleText(row.name),
+              createdAt: now,
+              updatedAt: now,
+              deletedAt: null,
+            },
+            sql`${same} and exists (select 1 from transactions t where t.budget_id = ${budgetId} and t.payee_id = ${row.id} and t.deleted_at is null and (t.import_payee_name = ${row.name} or lower(trim(t.import_payee_name)) = ${foldRuleText(row.name)}))`,
+          ),
+          // Both are no-ops when the rule was not added (its id is new).
+          db
+            .update(payeeRenameRules)
+            .set({ text: sql`coalesce(${importedText}, text)` })
+            .where(eq(payeeRenameRules.id, ruleId)),
+          db
+            .update(changeLog)
+            .set({
+              afterJson: sql`json_set(after_json, '$.text', coalesce(${importedText}, json_extract(after_json, '$.text')))`,
+            })
+            .where(
+              and(eq(changeLog.entityType, "payee_rename_rule"), eq(changeLog.entityId, ruleId)),
+            ),
+        ]
       : [];
   let ruleAdded = false;
   try {
@@ -448,10 +470,9 @@ export async function updatePayee(
     if (((res[res.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.race);
     }
-    // The rule's insert is the last statement of `learn`.
+    // The rule's insert is the second statement of `learn` (then the two that set its text as imported).
     if (learn.length > 0)
-      ruleAdded =
-        ((res[learn.length - 1] as { meta?: { changes?: number } }).meta?.changes ?? 0) > 0;
+      ruleAdded = ((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0) > 0;
   } catch (e) {
     if (payeesRepo.isUniqueViolation(e))
       throw new PayeeRefused(409, "conflict", PAYEE_ERRORS.duplicate);

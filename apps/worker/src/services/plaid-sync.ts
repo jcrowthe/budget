@@ -1,5 +1,6 @@
 import { isLoanType, isOnBudget } from "@budget/core/account-types";
 import type { SyncResult } from "@budget/schema/bank-connections";
+import { type ImportPayee, resolveImportedPayee } from "@budget/schema/imported-payee";
 import {
   bankDescriptionOf,
   CHECK_AFTER_MS,
@@ -27,7 +28,7 @@ import {
   storedErrorCode,
   syncStatusForError,
 } from "@budget/schema/plaid-import";
-import { pickRenameRule } from "@budget/schema/rename-rules";
+import { foldRuleText } from "@budget/schema/rename-rules";
 import { and, type SQL, type SQLWrapper, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { getDb } from "../db/client";
@@ -316,6 +317,8 @@ async function syncConnection(
         p = {
           byName: new Map(list.map((x) => [x.name, defaultOf(x)])),
           byId: new Map(list.map((x) => [x.id, { name: x.name, default: defaultOf(x) }])),
+          list: list.map((x) => ({ id: x.id, name: x.name, system: null })),
+          created: new Map(),
         };
         payeesOf.set(budgetId, p);
       }
@@ -596,12 +599,12 @@ async function syncConnection(
             ...bankValues,
             source: "plaid",
           };
-          if (payeeName)
+          if (target.createName)
             addPayee(
               db,
               g,
               budgetId,
-              payeeName,
+              target.createName,
               now,
               target.ruleGone ? txRepo.allHold([guard, target.ruleGone]) : guard,
             );
@@ -820,6 +823,10 @@ function importValues(txn: PlaidTxn, amount: number, payeeName: string | null) {
 type PlanPayees = {
   byName: Map<string, PayeeDefault>;
   byId: Map<string, { name: string; default: PayeeDefault }>;
+  /** The plan's ordinary payees, as the shared resolver reads them. */
+  list: ImportPayee[];
+  /** Payees this run makes, by folded name: later rows of the run reuse the first one's name. */
+  created: Map<string, string>;
 };
 
 /** The payee's effective default, as the API shows it (mode, fixed choice and history). */
@@ -832,9 +839,10 @@ function defaultOf(x: payeesRepo.PayeeListRow): PayeeDefault {
 }
 
 /**
- * The payee an imported name goes to: the payee of the plan's winning renaming rule when there is one (its name, its
- * default), else the payee of that name. `ruleGone` holds when the rule's payee was deleted since the read, so
- * that the bank's name is made then and the import is not lost.
+ * The payee an imported name goes to, by the resolver file import uses (`resolveImportedPayee`): the payee of the
+ * plan's winning renaming rule (its name, its default), else the payee of that name (matched ignoring case), else
+ * a new one (title-cased when ALL CAPS). `ruleGone` holds when the rule's payee was deleted since the read, so
+ * that the bank's name is made then and the import is not lost. `createName` is the payee to make if it is missing.
  */
 function payeeTarget(
   budgetId: string,
@@ -842,27 +850,37 @@ function payeeTarget(
   rules: readonly rulesRepo.RuleRow[],
   pp: PlanPayees,
 ) {
-  const rule = bankName ? pickRenameRule(bankName, rules) : null;
-  const rp = rule ? pp.byId.get(rule.payeeId) : undefined;
-  if (bankName && rule && rp) {
-    return {
-      name: rp.name as string | null,
-      idSql:
-        sql`coalesce(${payeesRepo.liveOrdinaryIdSql(budgetId, rule.payeeId)}, ${payeesRepo.ordinaryIdByNameSql(budgetId, bankName)})` as
-          | SQL
-          | undefined,
-      entry: rp.default as PayeeDefault | null,
-      rule,
-      ruleGone:
-        sql`(select 1 where not ${payeesRepo.liveOrdinarySql(budgetId, rule.payeeId)})` as SQL | null,
-    };
+  const res = resolveImportedPayee(bankName, rules, pp.list);
+  if (bankName && res && "payee_id" in res && res.rule_id) {
+    const rule = rules.find((r) => r.id === res.rule_id) as rulesRepo.RuleRow;
+    const rp = pp.byId.get(res.payee_id);
+    if (rp) {
+      return {
+        name: rp.name as string | null,
+        createName: bankName as string | null,
+        idSql:
+          sql`coalesce(${payeesRepo.liveOrdinaryIdSql(budgetId, rule.payeeId)}, ${payeesRepo.ordinaryIdByNameSql(budgetId, bankName)})` as
+            | SQL
+            | undefined,
+        entry: rp.default as PayeeDefault | null,
+        rule,
+        ruleGone:
+          sql`(select 1 where not ${payeesRepo.liveOrdinarySql(budgetId, rule.payeeId)})` as SQL | null,
+      };
+    }
+  }
+  let name: string | null = null;
+  if (res && "payee_id" in res) name = pp.byId.get(res.payee_id)?.name ?? null;
+  else if (res) {
+    const key = foldRuleText(res.new_name);
+    name = pp.created.get(key) ?? res.new_name;
+    pp.created.set(key, name);
   }
   return {
-    name: bankName,
-    idSql: (bankName ? payeesRepo.ordinaryIdByNameSql(budgetId, bankName) : undefined) as
-      | SQL
-      | undefined,
-    entry: (bankName ? (pp.byName.get(bankName) ?? null) : null) as PayeeDefault | null,
+    name,
+    createName: name,
+    idSql: (name ? payeesRepo.ordinaryIdByNameSql(budgetId, name) : undefined) as SQL | undefined,
+    entry: (name ? (pp.byName.get(name) ?? null) : null) as PayeeDefault | null,
     rule: null as rulesRepo.RuleRow | null,
     ruleGone: null as SQL | null,
   };
@@ -973,7 +991,7 @@ function followPlan(
       const t = payeeTarget(budgetId, payeeName, rules, pp);
       set.payeeName = t.name;
       set.payeeId = t.idSql ?? null;
-      newPayee = payeeName;
+      newPayee = t.createName;
       if (t.rule && t.ruleGone) applied = { ruleId: t.rule.id, ruleGone: t.ruleGone };
     }
   }
