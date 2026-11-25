@@ -4,7 +4,9 @@ import {
   ESCROW_NOTE,
   escrowNote,
   interestNote,
+  type LoanActivity as LoanActivityData,
   NO_PAYMENTS_TEXT,
+  NOT_EDITABLE_TEXT,
   otherLine,
   paymentLine,
 } from "@budget/schema/loan-activity";
@@ -15,10 +17,12 @@ import { useMonthRange } from "../api/months";
 import { localToday } from "../api/today";
 import { canNext, canPrev, navLimits } from "../plan/monthNav";
 import { ChevronCircleLeftIcon, ChevronCircleRightIcon } from "../plan/monthNavIcons";
+import { PencilIcon } from "../shell/icons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import "./loan-activity.css";
 import { AddActivityMenu } from "./AddActivityMenu";
 import { type AddKind, AddLoanActivityDialog } from "./AddLoanActivityDialog";
+import { EditLoanActivityDialog, type EditTarget } from "./EditLoanActivityDialog";
 import { RecordLoanPaymentDialog } from "./RecordLoanPaymentDialog";
 
 /** "2026-11-01" -> "November 2026". */
@@ -26,6 +30,14 @@ const longMonth = (month: Month) =>
   new Date(`${month}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
+  });
+
+/** "2026-11-15" -> "November 15". */
+const dayName = (date: string) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
     timeZone: "UTC",
   });
 
@@ -44,6 +56,55 @@ function CheckIcon() {
   );
 }
 
+/** The lock on a reconciled line: Update Balance froze it, so it has no Edit button. */
+function LockIcon() {
+  return (
+    <span
+      className="loan-row-action loan-lock"
+      role="img"
+      aria-label={NOT_EDITABLE_TEXT}
+      title={NOT_EDITABLE_TEXT}
+    >
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+        <rect x="3.5" y="7" width="9" height="6.5" rx="1.2" fill="currentColor" />
+        <path
+          d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+      </svg>
+    </span>
+  );
+}
+
+function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="loan-row-action loan-edit-button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
+      <PencilIcon width={16} height={16} aria-hidden="true" focusable="false" />
+    </button>
+  );
+}
+
+/** The edited interest line as the dialog edits it; null when the line cannot be edited. */
+function interestTarget(line: LoanActivityData["interest"], month: Month): EditTarget | null {
+  if (!line?.editable || !line.transaction_id) return null;
+  return {
+    kind: "interest",
+    transactionId: line.transaction_id,
+    amount: Math.abs(line.amount),
+    date: line.edited_on ?? month,
+    memo: null,
+    monthLabel: longMonth(month),
+  };
+}
+
 /** A loan's page: Account Activity for one month in place of the register (EXF-540). */
 export function LoanActivity({ budgetId, account }: { budgetId: string; account: Account }) {
   const fmt = usePlanFormatter();
@@ -51,6 +112,7 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
   const [month, setMonth] = useState<Month>(current);
   const [paying, setPaying] = useState(false);
   const [adding, setAdding] = useState<AddKind | null>(null);
+  const [editing, setEditing] = useState<EditTarget | null>(null);
   const limits = navLimits(useMonthRange(budgetId).data, current);
   const { data: a, isError } = useLoanActivity(budgetId, account.id, month);
   const mag = (n: number) => fmt.abs(n);
@@ -124,6 +186,14 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
               <ul>
                 <li>
                   <span className="loan-row-text">{interestNote(a.interest, mag)}</span>
+                  {interestTarget(a.interest, month) ? (
+                    <EditButton
+                      label="Edit interest"
+                      onClick={() => setEditing(interestTarget(a.interest, month))}
+                    />
+                  ) : a.interest.state === "reconciled" ? (
+                    <LockIcon />
+                  ) : null}
                   <span className="loan-row-amount">{fmt.money(a.interest.amount)}</span>
                 </li>
               </ul>
@@ -137,6 +207,7 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
                   <span className="loan-row-text">
                     {a.escrow.state === "estimated" ? ESCROW_NOTE : escrowNote(a.escrow)}
                   </span>
+                  {a.escrow.state === "reconciled" ? <LockIcon /> : null}
                   <span className="loan-row-amount">{fmt.money(a.escrow.amount)}</span>
                 </li>
               </ul>
@@ -151,6 +222,22 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
                 {a.other.map((o) => (
                   <li key={o.transaction_id}>
                     <span className="loan-row-text">{otherLine(o, mag)}</span>
+                    {o.editable ? (
+                      <EditButton
+                        label={`Edit ${o.label} on ${dayName(o.date)}`}
+                        onClick={() =>
+                          setEditing({
+                            kind: o.amount < 0 ? "fee" : "credit",
+                            transactionId: o.transaction_id,
+                            amount: Math.abs(o.amount),
+                            date: o.date,
+                            memo: o.memo,
+                          })
+                        }
+                      />
+                    ) : o.reconciled ? (
+                      <LockIcon />
+                    ) : null}
                     <span className="loan-row-amount">{fmt.money(o.amount)}</span>
                   </li>
                 ))}
@@ -165,6 +252,15 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
           loanId={account.id}
           kind={adding}
           onClose={() => setAdding(null)}
+        />
+      ) : null}
+      {editing ? (
+        <EditLoanActivityDialog
+          key={editing.transactionId}
+          budgetId={budgetId}
+          loanId={account.id}
+          target={editing}
+          onClose={() => setEditing(null)}
         />
       ) : null}
       {paying ? (

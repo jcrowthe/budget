@@ -54,7 +54,8 @@
 /* The global .primary carries a top margin for forms; in these rows it would sit off-centre. */
 .loan-promo .primary,
 .loan-unpaired .primary,
-.loan-progress-head .secondary {
+.loan-progress-head .secondary,
+.loan-paired-head .secondary {
   flex-shrink: 0;
   margin: 0;
 }
@@ -405,4 +406,56 @@
   .loan-sim-breakdown {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Loan manage: Unpair beside the paired panel's heading. */
+.loan-paired-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.loan-paired-head h2 {
+  margin: 0;
+}
+/*
+ * The pairing step is shared with the create flow, whose styles are scoped to the account modal: the same
+ * choices, labels and fields here. Colours only from shell/tokens.css.
+ */
+.loan-pair .loan-step-text {
+  margin: 0 0 var(--space-3);
+  font-weight: 400;
+  color: var(--labelSecondary);
+}
+.loan-pair label,
+.loan-pair .label {
+  display: block;
+  margin: 0 0 var(--space-1);
+  padding: 0.3em 0 0.1em;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.loan-pair label.loan-choice {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) 0;
+  font-size: inherit;
+  cursor: pointer;
+}
+.loan-pair .loan-choice input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--actionPrimary);
+}
+.loan-pair .loan-choice .loan-choice-sub {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  color: var(--labelSecondary);
+}
+.loan-pair select.account-field {
+  appearance: auto;
+  color: inherit;
 }
