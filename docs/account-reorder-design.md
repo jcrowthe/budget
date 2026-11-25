@@ -80,7 +80,10 @@ and the number of bound parameters do not grow with the accounts. Both statement
 in the JSON still exists in the plan, is not deleted, still has sort `o` and type `t`, and a listed row is still
 open. If the race is lost, nothing is written; the server re-reads and tries again (5 attempts, then 409
 `conflict`). Then the response list is read. The D1 calls per reorder are constant, counted by
-`test/account-order-calls.test.ts` for 5 and 50 accounts. The count is recorded here when the Build lands.
+`test/account-order-calls.test.ts` for 5 and 50 accounts. Measured (`test/account-order-calls.test.ts`, 5 vs 50 accounts, permutation and tie fallback alike): **7 D1 calls**,
+one of them the batch: plan check, read of the plan's accounts, the batch, then the response list (the account
+read plus its three balance reads). The renumbering guard additionally requires the plan's account count to be the
+one read, so a create that races a tie renumber retries instead of colliding.
 
 **change_log shape (departure from the ticket's wording).** The ticket asks for "accounts reordered" with the old
 and new order. That is recorded as the per-account `update` rows of one change set: the set's old and new sorts
@@ -92,7 +95,7 @@ undo (`services/undo.ts` refuses unknown types).
 The reorder's change set is undone like any other: `POST …/changes/{change_set_id}/undo` restores each row's
 `before.sort`. Today the engine refuses an account row whose change is anything other than `starred` or
 `paired_category_id` (`services/undo.ts` `refusals`), and `TYPE_MAPS.account` (`repositories/undo.ts`) does not
-write `sort_order`. A worker test that undoes a reorder fails on that refusal. So `sort` (column `sort_order`) is
+write `sort_order`. A worker test that undoes a reorder fails on that refusal (409 `undo_refused: account`, recorded before the change). So `sort` (column `sort_order`) is
 added to both lists. Nothing else changes. A later reorder or a deletion makes the undo stale (409
 `undo_stale`), as for other entities. The sidebar records the set on the Undo stack with origin `register`, the
 same as starring (`api/accounts.ts` `useSetStarred`).

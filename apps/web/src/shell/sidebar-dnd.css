@@ -1,0 +1,15 @@
+/* EXF-490: dragging an account row in the sidebar. Colours come from tokens.css only. */
+.nav-drop-gap {
+  height: 32px;
+  margin: 0 calc(5px + var(--sidebar-resizer)) var(--space-1) var(--space-2);
+  box-sizing: border-box;
+  border: 1px dashed var(--actionPrimary);
+  border-radius: var(--radius-md);
+  background: var(--sidebarHover);
+}
+.nav-account-row.is-drag-source {
+  opacity: 0.4;
+}
+.nav-account-row[draggable="true"] {
+  cursor: grab;
+}
