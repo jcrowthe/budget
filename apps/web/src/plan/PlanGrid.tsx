@@ -368,6 +368,7 @@ export function PlanGrid({
             canRedo={canRedo}
             onUndo={() => void runStep("undo")}
             onRedo={() => void runStep("redo")}
+            onSelectCategory={(id) => onSelection(() => selectOnly(id))}
           />
           {!(inView && groups.length === 0 && data) && (
             <div className="grid-row header-row" role="row">

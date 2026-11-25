@@ -203,7 +203,7 @@ test("a two-line note is saved on blur, shown after a reload, in the hover title
   await field.pressSequentially("line one");
   await field.press("Enter");
   await field.pressSequentially("line two");
-  await realClick(page, page.locator(".grid-toolbar"));
+  await page.locator(".grid-toolbar").click({ position: { x: 600, y: 5 } }); // empty space: the centre is a live button (Recent Moves)
   await expect.poll(() => noteOf(request)).toBe("line one\nline two");
   expect(await noteOf(request, NEXT)).toBe("line one\nline two");
   await page.reload();
@@ -217,7 +217,7 @@ test("a two-line note is saved on blur, shown after a reload, in the hover title
   // Clear it.
   await realClick(page, panel(page).locator(".note-display"));
   await panel(page).getByRole("textbox", { name: "Note" }).fill("");
-  await realClick(page, page.locator(".grid-toolbar"));
+  await page.locator(".grid-toolbar").click({ position: { x: 600, y: 5 } }); // empty space: the centre is a live button (Recent Moves)
   await expect.poll(() => noteOf(request)).toBeNull();
   await expect(panel(page).getByText("Enter a note...")).toBeVisible();
   await expect(page.locator(".category-name", { hasText: RENT })).toHaveAttribute("title", RENT);
@@ -248,7 +248,7 @@ test("two note saves in a row land in order even when the first is slow", async 
   const save = async (text: string) => {
     await realClick(page, panel(page).locator(".note-display"));
     await panel(page).getByRole("textbox", { name: "Note" }).fill(text);
-    await realClick(page, page.locator(".grid-toolbar"));
+    await page.locator(".grid-toolbar").click({ position: { x: 600, y: 5 } }); // empty space: the centre is a live button (Recent Moves)
   };
   await save("first");
   await save("second");
