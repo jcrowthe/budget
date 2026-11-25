@@ -136,13 +136,13 @@ export function otherLine(
 
 export const RECORD_PAYMENT_TITLE = "Record Payment";
 export const RECORD_PAYMENT_INTRO_PAIRED =
-  "Record a payment you made to this loan. It will appear in the paired account, and the payment is applied to escrow, interest and principal.";
+  "This payment will appear in the paired account, and as a transaction in the account your payment is coming from.";
 export const RECORD_PAYMENT_INTRO_LOAN =
-  "Record a payment you made to this loan. It will appear here, and Budget will estimate the escrow, interest and principal it covers.";
+  "This payment will appear here, and as a transaction in the account your payment is coming from.";
 export const RECORD_PAYMENT_AVAILABLE = (amount: string, category: string) =>
   `You have ${amount} available for payment in ${category}.`;
 export const RECORD_PAYMENT_AMOUNT_HELP =
-  "Budget will estimate the interest and escrow from this payment; the rest is applied to principal.";
+  "Enter the total amount you are paying. Budget will estimate the portion of each payment that is principal and interest.";
 export const RECORD_PAYMENT_LABELS = {
   amount: "Payment Amount",
   from: "From Account",

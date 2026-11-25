@@ -5,7 +5,6 @@ import {
   RECORD_PAYMENT_AMOUNT_HELP,
   RECORD_PAYMENT_AVAILABLE,
   RECORD_PAYMENT_INTRO_LOAN,
-  RECORD_PAYMENT_INTRO_PAIRED,
   RECORD_PAYMENT_LABELS,
   RECORD_PAYMENT_TITLE,
 } from "@budget/schema/loan-activity";
@@ -113,7 +112,7 @@ export function RecordLoanPaymentDialog({
           </button>
         </div>
         <div className="form-body">
-          <p>{loan.paired_category_id ? RECORD_PAYMENT_INTRO_PAIRED : RECORD_PAYMENT_INTRO_LOAN}</p>
+          <p>{RECORD_PAYMENT_INTRO_LOAN}</p>
           {paired && available !== null ? (
             <p className="loan-available">
               {RECORD_PAYMENT_AVAILABLE(fmt.abs(available), paired.name)}
