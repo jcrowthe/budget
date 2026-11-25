@@ -1,6 +1,8 @@
 import { z } from "@hono/zod-openapi";
 import type { MonthCategoryDetail, MonthDetail, MonthGroupDetail } from "./months";
 
+import type { CategoryTargetMonth } from "./targets";
+
 export const PLAN_VIEWS = [
   "all",
   "overspent",
@@ -13,19 +15,38 @@ export const PlanView = z.enum(PLAN_VIEWS).openapi("PlanView");
 export type PlanView = z.infer<typeof PlanView>;
 
 /**
+ * The amount Available After Upcoming falls below zero by, or 0 when nothing is upcoming or it is covered. One
+ * function for the browser and the service. `available` is the category's Available.
+ */
+export function upcomingShortfall(c: { available: number; upcoming: number }): number {
+  return c.upcoming !== 0 ? Math.max(0, -(c.available + c.upcoming)) : 0;
+}
+
+/**
+ * What Underfunded counts for an ordinary category: the larger of an active target's to-go and the upcoming
+ * shortfall. The one rule for the view and for Auto-Assign (a snoozed target counts as no target).
+ */
+export function underfundedGap(target: CategoryTargetMonth | null, shortfall: number): number {
+  const active = target !== null && target.status !== "snoozed";
+  return Math.max(active ? target.to_go_this_month : 0, shortfall);
+}
+
+/**
  * Whether a visible category belongs to a view. The one definition: the grid, the panel, both month reads and
  * Auto-Assign all use it. A snoozed target counts as no target.
  */
 export function inView(c: MonthCategoryDetail, view: PlanView): boolean {
   const t = c.target;
   const active = t !== null && t.status !== "snoozed";
+  // A credit card payment category keeps its own rule (Auto-Assign never adds an upcoming shortfall to it).
+  const shortfall = c.payment === null ? upcomingShortfall(c) : 0;
   switch (view) {
     case "all":
       return true;
     case "overspent":
       return c.available < 0;
     case "underfunded":
-      return c.available < 0 || (active && t.to_go_this_month > 0);
+      return c.available < 0 || underfundedGap(active ? t : null, shortfall) > 0;
     case "overfunded":
       return active && t.overfunded > 0;
     case "money_available":

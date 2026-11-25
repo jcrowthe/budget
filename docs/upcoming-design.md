@@ -79,7 +79,15 @@ Assumed until checked look-only at the source:
 - A2 Underfunded takes the larger of the target's to-go and the upcoming shortfall.
 - A3 Closed-account and tracking-account schedules do not count.
 - A4 Equal dates in the popover are sorted by account name, then id.
-- A5 The `Underfunded` view chip is unchanged.
+- A5 The `Underfunded` view chip is unchanged. (Superseded by EXF-1000, below.)
+
+## EXF-1000: the Underfunded view
+
+`inView(c, "underfunded")` (`plan-views.ts`) is true for Available < 0 or `underfundedGap(target, shortfall) > 0`,
+the larger of an active target's to-go and `upcomingShortfall(c)`. Auto-Assign calls the same `underfundedGap`
+and `upcomingShortfall` (re-exported from `auto-assign.ts`), so view and button agree. A credit card payment
+category keeps its own rule (shortfall 0). REST and MCP month reads with `view` and the summary read follow
+through `viewDetail` and `viewCategories`. Tests: `plan-views.test.ts` (schema) and `upcoming.test.ts` (worker).
 
 ## Measured D1 calls (`test/upcoming-calls.test.ts`, 10 and 100 schedules on one category, identical)
 
@@ -96,14 +104,27 @@ Assumed until checked look-only at the source:
 The spec allowed up to 4 for the list; reusing the month read's schedule set makes it 10 flat with no separate
 query, so the Activity popover costs one request.
 
-## Observed vs assumed
+## Observed vs assumed (checked look-only, 2026-11-25)
 
-No look at the source was made in this build, so A1 to A5 stay assumptions, and so does the box styling: the ticket's "highlighted box, amber below 0, green at 0 or more" is built as a fully tinted box, not observed at the source.
-What the build took from the ticket (as the Architect's spec records it) is not re-verified here.
+Method: the signed-in Plan at the source, Nov 2026, read-only (view, hover, no clicks that write). The account has
+no scheduled transactions the UI shows, and none of the 59 Available pills in the month carries a calendar icon or
+an upcoming tooltip, so no upcoming cue can be seen without creating a schedule, which is not allowed. Every
+upcoming-specific item below is therefore not observable. Nothing 'differs'. What was seen: target pills carry the
+tooltip `Assign $X more to reach your $X monthly target.` and overspent-with-credit pills carry their own
+tooltip; those are the existing pills the calendar pill would take over from.
 
-- Pill tooltip: set to the plain Available tooltip (`pillTitle(available)`); the source's tooltip is not observed.
-- Whether the box shows in a past month: it does here (the figures are per month, whatever "today" is); not observed.
-- Overdue occurrences inside the shown month count (rule 1), including in a past month.
+| Item | Result | Reason / note |
+| --- | --- | --- |
+| A1 calendar pill wins over a target pill | not observable | needs a schedule making Available After Upcoming < 0 |
+| A2 Underfunded takes the larger of to-go and shortfall | not observable | needs an upcoming shortfall; the source's Underfunded button total was not exercised (it applies Assigned) |
+| A3 closed and tracking account schedules do not count | not observable | needs schedules on closed and tracking accounts |
+| A4 ties sort by account name | not observable | needs two schedules on one date in the Activity popover |
+| A5 the Underfunded view chip is unchanged | superseded | EXF-1000: the chip's view now includes a category's upcoming shortfall, by the same rule as Auto-Assign Underfunded (`underfundedGap`, `plan-views.ts`). Not observable at the source either: the chip's filter result needs a schedule to show the difference |
+| Box tint | not observable | the inspector box shows only with upcoming transactions |
+| Pill tooltip | not observable | the calendar pill's tooltip needs an upcoming shortfall; stays `pillTitle(available)` |
+| Box in a past month | not observable | needs a schedule dated in a past month |
+
+Still true from the build: overdue occurrences inside the shown month count (rule 1), including in a past month.
 
 ## Results against the ticket's acceptance
 
