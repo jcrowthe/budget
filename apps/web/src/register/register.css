@@ -1292,14 +1292,23 @@
   height: 24px;
   padding: 0;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: var(--labelTertiary);
   cursor: pointer;
+}
+.search-clear:hover {
+  color: var(--labelPrimary);
+}
+.search-clear:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
 }
 .search-clear svg {
   position: static;
   pointer-events: none;
 }
+/* The suggestions share the register menus' surface (.bulk-popover-body, .bulk-item). */
 .search-suggestions {
   position: absolute;
   top: calc(100% + 4px);
@@ -1309,33 +1318,44 @@
   width: 360px;
   max-height: 320px;
   margin: 0;
-  padding: 4px 0;
+  padding: 4px;
   overflow-y: auto;
   list-style: none;
-  border-radius: var(--radius-xs);
-  background: var(--backgroundTertiary);
+  border-radius: 6.4px;
+  background: var(--register-menu-bg);
   box-shadow: var(--shadowMenu);
   color: var(--labelPrimary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+  text-align: left;
 }
 .search-option {
   display: flex;
   gap: var(--space-3);
   align-items: baseline;
-  padding: 6px var(--space-3);
+  min-height: 32px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 4px;
   cursor: pointer;
-}
-.search-option.is-active,
-.search-option:hover {
-  background: var(--backgroundSecondary);
-}
-.search-option.is-hint {
-  cursor: default;
 }
 .search-option-label {
   flex: 0 0 76px;
   color: var(--labelTertiary);
+  white-space: nowrap;
+}
+.search-option.is-active,
+.search-option:not(.is-hint):hover {
+  background: var(--register-menu-hover);
+}
+.search-option.is-active .search-option-label,
+.search-option:not(.is-hint):hover .search-option-label {
+  color: var(--labelSecondary);
+}
+/* A hint explains the syntax; it cannot be chosen. */
+.search-option.is-hint {
+  color: var(--register-menu-disabled);
+  cursor: default;
 }
 .search-option-description {
   flex: 1;
