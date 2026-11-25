@@ -2,6 +2,7 @@ import type { Month } from "@budget/core/month";
 import type { CardPaymentRequest as CardPaymentRequestSchema } from "@budget/schema/card-payments";
 import { CardPaymentResponse } from "@budget/schema/card-payments";
 import { LoanActivityResponse } from "@budget/schema/loan-activity";
+import { LoanPairingResponse, LoanSummaryResponse } from "@budget/schema/loan-summary";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 import { recordChange } from "../undo/store";
@@ -48,6 +49,41 @@ export function useRecordLoanPayment(budgetId: string, loanId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CardPaymentRequest) => recordLoanPayment(budgetId, loanId, input),
+    onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
+  });
+}
+
+export const getLoanSummary = async (budgetId: string, loanId: string, month: Month) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/summary?month=${month}`, {
+      schema: LoanSummaryResponse,
+    })
+  ).data;
+
+/** One loan's summary (tiles, payoff, chart series, paired category). Keyed by plan so a plan's invalidation reaches it. */
+export const useLoanSummary = (budgetId: string, loanId: string, month: Month) =>
+  useQuery({
+    queryKey: ["loan-summary", budgetId, loanId, month],
+    queryFn: () => getLoanSummary(budgetId, loanId, month),
+    placeholderData: keepPreviousInPlan<Awaited<ReturnType<typeof getLoanSummary>>>(budgetId),
+  });
+
+export const pairLoanCategory = async (budgetId: string, loanId: string, categoryId: string) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/paired-category`, {
+      method: "PUT",
+      body: { category_id: categoryId },
+      idempotencyKey: crypto.randomUUID(),
+      onChangeSet: (id) => recordChange(budgetId, id, "register"),
+      schema: LoanPairingResponse,
+    })
+  ).data.account;
+
+/** On success every query of the plan refetches (the account, the summary, Record Payment's categorizing). */
+export function usePairLoanCategory(budgetId: string, loanId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (categoryId: string) => pairLoanCategory(budgetId, loanId, categoryId),
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });
 }

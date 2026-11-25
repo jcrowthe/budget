@@ -5,8 +5,8 @@ import { MAX_PROJECTION_MONTHS, projectLoan } from "../src/loan-projection";
 const NOV = "2026-11-01";
 const M = (n: number) => n * 1000;
 const mortgage: LoanTerms = { type: "mortgage", interest_rate: "6", escrow_amount: M(300) };
-const auto: LoanTerms = { type: "auto", interest_rate: "4.5", escrow_amount: null };
-const medical: LoanTerms = { type: "medical", interest_rate: "0", escrow_amount: null };
+const auto: LoanTerms = { type: "autoLoan", interest_rate: "4.5", escrow_amount: null };
+const medical: LoanTerms = { type: "medicalDebt", interest_rate: "0", escrow_amount: null };
 
 describe("projectLoan: the ticket's five cases", () => {
   const cases: [string, LoanTerms, number, number, number, string, string][] = [
@@ -103,7 +103,7 @@ describe("projectLoan edges", () => {
       expect(s[i]?.balance).toBeLessThanOrEqual(s[i - 1]?.balance ?? 0);
   });
   it("stops at the maximum", () => {
-    const slow: LoanTerms = { type: "other", interest_rate: "0", escrow_amount: null };
+    const slow: LoanTerms = { type: "otherDebt", interest_rate: "0", escrow_amount: null };
     const p = projectLoan(slow, { balance: M(1000000), payment: M(1), from: NOV });
     expect(p.payments_remaining).toBeNull();
     expect(p.schedule.length).toBeLessThanOrEqual(MAX_PROJECTION_MONTHS + 1);

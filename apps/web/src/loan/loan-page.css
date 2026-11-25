@@ -1,0 +1,225 @@
+/* A loan's page above Account Activity (EXF-541). Colours only from shell/tokens.css. */
+.loan-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) 0;
+  color: var(--labelPrimary);
+}
+.loan-page .loan-activity {
+  padding-left: 0;
+  padding-right: 0;
+}
+.loan-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.loan-tile {
+  display: flex;
+  flex: 1 1 140px;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.loan-tile-label {
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-tile-value {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.loan-promo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--calloutStripBackground);
+}
+.loan-promo-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.loan-card {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+}
+.loan-card h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+.loan-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.loan-collapse {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.loan-collapse:focus-visible,
+.loan-info:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+.loan-remaining {
+  margin: var(--space-2) 0;
+  color: var(--labelSecondary);
+}
+.loan-chart {
+  width: 100%;
+}
+.loan-grid {
+  stroke: var(--separatorStandard);
+}
+.loan-tick {
+  fill: var(--labelTertiary);
+  font-size: 12px;
+}
+.loan-line {
+  stroke-width: 2.5;
+}
+.loan-line.past {
+  stroke: var(--actionPrimary);
+}
+.loan-line.original {
+  stroke: var(--labelTertiary);
+}
+.loan-line.current {
+  stroke: var(--statusPositive);
+}
+.loan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+.loan-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.loan-swatch {
+  width: 18px;
+  height: 0;
+  border-top: 3px solid var(--actionPrimary);
+}
+.loan-swatch.original {
+  border-color: var(--labelTertiary);
+}
+.loan-swatch.current {
+  border-top-style: dashed;
+  border-color: var(--statusPositive);
+}
+.loan-info-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.loan-info {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--labelTertiary);
+  border-radius: 50%;
+  background: none;
+  color: var(--labelTertiary);
+  font-size: 11px;
+  line-height: 1;
+  cursor: help;
+}
+.loan-tip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: var(--z-tooltip);
+  display: none;
+  width: 260px;
+  padding: var(--space-2);
+  transform: translateX(-50%);
+  border-radius: var(--radius-md);
+  background: var(--tooltipBackground);
+  box-shadow: var(--tooltipShadow);
+  color: var(--tooltipLabel);
+}
+.loan-info-wrap:hover .loan-tip,
+.loan-info-wrap:focus-within .loan-tip {
+  display: block;
+}
+.loan-sentence {
+  margin: 0;
+}
+.loan-paired-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-2) 0 0;
+}
+.loan-paired-rows dt,
+.loan-sim-rows dt {
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.loan-paired-rows dd,
+.loan-sim-rows dd {
+  margin: var(--space-1) 0 0;
+}
+.loan-pill {
+  display: inline-block;
+  padding: 4px 8px 2px;
+  border-radius: 1000px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.loan-pill.zero {
+  background: var(--inputBackground);
+  color: var(--labelTertiary);
+}
+.loan-pill.positive {
+  background: var(--statusPositive);
+  color: var(--backgroundPrimary);
+}
+.loan-pill.negative {
+  background: var(--statusNegative);
+  color: var(--labelPrimary);
+}
+.loan-unpaired {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.loan-unpaired p {
+  margin: var(--space-1) 0 0;
+  color: var(--labelSecondary);
+}
+.loan-sim {
+  min-width: min(720px, 94vw);
+}
+.loan-sim-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+.loan-step-heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+}
