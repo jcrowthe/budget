@@ -36,7 +36,7 @@ export function EditPane({
   budgetId: string;
   selected: Payee[];
   all: Payee[];
-  onShowTransactions: (payeeId: string, anchor: HTMLElement) => void;
+  onShowTransactions: (payeeIds: string[], anchor: HTMLElement) => void;
   onDeselectTransfers: () => void;
   onClear: () => void;
   onOpenGroup: (g: "payees" | "hidden") => void;
@@ -172,7 +172,16 @@ export function EditPane({
     <div className={`mp-pane${deleting ? " mp-deleting" : ""}`}>
       {several ? (
         <>
-          <SelectedNames selected={selected} />
+          <SelectedNames
+            selected={selected}
+            used={used}
+            onShow={(el) =>
+              onShowTransactions(
+                selected.map((p) => p.id),
+                el,
+              )
+            }
+          />
           {deleting ? null : (
             <CombineCard budgetId={budgetId} selected={selected} onDone={onClear} />
           )}
@@ -185,7 +194,7 @@ export function EditPane({
             payee={single}
             disabled={deleting}
             onSaved={refresh}
-            onShow={(el) => onShowTransactions(single.id, el)}
+            onShow={(el) => onShowTransactions([single.id], el)}
           />
           <CategorizationCard
             key={`cat-${single.id}`}
@@ -215,7 +224,15 @@ export function EditPane({
   );
 }
 
-function SelectedNames({ selected }: { selected: Payee[] }) {
+function SelectedNames({
+  selected,
+  used,
+  onShow,
+}: {
+  selected: Payee[];
+  used: number;
+  onShow: (anchor: HTMLElement) => void;
+}) {
   return (
     <div className="mp-card">
       <h2>{selectedLabel(selected.length)}</h2>
@@ -228,6 +245,17 @@ function SelectedNames({ selected }: { selected: Payee[] }) {
             {i < selected.length - 1 ? ", " : ""}
           </span>
         ))}
+        {used > 0 ? (
+          <div className="mp-show">
+            <button
+              type="button"
+              className="mp-button secondary"
+              onClick={(e) => onShow(e.currentTarget)}
+            >
+              {showTransactionsLabel(used)}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

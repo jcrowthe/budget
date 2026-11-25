@@ -135,17 +135,19 @@ export const combinePayees = async (
     })
   ).data;
 
-/** The payee's transactions for the popover; off while no payee is open. */
-export const usePayeeTransactions = (b: string, id: string | null) =>
+/** The transactions of the payees for the popover (one or several, one read); off while none is open. */
+export const usePayeeTransactions = (b: string, ids: readonly string[] | null) =>
   useQuery({
-    queryKey: ["payee-transactions", b, id],
-    queryFn: async () =>
-      (
-        await apiFetch(`${base(b)}/${encodeURIComponent(id as string)}/transactions`, {
-          schema: PayeeTransactionsResponse,
-        })
-      ).data,
-    enabled: id !== null,
+    queryKey: ["payee-transactions", b, ids],
+    queryFn: async () => {
+      const list = ids as readonly string[];
+      const url: `/api/v1/${string}` =
+        list.length === 1
+          ? `${base(b)}/${encodeURIComponent(list[0] as string)}/transactions`
+          : `${base(b)}/transactions?payee_ids=${list.map(encodeURIComponent).join(",")}`;
+      return (await apiFetch(url, { schema: PayeeTransactionsResponse })).data;
+    },
+    enabled: ids !== null && ids.length > 0,
     placeholderData: keepPreviousInPlan(b),
   });
 

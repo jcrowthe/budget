@@ -165,6 +165,7 @@ export const PayeeTransaction = z
     kind: z.enum(["transaction", "scheduled"]),
     account_id: z.string(),
     account_name: z.string(),
+    payee_name: z.string(),
     date: IsoDate,
     category_id: z.string().nullable(),
     category_name: z.string().nullable(),
@@ -178,6 +179,11 @@ export type PayeeTransaction = z.infer<typeof PayeeTransaction>;
 export const PayeeTransactionsResponse = dataEnvelope(
   z.object({ transactions: z.array(PayeeTransaction), total_count: z.number().int() }),
 );
+
+/** `GET …/payees/transactions?payee_ids=a,b`: the ids are comma-separated (at most PAYEE_BULK_MAX). */
+export const PayeeTransactionsQuery = z.object({
+  payee_ids: z.string().min(1).openapi({ description: "Comma-separated payee ids" }),
+});
 
 /** The words of the refusals, shared with the web. */
 export const PAYEE_ERRORS = {
@@ -193,6 +199,8 @@ export const PAYEE_ERRORS = {
   replaceSelf: "A payee can't replace itself",
   replacementOnlyDelete: "replacement_payee_id goes only with delete",
   unknown: "Payee not found in this plan",
+  onePayeeArg: "Give payee_id or payee_ids, not both and not neither",
+  noPayees: "Give at least one payee id",
   race: "The payees changed meanwhile. Try again.",
   combineTooFew: "Select at least two payees to combine",
   combineTarget: "target_payee_id must be one of payee_ids",

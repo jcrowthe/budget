@@ -160,7 +160,10 @@ Undo/Redo (EXF-530, EXF-504).
 ## Found, not built
 
 1. Transfer payees as a replacement (the source lists them; one would turn a purchase into a transfer).
-2. The several-selected `Show N Transactions` and its PAYEE-column popover (needs a multi-payee read; with EXF-512).
+2. ~~The several-selected `Show N Transactions` and its PAYEE-column popover~~ Built: `GET …/payees/transactions?payee_ids=a,b`
+   (a sibling of the single-payee path; same four D1 calls for any number of payees, `json_each`) and `list_payee_transactions`
+   with an optional `payee_ids` (same tool, so the tool count is unchanged). Rows carry `payee_name`; the popover adds a
+   PAYEE column (first; the source's column order was not checked in its app) when several are selected.
 3. After a rename, the next import with the bank's old text creates that payee again (`plaid-sync.ts:308`); EXF-467.
 4. A draft row whose picked payee is deleted in the dialog is refused on Save (`Payee not found in this plan`). Steps:
    Add Transaction, pick `ZZ A`, footer `Manage Payees`, delete `ZZ A`, `Done`, `Save`.

@@ -1,5 +1,5 @@
 import { PAYEE_CATEGORY_MODES } from "@budget/schema/payee-category";
-import { PAYEE_BULK_MAX } from "@budget/schema/payees";
+import { PAYEE_BULK_MAX, PAYEE_ERRORS } from "@budget/schema/payees";
 import { z } from "zod";
 import {
   applyToPayees,
@@ -7,7 +7,9 @@ import {
   deletePayee,
   listPayeeRecentTransactions,
   listPayees,
+  listPayeesTransactions,
   listPayeeTransactions,
+  PayeeRefused,
   updatePayee,
 } from "../../services/payees";
 import { dates, Id, MONEY } from "../tool-text";
@@ -124,10 +126,21 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "list_payee_transactions",
-    description: `List a payee's live transactions and scheduled transactions, newest first, at most 500. Returns { transactions, total_count }: each with id, kind (transaction or scheduled), account_id, account_name, date, category_id, category_name, inflow_to_ready_to_assign, is_split, memo and amount; total_count counts all of them. For the transactions behind a payee's suggested category use list_payee_recent_transactions. ${MONEY} ${dates("transactions[].date")}`,
-    inputSchema: z.object({ budget_id: Id, payee_id: Id }),
-    run: async (input: { budget_id: string; payee_id: string }, { env }) =>
-      listPayeeTransactions(env, input.budget_id, input.payee_id),
+    description: `List the live transactions and scheduled transactions of a payee (payee_id) or of several payees at once (payee_ids, at most ${PAYEE_BULK_MAX}; give one of the two), newest first, at most 500. Returns { transactions, total_count }: each with id, kind (transaction or scheduled), account_id, account_name, payee_name, date, category_id, category_name, inflow_to_ready_to_assign, is_split, memo and amount; total_count counts all of them. A transfer entry or system payee is a tool error, and so is an unknown payee. For the transactions behind a payee's suggested category use list_payee_recent_transactions. ${MONEY} ${dates("transactions[].date")}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      payee_id: Id.optional(),
+      payee_ids: z.array(Id).min(1).max(PAYEE_BULK_MAX).optional(),
+    }),
+    run: async (input: { budget_id: string; payee_id?: string; payee_ids?: string[] }, { env }) => {
+      if ((input.payee_id === undefined) === (input.payee_ids === undefined))
+        throw new PayeeRefused(422, "unprocessable_entity", PAYEE_ERRORS.onePayeeArg);
+      return listPayeesTransactions(
+        env,
+        input.budget_id,
+        input.payee_ids ?? [input.payee_id as string],
+      );
+    },
   },
   {
     name: "set_payee_category_mode",

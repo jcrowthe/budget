@@ -37,7 +37,7 @@ export function ManagePayeesDialog({
     hidden: false,
   });
   const [active, setActive] = useState<string | null>(null);
-  const [popover, setPopover] = useState<{ payeeId: string; anchor: HTMLElement } | null>(null);
+  const [popover, setPopover] = useState<{ payeeIds: string[]; anchor: HTMLElement } | null>(null);
   // Undo/Redo act only on what this dialog changed since it opened.
   const [scope] = useState<Scope>(() => ({ origin: "payees", since: mark() }));
   const { canUndo, canRedo, undo, redo } = useUndo(b, scope);
@@ -189,7 +189,7 @@ export function ManagePayeesDialog({
             budgetId={b}
             selected={selectedPayees}
             all={all}
-            onShowTransactions={(payeeId, anchor) => setPopover({ payeeId, anchor })}
+            onShowTransactions={(payeeIds, anchor) => setPopover({ payeeIds, anchor })}
             onDeselectTransfers={() =>
               setSelected((s) => s.filter((id) => !byId.get(id)?.transfer_account_id))
             }
@@ -229,7 +229,7 @@ export function ManagePayeesDialog({
       {popover && box.current ? (
         <TransactionsPopover
           budgetId={b}
-          payeeId={popover.payeeId}
+          payeeIds={popover.payeeIds}
           anchor={popover.anchor}
           container={box.current}
           onClose={closePopover}

@@ -5,8 +5,9 @@ import { usePayeeTransactions } from "../api/payees";
 import { CloseIcon } from "../shell/icons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 
-type Col = "account" | "date" | "category" | "memo" | "amount";
+type Col = "payee" | "account" | "date" | "category" | "memo" | "amount";
 const COLS: { id: Col; label: string }[] = [
+  { id: "payee", label: "PAYEE" },
   { id: "account", label: "ACCOUNT" },
   { id: "date", label: "DATE" },
   { id: "category", label: "CATEGORY" },
@@ -18,6 +19,7 @@ const categoryOf = (t: PayeeTransaction) =>
   t.is_split ? "Split" : t.inflow_to_ready_to_assign ? "Ready to Assign" : (t.category_name ?? "");
 
 function sortKey(t: PayeeTransaction, col: Col): string | number {
+  if (col === "payee") return t.payee_name.toLowerCase();
   if (col === "account") return t.account_name.toLowerCase();
   if (col === "date") return t.date;
   if (col === "category") return categoryOf(t).toLowerCase();
@@ -25,22 +27,23 @@ function sortKey(t: PayeeTransaction, col: Col): string | number {
   return t.amount;
 }
 
-/** The `Transactions` popover of one payee, laid inside the dialog under the button that opened it. */
+/** The `Transactions` popover of one or several payees (several add a PAYEE column), laid inside the dialog under the button that opened it. */
 export function TransactionsPopover({
   budgetId,
-  payeeId,
+  payeeIds,
   anchor,
   container,
   onClose,
 }: {
   budgetId: string;
-  payeeId: string;
+  payeeIds: readonly string[];
   anchor: HTMLElement;
   container: HTMLElement;
   onClose: () => void;
 }) {
   const fmt = usePlanFormatter();
-  const q = usePayeeTransactions(budgetId, payeeId);
+  const q = usePayeeTransactions(budgetId, payeeIds);
+  const cols = payeeIds.length > 1 ? COLS : COLS.filter((c) => c.id !== "payee");
   const [sort, setSort] = useState<{ col: Col; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
   const box = useRef<HTMLDivElement>(null);
   const bodyBox = useRef<HTMLDivElement>(null);
@@ -91,7 +94,7 @@ export function TransactionsPopover({
           <table className="mp-table">
             <thead>
               <tr>
-                {COLS.map((c2) => (
+                {cols.map((c2) => (
                   <th key={c2.id} className={c2.id === "amount" ? "is-amount" : undefined}>
                     <button
                       type="button"
@@ -120,6 +123,7 @@ export function TransactionsPopover({
             <tbody>
               {rows.map((t) => (
                 <tr key={`${t.kind}-${t.id}`}>
+                  {payeeIds.length > 1 ? <td title={t.payee_name}>{t.payee_name}</td> : null}
                   <td title={t.account_name}>{t.account_name}</td>
                   <td>{fmt.date(t.date)}</td>
                   <td title={categoryOf(t)}>{categoryOf(t)}</td>
