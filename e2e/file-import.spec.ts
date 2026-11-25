@@ -241,6 +241,27 @@ test("AC7 and AC8 the worked example merges one row, and a re-import matches all
   expect((await imports(request, s.plan, s.checking)).length).toBe(before);
 });
 
+test("the result dialog reports a full re-import as zero imported, with the matched count", async ({
+  page,
+  request,
+}) => {
+  const s = await seedFileImport(request, { kind: "worked" });
+  await toPreview(page, s, "three-rows.csv");
+  await runImport(page);
+  await realClick(page, result(page).getByRole("button", { name: "OK", exact: true }));
+
+  await realClick(page, toolbarButton(page));
+  await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
+  await input(page).setInputFiles(fixture("three-rows.csv"));
+  await expect(previewRows(page).first()).toBeVisible();
+  await runImport(page);
+  const status = result(page).getByRole("status");
+  await expect(status).toContainText("No new transactions were imported");
+  await expect(status).toContainText("3 matched to existing transactions");
+  await expect(status).not.toContainText("successfully imported");
+  await expect(status).not.toContainText("skipped");
+});
+
 test("EXF-988 a file already imported is marked row by row, with the count", async ({
   page,
   request,
