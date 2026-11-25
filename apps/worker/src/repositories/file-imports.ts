@@ -112,8 +112,8 @@ export const candidateLinesQuery = (db: Db, accountId: string, from: string, to:
   db
     .select({
       t: transactions,
-      categoryName: categories.name,
-      groupName: categoryGroups.name,
+      categoryName: sql<string | null>`${categories.name}`.as("category_name"),
+      groupName: sql<string | null>`${categoryGroups.name}`.as("group_name"),
     })
     .from(transactions)
     .leftJoin(categories, eq(categories.id, transactions.categoryId))
