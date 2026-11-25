@@ -37,8 +37,7 @@ const catRow = (page: Page, name: string) =>
 const groupRow = (page: Page, name: string) =>
   page.locator(".group-row", { has: page.getByText(name, { exact: true }) });
 const names = (page: Page) => page.locator(".category-row .category-name");
-const popover = (page: Page, name: string) =>
-  page.getByRole("dialog", { name });
+const popover = (page: Page, name: string) => page.getByRole("dialog", { name });
 
 type Month = {
   ready_to_assign: number;
@@ -63,20 +62,15 @@ const catId = (m: Month, name: string) =>
   m.groups.flatMap((g) => g.categories).find((c) => c.name === name)?.id ?? "";
 async function assign(request: Req, name: string, assigned: number) {
   const id = catId(await month(request), name);
-  const res = await request.patch(
-    `/api/v1/budgets/${planId}/months/${ISO}/categories/${id}`,
-    {
-      headers: await authHeaders(),
-      data: { assigned },
-    },
-  );
+  const res = await request.patch(`/api/v1/budgets/${planId}/months/${ISO}/categories/${id}`, {
+    headers: await authHeaders(),
+    data: { assigned },
+  });
   expect(res.ok()).toBe(true);
 }
 const width = async (loc: Locator) => (await loc.boundingBox())?.width ?? 0;
 
-test("add a group: required message, then it is the first group", async ({
-  page,
-}) => {
+test("add a group: required message, then it is the first group", async ({ page }) => {
   await open(page);
   await page.getByRole("button", { name: "Category Group" }).click();
   const pop = popover(page, "Add Category Group");
@@ -89,19 +83,12 @@ test("add a group: required message, then it is the first group", async ({
   await field.fill("ZZ Group");
   await field.press("Enter");
   await expect(pop).toHaveCount(0);
-  await expect(page.locator(".group-name")).toHaveText([
-    "ZZ Group",
-    "Bills",
-    "Needs",
-    "Wants",
-  ]);
+  await expect(page.locator(".group-name")).toHaveText(["ZZ Group", "Bills", "Needs", "Wants"]);
   await page.reload();
   await expect(page.locator(".group-name").first()).toHaveText("ZZ Group");
 });
 
-test("add a category at the top of its group; a duplicate is refused", async ({
-  page,
-}) => {
+test("add a category at the top of its group; a duplicate is refused", async ({ page }) => {
   await open(page);
   const bills = groupRow(page, "Bills");
   await bills.hover();
@@ -120,16 +107,12 @@ test("add a category at the top of its group; a duplicate is refused", async ({
     pop.getByText("A category with this name already exists in this group"),
   ).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(
-    page.locator(".category-name", { hasText: "ZZ Cat" }),
-  ).toHaveCount(1);
+  await expect(page.locator(".category-name", { hasText: "ZZ Cat" })).toHaveCount(1);
 });
 
 test("rename a category and a group, with the messages", async ({ page }) => {
   await open(page);
-  await page
-    .locator(".category-name", { hasText: RENT })
-    .click({ button: "right" });
+  await page.locator(".category-name", { hasText: RENT }).click({ button: "right" });
   const pop = popover(page, "Edit Category");
   const field = pop.getByPlaceholder("Enter category name");
   await expect(field).toHaveValue(RENT);
@@ -152,22 +135,14 @@ test("rename a category and a group, with the messages", async ({ page }) => {
   await gp.getByRole("button", { name: "OK" }).click();
   await expect(gp.getByText("This group name already exists")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator(".group-name")).toHaveText([
-    "Bills",
-    "Needs",
-    "Wants",
-  ]);
+  await expect(page.locator(".group-name")).toHaveText(["Bills", "Needs", "Wants"]);
 });
 
 test("right-click on a category opens the edit popover", async ({ page }) => {
   await open(page);
-  await catRow(page, GROCERIES)
-    .locator(".cell-name")
-    .click({ button: "right" });
+  await catRow(page, GROCERIES).locator(".cell-name").click({ button: "right" });
   const pop = popover(page, "Edit Category");
-  await expect(pop.getByPlaceholder("Enter category name")).toHaveValue(
-    GROCERIES,
-  );
+  await expect(pop.getByPlaceholder("Enter category name")).toHaveValue(GROCERIES);
 });
 
 test("delete an unused category or group at once, logged with the actor", async ({
@@ -175,45 +150,25 @@ test("delete an unused category or group at once, logged with the actor", async 
   request,
 }) => {
   await open(page);
-  await page
-    .locator(".category-name", { hasText: UTILITIES })
-    .click({ button: "right" });
-  await popover(page, "Edit Category")
-    .getByRole("button", { name: "Delete" })
-    .click();
+  await page.locator(".category-name", { hasText: UTILITIES }).click({ button: "right" });
+  await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   await expect(popover(page, "Edit Category")).toHaveCount(0);
-  await expect(
-    page.locator(".category-name", { hasText: UTILITIES }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("dialog", { name: "Delete Category" }),
-  ).toHaveCount(0);
+  await expect(page.locator(".category-name", { hasText: UTILITIES })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Delete Category" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Category Group" }).click();
-  await popover(page, "Add Category Group")
-    .getByPlaceholder("New Category Group")
-    .fill("ZZ Empty");
+  await popover(page, "Add Category Group").getByPlaceholder("New Category Group").fill("ZZ Empty");
   await page.keyboard.press("Enter");
   const row = groupRow(page, "ZZ Empty");
   await row.hover();
   await row.getByRole("button", { name: "Add Category" }).click();
-  await popover(page, "Add Category")
-    .getByPlaceholder("New Category")
-    .fill("ZZ One");
+  await popover(page, "Add Category").getByPlaceholder("New Category").fill("ZZ One");
   await page.keyboard.press("Enter");
-  await expect(
-    page.locator(".category-name", { hasText: "ZZ One" }),
-  ).toBeVisible();
+  await expect(page.locator(".category-name", { hasText: "ZZ One" })).toBeVisible();
   await page.locator(".group-name", { hasText: "ZZ Empty" }).click();
-  await popover(page, "Edit Category Group")
-    .getByRole("button", { name: "Delete" })
-    .click();
-  await expect(
-    page.locator(".group-name", { hasText: "ZZ Empty" }),
-  ).toHaveCount(0);
-  await expect(
-    page.locator(".category-name", { hasText: "ZZ One" }),
-  ).toHaveCount(0);
+  await popover(page, "Edit Category Group").getByRole("button", { name: "Delete" }).click();
+  await expect(page.locator(".group-name", { hasText: "ZZ Empty" })).toHaveCount(0);
+  await expect(page.locator(".category-name", { hasText: "ZZ One" })).toHaveCount(0);
   const m = await month(request);
   expect(m.groups.map((g) => g.name)).toEqual(["Bills", "Needs", "Wants"]);
 });
@@ -225,98 +180,60 @@ test("delete a category with history: pick a target, Ready to Assign holds", asy
   await assign(request, ENTERTAINMENT, 20000);
   const before = (await month(request)).ready_to_assign;
   await open(page);
-  await page
-    .locator(".category-name", { hasText: ENTERTAINMENT })
-    .click({ button: "right" });
-  await popover(page, "Edit Category")
-    .getByRole("button", { name: "Delete" })
-    .click();
+  await page.locator(".category-name", { hasText: ENTERTAINMENT }).click({ button: "right" });
+  await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Category" });
-  await expect(
-    dialog.getByText("you'll need to reassign your past activity"),
-  ).toBeVisible();
+  await expect(dialog.getByText("you'll need to reassign your past activity")).toBeVisible();
   await expect(dialog.getByText("All assigned amounts")).toBeVisible();
-  await expect(
-    dialog.getByText("Any remaining available amount"),
-  ).toBeVisible();
+  await expect(dialog.getByText("Any remaining available amount")).toBeVisible();
   const del = dialog.getByRole("button", { name: "Delete" });
   await expect(del).toBeDisabled();
   const picker = dialog.getByRole("combobox", { name: "Select category" });
   await picker.fill("vacat");
   await expect(page.getByText("Plan Categories")).toBeVisible();
   // The deleted category is not offered.
-  await expect(
-    page.getByRole("option", { name: new RegExp(ENTERTAINMENT) }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("option", { name: new RegExp(ENTERTAINMENT) })).toHaveCount(0);
   await page.getByRole("option", { name: new RegExp(VACATION) }).click();
   await expect(del).toBeEnabled();
   await del.click();
   await expect(dialog).toHaveCount(0);
-  await expect(
-    page.locator(".category-name", { hasText: ENTERTAINMENT }),
-  ).toHaveCount(0);
-  await expect(
-    catRow(page, VACATION).locator(".assigned-box .amount"),
-  ).toHaveText("$20.00");
+  await expect(page.locator(".category-name", { hasText: ENTERTAINMENT })).toHaveCount(0);
+  await expect(catRow(page, VACATION).locator(".assigned-box .amount")).toHaveText("$20.00");
   expect((await month(request)).ready_to_assign).toBe(before);
 });
 
-test("Escape closes the picker list first, then the dialog", async ({
-  page,
-  request,
-}) => {
+test("Escape closes the picker list first, then the dialog", async ({ page, request }) => {
   await assign(request, ENTERTAINMENT, 1000);
   await open(page);
-  await page
-    .locator(".category-name", { hasText: ENTERTAINMENT })
-    .click({ button: "right" });
-  await popover(page, "Edit Category")
-    .getByRole("button", { name: "Delete" })
-    .click();
+  await page.locator(".category-name", { hasText: ENTERTAINMENT }).click({ button: "right" });
+  await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Category" });
-  await expect(
-    page.getByRole("listbox", { name: "Plan Categories" }),
-  ).toBeVisible();
+  await expect(page.getByRole("listbox", { name: "Plan Categories" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("listbox", { name: "Plan Categories" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("listbox", { name: "Plan Categories" })).toHaveCount(0);
   await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
-  await expect(
-    page.locator(".category-name", { hasText: ENTERTAINMENT }),
-  ).toBeVisible();
+  await expect(page.locator(".category-name", { hasText: ENTERTAINMENT })).toBeVisible();
 });
 
-test("delete a group with history reassigns every category", async ({
-  page,
-  request,
-}) => {
+test("delete a group with history reassigns every category", async ({ page, request }) => {
   await assign(request, ENTERTAINMENT, 5000);
   await open(page);
   await page.locator(".group-name", { hasText: "Wants" }).click();
-  await popover(page, "Edit Category Group")
-    .getByRole("button", { name: "Delete" })
-    .click();
+  await popover(page, "Edit Category Group").getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Category Group" });
   await expect(
-    dialog.getByText(
-      "categories in the group Wants will be reassigned to the selected category.",
-    ),
+    dialog.getByText("categories in the group Wants will be reassigned to the selected category."),
   ).toBeVisible();
   const picker = dialog.getByRole("combobox", { name: "Select category" });
   await picker.fill("Groceries");
-  await expect(
-    page.getByRole("option", { name: new RegExp(VACATION) }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("option", { name: new RegExp(VACATION) })).toHaveCount(0);
   await page.getByRole("option", { name: new RegExp(GROCERIES) }).click();
   await dialog.getByRole("button", { name: "Delete" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator(".group-name")).toHaveText(["Bills", "Needs"]);
-  await expect(
-    catRow(page, GROCERIES).locator(".assigned-box .amount"),
-  ).toHaveText("$5.00");
+  await expect(catRow(page, GROCERIES).locator(".assigned-box .amount")).toHaveText("$5.00");
 });
 
 test("collapse is saved on the server: a fresh browser profile sees it, no storage key", async ({
@@ -328,15 +245,9 @@ test("collapse is saved on the server: a fresh browser profile sees it, no stora
 }) => {
   await open(page);
   await page.getByRole("button", { name: "Collapse Bills categories" }).click();
-  await expect(
-    page.getByRole("button", { name: "Expand Bills categories" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
   await expect
-    .poll(
-      async () =>
-        (await month(request)).groups.length > 0 &&
-        (await collapsedNames(request)),
-    )
+    .poll(async () => (await month(request)).groups.length > 0 && (await collapsedNames(request)))
     .toEqual(["Bills"]);
 
   // Only the auth cookie: no localStorage, so what shows comes from the server.
@@ -349,14 +260,10 @@ test("collapse is saved on the server: a fresh browser profile sees it, no stora
   });
   const p2 = await fresh.newPage();
   await p2.goto(`/${planId}/budget`);
-  await expect(
-    p2.getByRole("button", { name: "Expand Bills categories" }),
-  ).toBeVisible();
+  await expect(p2.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
   const key = (p: Page) =>
     p.evaluate(() =>
-      Object.keys(localStorage).some((k) =>
-        k.startsWith("budget.planGrid.collapsed"),
-      ),
+      Object.keys(localStorage).some((k) => k.startsWith("budget.planGrid.collapsed")),
     );
   expect(await key(p2)).toBe(false);
   expect(await key(page)).toBe(false);
@@ -412,21 +319,13 @@ test("a month fetch started before a collapse cannot reopen the group or undo an
   await page.keyboard.press("Enter");
   await expect.poll(() => holding).toBe(true);
   await page.getByRole("button", { name: "Collapse Bills categories" }).click();
-  await expect(
-    page.getByRole("button", { name: "Expand Bills categories" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
   release();
   await page.waitForTimeout(500);
-  await expect(
-    page.getByRole("button", { name: "Expand Bills categories" }),
-  ).toBeVisible();
-  await expect(groupRow(page, "Bills").locator(".num").first()).toHaveText(
-    "$12.00",
-  );
+  await expect(page.getByRole("button", { name: "Expand Bills categories" })).toBeVisible();
+  await expect(groupRow(page, "Bills").locator(".num").first()).toHaveText("$12.00");
   await page.getByRole("button", { name: "Expand Bills categories" }).click();
-  await expect(catRow(page, RENT).locator(".assigned-box .amount")).toHaveText(
-    "$12.00",
-  );
+  await expect(catRow(page, RENT).locator(".assigned-box .amount")).toHaveText("$12.00");
 });
 
 test("delete group wording: singular for one category, plural for two", async ({
@@ -452,14 +351,16 @@ test("delete group wording: singular for one category, plural for two", async ({
   };
   await mk("Solo", ["Only one"]);
   await mk("Pair", ["First", "Second"]);
+  // A group with no history is deleted without a dialog, so give one category of each group an assignment.
+  await assign(request, "Only one", 1000);
+  await assign(request, "First", 1000);
   await open(page);
   const check = async (group: string, text: RegExp) => {
     await page.locator(".group-name", { hasText: group }).click();
-    await popover(page, "Edit Category Group")
-      .getByRole("button", { name: "Delete" })
-      .click();
+    await popover(page, "Edit Category Group").getByRole("button", { name: "Delete" }).click();
     const dialog = page.getByRole("dialog", { name: "Delete Category Group" });
     await expect(dialog.getByText(text)).toBeVisible();
+    await page.keyboard.press("Escape"); // closes the category list
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
   };

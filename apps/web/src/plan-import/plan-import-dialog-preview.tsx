@@ -55,6 +55,7 @@ function CurrencyChoice({
   formats: PlanImportPreview["formats"];
   onCurrency: (patch: Currency) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const named = currenciesNamedBy(f.currency_symbol, f.decimal_digits);
   if (f.symbol_placement !== "none" && named.length === 1) return null;
   const detected = formatsFromImport({ ...f, iso_code: undefined }).iso_code;
@@ -64,6 +65,21 @@ function CurrencyChoice({
     ...same.filter((c) => c.code !== detected),
   ];
   const sym = f.currency_symbol.trim();
+  // The dollar sign is shared by several currencies, and USD is the sensible default: show it, with a way to
+  // change. A symbol shared by currencies without USD (no sensible default) keeps the select up front.
+  const plainDollar =
+    f.symbol_placement !== "none" && named.length > 1 && named.some((c) => c.code === "USD");
+  if (plainDollar && !open) {
+    return (
+      <div className="plan-import-dialog-currency plan-import-dialog-currency-text">
+        <span>Plan currency</span>
+        <strong>{f.iso_code ?? "USD"}</strong>
+        <button type="button" className="plan-import-dialog-change" onClick={() => setOpen(true)}>
+          Change
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="plan-import-dialog-currency">
       <label htmlFor="plan-import-currency">Plan currency</label>

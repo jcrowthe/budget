@@ -85,8 +85,9 @@ export function DeleteDialog({
         <div className="delete-body">
           {kind === "group" ? (
             <p>
-              All <strong>{categoryCount}</strong> categories in the group <strong>{name}</strong>{" "}
-              will be reassigned to the selected category.
+              {categoryCount === 1 ? "The " : "All "}
+              <strong>{categoryCount}</strong> {categoryCount === 1 ? "category" : "categories"} in
+              the group <strong>{name}</strong> will be reassigned to the selected category.
             </p>
           ) : (
             <p>
