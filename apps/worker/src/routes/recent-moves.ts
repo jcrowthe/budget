@@ -38,16 +38,25 @@ export default app.openapi(
       query: RecentMovesQuery,
     },
     responses: {
-      200: json(RecentMovesResponse, "The plan's recent assigning and money moves, newest first"),
+      200: json(
+        RecentMovesResponse,
+        "The plan's recent assigning and money moves, newest first; month and category_id keep one month's cells or one category's entries",
+      ),
       403: json(ErrorBody, "Forbidden"),
       404: json(ErrorBody, "Plan not found"),
-      422: json(ErrorBody, "Invalid since or type"),
+      422: json(ErrorBody, "Invalid since, type, month or category_id"),
     },
   }),
   async (c) => {
     const { budget_id } = c.req.valid("param");
-    const { since, type } = c.req.valid("query");
-    const data = await listRecentMoves(c.env, c.get("identity").actor, { budget_id, since, type });
+    const { since, type, month, category_id } = c.req.valid("query");
+    const data = await listRecentMoves(c.env, c.get("identity").actor, {
+      budget_id,
+      since,
+      type,
+      month,
+      category_id,
+    });
     return c.json({ data }, 200);
   },
 );

@@ -102,7 +102,11 @@ describe("recent moves: redo label", () => {
     expect(r1.status).toBe(200);
     const got = (await entries(bid)).filter((e) => e.from_move);
     expect(got.map((e) => e.method)).toEqual(["redo", "undo", "move"]);
-    expect(got[0]).toMatchObject({ kind: "moved", from: { category_id: a }, to: { category_id: b } });
+    expect(got[0]).toMatchObject({
+      kind: "moved",
+      from: { category_id: a },
+      to: { category_id: b },
+    });
     expect(got[0].undo_of).toBe(got[1].id);
     const u2 = await undo(bid, r1.header as string);
     expect(u2.status).toBe(200);

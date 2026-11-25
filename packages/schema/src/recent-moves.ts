@@ -28,7 +28,7 @@ export const RecentMove = z
     amount: Milliunits.positive(),
     from: RecentMoveSide.nullable(),
     to: RecentMoveSide.nullable(),
-    method: z.enum(["edit", "move", "cover", "auto_assign", "undo"]),
+    method: z.enum(["edit", "move", "cover", "auto_assign", "undo", "redo"]),
     from_move: z.boolean().openapi({
       description:
         "True when the entry comes from a move record (Move, Cover, Assign Manually, or their undo)",
@@ -51,6 +51,20 @@ export const RecentMovesQuery = z.object({
     description: "YYYY-MM-DD (that day, 00:00 UTC) or an ISO 8601 date-time; default 34 days ago",
   }),
   type: RecentMovesType.default("all").openapi({ param: { name: "type", in: "query" } }),
+  month: Month.optional().openapi({
+    param: { name: "month", in: "query" },
+    description:
+      "YYYY-MM-01: keep only the entries of that month's cells; without since there is then no 34-day window",
+  }),
+  category_id: z
+    .string()
+    .min(1)
+    .optional()
+    .openapi({
+      param: { name: "category_id", in: "query" },
+      description:
+        "Keep the entries to or from this category (a move whole, never split); an unknown id lists nothing",
+    }),
 });
 
 export type RecentMove = z.infer<typeof RecentMove>;
@@ -105,4 +119,33 @@ export function entryText(
   if (e.kind === "assigned") return { lead: `assigned ${amount} to`, between: null };
   if (e.kind === "removed") return { lead: `removed ${amount} from`, between: null };
   return { lead: `moved ${amount} from`, between: "to" };
+}
+
+/** The annotation after a row's text (the card's method line): only the methods that are not a plain edit or move. */
+export const METHOD_LABEL: Partial<Record<RecentMove["method"], string>> = {
+  cover: "Cover",
+  auto_assign: "Auto-Assign",
+  undo: "Undo",
+  redo: "Redo",
+};
+
+/**
+ * One row of a category's Moves table: its text ("Assigned", "Removed", "Moved from X", "Moved to X"), the signed
+ * change to that category's Assigned (inflow positive) in milliunits and as text, and the method annotation.
+ */
+export function categoryMoveRow(
+  e: Pick<RecentMove, "kind" | "amount" | "from" | "to" | "method">,
+  categoryId: string,
+  money: (n: number) => string,
+): { text: string; amount: number; signed: string; note: string | null } {
+  const inflow = e.to?.category_id === categoryId;
+  const amount = inflow ? e.amount : -e.amount;
+  let text = "Removed";
+  if (e.kind === "assigned") text = "Assigned";
+  else if (e.kind === "moved") {
+    text = inflow
+      ? `Moved from ${e.from?.category_name ?? ""}`
+      : `Moved to ${e.to?.category_name ?? ""}`;
+  }
+  return { text, amount, signed: money(amount), note: METHOD_LABEL[e.method] ?? null };
 }

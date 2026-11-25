@@ -18,17 +18,29 @@ export type MoveRow = {
   from_deleted: number | null;
   to_name: string | null;
   to_deleted: number | null;
+  /** 1 when `undo_of` is an odd number of undo steps away: this row redoes. */
+  redo: number;
 };
 
 /**
  * The plan's Assigned changes since `since`, in one statement. The rows of one move (`after.move.id`) are
  * reduced to its first row, with `at` the earliest `created_at`; any other row is one entry with its delta
- * (after − before) and a zero delta is dropped. The rows of a category-delete merge (`reassigned_from`) are
+ * (after − before) and a zero delta is dropped. `filter.month` / `filter.categoryId` keep a month's cells / the entries
+ * to or from a category (a move whole); a null `since` has no time bound. `redo` is 1 when the row's `undo_of` is an
+ * odd number of undo steps (through `change_set_undos`) from a set that is not an undo: a redo is the undo of an undo. The rows of a category-delete merge (`reassigned_from`) are
  * not changes the person made and are skipped. Category names (deleted ones too) come from a left join.
  */
-export async function listMoveRows(db: Db, budgetId: string, since: string): Promise<MoveRow[]> {
+export async function listMoveRows(
+  db: Db,
+  budgetId: string,
+  since: string | null,
+  filter: { month?: string; categoryId?: string } = {},
+): Promise<MoveRow[]> {
+  const bySince = since === null ? sql`` : sql`and l.created_at >= ${since}`;
+  const month = filter.month ?? null;
+  const cid = filter.categoryId ?? null;
   return db.all<MoveRow>(sql`
-    with r as (
+    with recursive r as (
       select
         l.id as id, l.actor as actor, l.created_at as created_at,
         json_extract(l.after_json, '$.move.id') as move_id,
@@ -46,15 +58,27 @@ export async function listMoveRows(db: Db, budgetId: string, since: string): Pro
       from change_log l
       where l.budget_id = ${budgetId}
         and l.entity_type = 'month_category'
-        and l.created_at >= ${since}
+        ${bySince}
         and json_extract(l.after_json, '$.reassigned_from') is null
         and json_extract(l.before_json, '$.reassigned_from') is null
+    ), f as (
+      select * from r
+      where (${month} is null or coalesce(mv_month, cell_month) = ${month})
+        and (${cid} is null or case when move_id is not null then (mv_from = ${cid} or mv_to = ${cid}) else cell_category = ${cid} end)
     ), ranked as (
       select r.*,
         row_number() over (partition by coalesce(r.move_id, r.id) order by r.created_at, r.id) as rn,
         min(r.created_at) over (partition by coalesce(r.move_id, r.id)) as at
-      from r
+      from f r
       where r.move_id is not null or r.delta <> 0
+    ), chain(start, cur, depth) as (
+      select distinct undo_of, undo_of, 0 from f where undo_of is not null
+      union all
+      select chain.start, u.change_set_id, chain.depth + 1
+      from chain
+      join change_set_undos u on u.budget_id = ${budgetId} and u.undo_change_set_id = chain.cur
+    ), rd as (
+      select start, max(depth) % 2 as redo from chain group by start
     )
     select
       coalesce(k.move_id, k.id) as id,
@@ -70,8 +94,10 @@ export async function listMoveRows(db: Db, budgetId: string, since: string): Pro
       k.undo_of as undo_of,
       k.auto_assign as auto_assign,
       cf.name as from_name, cf.deleted_at is not null as from_deleted,
-      ct.name as to_name, ct.deleted_at is not null as to_deleted
+      ct.name as to_name, ct.deleted_at is not null as to_deleted,
+      coalesce(rd.redo, 0) as redo
     from ranked k
+    left join rd on rd.start = k.undo_of
     left join categories cf on cf.id = case when k.move_id is not null then k.mv_from when k.delta < 0 then k.cell_category end
     left join categories ct on ct.id = case when k.move_id is not null then k.mv_to when k.delta > 0 then k.cell_category end
     where k.rn = 1
