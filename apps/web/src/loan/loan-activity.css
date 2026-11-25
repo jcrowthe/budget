@@ -131,3 +131,20 @@
 .loan-pay-form select.field {
   margin-top: var(--space-2);
 }
+
+/* EXF-542: the Add Activity menu: a label with its subtitle under it. */
+.bulk-item.loan-add-item {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+}
+.loan-add-label {
+  color: var(--labelPrimary);
+  font-weight: 600;
+}
+.loan-add-subtitle {
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}

@@ -126,3 +126,11 @@ change); `addLoanActivity` uses it with `cleared: 'cleared'`.
 ## Not in this Build
 
 Add Escrow, editing or deleting a recorded line from Account Activity, and plan export/import of loan rows.
+
+## Build notes
+
+- Built as designed; no migration, no `packages/core` change, no undo type-map change (the undo test passed as is).
+- `edited_on` comes from `editedOnQuery`, the fourth statement of the Activity read batch (still 3 D1 calls).
+- `LoanAddActivityRequest` is strict (an unknown field is a 422) and refines per kind: `date` or `memo` with interest, `month` with a fee or credit, are 422.
+- The loan page has no Undo button of its own; the app's Undo (plan stack) reaches the write from another page, which is what the e2e does.
+- The e2e specs were written with the UI, after the worker tests (those were committed first and failed before: `/workspace/thread/evidence/fail-before/`).
