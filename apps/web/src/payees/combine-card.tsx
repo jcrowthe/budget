@@ -58,6 +58,7 @@ export function CombineCard({
             placeholder={COMBINE.placeholder}
             value={draft}
             maxLength={200}
+            aria-invalid={fault ? true : undefined}
             onChange={(e) => {
               setDraft(e.target.value);
               setFault("");
@@ -73,13 +74,14 @@ export function CombineCard({
             type="button"
             className="mp-button mp-primary"
             disabled={name === "" || pending}
+            aria-busy={pending || undefined}
             onClick={() => void press()}
           >
             {COMBINE.button}
           </button>
         </div>
         {fault ? (
-          <div role="alert" className="mp-error">
+          <div role="alert" className="mp-error mp-fault">
             {fault}
           </div>
         ) : null}
