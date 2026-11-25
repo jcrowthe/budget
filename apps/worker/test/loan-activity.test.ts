@@ -403,3 +403,35 @@ describe("Acceptance 2: REST and MCP agree", () => {
     expect(JSON.stringify(bad.content)).toContain("is not a loan account");
   });
 });
+
+// EXF-1006: a payment row names the account it came from, for Record Payment, a register transfer, REST and MCP.
+describe("EXF-1006: payments name their source account", () => {
+  it("Record Payment and a typed transfer both carry from_account_name, in REST and MCP", async () => {
+    const w = await world();
+    expect(
+      (await pay(w.bid, w.mortgage.id, { from_account_id: w.checking.id, amount: 1000000, date: D15 }))
+        .status,
+    ).toBe(201);
+    const typed = await send(`/api/v1/budgets/${w.bid}/transactions`, "POST", {
+      account_id: w.checking.id,
+      transfer_account_id: w.mortgage.id,
+      amount: -500000,
+      date: D15,
+    });
+    expect(typed.status).toBe(201);
+    const a = await activity(w.bid, w.mortgage.id, NOV);
+    expect(a.payments).toHaveLength(2);
+    for (const p of a.payments) {
+      expect(p.from_account_id).toBe(w.checking.id);
+      expect(p.from_account_name).toBe(w.checking.name);
+    }
+    const res = await tool("get_loan_activity", {
+      budget_id: w.bid,
+      loan_account_id: w.mortgage.id,
+      month: NOV,
+    });
+    const body = (res.structuredContent ?? JSON.parse(res.content[0].text)) as Json;
+    const payments = (body.data ?? body).payments as Json[];
+    expect(payments.map((p) => p.from_account_name)).toEqual([w.checking.name, w.checking.name]);
+  });
+});
