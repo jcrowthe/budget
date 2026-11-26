@@ -9,6 +9,16 @@
 }
 .dialog.form.file-import-dialog-two {
   width: 720px;
+  /* Fixed, so the loading and loaded states share one box and Cancel does not move when the preview arrives. */
+  height: min(640px, calc(100vh - 32px));
+}
+.file-import-body-two > p[role="status"] {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--labelSecondary);
 }
 .file-import-dialog .dialog-head {
   flex: none;
