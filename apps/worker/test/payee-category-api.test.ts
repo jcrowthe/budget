@@ -290,7 +290,7 @@ describe("MCP tools of the payee category (EXF-515)", () => {
     expect(bad.isError).toBe(true);
   });
 
-  it("the surface lists the path and both tools, 129 in all", async () => {
+  it("the surface lists the path and both tools, 130 in all", async () => {
     expect(await apiPaths()).toContain(
       "/api/v1/budgets/{budget_id}/payees/{payee_id}/recent-transactions",
     );
@@ -298,7 +298,7 @@ describe("MCP tools of the payee category (EXF-515)", () => {
     expect(names).toEqual(
       expect.arrayContaining(["set_payee_category_mode", "list_payee_recent_transactions"]),
     );
-    expect(names).toHaveLength(129); // 118 + update_loan_activity, delete_loan_activity (loan manage); + get_backup_status + set_expected_income + update_flag_names + list_views, create_view, update_view, delete_view, reorder_views (EXF-502) + fresh_start_budget (EXF-478)
+    expect(names).toHaveLength(130); // 118 + update_loan_activity, delete_loan_activity (loan manage); + get_backup_status + set_expected_income + update_flag_names + list_views, create_view, update_view, delete_view, reorder_views (EXF-502) + fresh_start_budget (EXF-478) + bulk_update_scheduled_transactions (EXF-657)
   });
 });
 
