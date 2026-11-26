@@ -292,6 +292,8 @@ export interface ImportPlan {
     amount: number;
     flag: FlagColor | null;
     order: number;
+    /** The other account when the schedule is a transfer (EXF-501); null for a plain schedule. */
+    transferAccount: number | null;
   }[];
   planRows: { month: string; category: number; activity: number; available: number }[];
   warnings: ImportWarning[];
@@ -1080,6 +1082,30 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
         ? x.memo.slice((SPLIT_PREFIX.exec(x.memo) as RegExpExecArray)[0].length)
         : x.memo;
       const partner = partnerOf.get(ri);
+      if (partner !== undefined && x.date > exportDate && !e.split) {
+        // A paired transfer after the export date is one transfer schedule, kept on its outflow side (EXF-501).
+        const p = rows[partner] as RegRow;
+        const isOut = x.amount < 0 || (x.amount === 0 && ri < partner);
+        if (!isOut) continue;
+        const other = p.account;
+        let c: { category: number | null; rta: boolean } = { category: null, rta: false };
+        // The category belongs to the on-plan side of an on-plan to tracking transfer.
+        if (onBudget[acct] && !onBudget[other]) c = rowCategory(x, acct);
+        else if (!onBudget[acct] && onBudget[other]) c = rowCategory(p, other);
+        schedules.push({
+          account: acct,
+          date: x.date,
+          payee: null,
+          category: c.category,
+          inflowToRta: c.rta,
+          memo: memoText || null,
+          amount: x.amount,
+          flag: x.flag,
+          order: ri,
+          transferAccount: other,
+        });
+        continue;
+      }
       if (partner === undefined && x.date > exportDate && !e.split) {
         const c = rowCategory(x, acct);
         schedules.push({
@@ -1092,6 +1118,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
           amount: x.amount,
           flag: x.flag,
           order: ri,
+          transferAccount: null,
         });
         if (isTransferPayee(x.payee)) {
           warn(
@@ -1203,7 +1230,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
         account: r.account,
         date: r.date,
         amount: total,
-        scheduled: !e.split && r.date > exportDate && !partnerOf.has(e.first),
+        scheduled: !e.split && r.date > exportDate,
       });
     }
   }
