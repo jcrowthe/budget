@@ -103,7 +103,7 @@ delete was undo-stale.
   not needed" for on-plan/on-plan. A split in the add row still says "Scheduled splits are not available yet".
 - Scheduled rows are keyed with `scheduledRowKey` (`id`, or `mirror:<id>` for a mirror); selection holds keys and
   every action turns them into unique series ids (`seriesIds`). A mirror is read-only: it selects but never opens an
-  editor; its ⇆ button ("Scheduled in A: edit it there") opens A with the series ticked and in view
+  editor; its ⇆ button ("Click to edit this schedule in A"; the row's own tooltip reads "Scheduled in A: edit it there") opens A with the series ticked and in view
   (`state.selectScheduled`). The series row's ⇆ jumps to the other account.
 - Mutations already invalidate every query of the plan, so both registers refresh.
 

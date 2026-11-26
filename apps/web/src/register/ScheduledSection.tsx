@@ -173,7 +173,7 @@ export function ScheduledSection({
   const payeeCellOf = (s: ScheduledTransaction) => {
     if (!s.transfer_account_id || !s.transfer_account_name) return s.payee_name;
     const jump = s.mirror
-      ? `Scheduled in ${s.transfer_account_name}: edit it there`
+      ? `Click to edit this schedule in ${s.transfer_account_name}`
       : "Click to jump to the other side of this transfer";
     return (
       <span className="transfer-payee">

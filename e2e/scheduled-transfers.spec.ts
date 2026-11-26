@@ -111,7 +111,7 @@ test("AC4: a transfer picked in the add row is scheduled in one account and mirr
   // Its jump button names where the series lives and goes there, with the series selected.
   await realClick(
     page,
-    mirror.getByRole("button", { name: "Scheduled in ZZ-TEST Checking: edit it there" }),
+    mirror.getByRole("button", { name: "Click to edit this schedule in ZZ-TEST Checking" }),
   );
   await expect(page).toHaveURL(new RegExp(`/accounts/${p.checking}$`));
   await expect(schedRow(page, "Transfer: ZZ-TEST Savings").getByRole("checkbox")).toHaveAttribute(
