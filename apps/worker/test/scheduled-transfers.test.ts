@@ -114,12 +114,13 @@ describe("scheduled transfers: create and the mirror", () => {
     const out = (await sched(b, mk(a, t, { category_id: c }))).scheduled_transaction;
     expect(out.category_id).toBe(c);
     expect((await list(b, t))[0]).toMatchObject({ mirror: true, category_id: null });
-    const inn = (await sched(b, mk(t, a, { category_id: c, amount: -50000 }))).scheduled_transaction;
+    const inn = (await sched(b, mk(t, a, { category_id: c, amount: -50000 })))
+      .scheduled_transaction;
     expect(inn.category_id).toBe(c);
     const mirrorInA = (await list(b, a)).find((r) => r.id === inn.id);
     expect(mirrorInA).toMatchObject({ mirror: true, category_id: c, amount: 50000 });
     const e = await enter(b, out.id);
-    expect(e.status).toBe(200);
+    expect(e.status).toBe(201);
     expect((await real(b, a)).some((r) => r.category_id === c)).toBe(true);
     expect((await real(b, t)).every((r) => r.category_id === null)).toBe(true);
   });
@@ -127,9 +128,16 @@ describe("scheduled transfers: create and the mirror", () => {
   it("PATCH: plain to transfer, re-target, back to plain, and the 422s", async () => {
     const { b, a, s } = await two();
     const s2 = await account(b, "savings");
-    const plain = (await sched(b, { account_id: a, date_first: "2026-12-01", frequency: "monthly", amount: -5000, payee_name: "ZZ Payee" })).scheduled_transaction;
-    const patch = (id: string, input: Json) =>
-      send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", input);
+    const plain = (
+      await sched(b, {
+        account_id: a,
+        date_first: "2026-12-01",
+        frequency: "monthly",
+        amount: -5000,
+        payee_name: "ZZ Payee",
+      })
+    ).scheduled_transaction;
+    const patch = (id: string, input: Json) => send(`${S(b)}/${id}?today=${TODAY}`, "PATCH", input);
     let r = await patch(plain.id, { transfer_account_id: s });
     expect(r.status).toBe(200);
     let t = (await body(r)).scheduled_transaction;
@@ -155,15 +163,28 @@ describe("scheduled transfers: enter and delete from either side", () => {
     const made = (await sched(b, mk(a, s))).scheduled_transaction;
     const listed = (await list(b, side === "series" ? a : s))[0];
     const res = await enter(b, listed.id);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     const out = await body(res);
     expect(out.scheduled_transaction.date_next).toBe("2027-01-01");
     const ra = await real(b, a);
     const rb = await real(b, s);
     expect(ra).toHaveLength(1);
     expect(rb).toHaveLength(1);
-    expect(ra[0]).toMatchObject({ date: TODAY, amount: -100000, approved: 1, cleared: "uncleared", transfer_account_id: s, transfer_transaction_id: rb[0].id });
-    expect(rb[0]).toMatchObject({ date: TODAY, amount: 100000, approved: 1, transfer_account_id: a, transfer_transaction_id: ra[0].id });
+    expect(ra[0]).toMatchObject({
+      date: TODAY,
+      amount: -100000,
+      approved: 1,
+      cleared: "uncleared",
+      transfer_account_id: s,
+      transfer_transaction_id: rb[0].id,
+    });
+    expect(rb[0]).toMatchObject({
+      date: TODAY,
+      amount: 100000,
+      approved: 1,
+      transfer_account_id: a,
+      transfer_transaction_id: ra[0].id,
+    });
     expect(out.transaction.id).toBe(ra[0].id);
     expect((await list(b, a))[0].date_next).toBe("2027-01-01");
     expect((await list(b, s))[0].date_next).toBe("2027-01-01");
@@ -180,8 +201,11 @@ describe("scheduled transfers: enter and delete from either side", () => {
   it("a one-off transfer leaves both lists once entered; bulk [id, id] enters once", async () => {
     const { b, a, s } = await two();
     const one = (await sched(b, mk(a, s, { frequency: "never" }))).scheduled_transaction;
-    const res = await send(`${S(b)}/bulk?today=${TODAY}`, "POST", { op: "enter_now", ids: [one.id, one.id] });
-    expect(res.status).toBe(200);
+    const res = await send(`${S(b)}/bulk?today=${TODAY}`, "POST", {
+      op: "enter_now",
+      ids: [one.id, one.id],
+    });
+    expect(res.status).toBe(201);
     expect(await real(b, a)).toHaveLength(1);
     expect(await real(b, s)).toHaveLength(1);
     expect(await list(b)).toHaveLength(0);
@@ -226,8 +250,17 @@ describe("scheduled transfers: the due-job", () => {
     expect(out.entered[0].scheduled_transaction_id).toBe(made.id);
     const ra = await real(b, a);
     const rb = await real(b, s);
-    expect(ra[0]).toMatchObject({ date: "2026-11-20", approved: 0, transfer_transaction_id: rb[0].id });
-    expect(rb[0]).toMatchObject({ date: "2026-11-20", approved: 0, amount: 100000, transfer_transaction_id: ra[0].id });
+    expect(ra[0]).toMatchObject({
+      date: "2026-11-20",
+      approved: 0,
+      transfer_transaction_id: rb[0].id,
+    });
+    expect(rb[0]).toMatchObject({
+      date: "2026-11-20",
+      approved: 0,
+      amount: 100000,
+      transfer_transaction_id: ra[0].id,
+    });
     expect(out.entered[0].transaction_id).toBe(ra[0].id);
     expect((await list(b, s))[0].date_next).toBe("2026-12-20");
   });
@@ -247,7 +280,13 @@ describe("scheduled transfers: the due-job", () => {
       const input =
         i % 2 === 0
           ? mk(a, s, { date_first: `2026-11-${10 + i}`, amount: -1000 - i })
-          : { account_id: a, date_first: `2026-11-${10 + i}`, frequency: "monthly", amount: -1000 - i, payee_name: "ZZ Plain" };
+          : {
+              account_id: a,
+              date_first: `2026-11-${10 + i}`,
+              frequency: "monthly",
+              amount: -1000 - i,
+              payee_name: "ZZ Plain",
+            };
       ids.push((await sched(b, input, "2026-11-01")).scheduled_transaction.id);
     }
     const out = await body(await enterDueRest(b, "2026-11-21"));
@@ -271,7 +310,18 @@ describe("scheduled transfers: REST = MCP", () => {
   const strip = (x: Json): Json =>
     JSON.parse(
       JSON.stringify(x, (k, v) =>
-        ["id", "created_at", "updated_at", "account_id", "transfer_account_id", "transfer_transaction_id", "transaction_id"].includes(k) ? undefined : v,
+        [
+          "id",
+          "created_at",
+          "updated_at",
+          "account_id",
+          "transfer_account_id",
+          "transfer_transaction_id",
+          "transaction_id",
+          "budget_id",
+        ].includes(k)
+          ? undefined
+          : v,
       ),
     );
   it("the tools give the same results as REST on twin plans", async () => {
@@ -280,26 +330,45 @@ describe("scheduled transfers: REST = MCP", () => {
     // names differ per plan: compare shapes with the account names blanked
     const norm = (x: Json, p: { a: string; s: string }): Json =>
       JSON.parse(
-        JSON.stringify(strip(x), (_k, v) => (typeof v === "string" ? v.replaceAll(/ZZ [0-9a-f]{8}/g, "ZZ X") : v)),
+        JSON.stringify(strip(x), (_k, v) =>
+          typeof v === "string" ? v.replaceAll(/ZZ [0-9a-f]{8}/g, "ZZ X") : v,
+        ),
       );
     const rc = (await sched(rest.b, mk(rest.a, rest.s))).scheduled_transaction;
     const mc = parse(
-      await tool("create_scheduled_transaction", { budget_id: mcp.b, ...mk(mcp.a, mcp.s), today: TODAY }),
+      await tool("create_scheduled_transaction", {
+        budget_id: mcp.b,
+        ...mk(mcp.a, mcp.s),
+        today: TODAY,
+      }),
     ).scheduled_transaction;
     expect(norm(mc, mcp)).toEqual(norm(rc, rest));
     expect(mc.transfer_account_id).toBe(mcp.s);
 
     const rl = await list(rest.b, rest.s);
-    const ml = parse(await tool("list_scheduled_transactions", { budget_id: mcp.b, account_id: mcp.s })).scheduled_transactions;
+    const ml = parse(
+      await tool("list_scheduled_transactions", { budget_id: mcp.b, account_id: mcp.s }),
+    ).scheduled_transactions;
     expect(ml[0].mirror).toBe(true);
     expect(norm(ml, mcp)).toEqual(norm(rl, rest));
 
-    const ru = (await body(await send(`${S(rest.b)}/${rc.id}?today=${TODAY}`, "PATCH", { memo: "ZZ-TEST x" }))).scheduled_transaction;
-    const mu = parse(await tool("update_scheduled_transaction", { budget_id: mcp.b, id: mc.id, memo: "ZZ-TEST x", today: TODAY })).scheduled_transaction;
+    const ru = (
+      await body(await send(`${S(rest.b)}/${rc.id}?today=${TODAY}`, "PATCH", { memo: "ZZ-TEST x" }))
+    ).scheduled_transaction;
+    const mu = parse(
+      await tool("update_scheduled_transaction", {
+        budget_id: mcp.b,
+        id: mc.id,
+        memo: "ZZ-TEST x",
+        today: TODAY,
+      }),
+    ).scheduled_transaction;
     expect(norm(mu, mcp)).toEqual(norm(ru, rest));
 
     const re = await body(await enter(rest.b, rc.id));
-    const me = parse(await tool("enter_scheduled_transaction_now", { budget_id: mcp.b, id: mc.id, today: TODAY }));
+    const me = parse(
+      await tool("enter_scheduled_transaction_now", { budget_id: mcp.b, id: mc.id, today: TODAY }),
+    );
     expect(norm(me, mcp)).toEqual(norm(re, rest));
     expect(await real(mcp.b, mcp.s)).toHaveLength(1);
 

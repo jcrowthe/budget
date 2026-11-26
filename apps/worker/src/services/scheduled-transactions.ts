@@ -12,6 +12,7 @@ import {
 } from "@budget/schema/scheduled-transactions";
 import { type CategoryUpcoming, upcomingList } from "@budget/schema/scheduled-upcoming";
 import type { TransactionDetail } from "@budget/schema/transactions";
+import { transferCategoryRule, transferPayeeName } from "@budget/schema/transfers";
 import { z } from "zod";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
@@ -25,8 +26,10 @@ import * as repo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
 import { getPlanMonthWithSources } from "./months";
 import { resolvePayee } from "./payees";
+import { newOtherSide } from "./transaction-pairs";
 import {
   CLOSED_NO_NEW,
+  CLOSED_OTHER,
   enteredTransactionWrites,
   refuseOwnPaymentCategory,
   TransactionRefused,
@@ -54,6 +57,7 @@ export function scheduledToApi(
   row: repo.ScheduledRow,
   deleted = row.deletedAt !== null,
 ): ScheduledTransaction {
+  const transfer = row.transferAccountId !== null;
   return {
     id: row.id,
     account_id: row.accountId,
@@ -62,15 +66,48 @@ export function scheduledToApi(
     date_next: row.dateNext,
     frequency: row.frequency,
     amount: row.amount,
-    payee_id: row.payeeId,
-    payee_name: row.payeeName,
+    payee_id: transfer ? null : row.payeeId,
+    payee_name: transfer ? transferPayeeName(row.transferAccountName ?? "") : row.payeeName,
     category_id: row.categoryId,
     category_name: row.categoryName,
     category_group_name: row.groupName,
     inflow_to_ready_to_assign: row.inflowToReadyToAssign,
     memo: row.memo,
     flag_color: row.flagColor ?? null,
+    transfer_account_id: row.transferAccountId,
+    transfer_account_name: transfer ? row.transferAccountName : null,
+    mirror: false,
     deleted,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
+/** The derived row the other account lists for a transfer schedule: same id, negated amount, the series account as the other side. */
+export function mirrorToApi(row: repo.ScheduledRow): ScheduledTransaction {
+  // Only the on-plan side of an on-plan to tracking transfer carries the category; here that is the other account.
+  const carries = !row.accountOnBudget && row.transferAccountOnBudget;
+  return {
+    id: row.id,
+    account_id: row.transferAccountId ?? "",
+    account_name: row.transferAccountName ?? "",
+    date_first: row.dateFirst,
+    date_next: row.dateNext,
+    frequency: row.frequency,
+    // `0 - x` keeps zero positive.
+    amount: 0 - row.amount,
+    payee_id: null,
+    payee_name: transferPayeeName(row.accountName),
+    category_id: carries ? row.categoryId : null,
+    category_name: carries ? row.categoryName : null,
+    category_group_name: carries ? row.groupName : null,
+    inflow_to_ready_to_assign: carries ? row.inflowToReadyToAssign : false,
+    memo: row.memo,
+    flag_color: null,
+    transfer_account_id: row.accountId,
+    transfer_account_name: row.accountName,
+    mirror: true,
+    deleted: row.deletedAt !== null,
     created_at: row.createdAt,
     updated_at: row.updatedAt,
   };
@@ -140,43 +177,125 @@ function enteredRow(
   };
 }
 
+/**
+ * The transactions a schedule makes when it is entered: one for a plain schedule; for a transfer the series
+ * side first, then the other side, linked both ways. The category belongs to the on-plan side of an
+ * on-plan to tracking transfer.
+ */
+function enteredRows(
+  s: repo.ScheduledRow,
+  date: string,
+  approved: boolean,
+  now: string,
+): txRepo.TransactionRow[] {
+  if (s.transferAccountId === null) return [enteredRow(s, date, approved, now)];
+  const seriesCarries = s.accountOnBudget && !s.transferAccountOnBudget;
+  const otherCarries = !s.accountOnBudget && s.transferAccountOnBudget;
+  const a: txRepo.TransactionRow = {
+    ...enteredRow(s, date, approved, now),
+    payeeId: null,
+    payeeName: transferPayeeName(s.transferAccountName ?? ""),
+    categoryId: seriesCarries ? s.categoryId : null,
+    inflowToReadyToAssign: seriesCarries ? s.inflowToReadyToAssign : false,
+    transferAccountId: s.transferAccountId,
+  };
+  const b = newOtherSide(a, s.transferAccountId, s.accountName, now);
+  // newOtherSide starts approved; the schedule decides.
+  b.approved = approved;
+  b.categoryId = otherCarries ? s.categoryId : null;
+  b.inflowToReadyToAssign = otherCarries ? s.inflowToReadyToAssign : false;
+  a.transferTransactionId = b.id;
+  return [a, b];
+}
+
+/** The insert and create log of every row `enteredRows` made, each written only while `guard` holds. */
+function enteredWrites(
+  db: Db,
+  actor: string,
+  s: repo.ScheduledRow,
+  rows: txRepo.TransactionRow[],
+  guard: ReturnType<typeof repo.writtenWith>,
+): unknown[] {
+  const none = { categoryName: null, groupName: null };
+  return rows.flatMap((r) =>
+    enteredTransactionWrites(db, actor, r, r.categoryId ? namesOfRow(s) : none, guard),
+  );
+}
+
 const namesOfRow = (s: repo.ScheduledRow) => ({
   categoryName: s.categoryName,
   groupName: s.groupName,
 });
 
-/** The rules every schedule meets, on the merged fields. Returns the category's names. */
+const NO_TRANSFER_CATEGORY = "A transfer between on-plan accounts takes no category";
+const TRACKING_NO_CATEGORY = "Tracking accounts do not take a category";
+const SAME_ACCOUNT = "A transfer needs two different accounts";
+const TRANSFER_NO_PAYEE = "A transfer has no payee: its payee is the other account";
+
+type Acc = { id: string; name: string; closed: boolean; onBudget: boolean };
+
+/**
+ * The rules every schedule meets, on the merged fields. Returns the category's names and the category fields
+ * that stand: a category that is not allowed on a changed transfer is cleared when `clearable` (it was not
+ * sent), refused otherwise.
+ */
 async function checkRules(
   db: Db,
   budgetId: string,
-  m: { accountId: string; categoryId: string | null; inflow: boolean },
-  account?:
-    | accountsRepo.AccountRow
-    | { closed: boolean; onBudget: boolean; id: string; name: string },
+  m: {
+    accountId: string;
+    categoryId: string | null;
+    inflow: boolean;
+    transferAccountId?: string | null;
+  },
+  known?: { account?: Acc; other?: Acc },
   changedCategory = true,
+  clearable = false,
 ): Promise<{
-  account: { id: string; name: string; closed: boolean; onBudget: boolean };
+  account: Acc;
+  other: Acc | null;
+  categoryId: string | null;
+  inflow: boolean;
   category: { name: string; groupName: string | null } | null;
 }> {
-  const acc = account ?? (await accountsRepo.findActive(db, budgetId, m.accountId));
+  const acc = known?.account ?? (await accountsRepo.findActive(db, budgetId, m.accountId));
   if (!acc) throw unprocessable("Account not found in this plan");
   if (acc.closed) throw new TransactionRefused(422, "account_closed", CLOSED_NO_NEW);
-  if (m.categoryId && m.inflow) {
+  let other: Acc | null = null;
+  if (m.transferAccountId) {
+    if (m.transferAccountId === acc.id) throw unprocessable(SAME_ACCOUNT);
+    other =
+      known?.other ?? (await accountsRepo.findActive(db, budgetId, m.transferAccountId)) ?? null;
+    if (!other) throw unprocessable("Account not found in this plan");
+    if (other.id === acc.id) throw unprocessable(SAME_ACCOUNT);
+    if (other.closed) throw new TransactionRefused(422, "account_closed", CLOSED_OTHER);
+  }
+  let { categoryId, inflow } = m;
+  if (categoryId && inflow) {
     throw unprocessable(
       "A transaction cannot have both a category and the Ready to Assign inflow flag",
     );
   }
-  if (!acc.onBudget && (m.categoryId || m.inflow)) {
-    throw unprocessable("Tracking accounts do not take a category");
+  // The category belongs to the on-plan side: a plain on-plan row, or the on-plan side of an on-plan to tracking transfer.
+  const allowed = other ? acc.onBudget !== other.onBudget : acc.onBudget;
+  if (!allowed && (categoryId || inflow)) {
+    if (!clearable) {
+      throw unprocessable(
+        other && acc.onBudget && other.onBudget ? NO_TRANSFER_CATEGORY : TRACKING_NO_CATEGORY,
+      );
+    }
+    categoryId = null;
+    inflow = false;
+    changedCategory = false;
   }
   let category: { name: string; groupName: string | null } | null = null;
-  if (m.categoryId && changedCategory) {
-    const c = await repo.categoryNames(db, budgetId, m.categoryId);
+  if (categoryId && changedCategory) {
+    const c = await repo.categoryNames(db, budgetId, categoryId);
     if (!c) throw unprocessable("Category not found in this plan");
-    refuseOwnPaymentCategory(acc, c);
+    refuseOwnPaymentCategory(other && !acc.onBudget ? other : acc, c);
     category = { name: c.name, groupName: c.groupName };
   }
-  return { account: acc, category };
+  return { account: acc, other, categoryId, inflow, category };
 }
 
 export async function listScheduled(
@@ -186,7 +305,21 @@ export async function listScheduled(
 ): Promise<ScheduledTransaction[]> {
   const db = getDb(env);
   await activePlan(db, budgetId);
-  return (await repo.listForPlan(db, budgetId, opts)).map((r) => scheduledToApi(r));
+  const out: { key: string; order: number; item: ScheduledTransaction }[] = [];
+  for (const r of await repo.listForPlan(db, budgetId, opts)) {
+    if (!opts.accountId || r.accountId === opts.accountId) {
+      out.push({ key: `${r.dateNext} ${r.id}`, order: 0, item: scheduledToApi(r) });
+    }
+    if (
+      r.transferAccountId !== null &&
+      (!opts.accountId || r.transferAccountId === opts.accountId)
+    ) {
+      out.push({ key: `${r.dateNext} ${r.id}`, order: 1, item: mirrorToApi(r) });
+    }
+  }
+  // By next date, then series id, the series before its mirror.
+  out.sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : x.order - y.order));
+  return out.map((o) => o.item);
 }
 
 export async function getScheduled(
@@ -226,10 +359,12 @@ export async function createScheduled(
   const place = placeSchedule(v.date_first, v.frequency, today);
   if (place.kind === "notScheduled") throw unprocessable(CREATE_NOT_SCHEDULED);
   const hasPayee = v.payee_id !== undefined || v.payee_name !== undefined;
-  const { account, category } = await checkRules(db, budgetId, {
+  if (v.transfer_account_id && hasPayee) throw unprocessable(TRANSFER_NO_PAYEE);
+  const { account, other, category } = await checkRules(db, budgetId, {
     accountId: v.account_id,
     categoryId: v.category_id ?? null,
     inflow: v.inflow_to_ready_to_assign ?? false,
+    transferAccountId: v.transfer_account_id ?? null,
   });
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const payee = hasPayee
@@ -251,6 +386,7 @@ export async function createScheduled(
       inflowToReadyToAssign: v.inflow_to_ready_to_assign ?? false,
       memo: clean(v.memo) ?? null,
       flagColor: v.flag_color ?? null,
+      transferAccountId: other?.id ?? null,
       writeToken: token,
       createdAt: now,
       updatedAt: now,
@@ -260,7 +396,11 @@ export async function createScheduled(
       ...base,
       accountName: account.name,
       accountClosed: false,
+      transferClosed: false,
       accountOnBudget: account.onBudget,
+      transferAccountName: other?.name ?? null,
+      transferAccountClosed: false,
+      transferAccountOnBudget: other?.onBudget ?? false,
       payeeName: payee?.name ?? null,
       categoryName: category?.name ?? null,
       groupName: category?.groupName ?? null,
@@ -273,11 +413,9 @@ export async function createScheduled(
     ];
     let txId: string | null = null;
     if (place.kind === "enterAndSchedule") {
-      const tx = enteredRow(row, place.enterDate, false, now);
-      txId = tx.id;
-      writes.push(
-        ...enteredTransactionWrites(db, actor, tx, namesOfRow(row), repo.writtenWith(id, token)),
-      );
+      const txs = enteredRows(row, place.enterDate, false, now);
+      txId = txs[0]?.id ?? null;
+      writes.push(...enteredWrites(db, actor, row, txs, repo.writtenWith(id, token)));
       // The entered row joins the payee's history: its stored default follows, in this batch.
       const recompute = recomputeDefaultsStmt(db, budgetId, [row.payeeId]);
       if (recompute) writes.push(recompute);
@@ -313,8 +451,13 @@ export async function updateScheduled(
 
   const frequency: Frequency = v.frequency ?? before.frequency;
   const accountId = v.account_id ?? before.accountId;
+  const transferAccountId =
+    v.transfer_account_id !== undefined ? v.transfer_account_id : before.transferAccountId;
+  const transferChanged = transferAccountId !== before.transferAccountId;
   const categoryId = v.category_id !== undefined ? v.category_id : before.categoryId;
   const inflow = v.inflow_to_ready_to_assign ?? before.inflowToReadyToAssign;
+  const hasPayee = v.payee_id !== undefined || v.payee_name !== undefined;
+  if (transferAccountId && hasPayee) throw unprocessable(TRANSFER_NO_PAYEE);
 
   let anchor = before.dateFirst;
   let dateNext = before.dateNext;
@@ -329,21 +472,43 @@ export async function updateScheduled(
     if (place.kind === "enterAndSchedule") enterDate = place.enterDate;
   }
 
-  const { account, category } = await checkRules(
+  const sentCategory =
+    (v.category_id !== undefined && v.category_id !== null) || v.inflow_to_ready_to_assign === true;
+  const checked = await checkRules(
     db,
     budgetId,
-    { accountId, categoryId, inflow },
-    accountId === before.accountId
-      ? {
-          id: before.accountId,
-          name: before.accountName,
-          closed: before.accountClosed,
-          onBudget: before.accountOnBudget,
-        }
-      : undefined,
-    (v.category_id !== undefined && v.category_id !== null) || accountId !== before.accountId,
+    { accountId, categoryId, inflow, transferAccountId },
+    {
+      account:
+        accountId === before.accountId
+          ? {
+              id: before.accountId,
+              name: before.accountName,
+              closed: before.accountClosed,
+              onBudget: before.accountOnBudget,
+            }
+          : undefined,
+      other:
+        transferAccountId && transferAccountId === before.transferAccountId
+          ? {
+              id: transferAccountId,
+              name: before.transferAccountName ?? "",
+              closed: before.transferAccountClosed,
+              onBudget: before.transferAccountOnBudget,
+            }
+          : undefined,
+    },
+    (v.category_id !== undefined && v.category_id !== null) ||
+      accountId !== before.accountId ||
+      transferChanged,
+    transferChanged && !sentCategory,
   );
-  const hasPayee = v.payee_id !== undefined || v.payee_name !== undefined;
+  const { account, other, category } = checked;
+  const finalCategoryId = checked.categoryId;
+  const finalInflow = checked.inflow;
+  const categoryCleared = finalCategoryId !== categoryId || finalInflow !== inflow;
+  // A transfer has no payee; a schedule made plain again takes the payee of the same request, else none.
+  const clearPayee = other !== null || (transferChanged && !hasPayee);
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const payee = hasPayee
@@ -361,22 +526,32 @@ export async function updateScheduled(
       accountId: account.id,
       accountName: account.name,
       accountOnBudget: account.onBudget,
+      transferAccountId: other?.id ?? null,
+      transferAccountName: other?.name ?? null,
+      transferAccountClosed: other?.closed ?? false,
+      transferAccountOnBudget: other?.onBudget ?? false,
       dateFirst: anchor,
       dateNext,
       frequency,
       amount: v.amount ?? before.amount,
-      payeeId: payee ? payee.payeeId : before.payeeId,
-      payeeName: payee ? payee.name : before.payeeName,
-      categoryId,
-      categoryName: v.category_id === undefined ? before.categoryName : (category?.name ?? null),
-      groupName: v.category_id === undefined ? before.groupName : (category?.groupName ?? null),
-      inflowToReadyToAssign: inflow,
+      payeeId: clearPayee ? null : payee ? payee.payeeId : before.payeeId,
+      payeeName: clearPayee ? null : payee ? payee.name : before.payeeName,
+      categoryId: finalCategoryId,
+      categoryName:
+        v.category_id === undefined && !categoryCleared && !transferChanged
+          ? before.categoryName
+          : (category?.name ?? (finalCategoryId === categoryId ? before.categoryName : null)),
+      groupName:
+        v.category_id === undefined && !categoryCleared && !transferChanged
+          ? before.groupName
+          : (category?.groupName ?? (finalCategoryId === categoryId ? before.groupName : null)),
+      inflowToReadyToAssign: finalInflow,
       memo: v.memo !== undefined ? (clean(v.memo) ?? null) : before.memo,
       flagColor: v.flag_color !== undefined ? v.flag_color : before.flagColor,
       writeToken: token,
       updatedAt: now,
     };
-    if (categoryId === null) {
+    if (finalCategoryId === null) {
       after.categoryName = null;
       after.groupName = null;
     }
@@ -398,6 +573,7 @@ export async function updateScheduled(
           inflowToReadyToAssign: after.inflowToReadyToAssign,
           memo: after.memo,
           flagColor: after.flagColor,
+          transferAccountId: after.transferAccountId,
           updatedAt: now,
           writeToken: token,
         },
@@ -407,9 +583,9 @@ export async function updateScheduled(
     ];
     let txId: string | null = null;
     if (enterDate) {
-      const tx = enteredRow(after, enterDate, false, now);
-      txId = tx.id;
-      writes.push(...enteredTransactionWrites(db, actor, tx, namesOfRow(after), guard));
+      const txs = enteredRows(after, enterDate, false, now);
+      txId = txs[0]?.id ?? null;
+      writes.push(...enteredWrites(db, actor, after, txs, guard));
     }
     writes.push(
       ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
@@ -459,34 +635,36 @@ export async function bulkScheduled(
       throw new TransactionRefused(
         422,
         "account_closed",
-        req.op === "enter_now" ? CLOSED_NO_NEW : CLOSED_NO_CHANGE,
+        req.op !== "enter_now" ? CLOSED_NO_CHANGE : r.transferClosed ? CLOSED_OTHER : CLOSED_NO_NEW,
       );
     }
     rows.push(r);
   }
   const now = new Date().toISOString();
   const writes: unknown[] = [];
-  const planned: { row: repo.ScheduledRow; txId: string | null }[] = [];
+  // `gateIx` is where the schedule's gate statement sits in the batch: its result says whether it wrote.
+  const planned: { row: repo.ScheduledRow; txId: string | null; gateIx: number }[] = [];
   for (const s of rows) {
     const token = crypto.randomUUID();
     const guard = repo.writtenWith(s.id, token);
     const read = { dateNext: s.dateNext, writeToken: s.writeToken };
     if (req.op === "delete") {
+      planned.push({ row: s, txId: null, gateIx: writes.length });
       writes.push(
         repo.softDeleteIfStmt(db, s.id, now, token, read),
         changeLogInsertIf(db, logEntry(actor, "delete", s, { ...s, deletedAt: now }, true), guard),
       );
-      planned.push({ row: s, txId: null });
       continue;
     }
     const step = nextDate(s.dateFirst, s.frequency, s.dateNext);
-    const tx = enteredRow(s, today, true, now);
+    const txs = enteredRows(s, today, true, now);
     const after = {
       ...s,
       dateNext: step ?? s.dateNext,
       updatedAt: now,
       deletedAt: step ? null : now,
     };
+    planned.push({ row: s, txId: txs[0]?.id ?? null, gateIx: writes.length });
     writes.push(
       repo.updateIfStmt(
         db,
@@ -494,14 +672,13 @@ export async function bulkScheduled(
         { dateNext: after.dateNext, deletedAt: after.deletedAt, updatedAt: now, writeToken: token },
         read,
       ),
-      ...enteredTransactionWrites(db, actor, tx, namesOfRow(s), guard),
+      ...enteredWrites(db, actor, s, txs, guard),
       changeLogInsertIf(
         db,
         logEntry(actor, step ? "update" : "delete", s, after, step === null),
         guard,
       ),
     );
-    planned.push({ row: s, txId: tx.id });
   }
   if (req.op === "enter_now") {
     const recompute = recomputeDefaultsStmt(
@@ -512,9 +689,8 @@ export async function bulkScheduled(
     if (recompute) writes.push(recompute);
   }
   await hooks?.beforeWrite?.();
-  const per = req.op === "delete" ? 2 : 4;
   const results = (await db.batch(stmts(writes))) as unknown as { meta: { changes?: number } }[];
-  const wrote = planned.map((_, i) => (results[i * per]?.meta.changes ?? 0) > 0);
+  const wrote = planned.map((p) => (results[p.gateIx]?.meta.changes ?? 0) > 0);
   const skipped = planned.flatMap((p, i) =>
     wrote[i] ? [] : [{ id: p.row.id, reason: "changed" as const }],
   );
@@ -602,19 +778,20 @@ export async function enterDue(
   if (due.length === 0) return { day: opts.day, entered: [], has_more: false };
   const now = new Date().toISOString();
   const writes: unknown[] = [];
-  const planned: { row: repo.ScheduledRow; txId: string; date: string }[] = [];
+  const planned: { row: repo.ScheduledRow; txId: string; date: string; gateIx: number }[] = [];
   for (const s of due) {
     const step = dueStep(s.dateFirst, s.frequency, s.dateNext, opts.day);
     if (!step) continue;
     const token = crypto.randomUUID();
     const guard = repo.writtenWith(s.id, token);
-    const tx = enteredRow(s, step.enterDate, false, now);
+    const txs = enteredRows(s, step.enterDate, false, now);
     const after = {
       ...s,
       dateNext: step.dateNext ?? s.dateNext,
       updatedAt: now,
       deletedAt: step.dateNext ? null : now,
     };
+    planned.push({ row: s, txId: txs[0]?.id ?? "", date: step.enterDate, gateIx: writes.length });
     writes.push(
       repo.updateIfStmt(
         db,
@@ -622,14 +799,13 @@ export async function enterDue(
         { dateNext: after.dateNext, deletedAt: after.deletedAt, updatedAt: now, writeToken: token },
         { dateNext: s.dateNext, writeToken: s.writeToken },
       ),
-      ...enteredTransactionWrites(db, opts.actor, tx, namesOfRow(s), guard),
+      ...enteredWrites(db, opts.actor, s, txs, guard),
       changeLogInsertIf(
         db,
         logEntry(opts.actor, step.dateNext ? "update" : "delete", s, after, !step.dateNext),
         guard,
       ),
     );
-    planned.push({ row: s, txId: tx.id, date: step.enterDate });
   }
   if (planned.length === 0) return { day: opts.day, entered: [], has_more: hasMore };
   for (const planId of new Set(planned.map((p) => p.row.budgetId))) {
@@ -644,7 +820,7 @@ export async function enterDue(
   return {
     day: opts.day,
     entered: planned.flatMap((p, i) =>
-      (results[i * 4]?.meta.changes ?? 0) > 0
+      (results[p.gateIx]?.meta.changes ?? 0) > 0
         ? [{ scheduled_transaction_id: p.row.id, transaction_id: p.txId, date: p.date }]
         : [],
     ),

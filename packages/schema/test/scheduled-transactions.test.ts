@@ -12,10 +12,7 @@ describe("scheduled transaction shapes", () => {
     expect(ScheduledTransactionCreate.parse(ok).frequency).toBe("never");
   });
   it("refuses fields it does not support", () => {
-    for (const extra of [
-      { date_next: "2026-12-02" },
-      { subtransactions: [] },
-    ]) {
+    for (const extra of [{ date_next: "2026-12-02" }, { subtransactions: [] }]) {
       expect(ScheduledTransactionCreate.safeParse({ ...ok, ...extra }).success).toBe(false);
     }
   });

@@ -49,8 +49,8 @@ describe("scheduled transfer shapes", () => {
     });
     expect(parsed.transfer_account_id).toBe("b");
     expect(parsed.mirror).toBe(false);
-    expect(
-      ScheduledTransaction.safeParse({ ...row, transfer_account_id: null }).success,
-    ).toBe(false);
+    expect(ScheduledTransaction.safeParse({ ...row, transfer_account_id: null }).success).toBe(
+      false,
+    );
   });
 });
