@@ -129,11 +129,36 @@ index collides with a concurrent attach, it answers 409. Either way, the object 
 | Transfer | Each side is its own row with its own image. |
 | Duplicate (bulk) | Not copied: the copy has no image. |
 | Move to another account | Kept: the row keeps its id. |
-| Manual match | The hand entry survives and the import row is soft-deleted (`services/manual-match.ts`). An image on the import stays with that soft-deleted row and is not shown. Carrying it across to the hand entry is a follow-up. |
+| Manual match | The hand entry survives and the import row is soft-deleted (`services/manual-match.ts`). An image only the import has moves to the entry; see "Images and matching". Unmatch brings it back. |
 | Plan export | Not copied: the export holds no images. |
 | Make a Fresh Start | Not copied: Fresh Start copies no transactions. The archive keeps its images. |
 | Plan import | No images are imported. |
 | Backup | The D1 backup dumps every table, so it includes `transaction_images` rows. The objects stay in `budget-files` and are not copied into the backup. |
+
+## Images and matching (EXF-593)
+
+Only a manual match joins two live transaction rows, and it always keeps the hand entry and soft-deletes the bank
+import. The other ways a bank row meets an entered row never hold two rows:
+- **Plaid sync and file import** fold the bank's fields into the existing row. The import is never inserted, so no
+  image can sit on a losing row.
+- **A posted version of a pending item** (Enter Now row or untouched item) is the same fold. A pending item is not a
+  transaction and cannot hold an image.
+
+Rules of a manual match (`moveOnMatchStmts`, in the match's one `db.batch`):
+- Only the import has an image: `transaction_images.transaction_id` is updated to the entry. No R2 copy, the key
+  stays. One `change_log` row: `transaction_image`, `update`, entity id = the image row's id, before and after the
+  `TransactionImage` shape with the old and the new transaction id.
+- Both have one: nothing moves. The entry keeps its own, and the import's stays on the soft-deleted row.
+- Only the entry has one: nothing moves.
+
+Unmatch (`moveOnUnmatchStmts`, in its batch) gives the bank's import back as a **new** row, so the images follow it:
+the image the match moved (found by the latest log row above, and only while that image is still live on the entry),
+and the image that stayed on the soft-deleted import. An image attached or replaced after the match stays with the
+entry. Undo of a bank match through the change set is still refused ("unmatch it instead"), so unmatch is the undo;
+no new undo type is needed.
+
+Both writes add statements to the existing batches (no D1 call): the call counts of match and unmatch are the same
+with and without an image, which `test/manual-match-images.test.ts` pins.
 
 ## Undo
 
