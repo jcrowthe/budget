@@ -232,6 +232,29 @@ test("keyboard: Enter on the info button opens the menu on Enter Now, Enter ente
   expect(s.stub.enterPosts).toHaveLength(1);
 });
 
+test("keyboard: after Enter Now the focus is the entered row, which is selected; Shift+ArrowDown extends from it", async ({
+  page,
+  request,
+}) => {
+  const s = await seed(page, request);
+  await page.goto(`/${s.plan}/accounts/${s.account}`);
+  await expect(pendingRows(page)).toHaveCount(2);
+  await infoOf(page, "ZZ-TEST Pending Cafe").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Enter Now" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  const entered = realRows(page).filter({ hasText: "ZZ-TEST Pending Cafe" });
+  await expect(entered).toHaveCount(1);
+  await expect(entered).toBeFocused();
+  await expect(entered).toHaveClass(/is-checked/);
+  // the next keystroke acts on that row: the selection continues from it
+  const next = entered.locator("xpath=following-sibling::tr[@data-tx][1]");
+  await expect(next).not.toHaveClass(/is-checked/);
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(next).toHaveClass(/is-checked/);
+  await expect(entered).toHaveClass(/is-checked/);
+});
+
 test("keyboard: entering the last pending item leaves focus in the register", async ({
   page,
   request,
