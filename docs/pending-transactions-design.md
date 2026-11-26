@@ -119,7 +119,7 @@ row can be made in the browser; Enter Now makes the real row, so balances really
 - `packages/schema/test/register.test.ts`, `packages/schema/test/register-export.test.ts`: fixtures typed as
   `TransactionDetail` / `PlanTransaction` gain `status: null, pending_transaction_id: null`.
 - `apps/worker/test/rename-rules.test.ts:23,32` and `apps/worker/test/payee-category-api.test.ts:293,301`: tool count
-  128 → 129.
+  128 → 131 on the rebased tree (main is at 130 with fresh_start_budget and bulk_update_scheduled_transactions; this change adds enter_pending_transaction).
 - `apps/worker/test/plaid-stub.ts`: `plaidTxn()` defaults `pending_transaction_id: null`.
 - `apps/worker/test/mcp-coverage/transactions.ts`, `apps/worker/test/mcp-timestamps.test.ts`: the new route and tool.
 - No exact-equality assertion on a transaction response, no plaid-sync "pending" assertion and no `change_log` JSON
