@@ -126,7 +126,12 @@ The source app has no keyboard reorder; this is ours, so keyboard users can reor
     (a locked group such as Credit Card Payments has none and doesn't move). Focus goes back to that control after the
     move.
   - A move past either end does nothing. A payment category stays in its group; the Credit Card Payments group is
-    pinned first, so nothing moves above it. Moving a category into another group is still drag only.
+    pinned first, so nothing moves above it.
+  - **Across a group edge:** the first category of a group, on Alt+Shift+ArrowUp, goes to the end of the previous
+    visible group; the last, on ArrowDown, to the start of the next. Hidden groups are skipped; a collapsed target
+    group still accepts the move. The body is a drop's: `group_id` plus `after_category_id` (the target's last visible
+    category) or `before_category_id` (its first), or `group_id` alone for a group with no visible category. A payment
+    category never crosses, and nothing enters Credit Card Payments. The announcement names the new group.
 - It sends the same `POST …/categories/{id}/move` and `…/category_groups/{id}/move` bodies as a drop (`before_*` for
   up, `after_*` for down); no new endpoint. One change set per move, so Undo works as for a drag.
 - The grid has one visually hidden `aria-live="polite"` region that says, for example, "Moved

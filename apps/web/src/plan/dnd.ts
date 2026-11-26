@@ -111,8 +111,39 @@ export type KeyMove =
   | { kind: "group"; body: GroupMoveBody; text: string };
 
 /**
+ * At a group's edge the category crosses into the neighbouring visible group: up → the end of the previous one,
+ * down → the start of the next. Hidden groups are skipped; a collapsed group still accepts the move. A payment
+ * category never leaves its group, and nothing moves into the Credit Card Payments group.
+ */
+function crossGroupMove(
+  item: DragItem,
+  groups: Groups,
+  from: Group,
+  me: Category,
+  dir: -1 | 1,
+): KeyMove | null {
+  if (item.payment) return null;
+  const vg = groups.filter((x) => !x.hidden);
+  const dest = vg[vg.findIndex((x) => x.id === from.id) + dir];
+  if (!dest || !allowed(item, dest)) return null;
+  const dvis = dest.categories.filter((c) => !c.hidden);
+  const edge = dir < 0 ? dvis[dvis.length - 1] : dvis[0];
+  const body: CategoryMoveBody = !edge
+    ? { group_id: dest.id }
+    : dir < 0
+      ? { group_id: dest.id, after_category_id: edge.id }
+      : { group_id: dest.id, before_category_id: edge.id };
+  const pos = dir < 0 ? dvis.length + 1 : 1;
+  return {
+    kind: "category",
+    body,
+    text: `Moved ${me.name} to ${dest.name}, position ${pos} of ${dvis.length + 1}.`,
+  };
+}
+
+/**
  * Keyboard reorder (our addition; the source app has none): Alt+Shift+ArrowUp/ArrowDown moves the row one place among
- * the visible rows of its group (a category) or of the plan (a group). Null at either end, for the pinned Credit Card
+ * the visible rows of its group (a category) or of the plan (a group). At a group's edge it crosses into the neighbouring visible group. Null at the first/last group's edge, for the pinned Credit Card
  * Payments group, and for a move above it. Sends the same bodies as a drop.
  */
 export function keyboardMove(item: DragItem, groups: Groups, dir: -1 | 1): KeyMove | null {
@@ -123,7 +154,8 @@ export function keyboardMove(item: DragItem, groups: Groups, dir: -1 | 1): KeyMo
     const i = vis.findIndex((c) => c.id === item.id);
     const n = vis[i + dir];
     const me = vis[i];
-    if (!me || !n) return null;
+    if (!me) return null;
+    if (!n) return crossGroupMove(item, groups, g, me, dir);
     const body: CategoryMoveBody =
       dir < 0
         ? { group_id: g.id, before_category_id: n.id }

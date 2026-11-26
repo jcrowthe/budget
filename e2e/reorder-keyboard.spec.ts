@@ -136,19 +136,20 @@ const select = async (page: Page, name: string) => {
 test("the first category of a group moves to the end of the previous group", async ({ page }) => {
   await openPlan(page);
   const names = await groupNames(page).allTextContents();
-  const bi = names.findIndex((n) => n.includes("Bills"));
-  expect(bi).toBeGreaterThan(0);
-  const prev = names[bi - 1].trim();
+  const gi = names.findIndex((n) => n.includes("Needs"));
+  expect(gi).toBeGreaterThan(0);
+  const prev = names[gi - 1].trim();
   const prevCats = await blockNames(page, prev).allTextContents();
-  await select(page, RENT);
+  const [first, ...rest] = await blockNames(page, "Needs").allTextContents();
+  await select(page, first);
   await page.keyboard.press("Alt+Shift+ArrowUp");
-  await expect(blockNames(page, prev)).toHaveText([...prevCats, RENT]);
-  await expect(bills(page)).toHaveText([PHONE, UTILITIES]);
-  await expect(live(page)).toContainText(new RegExp(`Moved .*Rent.* to ${prev}`));
-  await expect(catRow(page, RENT)).toHaveAttribute("aria-selected", "true");
+  await expect(blockNames(page, prev)).toHaveText([...prevCats, first]);
+  await expect(blockNames(page, "Needs")).toHaveText(rest);
+  await expect(live(page)).toContainText(new RegExp(`Moved .* to ${prev}`));
+  await expect(catRow(page, first)).toHaveAttribute("aria-selected", "true");
   await page.reload();
-  await expect(blockNames(page, prev)).toHaveText([...prevCats, RENT]);
-  await expect(bills(page)).toHaveText([PHONE, UTILITIES]);
+  await expect(blockNames(page, prev)).toHaveText([...prevCats, first]);
+  await expect(blockNames(page, "Needs")).toHaveText(rest);
 });
 
 test("the last category of a group moves to the start of the next group", async ({ page }) => {
