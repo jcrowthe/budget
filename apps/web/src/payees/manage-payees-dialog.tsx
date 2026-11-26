@@ -156,7 +156,11 @@ export function ManagePayeesDialog({
               </button>
             ) : null}
           </div>
-          {payees.isSuccess && !hasAny ? (
+          {payees.isPending ? (
+            <p className="mp-no-payees" role="status">
+              Loading payees…
+            </p>
+          ) : payees.isSuccess && !hasAny ? (
             <p className="mp-no-payees">{NO_PAYEES}</p>
           ) : (
             <PayeeList

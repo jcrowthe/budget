@@ -258,6 +258,8 @@ For each state below, at 1440×900 and at 1024×700: the Tester drives the clone
 
 **If the Build runs long, parts 1 to 4 are the ones that must be whole** (a payee can be found, renamed and hidden from the dialog, and every operation has its tool); say plainly in the report what of parts 5 and 6 is not done, and the Lead tickets it. A part half done is worse than a part left out.
 
+**Loading.** While the payees query is pending the list area shows `<p class="mp-no-payees" role="status">Loading payees…</p>` instead of `PayeeList`: the list emits group headers even for empty groups, so rendering it early put `Expand Transfer Payees` in the second row and dropped it when the rows landed.
+
 ## Manifest
 
 touches: [apps/worker/src/routes/payees.ts, apps/worker/src/services/payees.ts, apps/worker/src/repositories/payees.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/src/mcp/tools/payees.ts, apps/worker/test/manage-payees*.test.ts, apps/worker/test/mcp-coverage/payees.ts, apps/worker/test/mcp-timestamps.test.ts, packages/schema/src/payees.ts, packages/schema/test/payees.test.ts, packages/schema/test/manage-payees.test.ts, apps/web/src/payees/**, apps/web/src/menu-actions/manage-payees.tsx, apps/web/src/api/payees.ts, apps/web/src/register/PayeeField.tsx, apps/web/src/register/entry.css, e2e/manage-payees*.spec.ts, e2e/support/manage-payees-seed.ts, e2e/payee-picker.spec.ts, e2e/plan-menu.spec.ts, docs/manage-payees-design.md, docs/manage-payees-spec.md, docs/manage-payees-polish.md, docs/README.md]
