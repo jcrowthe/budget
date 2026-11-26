@@ -9,10 +9,9 @@ type Row = TransactionDetail;
 /** Shown by the add row when a split or a transfer is saved as scheduled, and by Make Repeating's menu item. */
 export const REPEAT_SPLIT_TRANSFER = "Scheduled splits and transfers are not available yet.";
 export const REPEAT_ON_SCHEDULED =
-  "Make Repeating works on a transaction you entered, not on a scheduled one";
+  "Make Repeating works on a recorded transaction, not on a scheduled one";
 export const REPEAT_SELECT_ONE = "Select one transaction to make it repeating";
-export const REPEAT_SYSTEM_PAYEE =
-  "A transaction made by Budget (a starting balance, an adjustment or loan interest) can't repeat";
+export const REPEAT_SYSTEM_PAYEE = "Starting balances, adjustments and loan interest can't repeat";
 export const REPEAT_CLOSED = "A closed account takes no new transactions";
 
 export type MakeRepeatingState =

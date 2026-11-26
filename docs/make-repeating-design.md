@@ -16,10 +16,10 @@ greyed out.
 
 ## Eligibility (first match wins)
 
-1. A scheduled row is selected: "Make Repeating works on a transaction you entered, not on a scheduled one".
+1. A scheduled row is selected: "Make Repeating works on a recorded transaction, not on a scheduled one".
 2. Not exactly one real row: "Select one transaction to make it repeating".
 3. A split or a transfer: "Scheduled splits and transfers are not available yet." (the add row's own message).
-4. A system payee (starting balance, adjustment, loan interest): refused by the server's `resolvePayee`.
+4. A system payee (starting balance, adjustment, loan interest): "Starting balances, adjustments and loan interest can't repeat" (the server's `resolvePayee` refuses them too).
 5. A closed account: "A closed account takes no new transactions".
 
 ## Pre-fill

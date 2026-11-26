@@ -59,7 +59,7 @@ describe("makeRepeatingState", () => {
     const t = tx({ payee_system: "starting_balance" as never });
     expect(
       reason(makeRepeatingState({ real: [t], scheduledCount: 0, accountClosed: open })),
-    ).toMatch(/made by Budget/);
+    ).toMatch(/loan interest can't repeat/);
   });
   it("is off in a closed account", () => {
     expect(
