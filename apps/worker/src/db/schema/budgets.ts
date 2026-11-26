@@ -18,4 +18,6 @@ export const budgets = sqliteTable("budgets", {
   dateFormat: text("date_format").notNull().default("MM/DD/YYYY"),
   expectedIncome: integer("expected_income"),
   flagNames: text("flag_names"),
+  /** Set by Make a Fresh Start on the plan it archives; the due-job skips such plans. */
+  archivedAt: text("archived_at"),
 });

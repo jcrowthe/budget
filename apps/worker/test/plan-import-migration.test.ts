@@ -25,6 +25,7 @@ describe("plan_imports migration", () => {
       .map((r) => r.name)
       .sort();
     expect(cols).toEqual([
+      "archived_at",
       "bank_environment",
       "created_at",
       "currency_iso_code",

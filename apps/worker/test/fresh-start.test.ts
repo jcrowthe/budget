@@ -350,14 +350,14 @@ describe("Fresh Start: the copy (EXF-478)", () => {
     expect((await q("select name from budgets where id = ?", s.bid))[0]?.name).toBe(s.name);
   });
 
-  it("10: scheduled entering still works in both plans", async () => {
+  it("10: scheduled entering works in the new plan; the archive is skipped by the due-job", async () => {
     const s = await seedSource();
     const { new_budget_id: nb } = await freshOk(s.bid, `ZZ-TEST new ${rand()}`);
     const day = "2026-03-21";
     const entered = await enterDue(env as Env, { budgetIds: [nb], day, actor });
     expect(entered.entered.length).toBeGreaterThanOrEqual(1);
     const old = await enterDue(env as Env, { budgetIds: [s.bid], day, actor });
-    expect(old.entered.length).toBe(entered.entered.length);
+    expect(old.entered).toEqual([]);
     expect(
       await n(
         "select count(*) n from transactions where budget_id = ? and date = '2026-03-20' and memo = 'ZZ plain'",
@@ -369,6 +369,6 @@ describe("Fresh Start: the copy (EXF-478)", () => {
         "select count(*) n from transactions where budget_id = ? and date = '2026-03-20' and memo = 'ZZ plain'",
         s.bid,
       ),
-    ).toBe(1);
+    ).toBe(0);
   });
 });

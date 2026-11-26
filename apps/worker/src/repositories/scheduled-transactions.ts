@@ -201,6 +201,8 @@ export async function listDue(
     sql`${st.dateNext} <= ${opts.day}`,
     eq(accounts.closed, false),
     livePair,
+    // an archived plan (Fresh Start) keeps its schedules but does not enter them
+    sql`${st.budgetId} not in (select id from budgets where archived_at is not null)`,
   ];
   if (opts.budgetIds !== "all") {
     if (opts.budgetIds.length === 0) return [];

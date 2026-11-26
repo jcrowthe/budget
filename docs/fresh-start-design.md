@@ -51,8 +51,15 @@ no link in the new plan and a $0 Starting Balance.
 
 ### Archive schedules
 
-The archive keeps its scheduled transactions, so the six-hourly `enterDue` keeps entering them there. Known
-consequence; a follow-up could pause them.
+The archive keeps its scheduled transactions, but they are dormant: the same statement that renames the archive
+sets `budgets.archived_at` (additive nullable column; the migration also backfills archives made earlier from their
+`fresh_start` change_log row), and the due-job's selection (`listDue`) skips plans with `archived_at` set. No
+statement is added to the write batch, so the D1 counts do not move.
+
+Chosen over ending the schedules as deletes: a deleted schedule drops out of the archive's Scheduled list and
+cannot be entered by hand, and the already-made archives would stay unfixed. Here the schedules stay visible and
+editable, **Enter Now still works by hand** in the archive (it does not go through the due-job), and the dates do
+not advance by themselves. The nightly/six-hourly job simply never selects them.
 
 ## D1 plan
 
