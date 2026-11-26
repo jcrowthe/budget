@@ -23,7 +23,11 @@ batch in `services/accounts.ts`). No migration. The tasks are in the Build's spe
 | Escrow | reconciled | **refused 409** | **refused 409** | a lock icon, "Reconciled, not editable" |
 | Other: Fee or Charge / Credit (no payee, no transfer) | not reconciled | yes | yes | an **Edit** button on the row |
 | Other: Balance adjustment (Update Balance, reconciled) | reconciled | **refused 409** | **refused 409** | the lock icon |
-| Other: Initial Balance, a payee's row; Payments | | refused 422 | refused 422 | as today (no button, no lock) |
+| Other: Initial Balance, a payee's row, a split | | refused 422 | refused 422 | as today (no button, no lock) |
+| Payment (a transfer from an on-plan account) | neither side reconciled, cash account open | yes | yes | an **Edit** button on the row |
+| Payment | either side reconciled | **refused 409** | **refused 409** | the lock icon |
+| Payment | cash account closed | refused 422 `account_closed` | refused 422 `account_closed` | no button, no lock |
+| Payment | no other side (missing or deleted), or a split | refused 422 `not_editable_activity` | refused 422 `not_editable_activity` | no button, no lock |
 
 - **M1 Reconciled is a 409** `reconciled_line` ("This line was reconciled by Update Balance and can't be changed"):
   the request is well-formed, the row's state forbids it, as the other state conflicts in the app. A row that is
@@ -161,20 +165,54 @@ tool-count change for pairing.
   unpairing the panel shows Get Started.
 - Colours only from `shell/tokens.css`. Copy lives in `packages/schema/src/loan-*.ts`.
 
+## Payments (follow-up from PR 144)
+
+A recorded payment is a transfer: the cash account's row (negative, `transfer_account_id` = the loan) and the loan's
+mirror row (positive). Edit and Delete on a payment row change both sides in one `db.batch`.
+
+| Case | PATCH / DELETE answer | Account Activity row |
+|---|---|---|
+| Both sides not reconciled, cash account open, not a split, other side present | 200 `{ kind: "payment", transaction, from_transaction, balance }` | Edit button, `Edit payment on <Month D>` |
+| Either side reconciled (checked before the closed check) | 409 `reconciled_line`: "This payment is reconciled in <account> and can't be changed" (the cash account when its side is reconciled, else the loan) | lock icon, no Edit |
+| Cash account closed | 422 `account_closed`: "The other account of this payment is closed" | no Edit, no lock |
+| Loan closed | 422 `account_closed` (unchanged) | as today |
+| Loan row is a split, or the other side is missing | 422 `not_editable_activity` | no Edit, no lock |
+| Any other transfer row (negative, or from a tracking account) | 422 `not_editable_activity` (unchanged) | as today |
+
+- A memo-only edit of a reconciled payment is refused too: there is no `confirm_reconciled` here.
+- PATCH body is unchanged (`amount`, `date`, `memo`). `amount` is the payment's magnitude: the loan side stays positive
+  and the cash side negative. `today` with a payment is 422 `unprocessable_entity` ("today does not apply to a payment").
+- **Reuse.** The write goes through the register's `prepare` and `planWrites` (`services/transactions.ts`, exported
+  today, unchanged). The read batch of `read()` gains `paymentSidesQuery` (the loan row and the row its
+  `transfer_transaction_id` names, as `TransactionDetailRow`s) and `paymentOtherAccountQuery`; they are handed to
+  `prepare` as `reads`, so `prepare` makes no D1 call. The register's `mirror()` keeps the cash side's category, and
+  `prepare` approves the edited row.
+- **Guards.** The statements run only while the loan's balance (`accountSumIs`), the loan row and the cash row are
+  unchanged since the read (`holdsAt`); the row's own write comes last and also needs the cash side's write. A lost
+  race is 409 `balance_changed` and writes nothing.
+- **Answer.** `from_transaction` is the cash account's side after the write (null after a delete). `balance` is the
+  engine's closing balance with the payment moved, equal to the loan account's balance. Moving a payment to another
+  month changes that month's estimated interest.
+- **Frozen months.** A payment in a month Update Balance froze can be edited: the frozen interest and escrow rows keep
+  their amounts (C6); only the payments the engine reads change.
+- **Undo.** The change set holds a change_log row for each side, so Undo restores both.
+- Account Activity's payment rows gain `editable` and `reconciled` (the other side is joined in `monthRowsQuery`).
+
 ## Departures
 
 - **Escrow** was not editable in the first Build (no Add Escrow). EXF-1013 adds Add Escrow, and an edited escrow line is edited or deleted like an interest line. M3 applies to it: a month's open rows become one row, a mixed month changes only its open part, and an amount at or below the reconciled part is 422 ("Escrow this month can't be less than its reconciled 300.00"). The manage verbs do not check the loan type, so an escrow line on a non-mortgage (only possible through the transactions API) can still be corrected or removed.
-- **Payments** are not edited from Account Activity: they are transfers with a cash side, outside this follow-up.
+- **Payments** are edited and deleted from Account Activity (see Payments below). Editing the payment's cash account is out of scope: delete the payment and record it again.
 - **A fee can't become a credit** (or the reverse) by an edit: delete it and add the other.
-- **Re-pairing a paired loan** from the page (a "Change" action) is not added. Unpair, then Get Started. The API
-  already re-pairs.
+- **Re-pairing a paired loan** was not added by the first Build (Unpair, then Get Started; the API already re-pairs).
+  The panel's **Change category** button now does it (see Change category below).
 - **Additions**: `transaction_id` and `editable` on the interest line, `edited_on`, `transaction_id` and `editable` on the escrow line (EXF-1013), `editable` and
   `reconciled` on Other rows; `today` on PATCH.
+- **Payments** extend the two tools: no new tool.
 - **Tool count** +2 (`update_loan_activity`, `delete_loan_activity`).
 
 ## Not in this Build
 
-Editing payments from the loan page, plan export/import of loan rows and pairings.
+Plan export/import of loan rows and pairings.
 
 ## Build notes
 
@@ -189,7 +227,7 @@ Editing payments from the loan page, plan export/import of loan rows and pairing
     same (4).
   - Reconciled refusals: a reconciled interest line, escrow row, Balance adjustment row and a payee-less (fee/credit)
     row are 409 `reconciled_line`; every other row that is not a fee, credit or interest line is 422
-    `not_editable_activity`, including a reconciled payment.
+    `not_editable_activity`. (Payments were refused here in the first Build; they are edited since, see Payments.)
   - Moving a fee to an earlier month also moves the interest that carries into later months, so the answer's `balance`
     is the engine's balance after the write (equal to the account's), not the old balance minus the change.
 - **EXF-1013 (escrow).** `monthInterestRowsQuery` became `monthFrozenRowsQuery`: the month's rows of the addressed row's own system (interest or escrow), one statement, no IN list. `classify` returns one `line` type over the system; update and delete share one branch. PATCH and DELETE of an escrow line are **4** D1 calls (1 vs 10 open rows, 10 vs 100 payments, 1 vs 24 months), a refusal **3**, Account Activity **3**. No new tool: the count stays **121** (`update_loan_activity` and `delete_loan_activity` take an escrow `transaction_id`).
@@ -198,6 +236,12 @@ Editing payments from the loan page, plan export/import of loan rows and pairing
 - **Surface.** Tool count 118 -> 120 (`update_loan_activity`, `delete_loan_activity`); `pair_loan_category` gained
   `category_id: null` and `new_category` and no new tool. `services/accounts.ts` exports `checkNewCategory`,
   `pairingStmts` and `explainNewCategoryRefusal` with no behaviour change (the loan-accounts specs pass unchanged).
+- **Payments (follow-up from PR 144).** PATCH and DELETE of a payment are **4** D1 calls (the plan, the account, one
+  read batch, one write batch) for 1 vs 10 vs 100 payments and 1 vs 24 months; a reconciled refusal **3**; Account
+  Activity GET stays **3** (`loan-edit-payment-calls.test.ts`). The tool count stays **121**. `services/transactions.ts`
+  is unchanged. `repositories/loan-manage.ts` mirrors the register's private `toDetail` (`toDetailRow`) because
+  `repositories/transactions.ts` is outside this work's files. The old loan-manage test that asserted a payment is
+  422 `not_editable_activity` no longer lists the payment.
 
 ## Change category
 
