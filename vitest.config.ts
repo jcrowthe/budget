@@ -11,6 +11,7 @@ export default defineConfig({
           testTimeout: 60_000,
         },
       },
+      { test: { name: "web", include: ["apps/web/src/**/*.test.{ts,tsx}"] } },
       "apps/worker/vitest.config.ts",
     ],
   },
