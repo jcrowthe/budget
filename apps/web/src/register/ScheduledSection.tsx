@@ -1,4 +1,5 @@
 import type { Account } from "@budget/schema/accounts";
+import { NEEDS_CATEGORY_TIP } from "@budget/schema/attention";
 import { repeatTooltip } from "@budget/schema/recurrence";
 import {
   categoryCell,
@@ -330,7 +331,18 @@ export function ScheduledSection({
                 {l.payee_name}
               </td>
               {showCategory && (
-                <td data-field="category">
+                <td
+                  data-field="category"
+                  title={
+                    l.category_name
+                      ? l.category_group_name
+                        ? `${l.category_group_name}: ${l.category_name}`
+                        : l.category_name
+                      : l.inflow_to_ready_to_assign
+                        ? "Inflow: Ready to Assign"
+                        : undefined
+                  }
+                >
                   {l.category_name ? (
                     l.category_group_name ? (
                       `${l.category_group_name}: ${l.category_name}`
@@ -340,7 +352,9 @@ export function ScheduledSection({
                   ) : l.inflow_to_ready_to_assign ? (
                     "Inflow: Ready to Assign"
                   ) : (
-                    <span className="needs-category">This needs a category</span>
+                    <span className="needs-category" title={NEEDS_CATEGORY_TIP}>
+                      This needs a category
+                    </span>
                   )}
                 </td>
               )}
