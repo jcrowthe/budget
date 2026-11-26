@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ChipEntry } from "../../api/customViews";
+import { CloseIcon } from "../../shell/icons";
 import { inTopHalf } from "../dnd";
 import { PencilIcon, TrashIcon } from "../icons";
 import "./views.css";
@@ -77,8 +78,14 @@ export function ManageViewsDialog({
       >
         <div className="dialog-head">
           <h2>Manage Views</h2>
-          <button type="button" className="icon-button" aria-label="Close" onClick={onDone}>
-            ✕
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close"
+            title="Close"
+            onClick={onDone}
+          >
+            <CloseIcon />
           </button>
         </div>
         <ul className="manage-view-list">
@@ -173,7 +180,9 @@ export function ManageViewsDialog({
                     >
                       Cancel
                     </button>
-                    <span aria-hidden="true">|</span>
+                    <span className="manage-view-sep" aria-hidden="true">
+                      |
+                    </span>
                     <button
                       type="button"
                       className="manage-view-link is-destructive"

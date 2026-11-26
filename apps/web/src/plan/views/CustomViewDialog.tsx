@@ -114,13 +114,14 @@ export function CustomViewDialog({
               placeholder="Keep 'em short & sweet!"
               value={name}
               aria-invalid={error !== null}
+              aria-describedby={error ? `${titleId}-error` : undefined}
               onChange={(e) => {
                 setName(e.target.value);
                 if (error) setError(null);
               }}
             />
             {error && (
-              <div className="custom-view-error" role="alert">
+              <div id={`${titleId}-error`} className="custom-view-error" role="alert">
                 {error}
               </div>
             )}
