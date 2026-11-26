@@ -17,16 +17,6 @@ const open = async (page: Page, s: Awaited<ReturnType<typeof seedPayees>>) => {
   await expect(d.locator(".mp-name").first()).toBeVisible();
   return d;
 };
-// Under load a press right after the list renders can be lost: press Expand again until the group is open.
-const expandTransfers = async (page: Page, d: ReturnType<Page["locator"]>) => {
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if ((await btn(d, "Collapse Transfer Payees").count()) > 0) return;
-    await realClick(page, btn(d, "Expand Transfer Payees"));
-    await btn(d, "Collapse Transfer Payees")
-      .waitFor({ state: "visible", timeout: 8_000 })
-      .catch(() => {});
-  }
-};
 const btn = (d: ReturnType<Page["locator"]>, name: string) =>
   d.getByRole("button", { name, exact: true });
 const pick = (d: ReturnType<Page["locator"]>, name: string) => btn(d, `Select ${name}`);
@@ -59,7 +49,8 @@ test("1 opens from the menu; Done closes it and the focus is back on the plan bu
 test("3 groups: transfer payees, the selected count, Check all", async ({ page, request }) => {
   const s = await seedPayees(request);
   const d = await open(page, s);
-  await expandTransfers(page, d);
+  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await expect(pick(d, "Transfer : ZZ Card")).toBeVisible();
   await expect(pick(d, "Transfer : ZZ Checking")).toBeVisible();
   await realClick(page, tick(d, "ZZ Cafe A"));
@@ -184,7 +175,8 @@ test("8 a transfer payee is read-only; mixing it with another asks to deselect i
 }) => {
   const s = await seedPayees(request);
   const d = await open(page, s);
-  await expandTransfers(page, d);
+  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await realClick(page, pick(d, "Transfer : ZZ Card"));
   await expect(d.getByRole("heading", { name: "Transfer : ZZ Card", exact: true })).toBeVisible();
   await expect(
@@ -208,7 +200,8 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
 }) => {
   const s = await seedPayees(request);
   const d = await open(page, s);
-  await expandTransfers(page, d);
+  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await realClick(page, pick(d, "Transfer : ZZ Card"));
   await expect(d.getByRole("heading", { name: "Transfer : ZZ Card", exact: true })).toBeVisible();
@@ -253,7 +246,8 @@ test("8c a rule added while the payee's rules list is still loading stays on scr
     1_000,
   );
   const d = await open(page, s);
-  await expandTransfers(page, d);
+  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await realClick(page, pick(d, "Transfer : ZZ Card"));
   await expect(d.getByRole("heading", { name: "Renaming", exact: true })).toBeVisible();
   await d.getByRole("textbox", { name: "New rule text", exact: true }).fill("zz card payment");
@@ -413,4 +407,32 @@ test("14 Undo and Redo are disabled (EXF-530); Done closes", async ({ page, requ
   await expect(btn(d, "Redo")).toBeDisabled();
   await realClick(page, btn(d, "Done"));
   await expect(d).toHaveCount(0);
+});
+
+test("23 Expand Transfer Payees does not move when a late payees response lands, and one press opens it", async ({
+  page,
+  request,
+}) => {
+  const s = await seedPayees(request);
+  await delayRoute(page, (url) => decodeURIComponent(url.pathname).endsWith("/payees"), 1_000);
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  const d = await openManagePayees(page, s.name);
+  const expand = btn(d, "Expand Transfer Payees");
+  // Before the fix the header showed at once, in the second row, with no payee rows yet.
+  await expand.waitFor();
+  const first = await expand.boundingBox();
+  const early = (await d.locator(".mp-name").count()) === 0;
+  await expect(d.locator(".mp-name").first()).toBeVisible();
+  await expect(expand).toBeVisible();
+  const settled = await expand.boundingBox();
+  expect(settled).toEqual(first);
+  expect(early, "no group header before the rows land").toBe(false);
+  if (!settled) throw new Error("Expand Transfer Payees has no box");
+  const x = settled.x + settled.width / 2;
+  const y = settled.y + settled.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(90);
+  await page.mouse.up();
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
 });
