@@ -81,6 +81,11 @@ const balanceOf = async (request: APIRequestContext, plan: string, account: stri
     cleared_balance: number;
   };
 
+// A route handler can outlive its page (the stub calls the API with the test's request context): drop them first.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test("AC1: the Pending Transactions section sits above Scheduled and the rows, lists both items, and changes no balance", async ({
   page,
   request,
@@ -230,6 +235,29 @@ test("keyboard: Enter on the info button opens the menu on Enter Now, Enter ente
   await expect(realRows(page).filter({ hasText: "ZZ-TEST Pending Cafe" })).toHaveCount(1);
   await expect.poll(() => inRegister(page)).toBe(true);
   expect(s.stub.enterPosts).toHaveLength(1);
+});
+
+test("keyboard: after Enter Now the focus is the entered row, which is selected; Shift+ArrowDown extends from it", async ({
+  page,
+  request,
+}) => {
+  const s = await seed(page, request);
+  await page.goto(`/${s.plan}/accounts/${s.account}`);
+  await expect(pendingRows(page)).toHaveCount(2);
+  await infoOf(page, "ZZ-TEST Pending Cafe").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Enter Now" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  const entered = realRows(page).filter({ hasText: "ZZ-TEST Pending Cafe" });
+  await expect(entered).toHaveCount(1);
+  await expect(entered).toBeFocused();
+  await expect(entered).toHaveClass(/is-checked/);
+  // the next keystroke acts on that row: the selection continues from it
+  const next = entered.locator("xpath=following-sibling::tr[@data-tx][1]");
+  await expect(next).not.toHaveClass(/is-checked/);
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(next).toHaveClass(/is-checked/);
+  await expect(entered).toHaveClass(/is-checked/);
 });
 
 test("keyboard: entering the last pending item leaves focus in the register", async ({

@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { useApproveReject, useEnterPending } from "../api/transactions";
 import { InfoCircleIcon } from "./icons";
 import { Popover } from "./Popover";
+import { useSelection } from "./selection";
 
 /** The attention cell: on an unapproved row the circled "i" and its Approve / Reject menu; otherwise empty. */
 export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: TransactionDetail }) {
@@ -110,8 +111,8 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
 }
 
 /**
- * After Enter Now the pending row unmounts and focus would fall to <body>. Where it goes: the entered row's first
- * control, else the next (or previous) pending row's info button, else the pending header.
+ * After Enter Now the pending row unmounts and focus would fall to <body>. Where it goes: the entered row itself
+ * (which is then the selected row, so Shift+arrows continue from it), else the next (or previous) pending row's info button, else the pending header.
  */
 function followingFocus(id: string): string[] {
   const rows = [...document.querySelectorAll<HTMLElement>("tr[data-pending]")];
@@ -121,11 +122,19 @@ function followingFocus(id: string): string[] {
     .filter(Boolean);
 }
 
-async function refocus(pendingId: string, enteredId: string, heirs: string[]) {
-  const target = () => {
-    const row = document.querySelector<HTMLElement>(`tr[data-tx="${CSS.escape(enteredId)}"]`);
-    const own = row?.querySelector<HTMLElement>("button,input,[tabindex]");
-    if (own) return own;
+async function refocus(
+  pendingId: string,
+  enteredId: string,
+  heirs: string[],
+  select: (id: string) => void,
+) {
+  const entered = () =>
+    document.querySelector<HTMLElement>(`tr[data-tx="${CSS.escape(enteredId)}"]`);
+  const target = (patient: boolean) => {
+    const row = entered();
+    if (row) return row;
+    // The entered row may land a refetch after the pending one leaves: give it a second before falling back.
+    if (patient) return null;
     for (const h of heirs) {
       const b = document.querySelector<HTMLElement>(
         `tr[data-pending="${CSS.escape(h)}"] .attention-button`,
@@ -139,8 +148,9 @@ async function refocus(pendingId: string, enteredId: string, heirs: string[]) {
     const gone = !document.querySelector(`tr[data-pending="${CSS.escape(pendingId)}"]`);
     const lost = !document.activeElement || document.activeElement === document.body;
     if (gone && lost) {
-      const t = target();
+      const t = target(i < 20);
       if (t) {
+        if (t.dataset.tx === enteredId) select(enteredId);
         t.focus();
         return;
       }
@@ -162,6 +172,7 @@ export function PendingAttentionCell({
   const button = useRef<HTMLButtonElement>(null);
   const busy = useRef(false);
   const mutation = useEnterPending(budgetId);
+  const { pick } = useSelection();
 
   const close = (reason?: "escape" | "tab" | "blur") => {
     setOpen(false);
@@ -176,7 +187,7 @@ export function PendingAttentionCell({
     try {
       const entered = await mutation.mutateAsync({ id: tx.id });
       setOpen(false);
-      void refocus(tx.id, entered.id, heirs);
+      void refocus(tx.id, entered.id, heirs, (id) => pick("real", id, "only"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "That did not work");
     } finally {

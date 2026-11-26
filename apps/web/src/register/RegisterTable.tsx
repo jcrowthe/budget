@@ -435,6 +435,7 @@ export function RegisterTable({
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: rows open from their own keyboard-reachable buttons and checkboxes */}
         <tr
           data-tx={tx.id}
+          tabIndex={-1}
           className={
             [checked && "is-checked", !tx.approved && "is-unapproved"].filter(Boolean).join(" ") ||
             undefined
