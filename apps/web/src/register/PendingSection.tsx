@@ -110,7 +110,7 @@ export function PendingSection({
               aria-expanded={!collapsed}
               onClick={() => setCollapsed((c) => !c)}
             >
-              <ClockOutlineIcon />
+              <ClockOutlineIcon className="pending-header-icon" />
               <span className="pending-title">Pending Transactions</span>
               <span className="pending-count">{rows.length}</span>
               <span className="pending-chevron" data-chevron={collapsed ? "right" : "down"}>

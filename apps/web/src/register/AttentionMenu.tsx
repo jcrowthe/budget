@@ -183,6 +183,9 @@ export function PendingAttentionCell({
                 </button>
               </li>
             </ul>
+            <p className="pending-menu-hint">
+              Adds it to the register as uncleared. When the bank posts it, the two are matched.
+            </p>
             {error && (
               <p role="alert" className="attention-menu-error">
                 {error}

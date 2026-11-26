@@ -1423,9 +1423,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pending-count {
+.pending-header:focus-visible {
+  outline: 0;
+  box-shadow: inset 0 0 0 2px var(--actionPrimary);
+}
+/* The header's clock and count are secondary to its title. */
+.pending-header-icon {
+  flex: none;
   color: var(--labelSecondary);
+}
+.pending-count {
+  flex: none;
+  min-width: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--register-keycap-bg);
+  color: var(--labelSecondary);
+  font-size: 12px;
   font-weight: 500;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .pending-chevron {
   display: inline-flex;
@@ -1434,6 +1453,13 @@
 .pending-chevron svg {
   width: 10px;
   height: 10px;
+}
+.pending-menu-hint {
+  margin: 0 12px 8px;
+  color: var(--labelSecondary);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: normal;
 }
 .register-table tbody tr.pending-row td {
   color: var(--register-pending-label);
