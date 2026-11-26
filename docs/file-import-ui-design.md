@@ -146,3 +146,5 @@ Made here:
   header row" keeps the column indices) come from the upload.
 - **The ▸ / ▾ in the skipped line is text** with a symbol-font fallback (a headless Chromium without that glyph draws
   an empty box; the test reads the text).
+
+> **Fixed height (Import Transactions).** Dialog 2 has a fixed height, `min(640px, 100vh - 32px)`, so the "Reading the file…" state and the loaded preview share one box: Cancel does not move when the preview arrives (a press that straddled the move was lost). The body scrolls inside.

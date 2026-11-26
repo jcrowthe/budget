@@ -476,10 +476,15 @@ test.describe("Cancel while the file is read", () => {
     request,
   }) => {
     const s = await seedFileImport(request);
+    // The preview is held for 1000 ms and until the test has recorded Cancel's box, so a slow runner cannot
+    // let the preview arrive before the "loading" box is measured.
+    let measured!: () => void;
+    const measuredP = new Promise<void>((r) => (measured = r));
     await page.route(/\/file-imports.*\/preview/, async (route) => {
       if (route.request().method() !== "POST") return route.fallback();
       const response = await route.fetch();
       await new Promise((r) => setTimeout(r, 1000));
+      await measuredP;
       await route.fulfill({ response });
     });
     await open(page, s);
@@ -490,6 +495,7 @@ test.describe("Cancel while the file is read", () => {
     await expect(d2(page).getByText("Reading the file…")).toBeVisible();
     const before = await cancel.boundingBox();
     expect(before).not.toBeNull();
+    measured();
     await expect(d2(page).getByRole("table")).toBeVisible();
     expect(await cancel.boundingBox()).toEqual(before);
     const x = (before?.x ?? 0) + (before?.width ?? 0) / 2;
