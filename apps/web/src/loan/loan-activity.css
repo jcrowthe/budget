@@ -176,6 +176,9 @@
   color: var(--actionPrimary);
   cursor: pointer;
 }
+.loan-edit-button:hover {
+  background: var(--buttonSecondaryBackground);
+}
 .loan-edit-button:focus-visible {
   outline: 2px solid var(--actionPrimary);
   outline-offset: 2px;
@@ -188,4 +191,9 @@
 }
 .dialog.loan-confirm {
   min-width: min(360px, 94vw);
+}
+/* The confirm's one line of consequence: secondary text, the footer's gap below it. */
+.dialog.loan-confirm .loan-intro {
+  margin: 0;
+  color: var(--labelSecondary);
 }

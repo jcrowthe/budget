@@ -1,5 +1,6 @@
 import { evaluateAmountEntry, formatAmountEntry } from "@budget/schema/amount-entry";
 import {
+  DELETE_LINE_BODY,
   DELETE_LINE_TITLE,
   EDIT_ACTIVITY_LABELS,
   EDIT_CREDIT_TITLE,
@@ -95,6 +96,9 @@ export function EditLoanActivityDialog({
         >
           <div className="dialog-head">
             <h2>{DELETE_LINE_TITLE}</h2>
+          </div>
+          <div className="form-body">
+            <p className="loan-intro">{DELETE_LINE_BODY}</p>
           </div>
           <div className="dialog-footer">
             <button

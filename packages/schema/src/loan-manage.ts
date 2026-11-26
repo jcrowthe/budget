@@ -58,6 +58,7 @@ export const EDIT_INTEREST_TITLE = "Edit Interest";
 export const EDIT_FEE_TITLE = "Edit Fee or Charge";
 export const EDIT_CREDIT_TITLE = "Edit Credit";
 export const DELETE_LINE_TITLE = "Delete this line?";
+export const DELETE_LINE_BODY = "The loan's balance changes with it. Undo brings the line back.";
 export const EDIT_ACTIVITY_LABELS = {
   amount: "Amount",
   date: "Date",
