@@ -414,3 +414,37 @@ test("14 Undo and Redo are disabled (EXF-530); Done closes", async ({ page, requ
   await realClick(page, btn(d, "Done"));
   await expect(d).toHaveCount(0);
 });
+
+test("23 Expand Transfer Payees does not move when a late payees response lands, and one press opens it", async ({
+  page,
+  request,
+}) => {
+  const s = await seedPayees(request);
+  await delayRoute(
+    page,
+    (url) => decodeURIComponent(url.pathname).endsWith("/payees"),
+    1_000,
+  );
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  const d = await openManagePayees(page, s.name);
+  const expand = btn(d, "Expand Transfer Payees");
+  // Before the fix the header showed at once, in the second row; after it, only once the rows are there.
+  const shown = await Promise.race([
+    expand.waitFor().then(() => "header"),
+    d.locator(".mp-name").first().waitFor().then(() => "rows"),
+  ]);
+  const first = shown === "header" ? await expand.boundingBox() : null;
+  await expect(d.locator(".mp-name").first()).toBeVisible();
+  await expect(expand).toBeVisible();
+  const settled = await expand.boundingBox();
+  if (first) expect(settled).toEqual(first);
+  expect(shown, "no group header before the rows land").toBe("rows");
+  if (!settled) throw new Error("Expand Transfer Payees has no box");
+  const x = settled.x + settled.width / 2;
+  const y = settled.y + settled.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(90);
+  await page.mouse.up();
+  await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
+});
