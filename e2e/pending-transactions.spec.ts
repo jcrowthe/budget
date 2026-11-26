@@ -81,6 +81,11 @@ const balanceOf = async (request: APIRequestContext, plan: string, account: stri
     cleared_balance: number;
   };
 
+// A route handler can outlive its page (the stub calls the API with the test's request context): drop them first.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test("AC1: the Pending Transactions section sits above Scheduled and the rows, lists both items, and changes no balance", async ({
   page,
   request,
