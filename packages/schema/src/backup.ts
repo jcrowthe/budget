@@ -15,9 +15,9 @@ export const BACKUP_KEEP = 14;
 export const BACKUP_PRUNE_PER_RUN = 3;
 /** Rows one invocation reads. */
 export const BACKUP_ROWS_PER_RUN = 10_000;
-/** Bounds per invocation, asserted by apps/worker/test/backup-calls.test.ts. */
+/** Bounds per invocation (R2 12: the 11 of EXF-976 and the one status put), asserted by apps/worker/test/backup-calls.test.ts. */
 export const BACKUP_MAX_D1_CALLS = 2;
-export const BACKUP_MAX_R2_CALLS = 11;
+export const BACKUP_MAX_R2_CALLS = 12;
 
 export interface BackupColumn {
   name: string;

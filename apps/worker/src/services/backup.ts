@@ -11,16 +11,23 @@ import {
   type BackupState,
   type BackupTable,
 } from "@budget/schema/backup";
+import type { BackupErrorCode } from "@budget/schema/backup-status";
 import type { Env } from "../env";
 import { describeError, LOG_LINE_MAX } from "../middleware/errors";
 import { gzip, isRowidAlias, pageSql, rowLine, sha256Hex } from "./backup-format";
+import { recordBackupFailure, recordBackupSuccess } from "./backup-status";
 
 // The nightly D1 backup (EXF-976, docs/backup-design.md). Raw env.DB statements: the identifiers come from
 // sqlite_master, never from input; no IN lists.
 
 export type BackupOutcome = "noop" | "continuing" | "done" | "abandoned" | "failed";
 type Progress = NonNullable<BackupState["in_progress"]>;
-type StateFile = BackupState & { last_done?: string | null; prune_pending?: boolean };
+type StateFile = BackupState & {
+  last_done?: string | null;
+  /** The last finished backup's time: a failed run keeps it in the status without an R2 get. */
+  last_success_at?: string | null;
+  prune_pending?: boolean;
+};
 
 const manifestKey = (id: string) => `${BACKUP_PREFIX}${id}.manifest.json`;
 const MIN_ROWID = -9007199254740991;
@@ -147,7 +154,13 @@ async function prune(env: Env, inProgress: string | null): Promise<boolean> {
   return doomed.length > BACKUP_PRUNE_PER_RUN;
 }
 
-async function finish(env: Env, p: Progress, state: StateFile, now: Date): Promise<number> {
+async function finish(
+  env: Env,
+  p: Progress,
+  state: StateFile,
+  now: Date,
+  at: { code: BackupErrorCode; lastSuccess: string | null },
+): Promise<number> {
   const tables = p.tables.map((t) => ({ ...t, rows: p.counts[t.name] ?? 0 }));
   const manifest: BackupManifest = {
     format: BACKUP_FORMAT,
@@ -174,19 +187,34 @@ async function finish(env: Env, p: Progress, state: StateFile, now: Date): Promi
   }
   state.in_progress = null;
   state.last_done = p.id;
+  state.last_success_at = now.toISOString();
   await writeState(env, state);
-  if (failure) throw failure;
+  if (failure) {
+    // The backup is complete and its state written: only the removal of old sets failed, which is not a failed backup.
+    at.lastSuccess = state.last_success_at ?? null;
+    at.code = "prune_failed";
+    throw failure;
+  }
   return tables.length;
 }
 
-async function step(env: Env, now: Date, rowsPerRun: number): Promise<BackupOutcome> {
+async function step(
+  env: Env,
+  now: Date,
+  rowsPerRun: number,
+  at: { code: BackupErrorCode; lastSuccess: string | null },
+): Promise<BackupOutcome> {
   const state = await readState(env);
+  // Older state files carry only the date of the last backup.
+  at.lastSuccess =
+    state.last_success_at ?? (state.last_done ? `${state.last_done}T00:00:00.000Z` : null);
   const today = now.toISOString().slice(0, 10);
   let p = state.in_progress;
   let check = true;
   if (!p) {
     if (state.last_done === today) {
       if (state.prune_pending) {
+        at.code = "prune_failed"; // the backup of today is done; only the removal of old sets can fail here
         state.prune_pending = await prune(env, null);
         await writeState(env, state);
       }
@@ -206,6 +234,7 @@ async function step(env: Env, now: Date, rowsPerRun: number): Promise<BackupOutc
     };
     check = false;
   }
+  at.code = "read_failed";
   const r = await readPages(env, p, rowsPerRun, check);
   if (r.changed) {
     // A migration landed mid-backup: its pages no longer match the schema they were read for.
@@ -215,11 +244,14 @@ async function step(env: Env, now: Date, rowsPerRun: number): Promise<BackupOutc
     console.error(`backup abandoned ${p.id} | schema changed`);
     return "abandoned";
   }
+  at.code = "write_failed";
   if (r.rows > 0) await writePart(env, p, r.text, r.rows);
   if (p.done.length === p.tables.length) {
-    const tables = await finish(env, p, state, now);
+    at.code = "finish_failed";
+    const tables = await finish(env, p, state, now, at);
     const rows = Object.values(p.counts).reduce((n, c) => n + c, 0);
     console.log(`backup done ${p.id} tables=${tables} rows=${rows} parts=${p.parts.length}`);
+    await recordStatus(() => recordBackupSuccess(env, now));
     return "done";
   }
   state.in_progress = p;
@@ -228,16 +260,31 @@ async function step(env: Env, now: Date, rowsPerRun: number): Promise<BackupOutc
   return "continuing";
 }
 
+/** The status write never changes the run's outcome; a failure of it is one quiet line (stale shows it after 36 h). */
+async function recordStatus(write: () => Promise<void>) {
+  try {
+    await write();
+  } catch {
+    console.log("backup status not written");
+  }
+}
+
 /** One backup invocation. Never throws: a failure logs one line (no id beyond the date, no value). */
 export async function backupRun(
   env: Env,
   now: Date = new Date(),
   opts: { rowsPerRun?: number } = {},
 ): Promise<BackupOutcome> {
+  // Until the first read, a failure is a read failure: the schema read and the state get both read.
+  const at: { code: BackupErrorCode; lastSuccess: string | null } = {
+    code: "read_failed",
+    lastSuccess: null,
+  };
   try {
-    return await step(env, now, opts.rowsPerRun ?? BACKUP_ROWS_PER_RUN);
+    return await step(env, now, opts.rowsPerRun ?? BACKUP_ROWS_PER_RUN, at);
   } catch (e) {
     console.error(`backup failed | ${describeError(e)}`.slice(0, LOG_LINE_MAX));
+    await recordStatus(() => recordBackupFailure(env, now, at.code, at.lastSuccess));
     return "failed";
   }
 }

@@ -110,11 +110,11 @@ backups/d1/2026-11-25/parts/00001.ndjson.gz   one part per invocation that read 
 | Invocation | D1 | R2 |
 |---|---|---|
 | no-op (done tonight, nothing in progress) | 0 | 1 (state get) |
-| start | 2: schema read; one batch of counts + first pages | ≤ 11: state get, part put, manifest put, state put, prune list, 3 × (list + delete) |
+| start | 2: schema read; one batch of counts + first pages | ≤ 12: state get, part put, manifest put, state put, prune list, 3 × (list + delete), status put |
 | continue | 1: one batch (migration check + next pages) | same as start |
 | abandon (schema changed) | 1 | 4: state get, folder list, delete, state put |
 
-- Bounds: `BACKUP_MAX_D1_CALLS = 2`, `BACKUP_MAX_R2_CALLS = 11`. Total ≤ 13, far under 50, and the same whatever
+- Bounds: `BACKUP_MAX_D1_CALLS = 2`, `BACKUP_MAX_R2_CALLS = 12`. Total ≤ 14, far under 50, and the same whatever
   the number of rows. The counting test is `apps/worker/test/backup-calls.test.ts`.
 - A page statement is `select rowid, "c1", … from "t" where rowid > ? order by rowid limit ?`: 2 bound values,
   no IN list.
@@ -197,3 +197,25 @@ pnpm --filter @budget/worker exec wrangler r2 object get budget-files/backups/d1
 
 3. In the Worker's logs, the 04:00 invocation shows `backup done <id> tables=25 rows=… parts=…`. A
    `backup failed | …` line means the backup did not finish.
+
+### 8. The outcome, and the warning in the app
+
+- `backupRun` records its outcome in one small R2 object, `backups/d1/status.json` (`BACKUP_STATUS_KEY`, next to the
+  manifests; no migration): `{ last_success_at, last_failure_at, last_error_code }`. A run that ends `done` puts it
+  with `last_success_at` set and the failure fields null. A run that ends `failed` puts the object with the
+  `last_success_at` it holds in the state file (`finish` stores it there; no get), the failure time and a short code (`read_failed`, `write_failed`, `finish_failed`, `prune_failed`,
+  `failed`): no message, id, table or value. `noop`, `continuing` and `abandoned` write nothing. The write never
+  changes the outcome and logs no more than one quiet line if it fails.
+- Cost: one R2 put on the invocation that finishes a backup (`BACKUP_MAX_R2_CALLS` 11 to 12); a failed invocation adds one put
+  (no get), so a failed run stays within the same bound. D1 calls are unchanged.
+- `GET /api/v1/backup-status` and the MCP tool `get_backup_status` return `{ last_success_at, last_failure_at,
+  last_error_code, stale }` from one R2 get; `stale` is no success in the last 36 hours (`BACKUP_STALE_HOURS`),
+  also when nothing was ever recorded. They never read the backup's parts or manifests.
+- The plans page (`/plans`) shows a small dismissible warning in the callout-warning tokens when `stale` is true
+  or `last_error_code` is set. Dismissing lasts for the browser session and ends when the status changes.
+- A prune failure after a finished backup is not a failed backup. `finish` has by then written the parts, the
+  manifest and the state (with `last_success_at`), so the status is put with `last_success_at` = this run's time
+  and the code `prune_failed` (the same for the no-op run that drains a prune backlog). `finish_failed` stays for a
+  failure before the state is written. `stale` stays false while backups succeed. The plans page warns for
+  `prune_failed` too, in its own words ("Last night's backup finished, but old backups could not be removed.") and
+  never says the backup failed.
