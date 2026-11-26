@@ -40,7 +40,10 @@ export function PlanHeader({
 }) {
   const current = localCurrentMonth();
   const limits = navLimits(useMonthRange(budgetId).data, current);
-  const note = useMonth(budgetId, month).data?.note ?? null;
+  const monthQ = useMonth(budgetId, month);
+  // The note is only this month's once its own read has landed: not while loading, not the previous month's placeholder.
+  const noteReady = monthQ.isSuccess && !monthQ.isPlaceholderData;
+  const note = noteReady ? (monthQ.data?.note ?? null) : null;
   const { setMonth } = usePlanMonth();
   const saveNote = useSetMonthNote(budgetId);
   const [open, setOpen] = useState<Open>(null);
@@ -85,6 +88,7 @@ export function PlanHeader({
             title={note ?? ""}
             aria-haspopup="dialog"
             aria-expanded={open?.kind === "note"}
+            disabled={!noteReady}
             onClick={() => toggle("note", noteRef.current)}
           >
             {note ?? "Enter a note..."}

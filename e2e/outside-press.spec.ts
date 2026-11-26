@@ -49,19 +49,15 @@ async function targetRow(page: Page, popover: Locator) {
   const box = await popover.boundingBox();
   if (!box) throw new Error("popover has no box");
   const rows = page.locator(".category-row");
-  // Under load the category list may still be loading: retry until a row lies below the popover.
-  const deadline = Date.now() + 30_000;
-  for (;;) {
-    const n = await rows.count();
-    for (let i = 0; i < n; i++) {
-      const row = rows.nth(i);
-      const name = row.locator(".category-name");
-      const b = await name.boundingBox();
-      if (b && b.y > box.y + box.height + 4) return { row, name };
-    }
-    if (Date.now() > deadline) throw new Error("no category row below the popover");
-    await page.waitForTimeout(200);
+  await rows.first().waitFor();
+  const n = await rows.count();
+  for (let i = 0; i < n; i++) {
+    const row = rows.nth(i);
+    const name = row.locator(".category-name");
+    const b = await name.boundingBox();
+    if (b && b.y > box.y + box.height + 4) return { row, name };
   }
+  throw new Error("no category row below the popover");
 }
 
 async function centreIfTopmost(loc: Locator) {
