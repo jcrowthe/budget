@@ -1,7 +1,3 @@
-/* Colours the grid needs that tokens.css does not have yet. A later Build moves them into tokens.css. */
-:root {
-}
-
 .plan-page {
   display: flex;
   flex-direction: column;

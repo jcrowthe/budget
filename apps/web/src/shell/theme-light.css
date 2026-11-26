@@ -1,7 +1,7 @@
 /*
- * The light theme (EXF-472): an override set for every colour token of tokens.css and of the stylesheets that
- * declare their own :root colours. `:root.theme-light` (specificity 0,2,0) beats every `:root` declaration
- * whatever the order of the bundle. The dark values are the tokens themselves and are never edited here.
+ * The light theme (EXF-472): an override set for the colour tokens of tokens.css, where every colour is declared.
+ * `:root.theme-light` (specificity 0,2,0) beats every `:root` declaration, including a property a Build
+ * temporarily declares in its own file (docs/conventions.md, step 9), whatever the order of the bundle. The dark values are the tokens themselves and are never edited here.
  *
  * The system: the ground is white, text is a deep indigo-black, the accent is indigo. Fills that carry a label
  * (buttons, callouts, pills) are light or mid tones with a dark label, so a stylesheet that writes

@@ -1,12 +1,4 @@
 /* The account page and All Accounts header. Values measured on the source at 1600x813 (see docs/account-header-design.md). */
-:root {
-  --account-tooltip-delay: 1.9s;
-  /* The Payment pill's tones repeat the Plan grid's (plan/** is held by another Build). */
-  --account-payment-zero-bg: var(--inputBackground);
-  --account-payment-positive-bg: var(--statusPositive);
-  --account-payment-negative-bg: var(--statusNegative);
-  /* The action bar's shortcut tooltip bubble, measured on the source's Flag button tooltip. */
-}
 .acct-head {
   background: var(--backgroundSecondary);
 }

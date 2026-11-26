@@ -41,7 +41,9 @@ registered by hand: routes, MCP tools and pages are collected with `import.meta.
    step 3. The web app calls only `/api/v1`; there is no private endpoint for the UI.
 9. **Page** `apps/web/src/pages/widgets.tsx`: `export const page = { path, element }`. Use
    `usePageTitle("Widgets")` for the `<Page> | <Plan> | Budget` title, and the variables in
-   `apps/web/src/shell/tokens.css` (never raw colours). Plan pages use a `/:budgetId/...` path and need no
+   `apps/web/src/shell/tokens.css` (never raw colours). A feature that needs a colour with no token adds the token to `tokens.css`; when
+   another Build holds the shell, it declares the property at the top of its own CSS file, and a later change
+   moves it. Plan pages use a `/:budgetId/...` path and need no
    gate: the router nests them in `PlanScope` (plan resolved, not-found handled, open recorded).
 10. **Tests**: `apps/worker/test/widgets.test.ts` (REST, change_log rows, atomicity, and the resource's own
     surface: `expect(await apiPaths()).toEqual(expect.arrayContaining([...]))` with its paths and the same

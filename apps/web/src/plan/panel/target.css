@@ -1,15 +1,5 @@
 /* The Target card (EXF-508, EXF-514). Sizes and colours measured on the source's form at 1600x813, dark theme
    (docs/targets-ui-design.md, "Source"): card padding 16, tabs 32 high on a 2px track, inputs 32 high radius 4. */
-:root {
-  --statusCautious: #daac00;
-  --categoryBalanceCautiousLabel: #0c0d22;
-  --calloutCautiousBackground: rgba(218, 172, 0, 0.2);
-  --calloutPositiveBackground: rgba(119, 186, 33, 0.2);
-  --switchOffTrack: rgba(114, 116, 132, 0.2);
-  --segmentedTrack: rgba(114, 116, 132, 0.32);
-  --calloutBadgeBackground: #292c6c;
-  --popupBackground: #1f2038;
-}
 
 .card-roll-up .target-ring-icon {
   margin-left: 8px;
