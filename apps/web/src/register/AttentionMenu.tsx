@@ -17,10 +17,10 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
   if (tx.approved) return null;
   const rejectable = canReject(tx);
 
-  const close = () => {
+  const close = (reason?: "escape" | "tab" | "blur") => {
     setOpen(false);
     setError(null);
-    button.current?.focus();
+    if (reason !== "blur") button.current?.focus();
   };
   const choose = async (action: "approve" | "reject") => {
     if (busy.current) return;
@@ -70,6 +70,7 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
             bodyClass="is-approval"
             align="start"
             label="Approval"
+            menuKeys
             onClose={close}
           >
             <ul className="bulk-list">
@@ -108,6 +109,46 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
   );
 }
 
+/**
+ * After Enter Now the pending row unmounts and focus would fall to <body>. Where it goes: the entered row's first
+ * control, else the next (or previous) pending row's info button, else the pending header.
+ */
+function followingFocus(id: string): string[] {
+  const rows = [...document.querySelectorAll<HTMLElement>("tr[data-pending]")];
+  const at = rows.findIndex((r) => r.dataset.pending === id);
+  return [...rows.slice(at + 1), ...rows.slice(0, Math.max(at, 0)).reverse()]
+    .map((r) => r.dataset.pending ?? "")
+    .filter(Boolean);
+}
+
+async function refocus(pendingId: string, enteredId: string, heirs: string[]) {
+  const target = () => {
+    const row = document.querySelector<HTMLElement>(`tr[data-tx="${CSS.escape(enteredId)}"]`);
+    const own = row?.querySelector<HTMLElement>("button,input,[tabindex]");
+    if (own) return own;
+    for (const h of heirs) {
+      const b = document.querySelector<HTMLElement>(
+        `tr[data-pending="${CSS.escape(h)}"] .attention-button`,
+      );
+      if (b) return b;
+    }
+    return document.querySelector<HTMLElement>(".pending-header");
+  };
+  // The register refetches; wait until the pending row is gone (or, at most, 3 s), then focus.
+  for (let i = 0; i < 60; i++) {
+    const gone = !document.querySelector(`tr[data-pending="${CSS.escape(pendingId)}"]`);
+    const lost = !document.activeElement || document.activeElement === document.body;
+    if (gone && lost) {
+      const t = target();
+      if (t) {
+        t.focus();
+        return;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
 /** EXF-466: the circled "i" of a pending bank transaction: its one menu item, Enter Now. */
 export function PendingAttentionCell({
   budgetId,
@@ -122,18 +163,20 @@ export function PendingAttentionCell({
   const busy = useRef(false);
   const mutation = useEnterPending(budgetId);
 
-  const close = () => {
+  const close = (reason?: "escape" | "tab" | "blur") => {
     setOpen(false);
     setError(null);
-    button.current?.focus();
+    if (reason !== "blur") button.current?.focus();
   };
   const enter = async () => {
     if (busy.current) return;
     busy.current = true;
     setError(null);
+    const heirs = followingFocus(tx.id);
     try {
-      await mutation.mutateAsync({ id: tx.id });
+      const entered = await mutation.mutateAsync({ id: tx.id });
       setOpen(false);
+      void refocus(tx.id, entered.id, heirs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "That did not work");
     } finally {
@@ -169,6 +212,7 @@ export function PendingAttentionCell({
             bodyClass="is-approval"
             align="start"
             label="Pending transaction"
+            menuKeys
             onClose={close}
           >
             <ul className="bulk-list">
