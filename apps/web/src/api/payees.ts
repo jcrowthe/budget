@@ -213,11 +213,19 @@ export function applyRuleChange(
   change: (rules: PayeeRenameRule[]) => PayeeRenameRule[],
 ) {
   const key = ["payee-rename-rules", b, payeeId];
+  const listKey = ["payees", b];
+  // A read still in flight began before this change: its answer would overwrite what is written here with the old
+  // list. invalidateQueries cancels that read (cancelRefetch) and fetches again, so the cache ends on the server's
+  // state, which includes the change.
+  const rulesFetching = qc.getQueryState(key)?.fetchStatus === "fetching";
+  const listFetching = qc.getQueryState(listKey)?.fetchStatus === "fetching";
   const next = change(qc.getQueryData<PayeeRenameRule[]>(key) ?? []);
   qc.setQueryData(key, next);
-  qc.setQueryData<Payee[]>(["payees", b], (list) =>
+  qc.setQueryData<Payee[]>(listKey, (list) =>
     list?.map((p) => (p.id === payeeId ? { ...p, has_rules: next.length > 0 } : p)),
   );
+  if (rulesFetching) void qc.invalidateQueries({ queryKey: key, exact: true });
+  if (listFetching) void qc.invalidateQueries({ queryKey: listKey, exact: true });
 }
 
 const VIEWS = new Set([

@@ -350,3 +350,7 @@ The bank sync resolves an imported name to a payee with `resolveImportedPayee` (
 Existing payees are never renamed. Later rows of one run with the same folded name reuse the payee the run made first. The plan's payees are read once per plan (`listForPlan`), names are folded in JS, so a sync stays at 13 D1 calls. A payee found without a rule is still written by name, so a payee renamed during the run gets a fresh payee of the old name (EXF-462); only a rule's payee is written by id, with the by-name fallback when it was deleted.
 
 Because the sync now title-cases, an imported name (`ZZ CAFE`) no longer equals its payee's name (`Zz Cafe`). The automatic `is` rule on a payee rename (`services/payees.ts`) therefore compares the transaction's `import_payee_name` to the payee's old name ignoring case and white space, and stores the rule text as the bank sent it. SQL's `lower()` knows only ASCII, so a name with other letters still has to match exactly there.
+
+## A change made while the rules list loads
+
+`applyRuleChange` writes a rule change's answer into the cache. If the rules list (or the payees list, for `has_rules`) is still being read, that read began before the change and would overwrite the write with the old list. So when the query is fetching, the write is followed by `invalidateQueries` on that exact key: it cancels the stale read and fetches again, and the cache ends on the server's state. Proven by e2e `manage-payees` 8c, which holds the rules GET for 1 s.
