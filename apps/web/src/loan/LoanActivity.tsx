@@ -1,7 +1,6 @@
 import { addMonths, type Month } from "@budget/core/month";
 import type { Account } from "@budget/schema/accounts";
 import {
-  ESCROW_NOTE,
   escrowNote,
   interestNote,
   type LoanActivity as LoanActivityData,
@@ -217,9 +216,7 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
               <h3 id="loan-escrow">Escrow Held</h3>
               <ul>
                 <li>
-                  <span className="loan-row-text">
-                    {a.escrow.state === "estimated" ? ESCROW_NOTE : escrowNote(a.escrow)}
-                  </span>
+                  <span className="loan-row-text">{escrowNote(a.escrow)}</span>
                   {escrowTarget(a.escrow, month) ? (
                     <EditButton
                       label="Edit escrow"
