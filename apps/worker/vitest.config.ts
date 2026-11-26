@@ -16,6 +16,8 @@ export default defineConfig({
           ACCESS_TEAM_DOMAIN: "test.cloudflareaccess.com",
           ACCESS_AUD: "test-aud",
           DEPLOY_SHA: "test",
+          // Clock-ahead guard: see test/setup.ts.
+          WORKER_CLOCK: process.env.WORKER_CLOCK ?? "",
         },
       },
     })),

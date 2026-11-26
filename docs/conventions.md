@@ -174,3 +174,11 @@ Live flow tests reach the clone with `scripts/access-browser.mjs`.
   shows (`openExport`, `expandTransfers`). Retry the action, never loosen the assertion; never skip a test.
 
 Web unit tests for pure helpers live next to the code as `apps/web/src/**/*.test.ts`; the root `vitest.config.ts` `web` project collects them, so `pnpm check` runs them.
+
+## Worker tests and the calendar month (EXF-977)
+
+A test that reads a fixed month (`NOV`, `MONTH = "2026-11-01"`) after a write dated by the real clock passes
+until the month turns, then fails. `pnpm check` therefore runs the worker suite again with the clock moved to
+2026-12-15 and 2027-01-15 (`pnpm test:clock`; `WORKER_CLOCK` is read in `apps/worker/test/setup.ts`). When a test
+fails only there, make it independent of the real month, or, if its fixtures are a fixed month by design and the
+code under test reads the clock, call `pinClock("2026-11-15T12:00:00Z")` (`test/clock.ts`) at the top of the file.

@@ -1,6 +1,7 @@
 import { LoanSummaryResponse } from "@budget/schema/loan-summary";
 import { describe, expect, it } from "vitest";
 import type { Json } from "./bulk-helpers";
+import { pinClock } from "./clock";
 import { json } from "./helpers";
 import {
   findCategory,
@@ -14,6 +15,8 @@ import {
   world,
 } from "./loan-world";
 import { apiPaths, listedToolNames } from "./surface";
+
+pinClock("2026-11-15T12:00:00Z"); // fixed-month fixtures (EXF-977)
 
 // EXF-541: GET .../accounts/{id}/summary and get_loan_summary. Milliunits.
 describe("loan summary", () => {

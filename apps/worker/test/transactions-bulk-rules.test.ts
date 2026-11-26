@@ -19,6 +19,9 @@ import {
   setSql,
   tx,
 } from "./bulk-helpers";
+import { pinClock } from "./clock";
+
+pinClock("2026-11-15T12:00:00Z"); // fixed-month fixtures (EXF-977)
 
 /** The request is refused with this status and code, names the id, and writes nothing. */
 async function refused(b: string, body: Json, status: number, code: string, id: string) {

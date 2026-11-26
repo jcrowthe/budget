@@ -3,8 +3,11 @@ import { targetStatusText } from "@budget/schema/target-wording";
 import { describe, expect, it } from "vitest";
 import { createBudget } from "../src/services/budgets";
 import { createCategory, createCategoryGroup } from "../src/services/categories";
+import { pinClock } from "./clock";
 import { json } from "./helpers";
 import { apiPaths, listedToolNames, mcpRpc } from "./surface";
+
+pinClock("2026-11-15T12:00:00Z"); // fixed-month fixtures (EXF-977)
 
 // biome-ignore lint/suspicious/noExplicitAny: parsed response bodies in tests
 type Json = any;
