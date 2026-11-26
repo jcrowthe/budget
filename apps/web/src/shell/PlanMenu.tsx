@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
@@ -10,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router";
+import { getUiState, uiStateKey } from "../api/ui-state";
 import {
   ArrowsCircleIcon,
   BankIcon,
@@ -96,6 +98,17 @@ export function PlanMenu({
   const navigate = useNavigate();
   const others = recentOtherPlans(plans, plan?.id);
   const hasPlan = !!plan;
+  const qc = useQueryClient();
+  const planId = plan?.id;
+  // Export Plan reads the ui-state first: start that read as the menu opens.
+  useEffect(() => {
+    if (planId)
+      void qc.prefetchQuery({
+        queryKey: uiStateKey(planId),
+        queryFn: () => getUiState(planId),
+        staleTime: Number.POSITIVE_INFINITY,
+      });
+  }, [qc, planId]);
   const [sub, setSub] = useState(false);
   const [menuPos, setMenuPos] = useState<Pos | null>(null);
   const [subPos, setSubPos] = useState<Pos | null>(null);

@@ -50,3 +50,8 @@
   color: var(--actionPrimary);
   cursor: pointer;
 }
+
+.plan-export-dialog .plan-export-dialog-status {
+  font-weight: 400;
+  color: var(--labelSecondary);
+}

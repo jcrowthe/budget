@@ -255,6 +255,8 @@ Adjustment); assignments Sep `Rent` $900.00, `Groceries 🛒` $200.00, `Fun "x",
 12. **Surface.** `apiPaths()` contains `/api/v1/budgets/{budget_id}/export`; `listedToolNames()` contains
     `export_budget`; `mcp-coverage`, `mcp-descriptions`, `mcp-timestamps`, `openapi` and `mcp` tests pass.
 
+**Note (web).** The dialog reads the "Don't show again" setting (ui-state) before it chooses between asking and downloading. The plan menu prefetches that read as it opens; if the read, or a download with the setting on, takes over about 300 ms, the dialog frame shows with a quiet `Preparing export…` status line instead of nothing.
+
 ## Manifest
 
 touches: [packages/schema/src/plan-export.ts, packages/schema/test/plan-export.test.ts, packages/schema/src/zip.ts, packages/schema/test/zip.test.ts, apps/worker/src/services/plan-export.ts, apps/worker/src/routes/plan-export.ts, apps/worker/src/mcp/tools/plan-export.ts, apps/worker/test/plan-export*.test.ts, apps/worker/test/plan-export-helpers.ts, apps/worker/test/mcp-coverage/budgets.ts, apps/worker/test/mcp-timestamps.test.ts, docs/plan-export-design.md, docs/plan-export-spec.md, docs/README.md]

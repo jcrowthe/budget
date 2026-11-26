@@ -2,6 +2,7 @@ import type { Download, Page } from "@playwright/test";
 import { unzip } from "../packages/schema/src/zip";
 import { expect as baseExpect, test } from "./fixtures";
 import { authHeaders } from "./support/auth";
+import { delayRoute } from "./support/delay-route";
 import { mouseClick } from "./support/menu";
 import { Plan } from "./support/plan-seed";
 
@@ -17,26 +18,14 @@ test.use({ viewport: { width: 1440, height: 900 } });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Export Plan", exact: true });
 
 /**
- * Opens the plan menu with the real mouse and picks Export Plan. Under load a click can land while the
- * page is still settling (a re-render closes the menu, or the handler is not yet attached) and open nothing:
- * if the dialog has not appeared a few seconds after the pick, open the menu and pick again.
+ * Opens the plan menu with the real mouse and picks Export Plan once, after the item is enabled (it is
+ * aria-disabled until the plans list has loaded).
  */
-async function openExport(page: Page, { dialogExpected = true } = {}) {
+async function openExport(page: Page) {
   const item = page.getByRole("menuitem", { name: "Export Plan", exact: true });
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (!(await item.isVisible())) await mouseClick(page, page.locator(".plan-button"));
-    await mouseClick(page, item);
-    if (!dialogExpected) return;
-    if (
-      await dialog(page)
-        .waitFor({ state: "visible", timeout: 8_000 })
-        .then(
-          () => true,
-          () => false,
-        )
-    )
-      return;
-  }
+  if (!(await item.isVisible())) await mouseClick(page, page.locator(".plan-button"));
+  await expect(item).not.toHaveAttribute("aria-disabled", "true");
+  await mouseClick(page, item);
 }
 
 const exportRequests = (page: Page) => {
@@ -161,7 +150,7 @@ test("3 EXF-476 c8: Don't show again, saved only at Export", async ({ page, requ
     await expect.poll(() => hide(plan.id)).toBe(true);
     // The next click downloads at once, with no dialog.
     const second = page.waitForEvent("download");
-    await openExport(page, { dialogExpected: false });
+    await openExport(page);
     await second;
     await expect(dialog(page)).toHaveCount(0);
   } finally {
@@ -189,6 +178,30 @@ test("4 A failed export shows the server's words, never nothing", async ({ page,
     expect(words[1]?.length).toBeGreaterThan(0);
     await mouseClick(page, dialog(page).getByRole("button", { name: "OK", exact: true }));
     await expect(dialog(page)).toHaveCount(0);
+  } finally {
+    await plan.remove();
+  }
+});
+
+test("5 Export Plan shows at once while its Don't show again setting loads", async ({
+  page,
+  request,
+}) => {
+  const plan = new Plan(request);
+  await plan.create("exp");
+  try {
+    // A plan with no accounts: nothing else has cached ui-state before the pick.
+    await delayRoute(page, (url) => url.pathname.endsWith("/ui-state"), 3_000);
+    await page.goto(`/${plan.id}/budget`);
+    const status = dialog(page).getByRole("status");
+    const item = page.getByRole("menuitem", { name: "Export Plan", exact: true });
+    await mouseClick(page, page.locator(".plan-button"));
+    await expect(item).not.toHaveAttribute("aria-disabled", "true");
+    await mouseClick(page, item);
+    await expect(dialog(page)).toBeVisible({ timeout: 1_000 });
+    await expect(status).toHaveText("Preparing export…", { timeout: 1_000 });
+    await expect(dialog(page).getByRole("button", { name: "Export", exact: true })).toBeVisible();
+    await expect(status).toHaveCount(0);
   } finally {
     await plan.remove();
   }
