@@ -52,6 +52,7 @@ import {
 import { localToday } from "./format";
 import { ClearedFilledIcon, ClearedOutlineIcon, LockIcon } from "./icons";
 import { startMoved } from "./import-start";
+import { REPEAT_SPLIT_TRANSFER } from "./makeRepeating";
 import { PayeeField } from "./PayeeField";
 import { useRegisterView } from "./register-view";
 import { SplitDialog } from "./SplitDialog";
@@ -79,6 +80,7 @@ export function EntryRow({
   date,
   initialFocus,
   prefillInflow,
+  prefill,
   openCategory,
   startSplit,
   onClose,
@@ -101,6 +103,8 @@ export function EntryRow({
   initialFocus: Field;
   /** Record Payment: the Inflow text a new row starts with. */
   prefillInflow?: string;
+  /** Make Repeating: the whole first draft of the new row. */
+  prefill?: Draft;
   openCategory?: boolean;
   /** Open with two empty lines (the S key). */
   startSplit?: boolean;
@@ -114,10 +118,10 @@ export function EntryRow({
       ? draftFromScheduled(scheduled, fmt)
       : tx
         ? draftFromTx(tx, fmt)
-        : {
+        : (prefill ?? {
             ...emptyDraft(date ?? today, account?.id ?? null, fmt),
             inflowText: prefillInflow ?? "",
-          };
+          });
     // S on a row: the old category is not carried over.
     return startSplit && !d.lines
       ? { ...d, category: { kind: "none" }, lines: [emptyLine(), emptyLine()] }
@@ -244,7 +248,7 @@ export function EntryRow({
     if (mode === "add" && savesAsScheduled(typedDate, d.frequency, today)) {
       // The same rule as the API: a future date or a repeat is a schedule.
       if (d.lines || d.transferAccountId) {
-        setMessage("Scheduled splits and transfers are not available yet.");
+        setMessage(REPEAT_SPLIT_TRANSFER);
         return;
       }
       saving.current = true;

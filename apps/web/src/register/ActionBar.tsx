@@ -11,7 +11,7 @@ import {
   type SelRow,
 } from "@budget/schema/register-selection";
 
-import type { FlagColor } from "@budget/schema/transactions";
+import type { FlagColor, TransactionDetail } from "@budget/schema/transactions";
 import { transferCellText } from "@budget/schema/transfers";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -42,7 +42,8 @@ import {
   LinkIcon,
   MoreDotsIcon,
 } from "./icons";
-import { MoreMenu } from "./MoreMenu";
+import { MoreMenu, PointAnchor } from "./MoreMenu";
+import { makeRepeatingState } from "./makeRepeating";
 import { useOpenAccounts } from "./openAccounts";
 import { ScheduledBar } from "./ScheduledBar";
 import { useSelection } from "./selection";
@@ -87,16 +88,29 @@ export function ActionBar({
   account,
   entryOpen,
   onCategorizeOne,
+  onMakeRepeating,
 }: {
   budgetId: string;
   account?: Account;
   entryOpen: boolean;
   /** One selected row: open it in edit mode with the category list open. */
   onCategorizeOne: (id: string) => void;
+  /** EXF-503: open a new add row from this real transaction. */
+  onMakeRepeating: (tx: TransactionDetail) => void;
 }) {
   const fmt = usePlanFormatter();
-  const { selected, rows, set, clear, scheduled, scheduledRows, setScheduled, extend } =
-    useSelection();
+  const {
+    selected,
+    rows,
+    set,
+    clear,
+    scheduled,
+    scheduledRows,
+    setScheduled,
+    extend,
+    menuAt,
+    closeMenuAt,
+  } = useSelection();
   const { plan } = useCurrentPlan();
   const accountsQ = useAccounts(budgetId);
   const { openAccounts } = useOpenAccounts(budgetId);
@@ -163,7 +177,19 @@ export function ActionBar({
       return false;
     }
   };
-  const close = () => setMenu(null);
+  const close = () => {
+    setMenu(null);
+    closeMenuAt();
+  };
+  const repeat = makeRepeatingState({
+    real: sel,
+    scheduledCount: scheduled.size,
+    accountClosed: (id) => accountById.get(id)?.closed ?? false,
+  });
+  const doRepeat = () => {
+    close();
+    if (repeat.enabled) onMakeRepeating(repeat.source);
+  };
 
   const doClear = () => {
     if (!actions.clear) return;
@@ -322,12 +348,40 @@ export function ActionBar({
           approve: actions.approve ? doApprove : undefined,
           reject: actions.reject ? doReject : undefined,
           duplicate: doDuplicate,
+          makeRepeating: repeat.enabled ? doRepeat : undefined,
           flag: () => {
             close();
             setMenu("flag");
           },
           del: askDelete,
         },
+  );
+
+  const moreMenu = (anchor: HTMLElement, placement: "above" | "right") => (
+    <MoreMenu
+      anchor={anchor}
+      count={sel.length}
+      unclear={actions.clear === "unclear"}
+      makeRepeating={repeat.enabled ? { onClick: doRepeat } : { reason: repeat.reason }}
+      placement={placement}
+      moveTo={
+        actions.move
+          ? openAccounts
+              .filter((a) => (account ? a.id !== account.id : !onlyAccount(a.id)))
+              .map((a) => ({ id: a.id, name: a.name }))
+          : null
+      }
+      onClose={close}
+      onUnclear={doClear}
+      onDuplicate={doDuplicate}
+      onMemo={() => {
+        close();
+        setDialog({ kind: "memo" });
+      }}
+      onMove={doMove}
+      onExport={askExport}
+      onDelete={askDelete}
+    />
   );
 
   const showBar = sel.length > 0;
@@ -343,6 +397,8 @@ export function ActionBar({
             setError(null);
             clear();
           }}
+          menuAt={menuAt}
+          onCloseMenuAt={closeMenuAt}
           onEnter={() => doScheduled("enter_now")}
           onDelete={() => doScheduled("delete")}
         />
@@ -428,7 +484,10 @@ export function ActionBar({
                       type="button"
                       className="action-bar-button"
                       aria-haspopup="menu"
-                      onClick={() => setMenu((m) => (m === "flag" ? null : "flag"))}
+                      onClick={() => {
+                        closeMenuAt();
+                        setMenu((m) => (m === "flag" ? null : "flag"));
+                      }}
                     >
                       <FlagFilledIcon />
                       Flag
@@ -497,7 +556,10 @@ export function ActionBar({
                   type="button"
                   className="action-bar-button"
                   aria-haspopup="menu"
-                  onClick={() => setMenu((m) => (m === "more" ? null : "more"))}
+                  onClick={() => {
+                    closeMenuAt();
+                    setMenu((m) => (m === "more" ? null : "more"));
+                  }}
                 >
                   <MoreDotsIcon />
                   More
@@ -507,30 +569,11 @@ export function ActionBar({
             document.body,
           )
         : null}
-      {showBar && menu === "more" && moreBtn.current ? (
-        <MoreMenu
-          anchor={moreBtn.current}
-          count={sel.length}
-          unclear={actions.clear === "unclear"}
-          oneRow={actions.makeRepeating}
-          moveTo={
-            actions.move
-              ? openAccounts
-                  .filter((a) => (account ? a.id !== account.id : !onlyAccount(a.id)))
-                  .map((a) => ({ id: a.id, name: a.name }))
-              : null
-          }
-          onClose={close}
-          onUnclear={doClear}
-          onDuplicate={doDuplicate}
-          onMemo={() => {
-            close();
-            setDialog({ kind: "memo" });
-          }}
-          onMove={doMove}
-          onExport={askExport}
-          onDelete={askDelete}
-        />
+      {showBar && menu === "more" && moreBtn.current ? moreMenu(moreBtn.current, "above") : null}
+      {showBar && menuAt && !scheduledSelected ? (
+        <PointAnchor key={menuAt.key} x={menuAt.x} y={menuAt.y}>
+          {(anchor) => moreMenu(anchor, "right")}
+        </PointAnchor>
       ) : null}
       {showBar && menu === "flag" && flagBtn.current ? (
         <FlagMenu

@@ -3,7 +3,8 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Tip } from "./BarTip";
 import { CategorizeIcon, CloseSmallIcon, FlagFilledIcon, MoreDotsIcon } from "./icons";
-import { MoreMenu } from "./MoreMenu";
+import { MoreMenu, PointAnchor } from "./MoreMenu";
+import { REPEAT_ON_SCHEDULED } from "./makeRepeating";
 
 const noop = () => {};
 
@@ -16,6 +17,8 @@ export function ScheduledBar({
   count,
   error,
   busy,
+  menuAt,
+  onCloseMenuAt,
   onDeselect,
   onEnter,
   onDelete,
@@ -24,6 +27,9 @@ export function ScheduledBar({
   count: number;
   error: string | null;
   busy: boolean;
+  /** A right-click on a scheduled row opened the More menu at this point. */
+  menuAt: { x: number; y: number; key: number } | null;
+  onCloseMenuAt: () => void;
   onDeselect: () => void;
   onEnter: () => void;
   onDelete: () => void;
@@ -31,6 +37,31 @@ export function ScheduledBar({
   const [more, setMore] = useState(false);
   const moreBtn = useRef<HTMLButtonElement>(null);
   const later = "Not available for scheduled transactions yet";
+  const menu = (anchor: HTMLElement, placement: "above" | "right") => (
+    <MoreMenu
+      scheduled
+      anchor={anchor}
+      placement={placement}
+      count={count}
+      unclear={false}
+      makeRepeating={{ reason: REPEAT_ON_SCHEDULED }}
+      moveTo={null}
+      onClose={() => {
+        setMore(false);
+        onCloseMenuAt();
+      }}
+      onUnclear={noop}
+      onDuplicate={noop}
+      onMemo={noop}
+      onMove={noop}
+      onExport={noop}
+      onDelete={() => {
+        setMore(false);
+        onCloseMenuAt();
+        onDelete();
+      }}
+    />
+  );
   return (
     <>
       {createPortal(
@@ -78,7 +109,10 @@ export function ScheduledBar({
               type="button"
               className="action-bar-button"
               aria-haspopup="menu"
-              onClick={() => setMore((m) => !m)}
+              onClick={() => {
+                onCloseMenuAt();
+                setMore((m) => !m);
+              }}
             >
               <MoreDotsIcon />
               More
@@ -87,25 +121,11 @@ export function ScheduledBar({
         </div>,
         document.body,
       )}
-      {more && moreBtn.current ? (
-        <MoreMenu
-          scheduled
-          anchor={moreBtn.current}
-          count={count}
-          unclear={false}
-          oneRow={false}
-          moveTo={null}
-          onClose={() => setMore(false)}
-          onUnclear={noop}
-          onDuplicate={noop}
-          onMemo={noop}
-          onMove={noop}
-          onExport={noop}
-          onDelete={() => {
-            setMore(false);
-            onDelete();
-          }}
-        />
+      {more && moreBtn.current ? menu(moreBtn.current, "above") : null}
+      {menuAt ? (
+        <PointAnchor key={menuAt.key} x={menuAt.x} y={menuAt.y}>
+          {(anchor) => menu(anchor, "right")}
+        </PointAnchor>
       ) : null}
     </>
   );

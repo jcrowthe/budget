@@ -55,11 +55,13 @@ async function setup(page: Page, request: APIRequestContext) {
 }
 
 const source = (page: Page) => realRow(page, PAYEE);
-const rightClickAt = async (page: Page, row: ReturnType<typeof realRow>) => {
+const rightClickAt = async (page: Page, row: ReturnType<typeof realRow>, farRight = false) => {
   await row.scrollIntoViewIfNeeded();
-  const box = await row.locator("td[data-field=payee]").boundingBox();
-  if (!box) throw new Error("no box");
-  const at = { x: box.x + 20, y: box.y + box.height / 2 };
+  const box = await row.boundingBox();
+  const cell = await row.locator("td[data-field=payee]").boundingBox();
+  if (!box || !cell) throw new Error("no box");
+  // `farRight` clicks beyond an open menu (it opens at the pointer, over the rows below).
+  const at = { x: farRight ? box.x + box.width - 40 : cell.x + 20, y: box.y + box.height / 2 };
   await page.mouse.click(at.x, at.y, { button: "right" });
   return at;
 };
@@ -114,7 +116,7 @@ test("Make Repeating opens a pre-filled add row: +1 month, picker open, Monthly 
   await expect(menu(page)).toHaveCount(0);
   await expectPrefilled(page);
   await expect(source(page)).toHaveCount(1);
-  const [orig] = await txs(request, s.plan, s.checking);
+  const orig = (await txs(request, s.plan, s.checking)).find((t) => t.payee_name === PAYEE);
   expect(orig?.date).toBe(SOURCE);
 });
 
@@ -251,7 +253,7 @@ test("greyed out on a split and on a transfer, with the reason", async ({ page, 
   await expect(item(page)).toHaveAttribute("aria-disabled", "true");
   await expect(item(page)).toHaveAttribute("title", SPLIT_REASON);
   await page.keyboard.press("Escape");
-  const transfer = realRows(page).filter({ hasText: "Transfer" }).first();
+  const transfer = realRows(page).filter({ hasText: "12.00" }).first();
   await rightClickAt(page, transfer);
   await expect(item(page)).toHaveAttribute("aria-disabled", "true");
   await expect(item(page)).toHaveAttribute("title", SPLIT_REASON);
@@ -272,7 +274,7 @@ test("Escape closes the context menu; a right-click on another row moves it", as
   await expect(menu(page)).toHaveCount(0);
   await rightClickAt(page, source(page));
   await expect(menu(page)).toBeVisible();
-  await rightClickAt(page, other);
+  await rightClickAt(page, other, true);
   await expect(menu(page)).toHaveCount(1);
   await expect(checkbox(other)).toHaveAttribute("aria-checked", "true");
   await expect(checkbox(source(page))).toHaveAttribute("aria-checked", "false");
