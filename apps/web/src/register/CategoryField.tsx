@@ -1,18 +1,11 @@
 import type { MonthDetail } from "@budget/schema/months";
-import { categoryLabel, categoryMenu } from "@budget/schema/register";
-
-import { useMemo, useState } from "react";
-import { usePlanFormatter } from "../shell/plan-formats-context";
+import { categoryLabel } from "@budget/schema/register";
+import { CategoryList } from "../shared/picker/CategoryList";
 import type { CategoryValue } from "./entryDraft";
-import { Option, PickerInput } from "./PickerInput";
-
-type Row = { kind: "rta" | "category"; id: string | null; name: string; amount: number };
 
 const SPLIT_TEXT = "Split (Multiple Categories)...";
 
-const tone = (amount: number) => (amount > 0 ? "positive" : amount < 0 ? "negative" : "zero");
-
-/** The register's own category dropdown (not the Plan's picker): Inflow, then every group (EXF-517). */
+/** The register's category field: the shared category list (EXF-517, EXF-589) with a Split footer and `<Group>: <Category>` text. */
 export function CategoryField({
   month,
   value,
@@ -45,40 +38,22 @@ export function CategoryField({
   /** A card payment's category ("Credit Card Payments: <card>"): shown as text, disabled, no list. */
   fixedText?: string;
 }) {
-  const fmt = usePlanFormatter();
   const groups = month?.groups ?? [];
-  const shown = split ? SPLIT_TEXT : categoryLabel(value, groups);
-  const [typed, setTyped] = useState<string | null>(null);
-  const menu = useMemo(
-    () => categoryMenu(groups, month?.ready_to_assign ?? 0, typed ?? ""),
-    [groups, month?.ready_to_assign, typed],
-  );
-  const isCurrent = (r: Row) =>
-    value.kind === "rta" ? r.kind === "rta" : value.kind === "category" && r.id === value.id;
-  // With nothing typed and a value set, the list starts with a "Selected" section holding it.
-  const current = typed === null ? menu.flat.find(isCurrent) : undefined;
-  const items = current ? [current, ...menu.flat] : menu.flat;
-  const lead = current ? 1 : 0;
+  const fixed = fixedText !== undefined;
 
   return (
-    <PickerInput<Row>
+    <CategoryList
       label="Category"
       placeholder={placeholder}
-      text={fixedText ?? typed ?? shown}
-      onText={setTyped}
-      items={items}
-      initialActive={current ? 0 : typed === null ? -1 : 0}
-      disabled={disabled && fixedText === undefined}
-      readOnly={fixedText !== undefined}
-      title={fixedText ?? title ?? ((typed ?? shown) || undefined)}
-      startOpen={startOpen && fixedText === undefined}
-      width={400}
-      listLabel="Categories"
-      onBlurCommit={() => setTyped(null)}
-      onPick={(r) => {
-        onChange(r.kind === "rta" ? { kind: "rta" } : { kind: "category", id: r.id as string });
-        setTyped(null);
-      }}
+      groups={groups}
+      readyToAssign={month?.ready_to_assign ?? 0}
+      value={value}
+      text={fixedText ?? (split ? SPLIT_TEXT : categoryLabel(value, groups))}
+      onPick={onChange}
+      disabled={disabled && !fixed}
+      readOnly={fixed}
+      title={fixedText ?? title}
+      startOpen={startOpen && !fixed}
       footer={
         footer === "split" ? (
           <button
@@ -93,48 +68,6 @@ export function CategoryField({
             Split (Multiple Categories)
           </button>
         ) : undefined
-      }
-      render={({ active, pick, hover }) =>
-        menu.empty ? (
-          <div className="entry-help">No categories found with that name.</div>
-        ) : (
-          (() => {
-            let i = lead;
-            const row = (r: Row, idx: number, key: string) => (
-              <Option
-                key={key}
-                active={active === idx}
-                name={r.name}
-                checked={isCurrent(r)}
-                onPick={() => pick(idx)}
-                onHover={() => hover(idx)}
-              >
-                <span className="entry-option-name">{r.name}</span>
-                <span className={`entry-available ${tone(r.amount)}`}>{fmt.money(r.amount)}</span>
-              </Option>
-            );
-            return (
-              <>
-                {current ? (
-                  <div>
-                    <div role="presentation" className="entry-heading">
-                      Selected
-                    </div>
-                    {row(current, 0, "selected")}
-                  </div>
-                ) : null}
-                {menu.groups.map((g) => (
-                  <div key={g.name}>
-                    <div role="presentation" className="entry-heading">
-                      {g.name}
-                    </div>
-                    {g.rows.map((r) => row(r, i++, r.id ?? "rta"))}
-                  </div>
-                ))}
-              </>
-            );
-          })()
-        )
       }
     />
   );

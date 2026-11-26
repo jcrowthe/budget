@@ -862,11 +862,12 @@ button.category-name {
   margin: 8px 16px 16px;
 }
 
-/* The shared category picker */
+/* The Plan's category field; the list is the shared picker (shared/picker/picker.css). */
 .category-picker {
   position: relative;
+  display: block;
 }
-.picker-input {
+.category-picker input {
   box-sizing: border-box;
   width: 100%;
   height: 32px;
@@ -879,69 +880,9 @@ button.category-name {
   font-size: 14px;
   font-weight: 500;
 }
-.picker-input:focus {
+.category-picker input:focus {
   outline: none;
   border-color: var(--inputBorderActive);
-}
-.picker-list {
-  position: absolute;
-  z-index: 5;
-  left: 0;
-  right: 0;
-  max-height: 240px;
-  overflow-y: auto;
-  margin-top: 4px;
-  padding: 4px 0;
-  border-radius: 0.4rem;
-  background: var(--backgroundTertiary);
-  box-shadow: var(--shadowMenu);
-}
-.picker-list.is-up {
-  bottom: 100%;
-  margin: 0 0 4px;
-}
-.picker-heading {
-  padding: 4px 12px;
-  color: var(--labelSecondary);
-  font-size: 12px;
-  font-weight: 600;
-}
-.picker-group-name {
-  padding: 6px 12px 2px;
-  font-weight: 700;
-}
-.picker-option {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 12px 4px 24px;
-  cursor: pointer;
-}
-.picker-option:hover,
-.picker-option.is-active {
-  background: var(--buttonSecondaryBackground);
-}
-.picker-available {
-  padding: 0 7px;
-  border-radius: 1000px;
-  font-size: var(--font-size-sm);
-  font-variant-numeric: tabular-nums;
-}
-.picker-available.zero {
-  background: var(--inputBackground);
-  color: var(--categoryBalanceZeroLabel);
-}
-.picker-available.positive {
-  background: var(--statusPositive);
-  color: var(--categoryBalancePositiveLabel);
-}
-.picker-available.negative {
-  background: var(--statusNegative);
-  color: var(--categoryBalanceNegativeLabel);
-}
-.picker-empty {
-  padding: 8px 12px;
-  color: var(--labelSecondary);
 }
 
 /* EXF-537: the Credit Card Payments header's PAYMENT button above the group's Available total. */
@@ -1100,7 +1041,15 @@ button.category-name {
   box-shadow: var(--shadowMenu);
 }
 .month-dropdown-list .picker-option {
-  padding-left: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.month-dropdown-list .picker-option:hover,
+.month-dropdown-list .picker-option.is-active {
+  background: var(--buttonSecondaryBackground);
 }
 
 /* EXF-646: a Plan body under 620px has no room for the panel; the grid keeps the whole width and scrolls inside
