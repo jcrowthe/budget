@@ -16,27 +16,60 @@
   width: 16px;
   height: 16px;
 }
-.fresh-start-dialog ul {
-  margin: 0 0 var(--space-2);
-  padding-left: 20px;
+.fresh-start-dialog .dialog-head .icon-button:focus-visible,
+.fresh-start-info:focus-visible {
+  outline: 1px auto var(--actionPrimary);
+  outline-offset: 2px;
 }
-.fresh-start-lead {
+/* Body copy: one rhythm for paragraphs, list headings and lists, so the explainer reads as three short blocks. */
+.fresh-start-dialog .form-body p {
+  margin: 0 0 var(--space-2);
+  line-height: 1.4;
+}
+.fresh-start-dialog .form-body p.fresh-start-lead {
+  margin: var(--space-3) 0 var(--space-1);
   font-weight: 600;
 }
+.fresh-start-dialog ul {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.4;
+}
+.fresh-start-dialog li + li {
+  margin-top: var(--space-half);
+}
+/* The name field sits apart from the explainer; its hint and its error share one slot so nothing jumps. */
+.fresh-start-dialog label[for="fresh-start-name"] {
+  margin-top: var(--space-4);
+}
+.fresh-start-dialog .form-body p:is(.fresh-start-hint, .error) {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+}
 .fresh-start-hint {
-  font-size: 12px;
+  color: var(--labelSecondary);
+}
+.fresh-start-dialog .form-body .error[role="alert"] {
+  margin-top: var(--space-2);
 }
 .fresh-start-stop {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin: var(--space-2) 0;
+  margin: var(--space-3) 0 0;
 }
-.fresh-start-check {
+/* The checkbox row is a choice, not a field label: regular weight, no label spacing. */
+.dialog.form label.fresh-start-check {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin: 0;
+  font-weight: 400;
   cursor: pointer;
+}
+.fresh-start-check input {
+  margin: 0;
+  accent-color: var(--actionPrimary);
 }
 .fresh-start-tip-anchor {
   position: relative;
@@ -65,4 +98,6 @@
   color: var(--panelTooltipLabel);
   font-size: 12px;
   font-weight: 400;
+  line-height: normal;
+  pointer-events: none;
 }
