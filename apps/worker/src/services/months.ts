@@ -4,6 +4,7 @@ import {
   computeMonths,
   type EngineInput,
 } from "@budget/core/budget-engine";
+import { addMilliunits } from "@budget/core/money";
 import { addMonths, type Month, toMonth } from "@budget/core/month";
 import { monthTotals, viewTotals } from "@budget/schema/month-totals";
 import {
@@ -16,7 +17,7 @@ import {
   MonthNoteSet,
   type MonthRange,
   type MonthSummary,
-  type MonthTotals,
+  type MonthSummaryTotals,
 } from "@budget/schema/months";
 import { type PlanView, viewDetail } from "@budget/schema/plan-views";
 import { dayBefore } from "@budget/schema/recurrence";
@@ -397,18 +398,50 @@ export function planMonthError(month: Month, today: string = todayUtc()): string
   return null;
 }
 
-/** The month read and the schedules behind its upcoming figures, on the same single read (the Activity list). */
-export async function getPlanMonthWithSources(
+/**
+ * EXF-527: the assigned total of every month after `current`, over the active categories (not deleted, group
+ * not deleted; hidden ones count, as in the engine). One row per month from the next to the last month whose
+ * sum is not zero (the next month alone, at 0, when none), so the rows have no gaps.
+ */
+export function futureAssigned(
+  input: Pick<EngineInput, "groups" | "categories" | "assignments">,
+  current: Month,
+): { future_assigned: { month: Month; assigned: number }[]; future_assigned_total: number } {
+  const groupIds = new Set(input.groups.map((g) => g.id));
+  const activeIds = new Set(
+    input.categories.filter((c) => groupIds.has(c.groupId)).map((c) => c.id),
+  );
+  const byMonth = new Map<Month, number>();
+  for (const a of input.assignments) {
+    if (a.month > current && activeIds.has(a.categoryId)) {
+      byMonth.set(a.month, addMilliunits(byMonth.get(a.month) ?? 0, a.assigned));
+    }
+  }
+  const first = addMonths(current, 1);
+  let last = first;
+  for (const [m, sum] of byMonth) if (sum !== 0 && m > last) last = m;
+  const rows: { month: Month; assigned: number }[] = [];
+  let total = 0;
+  for (let m = first; m <= last; m = addMonths(m, 1)) {
+    const assigned = byMonth.get(m) ?? 0;
+    rows.push({ month: m, assigned });
+    total = addMilliunits(total, assigned);
+  }
+  return { future_assigned: rows, future_assigned_total: total };
+}
+
+async function readPlanMonth(
   env: Env,
   budgetId: string,
   month: Month,
-  today: string = todayUtc(),
-  view: PlanView = "all",
-): Promise<{ detail: MonthDetail; sources: UpcomingSource[] }> {
+  today: string,
+  view: PlanView,
+): Promise<{ detail: MonthDetail; sources: UpcomingSource[]; input: EngineInput }> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
   const input = await loadInput(db, budgetId, addMonths(month, 1), true);
   return {
+    input,
     detail: viewDetail(
       withNotes(
         computeMonth({ ...input, today }, month),
@@ -420,6 +453,18 @@ export async function getPlanMonthWithSources(
     ),
     sources: input.upcomingSources,
   };
+}
+
+/** The month read and the schedules behind its upcoming figures, on the same single read (the Activity list). */
+export async function getPlanMonthWithSources(
+  env: Env,
+  budgetId: string,
+  month: Month,
+  today: string = todayUtc(),
+  view: PlanView = "all",
+): Promise<{ detail: MonthDetail; sources: UpcomingSource[] }> {
+  const { detail, sources } = await readPlanMonth(env, budgetId, month, today, view);
+  return { detail, sources };
 }
 
 export async function getPlanMonth(
@@ -455,7 +500,9 @@ export async function getPlanMonths(
 
 /**
  * Totals of one month over the visible categories, or over exactly `categoryIds` (hidden ones included).
- * An id that is not an active category of the plan is a 404.
+ * An id that is not an active category of the plan is a 404. For the current month (the month of `today`) it
+ * also carries `future_assigned` and `future_assigned_total` over the whole plan, whatever `categoryIds` or
+ * `view` say; for any other month both are absent.
  */
 export async function getMonthSummary(
   env: Env,
@@ -464,18 +511,19 @@ export async function getMonthSummary(
   categoryIds?: string[],
   today: string = todayUtc(),
   view?: PlanView,
-): Promise<MonthTotals> {
-  const detail = await getPlanMonth(env, budgetId, month, today);
+): Promise<MonthSummaryTotals> {
+  const { detail, input } = await readPlanMonth(env, budgetId, month, today, "all");
+  const future = month === toMonth(today) ? futureAssigned(input, month) : {};
   if (view !== undefined) {
     if (categoryIds)
       throw new HTTPException(422, { message: "Give category_ids or view, not both" });
-    return viewTotals(detail, view);
+    return { ...viewTotals(detail, view), ...future };
   }
   if (categoryIds) {
     const known = new Set(detail.groups.flatMap((g) => g.categories.map((c) => c.id)));
     if (categoryIds.some((id) => !known.has(id))) throw new NotFound("Category");
   }
-  return monthTotals(detail, categoryIds);
+  return { ...monthTotals(detail, categoryIds), ...future };
 }
 
 export async function listPlanMonths(

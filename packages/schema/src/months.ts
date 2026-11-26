@@ -113,6 +113,27 @@ export const MonthTotals = z
 
 export const MonthTotalsResponse = dataEnvelope(MonthTotals).openapi("MonthTotalsResponse");
 
+/** One later month's assigned total (EXF-527). */
+export const FutureAssignedMonth = z
+  .object({ month: Month, assigned: Milliunits })
+  .openapi("FutureAssignedMonth");
+
+/** The month summary: the four totals, plus the future-assigned rows for the current month. */
+export const MonthSummaryTotals = MonthTotals.extend({
+  future_assigned: z.array(FutureAssignedMonth).optional().openapi({
+    description:
+      "Only for the current month (the month of `today`): the assigned total of every later month, in date order, from next month to the last month with money assigned (next month alone, at 0, when none). Covers the whole plan; category_ids and view do not change it. Absent for any other month.",
+  }),
+  future_assigned_total: Milliunits.optional().openapi({
+    description:
+      "Only for the current month: the sum of future_assigned; equals -rta_breakdown.assigned_in_future of the month read. Absent for any other month.",
+  }),
+}).openapi("MonthSummaryTotals");
+
+export const MonthSummaryTotalsResponse = dataEnvelope(MonthSummaryTotals).openapi(
+  "MonthSummaryTotalsResponse",
+);
+
 export const MonthListResponse = dataEnvelope(z.object({ months: z.array(MonthSummary) })).openapi(
   "MonthListResponse",
 );
@@ -178,6 +199,8 @@ export type MonthCategoryDetail = z.infer<typeof MonthCategoryDetail>;
 export type MonthGroupDetail = z.infer<typeof MonthGroupDetail>;
 export type MonthDetail = z.infer<typeof MonthDetail>;
 export type MonthTotals = z.infer<typeof MonthTotals>;
+export type FutureAssignedMonth = z.infer<typeof FutureAssignedMonth>;
+export type MonthSummaryTotals = z.infer<typeof MonthSummaryTotals>;
 export type MonthSummary = z.infer<typeof MonthSummary>;
 export type MonthCategory = z.infer<typeof MonthCategory>;
 export type AssignedSet = z.infer<typeof AssignedSet>;

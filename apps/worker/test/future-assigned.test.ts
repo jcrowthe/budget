@@ -128,12 +128,21 @@ describe("future_assigned on the month summary", () => {
     const resolve = (x: Json): Json =>
       x.$ref ? resolve(doc.components.schemas[x.$ref.split("/").pop() as string]) : x;
     schema = resolve(schema);
-    const totals = resolve(schema.properties.data);
+    // `extend` renders as allOf [MonthTotals, { the optional fields }]: flatten it.
+    const flat = (x: Json): Json => {
+      const r = resolve(x);
+      const parts: Json[] = (r.allOf ?? [r]).map((p: Json) => resolve(p));
+      return {
+        properties: Object.assign({}, ...parts.map((p) => p.properties ?? {})),
+        required: parts.flatMap((p) => p.required ?? []),
+      };
+    };
+    const totals = flat(schema.properties.data);
     expect(Object.keys(totals.properties)).toEqual(
       expect.arrayContaining(["future_assigned", "future_assigned_total"]),
     );
-    expect(totals.required ?? []).not.toContain("future_assigned");
-    expect(totals.required ?? []).not.toContain("future_assigned_total");
+    expect(totals.required).not.toContain("future_assigned");
+    expect(totals.required).not.toContain("future_assigned_total");
     const item = resolve(resolve(totals.properties.future_assigned).items);
     expect(Object.keys(item.properties).sort()).toEqual(["assigned", "month"]);
   });
