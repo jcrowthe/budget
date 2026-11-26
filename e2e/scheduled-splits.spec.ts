@@ -84,7 +84,7 @@ test("AC1+AC2: a split is added in the scheduled row, Update Total saves it, the
   const dialog = page.getByRole("dialog", { name: "Something Doesn't Add Up" });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(
-    "The total is $0.00, but the splits add up to -$40.00. How would you like to handle the unassigned $40.00?",
+    "The total is $0.00, but the splits add up to −$40.00. How would you like to handle the unassigned $40.00?",
   );
   await expect(button(page, "Auto-Distribute")).toBeVisible();
   await expect(button(page, "Adjust Manually")).toBeVisible();

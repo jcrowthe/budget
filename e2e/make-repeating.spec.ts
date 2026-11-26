@@ -12,7 +12,7 @@ const NEXT = "2026-12-15";
 const PAYEE = "ZZ-TEST Phone Co";
 const MEMO = "ZZ-TEST monthly bill";
 const CATEGORY = "D4 Register: D4 Groceries";
-const SPLIT_REASON = "Scheduled splits and transfers are not available yet.";
+const TRANSFER_REASON = "Make Repeating isn't available for transfers yet.";
 
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 const date = (page: Page) => page.getByRole("textbox", { name: "Date", exact: true });
@@ -229,7 +229,7 @@ test("greyed out with several rows selected, selection kept (PO rule)", async ({
   await expect(date(page)).toHaveCount(0);
 });
 
-test("greyed out on a split and on a transfer, with the reason", async ({ page, request }) => {
+test("on for a split, greyed out on a transfer with the reason", async ({ page, request }) => {
   const s = await seed(request);
   await post(request, s, {
     date: SOURCE,
@@ -250,13 +250,12 @@ test("greyed out on a split and on a transfer, with the reason", async ({ page, 
   const split = page.locator("tr[data-tx]").filter({ hasText: "ZZ-TEST Split" }).first();
   await expect(split).toBeVisible();
   await rightClickAt(page, split);
-  await expect(item(page)).toHaveAttribute("aria-disabled", "true");
-  await expect(item(page)).toHaveAttribute("title", SPLIT_REASON);
+  await expect(item(page)).not.toHaveAttribute("aria-disabled", "true");
   await page.keyboard.press("Escape");
   const transfer = realRows(page).filter({ hasText: "12.00" }).first();
   await rightClickAt(page, transfer);
   await expect(item(page)).toHaveAttribute("aria-disabled", "true");
-  await expect(item(page)).toHaveAttribute("title", SPLIT_REASON);
+  await expect(item(page)).toHaveAttribute("title", TRANSFER_REASON);
 });
 
 test("Escape closes the context menu; a right-click on another row moves it", async ({
