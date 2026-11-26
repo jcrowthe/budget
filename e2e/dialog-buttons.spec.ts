@@ -15,7 +15,6 @@ import { realClick } from "./support/register-seed";
 
 // EXF-876: the footer buttons of every dialog share one rule; values measured on the source (dark theme).
 test.use({ viewport: { width: 1440, height: 900 } });
-test.setTimeout(240_000);
 
 const PRIMARY = "rgb(84, 91, 254)";
 const PRIMARY_HOVER = "rgb(117, 131, 255)";
@@ -81,7 +80,9 @@ test("Export Plan: primary and secondary at rest, hover and keyboard focus", asy
   try {
     await page.goto(`/${plan.id}/budget`);
     await mouseClick(page, page.locator(".plan-button"));
-    await mouseClick(page, page.getByRole("menuitem", { name: "Export Plan", exact: true }));
+    const item = page.getByRole("menuitem", { name: "Export Plan", exact: true });
+    await expect(item).not.toHaveAttribute("aria-disabled", "true");
+    await mouseClick(page, item);
     const d = page.getByRole("dialog", { name: "Export Plan", exact: true });
     const primary = d.getByRole("button", { name: "Export", exact: true });
     const secondary = d.getByRole("button", { name: "Cancel", exact: true });
@@ -116,6 +117,7 @@ test("Edit Memo: a disabled primary has its own colours, opacity 1, no hover cha
   page,
   request,
 }) => {
+  test.setTimeout(240_000);
   const s = await seedBulk(request);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
   const row = (payee: string) =>
@@ -158,6 +160,7 @@ test("Edit Memo: a disabled primary has its own colours, opacity 1, no hover cha
 });
 
 test("Edit Account: destructive and ghost, enabled and disabled", async ({ page, request }) => {
+  test.setTimeout(240_000);
   const plan = await newPlan(request);
   const open = await newAccount(request, plan, "ZZ-TEST Open", "checking", 0);
   const closed = await newAccount(request, plan, "ZZ-TEST Closed", "checking", 500);
