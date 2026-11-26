@@ -38,11 +38,14 @@ const cashNames = (page: Page) =>
 test("a category moves up with Alt+Shift+ArrowUp, is announced, and persists", async ({ page }) => {
   await openPlan(page);
   await expect(bills(page)).toHaveText([RENT, PHONE, UTILITIES]);
-  await catRow(page, UTILITIES).focus();
+  // The selected category moves (the Plan's own keyboard model: no row is a Tab stop).
+  await page.locator(".category-name", { hasText: UTILITIES }).click();
+  await expect(catRow(page, UTILITIES)).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Alt+Shift+ArrowUp");
   await expect(bills(page)).toHaveText([RENT, UTILITIES, PHONE]);
   await expect(live(page)).toContainText(/Moved .*Utilities.* to position 2 of 3/);
-  await expect(catRow(page, UTILITIES)).toBeFocused();
+  await expect(catRow(page, UTILITIES)).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".category-row[aria-selected=true]")).toHaveCount(1);
   await page.reload();
   await expect(bills(page)).toHaveText([RENT, UTILITIES, PHONE]);
 });
@@ -53,14 +56,27 @@ test("a group moves down with Alt+Shift+ArrowDown and persists", async ({ page }
   const i = before.findIndex((n) => n.includes("Bills"));
   expect(i).toBeGreaterThanOrEqual(0);
   expect(i).toBeLessThan(before.length - 1);
-  await page.locator(".group-row", { has: page.getByText("Bills") }).focus();
+  const name = page.locator(".group-row button.group-name", { hasText: "Bills" });
+  await name.focus();
   await page.keyboard.press("Alt+Shift+ArrowDown");
   const want = [...before];
   [want[i], want[i + 1]] = [want[i + 1], want[i]];
   await expect(groupNames(page)).toHaveText(want);
   await expect(live(page)).toContainText(/Moved .*Bills/);
+  await expect(name).toBeFocused();
   await page.reload();
   await expect(groupNames(page)).toHaveText(want);
+});
+
+test("Tab from a group's name control does not land on a category row", async ({ page }) => {
+  await openPlan(page);
+  await page.locator(".group-row button.group-name").first().focus();
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press("Tab");
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains("category-row")),
+    ).toBe(false);
+  }
 });
 
 test("an account moves with Alt+Shift+ArrowUp, is announced, and persists", async ({

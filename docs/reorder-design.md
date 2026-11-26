@@ -117,14 +117,18 @@ Keyboard reordering is not offered (the source has none). Colours come only from
 
 The source app has no keyboard reorder; this is ours, so keyboard users can reorder what a mouse drags.
 
-- Group and category rows are focusable (`tabIndex 0`). **Alt+Shift+ArrowUp / ArrowDown** on a focused row (or on a
-  control inside it, but not in an input) moves it one place: a category among the visible categories of its group, a
-  group among the visible groups. A move past either end does nothing. A payment category stays in its group; the
-  Credit Card Payments group is pinned first, so it doesn't move and nothing moves above it. Moving a category into
-  another group is still drag only.
+- It fits the Plan's own keyboard model; **no row is a Tab stop**.
+  - **Categories** are selection-driven, like Shift+Z: **Alt+Shift+ArrowUp / ArrowDown** (bound in `usePlanShortcuts`,
+    ignored in inputs and dialogs) moves the one selected category one place among the visible categories of its
+    group. Nothing happens with no selection or several. The selection stays on the moved category. From a control
+    inside a category row, the row's own handler moves that category, and the window binding does not run twice.
+  - **Groups** can't be selected, so the key works on a focusable control already in the group row, its name button
+    (a locked group such as Credit Card Payments has none and doesn't move). Focus goes back to that control after the
+    move.
+  - A move past either end does nothing. A payment category stays in its group; the Credit Card Payments group is
+    pinned first, so nothing moves above it. Moving a category into another group is still drag only.
 - It sends the same `POST …/categories/{id}/move` and `…/category_groups/{id}/move` bodies as a drop (`before_*` for
   up, `after_*` for down); no new endpoint. One change set per move, so Undo works as for a drag.
-- Focus goes back to the moved row once the order has changed.
 - The grid has one visually hidden `aria-live="polite"` region that says, for example, "Moved
   Utilities to position 2 of 3 in Bills." (`keyboardMove` in `apps/web/src/plan/dnd.ts`).
 - Proven by `e2e/reorder-keyboard.spec.ts`.

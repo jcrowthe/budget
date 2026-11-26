@@ -157,9 +157,7 @@ export interface RowDragProps {
   onDragOver: (e: DragEvent<HTMLElement>) => void;
   onDrop: (e: DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
-  /** Keyboard reorder: the row is focusable, and Alt+Shift+Arrow moves it. */
-  tabIndex: number;
-  "data-row-id": string;
+  /** Keyboard reorder: Alt+Shift+Arrow on a control inside the row moves it (the row itself is not a Tab stop). */
   onKeyDown: (e: KeyboardEvent<HTMLElement>) => void;
 }
 
@@ -233,16 +231,35 @@ export function usePlanDnd({
   };
 
   const [announcement, setAnnouncement] = useState("");
-  const refocus = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const refocus = useRef<{ el: HTMLElement; timer: ReturnType<typeof setTimeout> } | null>(null);
   const orderKey = order(groups);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the order changes, to put focus back on the moved row
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the order changes, to put focus back on the control that had it
   useEffect(() => {
     const r = refocus.current;
     if (!r) return;
     clearTimeout(r.timer);
     refocus.current = null;
-    document.querySelector<HTMLElement>(`[data-row-id="${r.id}"]`)?.focus();
+    if (r.el.isConnected) r.el.focus();
   }, [orderKey]);
+
+  /** Moves one place (Alt+Shift+Arrow) and announces it; `focusEl` gets focus back once the order has changed. */
+  const keyMove = (item: DragItem, dir: -1 | 1, focusEl?: HTMLElement): boolean => {
+    const m = keyboardMove(item, groupsRef.current, dir);
+    if (!m) return false;
+    setAnnouncement(m.text);
+    if (refocus.current) clearTimeout(refocus.current.timer);
+    refocus.current = focusEl
+      ? {
+          el: focusEl,
+          timer: setTimeout(() => {
+            refocus.current = null;
+          }, 3000),
+        }
+      : null;
+    if (m.kind === "category") handlers.current.onMoveCategory(item.id, m.body);
+    else handlers.current.onMoveGroup(item.id, m.body);
+    return true;
+  };
 
   const keys = (item: DragItem) => (e: KeyboardEvent<HTMLElement>) => {
     if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey) return;
@@ -250,18 +267,7 @@ export function usePlanDnd({
     if ((e.target as HTMLElement).closest("input, textarea, [contenteditable]")) return;
     e.preventDefault();
     e.stopPropagation();
-    const m = keyboardMove(item, groupsRef.current, e.key === "ArrowUp" ? -1 : 1);
-    if (!m) return;
-    setAnnouncement(m.text);
-    if (refocus.current) clearTimeout(refocus.current.timer);
-    refocus.current = {
-      id: item.id,
-      timer: setTimeout(() => {
-        refocus.current = null;
-      }, 3000),
-    };
-    if (m.kind === "category") handlers.current.onMoveCategory(item.id, m.body);
-    else handlers.current.onMoveGroup(item.id, m.body);
+    keyMove(item, e.key === "ArrowUp" ? -1 : 1, e.target as HTMLElement);
   };
 
   const rect = (e: DragEvent<HTMLElement>) => e.currentTarget.getBoundingClientRect();
@@ -269,6 +275,9 @@ export function usePlanDnd({
   return {
     /** The text of the last keyboard move, for an aria-live region. */
     announcement,
+    /** Moves a category one place within its group (the selected category, by Alt+Shift+Arrow); false when it can't. */
+    moveCategoryBy: (c: Category, g: Group, dir: -1 | 1) =>
+      keyMove({ kind: "category", id: c.id, groupId: g.id, payment: c.kind !== null }, dir),
     /** The dragged row's id, once the drag has started. */
     draggingId: state?.item.id ?? null,
     /** Where the gap row goes, or null. */
@@ -280,8 +289,6 @@ export function usePlanDnd({
           g.kind === null
             ? start({ kind: "group", id: g.id, groupId: null, payment: false })
             : () => {},
-        tabIndex: 0,
-        "data-row-id": g.id,
         onKeyDown:
           g.kind === null
             ? keys({ kind: "group", id: g.id, groupId: null, payment: false })
@@ -300,8 +307,6 @@ export function usePlanDnd({
       return {
         draggable: true,
         onDragStart: start({ kind: "category", id: c.id, groupId: g.id, payment: c.kind !== null }),
-        tabIndex: 0,
-        "data-row-id": c.id,
         onKeyDown: keys({ kind: "category", id: c.id, groupId: g.id, payment: c.kind !== null }),
         onDragOver: (e) => {
           const cur = ref.current;

@@ -174,6 +174,13 @@ export function PlanGrid({
       const c = groups.flatMap((g) => g.categories).find((x) => selected.has(x.id));
       if (c?.target) snooze.toggle(c.id, !c.target_snoozed);
     },
+    onMove: (dir) => {
+      if (selected.size !== 1) return;
+      for (const g of groups) {
+        const c = g.categories.find((x) => selected.has(x.id));
+        if (c) return void dnd.moveCategoryBy(c, g, dir);
+      }
+    },
     onStep: (dir) => onSelection((s) => step(s, order, dir)),
     onExtend: (dir) => onSelection((s) => extend(s, order, dir)),
     onSelectAll: () => onSelection((s) => selectAll(all, s)),
