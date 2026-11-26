@@ -418,6 +418,10 @@
 .loan-paired-head h2 {
   margin: 0;
 }
+.loan-paired-actions {
+  display: flex;
+  gap: var(--space-2);
+}
 /*
  * The pairing step is shared with the create flow, whose styles are scoped to the account modal: the same
  * choices, labels and fields here. Colours only from shell/tokens.css.

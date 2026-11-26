@@ -127,9 +127,14 @@ export function PairedCategoryPanel({
         <>
           <div className="loan-paired-head">
             <h2>Paired Plan Category</h2>
-            <button type="button" className="secondary" onClick={() => setUnpairing(true)}>
-              {UNPAIR_LABEL}
-            </button>
+            <div className="loan-paired-actions">
+              <button type="button" className="secondary" onClick={() => setPairing(true)}>
+                Change category
+              </button>
+              <button type="button" className="secondary" onClick={() => setUnpairing(true)}>
+                {UNPAIR_LABEL}
+              </button>
+            </div>
           </div>
           <dl className="loan-paired-rows">
             <div>
@@ -188,7 +193,12 @@ export function PairedCategoryPanel({
         <UnpairDialog budgetId={budgetId} loanId={loanId} onClose={() => setUnpairing(false)} />
       ) : null}
       {pairing ? (
-        <PairLoanDialog budgetId={budgetId} loanId={loanId} onClose={() => setPairing(false)} />
+        <PairLoanDialog
+          budgetId={budgetId}
+          loanId={loanId}
+          currentCategoryId={paired?.id}
+          onClose={() => setPairing(false)}
+        />
       ) : null}
     </section>
   );

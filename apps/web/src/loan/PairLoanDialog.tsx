@@ -5,6 +5,7 @@ import "../account/edit-account.css";
 import {
   emptyPair,
   PairCategoryStep,
+  type PairState,
   pairReady,
   pairRequest,
 } from "../shell/add-account-loan-steps";
@@ -19,14 +20,19 @@ import { useEscape } from "./useEscape";
 export function PairLoanDialog({
   budgetId,
   loanId,
+  currentCategoryId,
   onClose,
 }: {
   budgetId: string;
   loanId: string;
+  /** Set when changing an existing pairing: that category starts selected. */
+  currentCategoryId?: string;
   onClose: () => void;
 }) {
   const save = usePairLoanCategory(budgetId, loanId);
-  const [pair, setPair] = useState(emptyPair);
+  const [pair, setPair] = useState<PairState>(() =>
+    currentCategoryId ? { ...emptyPair, categoryId: currentCategoryId } : emptyPair,
+  );
   const [error, setError] = useState<string | null>(null);
   useEscape(onClose);
   const ready = pairReady(pair) && !save.isPending;

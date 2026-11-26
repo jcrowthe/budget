@@ -198,3 +198,10 @@ Editing payments from the loan page, plan export/import of loan rows and pairing
 - **Surface.** Tool count 118 -> 120 (`update_loan_activity`, `delete_loan_activity`); `pair_loan_category` gained
   `category_id: null` and `new_category` and no new tool. `services/accounts.ts` exports `checkNewCategory`,
   `pairingStmts` and `explainNewCategoryRefusal` with no behaviour change (the loan-accounts specs pass unchanged).
+
+## Change category
+
+A paired loan's Paired Plan Category panel has a **Change category** button beside Unpair. It opens the same
+pairing dialog as Get Started (`PairLoanDialog`, which reuses `PairCategoryStep`) with the current category
+preselected, and re-pairs through the one `PUT …/paired-category` call. That is a single change set, so the
+Plan's Undo restores the previous pairing.
