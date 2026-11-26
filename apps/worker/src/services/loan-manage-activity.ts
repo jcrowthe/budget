@@ -157,7 +157,7 @@ export async function updateLoanActivity(
       throw refuse(
         "unprocessable_entity",
         system === LOAN_ESCROW_SYSTEM
-          ? ESCROW_BELOW_RECONCILED_TEXT(`$${money(what.sum)}`)
+          ? ESCROW_BELOW_RECONCILED_TEXT(money(what.sum))
           : INTEREST_BELOW_RECONCILED_TEXT(money(what.sum)),
       );
     }

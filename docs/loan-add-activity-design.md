@@ -132,7 +132,7 @@ change); `addLoanActivity` uses it with `cleared: 'cleared'`.
   One batch soft-deletes every open (not reconciled) escrow row of the month and inserts one cleared row of
   `-amount - R` (system payee "Loan Escrow", built by `frozenLoanRow`, dated `frozenRowDate(month, today)`), with the
   replaced rows' `delete` log rows and the `create` in one change set (undo restores all of it).
-  An amount at or below `|R|` is 422 `unprocessable_entity` ("Escrow this month can't be less than its reconciled $x").
+  An amount at or below `|R|` is 422 `unprocessable_entity` ("Escrow this month can't be less than its reconciled x", x as for interest: money without a currency symbol).
   Re-entering the current amount still writes a row.
 - **Contrast with Add Interest (D1).** Interest **adds** `amount` to what is there; escrow **sets** the total. Both are kept.
   Interest adds because the app's text says so; for escrow the estimate is a fixed term of the loan, so adding to it

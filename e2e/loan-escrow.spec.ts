@@ -142,7 +142,7 @@ test("a mixed month: edit stays above the reconciled part, delete leaves it reco
   const d = dialog(page, "Edit Escrow");
   await d.getByLabel("Amount").fill("300");
   await realClick(page, button(d, "Save"));
-  await expect(d).toContainText("Escrow this month can't be less than its reconciled $300.00");
+  await expect(d).toContainText("Escrow this month can't be less than its reconciled 300.00");
   await expect(d).toBeVisible();
   await confirmDelete(page);
   await expect(escrow).toContainText("Reconciled");

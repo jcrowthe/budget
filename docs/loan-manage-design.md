@@ -163,7 +163,7 @@ tool-count change for pairing.
 
 ## Departures
 
-- **Escrow** was not editable in the first Build (no Add Escrow). EXF-1013 adds Add Escrow, and an edited escrow line is edited or deleted like an interest line. M3 applies to it: a month's open rows become one row, a mixed month changes only its open part, and an amount at or below the reconciled part is 422 ("Escrow this month can't be less than its reconciled $300.00"). The manage verbs do not check the loan type, so an escrow line on a non-mortgage (only possible through the transactions API) can still be corrected or removed.
+- **Escrow** was not editable in the first Build (no Add Escrow). EXF-1013 adds Add Escrow, and an edited escrow line is edited or deleted like an interest line. M3 applies to it: a month's open rows become one row, a mixed month changes only its open part, and an amount at or below the reconciled part is 422 ("Escrow this month can't be less than its reconciled 300.00"). The manage verbs do not check the loan type, so an escrow line on a non-mortgage (only possible through the transactions API) can still be corrected or removed.
 - **Payments** are not edited from Account Activity: they are transfers with a cash side, outside this follow-up.
 - **A fee can't become a credit** (or the reverse) by an edit: delete it and add the other.
 - **Re-pairing a paired loan** from the page (a "Change" action) is not added. Unpair, then Get Started. The API

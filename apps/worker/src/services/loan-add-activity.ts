@@ -109,7 +109,7 @@ export async function addLoanActivity(
       throw new TransactionRefused(
         422,
         "unprocessable_entity",
-        ESCROW_BELOW_RECONCILED_TEXT(`$${(Math.abs(reconciledSum) / 1000).toFixed(2)}`),
+        ESCROW_BELOW_RECONCILED_TEXT((Math.abs(reconciledSum) / 1000).toFixed(2)),
       );
     }
     const made = systemPayee(

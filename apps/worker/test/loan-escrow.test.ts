@@ -231,7 +231,7 @@ describe("a mixed month follows the interest rules", () => {
     ];
     for (const res of results) {
       expect(res.status).toBe(422);
-      expect((await errorOf(res)).detail).toContain("$300.00");
+      expect((await errorOf(res)).detail).toContain("300.00");
     }
     expect(await rows(w.bid, "change_log")).toBe(log);
   });
