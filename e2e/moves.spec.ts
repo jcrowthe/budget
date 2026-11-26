@@ -61,9 +61,9 @@ test("Move opens with the full Available and lists Ready to Assign first", async
   await expect(dlg.getByRole("textbox", { name: "Amount", exact: true })).toHaveValue("475.00");
   await expect(dlg.getByRole("button", { name: "OK", exact: true })).toBeDisabled();
   await realClick(page, dlg.getByRole("combobox", { name: "To", exact: true }));
-  await expect(page.getByText("Plan Categories", { exact: true })).toBeVisible();
+  await expect(page.getByRole("listbox", { name: "Categories", exact: true })).toBeVisible();
   const first = page.getByRole("option").first();
-  await expect(first).toContainText("Inflow: Ready to Assign");
+  await expect(first).toContainText("Ready to Assign");
   await expect(first).toContainText("$525.00");
   await expect(page.getByRole("option").filter({ hasText: RENT })).toHaveCount(0);
   await expect(page.getByRole("option").filter({ hasText: GROC })).toHaveCount(1);
@@ -103,7 +103,7 @@ test("moving to Ready to Assign raises it and lowers the source's Assigned", asy
   await plan.assign(RENT, 400);
   await open(page);
   await expect(rta(page)).toHaveText("$600.00");
-  await moveVia(page, RENT, "Inflow: Ready to Assign", "50");
+  await moveVia(page, RENT, "Ready to Assign", "50");
   await expect(assignedOf(page, RENT)).toHaveText("$350.00");
   await expect(rta(page)).toHaveText("$650.00");
   await expect.poll(async () => (await plan.cat(RENT)).assigned).toBe(350000);
@@ -141,7 +141,7 @@ test("a red pill opens Cover with no amount and brings the category to zero", as
   await expect(ok).toBeDisabled();
   await realClick(page, dlg.getByRole("combobox", { name: "From", exact: true }));
   const options = page.getByRole("option");
-  await expect(options.first()).toContainText("Inflow: Ready to Assign");
+  await expect(options.first()).toContainText("Ready to Assign");
   await expect(options).toHaveCount(2);
   await realClick(page, options.filter({ hasText: GROC }));
   await realClick(page, ok);
@@ -186,7 +186,7 @@ for (const size of sizes) {
     await realClick(page, pill(page, last));
     const dlg = page.getByRole("dialog", { name: "Move money", exact: true });
     await realClick(page, dlg.getByRole("combobox", { name: "To", exact: true }));
-    const list = page.getByRole("listbox", { name: "Plan Categories", exact: true });
+    const list = page.getByRole("listbox", { name: "Categories", exact: true });
     const rows = list.getByRole("option");
     await realClick(page, rows.first());
     await expect(dlg.getByRole("combobox", { name: "To", exact: true })).toHaveValue(
