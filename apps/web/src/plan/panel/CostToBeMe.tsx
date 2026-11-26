@@ -172,7 +172,7 @@ export function CostToBeMe({
       )}
       {next > total && (
         <p className="ctbm-next">
-          Next month's targets could increase your total to {fmt.money(next)}
+          Next month's targets could increase your total to <strong>{fmt.money(next)}</strong>
         </p>
       )}
     </section>
