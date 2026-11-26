@@ -45,7 +45,8 @@ state → Plaid pages → `/accounts/get` → pure decisions (`packages/schema/s
    pages and restarts from `sync_loop_cursor ?? run start` (3 restarts, then `delayed`). Then `/accounts/get`.
    **A Plaid error writes nothing** but the status (and `sync_error_since` when null) with its change_log row.
 4. **Net changes** (`netChanges`): later pages win; `removed` drops an earlier `added`/`modified`; pending
-   dropped (EXF-466); an unknown `modified` id is treated as `added` (rules still apply).
+   pending entries are split out (stored in `pending_transactions`: see pending-transactions-design.md); an
+   unknown `modified` id is treated as `added` (rules still apply).
 5. **Decide** per linked account (reads chunked at 90 ids, D1's 100-parameter limit): known ids,
    tombstones, Starting Balance date, latest reconciled date, match candidates, payees.
 6. **Write** in chunks of ≤ 90 statements (`SYNC_STATEMENTS_PER_BATCH`); one import never straddles two.
@@ -73,7 +74,7 @@ state → Plaid pages → `/accounts/get` → pure decisions (`packages/schema/s
 
 | reason | rule |
 |---|---|
-| `pending` | `pending: true` (dropped by `netChanges`, not counted in `skipped`) |
+| `pending` | `pending: true`: never a `transactions` row. Stored in `pending_transactions` (see pending-transactions-design.md), not counted in `skipped` |
 | `account_closed` | the plan account is closed (the write is also guarded: account live, open, still linked to that bank account) |
 | `before_start` | `date < import_start_date` or `date <` the live Starting Balance row's date |
 | `before_reconciled` | `date < latest reconciled date − 3 days` (`latestReconciledDate`) |
@@ -210,7 +211,7 @@ tombstone. No `categorize_transaction` tool.
 ## Out of scope
 
 EXF-463 screens (banner, pill, "i" menu, sidebar dot, bulk bar, Undo) · EXF-464 manual match, unmatch,
-link icon · EXF-465 status display and repair · EXF-466 pending · EXF-467 renaming rules · EXF-515 2-of-3
+link icon · EXF-465 status display and repair · EXF-467 renaming rules · EXF-515 2-of-3
 category rule · joining two imports into a transfer · six-hourly cron · "Sync now" buttons · sync on app
 open · new bank accounts appearing at the bank.
 
