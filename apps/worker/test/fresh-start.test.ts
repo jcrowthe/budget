@@ -149,6 +149,23 @@ describe("Fresh Start: the copy (EXF-478)", () => {
       expect(rows).toEqual([{ payee_name: "Starting Balance", amount: 0 }]);
     }
     expect(await n("select count(*) n from transactions where budget_id = ?", nb)).toBe(4);
+    // ids made in SQL are real v4 uuids: the API parses them with z.uuid()
+    const v4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    for (const t of [
+      "transactions",
+      "payee_rename_rules",
+      "plan_views",
+      "scheduled_subtransactions",
+    ]) {
+      const ids = await q(`select id from ${t} where budget_id = ?`, nb);
+      expect(ids.length).toBeGreaterThan(0);
+      for (const r of ids) expect(r.id, t).toMatch(v4);
+    }
+    const tokens = await q(
+      "select write_token from scheduled_transactions where budget_id = ?",
+      nb,
+    );
+    for (const r of tokens) expect(r.write_token).toMatch(v4);
     expect(await n("select count(*) n from month_categories where budget_id = ?", nb)).toBe(0);
     const month = (await data(await json(`/api/v1/budgets/${nb}/months/${MONTH_T}`))) as Json;
     const cats = month.groups.flatMap((g: Json) => g.categories) as Json[];

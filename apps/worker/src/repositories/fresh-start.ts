@@ -135,8 +135,8 @@ export interface CopyInput {
   logs: ChangeLogEntry[];
 }
 
-/** A uuid-shaped id made in SQL, new for every row. */
-const uuidSql = sql`lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(6)))`;
+/** A version-4 uuid made in SQL, new for every row (the API's schemas parse ids with `z.uuid()`). */
+const uuidSql = sql`lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))`;
 
 const json = (v: unknown) => JSON.stringify(v);
 

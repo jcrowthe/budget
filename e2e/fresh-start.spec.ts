@@ -19,11 +19,19 @@ const mmddyyyy = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.
 async function open(
   page: Page,
   request: Parameters<typeof seedFreshStart>[0],
-  extra: string[] = [],
+  newName = "ZZ-TEST FS never",
 ) {
   const s = await seedFreshStart(request);
   const other = await seedFreshStart(request);
-  await showOnlyPlans(page, (p) => p.id === s.plan || p.id === other.plan || extra.includes(p.id));
+  // Only this test's plans are listed: its two plans, the source's archive and the plan it makes.
+  await showOnlyPlans(
+    page,
+    (p) =>
+      p.id === s.plan ||
+      p.id === other.plan ||
+      p.name === newName ||
+      p.name.startsWith(`${s.name} (Archived on `),
+  );
   await page.goto(`/${s.plan}/budget`);
   await expect(side(page).getByRole("button", { name: s.name, exact: true })).toBeVisible();
   return { s, other };
@@ -42,7 +50,11 @@ test("AC1: the menu entry opens the dialog with the ticket's copy; Cancel change
   request,
 }) => {
   const { s } = await open(page, request);
-  const before = await plansApi(request);
+  const mine = async () =>
+    (await plansApi(request))
+      .filter((p) => p.id === s.plan)
+      .map((p) => ({ id: p.id, name: p.name }));
+  const before = await mine();
   await openDialog(page, s);
   const d = dialog(page);
   await expect(d.getByRole("heading", { name: "Make a Fresh Start" })).toBeVisible();
@@ -75,7 +87,8 @@ test("AC1: the menu entry opens the dialog with the ticket's copy; Cancel change
   await expect(cont(page)).toBeDisabled();
   await mouseClick(page, d.getByRole("button", { name: "Cancel", exact: true }));
   await expect(dialog(page)).toHaveCount(0);
-  expect(await plansApi(request)).toEqual(before);
+  expect(await mine()).toEqual(before);
+  expect(before.map((p) => p.name)).toEqual([s.name]);
 });
 
 test("AC2: a name of an existing plan blocks Continue", async ({ page, request }) => {
@@ -101,13 +114,15 @@ test("AC3 + AC5: Continue opens a new plan with the structure and nothing else",
   page,
   request,
 }) => {
-  const { s } = await open(page, request);
   const newName = testName("FS new");
+  const { s } = await open(page, request, newName);
   await openDialog(page, s);
   await field(page).fill(newName);
   await expect(cont(page)).toBeEnabled();
   await mouseClick(page, cont(page));
-  await expect(page).toHaveURL(/\/[0-9a-f-]{36}\/budget$/);
+  await expect(page).toHaveURL(
+    (u) => /^\/[0-9a-f-]{36}\/budget$/.test(u.pathname) && !u.pathname.includes(s.plan),
+  );
   const nid = page.url().split("/").slice(-2)[0] as string;
   expect(nid).not.toBe(s.plan);
   await expect(page).toHaveTitle(new RegExp(newName));
@@ -122,41 +137,60 @@ test("AC3 + AC5: Continue opens a new plan with the structure and nothing else",
   await side(page)
     .getByRole("link", { name: /ZZ Checking/ })
     .click();
-  const rows = page.locator(".register-table tbody tr[data-tx]");
+  const rows = page.getByRole("row").filter({ hasText: "Starting Balance" });
   await expect(rows).toHaveCount(1);
-  await expect(rows).toContainText("Starting Balance");
-  await expect(rows).toContainText("$0.00");
+  await expect(page.getByRole("row").filter({ hasText: "ZZ Grocer" })).toHaveCount(0);
+  // A zero amount shows as an empty cell; the API and the balances say $0.00.
+  await expect(rows).not.toContainText("$");
+  await expect(page.getByText("$0.00", { exact: true }).first()).toBeVisible();
+  const own = (
+    await call(
+      request,
+      "GET",
+      `/api/v1/budgets/${nid}/accounts/${page.url().split("/").pop()}/transactions`,
+    )
+  ).transactions as { amount: number; date: string; payee_name: string }[];
+  expect(own.map((t) => [t.payee_name, t.amount, t.date])).toEqual([
+    ["Starting Balance", 0, TODAY],
+  ]);
   await expect(rows).toContainText(mmddyyyy(TODAY));
   const sched = (await call(request, "GET", `/api/v1/budgets/${nid}/scheduled-transactions`))
-    .scheduled_transactions as { memo: string | null; subtransactions: unknown[] }[];
-  expect(sched.map((x) => x.memo).sort()).toEqual(["ZZ split", "ZZ transfer"]);
+    .scheduled_transactions as {
+    memo: string | null;
+    mirror: boolean;
+    subtransactions: unknown[];
+  }[];
+  expect(
+    sched
+      .filter((x) => !x.mirror)
+      .map((x) => x.memo)
+      .sort(),
+  ).toEqual(["ZZ split", "ZZ transfer"]);
   expect(sched.find((x) => x.memo === "ZZ split")?.subtransactions).toHaveLength(2);
   const payees = (await call(request, "GET", `/api/v1/budgets/${nid}/payees`)).payees as {
     name: string;
   }[];
   expect(payees.some((p) => p.name === "ZZ Grocer")).toBe(true);
   const rent = month.groups
-    .flatMap((g: { categories: { id: string; name: string }[] }) => g.categories)
+    .flatMap(
+      (g: { categories: { name: string; target: unknown; note: string | null }[] }) => g.categories,
+    )
     .find((c: { name: string }) => c.name === "ZZ Rent");
-  const target = await call(request, "GET", `/api/v1/budgets/${nid}/categories/${rent.id}/target`);
-  expect(target).toBeTruthy();
-  const cat = (await call(request, "GET", `/api/v1/budgets/${nid}/categories/${rent.id}`)).category;
-  expect(cat.note).toBe("ZZ rent note");
+  expect(rent.target).toBeTruthy();
+  expect(rent.note).toBe("ZZ rent note");
 });
 
 test("AC4: the archive is in Recent Plans and the plans list and keeps its history", async ({
   page,
   request,
 }) => {
-  const { s } = await open(page, request);
   const newName = testName("FS new");
+  const { s } = await open(page, request, newName);
   await openDialog(page, s);
   await field(page).fill(newName);
   await mouseClick(page, cont(page));
   await expect(page).toHaveTitle(new RegExp(newName));
   const archived = `${s.name} (Archived on ${TODAY})`;
-  await showOnlyPlans(page, (p) => p.name === newName || p.name === archived);
-  await page.reload();
   await mouseClick(page, side(page).getByRole("button", { name: newName, exact: true }));
   await mouseClick(page, page.getByRole("menuitem", { name: "Open Plan", exact: true }));
   const sub = page.getByRole("menu", { name: "Plans", exact: true });
@@ -164,9 +198,8 @@ test("AC4: the archive is in Recent Plans and the plans list and keeps its histo
   await mouseClick(page, sub.getByRole("menuitem", { name: "View All Plans", exact: true }));
   await expect(page.getByText(archived, { exact: true })).toBeVisible();
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
-  const rows = page.locator(".register-table tbody tr[data-tx]");
-  await expect(rows).toHaveCount(3);
-  await expect(rows.filter({ hasText: "ZZ Grocer" })).toHaveCount(2);
+  await expect(page.getByRole("row").filter({ hasText: "ZZ Grocer" })).toHaveCount(2);
+  await expect(page.getByRole("row").filter({ hasText: "Starting Balance" })).toHaveCount(1);
   const month = await call(
     request,
     "GET",

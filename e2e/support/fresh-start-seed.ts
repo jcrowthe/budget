@@ -1,6 +1,6 @@
 import type { APIRequestContext } from "@playwright/test";
 import { authHeaders, testName } from "./auth";
-import { call } from "./register-seed";
+import { call, TODAY } from "./register-seed";
 
 export interface FsPlan {
   plan: string;
@@ -43,6 +43,7 @@ export async function seedFreshStart(request: APIRequestContext): Promise<FsPlan
   const tx = (body: Record<string, unknown>) =>
     call(request, "POST", `${A}/transactions`, {
       account_id: checking,
+      date: TODAY,
       inflow_to_ready_to_assign: false,
       ...body,
     });
