@@ -166,7 +166,13 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
  * "Edited on"), and the id of the row with that date (the line's handle for edit and delete): one statement, no
  * row when there are none.
  */
-export function editedOnQuery(db: Db, budgetId: string, loanId: string, month: Month) {
+export function editedOnQuery(
+  db: Db,
+  budgetId: string,
+  loanId: string,
+  month: Month,
+  system: typeof LOAN_INTEREST_SYSTEM | typeof LOAN_ESCROW_SYSTEM = LOAN_INTEREST_SYSTEM,
+) {
   return db
     .select({
       editedOn: sql<string | null>`max(${transactions.date}) over ()`.as("edited_on"),
@@ -181,7 +187,7 @@ export function editedOnQuery(db: Db, budgetId: string, loanId: string, month: M
         counts,
         gte(transactions.date, month),
         lt(transactions.date, addMonths(month, 1)),
-        eq(payee.system, LOAN_INTEREST_SYSTEM),
+        eq(payee.system, system),
         sql`${transactions.cleared} <> 'reconciled'`,
       ),
     )

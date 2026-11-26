@@ -1,5 +1,5 @@
 import { isLoanType } from "@budget/core/account-types";
-import { loanAt, runLoan } from "@budget/core/loan-engine";
+import { LOAN_ESCROW_SYSTEM, loanAt, runLoan } from "@budget/core/loan-engine";
 import { currentMonth, type Month } from "@budget/core/month";
 import { type LoanActivity, NOT_A_LOAN_TEXT } from "@budget/schema/loan-activity";
 import { CREDIT_LABEL, FEE_LABEL } from "@budget/schema/loan-add-activity";
@@ -16,7 +16,7 @@ export const INITIAL_BALANCE_LABEL = "Initial Balance";
 
 /**
  * One month of a loan's Account Activity. D1 calls: the plan, the account, then one batch (the loan's grouped
- * rows, the month's rows, the last payment source, the edited line's date): the same for any number of months or payments.
+ * rows, the month's rows, the last payment source, the edited interest and escrow lines' dates): the same for any number of months or payments.
  */
 export async function getLoanActivity(
   env: Env,
@@ -32,11 +32,12 @@ export async function getLoanActivity(
     throw new TransactionRefused(422, "not_a_loan_account", NOT_A_LOAN_TEXT(loan.name));
   }
   const m = month ?? currentMonth();
-  const [grouped, rows, last, edited] = await db.batch([
+  const [grouped, rows, last, edited, escrowEdited] = await db.batch([
     loanRepo.loanMonthsQuery(db, budgetId, loanId),
     loanRepo.monthRowsQuery(db, budgetId, loanId, m),
     loanRepo.lastPaymentSourceQuery(db, budgetId, loanId),
     loanRepo.editedOnQuery(db, budgetId, loanId, m),
+    loanRepo.editedOnQuery(db, budgetId, loanId, m, LOAN_ESCROW_SYSTEM),
   ]);
   const found = loanRepo.loanMonthsFromRows(grouped).get(loanId);
   const result = loanAt(
@@ -102,7 +103,15 @@ export async function getLoanActivity(
           editable: result.interest.state === "edited",
         }
       : null,
-    escrow: result.escrow ? { ...result.escrow, editable: false } : null,
+    escrow: result.escrow
+      ? {
+          ...result.escrow,
+          edited_on: result.escrow.state === "edited" ? (escrowEdited[0]?.editedOn ?? null) : null,
+          transaction_id:
+            result.escrow.state === "edited" ? (escrowEdited[0]?.latestId ?? null) : null,
+          editable: result.escrow.state === "edited",
+        }
+      : null,
     other,
     last_payment_from_account_id: last[0]?.id ?? null,
   };

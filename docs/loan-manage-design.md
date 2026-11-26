@@ -18,7 +18,9 @@ batch in `services/accounts.ts`). No migration. The tasks are in the Build's spe
 | Interest | estimated | no | no | as today. Add Interest is how an estimate is changed |
 | Interest | edited (has stored rows that are not reconciled) | yes | yes | an **Edit** button on the row |
 | Interest | reconciled (every stored row reconciled by Update Balance) | **refused 409** | **refused 409** | a lock icon, "Reconciled, not editable" |
-| Escrow | any | no (there is no Add Escrow) | no | reconciled: the lock icon; otherwise as today |
+| Escrow | estimated | no | no | as today. Add Escrow is how an estimate is changed |
+| Escrow | edited (has stored rows that are not reconciled) | yes | yes | an **Edit** button on the row (EXF-1013) |
+| Escrow | reconciled | **refused 409** | **refused 409** | a lock icon, "Reconciled, not editable" |
 | Other: Fee or Charge / Credit (no payee, no transfer) | not reconciled | yes | yes | an **Edit** button on the row |
 | Other: Balance adjustment (Update Balance, reconciled) | reconciled | **refused 409** | **refused 409** | the lock icon |
 | Other: Initial Balance, a payee's row; Payments | | refused 422 | refused 422 | as today (no button, no lock) |
@@ -102,7 +104,8 @@ statement changes nothing, the answer is 409 `balance_changed`.
 
 - `LoanInterestLine.transaction_id`: the latest not-reconciled interest row's id when the line is edited, else
   null. `LoanInterestLine.editable`: `state === "edited"`.
-- `LoanEscrowLine.editable`: always false in this Build.
+- `LoanEscrowLine.edited_on`, `transaction_id` and `editable` (EXF-1013): the same meaning as on the interest line, for the
+  latest not-reconciled `loan_escrow` row (`editedOnQuery` with the escrow system, the fifth statement of the same batch).
 - `LoanOtherRow.editable`: a row with no payee, no transfer, not a split, and not reconciled. `LoanOtherRow.reconciled`
   (boolean) drives the lock icon. Payments keep their existing `cleared`.
 
@@ -160,18 +163,18 @@ tool-count change for pairing.
 
 ## Departures
 
-- **Escrow** is never editable here: there is no Add Escrow, so no edited escrow line exists to correct.
+- **Escrow** was not editable in the first Build (no Add Escrow). EXF-1013 adds Add Escrow, and an edited escrow line is edited or deleted like an interest line. M3 applies to it: a month's open rows become one row, a mixed month changes only its open part, and an amount at or below the reconciled part is 422 ("Escrow this month can't be less than its reconciled 300.00"). The manage verbs do not check the loan type, so an escrow line on a non-mortgage (only possible through the transactions API) can still be corrected or removed.
 - **Payments** are not edited from Account Activity: they are transfers with a cash side, outside this follow-up.
 - **A fee can't become a credit** (or the reverse) by an edit: delete it and add the other.
 - **Re-pairing a paired loan** from the page (a "Change" action) is not added. Unpair, then Get Started. The API
   already re-pairs.
-- **Additions**: `transaction_id` and `editable` on the interest line, `editable` on the escrow line, `editable` and
+- **Additions**: `transaction_id` and `editable` on the interest line, `edited_on`, `transaction_id` and `editable` on the escrow line (EXF-1013), `editable` and
   `reconciled` on Other rows; `today` on PATCH.
 - **Tool count** +2 (`update_loan_activity`, `delete_loan_activity`).
 
 ## Not in this Build
 
-Add Escrow and editing escrow, editing payments from the loan page, plan export/import of loan rows and pairings.
+Editing payments from the loan page, plan export/import of loan rows and pairings.
 
 ## Build notes
 
@@ -189,6 +192,7 @@ Add Escrow and editing escrow, editing payments from the loan page, plan export/
     `not_editable_activity`, including a reconciled payment.
   - Moving a fee to an earlier month also moves the interest that carries into later months, so the answer's `balance`
     is the engine's balance after the write (equal to the account's), not the old balance minus the change.
+- **EXF-1013 (escrow).** `monthInterestRowsQuery` became `monthFrozenRowsQuery`: the month's rows of the addressed row's own system (interest or escrow), one statement, no IN list. `classify` returns one `line` type over the system; update and delete share one branch. PATCH and DELETE of an escrow line are **4** D1 calls (1 vs 10 open rows, 10 vs 100 payments, 1 vs 24 months), a refusal **3**, Account Activity **3**. No new tool: the count stays **121** (`update_loan_activity` and `delete_loan_activity` take an escrow `transaction_id`).
 - **Undo type maps** were not changed: every undo test passes on the existing maps (`account` update of
   `paired_category_id`, `transaction` create/update/delete, `category` and `category_group` create).
 - **Surface.** Tool count 118 -> 120 (`update_loan_activity`, `delete_loan_activity`); `pair_loan_category` gained

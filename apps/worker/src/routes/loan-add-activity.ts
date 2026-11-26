@@ -35,7 +35,7 @@ export default app.openapi(
     path: "/budgets/{budget_id}/accounts/{account_id}/activity",
     tags: ["Accounts"],
     summary:
-      "Add activity to a loan: recorded interest (an edited interest line), a fee or charge, or a credit",
+      "Add activity to a loan: recorded interest (added to the month), a mortgage's known escrow for a month (the month's total, replacing what is not reconciled), a fee or charge, or a credit",
     request: {
       params: z.object({ budget_id: param("budget_id"), account_id: param("account_id") }),
       body: {
@@ -48,7 +48,10 @@ export default app.openapi(
       403: json(ErrorBody, "Forbidden"),
       404: json(ErrorBody, "Plan or account not found"),
       409: json(ErrorBody, "The loan's balance changed while writing (balance_changed)"),
-      422: json(ErrorBody, "Not a loan, closed, a future interest month, or an invalid request"),
+      422: json(
+        ErrorBody,
+        "Not a loan, closed, escrow on a non-mortgage, a future interest or escrow month, an escrow total at or below its reconciled part, or an invalid request",
+      ),
     },
   }),
   async (c) => {

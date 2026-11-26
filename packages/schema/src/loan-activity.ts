@@ -51,9 +51,17 @@ export const LoanEscrowLine = z
   .object({
     amount: Milliunits.openapi({ description: "Escrow booked, negative" }),
     state: State,
-    editable: z
-      .boolean()
-      .openapi({ description: "Always false: escrow lines are not edited here" }),
+    edited_on: IsoDate.nullable().openapi({
+      description:
+        "state edited: the latest date of the month's stored escrow rows that are not reconciled (Add Escrow); null otherwise",
+    }),
+    transaction_id: z.string().nullable().openapi({
+      description:
+        "state edited: the id of the latest stored escrow row that is not reconciled; PATCH or DELETE it to change the whole line. null otherwise",
+    }),
+    editable: z.boolean().openapi({
+      description: "true when the line is edited: it can be edited or deleted. False otherwise",
+    }),
   })
   .openapi("LoanEscrowLine");
 
@@ -150,8 +158,15 @@ export function interestNote(
     : "Estimated";
 }
 
-export const escrowNote = (line: Pick<z.infer<typeof LoanEscrowLine>, "state">): string =>
-  line.state === "reconciled" ? "Reconciled" : line.state === "edited" ? "Edited" : ESCROW_NOTE;
+export function escrowNote(
+  line: Pick<z.infer<typeof LoanEscrowLine>, "state"> & { edited_on?: string | null },
+): string {
+  if (line.state === "reconciled") return "Reconciled";
+  if (line.state === "edited") {
+    return line.edited_on ? `Edited on ${dayLabel(line.edited_on)}` : "Edited";
+  }
+  return ESCROW_NOTE;
+}
 
 export function paymentLine(
   p: Pick<z.infer<typeof LoanPayment>, "amount" | "date" | "memo" | "from_account_name">,

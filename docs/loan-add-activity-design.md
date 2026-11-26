@@ -123,9 +123,39 @@ change); `addLoanActivity` uses it with `cleared: 'cleared'`.
 - **Additions:** `today` in the request, `kind` and `balance` in the answer, `edited_on` on the interest line, the
   Fee or Charge / Credit labels (D5), and the `future_month` refusal (D3).
 
+## Add Escrow (EXF-1013)
+
+`{ kind: "escrow", amount, month?, today? }` records a known escrow amount for a month.
+
+- **Total semantics.** `amount` is the month's **total** escrow, because the request is "record a known escrow
+  amount": the escrow reads `-amount` afterwards. Let R (<= 0) be the sum of the month's reconciled `loan_escrow` rows.
+  One batch soft-deletes every open (not reconciled) escrow row of the month and inserts one cleared row of
+  `-amount - R` (system payee "Loan Escrow", built by `frozenLoanRow`, dated `frozenRowDate(month, today)`), with the
+  replaced rows' `delete` log rows and the `create` in one change set (undo restores all of it).
+  An amount at or below `|R|` is 422 `unprocessable_entity` ("Escrow this month can't be less than its reconciled x", x as for interest: money without a currency symbol).
+  Re-entering the current amount still writes a row.
+- **Contrast with Add Interest (D1).** Interest **adds** `amount` to what is there; escrow **sets** the total. Both are kept.
+  Interest adds because the app's text says so; for escrow the estimate is a fixed term of the loan, so adding to it
+  would not record "a known amount".
+- **Mortgage only.** Another loan type is 422 `unprocessable_entity` "Escrow applies to a mortgage only". The order of
+  refusals: loan, closed, mortgage, then a future month (422 `future_month`, "Escrow cannot be recorded for a month that has not begun").
+  `date` and `memo` are 422, as for interest.
+- **Mixed month.** The reconciled rows stay; only the open part changes (the interest rules, `loan-manage-design.md` M3).
+- **The engine is unchanged.** It books escrow first, then `interest = min(estimate, payment - escrow)`, then principal.
+  A recorded escrow above the payment's headroom moves estimated interest into `still_due`. Example: a 1,500.00
+  payment, interest estimate 1,000.00, escrow 600.00: interest booked is 900.00, 100.00 still due, and the balance
+  moves 200.00, not 300.00. Add Escrow never writes an interest row.
+- **D6** now reads "Edited on <row date>" for escrow too (`escrowNote`), and the escrow line has an Edit button
+  when it is edited (`transaction_id`, `editable`, `edited_on`).
+- **Menu.** Five items for a mortgage (Add Escrow is fifth: "For recording a known escrow amount"), four for any other
+  loan: `AddActivityMenu` takes `mortgage`.
+- **D1 calls, measured.** Add Escrow is **4** (plan, account, one read batch, one write batch) for 10 vs 100 payments,
+  1 vs 24 months and 1 vs 10 open rows (`loan-escrow-calls.test.ts`). The read batch always has the escrow-rows
+  statement, so it keeps one shape.
+
 ## Not in this Build
 
-Add Escrow, editing or deleting a recorded line from Account Activity, and plan export/import of loan rows.
+Plan export/import of loan rows.
 
 ## Build notes
 
