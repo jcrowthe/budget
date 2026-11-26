@@ -42,6 +42,10 @@ test("Euro, 123.456,78, After amount, DD.MM.YYYY: grid, register, sidebar, Activ
   const body = page.locator(".plan-body");
   await expect(body).not.toContainText("$");
   await expect(page.locator(".plan-header")).not.toContainText("$");
+  // EXF-748: no default-format (MM/DD/YYYY) date on the Plan page.
+  const usDate = /\d{2}\/\d{2}\/\d{4}/;
+  expect(await body.innerText()).not.toMatch(usDate);
+  expect(await page.locator(".plan-header").innerText()).not.toMatch(usDate);
   // The sidebar's balances.
   await expect(sidebar(page)).toContainText("1.265,44€");
   await expect(sidebar(page)).not.toContainText("$");
@@ -62,6 +66,7 @@ test("Euro, 123.456,78, After amount, DD.MM.YYYY: grid, register, sidebar, Activ
   await expect(table).toContainText("1.234,56€");
   await expect(table.locator("td.cell-balance").first()).toHaveText("1.265,44€");
   await expect(table).not.toContainText("$");
+  expect(await table.innerText()).not.toMatch(usDate);
 });
 
 test("a Reflect report follows the plan's formats", async ({ page, request }) => {
