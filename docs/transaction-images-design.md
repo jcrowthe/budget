@@ -150,7 +150,8 @@ Attach and delete are **not** undoable:
 - `apps/web/src/api/transaction-images.ts`:
   - the upload is a raw `fetch` with `FormData`, because `apiFetch` sends JSON only;
   - the delete goes through `apiFetch`;
-  - the download fetches a blob and saves it through `<a download>`, keeping the bytes unchanged;
+  - the download fetches a blob and saves it through `<a download>`, keeping the bytes unchanged, under the name the
+    upload had (read from the response's `Content-Disposition`; `transaction-photo` when there is none);
   - after each write, the hooks invalidate the plan's queries.
 - `register/ImageCell.tsx`, `register/ImageViewer.tsx`, `PhotoIcon` in `register/icons.tsx`.
 - `register-view.tsx`'s `RegisterViewContext` gains `showImages`. `RegisterTable`, `EntryRow`, `PendingSection` and
