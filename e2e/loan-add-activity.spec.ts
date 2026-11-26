@@ -79,7 +79,7 @@ const pick = async (page: Page, item: string) => {
 };
 const ending = (page: Page) => page.getByTestId("loan-ending-balance");
 
-test("AC1: the Add Activity menu has four items and Add Payment opens Record Payment", async ({
+test("AC1: the Add Activity menu has five items for a mortgage and Add Payment opens Record Payment", async ({
   page,
   request,
 }) => {
