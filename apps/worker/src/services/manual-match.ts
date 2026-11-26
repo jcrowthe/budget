@@ -7,6 +7,7 @@ import { changeLogInsertIf } from "../history/change-log";
 import { Conflict, NotFound } from "../middleware/errors";
 import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as payeesRepo from "../repositories/payees";
+import * as imagesRepo from "../repositories/transaction-images";
 import * as txRepo from "../repositories/transactions";
 import { formatsOfRow } from "./budgets";
 import { resolvePayee } from "./payees";
@@ -148,6 +149,8 @@ export async function matchTransactions(
             ),
           ]
         : []),
+      // The import's image moves to the kept entry unless it has its own (before any write that moves updated_at).
+      ...imagesRepo.moveOnMatchStmts(db, { budgetId, actor, now }, entry.id, imp.id, both),
       txRepo.softDeleteIfStmt(db, imp.id, now, both),
       txRepo.updateIfStmt(db, entry.id, set, last),
     ];
@@ -289,6 +292,16 @@ export async function unmatchTransaction(
                   guard,
                 ),
               ]
+            : []),
+          // The images of the match follow the bank's import to its new row (before the entry's updated_at moves).
+          ...(row.importId
+            ? imagesRepo.moveOnUnmatchStmts(
+                db,
+                { budgetId, actor, now },
+                { id: row.id, accountId: row.accountId, importId: row.importId },
+                newImport.id,
+                guard,
+              )
             : []),
           txRepo.updateIfStmt(db, row.id, set, guard),
           txRepo.insertIfStmt(db, newImport, txRepo.writtenAt(db, row.id, now)),
