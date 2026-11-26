@@ -497,7 +497,7 @@ export interface PayeeDeletePlan {
   counts: Record<string, { t: number; s: number }>;
 }
 
-/** The statements of one delete, eleven whatever the rows (the lines of split schedules move in three of them). A test appends a failing statement to prove atomicity. */
+/** The statements of one delete, eight whatever the rows. A test appends a failing statement to prove atomicity. */
 export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"sqlite">[] {
   const { budgetId, ids, replacementId } = p;
   const guard = allOf(
@@ -515,7 +515,6 @@ export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"s
     payeesRepo.logDeleteStmt(db, base, budgetId, ids, replacementId, p.counts, guard),
     deleteLog.logTransactionMovesStmt(db, base, budgetId, ids, replacementId, guard),
     deleteLog.logScheduledMovesStmt(db, base, budgetId, ids, replacementId, guard),
-    deleteLog.logScheduledLineMovesStmt(db, base, budgetId, ids, replacementId, guard),
     transactionsRepo.movePayeeStmt(db, budgetId, ids, replacementId, p.now, guard),
     scheduledRepo.movePayeeStmt(
       db,
@@ -526,8 +525,6 @@ export function buildPayeeDeleteBatch(db: DbT, p: PayeeDeletePlan): BatchItem<"s
       crypto.randomUUID(),
       guard,
     ),
-    scheduledRepo.renewTokenOfPayeeLinesStmt(db, budgetId, ids, guard),
-    scheduledRepo.moveLinePayeeStmt(db, budgetId, ids, replacementId, p.now, guard),
     ...rulesRepo.removeForPayeesStmts(db, base, budgetId, ids, guard),
     payeesRepo.softDeleteStmt(db, budgetId, ids, p.now, guard),
   ];
@@ -547,10 +544,10 @@ export interface PayeeCombinePlan {
 }
 
 /** Where the rule statements start in a combine batch: the soft delete is `+1`, the move `+3`. */
-const COMBINE_RULES_AT = 11;
+const COMBINE_RULES_AT = 8;
 
 /**
- * The statements of one combine, seventeen whatever the payees, rules or rows: a first check that every payee read is still live (the rename is not guarded by the others' count), the survivor's rename (two no-op
+ * The statements of one combine, fourteen whatever the payees, rules or rows: a first check that every payee read is still live (the rename is not guarded by the others' count), the survivor's rename (two no-op
  * statements when its name stays), the delete's history rows and moves of EXF-882 with the survivor as the
  * replacement, the rules' move, the merged payees' soft delete and a closing check. A test appends a failing
  * statement to prove atomicity.
@@ -603,7 +600,6 @@ export function buildPayeeCombineBatch(db: DbT, p: PayeeCombinePlan): BatchItem<
     payeesRepo.logDeleteStmt(db, base, budgetId, mergedIds, survivor.id, p.counts, guard),
     deleteLog.logTransactionMovesStmt(db, base, budgetId, mergedIds, survivor.id, guard),
     deleteLog.logScheduledMovesStmt(db, base, budgetId, mergedIds, survivor.id, guard),
-    deleteLog.logScheduledLineMovesStmt(db, base, budgetId, mergedIds, survivor.id, guard),
     transactionsRepo.movePayeeStmt(db, budgetId, mergedIds, survivor.id, p.now, guard),
     scheduledRepo.movePayeeStmt(
       db,
@@ -614,8 +610,6 @@ export function buildPayeeCombineBatch(db: DbT, p: PayeeCombinePlan): BatchItem<
       crypto.randomUUID(),
       guard,
     ),
-    scheduledRepo.renewTokenOfPayeeLinesStmt(db, budgetId, mergedIds, guard),
-    scheduledRepo.moveLinePayeeStmt(db, budgetId, mergedIds, survivor.id, p.now, guard),
     ...rulesRepo.moveForPayeesStmts(db, base, budgetId, mergedIds, survivor.id, p.now, guard),
     payeesRepo.softDeleteStmt(db, budgetId, mergedIds, p.now, guard),
     payeesRepo.combineCheckStmt(db, budgetId, survivor.id, p.name, mergedIds),

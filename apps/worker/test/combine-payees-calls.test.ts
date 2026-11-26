@@ -94,7 +94,7 @@ describe("D1 calls of the combine (EXF-512)", () => {
         counts: {},
       }).length;
     const renamed = stmts(["x"], "ZZ-TEST New");
-    expect(renamed).toBe(17);
+    expect(renamed).toBe(14);
     expect(stmts(["x", "y", "z"], "ZZ-TEST New")).toBe(renamed);
     expect(stmts(["x"], (row as payeesRepo.PayeeListRow).name)).toBe(renamed);
   });

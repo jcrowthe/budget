@@ -69,6 +69,7 @@ export const ScheduledTransaction = z
     transfer_account_name: z.string().nullable(),
     subtransactions: z
       .array(ScheduledSubTransaction)
+      .default([])
       .describe("Split lines; empty for a plain schedule or a transfer"),
     mirror: z
       .boolean()

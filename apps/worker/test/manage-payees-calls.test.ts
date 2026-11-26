@@ -63,7 +63,7 @@ describe("D1 calls of the payee operations (EXF-510)", () => {
     expect(await calls((e) => updatePayee(e, REST_ACTOR, w.bid, a, { hidden: true }))).toBe(3);
   });
 
-  it("delete with a replacement logs the moved rows: the same calls for 10 and 100 transactions, 11 statements", async () => {
+  it("delete with a replacement logs the moved rows: the same calls for 10 and 100 transactions, 8 statements", async () => {
     const out: number[] = [];
     for (const n of [10, 100]) {
       const w = await payeeWorld();
@@ -84,7 +84,7 @@ describe("D1 calls of the payee operations (EXF-510)", () => {
       replacementId: "y",
       counts: {},
     });
-    expect(stmts).toHaveLength(11);
+    expect(stmts).toHaveLength(8);
   });
 
   it("delete: the same calls with 1 and with 500 transactions (3, and 4 with a replacement)", async () => {
