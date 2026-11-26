@@ -371,13 +371,14 @@ export function EntryRow({
     if (draft.category.kind === "none" && c && !noCategory) patch({ category: c });
   };
 
-  const { showFlags, showBalance } = useRegisterView();
+  const { showFlags, showImages, showBalance } = useRegisterView();
   const attentionCol = useAttentionColumn();
   const colCount =
     (plan ? 1 : 0) +
     (showCategory ? 1 : 0) +
     (attentionCol ? 7 : 6) +
     (showFlags ? 1 : 0) +
+    (showImages ? 1 : 0) +
     (showBalance ? 1 : 0);
   const parentAmount = draftAmount(draft, fmt);
 
@@ -413,6 +414,7 @@ export function EntryRow({
         </td>
         {attentionCol && <td className="cell-attention" />}
         {showFlags && <td className="cell-flag" />}
+        {showImages && <td className="cell-image" />}
         {plan && (
           <td data-field="account">
             <AccountField
@@ -551,7 +553,9 @@ export function EntryRow({
           total={parentAmount}
           payees={payeesQ.data ?? []}
           month={monthQ.data}
-          lead={(attentionCol ? 2 : 1) + (showFlags ? 1 : 0) + (plan ? 1 : 0)}
+          lead={
+            (attentionCol ? 2 : 1) + (showFlags ? 1 : 0) + (showImages ? 1 : 0) + (plan ? 1 : 0)
+          }
           showBalance={showBalance}
           showCategory={showCategory}
           onChange={patchLine}

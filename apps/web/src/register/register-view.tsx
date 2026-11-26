@@ -23,6 +23,8 @@ export type RegisterView = {
   /** The first month of the plan's data: the From of All Dates. */
   firstMonth: string;
   showFlags: boolean;
+  /** The image column (View: Show Images). */
+  showImages: boolean;
   /** A BALANCE column: an account's page only. */
   showBalance: boolean;
   save: (patch: ViewSettingsPatch) => void;
@@ -34,6 +36,7 @@ export const RegisterViewContext = createContext<RegisterView>({
   today: "",
   firstMonth: "",
   showFlags: true,
+  showImages: true,
   showBalance: false,
   save: () => {},
 });
@@ -71,6 +74,7 @@ export function useRegisterViewState(budgetId: string, accountId?: string): Regi
     today,
     firstMonth,
     showFlags: settings.show_flags,
+    showImages: settings.show_images,
     showBalance: !!accountId && settings.show_running_balance,
     save,
   };

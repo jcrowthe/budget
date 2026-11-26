@@ -46,7 +46,7 @@ export function PendingSection({
   accounts: Account[];
 }) {
   const fmt = usePlanFormatter();
-  const { showFlags, showBalance } = useRegisterView();
+  const { showFlags, showImages, showBalance } = useRegisterView();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   useEffect(() => {
     try {
@@ -82,6 +82,7 @@ export function PendingSection({
         <PendingAttentionCell budgetId={budgetId} tx={tx} />
       </td>
       {showFlags && <td className="cell-flag" />}
+      {showImages && <td className="cell-image" />}
       <td data-field="date">{fmt.date(tx.date)}</td>
       <td data-field="payee" title={tx.payee_name ?? undefined}>
         {tx.payee_name}

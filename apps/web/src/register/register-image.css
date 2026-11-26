@@ -1,0 +1,169 @@
+/* The image column (EXF-536). Colours are tokens from shell/tokens.css and shell/theme-light.css only. */
+
+/* 44px; the category column absorbs it (docs/account-register-design.md). */
+.register-table .col-image {
+  width: 44px;
+}
+.register-table th.cell-image {
+  padding: 0 0 0 var(--space-2);
+  color: var(--register-icon-muted);
+}
+.register-table th.cell-image svg {
+  position: relative;
+  top: 2px;
+}
+.register-table td.cell-image {
+  padding: 0 6.4px 0 0;
+  overflow: visible;
+  text-align: left;
+}
+
+.image-add-button,
+.image-thumb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.image-add-button {
+  color: var(--register-icon-muted);
+}
+.image-add-button:hover:not(:disabled) {
+  color: var(--labelPrimary);
+}
+.image-add-button:focus-visible,
+.image-thumb-button:focus-visible,
+.image-viewer-action:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
+.image-add-button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.image-thumb {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--borderSubtle);
+  border-radius: 3px;
+  object-fit: cover;
+  background: var(--backgroundTertiary);
+}
+.image-thumb-button:hover .image-thumb,
+.image-thumb-button:focus-visible .image-thumb {
+  border-color: var(--actionPrimary);
+}
+.image-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.image-error {
+  position: absolute;
+  z-index: 1;
+  max-width: 220px;
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 4px;
+  background: var(--backgroundTertiary);
+  box-shadow: var(--shadowTooltipLarge);
+  color: var(--labelPrimary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* The viewer: dimmed, the image centred above a bottom bar. Under the delete confirm (.dialog-backdrop, 30). */
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--scrimCardHover);
+}
+.image-viewer-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+.image-viewer-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: var(--backgroundTertiary);
+  border-radius: 4px;
+  box-shadow: var(--shadowMenu);
+}
+.image-viewer-error {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2);
+  text-align: center;
+  color: var(--labelPrimary);
+}
+.image-viewer-bar {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--borderSubtle);
+  background: var(--backgroundTertiary);
+}
+.image-viewer-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 6px;
+  background: var(--buttonSecondaryBackground);
+  color: var(--labelPrimary);
+  font: inherit;
+  cursor: pointer;
+}
+.image-viewer-action:hover {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+/* Delete is the one destructive action: it takes the destructive colours on hover, as plan-grid.css does. */
+.image-viewer-action.is-destructive:hover {
+  background: var(--buttonDestructiveBackground);
+  color: var(--buttonDestructiveLabel);
+}
+
+/* Below 1280px the text columns give way so category keeps the room the image column takes (register.css:
+   "Below 1280px the 96px minimums are in force"). Each width is register.css's own minus 3 points for payee and memo
+   (6 points of the grid, about the column's 44px at 1024px). Same conditions, one element more of specificity. */
+@media (max-width: 1279px) {
+  table.register-table.has-image .col-payee,
+  table.register-table.has-image .col-memo {
+    width: 11%;
+  }
+  table.register-table.has-image.has-balance .col-payee,
+  table.register-table.has-image.has-balance .col-memo {
+    width: 6.5%;
+  }
+  table.register-table.has-image.no-flags.has-balance .col-payee,
+  table.register-table.has-image.no-flags.has-balance .col-memo {
+    width: 8%;
+  }
+  table.register-table.has-image.has-account .col-payee,
+  table.register-table.has-image.has-account .col-memo {
+    width: 7%;
+  }
+  table.register-table.has-image.has-account.no-flags .col-payee,
+  table.register-table.has-image.has-account.no-flags .col-memo {
+    width: 9%;
+  }
+}

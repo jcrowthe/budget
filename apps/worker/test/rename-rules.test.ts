@@ -20,7 +20,7 @@ const NEW_TOOLS = [
 ];
 
 describe("payee renaming rules: the operations (EXF-467)", () => {
-  it("the surface has the paths and 131 tools", async () => {
+  it("the surface has the paths and 133 tools", async () => {
     expect(await apiPaths()).toEqual(
       expect.arrayContaining([
         "/api/v1/budgets/{budget_id}/payees/{payee_id}/rename-rules",
@@ -29,7 +29,7 @@ describe("payee renaming rules: the operations (EXF-467)", () => {
     );
     const names = await listedToolNames();
     expect(names).toEqual(expect.arrayContaining(NEW_TOOLS));
-    expect(names).toHaveLength(131); // 118 + update_loan_activity, delete_loan_activity (loan manage); + get_backup_status + set_expected_income + update_flag_names + list_views, create_view, update_view, delete_view, reorder_views (EXF-502) + fresh_start_budget (EXF-478) + bulk_update_scheduled_transactions (EXF-657) + enter_pending_transaction (EXF-466)
+    expect(names).toHaveLength(133); // 118 + update_loan_activity, delete_loan_activity (loan manage); + get_backup_status + set_expected_income + update_flag_names + list_views, create_view, update_view, delete_view, reorder_views (EXF-502) + fresh_start_budget (EXF-478) + bulk_update_scheduled_transactions (EXF-657) + enter_pending_transaction (EXF-466) + attach_transaction_image, delete_transaction_image (EXF-536)
   });
 
   it("lists, creates, updates and deletes, each with a history row of the actor", async () => {

@@ -352,8 +352,15 @@ export type TransactionDetailRow = TransactionRow & {
   groupName: string | null;
   payeeSystem: PayeeSystem | null;
   transferAccountName: string | null;
+  hasImage?: boolean;
   runningBalance?: number;
 };
+
+/** True when a live receipt image is attached; labelled so it never clashes with another column. */
+const hasImageSql =
+  sql<number>`exists (select 1 from transaction_images ti where ti.transaction_id = ${transactions.id} and ti.deleted_at is null)`.as(
+    "has_image",
+  );
 
 const ta = alias(accounts, "ta");
 
@@ -367,6 +374,7 @@ const detailSelect = (db: Db) =>
       payeeName: payees.name,
       payeeSystem: payees.system,
       transferAccountName: ta.name,
+      hasImage: hasImageSql,
     })
     .from(transactions)
     .leftJoin(categories, eq(categories.id, transactions.categoryId))
@@ -381,6 +389,7 @@ const toDetail = (r: {
   payeeName: string | null;
   payeeSystem: PayeeSystem | null;
   transferAccountName: string | null;
+  hasImage: number;
 }): TransactionDetailRow => ({
   ...r.t,
   // A transfer's payee is the other account, by its current name.
@@ -391,6 +400,7 @@ const toDetail = (r: {
   groupName: r.groupName,
   payeeSystem: r.payeeSystem,
   transferAccountName: r.transferAccountName,
+  hasImage: Boolean(r.hasImage),
 });
 
 export async function findDetail(
@@ -475,6 +485,7 @@ export async function listDetailForAccount(
       payeeName: payees.name,
       payeeSystem: payees.system,
       transferAccountName: ta.name,
+      hasImage: hasImageSql,
       runningBalance: rb.balance,
     })
     .from(transactions)
@@ -514,6 +525,7 @@ export async function listDetailForPlan(
       payeeName: payees.name,
       payeeSystem: payees.system,
       transferAccountName: ta.name,
+      hasImage: hasImageSql,
     })
     .from(transactions)
     .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))

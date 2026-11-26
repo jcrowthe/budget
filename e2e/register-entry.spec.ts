@@ -450,7 +450,8 @@ test.describe("a real mouse reaches every list", () => {
     const last = rows(page).last();
     await last.scrollIntoViewIfNeeded();
     await page.mouse.wheel(0, 5000);
-    await last.locator('td[data-field="payee"]').dblclick();
+    // The first click selects the row and the selection bar rises over the bottom edge: click at the cell's left, clear of it.
+    await last.locator('td[data-field="payee"]').dblclick({ position: { x: 6, y: 18 } });
     await expect(payee(page)).toBeFocused();
     await payee(page).press("ArrowDown");
     const list = page.getByRole("listbox", { name: "Payees", exact: true });

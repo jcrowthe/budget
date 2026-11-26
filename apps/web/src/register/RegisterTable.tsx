@@ -36,6 +36,7 @@ import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
 import { FlagCell } from "./FlagMenu";
+import { ImageCell } from "./ImageCell";
 import {
   CaretDownIcon,
   CaretUpIcon,
@@ -47,6 +48,7 @@ import {
   FlagFilledIcon,
   InfoCircleFillIcon,
   LockIcon,
+  PhotoIcon,
   TransferIcon,
 } from "./icons";
 import { MatchCell } from "./manual-match-details";
@@ -203,7 +205,7 @@ export function RegisterTable({
     (h) => showCategory || h.column !== "category",
   );
   const view = useRegisterView();
-  const { showFlags, showBalance } = view;
+  const { showFlags, showImages, showBalance } = view;
   const data = q.data;
   const scheduledRows = useScheduledRows(budgetId, account?.id, sort);
   // EXF-466: a linked account's pending bank transactions (never in All Accounts, a search or the attention filter).
@@ -262,7 +264,12 @@ export function RegisterTable({
     (r) => r.status === "entered" || (r.pending_transaction_id && !r.import_id),
   );
   const colCount =
-    columns.length + 2 + (attentionCol ? 1 : 0) + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
+    columns.length +
+    2 +
+    (attentionCol ? 1 : 0) +
+    (showFlags ? 1 : 0) +
+    (showImages ? 1 : 0) +
+    (showBalance ? 1 : 0);
 
   // The selection and the bar read the rows as shown; ids that left the list drop out of the selection.
   useEffect(() => setRows(rows), [rows, setRows]);
@@ -458,6 +465,11 @@ export function RegisterTable({
               />
             </td>
           )}
+          {showImages && (
+            <td className="cell-image">
+              <ImageCell budgetId={budgetId} id={tx.id} hasImage={tx.has_image} />
+            </td>
+          )}
           {plan && (
             <td data-field="account" title={tx.account_name}>
               {tx.account_name}
@@ -586,6 +598,7 @@ export function RegisterTable({
               <td className="cell-check" />
               {attentionCol && <td className="cell-attention" />}
               {showFlags && <td className="cell-flag" />}
+              {showImages && <td className="cell-image" />}
               {plan && <td />}
               <td />
               <td data-field="payee" title={l.payee_name ?? undefined}>
@@ -629,7 +642,7 @@ export function RegisterTable({
     <AttentionColumnContext.Provider value={attentionCol}>
       <div className="register-scroll">
         <table
-          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}${hasClock ? " has-clock" : ""}`}
+          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${showImages ? " has-image" : ""}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}${hasClock ? " has-clock" : ""}`}
           aria-label={`${account?.name ?? "All Accounts"} transactions`}
           aria-busy={q.isPending || !view.ready}
         >
@@ -637,6 +650,7 @@ export function RegisterTable({
             <col className="col-check" />
             {attentionCol && <col className="col-attention" />}
             {showFlags && <col className="col-flag" />}
+            {showImages && <col className="col-image" />}
             {plan && <col className="col-account" />}
             <col className="col-date" />
             <col className="col-payee" />
@@ -660,6 +674,11 @@ export function RegisterTable({
               {showFlags && (
                 <th className="cell-flag" aria-label="Flag">
                   <FlagFilledIcon />
+                </th>
+              )}
+              {showImages && (
+                <th className="cell-image" aria-label="Image">
+                  <PhotoIcon />
                 </th>
               )}
               {columns.map((h) => {

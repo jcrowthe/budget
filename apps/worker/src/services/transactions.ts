@@ -43,7 +43,7 @@ import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
 import { bulkTransactions } from "./transactions-bulk";
 
-export function transactionToApi(row: txRepo.TransactionRow): Transaction {
+export function transactionToApi(row: txRepo.TransactionRow & { hasImage?: boolean }): Transaction {
   return {
     id: row.id,
     budget_id: row.budgetId,
@@ -67,6 +67,7 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
     flag_color: row.flagColor ?? null,
     status: row.status ?? null,
     pending_transaction_id: row.pendingTransactionId ?? null,
+    has_image: row.hasImage ?? false,
   };
 }
 
@@ -257,8 +258,10 @@ export type LogRow = txRepo.TransactionRow & {
 
 /** The change_log copy of a row: the API shape without `updated_at`, with its lines. */
 export function logShape(row: LogRow, lines: readonly txRepo.LineRow[] = []) {
+  // has_image is read state of another table: change_log `transaction` rows stay as they were.
+  const { has_image: _hasImage, ...api } = transactionToApi(row);
   return {
-    ...transactionToApi(row),
+    ...api,
     category_name: row.categoryName,
     category_group_name: row.groupName,
     transfer_account_id: row.transferAccountId ?? null,
