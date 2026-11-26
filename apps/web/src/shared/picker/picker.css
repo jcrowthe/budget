@@ -36,6 +36,10 @@
   padding-top: 4px;
   border-bottom: 1px solid var(--borderSubtle);
 }
+/* The rule separates the list from its footer; a list without one (the Plan popovers) ends at the panel edge. */
+.entry-dropdown-body:last-child {
+  border-bottom: 0;
+}
 .entry-dropdown-footer {
   display: flex;
   flex-direction: column;
