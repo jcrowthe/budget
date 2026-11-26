@@ -47,15 +47,22 @@ export async function recordBackupSuccess(env: Env, now: Date): Promise<void> {
   );
 }
 
-/** A failure: one get (the last success is kept) and one put. */
+/**
+ * A failure: one put, no get. The caller passes the last success it already holds (the state file, read at the
+ * start of the run); it is null when the run failed before that read, and then R2 is the likely cause.
+ */
 export async function recordBackupFailure(
   env: Env,
   now: Date,
   code: BackupErrorCode,
+  lastSuccessAt: string | null,
 ): Promise<void> {
-  const prev = await readFile(env);
   await env.FILES.put(
     BACKUP_STATUS_KEY,
-    JSON.stringify({ ...prev, last_failure_at: now.toISOString(), last_error_code: code }),
+    JSON.stringify({
+      last_success_at: lastSuccessAt,
+      last_failure_at: now.toISOString(),
+      last_error_code: code,
+    }),
   );
 }

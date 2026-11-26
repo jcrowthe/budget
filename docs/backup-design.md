@@ -202,12 +202,12 @@ pnpm --filter @budget/worker exec wrangler r2 object get budget-files/backups/d1
 
 - `backupRun` records its outcome in one small R2 object, `backups/d1/status.json` (`BACKUP_STATUS_KEY`, next to the
   manifests; no migration): `{ last_success_at, last_failure_at, last_error_code }`. A run that ends `done` puts it
-  with `last_success_at` set and the failure fields null. A run that ends `failed` gets the object, keeps
-  `last_success_at`, and puts the failure time and a short code (`read_failed`, `write_failed`, `finish_failed`,
+  with `last_success_at` set and the failure fields null. A run that ends `failed` puts the object with the
+  `last_success_at` it holds in the state file (`finish` stores it there; no get), the failure time and a short code (`read_failed`, `write_failed`, `finish_failed`,
   `failed`): no message, id, table or value. `noop`, `continuing` and `abandoned` write nothing. The write never
   changes the outcome and logs no more than one quiet line if it fails.
-- Cost: one R2 put on the invocation that finishes a backup (`BACKUP_MAX_R2_CALLS` 11 to 12); a failed invocation
-  adds one get and one put. D1 calls are unchanged.
+- Cost: one R2 put on the invocation that finishes a backup (`BACKUP_MAX_R2_CALLS` 11 to 12); a failed invocation adds one put
+  (no get), so a failed run stays within the same bound. D1 calls are unchanged.
 - `GET /api/v1/backup-status` and the MCP tool `get_backup_status` return `{ last_success_at, last_failure_at,
   last_error_code, stale }` from one R2 get; `stale` is no success in the last 36 hours (`BACKUP_STALE_HOURS`),
   also when nothing was ever recorded. They never read the backup's parts or manifests.

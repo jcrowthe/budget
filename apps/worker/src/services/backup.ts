@@ -22,7 +22,12 @@ import { recordBackupFailure, recordBackupSuccess } from "./backup-status";
 
 export type BackupOutcome = "noop" | "continuing" | "done" | "abandoned" | "failed";
 type Progress = NonNullable<BackupState["in_progress"]>;
-type StateFile = BackupState & { last_done?: string | null; prune_pending?: boolean };
+type StateFile = BackupState & {
+  last_done?: string | null;
+  /** The last finished backup's time: a failed run keeps it in the status without an R2 get. */
+  last_success_at?: string | null;
+  prune_pending?: boolean;
+};
 
 const manifestKey = (id: string) => `${BACKUP_PREFIX}${id}.manifest.json`;
 const MIN_ROWID = -9007199254740991;
@@ -176,6 +181,7 @@ async function finish(env: Env, p: Progress, state: StateFile, now: Date): Promi
   }
   state.in_progress = null;
   state.last_done = p.id;
+  state.last_success_at = now.toISOString();
   await writeState(env, state);
   if (failure) throw failure;
   return tables.length;
@@ -185,9 +191,12 @@ async function step(
   env: Env,
   now: Date,
   rowsPerRun: number,
-  at: { code: BackupErrorCode },
+  at: { code: BackupErrorCode; lastSuccess: string | null },
 ): Promise<BackupOutcome> {
   const state = await readState(env);
+  // Older state files carry only the date of the last backup.
+  at.lastSuccess =
+    state.last_success_at ?? (state.last_done ? `${state.last_done}T00:00:00.000Z` : null);
   const today = now.toISOString().slice(0, 10);
   let p = state.in_progress;
   let check = true;
@@ -255,12 +264,15 @@ export async function backupRun(
   opts: { rowsPerRun?: number } = {},
 ): Promise<BackupOutcome> {
   // Until the first read, a failure is a read failure: the schema read and the state get both read.
-  const at: { code: BackupErrorCode } = { code: "read_failed" };
+  const at: { code: BackupErrorCode; lastSuccess: string | null } = {
+    code: "read_failed",
+    lastSuccess: null,
+  };
   try {
     return await step(env, now, opts.rowsPerRun ?? BACKUP_ROWS_PER_RUN, at);
   } catch (e) {
     console.error(`backup failed | ${describeError(e)}`.slice(0, LOG_LINE_MAX));
-    await recordStatus(() => recordBackupFailure(env, now, at.code));
+    await recordStatus(() => recordBackupFailure(env, now, at.code, at.lastSuccess));
     return "failed";
   }
 }

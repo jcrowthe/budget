@@ -1,8 +1,8 @@
 import { env } from "cloudflare:test";
-import { BACKUP_PREFIX } from "@budget/schema/backup";
+import { BACKUP_MAX_R2_CALLS, BACKUP_PREFIX } from "@budget/schema/backup";
 import { beforeEach, describe, expect, it } from "vitest";
 import { backupRun } from "../src/services/backup";
-import { brokenFiles, clearBackups, seedPlan } from "./backup-helpers";
+import { brokenFiles, clearBackups, countingR2, seedPlan } from "./backup-helpers";
 import { brokenDb, captureErrors } from "./error-log-helpers";
 import { json } from "./helpers";
 import { mcpRpc } from "./surface";
@@ -141,6 +141,31 @@ describe("backup status", () => {
     const r = await rest();
     expect(r.stale).toBe(true);
     expect(await tool()).toEqual(r);
+  });
+
+  it("a failed invocation stays within the R2 bound: the status is one put, no get, and keeps the last success", async () => {
+    await seedPlan(5);
+    await backupRun(env, at("2031-05-01"), BIG);
+    for (let i = 1; i <= 17; i++) {
+      const id = `2030-05-${String(i).padStart(2, "0")}`;
+      await env.FILES.put(`${BACKUP_PREFIX}${id}.manifest.json`, "{}");
+      await env.FILES.put(`${BACKUP_PREFIX}${id}/parts/00001.ndjson.gz`, "x");
+    }
+    const c = countingR2();
+    const FILES = Object.create(c.FILES) as R2Bucket;
+    let deletes = 0;
+    // The last of the three prune deletes fails: the run has made its most calls by then.
+    FILES.delete = ((...a: Parameters<R2Bucket["delete"]>) => {
+      if (++deletes === 3) throw new Error("R2 delete failed");
+      return c.FILES.delete(...a);
+    }) as R2Bucket["delete"];
+    captureErrors();
+    expect(await backupRun({ ...env, FILES }, at("2031-05-02"), BIG)).toBe("failed");
+    expect(c.total()).toBeLessThanOrEqual(BACKUP_MAX_R2_CALLS);
+    expect(c.calls.get).toBe(1);
+    const s = await stored();
+    expect(s.last_error_code).toBe("finish_failed");
+    expect(s.last_success_at).toBe("2031-05-01T04:00:00.000Z");
   });
 
   it("the read is one R2 get, with no list and no D1", async () => {
