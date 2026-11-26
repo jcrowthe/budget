@@ -2,7 +2,7 @@ import { type SidebarSection, sidebarSections } from "@budget/core/account-types
 
 import type { Account } from "@budget/schema/accounts";
 import { linkStatus } from "@budget/schema/bank-link";
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { NavLink, useMatch } from "react-router";
 import { useReorderAccounts } from "../api/accounts";
 import { useSaveUiState, useUiState } from "../api/ui-state";
@@ -32,6 +32,12 @@ export function SidebarAccounts({
   const currentId = useMatch("/:budgetId/accounts/:accountId/*")?.params.accountId;
   const reorder = useReorderAccounts(budgetId);
   const dnd = useSidebarDnd({ onReorder: (ids) => reorder.mutate(ids) });
+  const orderKey = accounts.map((a) => a.id).join();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the order changes, to put focus back on the moved account
+  useEffect(() => {
+    const id = dnd.takeRefocus();
+    if (id) document.querySelector<HTMLElement>(`[data-account-id="${id}"]`)?.focus();
+  }, [orderKey]);
   if (ui.isPending) return null;
   const collapsed: SidebarSection[] = ui.data?.collapsed_account_groups ?? [];
 
@@ -44,6 +50,9 @@ export function SidebarAccounts({
 
   return (
     <section className="nav-accounts" aria-label="Accounts">
+      <div className="reorder-live" aria-live="polite">
+        {dnd.announcement}
+      </div>
       {sidebarSections(accounts).map(({ name, rows, total }) => {
         const label = SIDEBAR_LABELS[name];
         const isCollapsed = collapsed.includes(name);
@@ -106,6 +115,7 @@ export function SidebarAccounts({
                         <NavLink
                           className="nav-account-link"
                           draggable={false}
+                          data-account-id={a.id}
                           to={accountPath(budgetId, a.id)}
                         >
                           <span className="slot-left">

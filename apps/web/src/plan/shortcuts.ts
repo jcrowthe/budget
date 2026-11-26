@@ -7,6 +7,8 @@ type Handlers = {
   onClear: () => void;
   onCollapseAll: (collapsed: boolean) => void;
   onSnooze: () => void;
+  /** Alt+Shift+Arrow: move the selected category one place. */
+  onMove: (dir: 1 | -1) => void;
 };
 
 const IGNORED =
@@ -15,18 +17,25 @@ const IGNORED =
 /**
  * The Plan page's keyboard shortcuts, bound on the window while the page is mounted: ↓ ↑ move the selection,
  * Shift+↓ Shift+↑ extend it, Ctrl or ⌘ + A selects all, Ctrl or ⌘ + ↑ ↓ collapse or expand every group, Escape
- * clears, Shift+Z snoozes the selected category's target. EXF-473 moves these bindings into the shortcut registry.
+ * clears, Shift+Z snoozes the selected category's target, Alt+Shift+↓ ↑ moves the selected category one place. EXF-473 moves these bindings into the shortcut registry.
  */
 export function usePlanShortcuts(h: Handlers): void {
   const ref = useRef(h);
   ref.current = h;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey) return;
+      if (e.defaultPrevented) return;
       const t = e.target as Element | null;
       if (t?.closest?.(IGNORED)) return;
       const mod = e.ctrlKey || e.metaKey;
       const arrow = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+      if (e.altKey) {
+        // Keyboard reorder (our addition): Alt+Shift+Arrow moves the selected category.
+        if (!arrow || !e.shiftKey || mod) return;
+        ref.current.onMove(arrow);
+        e.preventDefault();
+        return;
+      }
       if (arrow && mod) {
         ref.current.onCollapseAll(arrow === -1);
       } else if (arrow && !mod) {

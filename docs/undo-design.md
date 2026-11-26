@@ -201,3 +201,9 @@ Never into `change_log`: the stamp test allows only `livePayeesCheck` there.
 - `undoState(budgetId, scope)` gates the hook. With `{origin: "payees", since: mark()}`, only entries Manage Payees
   recorded since it opened count; any other top entry disables Undo there. Registers and the Plan page pass no
   scope and act on the shared top entry.
+
+### Origins in use
+
+`plan`: Plan page edits, category and group reorders, and the sidebar's account reorder (EXF-490 follow-up; it was
+`register`). `register`: register edits. `payees`: Manage Payees. Unscoped consumers (the Plan page, registers) act on
+the shared top entry whatever its origin, so the origin matters only to scoped ones.
