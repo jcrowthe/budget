@@ -1,3 +1,4 @@
+import { planFormatter } from "@budget/schema/plan-formats";
 import { dueStep, type Frequency, nextDate, placeSchedule } from "@budget/schema/recurrence";
 import {
   CREATE_NOT_SCHEDULED,
@@ -6,6 +7,7 @@ import {
   SCHEDULER_MAX_PER_RUN,
   ScheduledBulkRequest,
   type ScheduledBulkResult,
+  type ScheduledLineInput,
   type ScheduledTransaction,
   ScheduledTransactionCreate,
   ScheduledTransactionUpdate,
@@ -24,13 +26,16 @@ import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as payeesRepo from "../repositories/payees";
 import * as repo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
+import { formatsOfRow } from "./budgets";
 import { getPlanMonthWithSources } from "./months";
-import { resolvePayee } from "./payees";
+import { type ResolvedPayee, resolvePayee } from "./payees";
 import { newOtherSide } from "./transaction-pairs";
+import { validateLines } from "./transaction-splits";
 import {
   CLOSED_NO_NEW,
   CLOSED_OTHER,
   enteredTransactionWrites,
+  logShape,
   refuseOwnPaymentCategory,
   TransactionRefused,
   transactionDetailToApi,
@@ -52,6 +57,18 @@ const clean = (v: string | null | undefined) => {
   const t = v?.trim() ?? "";
   return t === "" ? null : t;
 };
+
+const lineToApi = (l: repo.ScheduledLineRow) => ({
+  id: l.id,
+  amount: l.amount,
+  payee_id: l.payeeId,
+  payee_name: l.payeeName,
+  category_id: l.categoryId,
+  category_name: l.categoryName,
+  category_group_name: l.groupName,
+  inflow_to_ready_to_assign: l.inflowToReadyToAssign,
+  memo: l.memo,
+});
 
 export function scheduledToApi(
   row: repo.ScheduledRow,
@@ -76,6 +93,7 @@ export function scheduledToApi(
     flag_color: row.flagColor ?? null,
     transfer_account_id: row.transferAccountId,
     transfer_account_name: transfer ? row.transferAccountName : null,
+    subtransactions: row.lines.map(lineToApi),
     mirror: false,
     deleted,
     created_at: row.createdAt,
@@ -106,6 +124,7 @@ export function mirrorToApi(row: repo.ScheduledRow): ScheduledTransaction {
     flag_color: null,
     transfer_account_id: row.accountId,
     transfer_account_name: row.accountName,
+    subtransactions: [],
     mirror: true,
     deleted: row.deletedAt !== null,
     created_at: row.createdAt,
@@ -114,8 +133,99 @@ export function mirrorToApi(row: repo.ScheduledRow): ScheduledTransaction {
 }
 
 async function activePlan(db: Db, budgetId: string) {
-  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const plan = await budgetsRepo.findActive(db, budgetId);
+  if (!plan) throw new NotFound("Plan");
+  return plan;
 }
+
+const SPLIT_CATEGORY = "A split transaction's category is in its lines";
+const SPLIT_TRANSFER = "A transfer cannot be split";
+const SPLIT_AMOUNT = "A split's amount changes with its lines: send subtransactions too";
+
+/**
+ * The lines of a split, checked with the register's rules (`validateLines`: at least two, on-plan account, own
+ * payment category, sum equals the amount) and returned as schedule lines with their names, plus the payees the
+ * lines create. D1 calls: one read per line (bounded by the 50-line cap, as the register's) and one for the names.
+ */
+async function prepareLines(
+  db: Db,
+  budgetId: string,
+  plan: Awaited<ReturnType<typeof activePlan>>,
+  account: Acc,
+  p: {
+    lines: readonly ScheduledLineInput[];
+    amount: number;
+    dateFirst: string;
+    parentPayee: ResolvedPayee | undefined;
+  },
+  now: string,
+): Promise<{ lines: repo.ScheduledLineRow[]; payeeCreates: payeesRepo.PayeeRow[] }> {
+  const parent: txRepo.TransactionRow = {
+    id: "",
+    budgetId,
+    accountId: account.id,
+    date: p.dateFirst,
+    payeeId: null,
+    payeeName: null,
+    categoryId: null,
+    inflowToReadyToAssign: false,
+    memo: null,
+    amount: p.amount,
+    cleared: "uncleared",
+    approved: true,
+    createdAt: now,
+    deletedAt: null,
+    updatedAt: now,
+  };
+  const { rows, payeeCreates } = await validateLines(
+    db,
+    budgetId,
+    parent,
+    p.lines,
+    account as unknown as accountsRepo.AccountRow,
+    now,
+    p.parentPayee,
+    planFormatter(formatsOfRow(plan)),
+  );
+  const names = await txRepo.categoryNamesMany(
+    db,
+    budgetId,
+    rows.flatMap((r) => (r.categoryId ? [r.categoryId] : [])),
+  );
+  const lines = rows.map((r, i) => {
+    const n = r.categoryId ? names.get(r.categoryId) : undefined;
+    return {
+      id: r.id,
+      amount: r.amount,
+      payeeId: r.payeeId,
+      payeeName: r.payeeName,
+      categoryId: r.categoryId,
+      categoryName: n?.categoryName ?? null,
+      groupName: n?.groupName ?? null,
+      inflowToReadyToAssign: r.inflowToReadyToAssign,
+      memo: r.memo,
+      sort: i,
+    };
+  });
+  return { lines, payeeCreates };
+}
+
+const lineInserts = (lines: readonly repo.ScheduledLineRow[]): repo.LineInsert[] =>
+  lines.map((l) => ({
+    id: l.id,
+    amount: l.amount,
+    payeeId: l.payeeId,
+    categoryId: l.categoryId,
+    inflowToReadyToAssign: l.inflowToReadyToAssign,
+    memo: l.memo,
+  }));
+
+/** Payees a batch must find alive: every line's payee that this batch does not create. */
+const linePayeeIds = (
+  lines: readonly repo.ScheduledLineRow[],
+  created: readonly payeesRepo.PayeeRow[],
+) =>
+  lines.flatMap((l) => (l.payeeId && !created.some((c) => c.id === l.payeeId) ? [l.payeeId] : []));
 
 function logEntry(
   actor: string,
@@ -214,12 +324,61 @@ function enteredWrites(
   actor: string,
   s: repo.ScheduledRow,
   rows: txRepo.TransactionRow[],
+  lineRows: txRepo.LineRow[],
   guard: ReturnType<typeof repo.writtenWith>,
 ): unknown[] {
   const none = { categoryName: null, groupName: null };
+  const parent = rows[0];
+  if (lineRows.length > 0 && parent) {
+    // A split makes a real split: the parent, every line in one statement, one create log with the lines.
+    return [
+      txRepo.insertIfStmt(db, parent, guard),
+      repo.insertEnteredLinesStmt(db, parent, lineRows, guard),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId: parent.budgetId,
+          actor,
+          action: "create",
+          entityType: "transaction",
+          entityId: parent.id,
+          before: null,
+          after: logShape({ ...parent, ...none }, lineRows),
+        },
+        guard,
+      ),
+    ];
+  }
   return rows.flatMap((r) =>
     enteredTransactionWrites(db, actor, r, r.categoryId ? namesOfRow(s) : none, guard),
   );
+}
+
+/** The real lines of an entered split, in order, each linked to its parent; none for a plain schedule or a transfer. */
+function enteredLineRows(s: repo.ScheduledRow, rows: txRepo.TransactionRow[]): txRepo.LineRow[] {
+  const parent = rows[0];
+  if (!parent || s.transferAccountId !== null) return [];
+  return s.lines.map((l, i) => ({
+    id: crypto.randomUUID(),
+    budgetId: s.budgetId,
+    accountId: parent.accountId,
+    date: parent.date,
+    payeeId: l.payeeId,
+    payeeName: l.payeeName,
+    categoryId: l.categoryId,
+    inflowToReadyToAssign: l.inflowToReadyToAssign,
+    memo: l.memo,
+    amount: l.amount,
+    cleared: parent.cleared,
+    approved: parent.approved,
+    createdAt: parent.createdAt,
+    deletedAt: null,
+    updatedAt: parent.updatedAt,
+    parentTransactionId: parent.id,
+    splitIndex: i,
+    categoryName: l.categoryName,
+    groupName: l.groupName,
+  }));
 }
 
 const namesOfRow = (s: repo.ScheduledRow) => ({
@@ -340,10 +499,15 @@ async function readBack(db: Db, budgetId: string, id: string): Promise<repo.Sche
   return row;
 }
 
-async function enteredDetail(db: Db, budgetId: string, id: string): Promise<TransactionDetail> {
+async function enteredDetail(
+  db: Db,
+  budgetId: string,
+  id: string,
+  lines: txRepo.LineRow[] = [],
+): Promise<TransactionDetail> {
   const row = await txRepo.findDetail(db, budgetId, id);
   if (!row) throw new NotFound("Transaction");
-  return transactionDetailToApi(row, []);
+  return transactionDetailToApi(row, lines);
 }
 
 export async function createScheduled(
@@ -355,7 +519,12 @@ export async function createScheduled(
 ): Promise<{ scheduled_transaction: ScheduledTransaction; transaction: TransactionDetail | null }> {
   const v = ScheduledTransactionCreate.parse(input);
   const db = getDb(env);
-  await activePlan(db, budgetId);
+  const plan = await activePlan(db, budgetId);
+  const lineInputs = v.subtransactions && v.subtransactions.length > 0 ? v.subtransactions : null;
+  if (lineInputs && v.transfer_account_id) throw unprocessable(SPLIT_TRANSFER);
+  if (lineInputs && (v.category_id || v.inflow_to_ready_to_assign)) {
+    throw unprocessable(SPLIT_CATEGORY);
+  }
   const place = placeSchedule(v.date_first, v.frequency, today);
   if (place.kind === "notScheduled") throw unprocessable(CREATE_NOT_SCHEDULED);
   const hasPayee = v.payee_id !== undefined || v.payee_name !== undefined;
@@ -373,6 +542,16 @@ export async function createScheduled(
     const now = new Date().toISOString();
     const token = crypto.randomUUID();
     const id = crypto.randomUUID();
+    const built = lineInputs
+      ? await prepareLines(
+          db,
+          budgetId,
+          plan,
+          account,
+          { lines: lineInputs, amount: v.amount, dateFirst: v.date_first, parentPayee: payee },
+          now,
+        )
+      : { lines: [], payeeCreates: [] };
     const base: repo.ScheduledBase = {
       id,
       budgetId,
@@ -404,32 +583,47 @@ export async function createScheduled(
       payeeName: payee?.name ?? null,
       categoryName: category?.name ?? null,
       groupName: category?.groupName ?? null,
+      lines: built.lines,
     };
     const writes: unknown[] = [
       ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
+      ...built.payeeCreates.flatMap((c) => payeeInsert(db, actor, c)),
       repo.insertStmt(db, base),
+      ...(built.lines.length > 0
+        ? [repo.insertLinesStmt(db, id, budgetId, lineInserts(built.lines), now)]
+        : []),
       changeLogInsert(db, logEntry(actor, "create", null, row)),
-      ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
+      ...payeesRepo.livePayeesCheck(db, budgetId, [
+        payee?.create ? null : payee?.payeeId,
+        ...linePayeeIds(built.lines, built.payeeCreates),
+      ]),
     ];
     let txId: string | null = null;
+    let enteredLines: txRepo.LineRow[] = [];
     if (place.kind === "enterAndSchedule") {
       const txs = enteredRows(row, place.enterDate, false, now);
       txId = txs[0]?.id ?? null;
-      writes.push(...enteredWrites(db, actor, row, txs, repo.writtenWith(id, token)));
+      enteredLines = enteredLineRows(row, txs);
+      writes.push(...enteredWrites(db, actor, row, txs, enteredLines, repo.writtenWith(id, token)));
       // The entered row joins the payee's history: its stored default follows, in this batch.
-      const recompute = recomputeDefaultsStmt(db, budgetId, [row.payeeId]);
+      const recompute = recomputeDefaultsStmt(db, budgetId, [
+        row.payeeId,
+        ...row.lines.map((l) => l.payeeId),
+      ]);
       if (recompute) writes.push(recompute);
     }
     try {
       await db.batch(stmts(writes));
     } catch (e) {
-      if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      if ((payee?.create || built.payeeCreates.length > 0) && payeesRepo.isUniqueViolation(e)) {
+        continue;
+      }
       if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
     return {
       scheduled_transaction: scheduledToApi(await readBack(db, budgetId, id)),
-      transaction: txId ? await enteredDetail(db, budgetId, txId) : null,
+      transaction: txId ? await enteredDetail(db, budgetId, txId, enteredLines) : null,
     };
   }
   throw new TransactionRefused(409, "conflict", "Payee was modified concurrently");
@@ -445,7 +639,7 @@ export async function updateScheduled(
 ): Promise<{ scheduled_transaction: ScheduledTransaction; transaction: TransactionDetail | null }> {
   const v = ScheduledTransactionUpdate.parse(input);
   const db = getDb(env);
-  await activePlan(db, budgetId);
+  const plan = await activePlan(db, budgetId);
   const before = (await repo.findMany(db, budgetId, [id])).get(id);
   if (!before || before.accountClosed) throw new NotFound("Scheduled transaction");
 
@@ -454,8 +648,25 @@ export async function updateScheduled(
   const transferAccountId =
     v.transfer_account_id !== undefined ? v.transfer_account_id : before.transferAccountId;
   const transferChanged = transferAccountId !== before.transferAccountId;
-  const categoryId = v.category_id !== undefined ? v.category_id : before.categoryId;
-  const inflow = v.inflow_to_ready_to_assign ?? before.inflowToReadyToAssign;
+  const wasSplit = before.lines.length > 0;
+  // `subtransactions` present replaces every line; an empty list makes the schedule plain.
+  const lineInputs = v.subtransactions && v.subtransactions.length > 0 ? v.subtransactions : null;
+  const makesPlain = v.subtransactions !== undefined && lineInputs === null;
+  const isSplit = lineInputs !== null || (wasSplit && !makesPlain);
+  const sentCategoryOrInflow =
+    (v.category_id !== undefined && v.category_id !== null) || v.inflow_to_ready_to_assign === true;
+  if (isSplit) {
+    if (transferAccountId) throw unprocessable(SPLIT_TRANSFER);
+    if (sentCategoryOrInflow) throw unprocessable(SPLIT_CATEGORY);
+    if (lineInputs === null && v.amount !== undefined) throw unprocessable(SPLIT_AMOUNT);
+  }
+  // A split has its category in its lines; the parent's own are cleared when lines are sent.
+  const categoryId = isSplit
+    ? null
+    : v.category_id !== undefined
+      ? v.category_id
+      : before.categoryId;
+  const inflow = isSplit ? false : (v.inflow_to_ready_to_assign ?? before.inflowToReadyToAssign);
   const hasPayee = v.payee_id !== undefined || v.payee_name !== undefined;
   if (transferAccountId && hasPayee) throw unprocessable(TRANSFER_NO_PAYEE);
 
@@ -472,8 +683,7 @@ export async function updateScheduled(
     if (place.kind === "enterAndSchedule") enterDate = place.enterDate;
   }
 
-  const sentCategory =
-    (v.category_id !== undefined && v.category_id !== null) || v.inflow_to_ready_to_assign === true;
+  const sentCategory = sentCategoryOrInflow;
   const checked = await checkRules(
     db,
     budgetId,
@@ -504,6 +714,9 @@ export async function updateScheduled(
     transferChanged && !sentCategory,
   );
   const { account, other, category } = checked;
+  if (isSplit && !account.onBudget) {
+    throw unprocessable("A tracking account's transactions cannot be split");
+  }
   const finalCategoryId = checked.categoryId;
   const finalInflow = checked.inflow;
   const categoryCleared = finalCategoryId !== categoryId || finalInflow !== inflow;
@@ -521,8 +734,24 @@ export async function updateScheduled(
       : undefined;
     const now = new Date().toISOString();
     const token = crypto.randomUUID();
+    const built = lineInputs
+      ? await prepareLines(
+          db,
+          budgetId,
+          plan,
+          account,
+          {
+            lines: lineInputs,
+            amount: v.amount ?? before.amount,
+            dateFirst: anchor,
+            parentPayee: payee,
+          },
+          now,
+        )
+      : { lines: makesPlain ? [] : before.lines, payeeCreates: [] };
     const after: repo.ScheduledRow = {
       ...before,
+      lines: built.lines,
       accountId: account.id,
       accountName: account.name,
       accountOnBudget: account.onBudget,
@@ -555,8 +784,12 @@ export async function updateScheduled(
       after.categoryName = null;
       after.groupName = null;
     }
-    const payeeWrites = payee?.create ? payeeInsert(db, actor, payee.create) : [];
+    const payeeWrites = [
+      ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
+      ...built.payeeCreates.flatMap((c) => payeeInsert(db, actor, c)),
+    ];
     const guard = repo.writtenWith(id, token);
+    const replacesLines = v.subtransactions !== undefined && (wasSplit || lineInputs !== null);
     const writes: unknown[] = [
       ...payeeWrites,
       repo.updateIfStmt(
@@ -580,25 +813,39 @@ export async function updateScheduled(
         { dateNext: before.dateNext, writeToken: before.writeToken },
       ),
       changeLogInsertIf(db, logEntry(actor, "update", before, after), guard),
+      ...(replacesLines && wasSplit ? [repo.softDeleteLinesStmt(db, id, now, guard)] : []),
+      ...(lineInputs
+        ? [repo.insertLinesStmt(db, id, budgetId, lineInserts(built.lines), now, guard)]
+        : []),
     ];
     let txId: string | null = null;
+    let enteredLines: txRepo.LineRow[] = [];
     if (enterDate) {
       const txs = enteredRows(after, enterDate, false, now);
       txId = txs[0]?.id ?? null;
-      writes.push(...enteredWrites(db, actor, after, txs, guard));
+      enteredLines = enteredLineRows(after, txs);
+      writes.push(...enteredWrites(db, actor, after, txs, enteredLines, guard));
     }
     writes.push(
-      ...payeesRepo.livePayeesCheck(db, budgetId, [payee?.create ? null : payee?.payeeId]),
+      ...payeesRepo.livePayeesCheck(db, budgetId, [
+        payee?.create ? null : payee?.payeeId,
+        ...(lineInputs ? linePayeeIds(built.lines, built.payeeCreates) : []),
+      ]),
     );
     if (enterDate) {
-      const recompute = recomputeDefaultsStmt(db, budgetId, [after.payeeId]);
+      const recompute = recomputeDefaultsStmt(db, budgetId, [
+        after.payeeId,
+        ...after.lines.map((l) => l.payeeId),
+      ]);
       if (recompute) writes.push(recompute);
     }
     let results: { meta: { changes?: number } }[];
     try {
       results = (await db.batch(stmts(writes))) as unknown as typeof results;
     } catch (e) {
-      if (payee?.create && payeesRepo.isUniqueViolation(e)) continue;
+      if ((payee?.create || built.payeeCreates.length > 0) && payeesRepo.isUniqueViolation(e)) {
+        continue;
+      }
       if (payeesRepo.isPayeeGone(e)) continue;
       throw e;
     }
@@ -607,7 +854,7 @@ export async function updateScheduled(
     }
     return {
       scheduled_transaction: scheduledToApi(await readBack(db, budgetId, id)),
-      transaction: txId ? await enteredDetail(db, budgetId, txId) : null,
+      transaction: txId ? await enteredDetail(db, budgetId, txId, enteredLines) : null,
     };
   }
   throw new TransactionRefused(409, "conflict", "Payee was modified concurrently");
@@ -643,13 +890,18 @@ export async function bulkScheduled(
   const now = new Date().toISOString();
   const writes: unknown[] = [];
   // `gateIx` is where the schedule's gate statement sits in the batch: its result says whether it wrote.
-  const planned: { row: repo.ScheduledRow; txId: string | null; gateIx: number }[] = [];
+  const planned: {
+    row: repo.ScheduledRow;
+    txId: string | null;
+    lineRows: txRepo.LineRow[];
+    gateIx: number;
+  }[] = [];
   for (const s of rows) {
     const token = crypto.randomUUID();
     const guard = repo.writtenWith(s.id, token);
     const read = { dateNext: s.dateNext, writeToken: s.writeToken };
     if (req.op === "delete") {
-      planned.push({ row: s, txId: null, gateIx: writes.length });
+      planned.push({ row: s, txId: null, lineRows: [], gateIx: writes.length });
       writes.push(
         repo.softDeleteIfStmt(db, s.id, now, token, read),
         changeLogInsertIf(db, logEntry(actor, "delete", s, { ...s, deletedAt: now }, true), guard),
@@ -664,7 +916,8 @@ export async function bulkScheduled(
       updatedAt: now,
       deletedAt: step ? null : now,
     };
-    planned.push({ row: s, txId: txs[0]?.id ?? null, gateIx: writes.length });
+    const lineRows = enteredLineRows(s, txs);
+    planned.push({ row: s, txId: txs[0]?.id ?? null, lineRows, gateIx: writes.length });
     writes.push(
       repo.updateIfStmt(
         db,
@@ -672,7 +925,7 @@ export async function bulkScheduled(
         { dateNext: after.dateNext, deletedAt: after.deletedAt, updatedAt: now, writeToken: token },
         read,
       ),
-      ...enteredWrites(db, actor, s, txs, guard),
+      ...enteredWrites(db, actor, s, txs, lineRows, guard),
       changeLogInsertIf(
         db,
         logEntry(actor, step ? "update" : "delete", s, after, step === null),
@@ -684,7 +937,7 @@ export async function bulkScheduled(
     const recompute = recomputeDefaultsStmt(
       db,
       budgetId,
-      planned.map((p) => p.row.payeeId),
+      planned.flatMap((p) => [p.row.payeeId, ...p.row.lines.map((l) => l.payeeId)]),
     );
     if (recompute) writes.push(recompute);
   }
@@ -725,7 +978,7 @@ export async function bulkScheduled(
       return [
         {
           id: p.row.id,
-          transaction: transactionDetailToApi(d, []),
+          transaction: transactionDetailToApi(d, p.lineRows),
           scheduled_transaction: scheduledToApi(s),
         },
       ];
@@ -799,7 +1052,7 @@ export async function enterDue(
         { dateNext: after.dateNext, deletedAt: after.deletedAt, updatedAt: now, writeToken: token },
         { dateNext: s.dateNext, writeToken: s.writeToken },
       ),
-      ...enteredWrites(db, opts.actor, s, txs, guard),
+      ...enteredWrites(db, opts.actor, s, txs, enteredLineRows(s, txs), guard),
       changeLogInsertIf(
         db,
         logEntry(opts.actor, step.dateNext ? "update" : "delete", s, after, !step.dateNext),
@@ -812,7 +1065,9 @@ export async function enterDue(
     const recompute = recomputeDefaultsStmt(
       db,
       planId,
-      planned.filter((p) => p.row.budgetId === planId).map((p) => p.row.payeeId),
+      planned
+        .filter((p) => p.row.budgetId === planId)
+        .flatMap((p) => [p.row.payeeId, ...p.row.lines.map((l) => l.payeeId)]),
     );
     if (recompute) writes.push(recompute);
   }

@@ -1,10 +1,9 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { enterDue } from "../src/services/scheduled-transactions";
-import { tool } from "./bulk-helpers";
+import { actor, tool } from "./bulk-helpers";
 import {
   account,
-  actor,
   body,
   category,
   enter,
@@ -112,7 +111,7 @@ describe("scheduled splits: REST", () => {
     const { b, a, c1, c2 } = await setup();
     const s = (await sched(b, split(a, c1, c2))).scheduled_transaction;
     const res = await enter(b, s.id);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     const out = await body(res);
     expect(out.transaction.date).toBe(TODAY);
     expect(out.transaction.category_id).toBeNull();
