@@ -89,8 +89,13 @@ test("3 a closed sign-in is a notice: no alert, no reset, the strip stays", asyn
     last_synced_at: hoursAgo(1),
   });
   await realClick(page, strip(page).getByRole("button", { name: "Repair", exact: true }));
-  await expect(page.getByRole("status")).toHaveText(
+  // Scoped to the notice: the register's own "Loading transactions…" row is a role=status too while it loads.
+  await expect(page.locator("main").locator(".acct-connection-notice")).toHaveText(
     "The bank sign-in was closed. Nothing was changed.",
+  );
+  await expect(page.locator("main").locator(".acct-connection-notice")).toHaveAttribute(
+    "role",
+    "status",
   );
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
   expect(posts(s.stub.requests, "POST", /\/reset$/)).toHaveLength(0);
