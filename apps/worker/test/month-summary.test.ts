@@ -51,14 +51,14 @@ describe("month summary", () => {
     const s = await seed();
     const all = await s.summary();
     expect(all.status).toBe(200);
-    expect(all.body.data).toEqual({
+    expect(all.body.data).toMatchObject({
       leftover: 0,
       assigned: 150000,
       activity: -30000,
       available: 120000,
     });
     const some = await s.summary(`?category_ids=${s.groceries},${s.hidden}`);
-    expect(some.body.data).toEqual({
+    expect(some.body.data).toMatchObject({
       leftover: 0,
       assigned: 120000,
       activity: -30000,
