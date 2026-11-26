@@ -1,4 +1,4 @@
-import { BudgetCreate } from "@budget/schema/budgets";
+import { BudgetCreate, BudgetUpdate } from "@budget/schema/budgets";
 import { DATE_FORMAT_OPTIONS } from "@budget/schema/plan-formats-catalogue";
 import { z } from "zod";
 import {
@@ -7,13 +7,14 @@ import {
   getBudget,
   listBudgets,
   setExpectedIncome,
+  setFlagNames,
   updateBudget,
 } from "../../services/budgets";
 import { Id, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const FIELDS =
-  "currency_format { iso_code, example_format, decimal_digits, decimal_separator, group_separator, symbol_first, currency_symbol, display_symbol } and date_format { format } and expected_income (milliunits, or null when not set)";
+  "currency_format { iso_code, example_format, decimal_digits, decimal_separator, group_separator, symbol_first, currency_symbol, display_symbol } and date_format { format } and expected_income (milliunits, or null when not set) and flag_names { red, orange, yellow, green, blue, purple } (a custom name, or null = the colour name)";
 const FORMATS_NOTE =
   "Formats are for screens and export files only: amounts stay integer milliunits (1000 = one currency unit) and dates ISO.";
 const FORMAT_RULES = `currency_format: { iso_code (a currency code, e.g. USD, EUR, JPY; read the plan's own with get_budget), example_format (the number format: with 2 decimal digits 123,456.78, 123.456,78, "123 456.78", 123'456.78, "123 456-78", "123 456,78", 123,456/78 or 1,23,456.78; with 3 digits (BHD IQD JOD KWD OMR TND) 123,456.789; with 0 digits (JPY KRW XAF XOF XPF LAK TZS CLP DJF HUF ISK IDR MMR TWD PYG UGX VND) 123.456, 123,456 or "123 456"), symbol_placement (before, after or none = Don't show) }; date_format: { format: one of ${DATE_FORMAT_OPTIONS.join(", ")} }. A changed currency without example_format or symbol_placement takes the currency's defaults; the date format is never changed by a currency change; amounts are never converted. An unknown currency, a number format the currency does not offer or an unknown date format is refused and nothing changes. Formats are for screens and export files only: amounts in every tool stay integer milliunits (1000 = one currency unit) and dates ISO.`;
@@ -97,6 +98,15 @@ export const tools: McpToolDef[] = [
     run: async (input: { budget_id: string; expected_income: number | null }, { env, actor }) => ({
       budget: await setExpectedIncome(env, actor, input.budget_id, input.expected_income),
     }),
+  },
+  {
+    name: "update_flag_names",
+    description: `Name the plan's six flag colours (red, orange, yellow, green, blue, purple). flag_names merges: a given colour is set to its trimmed name (at most 50 characters, else refused); null or a blank string clears that colour to its own name; a colour left out is unchanged; flag_names null resets all six. An unknown colour is refused; nothing changes on a refusal. ${MONEY} Returns { budget } with id, name, bank_environment, ${FIELDS}, created_at, last_modified_on and last_opened_at. ${timestamps(["created_at", "last_modified_on", "last_opened_at"], ["last_opened_at"])}`,
+    inputSchema: z.object({ budget_id: Id, flag_names: BudgetUpdate.shape.flag_names.unwrap() }),
+    run: async (
+      input: { budget_id: string; flag_names: Parameters<typeof setFlagNames>[3] },
+      { env, actor },
+    ) => ({ budget: await setFlagNames(env, actor, input.budget_id, input.flag_names) }),
   },
   {
     name: "delete_budget",
