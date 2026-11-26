@@ -379,18 +379,7 @@ test.describe("AC11 behaviour", () => {
     await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
     await input(page).setInputFiles(fixture("sample.csv"));
     await expect(d2(page)).toBeVisible();
-    // Under load the dialog may re-render (the file finishes parsing) between the hit test and the press, and
-    // swallow the click: press Cancel again until the dialog is gone.
-    for (let attempt = 0; attempt < 4 && (await d2(page).count()) > 0; attempt++) {
-      await realClick(page, d2(page).getByRole("button", { name: "Cancel", exact: true })).catch(
-        async (e) => {
-          if ((await d2(page).count()) > 0) throw e; // gone already is what we wanted
-        },
-      );
-      await d2(page)
-        .waitFor({ state: "detached", timeout: 8_000 })
-        .catch(() => {});
-    }
+    await realClick(page, d2(page).getByRole("button", { name: "Cancel", exact: true }));
     await expect(d2(page)).toHaveCount(0);
     await page.reload();
     await expect(toolbarButton(page)).toBeVisible();
@@ -478,6 +467,38 @@ test.describe("AC11 behaviour", () => {
     await expect(sel.locator("option:checked")).toHaveText(
       /ZZ (Checking|Savings)/.exec(first ?? "")?.[0] ?? "",
     );
+  });
+});
+
+test.describe("Cancel while the file is read", () => {
+  test("Cancel stays put when the preview arrives, and a human-paced press closes the dialog", async ({
+    page,
+    request,
+  }) => {
+    const s = await seedFileImport(request);
+    await page.route(/\/file-imports.*\/preview/, async (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      const response = await route.fetch();
+      await new Promise((r) => setTimeout(r, 1000));
+      await route.fulfill({ response });
+    });
+    await open(page, s);
+    await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
+    await input(page).setInputFiles(fixture("sample.csv"));
+    const cancel = d2(page).getByRole("button", { name: "Cancel", exact: true });
+    await expect(cancel).toBeVisible();
+    await expect(d2(page).getByText("Reading the file…")).toBeVisible();
+    const before = await cancel.boundingBox();
+    expect(before).not.toBeNull();
+    await expect(d2(page).getByRole("table")).toBeVisible();
+    expect(await cancel.boundingBox()).toEqual(before);
+    const x = (before?.x ?? 0) + (before?.width ?? 0) / 2;
+    const y = (before?.y ?? 0) + (before?.height ?? 0) / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.waitForTimeout(90);
+    await page.mouse.up();
+    await expect(d2(page)).toHaveCount(0);
   });
 });
 
