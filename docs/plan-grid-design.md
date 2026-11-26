@@ -47,7 +47,7 @@ Do not copy `icons-symbols.svg.txt` into the clone: that file is the source's ar
   - Chevron 10×10 `#c4c5cf`, aria-label "Collapse <name> categories" or "Expand <name> categories".
   - Checkbox labelled with the group name.
   - Name 16px/600 `#f1f1ff`, padding 0 4px.
-  - On row hover a ⊕ "Add Category" button (14px icon, `#7583ff`) appears at once (no fade, on purpose) 2px right of the name.
+  - On row hover a ⊕ "Add Category" button (14px icon, `#7583ff`) sits 2px right of the name: the button appears at once on row hover, with no transition.
   - Subtotals are plain text, 14px/500 `#f1f1ff`, tabular figures. They are never dimmed and never a pill.
 - **Category row.** 44px with bars on, 36px with bars off. Background `#0c0d22`, 1px top separator across the
   full width, no hover change.

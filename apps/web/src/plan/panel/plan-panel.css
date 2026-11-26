@@ -1,17 +1,4 @@
 /* The Plan page's right panel. Values measured on the source at 1600x813, dark theme (docs/plan-panel-design.md). */
-:root {
-  --rowSelected: #1b1d48;
-  --panelTooltipLabel: #ededf5;
-  --panelTooltipShadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-  --panelTooltipDelay: 1.9s;
-  /* EXF-535, from the source's stylesheet (dark theme): the overspending message boxes. */
-  --calloutNegativeSubtleBackground: #4c0814;
-  --calloutWarningSubtleBackground: #362c05;
-  --calloutNegativeLabel: #fff;
-  --calloutWarningSubtleBackgroundLabel: #fff;
-  --calloutNegativeSubtleBackgroundEmphasis: #912333;
-  --calloutWarningSubtleBackgroundEmphasis: #a38100;
-}
 
 /* EXF-646: the panel is at least --panel-min (320px), as wide as the person dragged it or a third of the body, at
    most 60% of the body and what is left after the grid's --grid-min; both are declared on .plan-body. */
@@ -325,12 +312,6 @@
 }
 
 /* EXF-537: the card payment inspector. Colours are the source's dark values (not observed on the test plan). */
-:root {
-  --budgetBarUnderfunded: #f6c91d;
-  --budgetBarBackground: #3c3e53;
-  --calloutWarningAccent: #f6c91d;
-  --calloutNegativeAccent: #bf2e3b;
-}
 .payment-card-body h3 {
   display: flex;
   align-items: center;

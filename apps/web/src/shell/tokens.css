@@ -187,4 +187,70 @@
   /* Differentiate Without Color: the outline and text of the cautious and negative pills */
   --pillCautiousOutline: #f6c91d;
   --pillCautiousText: #f6c91d;
+  /* moved from account/account-header.css: account header */
+  --account-tooltip-delay: 1.9s;
+  /* The Payment pill's tones repeat the Plan grid's (plan/** is held by another Build). */
+  --account-payment-zero-bg: var(--inputBackground);
+  --account-payment-positive-bg: var(--statusPositive);
+  --account-payment-negative-bg: var(--statusNegative);
+  /* The action bar's shortcut tooltip bubble, measured on the source's Flag button tooltip. */
+  /* moved from plan/panel/target.css: plan panel: target card */
+  --statusCautious: #daac00;
+  --categoryBalanceCautiousLabel: #0c0d22;
+  --calloutCautiousBackground: rgba(218, 172, 0, 0.2);
+  --calloutPositiveBackground: rgba(119, 186, 33, 0.2);
+  --switchOffTrack: rgba(114, 116, 132, 0.2);
+  --calloutBadgeBackground: #292c6c;
+  --popupBackground: #1f2038;
+  /* moved from plan/panel/plan-panel.css: plan panel */
+  --rowSelected: #1b1d48;
+  --panelTooltipLabel: #ededf5;
+  --panelTooltipShadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  --panelTooltipDelay: 1.9s;
+  /* EXF-535, from the source's stylesheet (dark theme): the overspending message boxes. */
+  --calloutNegativeLabel: #fff;
+  --calloutWarningSubtleBackgroundLabel: #fff;
+  --calloutNegativeSubtleBackgroundEmphasis: #912333;
+  --calloutWarningSubtleBackgroundEmphasis: #a38100;
+  --budgetBarUnderfunded: #f6c91d;
+  --budgetBarBackground: #3c3e53;
+  --calloutWarningAccent: #f6c91d;
+  --calloutNegativeAccent: #bf2e3b;
+  /* moved from register/register.css: register */
+  --register-row-selected: #1b1d48;
+  --register-pending-label: var(--labelSecondary);
+  --register-pending-header-bg: var(--backgroundSecondary);
+  --register-scheduled-label: var(--labelSecondary);
+  --register-scheduled-header-bg: var(--backgroundSecondary);
+  /* Source placeholder colour of the register inputs (getComputedStyle ::placeholder). */
+  --register-input-placeholder: #757575;
+  --register-needs-category: #daac00;
+  --register-needs-category-label: #362c05;
+  --register-icon-muted: #727484;
+  --register-entry-row: var(--register-row-selected);
+  --register-label-action: #a3acff;
+  /* The action bar and its menus (source: All Accounts register, dark theme, 1600x813). */
+  --register-actionbar-bg: #383ca3;
+  --register-actionbar-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.15);
+  --register-actionbar-hover: rgba(255, 255, 255, 0.15);
+  --register-menu-bg: #1f2038;
+  --register-banner-bg: #292c6c;
+  --register-primary-active: #7583ff;
+  --register-menu-hover: #292b3d;
+  --register-keycap-bg: rgba(114, 116, 132, 0.24);
+  --register-menu-disabled: #9b9caa;
+  /* Disabled entry icon: the source's --inputBorderSubtle, measured on the disabled Match entry of the More menu. */
+  --register-icon-disabled: #56596c;
+  --register-flag-red: #ff453a;
+  --register-flag-orange: #ff9f0a;
+  --register-flag-yellow: #ffd60a;
+  --register-flag-green: #32d74b;
+  --register-flag-blue: #64d2ff;
+  --register-flag-purple: #bf5af2;
+  --register-flag-red-pill: rgba(255, 59, 48, 0.3);
+  --register-flag-orange-pill: rgba(255, 149, 0, 0.3);
+  --register-flag-yellow-pill: rgba(255, 204, 0, 0.3);
+  --register-flag-green-pill: rgba(52, 199, 89, 0.3);
+  --register-flag-blue-pill: rgba(90, 200, 250, 0.3);
+  --register-flag-purple-pill: rgba(175, 82, 222, 0.3);
 }
