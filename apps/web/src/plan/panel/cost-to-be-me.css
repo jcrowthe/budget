@@ -1,0 +1,112 @@
+.ctbm {
+  margin-top: var(--space-3, 12px);
+  padding-top: var(--space-3, 12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ctbm-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--labelHeading);
+}
+.ctbm-enter {
+  width: 100%;
+  margin-top: 8px;
+}
+.ctbm-btn {
+  box-sizing: border-box;
+  padding: 6px 12px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.ctbm-btn.is-primary {
+  border-color: var(--buttonPrimaryBackground, var(--actionPrimary));
+  background: var(--buttonPrimaryBackground, var(--actionPrimary));
+}
+.ctbm-btn:focus-visible,
+.ctbm-edit:focus-visible,
+.ctbm-input input:focus-visible {
+  outline: 1px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+.ctbm-form {
+  margin-top: 8px;
+}
+.ctbm-label {
+  display: block;
+  margin-bottom: 4px;
+}
+.ctbm-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 6px;
+}
+.ctbm-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.ctbm-error {
+  margin: 4px 0 0;
+  color: var(--statusNegative);
+}
+.ctbm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ctbm-income-row {
+  align-items: center;
+  margin-top: 8px;
+}
+.ctbm-income-row .panel-row-value {
+  margin-left: auto;
+}
+.ctbm-edit {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.ctbm-bars {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ctbm-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--backgroundTertiary);
+  overflow: hidden;
+}
+.ctbm-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+.ctbm-fill.is-targets {
+  background: var(--buttonPrimaryBackground, var(--actionPrimary));
+}
+.ctbm-fill.is-targets.has-deficit {
+  background: var(--statusNegative);
+}
+.ctbm-fill.is-income {
+  background: var(--labelTertiary);
+}
+.ctbm-next {
+  margin: 8px 0 0;
+  color: var(--labelTertiary);
+}

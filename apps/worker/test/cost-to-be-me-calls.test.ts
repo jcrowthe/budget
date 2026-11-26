@@ -67,7 +67,7 @@ async function world(nCats: number) {
     await setTarget(env, actor, { budget_id: bid, category_id: id, ...k } as never, {
       today: TODAY,
     });
-    expected += [10000, 20000, 10000, 10000][i % KINDS.length];
+    expected += [10000, 20000, 10000, 10000][i % KINDS.length] ?? 0;
   }
   return { bid, expected };
 }

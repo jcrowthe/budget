@@ -526,7 +526,9 @@ export async function getMonthSummary(
   const future = month === toMonth(today) ? futureAssigned(input, month) : {};
   const cost = {
     targets_total: targetsTotal(detail),
-    next_month_targets_total: targetsTotal(computeMonth({ ...input, today }, addMonths(month, 1))),
+    next_month_targets_total: targetsTotal(
+      withNotes(computeMonth({ ...input, today }, addMonths(month, 1)), new Map()),
+    ),
   };
   if (view !== undefined) {
     if (categoryIds)

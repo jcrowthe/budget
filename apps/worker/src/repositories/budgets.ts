@@ -2,7 +2,10 @@ import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { budgets } from "../db/schema/budgets";
 
-export type BudgetRow = typeof budgets.$inferSelect;
+/** A plan row; `expectedIncome` may be left out when a row is built for an insert (plan import). */
+export type BudgetRow = Omit<typeof budgets.$inferSelect, "expectedIncome"> & {
+  expectedIncome?: number | null;
+};
 
 export async function listActive(db: Db): Promise<BudgetRow[]> {
   return db.select().from(budgets).where(isNull(budgets.deletedAt)).orderBy(budgets.createdAt);

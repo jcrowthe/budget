@@ -291,7 +291,7 @@ describe("expected_income", () => {
     await patch(bid, { expected_income: 500000 });
     const rows = await logs(bid, "budget");
     expect(rows).toHaveLength(before + 1);
-    const last = rows[rows.length - 1];
+    const last = rows[rows.length - 1] as NonNullable<(typeof rows)[number]>;
     expect(last.entity_type).toBe("budget");
     expect(last.actor).toBe(actor);
     expect(JSON.parse(last.before_json ?? "{}").expected_income).toBeNull();
@@ -305,7 +305,7 @@ describe("expected_income", () => {
     expect(r.structuredContent.budget).toEqual(await read(bid));
     expect(r.structuredContent.budget.expected_income).toBe(750000);
     const rows = await logs(bid, "budget");
-    expect(rows[rows.length - 1].actor).toMatch(/^mcp:/);
+    expect(rows.at(-1)?.actor).toMatch(/^mcp:/);
     const bad = await mcp("set_expected_income", { budget_id: bid, expected_income: -5 });
     expect(bad.isError).toBe(true);
     expect((await read(bid)).expected_income).toBe(750000);

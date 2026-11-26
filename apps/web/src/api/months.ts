@@ -67,6 +67,24 @@ export const useFutureAssigned = (budgetId: string, month: Month, enabled: boole
     queryFn: () => getFutureAssigned(budgetId, month),
   });
 
+/** EXF-525: Cost to Be Me: the month's targets total and next month's, from the same summary read. */
+export const getMonthTargets = async (budgetId: string, month: Month) => {
+  const { data } = await apiFetch(
+    `/api/v1/budgets/${budgetId}/months/${month}/summary?today=${localToday()}`,
+    { schema: MonthSummaryTotalsResponse },
+  );
+  return { total: data.targets_total, next: data.next_month_targets_total };
+};
+
+/** Under `month-list` like the future card, so every `endWrite` (target, hide, assigned writes) refreshes it. */
+export const useMonthTargets = (budgetId: string, month: Month, enabled: boolean) =>
+  useQuery({
+    queryKey: ["month-list", budgetId, "targets", month],
+    enabled,
+    queryFn: () => getMonthTargets(budgetId, month),
+    placeholderData: keepPreviousInPlan(budgetId),
+  });
+
 export const getMonthRange = async (budgetId: string): Promise<MonthRange> =>
   (await apiFetch(`/api/v1/budgets/${budgetId}/month-range`, { schema: MonthRangeResponse })).data;
 
