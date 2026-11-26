@@ -111,3 +111,38 @@ One line per design doc, appended by each Build (merge=union).
 - [Account reorder design](account-reorder-design.md): EXF-490 drag accounts within their sidebar section (STARRED among starred rows of one type group; CLOSED stays by name), `PUT …/accounts/order` + MCP `reorder_accounts`, the listed accounts' own sort values permuted (max unchanged, ties renumber the plan), 422 `account_groups_mixed`/`account_closed`, one json_each batch with per-account change_log rows the Undo reverts
 - [Loan page design](loan-page-design.md): EXF-541 loan summary tiles, payoff date and progress chart projected with the loan engine, the paired-category panel, `GET …/accounts/{id}/summary` and `PUT …/paired-category` with their MCP tools
 - [Make Repeating design](make-repeating-design.md): EXF-503 a real transaction becomes a pre-filled add row (+1 month, picker open, Monthly) from a right-click More menu at the pointer, the bar or Shift+T; splits, transfers and system payees greyed out with a reason; Save uses the existing scheduled create, no route or MCP tool
+- [Undo / Redo design](undo-design.md): EXF-490, EXF-504, EXF-530 change sets (`change_log.change_set_id`, `Budget-Change-Set` header), the server undo engine and its rule table per entity type
+- [Plan Undo/Redo design](plan-undo-design.md): EXF-504 Plan toolbar Undo and Redo, ctrl/⌘+Z and Y, several levels deep, sharing the register's stack
+- [Register Undo / Redo design](register-undo-design.md): EXF-530 register actions recorded as change sets, toolbar buttons, shortcuts, navigation and selection after undo
+- [Pending bank transactions design](pending-transactions-design.md): EXF-466 stored Plaid pending transactions, the Pending Transactions section of a linked register, Enter Now (undoable)
+- [Make a Fresh Start design](fresh-start-design.md): EXF-478 Plan menu → Make a Fresh Start copies the structure into a new plan and archives the old one (`archived_at`)
+- [Plan custom views design](custom-views-design.md): EXF-502 saved, edited, reordered and deleted custom view chips on the Plan
+- [Display Options design](display-options-design.md): EXF-470, EXF-472 per-user Theme, Progress Bars and Balance Style dialog with live preview
+- [Assigned in Future Months design](future-assigned-design.md): EXF-527 right-panel card listing later months' assigned totals, one button per month
+- [Recent Moves design](recent-moves-design.md): EXF-506 popover of the last 34 days of assigning and money moves, read from `change_log`
+- [Register search design](register-search-design.md): EXF-528 free text and typed tokens for the register, REST `?q=` and MCP `search_transactions`
+- [Scheduled transfers design](scheduled-transfers-design.md): EXF-501 part 1: scheduled transactions that transfer between two accounts
+- [Scheduled splits design](scheduled-splits-design.md): EXF-501 part 2: scheduled transactions split across categories
+- [Loan accounts design](loan-accounts-design.md): EXF-482 Add Unlinked Account for the six Mortgages and Loans types (balance, rate, payment, escrow, paired category)
+- [Loan Add Activity design](loan-add-activity-design.md): EXF-542 Add Activity menu: payment, credit, fee or charge, interest
+- [Loan manage design](loan-manage-design.md): edit or delete a recorded loan line; unpair a loan or pair it with a new category
+- [Loan Payoff Simulator design](loan-simulator-design.md): EXF-544 payoff calculator with extra payments and savings; writes only on Copy to plan
+- [Loan Update Balance design](loan-update-balance-design.md): EXF-543 Update Balance wizard that freezes interest and escrow lines and adjusts the balance
+- [Account edit polish](account-edit-polish.md): EXF-486, EXF-488 Designer polish list for the account Edit dialog, with applied status
+- [Assigned inline polish](assigned-inline-polish.md): EXF-489 polish list (calculator icon geometry and the Assigned cell)
+- [Bank connections polish](bank-connections-polish.md): EXF-459 polish list for the bank search (field spacing, heading, or-divider)
+- [Bank link screens polish](bank-link-screens-polish.md): EXF-461 polish list for the bank link dialogs (secondary buttons, disabled Account Type)
+- [Link status polish](link-status-polish.md): EXF-866, EXF-867 polish list for the link status strip, header label and banners
+- [Manage Bank Connections polish](manage-connections-polish.md): EXF-460 polish list (icon sizes, row hover)
+- [Manage Payees polish](manage-payees-polish.md): EXF-510 polish list for Manage Payees (buttons, footer, dividers)
+- [Month navigation polish](month-nav-polish.md): EXF-493 polish list (icons, caret hover, focus outline, picker height)
+- [Plan file dialogs polish](plan-file-dialogs-polish.md): EXF-476, EXF-477 polish list for the export and import dialogs
+- [Plan grid polish](plan-grid-polish.md): EXF-487 polish list (header cells, name and number cell paddings, progress bars)
+- [Plan URLs polish](plan-urls-polish.md): EXF-475 polish list (unknown account and month redirects)
+- [Plan views, snooze and Auto-Assign polish](plan-views-autoassign-polish.md): EXF-500, EXF-516, EXF-519 polish list (view chips, empty state, Auto-Assign body)
+- [Reflect polish](reflect-polish.md): EXF-548, EXF-551 polish list for the Reflect pages (tab bar and scoped styles)
+- [Register approve polish](register-approve-polish.md): polish list for approve, reject, the attention column and the banner
+- [Register entry polish](register-entry-polish.md): EXF-517, EXF-507 polish list for the entry row (inputs, action row, calculator icon)
+- [Payee renaming rules polish](rename-rules-polish.md): EXF-467 polish list (gear icon centring, rule row margins)
+- [Ready to Assign and moves polish](rta-moves-polish.md): EXF-491, EXF-492 polish list (totals box, info icon, breakdown scrim)
+- [Transfers and splits polish](transfers-splits-polish.md): EXF-526, EXF-524 polish list (Add another split, remaining amount, hover backgrounds)
