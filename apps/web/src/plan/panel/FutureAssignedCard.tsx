@@ -27,7 +27,7 @@ export function FutureAssignedCard({
       title="Assigned in Future Months"
       collapsed={collapsed}
       onToggle={onToggle}
-      right={fmt.money(total)}
+      right={<span className="future-assigned-total">{fmt.money(total)}</span>}
     >
       {rows.map((r) => (
         <button

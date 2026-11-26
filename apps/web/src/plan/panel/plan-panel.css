@@ -398,17 +398,27 @@
   margin-bottom: 12px;
 }
 
-/* EXF-527: Assigned in Future Months */
+/* EXF-527: Assigned in Future Months. The header total reads like the payment card's balance; each row is a
+   button whose hover and focus surface bleeds 8px past the body's text edge, so the label and amount stay
+   aligned with the other cards' rows. */
+.future-assigned-total {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--labelHeading);
+}
 .future-month {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px 0;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: calc(100% + 2 * var(--space-2));
+  margin: 0 calc(-1 * var(--space-2));
+  padding: 6px var(--space-2);
   border: 0;
+  border-radius: 4px;
   background: none;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   line-height: 17px;
   color: var(--labelSecondary);
   text-align: left;
@@ -417,16 +427,25 @@
 .future-month:hover {
   background: var(--backgroundTertiary);
 }
+.future-month:hover .future-month-label {
+  color: var(--labelHeading);
+}
 .future-month:focus-visible {
   outline: 1px solid var(--actionPrimary);
-  outline-offset: 2px;
+  outline-offset: 0;
 }
 .future-month-icon {
   flex: none;
 }
 .future-month-label {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .future-month-value {
+  flex: none;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
