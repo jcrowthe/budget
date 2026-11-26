@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import { currencyFormatOf, DATE_FORMAT_OPTIONS } from "./plan-formats-catalogue";
+import { DEFAULT_FLAG_NAMES } from "./transactions";
 
 export const BankEnvironment = z.enum(["production", "sandbox"]).openapi("BankEnvironment", {
   description:
@@ -55,6 +56,19 @@ export const DateFormatInput = z
   })
   .openapi("DateFormatInput");
 
+const flagNameKeys = {
+  red: z.string().nullable(),
+  orange: z.string().nullable(),
+  yellow: z.string().nullable(),
+  green: z.string().nullable(),
+  blue: z.string().nullable(),
+  purple: z.string().nullable(),
+};
+export const FlagNames = z.object(flagNameKeys).openapi("FlagNames", {
+  description:
+    "A custom name for each flag colour of the plan; null = the colour's own name (Red, Orange, ...).",
+});
+
 export const Budget = z
   .object({
     id: z.uuid(),
@@ -71,6 +85,7 @@ export const Budget = z
       description:
         "Monthly income the owner expects, in milliunits; null when not set. Compared with the month's targets on the Plan's Cost to Be Me",
     }),
+    flag_names: FlagNames.default(DEFAULT_FLAG_NAMES),
   })
   .openapi("Budget");
 
@@ -91,6 +106,22 @@ export const BudgetUpdate = BudgetCreate.partial()
     expected_income: Milliunits.nullable().optional().openapi({
       description: "0 or null clears it; a negative is 422 negative_expected_income",
     }),
+    flag_names: z
+      .object({
+        red: z.string().nullable().optional(),
+        orange: z.string().nullable().optional(),
+        yellow: z.string().nullable().optional(),
+        green: z.string().nullable().optional(),
+        blue: z.string().nullable().optional(),
+        purple: z.string().nullable().optional(),
+      })
+      .strict()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          "Merges into the plan's flag names: a present colour sets that name (trimmed, at most 50 characters, else 422 flag_name_too_long); null, an empty or a blank string clears it to the colour's own name; a missing colour is unchanged; flag_names null resets all six. An unknown colour is refused.",
+      }),
   })
   .openapi("BudgetUpdate");
 

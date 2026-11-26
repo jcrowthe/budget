@@ -17,4 +17,5 @@ export const budgets = sqliteTable("budgets", {
     .default("before"),
   dateFormat: text("date_format").notNull().default("MM/DD/YYYY"),
   expectedIncome: integer("expected_income"),
+  flagNames: text("flag_names"),
 });

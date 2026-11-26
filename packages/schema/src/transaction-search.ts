@@ -3,7 +3,14 @@
 // and leaving out the segment the person is still typing.
 
 import { dateOrder, parseEntryDate } from "./date-entry";
-import { FLAG_COLORS, FLAG_NAMES, type FlagColor } from "./transactions";
+import {
+  FLAG_COLORS,
+  FLAG_NAMES,
+  type FlagColor,
+  type FlagNames,
+  flagColorByName,
+  flagLabelOf,
+} from "./transactions";
 
 export const IS_OPTIONS = [
   "Uncleared",
@@ -20,7 +27,11 @@ export const IS_OPTIONS = [
 export type IsValue = (typeof IS_OPTIONS)[number];
 
 /** `None` first, then the flags in the flag menu's order. */
-export const FLAG_OPTIONS: readonly string[] = ["None", ...FLAG_COLORS.map((c) => FLAG_NAMES[c])];
+export function flagOptions(flagNames?: Partial<FlagNames> | null): readonly string[] {
+  const label = flagLabelOf(flagNames);
+  return ["None", ...FLAG_COLORS.map((c) => label(c))];
+}
+export const FLAG_OPTIONS: readonly string[] = flagOptions(null);
 
 export const MAX_SEARCH_TOKENS = 10;
 export const MAX_SEARCH_LENGTH = 500;
@@ -50,9 +61,14 @@ export const SEARCH_LABELS = [
 ] as const;
 
 export const SEARCH_QUERY_DESCRIPTION =
-  "Search text: segments separated by commas, all of which must match. A segment is free text (matches the payee, category, memo or account name, case-insensitive) or `Label: value` with the label Payee, Category, Memo, Account (contains the text), Flag (None, Red, Orange, Yellow, Green, Blue, Purple), Is (Uncleared, Cleared, Reconciled, Unreconciled, Cleared or Reconciled, Matched, Approved, Unapproved, Needs Category, Unapproved or Needs Category), On, Before, After (a date in the plan's date format or YYYY-MM-DD; Before and After include the day), Outflow or Inflow (an amount such as `20`, `>=20` or `<=20`) or Income (`Income: November 2026`: Ready to Assign inflows of that month). A split transaction matches when it or any of its lines matches. Up to 10 segments and 500 characters; a segment that cannot be read is a 422.";
+  "Search text: segments separated by commas, all of which must match. A segment is free text (matches the payee, category, memo or account name, case-insensitive) or `Label: value` with the label Payee, Category, Memo, Account (contains the text), Flag (None, or the plan's flag names — see get_budget flag_names — or the colour names Red, Orange, Yellow, Green, Blue, Purple), Is (Uncleared, Cleared, Reconciled, Unreconciled, Cleared or Reconciled, Matched, Approved, Unapproved, Needs Category, Unapproved or Needs Category), On, Before, After (a date in the plan's date format or YYYY-MM-DD; Before and After include the day), Outflow or Inflow (an amount such as `20`, `>=20` or `<=20`) or Income (`Income: November 2026`: Ready to Assign inflows of that month). A split transaction matches when it or any of its lines matches. Up to 10 segments and 500 characters; a segment that cannot be read is a 422.";
 
-export type SearchContext = { dateFormat: string; today: string };
+export type SearchContext = {
+  dateFormat: string;
+  today: string;
+  /** The plan's custom flag names (EXF-480); Flag accepts them and the colour names. */
+  flagNames?: Partial<FlagNames> | null;
+};
 export type ParsedSearch = {
   tokens: SearchToken[];
   invalid: { segment: string; reason: string }[];
@@ -98,10 +114,10 @@ function parseSegment(
     case "account":
       return { type: "text", field: label, value };
     case "flag": {
-      const f = ci(FLAG_OPTIONS);
-      if (!f) return { error: `Flag must be one of ${FLAG_OPTIONS.join(", ")}` };
-      const color = FLAG_COLORS.find((c) => FLAG_NAMES[c] === f);
-      return { type: "flag", color: color ?? null };
+      if (value.toLowerCase() === "none") return { type: "flag", color: null };
+      const color = flagColorByName(value, ctx.flagNames);
+      if (!color) return { error: `Flag must be one of ${flagOptions(ctx.flagNames).join(", ")}` };
+      return { type: "flag", color };
     }
     case "is": {
       const v = ci(IS_OPTIONS);
@@ -181,12 +197,16 @@ function amountText(milliunits: number): string {
 const cap = (s: string) => `${s[0]?.toUpperCase()}${s.slice(1)}`;
 
 /** The token as the search box writes it, without the trailing `, `. */
-export function formatToken(token: SearchToken, dateFormat: string): string {
+export function formatToken(
+  token: SearchToken,
+  dateFormat: string,
+  flagNames?: Partial<FlagNames> | null,
+): string {
   switch (token.type) {
     case "text":
       return token.field === "any" ? token.value : `${cap(token.field)}: ${token.value}`;
     case "flag":
-      return `Flag: ${token.color ? FLAG_NAMES[token.color] : "None"}`;
+      return `Flag: ${token.color ? flagLabelOf(flagNames)(token.color) : "None"}`;
     case "is":
       return `Is: ${token.value}`;
     case "date":

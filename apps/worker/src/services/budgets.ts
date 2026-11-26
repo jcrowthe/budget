@@ -10,6 +10,12 @@ import {
   type StoredFormats,
 } from "@budget/schema/plan-formats-catalogue";
 import type { DateFormat } from "@budget/schema/plan-import-read";
+import {
+  FLAG_COLORS,
+  type FlagColor,
+  type FlagNames,
+  flagLabelOf,
+} from "@budget/schema/transactions";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
@@ -18,6 +24,43 @@ import * as accountsRepo from "../repositories/accounts";
 import * as repo from "../repositories/budgets";
 import { accountFacts, accountToApi } from "./accounts";
 import { defaultCategoryStmts } from "./default-categories";
+
+/** The plan's flag names from its stored JSON (all six keys; bad or missing JSON gives the defaults). */
+export function parseFlagNames(stored: string | null | undefined): FlagNames {
+  const out: FlagNames = {
+    red: null,
+    orange: null,
+    yellow: null,
+    green: null,
+    blue: null,
+    purple: null,
+  };
+  if (!stored) return out;
+  try {
+    const v: unknown = JSON.parse(stored);
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      for (const c of FLAG_COLORS) {
+        const n = (v as Record<string, unknown>)[c];
+        if (typeof n === "string" && n.trim() !== "") out[c] = n;
+      }
+    }
+  } catch {
+    // bad JSON: the defaults
+  }
+  return out;
+}
+
+/** The names of a plan row already read. */
+export function flagNamesOfRow(row: Pick<repo.BudgetRow, "flagNames">): FlagNames {
+  return parseFlagNames(row.flagNames);
+}
+
+/** The label function of a plan row already read: its custom flag names, else the colour names. */
+export function flagLabelOfRow(row: Pick<repo.BudgetRow, "flagNames">): (c: FlagColor) => string {
+  return flagLabelOf(flagNamesOfRow(row));
+}
+
+const MAX_FLAG_NAME = 50;
 
 export function toApi(row: repo.BudgetRow): Budget {
   return {
@@ -30,6 +73,7 @@ export function toApi(row: repo.BudgetRow): Budget {
     currency_format: currencyFormatOf(row.currencyIsoCode, row.numberFormat, row.symbolPlacement),
     date_format: { format: row.dateFormat as DateFormat },
     expected_income: row.expectedIncome ?? null,
+    flag_names: flagNamesOfRow(row),
   };
 }
 
@@ -148,6 +192,7 @@ export async function createBudget(env: Env, actor: string, input: BudgetCreate)
     lastOpenedAt: null,
     bankEnvironment: input.bank_environment ?? "production",
     expectedIncome: null,
+    flagNames: null,
     ...formatColumns(formats),
   };
   const batch = buildCreateBatch(db, row, {
@@ -191,7 +236,8 @@ export async function updateBudget(
     patch.bank_environment === undefined &&
     patch.currency_format === undefined &&
     patch.date_format === undefined &&
-    patch.expected_income === undefined
+    patch.expected_income === undefined &&
+    patch.flag_names === undefined
   ) {
     const res = await repo.markOpenedStmt(db, id, now);
     if (res.meta.changes === 0) throw new NotFound("Plan");
@@ -208,6 +254,33 @@ export async function updateBudget(
   // 0 and null both clear it.
   const expectedIncome =
     patch.expected_income === undefined ? undefined : patch.expected_income || null;
+  // EXF-480: merge onto the stored names; only non-empty trimmed names are stored, NULL when none.
+  let flagNames: string | null | undefined;
+  if (patch.flag_names !== undefined) {
+    const merged = flagNamesOfRow(before);
+    if (patch.flag_names === null) {
+      for (const c of FLAG_COLORS) merged[c] = null;
+    } else {
+      for (const [key, value] of Object.entries(patch.flag_names)) {
+        if (!(FLAG_COLORS as readonly string[]).includes(key)) {
+          throw new BudgetRefused("unknown_flag_color", `Unknown flag colour: ${key}`);
+        }
+        if (value === undefined) continue;
+        const t = value === null ? "" : value.trim();
+        if (t.length > MAX_FLAG_NAME) {
+          throw new BudgetRefused(
+            "flag_name_too_long",
+            `A flag name is at most ${MAX_FLAG_NAME} characters`,
+          );
+        }
+        merged[key as keyof FlagNames] = t === "" ? null : t;
+      }
+    }
+    const kept = Object.fromEntries(
+      FLAG_COLORS.flatMap((c) => (merged[c] ? [[c, merged[c]]] : [])),
+    );
+    flagNames = Object.keys(kept).length === 0 ? null : JSON.stringify(kept);
+  }
   const lastOpenedAt = patch.opened === true ? now : undefined;
   const formatPatch =
     patch.currency_format === undefined && patch.date_format === undefined
@@ -219,6 +292,7 @@ export async function updateBudget(
     ...(patch.bank_environment === undefined ? {} : { bankEnvironment: patch.bank_environment }),
     ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
     ...(expectedIncome === undefined ? {} : { expectedIncome }),
+    ...(flagNames === undefined ? {} : { flagNames }),
     ...formatPatch,
     updatedAt: now,
   };
@@ -246,6 +320,7 @@ export async function updateBudget(
           : { bankEnvironment: patch.bank_environment }),
         ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
         ...(expectedIncome === undefined ? {} : { expectedIncome }),
+        ...(flagNames === undefined ? {} : { flagNames }),
         ...formatPatch,
       },
       now,
@@ -263,6 +338,16 @@ export async function setExpectedIncome(
   value: number | null,
 ): Promise<Budget> {
   return updateBudget(env, actor, id, { expected_income: value });
+}
+
+/** EXF-480: sets the plan's flag names (merge; null or blank clears one; null resets all). */
+export async function setFlagNames(
+  env: Env,
+  actor: string,
+  id: string,
+  names: NonNullable<BudgetUpdate["flag_names"]> | null,
+): Promise<Budget> {
+  return updateBudget(env, actor, id, { flag_names: names });
 }
 
 /**

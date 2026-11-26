@@ -1,0 +1,51 @@
+/* Edit Flags: the dialog box is `.dialog.form` (shell/global.css). */
+.dialog.form.edit-flags-dialog {
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.dialog.form.edit-flags-dialog .dialog-head .icon-button {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.dialog.form.edit-flags-dialog .dialog-head .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.edit-flags-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.edit-flags-row:last-of-type {
+  margin-bottom: 0;
+}
+.edit-flags-row svg {
+  flex: none;
+  width: 24px;
+  height: 15px;
+}
+.dialog.form.edit-flags-dialog .field {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--inputBorder);
+  background: var(--inputBackground);
+  color: var(--labelPrimary);
+  font-family: inherit;
+  font-weight: 500;
+}
+/* After the border above, so the focused field keeps the shared focus colour (shell/global.css). */
+.dialog.form.edit-flags-dialog .field:focus {
+  border-color: var(--buttonPrimaryBackground);
+}
+.dialog.form.edit-flags-dialog .error {
+  margin: var(--space-2) 0 0;
+  color: var(--labelNegative);
+  font-size: var(--font-size-sm);
+}

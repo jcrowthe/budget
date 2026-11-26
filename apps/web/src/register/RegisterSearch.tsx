@@ -1,6 +1,7 @@
 import { parseSearch, type SearchToken } from "@budget/schema/transaction-search";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAccounts } from "../api/accounts";
+import { useFlagNames } from "../api/budgets";
 import { useMonth } from "../api/months";
 import { localToday } from "../api/today";
 import { usePlanFormatter } from "../shell/plan-formats-context";
@@ -32,9 +33,10 @@ export type RegisterSearchState = {
 /** Page state of the register search: not in the URL, not stored; `resetKey` (the account) clears it. */
 export function useRegisterSearchState(resetKey: string): RegisterSearchState {
   const fmt = usePlanFormatter();
+  const { names: flagNames } = useFlagNames();
   const ctx = useMemo(
-    () => ({ dateFormat: fmt.dateFormat, today: localToday() }),
-    [fmt.dateFormat],
+    () => ({ dateFormat: fmt.dateFormat, today: localToday(), flagNames }),
+    [fmt.dateFormat, flagNames],
   );
   const [text, setTextState] = useState("");
   const [applied, setApplied] = useState("");
@@ -84,6 +86,7 @@ export function RegisterSearch({
   search: RegisterSearchState;
 }) {
   const fmt = usePlanFormatter();
+  const { names: flagNames } = useFlagNames(budgetId);
   const listId = useId();
   const today = localToday();
   const monthQ = useMonth(budgetId, `${today.slice(0, 7)}-01`);
@@ -95,11 +98,12 @@ export function RegisterSearch({
     () => ({
       dateFormat: fmt.dateFormat,
       today,
+      flagNames,
       money: fmt.money,
       date: fmt.date,
       parseDate: fmt.parseDate,
     }),
-    [fmt, today],
+    [fmt, today, flagNames],
   );
   const categories = useMemo(
     () => [

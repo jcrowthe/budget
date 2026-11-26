@@ -2,7 +2,7 @@
 // query the register sends (only the segments that can be read, so a half-typed `Is: unc` never gets a 422).
 
 import {
-  FLAG_OPTIONS,
+  flagOptions,
   formatToken,
   IS_OPTIONS,
   MAX_SEARCH_LENGTH,
@@ -11,10 +11,13 @@ import {
   parseSearch,
   type SearchToken,
 } from "@budget/schema/transaction-search";
+import type { FlagNames } from "@budget/schema/transactions";
 
 export type SearchCtx = {
   dateFormat: string;
   today: string;
+  /** The plan's custom flag names (EXF-480). */
+  flagNames?: Partial<FlagNames> | null;
   money: (milliunits: number) => string;
   date: (iso: string) => string;
   parseDate: (text: string, today: string) => string | null;
@@ -80,11 +83,12 @@ export function suggestions(
   // Flags, then Is options; a word inside a label also finds it (`red`, `cleared`, `needs`).
   const flagNeedle = lv?.label === "flag" ? lv.value : lv ? null : lc;
   if (lv?.label === "flag" || (!lv && lc.length >= 2 && "flag".startsWith(lc))) {
-    for (const f of FLAG_OPTIONS) {
+    for (const f of flagOptions(ctx.flagNames)) {
       if (lv?.label !== "flag" || !lv.value || has(f, lv.value)) add("Flag:", f, `Flag: ${f}`);
     }
   } else if (flagNeedle && flagNeedle.length >= 3) {
-    for (const f of FLAG_OPTIONS) if (has(f, flagNeedle)) add("Flag:", f, `Flag: ${f}`);
+    for (const f of flagOptions(ctx.flagNames))
+      if (has(f, flagNeedle)) add("Flag:", f, `Flag: ${f}`);
   }
   if (lv?.label === "is" || lc === "is") {
     for (const o of IS_OPTIONS) {
@@ -104,7 +108,7 @@ export function suggestions(
         after: `On or after ${when}`,
       };
       for (const op of ["on", "before", "after"] as const) {
-        const w = formatToken({ type: "date", op, date: iso }, ctx.dateFormat);
+        const w = formatToken({ type: "date", op, date: iso }, ctx.dateFormat, ctx.flagNames);
         add(`${op[0]?.toUpperCase()}${op.slice(1)}:`, desc[op], w);
       }
     }
@@ -121,9 +125,21 @@ export function suggestions(
         op,
         milliunits: amount.milliunits,
       });
-      add(`${name}:`, `${name} equals ${shown}`, formatToken(t("eq"), ctx.dateFormat));
-      add(`${name}:`, `${name} more or equal to ${shown}`, formatToken(t("gte"), ctx.dateFormat));
-      add(`${name}:`, `${name} less or equal to ${shown}`, formatToken(t("lte"), ctx.dateFormat));
+      add(
+        `${name}:`,
+        `${name} equals ${shown}`,
+        formatToken(t("eq"), ctx.dateFormat, ctx.flagNames),
+      );
+      add(
+        `${name}:`,
+        `${name} more or equal to ${shown}`,
+        formatToken(t("gte"), ctx.dateFormat, ctx.flagNames),
+      );
+      add(
+        `${name}:`,
+        `${name} less or equal to ${shown}`,
+        formatToken(t("lte"), ctx.dateFormat, ctx.flagNames),
+      );
     }
     add("Income:", "Enter month like 'Income: November 2026'", null);
   }
@@ -137,16 +153,19 @@ export function suggestions(
 }
 
 /** The query to send: the readable tokens of `text`, written canonically; "" when there are none. */
-export function appliedOf(text: string, ctx: Pick<SearchCtx, "dateFormat" | "today">) {
+export function appliedOf(
+  text: string,
+  ctx: Pick<SearchCtx, "dateFormat" | "today" | "flagNames">,
+) {
   const { tokens } = parseSearch(text, ctx);
-  return keep(tokens, ctx.dateFormat);
+  return keep(tokens, ctx.dateFormat, ctx.flagNames);
 }
 
-function keep(tokens: SearchToken[], dateFormat: string) {
+function keep(tokens: SearchToken[], dateFormat: string, flagNames?: Partial<FlagNames> | null) {
   const parts: string[] = [];
   let length = 0;
   for (const t of tokens.slice(0, MAX_SEARCH_TOKENS)) {
-    const s = formatToken(t, dateFormat);
+    const s = formatToken(t, dateFormat, flagNames);
     if (length + s.length + 2 > MAX_SEARCH_LENGTH) break;
     parts.push(s);
     length += s.length + 2;
@@ -155,7 +174,10 @@ function keep(tokens: SearchToken[], dateFormat: string) {
 }
 
 /** The first token as written, for the footer. */
-export function firstTokenText(applied: string, ctx: Pick<SearchCtx, "dateFormat" | "today">) {
+export function firstTokenText(
+  applied: string,
+  ctx: Pick<SearchCtx, "dateFormat" | "today" | "flagNames">,
+) {
   const t = parseSearch(applied, ctx).tokens[0];
-  return t ? formatToken(t, ctx.dateFormat) : applied;
+  return t ? formatToken(t, ctx.dateFormat, ctx.flagNames) : applied;
 }

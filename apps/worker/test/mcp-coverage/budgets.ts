@@ -9,7 +9,7 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
   "POST /budgets/import/{import_id}/continue": { tool: "continue_budget_import" },
   "DELETE /budgets/import/{import_id}": { tool: "cancel_budget_import" },
   "PATCH /budgets/{id}": {
-    tool: ["update_budget", "set_expected_income"],
+    tool: ["update_budget", "set_expected_income", "update_flag_names"],
     note: "opened is left out: it is the interface recording an open, not a change",
   },
   "DELETE /budgets/{id}": { tool: "delete_budget" },

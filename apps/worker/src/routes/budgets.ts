@@ -91,7 +91,7 @@ export default app
       path: "/budgets/{id}",
       tags,
       description:
-        "Update a plan: name, bank_environment, formats, or expected_income (milliunits; 0 or null clears it; a negative is 422 negative_expected_income).",
+        "Update a plan: name, bank_environment, formats, expected_income (milliunits; 0 or null clears it; a negative is 422 negative_expected_income), or flag_names (merges per colour; null or blank clears one, null resets all; a trimmed name over 50 characters is 422 flag_name_too_long; an unknown colour is refused).",
       request: {
         params: Params,
         body: { content: { "application/json": { schema: BudgetUpdate } }, required: true },

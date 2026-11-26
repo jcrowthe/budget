@@ -1,5 +1,5 @@
 import { DEFAULT_PLAN_FORMAT, type ExportFormat, exportFormat } from "./plan-export";
-import { FLAG_NAMES, type PlanTransaction } from "./transactions";
+import { FLAG_NAMES, type FlagColor, type PlanTransaction } from "./transactions";
 
 export const REGISTER_CSV_HEADER = [
   "Account",
@@ -36,6 +36,7 @@ type Line = {
 export function registerCsv(
   rows: readonly PlanTransaction[],
   fmt: ExportFormat = exportFormat(DEFAULT_PLAN_FORMAT),
+  flagLabel: (c: FlagColor) => string = (c) => FLAG_NAMES[c],
 ): string {
   const out: string[] = [REGISTER_CSV_HEADER.map(quote).join(",")];
   for (const r of rows) {
@@ -67,7 +68,7 @@ export function registerCsv(
       const both = group && category ? `${group}: ${category}` : category;
       const fields = [
         r.account_name,
-        r.flag_color ? FLAG_NAMES[r.flag_color] : "",
+        r.flag_color ? flagLabel(r.flag_color) : "",
         fmt.date(r.date),
         l.payee ?? "",
         both,

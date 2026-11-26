@@ -2,9 +2,10 @@ import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { budgets } from "../db/schema/budgets";
 
-/** A plan row; `expectedIncome` may be left out when a row is built for an insert (plan import). */
-export type BudgetRow = Omit<typeof budgets.$inferSelect, "expectedIncome"> & {
+/** A plan row; `expectedIncome` and `flagNames` may be left out when a row is built for an insert (plan import). */
+export type BudgetRow = Omit<typeof budgets.$inferSelect, "expectedIncome" | "flagNames"> & {
   expectedIncome?: number | null;
+  flagNames?: string | null;
 };
 
 export async function listActive(db: Db): Promise<BudgetRow[]> {
@@ -24,12 +25,22 @@ export async function findActive(db: Db, id: string): Promise<BudgetRow | undefi
 /** A row to insert: the format columns may be left to their defaults. */
 export type NewBudgetRow = Omit<
   BudgetRow,
-  "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat" | "expectedIncome"
+  | "currencyIsoCode"
+  | "numberFormat"
+  | "symbolPlacement"
+  | "dateFormat"
+  | "expectedIncome"
+  | "flagNames"
 > &
   Partial<
     Pick<
       BudgetRow,
-      "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat" | "expectedIncome"
+      | "currencyIsoCode"
+      | "numberFormat"
+      | "symbolPlacement"
+      | "dateFormat"
+      | "expectedIncome"
+      | "flagNames"
     >
   >;
 
@@ -58,6 +69,7 @@ export function updateStmt(
     symbolPlacement?: "before" | "after" | "none";
     dateFormat?: string;
     expectedIncome?: number | null;
+    flagNames?: string | null;
   },
   updatedAt: string,
 ) {

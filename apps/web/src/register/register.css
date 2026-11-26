@@ -723,10 +723,14 @@
   color: var(--actionPrimary);
   font: inherit;
   font-weight: 600;
+  cursor: pointer;
 }
-.edit-flags[aria-disabled="true"] {
-  color: var(--register-menu-disabled);
-  cursor: default;
+.edit-flags:hover {
+  text-decoration: underline;
+}
+.edit-flags:focus-visible {
+  outline: auto 2px var(--actionPrimary);
+  outline-offset: 2px;
 }
 
 /* Dialogs of the bar. */

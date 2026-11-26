@@ -27,6 +27,39 @@ export const FLAG_NAMES: Record<FlagColor, string> = {
   purple: "Purple",
 };
 
+/** EXF-480: a plan's custom flag names; null = the colour's own name. */
+export type FlagNames = Record<FlagColor, string | null>;
+export const DEFAULT_FLAG_NAMES: FlagNames = {
+  red: null,
+  orange: null,
+  yellow: null,
+  green: null,
+  blue: null,
+  purple: null,
+};
+
+/** The label of a colour under a plan's names: the custom name, else the colour name. */
+export function flagLabelOf(
+  names: Partial<FlagNames> | null | undefined,
+): (c: FlagColor) => string {
+  return (c) => names?.[c] || FLAG_NAMES[c];
+}
+
+/**
+ * The colour a name stands for, case-insensitively: custom names first in colour order (red to purple),
+ * then the default colour names. `undefined` when none matches.
+ */
+export function flagColorByName(
+  name: string,
+  names: Partial<FlagNames> | null | undefined,
+): FlagColor | undefined {
+  const n = name.trim().toLowerCase();
+  return (
+    FLAG_COLORS.find((c) => names?.[c]?.toLowerCase() === n) ??
+    FLAG_COLORS.find((c) => FLAG_NAMES[c].toLowerCase() === n)
+  );
+}
+
 export const Transaction = z
   .object({
     id: z.uuid(),

@@ -31,6 +31,7 @@ describe("plan_imports migration", () => {
       "date_format",
       "deleted_at",
       "expected_income",
+      "flag_names",
       "id",
       "last_opened_at",
       "name",
