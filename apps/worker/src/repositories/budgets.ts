@@ -3,7 +3,10 @@ import type { Db } from "../db/client";
 import { budgets } from "../db/schema/budgets";
 
 /** A plan row; `expectedIncome` and `flagNames` may be left out when a row is built for an insert (plan import). */
-export type BudgetRow = Omit<typeof budgets.$inferSelect, "expectedIncome" | "flagNames"> & {
+export type BudgetRow = Omit<
+  typeof budgets.$inferSelect,
+  "expectedIncome" | "flagNames" | "archivedAt"
+> & {
   expectedIncome?: number | null;
   flagNames?: string | null;
 };

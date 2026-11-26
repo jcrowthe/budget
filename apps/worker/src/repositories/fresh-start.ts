@@ -246,7 +246,7 @@ export function copyStmts(db: Db, i: CopyInput) {
   out.push(
     db
       .update(budgets)
-      .set({ name: i.archiveName, updatedAt: now })
+      .set({ name: i.archiveName, updatedAt: now, archivedAt: now })
       .where(budgetsRepo.unchanged(i.source)),
   );
   // 4. accounts (paired_category_id remapped: no foreign key on it)
