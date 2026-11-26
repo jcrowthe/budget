@@ -1,13 +1,5 @@
 /* Measured on the source's Plan page (docs/plan-views-autoassign-design.md). */
 .plan-page {
-  --viewChipBackground: #3c3e53;
-  --viewChipBackgroundHover: #56596c;
-  --viewChipSelectedBackground: #292c6c;
-  --viewChipSelectedBackgroundHover: #383ca3;
-  --viewChipSelectedBorder: #7583ff;
-  --autoAssignButtonBackground: rgba(60, 62, 83, 0.6);
-  --autoAssignButtonBackgroundHover: rgba(60, 62, 83, 0.8);
-  --disabledPrimaryLabel: #383ca3;
 }
 
 .view-chips {
@@ -28,7 +20,7 @@
   border: 1px solid transparent;
   border-radius: 5px;
   background: var(--viewChipBackground);
-  color: #fff;
+  color: var(--labelPrimary);
   font: inherit;
   font-size: 12px;
   line-height: 16px;

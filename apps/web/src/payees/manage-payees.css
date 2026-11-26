@@ -11,11 +11,7 @@
 .manage-payees-dialog {
   /* The two colours tokens.css lacks: the source's --calloutNegativeProminentBackground (dark #6a1020)
      and --buttonDestructiveBackground / --buttonDestructiveLabel (dark #6a1020 / #feedeb). */
-  --mp-negative-bg: #6a1020;
-  --mp-destructive-label: #feedeb;
   /* The source's dark --buttonDestructiveBackgroundActive, and --labelHeading. */
-  --mp-destructive-hover: #912333;
-  --mp-label-heading: #f1f1ff;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -327,7 +323,7 @@
   padding: var(--space-2);
   border-radius: 0 0 var(--radius-xs) var(--radius-xs);
   background: var(--mp-negative-bg);
-  color: #fff;
+  color: var(--labelOnColor);
   font-size: var(--font-size-sm);
   font-weight: 500;
 }
@@ -368,7 +364,7 @@
   border: 0;
   border-radius: var(--radius-lg);
   background: var(--buttonPrimaryBackground);
-  color: #fff;
+  color: var(--labelOnColor);
   font-size: var(--font-size-sm);
   font-weight: 500;
   line-height: 1.2;
@@ -391,7 +387,7 @@
 }
 .mp-button.destructive:hover:not(:disabled) {
   background: var(--mp-destructive-hover);
-  color: #fff;
+  color: var(--labelOnColor);
 }
 .mp-button.mp-primary:hover:not(:disabled) {
   background: var(--actionPrimary);

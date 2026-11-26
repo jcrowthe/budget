@@ -3,14 +3,9 @@
 .filter-popover,
 .date-menu,
 .sb-popover {
-  --labelAction: #a3acff; /* source --labelAction */
-  --labelActionDisabled: #383ca3; /* source --labelActionDisabled */
 }
 .reflect {
-  --reflect-assets: #383ca3; /* source --reportsNetworthAssetsBackground */
   --reflect-debts: var(--statusNegative); /* source debts #bf2e3b */
-  --reflect-filter-active: #7583ff45; /* source --filterBackgroundActive */
-  --reflect-fill-secondary: #72748452; /* source --fillSecondary */
   --reflect-tab-height: 64px;
   --reflect-filter-height: 32px;
   color: var(--labelSecondary);
@@ -100,7 +95,7 @@
   width: 1px;
   height: 16px;
   margin: 0 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--separatorFaint);
 }
 .date-range {
   position: relative;
@@ -194,8 +189,8 @@
   margin-right: 4px;
   padding: 2px 8px;
   border-radius: 36px;
-  background: #7583ff33; /* source .filter-button__pill */
-  color: #d4d5ff;
+  background: var(--countPillBackground); /* source .filter-button__pill */
+  color: var(--countPillLabel);
   font-size: 12px;
   line-height: 12px;
   text-align: center;
@@ -323,7 +318,7 @@
   justify-content: space-between;
   margin: 0 12.8px;
   padding: 4.8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--separatorFaint);
   color: var(--labelPrimary);
   font-size: 17.6px;
 }
@@ -486,7 +481,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--separatorFaint);
 }
 .filter-footer .spacer {
   flex: 1;
@@ -644,7 +639,7 @@
   padding: 8px 24px 16px;
   border-radius: var(--radius-xs);
   background: var(--backgroundTertiary);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* source tooltip */
+  box-shadow: 0 10px 20px var(--shadowTooltipLarge); /* source tooltip */
   color: var(--labelPrimary);
   pointer-events: none;
   white-space: nowrap;

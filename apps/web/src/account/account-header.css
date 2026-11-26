@@ -1,21 +1,11 @@
 /* The account page and All Accounts header. Values measured on the source at 1600x813 (see docs/account-header-design.md). */
 :root {
-  --account-star-off: #727484;
-  --account-star-on: #f8d655;
-  --account-rule: rgba(255, 255, 255, 0.1);
-  --account-tooltip-label: #ededf5;
-  --account-tooltip-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-  --account-secondary-hover: rgba(117, 131, 255, 0.27);
   --account-tooltip-delay: 1.9s;
   /* The Payment pill's tones repeat the Plan grid's (plan/** is held by another Build). */
   --account-payment-zero-bg: var(--inputBackground);
-  --account-payment-zero-label: #9b9caa;
   --account-payment-positive-bg: var(--statusPositive);
-  --account-payment-positive-label: #0c0d22;
   --account-payment-negative-bg: var(--statusNegative);
-  --account-payment-negative-label: #fff;
   /* The action bar's shortcut tooltip bubble, measured on the source's Flag button tooltip. */
-  --account-tooltip-shortcut-bg: #3c3e53;
 }
 .acct-head {
   background: var(--backgroundSecondary);
@@ -316,7 +306,7 @@
   min-height: 20px;
   padding: 0 4px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--keyCapTooltipBackground);
   font: inherit;
   font-size: 14px;
   font-weight: 500;

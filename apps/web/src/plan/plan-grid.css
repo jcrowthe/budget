@@ -1,27 +1,5 @@
 /* Colours the grid needs that tokens.css does not have yet. A later Build moves them into tokens.css. */
 :root {
-  --separatorStandard: rgba(255, 255, 255, 0.1);
-  --labelHeading: #f1f1ff;
-  --labelAction: #a3acff;
-  --actionPrimaryDisabled: #383ca3;
-  --labelWarning: #daac00;
-  --segmentedTrack: rgba(114, 116, 132, 0.32);
-  --categoryBalanceZeroLabel: #9b9caa;
-  --categoryBalancePositiveLabel: #0c0d22;
-  --categoryBalancePositiveHover: #508316;
-  --categoryBalanceWarningBackground: #f6c91d;
-  --categoryBalanceWarningBackgroundActive: #daac00;
-  --categoryBalanceNegativeLabel: #fff;
-  --categoryBalanceNegativeHover: #912333;
-  --budgetBarFundedSpending: #346011;
-  --budgetBarFundedSpendingStripe: #1d300d;
-  --budgetBarOverspending: #912333;
-  --budgetBarOverspendingStripe: #4c0814;
-  --inputBorderActive: #545bfe;
-  --iconFillSecondary: #727484;
-  --buttonDestructiveBackground: #6a1020;
-  --buttonDestructiveLabel: #feedeb;
-  --buttonDestructiveBackgroundActive: #912333;
 }
 
 .plan-page {

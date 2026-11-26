@@ -17,12 +17,7 @@
 }
 /* The source's mark is white for every status (--sidebarLabelPrimary). */
 .nav-account-row .nav-link-status {
-  --statusMarkHover: rgba(
-    255,
-    255,
-    255,
-    0.3
-  ); /* source badge hover, measured on the test plan's style rules */
+  /* source badge hover, measured on the test plan's style rules */
   color: var(--labelPrimary);
 }
 /* A badge only when the owner must act (the source's isDirectImportUserActionable). */

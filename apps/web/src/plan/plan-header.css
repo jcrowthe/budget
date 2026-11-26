@@ -1,20 +1,5 @@
 /* Colours the shell tokens lack yet: the source's names and dark values (as plan-grid.css does). */
 :root {
-  --actionPrimaryActive: #a3acff;
-  --actionPrimaryDisabled: #383ca3;
-  --actionSecondary: #3c3e53;
-  --separatorStandard: rgba(255, 255, 255, 0.1);
-  --backgroundPrimaryElevated: #1f2038;
-  --backgroundSecondaryElevated: #292b3d;
-  --buttonPrimaryBackgroundActive: #7583ff;
-  --buttonSecondaryBackgroundActive: rgba(117, 131, 255, 0.27);
-  --calloutPositiveProminentBackground: #346011;
-  --calloutNegativeProminentBackground: #6a1020;
-  --rtaButtonPositive: #508316;
-  --rtaButtonPositiveHover: #77ba21;
-  --rtaButtonNegative: #bf2e3b;
-  --rtaButtonNegativeHover: #ce5e66;
-  --helpboxBackground: rgba(117, 131, 255, 0.2);
 }
 
 .plan-header {
@@ -286,7 +271,7 @@
   min-height: 62px;
   padding: 8px 16px 12px;
   border-radius: 8px;
-  color: #fff;
+  color: var(--labelPrimary);
 }
 .rta-box.is-positive {
   background: var(--calloutPositiveProminentBackground);
@@ -338,7 +323,7 @@
   padding: 4px 16px;
   border: 0;
   border-radius: 8px;
-  color: #fff;
+  color: var(--labelOnColor);
   font: inherit;
   font-size: var(--font-size-md);
   font-weight: 500;
@@ -368,7 +353,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #9b9caa;
+  color: var(--labelTertiary);
   opacity: 0.8;
   cursor: default;
 }
@@ -381,11 +366,11 @@
   padding: 6px 12px;
   border-radius: 8px;
   background: var(--calloutNegativeProminentBackground);
-  color: #fff;
+  color: var(--labelOnColor);
   font-size: var(--font-size-sm);
 }
 .rta-box button:focus-visible {
-  outline: auto 1px #fff;
+  outline: auto 1px var(--labelPrimary);
   outline-offset: 2px;
 }
 
@@ -428,7 +413,7 @@
   margin-bottom: var(--space-2);
 }
 .rta-block-header.is-plus {
-  color: #77ba21;
+  color: var(--labelPositive);
 }
 .rta-block-header.is-minus {
   color: var(--labelSecondary);
@@ -454,7 +439,7 @@
   font-weight: 600;
 }
 .rta-total.is-positive {
-  color: #77ba21;
+  color: var(--labelPositive);
 }
 .rta-total.is-negative {
   color: var(--labelNegative);
@@ -488,7 +473,7 @@
   width: 32px;
   height: 24px;
   margin-right: 0;
-  color: #545bfe;
+  color: var(--helpIcon);
 }
 
 /* Assign popover tabs. Source: the active tab is #A3ACFF with a 2px border. */

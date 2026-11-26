@@ -60,7 +60,6 @@
   background: var(--calloutPrimarySubtleBackground);
 }
 .acct-connection-error {
-  --calloutNegativeSubtleBackground: #4c0814;
   background: var(--calloutNegativeSubtleBackground);
   color: var(--labelPrimary);
 }

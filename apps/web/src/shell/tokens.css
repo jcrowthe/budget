@@ -46,7 +46,7 @@
   --calloutPrimaryProminentBackgroundEmphasis: #545bfe;
   --calloutStripBackground: #292c6c;
   --labelPositiveActive: #93d53e;
-  --separatorStandard: rgba(255, 255, 255, 0.1);
+  --separatorStandard: #ffffff1a;
 
   --sidebar-width: 260px;
   --nav-row: 40px;
@@ -77,4 +77,104 @@
   --font-size-lg: 18px;
   --font-size-xl: 24px;
   --font-size-month: 21px;
+  /* moved from account/account-header.css (EXF-472) */
+  --account-star-off: #727484;
+  --account-star-on: #f8d655;
+  --account-rule: #ffffff1a;
+  --account-tooltip-label: #ededf5;
+  --account-tooltip-shadow: 0 2px 5px #00000026;
+  --account-secondary-hover: #7583ff45;
+  --account-payment-zero-label: #9b9caa;
+  --account-payment-positive-label: #0c0d22;
+  --account-payment-negative-label: #fff;
+  --account-tooltip-shortcut-bg: #3c3e53;
+  /* moved from plan/plan-grid.css (EXF-472) */
+  --labelHeading: #f1f1ff;
+  --labelAction: #a3acff;
+  --actionPrimaryDisabled: #383ca3;
+  --segmentedTrack: #72748452;
+  --categoryBalanceZeroLabel: #9b9caa;
+  --categoryBalancePositiveLabel: #0c0d22;
+  --categoryBalancePositiveHover: #508316;
+  --categoryBalanceWarningBackground: #f6c91d;
+  --categoryBalanceWarningBackgroundActive: #daac00;
+  --categoryBalanceNegativeLabel: #fff;
+  --categoryBalanceNegativeHover: #912333;
+  --budgetBarFundedSpending: #346011;
+  --budgetBarFundedSpendingStripe: #1d300d;
+  --budgetBarOverspending: #912333;
+  --budgetBarOverspendingStripe: #4c0814;
+  --inputBorderActive: #545bfe;
+  --iconFillSecondary: #727484;
+  /* moved from plan/plan-header.css (EXF-472) */
+  --actionPrimaryActive: #a3acff;
+  --actionSecondary: #3c3e53;
+  --backgroundPrimaryElevated: #1f2038;
+  --backgroundSecondaryElevated: #292b3d;
+  --buttonPrimaryBackgroundActive: #7583ff;
+  --buttonSecondaryBackgroundActive: #7583ff45;
+  --calloutPositiveProminentBackground: #346011;
+  --calloutNegativeProminentBackground: #6a1020;
+  --rtaButtonPositive: #508316;
+  --rtaButtonPositiveHover: #77ba21;
+  --rtaButtonNegative: #bf2e3b;
+  --rtaButtonNegativeHover: #ce5e66;
+  --helpboxBackground: #7583ff33;
+  /* moved from reflect/spending-trends.css (EXF-472) */
+  --st-grid: rgba(255, 255, 255, 0.1);
+  --st-info-text: #ededf5;
+  /* moved from reflect/spending-breakdown.css (EXF-472) */
+  --sb-slice-1: #3987e5;
+  --sb-slice-2: #d95926;
+  --sb-slice-3: #199e70;
+  --sb-slice-4: #c98500;
+  --sb-slice-5: #d55181;
+  --sb-slice-6: #008300;
+  --sb-slice-7: #9085e9;
+  --sb-slice-8: #e66767;
+  --sb-slice-other: #727484;
+  --sb-empty-ring: #f8f6f2;
+  /* moved from reflect/reflect.css (EXF-472) */
+  --labelActionDisabled: #383ca3;
+  --reflect-assets: #383ca3;
+  --reflect-filter-active: #7583ff45;
+  --reflect-fill-secondary: #72748452;
+  /* moved from reflect/income-expense.css (EXF-472) */
+  --ie-row-line: rgba(255, 255, 255, 0.1);
+  /* moved from reflect/age-of-money.css (EXF-472) */
+  --aom-line: #f1f1ff;
+  --aom-ring: rgba(255, 255, 255, 0.149);
+  --aom-selected: #93d53e;
+  --aom-grid: rgba(255, 255, 255, 0.102);
+  --aom-area: rgba(147, 213, 62, 0.3);
+  --aom-callout-bg: rgba(60, 62, 83, 0.6);
+  --aom-heading: #f1f1ff;
+  /* moved from plan/plan-views.css (EXF-472) */
+  --viewChipBackground: #3c3e53;
+  --viewChipBackgroundHover: #56596c;
+  --viewChipSelectedBackground: #292c6c;
+  --viewChipSelectedBackgroundHover: #383ca3;
+  --viewChipSelectedBorder: #7583ff;
+  --autoAssignButtonBackground: rgba(60, 62, 83, 0.6);
+  --autoAssignButtonBackgroundHover: rgba(60, 62, 83, 0.8);
+  --disabledPrimaryLabel: #383ca3;
+  /* moved from account/connection-status-strip.css (EXF-472) */
+  --calloutNegativeSubtleBackground: #4c0814;
+  /* moved from payees/manage-payees.css (EXF-472) */
+  --mp-negative-bg: #6a1020;
+  --mp-destructive-label: #feedeb;
+  --mp-destructive-hover: #912333;
+  --mp-label-heading: #f1f1ff;
+  /* moved from shell/global.css (EXF-472) */
+  --bankLogoFallback: rgb(227, 230, 231);
+  --bankLogoFallbackGlyph: rgb(83, 86, 88);
+  /* EXF-472: colours that were inline literals; dark values unchanged */
+  --labelOnColor: #fff;
+  --labelPositive: #77ba21;
+  --helpIcon: #545bfe;
+  --separatorFaint: rgba(255, 255, 255, 0.1);
+  --countPillBackground: #7583ff33;
+  --countPillLabel: #d4d5ff;
+  --shadowTooltipLarge: 0 10px 20px rgba(0, 0, 0, 0.15);
+  --statusMarkHover: rgba(255, 255, 255, 0.3);
 }
