@@ -67,7 +67,8 @@ export function listForPlanQuery(
     : sql<number>`0`;
   const sc = opts.counts
     ? sql<number>`(select count(*) from scheduled_transactions s join accounts a on a.id = s.account_id and a.deleted_at is null
-        where s.payee_id = payees.id and s.budget_id = ${budgetId} and s.deleted_at is null)`
+        where s.budget_id = ${budgetId} and s.deleted_at is null and (s.payee_id = payees.id
+          or exists (select 1 from scheduled_subtransactions sl where sl.scheduled_transaction_id = s.id and sl.deleted_at is null and sl.payee_id = payees.id)))`
     : sql<number>`0`;
   const hr = opts.counts
     ? sql<number>`exists (select 1 from payee_rename_rules r where r.payee_id = payees.id and r.deleted_at is null)`
@@ -477,14 +478,19 @@ export function scheduledOf(
 ): Promise<PayeeTransactionRow[]> {
   return db.all<PayeeTransactionRow>(sql`
     select s.id, s.account_id, a.name as account_name, p.name as payee_name, s.date_next as date, s.category_id, c.name as category_name,
-      s.inflow_to_ready_to_assign as inflow, 0 as is_split,
+      s.inflow_to_ready_to_assign as inflow,
+      exists (select 1 from scheduled_subtransactions sl where sl.scheduled_transaction_id = s.id and sl.deleted_at is null) as is_split,
       s.memo, s.amount, s.created_at, count(*) over () as total
     from scheduled_transactions s
     join accounts a on a.id = s.account_id and a.deleted_at is null
-    join payees p on p.id = s.payee_id
+    join payees p on p.id = case when s.payee_id in (select value from json_each(${JSON.stringify(payeeIds)})) then s.payee_id
+      else (select sl.payee_id from scheduled_subtransactions sl
+        where sl.scheduled_transaction_id = s.id and sl.deleted_at is null and sl.payee_id in (select value from json_each(${JSON.stringify(payeeIds)})) order by sl.sort limit 1) end
     left join categories c on c.id = s.category_id
     where s.budget_id = ${budgetId} and s.deleted_at is null
-      and s.payee_id in (select value from json_each(${JSON.stringify(payeeIds)}))
+      and (s.payee_id in (select value from json_each(${JSON.stringify(payeeIds)}))
+        or exists (select 1 from scheduled_subtransactions sl where sl.scheduled_transaction_id = s.id and sl.deleted_at is null
+          and sl.payee_id in (select value from json_each(${JSON.stringify(payeeIds)}))))
     order by s.date_next desc, s.created_at desc, s.id
     limit ${limit}`);
 }

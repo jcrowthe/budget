@@ -22,6 +22,8 @@ export const UNDO_TYPES = [
   "target",
   "month_category",
   "scheduled_transaction",
+  // Lines of split schedules that moved on their own (category delete, payee delete/combine): parents first.
+  "scheduled_subtransaction",
   "transaction",
 ] as const;
 export type UndoType = (typeof UNDO_TYPES)[number];
@@ -110,6 +112,7 @@ export const TYPE_MAPS: Record<UndoType, { table: string; keys: Key[] }> = {
       { ...K("updated_at"), guardOnly: true },
     ],
   },
+  scheduled_subtransaction: { table: "scheduled_subtransactions", keys: LINE_KEYS },
   category: {
     table: "categories",
     keys: [K("group_id"), K("name"), K("sort", "sort_order"), K("hidden"), K("note")],
@@ -226,14 +229,15 @@ export function staleFinder(c: Ctx, type: UndoType): SQL {
   const first = sql`select ${type} as t, n.eid as id from ${net(c, type)} where n.kind <> 'noop' ${type === "payee" ? sql`and not ${keptSystemPayee}` : sql``} and not (case n.kind
       when 'delete' then ${row("x.deleted_at is not null", "n.before_json")}
       else ${row("x.deleted_at is null", "n.after_json")} end)`;
-  if (type !== "transaction") return first;
+  if (type !== "transaction" && type !== "scheduled_transaction") return first;
   // The line rule: every line the set left must hold what it wrote, every line it removed must still be gone.
+  const lineTable = type === "transaction" ? "transactions" : "scheduled_subtransactions";
   const lineHolds = holds("x", LINE_KEYS, "l.value");
   const lines = sql`select ${type} as t, n.eid as id from ${net(c, type)}, json_each(n.after_json, '$.subtransactions') l
-      where n.kind = 'update' and not exists (select 1 from transactions x where x.id = json_extract(l.value, '$.id') and x.deleted_at is null and ${lineHolds})`;
+      where n.kind = 'update' and not exists (select 1 from ${raw(lineTable)} x where x.id = json_extract(l.value, '$.id') and x.deleted_at is null and ${lineHolds})`;
   const gone = sql`select ${type} as t, n.eid as id from ${net(c, type)}, json_each(n.before_json, '$.subtransactions') l
       where n.kind = 'update' and json_extract(l.value, '$.id') not in (select json_extract(a.value, '$.id') from json_each(n.after_json, '$.subtransactions') a)
-      and exists (select 1 from transactions x where x.id = json_extract(l.value, '$.id') and x.deleted_at is null)`;
+      and exists (select 1 from ${raw(lineTable)} x where x.id = json_extract(l.value, '$.id') and x.deleted_at is null)`;
   return sql`select t, id from (${first} union all ${lines} union all ${gone}) limit 1`;
 }
 
@@ -314,11 +318,13 @@ export function postChecks(c: Ctx, present: ReadonlySet<UndoType>): BatchItem<"s
     stale(sql`exists (select 1 from ${net(c, "payee")} where n.kind = 'create' and not ${keptSystemPayee} and (
       exists (select 1 from transactions t where t.payee_id = n.eid and t.deleted_at is null)
       or exists (select 1 from scheduled_transactions s where s.payee_id = n.eid and s.deleted_at is null)
+      or exists (select 1 from scheduled_subtransactions l join scheduled_transactions s on s.id = l.scheduled_transaction_id where l.payee_id = n.eid and l.deleted_at is null and s.deleted_at is null)
       or exists (select 1 from payee_rename_rules r where r.payee_id = n.eid and r.deleted_at is null)))`);
   if (present.has("category"))
     stale(sql`exists (select 1 from ${net(c, "category")} where n.kind = 'create' and (
       exists (select 1 from transactions t where t.category_id = n.eid and t.deleted_at is null)
       or exists (select 1 from scheduled_transactions s where s.category_id = n.eid and s.deleted_at is null)
+      or exists (select 1 from scheduled_subtransactions l join scheduled_transactions s on s.id = l.scheduled_transaction_id where l.category_id = n.eid and l.deleted_at is null and s.deleted_at is null)
       or exists (select 1 from targets g where g.category_id = n.eid)
       or exists (select 1 from month_categories m where m.category_id = n.eid and m.assigned <> 0)))`);
   if (present.has("category_group"))
@@ -336,7 +342,14 @@ export function postChecks(c: Ctx, present: ReadonlySet<UndoType>): BatchItem<"s
         not exists (select 1 from accounts a where a.id = t.account_id and a.deleted_at is null)
         or (t.category_id is not null and not ${raw(liveCat("t"))})
         or (t.payee_id is not null and not ${raw(livePayee("t"))})
-        or (t.transfer_account_id is not null and not exists (select 1 from accounts a2 where a2.id = t.transfer_account_id and a2.deleted_at is null))))`);
+        or (t.transfer_account_id is not null and not exists (select 1 from accounts a2 where a2.id = t.transfer_account_id and a2.deleted_at is null))
+        or exists (select 1 from scheduled_subtransactions l where l.scheduled_transaction_id = t.id and l.deleted_at is null
+          and ((l.category_id is not null and not ${raw(liveCat("l"))}) or (l.payee_id is not null and not ${raw(livePayee("l"))})))))`);
+  if (present.has("scheduled_subtransaction"))
+    refused(sql`exists (select 1 from ${net(c, "scheduled_subtransaction")} join scheduled_subtransactions l on l.id = n.eid
+      join scheduled_transactions t on t.id = l.scheduled_transaction_id
+      where n.kind in ('update', 'delete') and l.deleted_at is null and t.deleted_at is null
+        and ((l.category_id is not null and not ${raw(liveCat("l"))}) or (l.payee_id is not null and not ${raw(livePayee("l"))})))`);
   if (present.has("category"))
     refused(sql`exists (select 1 from ${net(c, "category")} join categories k on k.id = n.eid
       where n.kind in ('update', 'delete') and k.deleted_at is null
@@ -460,12 +473,41 @@ export function restoreStmts(c: Ctx, type: UndoType): BatchItem<"sqlite">[] {
       ];
     case "transaction":
       return transactionRestores(c);
+    case "scheduled_transaction":
+      return scheduledRestores(c);
+    case "scheduled_subtransaction":
+      return [
+        run(sql`update ${t} set ${sets(keys, "n.before_json")}, deleted_at = null, updated_at = ${c.now}
+          from ${net(c, type)} where ${t}.id = n.eid and n.kind in ('update', 'delete')`),
+        // the parents' write tokens renew, so an edit in flight gets its 409
+        run(sql`update scheduled_transactions set write_token = lower(hex(randomblob(16)))
+          where id in (select l.scheduled_transaction_id from scheduled_subtransactions l join ${net(c, type)} on l.id = n.eid
+            where n.kind in ('update', 'delete'))`),
+      ];
     default:
       return [
         run(sql`update ${t} set ${sets(keys, "n.before_json")}, deleted_at = null, updated_at = ${c.now}${token}
           from ${net(c, type)} where ${t}.id = n.eid and n.kind in ('update', 'delete')`),
       ];
   }
+}
+
+/** A schedule's restore: the row itself, its lines the set replaced (back, in their positions), the lines the set added (gone). */
+function scheduledRestores(c: Ctx): BatchItem<"sqlite">[] {
+  const type = "scheduled_transaction" as const;
+  const { keys } = TYPE_MAPS[type];
+  const run = (q: SQL) => c.db.run(q);
+  return [
+    run(sql`update scheduled_transactions set ${sets(keys, "n.before_json")}, deleted_at = null, updated_at = ${c.now}${TOKEN}
+      from ${net(c, type)} where scheduled_transactions.id = n.eid and n.kind in ('update', 'delete')`),
+    run(sql`update scheduled_subtransactions set ${sets(LINE_KEYS, "jl.lv")}, deleted_at = null, updated_at = ${c.now}, sort = jl.lk
+      from (select l.key as lk, l.value as lv from ${net(c, type)}, json_each(n.before_json, '$.subtransactions') l
+        where n.kind in ('update', 'delete')) jl
+      where scheduled_subtransactions.id = json_extract(jl.lv, '$.id')`),
+    run(sql`update scheduled_subtransactions set deleted_at = ${c.now}, updated_at = ${c.now}
+      where deleted_at is null and id in (select json_extract(l.value, '$.id') from ${net(c, type)}, json_each(n.after_json, '$.subtransactions') l where n.kind = 'update')
+      and id not in (select json_extract(b.value, '$.id') from ${net(c, type)}, json_each(n.before_json, '$.subtransactions') b where n.kind = 'update')`),
+  ];
 }
 
 function transactionRestores(c: Ctx): BatchItem<"sqlite">[] {
