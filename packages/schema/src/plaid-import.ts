@@ -41,6 +41,8 @@ export interface PlaidTxn {
   merchant_name: string | null;
   original_description: string | null;
   pending: boolean;
+  /** On a posted entry: the pending item it replaces. */
+  pending_transaction_id: string | null;
 }
 
 const LOGIN_REQUIRED_CODES = new Set([
@@ -111,9 +113,10 @@ interface Page {
   removed: { transaction_id: string }[];
 }
 
-/** The net effect of pages read in order: later pages win; pending entries are dropped. */
+/** The net effect of pages read in order: later pages win; pending entries are split out of `upserts`. */
 export function netChanges(pages: Page[]): {
   upserts: { txn: PlaidTxn; kind: "added" | "modified" }[];
+  pending: { txn: PlaidTxn; kind: "added" | "modified" }[];
   removed: string[];
 } {
   const state = new Map<string, { txn: PlaidTxn; kind: "added" | "modified" } | "removed">();
@@ -127,12 +130,65 @@ export function netChanges(pages: Page[]): {
     for (const r of p.removed) state.set(r.transaction_id, "removed");
   }
   const upserts: { txn: PlaidTxn; kind: "added" | "modified" }[] = [];
+  const pending: { txn: PlaidTxn; kind: "added" | "modified" }[] = [];
   const removed: string[] = [];
   for (const [id, v] of state) {
     if (v === "removed") removed.push(id);
-    else if (!v.txn.pending) upserts.push(v);
+    else if (v.txn.pending) pending.push(v);
+    else upserts.push(v);
   }
-  return { upserts, removed };
+  return { upserts, pending, removed };
+}
+
+/** What a pending entry from the bank does to the stored pending items (EXF-466). */
+export type PendingHave = {
+  live: boolean;
+  /** Deleted by Enter Now: never recreated. */
+  entered: boolean;
+  date: string;
+  amount: number;
+  payeeName: string | null;
+};
+
+export function pendingPlan(
+  have: PendingHave | undefined,
+  bank: { date: string; amount: number; payeeName: string | null },
+): "insert" | "follow" | "skip_entered" | "noop" {
+  if (!have) return "insert";
+  if (!have.live) return have.entered ? "skip_entered" : "insert";
+  return have.date === bank.date &&
+    have.amount === bank.amount &&
+    have.payeeName === bank.payeeName
+    ? "noop"
+    : "follow";
+}
+
+/** A posted entry that names a pending item: matches the row entered from it, else imports as usual. */
+export function postedPlan(entered: unknown | undefined): "import" | "match" {
+  return entered ? "match" : "import";
+}
+
+/**
+ * The values an entered row takes when its posted version arrives. The bank's amount wins, except on a reconciled
+ * row, a split and a transfer (they keep theirs); a changed amount keeps the old one for unmatch.
+ */
+export function enteredMatchValues(
+  row: {
+    amount: number;
+    cleared: "uncleared" | "cleared" | "reconciled";
+    hasLines: boolean;
+    transferAccountId: string | null;
+  },
+  bank: { amount: number },
+): { amount: number; cleared: "cleared" | "reconciled"; matchEntryAmount: number | null } {
+  const reconciled = row.cleared === "reconciled";
+  const keep = reconciled || row.hasLines || row.transferAccountId !== null;
+  const amount = keep ? row.amount : bank.amount;
+  return {
+    amount,
+    cleared: reconciled ? "reconciled" : "cleared",
+    matchEntryAmount: amount !== row.amount ? row.amount : null,
+  };
 }
 
 export function minusDays(date: string, n: number): string {
