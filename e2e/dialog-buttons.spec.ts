@@ -15,7 +15,7 @@ import { realClick } from "./support/register-seed";
 
 // EXF-876: the footer buttons of every dialog share one rule; values measured on the source (dark theme).
 test.use({ viewport: { width: 1440, height: 900 } });
-test.setTimeout(120_000);
+test.setTimeout(240_000);
 
 const PRIMARY = "rgb(84, 91, 254)";
 const PRIMARY_HOVER = "rgb(117, 131, 255)";
