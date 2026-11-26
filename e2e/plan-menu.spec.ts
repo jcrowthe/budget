@@ -162,11 +162,13 @@ test.describe("1440×900", () => {
       expect([box?.width, box?.height]).toEqual([16, 16]);
       // Plan Settings is enabled by EXF-468 (menu-actions/plan-settings.tsx), Manage Bank Connections by EXF-460,
       // Export Plan by EXF-476 (menu-actions/export-plan.tsx), Manage Payees by EXF-510 (menu-actions/manage-payees.tsx),
-      // Edit Flags by EXF-480 (menu-actions/edit-flags.tsx), Display Options by EXF-472 (menu-actions/display-options.tsx).
+      // Edit Flags by EXF-480 (menu-actions/edit-flags.tsx), Display Options by EXF-472 (menu-actions/display-options.tsx),
+      // Make a Fresh Start by EXF-478 (menu-actions/fresh-start.tsx).
       const enabled = [
         "New Plan",
         "Open Plan",
         "Export Plan",
+        "Make a Fresh Start",
         "Plan Settings",
         "Manage Payees",
         "Edit Flags",
@@ -178,17 +180,6 @@ test.describe("1440×900", () => {
       if (enabled) await expect(rows.nth(i)).not.toHaveAttribute("aria-disabled", "true");
       else await expect(rows.nth(i)).toHaveAttribute("aria-disabled", "true");
     }
-    const flags = item(page, "Make a Fresh Start");
-    await mouseClick(page, flags, { click: false, allowDisabled: true });
-    expect(await css(flags, "color")).toBe("rgb(155, 156, 170)");
-    expect(await css(flags, "cursor")).toBe("default");
-    expect(await css(flags, "background-color")).toBe("rgba(0, 0, 0, 0)");
-    const url = page.url();
-    await page.mouse.click(
-      ...(await flags.boundingBox().then((x) => [(x?.x ?? 0) + 20, (x?.y ?? 0) + 10] as const)),
-    );
-    await expect(menu(page)).toBeVisible();
-    expect(page.url()).toBe(url);
   });
 
   test("7 EXF-470: recent plans, most recent first, at most five", async ({ page, request }) => {
@@ -329,16 +320,19 @@ test.describe("1440×900", () => {
     // Export Plan is enabled by EXF-476 (departure): the next enabled entry after Display Options.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Export Plan")).toBeFocused();
-    // Manage Bank Connections is enabled by EXF-460: it sits between Export Plan and Keyboard Shortcuts.
+    // Make a Fresh Start is enabled by EXF-478: it follows Export Plan.
+    await page.keyboard.press("ArrowDown");
+    await expect(item(page, "Make a Fresh Start")).toBeFocused();
+    // Manage Bank Connections is enabled by EXF-460: it sits between Make a Fresh Start and Keyboard Shortcuts.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Manage Bank Connections")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Keyboard Shortcuts")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Log Out")).toBeFocused();
-    // Up from Log Out: Keyboard Shortcuts, Manage Bank Connections, Export Plan, Display Options, Edit Flags,
-    // Manage Payees, Plan Settings, Open Plan.
-    for (let i = 0; i < 8; i++) await page.keyboard.press("ArrowUp");
+    // Up from Log Out: Keyboard Shortcuts, Manage Bank Connections, Make a Fresh Start, Export Plan, Display Options,
+    // Edit Flags, Manage Payees, Plan Settings, Open Plan.
+    for (let i = 0; i < 9; i++) await page.keyboard.press("ArrowUp");
     await expect(open).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(sub(page)).toBeVisible();
