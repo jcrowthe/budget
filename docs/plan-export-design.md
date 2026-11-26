@@ -145,6 +145,12 @@ Header after `Cleared`: `"Account Type","Interest Rate","Minimum Payment","Escro
   category is gone is written empty.
 - A loan with no transaction has no row and so is not in the file (as every account without a row).
 - No new D1 call: the accounts are already read.
+- **A loan's recorded history needs no extra column.** Frozen interest and escrow rows (system payees `Loan Interest`
+  / `Loan Escrow`, Reconciled or Edited), edited interest lines, fees and credits are ordinary Register rows;
+  `SYSTEM_PAYEE_NAMES` maps both system payees in both directions, so the import restores them as system payees
+  (never an ordinary payee that the engine would count twice) with their Cleared state. Proven by
+  `plan-loan-history-roundtrip.test.ts`: the imported loan's Account Activity (kind, amount, state), balance and
+  pairing made with `new_category` equal the source's.
 
 ## Payee renaming rules (EXF-885 5a)
 
