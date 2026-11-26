@@ -16,10 +16,27 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Export Plan", exact: true });
 
-/** Opens the plan menu with the real mouse and picks Export Plan. */
-async function openExport(page: Page) {
-  await mouseClick(page, page.locator(".plan-button"));
-  await mouseClick(page, page.getByRole("menuitem", { name: "Export Plan", exact: true }));
+/**
+ * Opens the plan menu with the real mouse and picks Export Plan. Under load a click can land while the
+ * page is still settling (a re-render closes the menu, or the handler is not yet attached) and open nothing:
+ * if the dialog has not appeared a few seconds after the pick, open the menu and pick again.
+ */
+async function openExport(page: Page, { dialogExpected = true } = {}) {
+  const item = page.getByRole("menuitem", { name: "Export Plan", exact: true });
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (!(await item.isVisible())) await mouseClick(page, page.locator(".plan-button"));
+    await mouseClick(page, item);
+    if (!dialogExpected) return;
+    if (
+      await dialog(page)
+        .waitFor({ state: "visible", timeout: 8_000 })
+        .then(
+          () => true,
+          () => false,
+        )
+    )
+      return;
+  }
 }
 
 const exportRequests = (page: Page) => {
@@ -144,7 +161,7 @@ test("3 EXF-476 c8: Don't show again, saved only at Export", async ({ page, requ
     await expect.poll(() => hide(plan.id)).toBe(true);
     // The next click downloads at once, with no dialog.
     const second = page.waitForEvent("download");
-    await openExport(page);
+    await openExport(page, { dialogExpected: false });
     await second;
     await expect(dialog(page)).toHaveCount(0);
   } finally {

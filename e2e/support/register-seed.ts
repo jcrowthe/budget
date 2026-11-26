@@ -1,6 +1,7 @@
 import type { APIRequestContext } from "@playwright/test";
 import { expect } from "../fixtures";
 import { authHeaders, testName } from "./auth";
+import { settle } from "./settled";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const now = new Date();
@@ -157,34 +158,13 @@ export async function realClick(
   page: import("@playwright/test").Page,
   target: import("@playwright/test").Locator,
 ) {
-  await target.scrollIntoViewIfNeeded();
-  // A list that is still loading moves its footer: wait until the box has stopped moving.
-  let box = await target.boundingBox();
-  for (let i = 0; i < 20; i++) {
-    await page.waitForTimeout(100);
-    const next = await target.boundingBox();
-    const still =
-      !!box &&
-      !!next &&
-      box.x === next.x &&
-      box.y === next.y &&
-      box.width === next.width &&
-      box.height === next.height;
-    box = next;
-    if (still) break;
-  }
-  expect(box, "the control has a box").not.toBeNull();
-  const { x, y, width, height } = box as { x: number; y: number; width: number; height: number };
+  // A list that is still loading moves its footer: wait (retrying) until the box is still and topmost.
+  const r = await settle(page, target, { scroll: true, allowAncestor: true });
+  expect(r.box, "the control has a box").not.toBeNull();
+  const { x, y, width, height } = r.box as { x: number; y: number; width: number; height: number };
   const cx = x + width / 2;
   const cy = y + height / 2;
-  const topmost = await target.evaluate(
-    (el, [px, py]) => {
-      const hit = document.elementFromPoint(px as number, py as number);
-      return !!hit && (el === hit || el.contains(hit) || hit.contains(el));
-    },
-    [cx, cy],
-  );
-  expect(topmost, "the control is topmost at its centre").toBe(true);
+  expect(r.topmost, "the control is topmost at its centre").toBe(true);
   await page.mouse.move(cx, cy);
   await page.mouse.click(cx, cy);
 }

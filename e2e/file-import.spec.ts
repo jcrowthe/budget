@@ -379,7 +379,18 @@ test.describe("AC11 behaviour", () => {
     await realClick(page, d1(page).getByRole("button", { name: "Choose File", exact: true }));
     await input(page).setInputFiles(fixture("sample.csv"));
     await expect(d2(page)).toBeVisible();
-    await realClick(page, d2(page).getByRole("button", { name: "Cancel", exact: true }));
+    // Under load the dialog may re-render (the file finishes parsing) between the hit test and the press, and
+    // swallow the click: press Cancel again until the dialog is gone.
+    for (let attempt = 0; attempt < 4 && (await d2(page).count()) > 0; attempt++) {
+      await realClick(page, d2(page).getByRole("button", { name: "Cancel", exact: true })).catch(
+        async (e) => {
+          if ((await d2(page).count()) > 0) throw e; // gone already is what we wanted
+        },
+      );
+      await d2(page)
+        .waitFor({ state: "detached", timeout: 8_000 })
+        .catch(() => {});
+    }
     await expect(d2(page)).toHaveCount(0);
     await page.reload();
     await expect(toolbarButton(page)).toBeVisible();

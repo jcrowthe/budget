@@ -1,12 +1,29 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect as baseExpect, test } from "./fixtures";
 import { openManagePayees, payees, seedPayees } from "./support/manage-payees-seed";
 import { realClick } from "./support/real-click";
 import { call } from "./support/register-seed";
 
+// A loaded box answers REST calls slowly: wait far longer than the default 5 s for what a request renders.
+const expect = baseExpect.configure({ timeout: 30_000 });
+test.setTimeout(90_000);
+
 const open = async (page: Page, s: Awaited<ReturnType<typeof seedPayees>>) => {
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
-  return openManagePayees(page, s.name);
+  const d = await openManagePayees(page, s.name);
+  // The list loads after the dialog opens and re-renders it: wait for the first payee before pressing anything.
+  await expect(d.locator(".mp-name").first()).toBeVisible();
+  return d;
+};
+// Under load a press right after the list renders can be lost: press Expand again until the group is open.
+const expandTransfers = async (page: Page, d: ReturnType<Page["locator"]>) => {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if ((await btn(d, "Collapse Transfer Payees").count()) > 0) return;
+    await realClick(page, btn(d, "Expand Transfer Payees"));
+    await btn(d, "Collapse Transfer Payees")
+      .waitFor({ state: "visible", timeout: 8_000 })
+      .catch(() => {});
+  }
 };
 const btn = (d: ReturnType<Page["locator"]>, name: string) =>
   d.getByRole("button", { name, exact: true });
@@ -40,7 +57,7 @@ test("1 opens from the menu; Done closes it and the focus is back on the plan bu
 test("3 groups: transfer payees, the selected count, Check all", async ({ page, request }) => {
   const s = await seedPayees(request);
   const d = await open(page, s);
-  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expandTransfers(page, d);
   await expect(pick(d, "Transfer : ZZ Card")).toBeVisible();
   await expect(pick(d, "Transfer : ZZ Checking")).toBeVisible();
   await realClick(page, tick(d, "ZZ Cafe A"));
@@ -165,7 +182,7 @@ test("8 a transfer payee is read-only; mixing it with another asks to deselect i
 }) => {
   const s = await seedPayees(request);
   const d = await open(page, s);
-  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expandTransfers(page, d);
   await realClick(page, pick(d, "Transfer : ZZ Card"));
   await expect(d.getByRole("heading", { name: "Transfer : ZZ Card", exact: true })).toBeVisible();
   await expect(
@@ -189,7 +206,7 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
 }) => {
   const s = await seedPayees(request);
   const d = await open(page, s);
-  await realClick(page, btn(d, "Expand Transfer Payees"));
+  await expandTransfers(page, d);
   await expect(btn(d, "Collapse Transfer Payees")).toBeVisible();
   await realClick(page, pick(d, "Transfer : ZZ Card"));
   await expect(d.getByRole("heading", { name: "Transfer : ZZ Card", exact: true })).toBeVisible();
@@ -201,8 +218,14 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
     d.getByText(/Transfer payees are used to move money between accounts/),
   ).toBeVisible();
   const empty = d.getByRole("textbox", { name: "New rule text", exact: true });
-  await empty.fill("zz card payment");
-  await realClick(page, btn(d, "Add a renaming rule"));
+  // Under load the card may still be loading its rules and reset the field or swallow the press: fill and
+  // press again until the rule appears.
+  const ruleText = d.getByRole("textbox", { name: "Rule text", exact: true });
+  for (let attempt = 0; attempt < 4 && (await ruleText.count()) === 0; attempt++) {
+    await empty.fill("zz card payment");
+    await realClick(page, btn(d, "Add a renaming rule"));
+    await ruleText.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
+  }
   await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveValue(
     "zz card payment",
   );

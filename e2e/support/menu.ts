@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { settle } from "./settled";
 
 /**
  * Moves a real mouse to the centre of `target`, asserts that the element under the pointer is `target`
@@ -6,7 +7,9 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * elements into view and so hid EXF-571; this does not.
  */
 export async function mouseClick(page: Page, target: Locator, { click = true } = {}) {
-  const b = await target.boundingBox();
+  // Under load the box may not exist yet, may still be moving, or be covered: retry until it settles.
+  const r = await settle(page, target, { inside: true });
+  const b = r.box;
   expect(b).not.toBeNull();
   const vp = page.viewportSize();
   if (!b || !vp) throw new Error("no box or viewport");
@@ -17,10 +20,6 @@ export async function mouseClick(page: Page, target: Locator, { click = true } =
   const x = b.x + b.width / 2;
   const y = b.y + b.height / 2;
   await page.mouse.move(x, y);
-  const hit = await target.evaluate(
-    (el, [px, py]) => el.contains(document.elementFromPoint(px as number, py as number)),
-    [x, y],
-  );
-  expect(hit).toBe(true);
+  expect(r.topmost).toBe(true);
   if (click) await page.mouse.click(x, y);
 }
