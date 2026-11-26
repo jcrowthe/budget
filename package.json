@@ -7,8 +7,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "check": "biome check . && pnpm -r typecheck && vitest run && pnpm test:clock && pnpm --filter @budget/web build",
-    "test:clock": "WORKER_CLOCK=2026-12-15T12:00:00Z vitest run --project worker && WORKER_CLOCK=2027-01-15T12:00:00Z vitest run --project worker",
+    "check": "biome check . && pnpm -r typecheck && vitest run && pnpm --filter @budget/web build",
     "dev": "node scripts/dev-vars.mjs && bash scripts/db-migrate-local.sh \"$PWD/.wrangler/state\" && pnpm --filter @budget/web exec vite --port 5173 --strictPort",
     "e2e": "playwright test",
     "deploy": "bash scripts/deploy.sh"

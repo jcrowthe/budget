@@ -178,7 +178,11 @@ Web unit tests for pure helpers live next to the code as `apps/web/src/**/*.test
 ## Worker tests and the calendar month (EXF-977)
 
 A test that reads a fixed month (`NOV`, `MONTH = "2026-11-01"`) after a write dated by the real clock passes
-until the month turns, then fails. `pnpm check` therefore runs the worker suite again with the clock moved to
-2026-12-15 and 2027-01-15 (`pnpm test:clock`; `WORKER_CLOCK` is read in `apps/worker/test/setup.ts`). When a test
-fails only there, make it independent of the real month, or, if its fixtures are a fixed month by design and the
-code under test reads the clock, call `pinClock("2026-11-15T12:00:00Z")` (`test/clock.ts`) at the top of the file.
+until the month turns, then fails. `vitest run` (so `pnpm check`) therefore runs the worker suite twice, as two
+projects in one invocation: `worker`, and `worker-clock` (`apps/worker/vitest.clock.config.ts`), where `Date` is
+moved to the 15th of the month after the current one. The date is computed from the real clock on purpose: a fixed
+future date would stop being "ahead" once it arrived, and the guard must always sit in a month the fixtures are
+not in. `WORKER_CLOCK=<ISO date>` overrides it for a manual run, e.g.
+`WORKER_CLOCK=2027-01-15T12:00:00Z vitest run --project worker-clock`. When a test fails only in `worker-clock`,
+make it independent of the real month, or, if its fixtures are a fixed month by design and the code under test
+reads the clock, call `pinClock("2026-11-15T12:00:00Z")` (`test/clock.ts`) at the top of the file.
