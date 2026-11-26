@@ -128,6 +128,7 @@ One line per design doc, appended by each Build (merge=union).
 - [Loan manage design](loan-manage-design.md): edit or delete a recorded loan line; unpair a loan or pair it with a new category
 - [Loan Payoff Simulator design](loan-simulator-design.md): EXF-544 payoff calculator with extra payments and savings; writes only on Copy to plan
 - [Loan Update Balance design](loan-update-balance-design.md): EXF-543 Update Balance wizard that freezes interest and escrow lines and adjusts the balance
+- [Transaction images design](transaction-images-design.md): EXF-536 receipt image column (thumbnail, viewer, download, delete), REST PUT/GET/DELETE `…/image` on R2, `transaction_images` table, `has_image`, MCP `attach_transaction_image`/`delete_transaction_image`
 - [Account edit polish](account-edit-polish.md): EXF-486, EXF-488 Designer polish list for the account Edit dialog, with applied status
 - [Assigned inline polish](assigned-inline-polish.md): EXF-489 polish list (calculator icon geometry and the Assigned cell)
 - [Bank connections polish](bank-connections-polish.md): EXF-459 polish list for the bank search (field spacing, heading, or-divider)
