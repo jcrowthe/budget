@@ -30,6 +30,7 @@ const sched = (o: Partial<ScheduledTransaction> = {}): ScheduledTransaction => (
   flag_color: null,
   transfer_account_id: null,
   transfer_account_name: null,
+  subtransactions: [],
   mirror: false,
   deleted: false,
   created_at: "2026-11-15T00:00:00.000Z",

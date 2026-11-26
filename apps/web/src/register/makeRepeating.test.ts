@@ -1,7 +1,7 @@
 import { DEFAULT_FORMATTER } from "@budget/schema/plan-formats";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { describe, expect, it } from "vitest";
-import { draftForRepeat, makeRepeatingState, REPEAT_SPLIT_TRANSFER } from "./makeRepeating";
+import { draftForRepeat, makeRepeatingState, REPEAT_TRANSFER } from "./makeRepeating";
 
 const fmt = DEFAULT_FORMATTER;
 
@@ -46,14 +46,16 @@ describe("makeRepeatingState", () => {
       );
     }
   });
-  it("is off for a split or a transfer", () => {
+  it("is on for a split and off for a transfer", () => {
     const split = tx({ subtransactions: [{ id: "l" }] as never });
     const transfer = tx({ transfer_account_id: "a2" });
-    for (const t of [split, transfer]) {
-      expect(
-        reason(makeRepeatingState({ real: [t], scheduledCount: 0, accountClosed: open })),
-      ).toBe(REPEAT_SPLIT_TRANSFER);
-    }
+    expect(makeRepeatingState({ real: [split], scheduledCount: 0, accountClosed: open })).toEqual({
+      enabled: true,
+      source: split,
+    });
+    expect(
+      reason(makeRepeatingState({ real: [transfer], scheduledCount: 0, accountClosed: open })),
+    ).toBe(REPEAT_TRANSFER);
   });
   it("is off for a system payee", () => {
     const t = tx({ payee_system: "starting_balance" as never });
@@ -92,6 +94,42 @@ describe("draftForRepeat", () => {
       lines: null,
       transferAccountId: null,
     });
+  });
+  it("copies a split's lines with fresh keys", () => {
+    const lines = [
+      {
+        id: "l1",
+        amount: -3000,
+        payee_id: null,
+        payee_name: null,
+        category_id: "c1",
+        category_name: "A",
+        category_group_name: "G",
+        inflow_to_ready_to_assign: false,
+        memo: null,
+      },
+      {
+        id: "l2",
+        amount: -1500,
+        payee_id: null,
+        payee_name: null,
+        category_id: "c2",
+        category_name: "B",
+        category_group_name: "G",
+        inflow_to_ready_to_assign: false,
+        memo: "ZZ-TEST m",
+      },
+    ];
+    const t = tx({ category_id: null, amount: -4500, subtransactions: lines as never });
+    const d = draftForRepeat(t, fmt);
+    expect(d.lines).toHaveLength(2);
+    expect(d.lines?.[1]).toMatchObject({
+      category: { kind: "category", id: "c2" },
+      memo: "ZZ-TEST m",
+      outflowText: "15.00",
+    });
+    const again = draftForRepeat(t, fmt);
+    expect(again.lines?.[0]?.key).not.toBe(d.lines?.[0]?.key);
   });
   it("carries the category kinds and an inflow", () => {
     expect(

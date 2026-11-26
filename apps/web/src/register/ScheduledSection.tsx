@@ -33,6 +33,8 @@ import { useSelection } from "./selection";
 
 export { scheduledRowKey, seriesIds } from "./scheduledKeys";
 
+const SPLIT_TEXT = "Split (Multiple Categories)...";
+
 const COLLAPSED_KEY = "register.scheduled-collapsed";
 const readCollapsed = () => {
   try {
@@ -103,6 +105,14 @@ export function ScheduledSection({
       // The state is only remembered while storage works.
     }
   }, [collapsed]);
+  // A split series shows its lines under it until its chevron is clicked.
+  const [collapsedSplits, setCollapsedSplits] = useState<ReadonlySet<string>>(new Set());
+  const toggleSplit = (key: string) =>
+    setCollapsedSplits((c) => {
+      const next = new Set(c);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   const navigate = useNavigate();
   const { scheduled, setScheduled, pick, setScheduledRows, openMenuAt } = useSelection();
   useEffect(() => setScheduledRows(rows), [rows, setScheduledRows]);
@@ -150,6 +160,24 @@ export function ScheduledSection({
   const categoryCellOf = (s: ScheduledTransaction) => {
     const rowAccount = byAccount.get(s.account_id);
     const other = s.transfer_account_id ? byAccount.get(s.transfer_account_id) : undefined;
+    if (s.subtransactions.length > 0) {
+      const key = scheduledRowKey(s);
+      const expanded = !collapsedSplits.has(key);
+      return (
+        <span className="split-parent">
+          <button
+            type="button"
+            className="split-chevron"
+            aria-label={expanded ? "Collapse split" : "Expand split"}
+            aria-expanded={expanded}
+            onClick={() => toggleSplit(key)}
+          >
+            {expanded ? <CaretDownIcon /> : <ChevronRightIcon />}
+          </button>
+          {SPLIT_TEXT}
+        </span>
+      );
+    }
     if (!s.transfer_account_id || !rowAccount) {
       return <>{categoryText({ ...s, date: s.date_next, created_at: s.created_at })}</>;
     }
@@ -281,6 +309,54 @@ export function ScheduledSection({
           {showBalance && <td className="num cell-balance" />}
           <td className="cell-cleared" />
         </tr>
+        {!collapsedSplits.has(key) &&
+          s.subtransactions.map((l) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: a line acts on its series like the series row
+            <tr
+              key={l.id}
+              className={`split-line-row scheduled-row${checked ? " is-checked" : ""}`}
+              data-line-of-scheduled={key}
+              onClick={(e) => onRowClick(e, s)}
+              onDoubleClick={(e) => {
+                if (!isControl(e)) openEdit(s, fieldOf(e));
+              }}
+            >
+              <td className="cell-check" />
+              {attentionCol && <td className="cell-attention" />}
+              {showFlags && <td className="cell-flag" />}
+              {plan && <td />}
+              <td />
+              <td data-field="payee" title={l.payee_name ?? undefined}>
+                {l.payee_name}
+              </td>
+              {showCategory && (
+                <td data-field="category">
+                  {l.category_name ? (
+                    l.category_group_name ? (
+                      `${l.category_group_name}: ${l.category_name}`
+                    ) : (
+                      l.category_name
+                    )
+                  ) : l.inflow_to_ready_to_assign ? (
+                    "Inflow: Ready to Assign"
+                  ) : (
+                    <span className="needs-category">This needs a category</span>
+                  )}
+                </td>
+              )}
+              <td data-field="memo" title={l.memo ?? undefined}>
+                {l.memo}
+              </td>
+              <td data-field="outflow" className="num">
+                {l.amount < 0 ? fmt.abs(l.amount) : null}
+              </td>
+              <td data-field="inflow" className="num">
+                {l.amount > 0 ? fmt.abs(l.amount) : null}
+              </td>
+              {showBalance && <td className="num cell-balance" />}
+              <td className="cell-cleared" />
+            </tr>
+          ))}
       </Fragment>
     );
   };
