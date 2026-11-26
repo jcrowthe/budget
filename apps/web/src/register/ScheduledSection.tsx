@@ -1,23 +1,37 @@
 import type { Account } from "@budget/schema/accounts";
 import { repeatTooltip } from "@budget/schema/recurrence";
 import {
+  categoryCell,
   categoryText,
   type PlanSortColumn,
   type SortDir,
   sortTransactions,
 } from "@budget/schema/register";
 import type { ScheduledTransaction } from "@budget/schema/scheduled-transactions";
+import { transferCellText, transferPayeeName } from "@budget/schema/transfers";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Tooltip } from "../account/Tooltip";
 import { useScheduledTransactions } from "../api/scheduledTransactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
+import { accountPath } from "../shell/planPaths";
 import { useAttentionColumn } from "./attention-filter";
 import { Box } from "./Box";
 import { EntryRow } from "./EntryRow";
 import type { Field, Open } from "./entryDraft";
-import { CalendarIcon, CaretDownIcon, ChevronRightIcon, FlagFilledIcon, RepeatIcon } from "./icons";
+import {
+  CalendarIcon,
+  CaretDownIcon,
+  ChevronRightIcon,
+  FlagFilledIcon,
+  RepeatIcon,
+  TransferIcon,
+} from "./icons";
 import { useRegisterView } from "./register-view";
+import { scheduledRowKey } from "./scheduledKeys";
 import { useSelection } from "./selection";
+
+export { scheduledRowKey, seriesIds } from "./scheduledKeys";
 
 const COLLAPSED_KEY = "register.scheduled-collapsed";
 const readCollapsed = () => {
@@ -37,13 +51,14 @@ export function useScheduledRows(
   const q = useScheduledTransactions(budgetId, accountId);
   const rows = useMemo(() => {
     if (!q.data) return [];
-    const byId = new Map(q.data.map((s) => [s.id, s]));
+    // A mirror shares its series' id, so rows are told apart by their key.
+    const byKey = new Map(q.data.map((s) => [scheduledRowKey(s), s]));
     // Rows follow the register's sort, with the next date standing for the date.
     return sortTransactions(
-      q.data.map((s) => ({ ...s, date: s.date_next })),
+      q.data.map((s) => ({ ...s, id: scheduledRowKey(s), date: s.date_next })),
       sort.column,
       sort.dir,
-    ).map((r) => byId.get(r.id) as ScheduledTransaction);
+    ).map((r) => byKey.get(r.id) as ScheduledTransaction);
   }, [q.data, sort]);
   return rows;
 }
@@ -88,12 +103,14 @@ export function ScheduledSection({
       // The state is only remembered while storage works.
     }
   }, [collapsed]);
+  const navigate = useNavigate();
   const { scheduled, setScheduled, pick, setScheduledRows, openMenuAt } = useSelection();
   useEffect(() => setScheduledRows(rows), [rows, setScheduledRows]);
-  // Ids that left the list (entered, deleted, another plan) drop out of the selection.
+  // Keys that left the list (entered, deleted, another plan) drop out of the selection.
   useEffect(() => {
-    if ([...scheduled].some((id) => !rows.some((r) => r.id === id))) {
-      setScheduled([...scheduled].filter((id) => rows.some((r) => r.id === id)));
+    const live = new Set(rows.map(scheduledRowKey));
+    if ([...scheduled].some((k) => !live.has(k))) {
+      setScheduled([...scheduled].filter((k) => live.has(k)));
     }
   }, [rows, scheduled, setScheduled]);
 
@@ -104,36 +121,96 @@ export function ScheduledSection({
     "date";
   const isControl = (e: React.MouseEvent) =>
     !!(e.target as HTMLElement).closest("button,input,[role=checkbox]");
-  const editAt = open?.mode === "editScheduled" ? rows.findIndex((r) => r.id === open.id) : -1;
+  const editAt =
+    open?.mode === "editScheduled" ? rows.findIndex((r) => !r.mirror && r.id === open.id) : -1;
   const editRow = editAt >= 0 ? rows[editAt] : undefined;
 
   const openEdit = (s: ScheduledTransaction, field: Field) => {
+    // The derived mirror is read-only: its series is edited in the account that holds it.
+    if (s.mirror) return;
     pick("scheduled", s.id, "only");
     onOpen({ mode: "editScheduled", id: s.id, focus: field });
   };
   const onRowClick = (e: React.MouseEvent, s: ScheduledTransaction) => {
     if (isControl(e)) return;
+    const key = scheduledRowKey(s);
     if (e.shiftKey) {
-      pick("scheduled", s.id, "rangeOnly");
+      pick("scheduled", key, "rangeOnly");
       if (open) onCloseEntry();
       return;
     }
-    if (scheduled.has(s.id) && scheduled.size === 1) openEdit(s, fieldOf(e));
+    if (!s.mirror && scheduled.has(key) && scheduled.size === 1) openEdit(s, fieldOf(e));
     else {
-      pick("scheduled", s.id, "only");
+      pick("scheduled", key, "only");
       if (open) onCloseEntry();
     }
   };
 
+  const byAccount = new Map(accounts.map((a) => [a.id, a]));
+  const categoryCellOf = (s: ScheduledTransaction) => {
+    const rowAccount = byAccount.get(s.account_id);
+    const other = s.transfer_account_id ? byAccount.get(s.transfer_account_id) : undefined;
+    if (!s.transfer_account_id || !rowAccount) {
+      return <>{categoryText({ ...s, date: s.date_next, created_at: s.created_at })}</>;
+    }
+    const cell = categoryCell(
+      { ...s, date: s.date_next, subtransactions: [], payee_system: null },
+      rowAccount,
+      other ?? null,
+    );
+    if (cell.kind === "text") return <>{cell.text}</>;
+    if (cell.kind === "notNeeded")
+      return <span className="category-not-needed">Category not needed</span>;
+    if (cell.kind === "needsCategory" && !s.mirror) {
+      return (
+        <button type="button" className="needs-category" onClick={() => openEdit(s, "category")}>
+          This needs a category
+        </button>
+      );
+    }
+    return null;
+  };
+  const payeeCellOf = (s: ScheduledTransaction) => {
+    if (!s.transfer_account_id || !s.transfer_account_name) return s.payee_name;
+    const jump = s.mirror
+      ? `Scheduled in ${s.transfer_account_name}: edit it there`
+      : "Click to jump to the other side of this transfer";
+    return (
+      <span className="transfer-payee">
+        <span className="transfer-name">{transferCellText(s.transfer_account_name)}</span>
+        <button
+          type="button"
+          className="transfer-link"
+          title={jump}
+          aria-label={jump}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(accountPath(budgetId, s.transfer_account_id as string), {
+              state: s.mirror ? { selectScheduled: s.id } : undefined,
+            });
+          }}
+        >
+          <TransferIcon />
+        </button>
+      </span>
+    );
+  };
+
   const dataRow = (s: ScheduledTransaction) => {
-    const checked = scheduled.has(s.id);
+    const key = scheduledRowKey(s);
+    const checked = scheduled.has(key);
     const tip = repeatTooltip(s.frequency);
     return (
-      <Fragment key={s.id}>
+      <Fragment key={key}>
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: rows select from their own keyboard-reachable checkbox */}
         <tr
-          data-scheduled={s.id}
-          className={`scheduled-row${checked ? " is-checked" : ""}`}
+          data-scheduled={key}
+          className={`scheduled-row${s.mirror ? " is-mirror" : ""}${checked ? " is-checked" : ""}`}
+          title={
+            s.mirror && s.transfer_account_name
+              ? `Scheduled in ${s.transfer_account_name}: edit it there`
+              : undefined
+          }
           onClick={(e) => onRowClick(e, s)}
           onMouseDown={(e) => {
             if (e.shiftKey) e.preventDefault();
@@ -141,8 +218,8 @@ export function ScheduledSection({
           onContextMenu={(e) => {
             if (isControl(e)) return;
             e.preventDefault();
-            if (!scheduled.has(s.id)) {
-              pick("scheduled", s.id, "only");
+            if (!scheduled.has(key)) {
+              pick("scheduled", key, "only");
               if (open) onCloseEntry();
             }
             openMenuAt(e.clientX, e.clientY);
@@ -155,7 +232,7 @@ export function ScheduledSection({
             <Box
               state={checked}
               label="Select transaction"
-              onClick={(e) => pick("scheduled", s.id, e.shiftKey ? "rangeAdd" : "toggle")}
+              onClick={(e) => pick("scheduled", key, e.shiftKey ? "rangeAdd" : "toggle")}
             />
           </td>
           {attentionCol && <td className="cell-attention" />}
@@ -181,14 +258,17 @@ export function ScheduledSection({
               </Tooltip>
             ) : null}
           </td>
-          <td data-field="payee" title={s.payee_name ?? undefined}>
-            {s.payee_name}
+          <td
+            data-field="payee"
+            title={
+              s.transfer_account_name
+                ? transferPayeeName(s.transfer_account_name)
+                : (s.payee_name ?? undefined)
+            }
+          >
+            {payeeCellOf(s)}
           </td>
-          {showCategory && (
-            <td data-field="category">
-              {categoryText({ ...s, date: s.date_next, created_at: s.created_at })}
-            </td>
-          )}
+          {showCategory && <td data-field="category">{categoryCellOf(s)}</td>}
           <td data-field="memo" title={s.memo ?? undefined}>
             {s.memo}
           </td>

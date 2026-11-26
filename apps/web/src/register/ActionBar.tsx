@@ -46,6 +46,7 @@ import { MoreMenu, PointAnchor } from "./MoreMenu";
 import { makeRepeatingState } from "./makeRepeating";
 import { useOpenAccounts } from "./openAccounts";
 import { ScheduledBar } from "./ScheduledBar";
+import { scheduledRowKey, seriesIds } from "./scheduledKeys";
 import { useSelection } from "./selection";
 import { useRegisterKeys } from "./useRegisterKeys";
 
@@ -295,7 +296,7 @@ export function ActionBar({
   };
 
   // Scheduled rows: Enter Now and Delete in one request each; nothing is confirmed.
-  const schedIds = scheduledRows.filter((r) => scheduled.has(r.id)).map((r) => r.id);
+  const schedIds = seriesIds(scheduled, scheduledRows);
   const doScheduled = (op: "enter_now" | "delete") => {
     if (schedIds.length === 0) return;
     void guard(async () => {
@@ -326,7 +327,7 @@ export function ActionBar({
       ? {
           hasSelection: true,
           entryOpen,
-          selectAll: () => setScheduled(scheduledRows.map((r) => r.id)),
+          selectAll: () => setScheduled(scheduledRows.map(scheduledRowKey)),
           clearSelection: () => {
             setError(null);
             clear();

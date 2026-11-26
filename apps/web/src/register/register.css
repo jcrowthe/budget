@@ -819,6 +819,10 @@
 .register-table tbody tr.scheduled-row td {
   color: var(--register-scheduled-label);
 }
+/* The derived mirror of a transfer scheduled in another account: read-only, its series is edited there. */
+.register-table tbody tr.scheduled-row.is-mirror {
+  cursor: default;
+}
 .scheduled-date {
   white-space: nowrap;
 }

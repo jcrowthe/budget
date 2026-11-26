@@ -155,7 +155,7 @@ export function RegisterTable({
   const { openAccounts } = useOpenAccounts(budgetId);
   const navigate = useNavigate();
   const location = useLocation();
-  const { selected, set: setSelected, pick, setRows, openMenuAt } = useSelection();
+  const { selected, set: setSelected, setScheduled, pick, setRows, openMenuAt } = useSelection();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const showCategory = plan || account.on_budget;
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
@@ -259,6 +259,23 @@ export function RegisterTable({
     setSelected(present);
     document.querySelector(`tr[data-tx="${present[0]}"]`)?.scrollIntoView({ block: "center" });
   }, [wanted.join(","), location.key, present.length]);
+
+  // The jump button of a mirror row (EXF-501) opens the series' account with that schedule ticked and in view:
+  // `state.selectScheduled` is the series id. Each navigation applies once, when the scheduled rows are there.
+  const wantedScheduled = (location.state as { selectScheduled?: string } | null)?.selectScheduled;
+  const scheduledPresent =
+    wantedScheduled !== undefined &&
+    scheduledRows.some((r) => !r.mirror && r.id === wantedScheduled);
+  const appliedScheduled = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per visit, when the rows are there
+  useEffect(() => {
+    if (!scheduledPresent || appliedScheduled.current === location.key) return;
+    appliedScheduled.current = location.key;
+    setScheduled([wantedScheduled as string]);
+    document
+      .querySelector(`tr[data-scheduled="${wantedScheduled}"]`)
+      ?.scrollIntoView({ block: "center" });
+  }, [wantedScheduled, location.key, scheduledPresent]);
 
   // S turns the selected saved row into a split (or opens a split).
   const splittable = (tx: Row) =>

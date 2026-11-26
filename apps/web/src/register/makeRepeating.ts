@@ -6,8 +6,10 @@ import { type Draft, draftFromTx } from "./entryDraft";
 
 type Row = TransactionDetail;
 
-/** Shown by the add row when a split or a transfer is saved as scheduled, and by Make Repeating's menu item. */
+/** Shown by Make Repeating's menu item for a split or a transfer. */
 export const REPEAT_SPLIT_TRANSFER = "Scheduled splits and transfers are not available yet.";
+/** Shown when a split is saved as scheduled (a transfer can be scheduled since EXF-501 part 1). */
+export const SCHEDULED_SPLIT_NOT_YET = "Scheduled splits are not available yet";
 export const REPEAT_ON_SCHEDULED =
   "Make Repeating works on a recorded transaction, not on a scheduled one";
 export const REPEAT_SELECT_ONE = "Select one transaction to make it repeating";

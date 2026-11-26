@@ -14,6 +14,7 @@ import type {
   TransactionDetail,
   TransactionUpdateRequest,
 } from "@budget/schema/transactions";
+import { transferPayeeName } from "@budget/schema/transfers";
 
 /** The payee's suggested category (`off` → nothing; see docs/payee-category-design.md): its effective default. */
 export function rememberedCategory(
@@ -149,12 +150,14 @@ export function draftFromTx(tx: TransactionDetail, fmt: PlanFormatter): Draft {
 /** A scheduled row opened for editing: its next date and its frequency. */
 export function draftFromScheduled(s: ScheduledTransaction, fmt: PlanFormatter): Draft {
   return {
-    transferAccountId: null,
+    transferAccountId: s.transfer_account_id,
     lines: null,
     accountId: s.account_id,
     dateText: formatEntryDate(s.date_next, fmt),
     lastDate: s.date_next,
-    payee: { id: s.payee_id, name: s.payee_name ?? "" },
+    payee: s.transfer_account_id
+      ? { id: null, name: transferPayeeName(s.transfer_account_name ?? "") }
+      : { id: s.payee_id, name: s.payee_name ?? "" },
     category: s.category_id
       ? { kind: "category", id: s.category_id }
       : s.inflow_to_ready_to_assign
@@ -312,7 +315,12 @@ export function draftToScheduledCreate(
     frequency: d.frequency,
     amount: draftAmount(d, fmt),
     ...(memo ? { memo } : {}),
-    ...("payee_id" in payee && payee.payee_id === null ? {} : payee),
+    // A transfer has no payee: its payee is the other account.
+    ...(d.transferAccountId
+      ? { transfer_account_id: d.transferAccountId }
+      : "payee_id" in payee && payee.payee_id === null
+        ? {}
+        : payee),
     ...(d.category.kind === "none" ? {} : categoryFields(d.category)),
   };
 }
@@ -330,10 +338,15 @@ export function draftToScheduledPatch(
   if (date !== before.date_next || d.frequency !== before.frequency) patch.date_first = date;
   if (d.frequency !== before.frequency) patch.frequency = d.frequency;
   if (d.accountId && d.accountId !== before.account_id) patch.account_id = d.accountId;
+  const transferChanged = d.transferAccountId !== before.transfer_account_id;
+  // A series that stays a transfer sends no payee; one made plain again sends the payee typed over it.
   const payeeChanged = d.payee.id
     ? d.payee.id !== before.payee_id
     : d.payee.name.trim() !== (before.payee_name ?? "");
-  if (payeeChanged) Object.assign(patch, payeeFields(d.payee));
+  if (transferChanged) patch.transfer_account_id = d.transferAccountId;
+  if (!d.transferAccountId && (payeeChanged || transferChanged)) {
+    Object.assign(patch, payeeFields(d.payee));
+  }
   if (JSON.stringify(d.category) !== JSON.stringify(was.category)) {
     Object.assign(patch, categoryFields(d.category));
   }
