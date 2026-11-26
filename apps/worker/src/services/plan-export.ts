@@ -181,7 +181,19 @@ export async function exportPlan(
       cleared: "uncleared",
       memo: s.memo,
       category: category(s.accountOnBudget, !other || (s.accountOnBudget && !other.onBudget)),
-      lines: [],
+      // A split schedule is written like a split: consecutive `Split (k/n)` rows, dated by its next date.
+      lines: s.lines.map((l) => ({
+        payee: l.payeeName,
+        memo: l.memo,
+        amount: l.amount,
+        category: categoryCell({
+          onBudget: s.accountOnBudget,
+          categoryId: l.categoryId,
+          inflowToRta: l.inflowToReadyToAssign,
+          known: l.categoryId ? known.get(l.categoryId) : undefined,
+          joined: { group: l.groupName, name: l.categoryName },
+        }),
+      })),
       scheduled: true,
       createdAt: s.createdAt,
       id: s.id,

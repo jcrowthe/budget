@@ -10,6 +10,7 @@ import { monthCategories } from "../db/schema/month-categories";
 import { payeeRenameRules } from "../db/schema/payee-rename-rules";
 import { payees } from "../db/schema/payees";
 import { planImports } from "../db/schema/plan-imports";
+import { scheduledSubtransactions } from "../db/schema/scheduled-subtransactions";
 import { scheduledTransactions } from "../db/schema/scheduled-transactions";
 import { transactions } from "../db/schema/transactions";
 import { type ChangeLogEntry, changeLogInsertIf } from "../history/change-log";
@@ -33,7 +34,8 @@ export type ImportTable =
   | "payee_rename_rules"
   | "month_categories"
   | "transactions"
-  | "scheduled_transactions";
+  | "scheduled_transactions"
+  | "scheduled_subtransactions";
 
 /** A JSON index, "b" (the plan's id) or a SQL literal. */
 type Val = number | "b" | { lit: string };
@@ -233,6 +235,34 @@ const SPEC: Record<ImportTable, Spec> = {
       transferAccountId: 13,
     },
   ),
+  scheduled_subtransactions: spec(
+    scheduledSubtransactions,
+    [
+      "id",
+      "scheduled_transaction_id",
+      "amount",
+      "payee_id",
+      "category_id",
+      "inflow_to_ready_to_assign",
+      "memo",
+      "sort",
+      "created_at",
+      "updated_at",
+    ],
+    {
+      id: 0,
+      budgetId: "b",
+      scheduledTransactionId: 1,
+      amount: 2,
+      payeeId: 3,
+      categoryId: 4,
+      inflowToReadyToAssign: 5,
+      memo: 6,
+      sort: 7,
+      createdAt: 8,
+      updatedAt: 9,
+    },
+  ),
 };
 
 /** The SQL names of the columns the import writes into a table. */
@@ -342,6 +372,7 @@ export function cleanupStmts(
   const del = (t: ImportTable): BatchItem =>
     db.delete(SPEC[t].table as typeof accounts).where(sql`budget_id = ${p.budgetId} and ${guard}`);
   return [
+    del("scheduled_subtransactions"),
     del("scheduled_transactions"),
     del("transactions"),
     del("month_categories"),

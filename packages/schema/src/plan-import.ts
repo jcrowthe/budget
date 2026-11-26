@@ -294,6 +294,14 @@ export interface ImportPlan {
     order: number;
     /** The other account when the schedule is a transfer (EXF-501); null for a plain schedule. */
     transferAccount: number | null;
+    /** The lines of a split schedule (EXF-501 part 2); empty for a plain schedule and a transfer. */
+    lines: {
+      payee: number | null;
+      category: number | null;
+      inflowToRta: boolean;
+      memo: string | null;
+      amount: number;
+    }[];
   }[];
   planRows: { month: string; category: number; activity: number; available: number }[];
   warnings: ImportWarning[];
@@ -1006,16 +1014,45 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
   for (const e of entries) {
     const r = rows[e.first] as RegRow;
     const acct = r.account;
+    if (e.split && onBudget[acct] && r.date > exportDate) {
+      // A split dated after the export date is one split schedule (EXF-501 part 2): its first line's payee is the
+      // parent's, a line with that payee has none of its own, as for a real split.
+      const lineRows = e.rows.map((ri) => rows[ri] as RegRow);
+      const firstPayee = lineRows[0]?.payee ?? "";
+      schedules.push({
+        account: acct,
+        date: r.date,
+        payee: payeeOf(firstPayee),
+        category: null,
+        inflowToRta: false,
+        memo: null,
+        amount: lineRows.reduce((s, x) => s + x.amount, 0) + 0,
+        flag: r.flag,
+        order: e.first,
+        transferAccount: null,
+        lines: lineRows.map((x) => {
+          const c = rowCategory(x, acct);
+          if (isTransferPayee(x.payee) && x.payee !== firstPayee) {
+            warn(
+              "split_transfer_line",
+              x.payee,
+              `A split line with the payee "${x.payee}" stays a payee: no transfer is made`,
+            );
+          }
+          return {
+            payee: x.payee === firstPayee ? null : payeeOf(x.payee),
+            category: c.category,
+            inflowToRta: c.rta,
+            memo: x.memo.slice((SPLIT_PREFIX.exec(x.memo) as RegExpExecArray)[0].length) || null,
+            amount: x.amount,
+          };
+        }),
+      });
+      continue;
+    }
     if (e.split && onBudget[acct]) {
       splits++;
       splitLines += e.rows.length;
-      if (r.date > exportDate) {
-        warn(
-          "scheduled_not_supported",
-          "split",
-          "A split or a transfer dated after the export date is imported as a transaction, not as a schedule",
-        );
-      }
       const parentIx = out.length;
       const lineRows = e.rows.map((ri) => rows[ri] as RegRow);
       const firstPayee = lineRows[0]?.payee ?? "";
@@ -1103,6 +1140,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
           flag: x.flag,
           order: ri,
           transferAccount: other,
+          lines: [],
         });
         continue;
       }
@@ -1119,6 +1157,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
           flag: x.flag,
           order: ri,
           transferAccount: null,
+          lines: [],
         });
         if (isTransferPayee(x.payee)) {
           warn(
@@ -1230,7 +1269,7 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
         account: r.account,
         date: r.date,
         amount: total,
-        scheduled: !e.split && r.date > exportDate,
+        scheduled: r.date > exportDate && (!e.split || onBudget[r.account] === true),
       });
     }
   }

@@ -13,11 +13,9 @@ const cat = (m: Json, id: string): Json =>
 
 async function world() {
   const s = await seedPlan(["ZZ-TEST Fun", "ZZ-TEST Food", "ZZ-TEST Other"]);
-  const [fun, food, other] = [
-    s.ids["ZZ-TEST Fun"],
-    s.ids["ZZ-TEST Food"],
-    s.ids["ZZ-TEST Other"],
-  ] as string[];
+  const fun = s.ids["ZZ-TEST Fun"] as string;
+  const food = s.ids["ZZ-TEST Food"] as string;
+  const other = s.ids["ZZ-TEST Other"] as string;
   const checking = (await openAccount(s.bid, "checking", 0, "ZZ-TEST Checking")).id as string;
   return { ...s, fun, food, other, checking };
 }
