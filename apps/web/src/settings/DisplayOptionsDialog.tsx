@@ -169,7 +169,7 @@ export function DisplayOptionsDialog({
     <div className="dialog-backdrop">
       <div
         ref={ref}
-        className="dialog display-options"
+        className="dialog form display-options"
         role="dialog"
         aria-modal="true"
         aria-label="Display Options"
@@ -186,7 +186,7 @@ export function DisplayOptionsDialog({
             <CloseIcon />
           </button>
         </div>
-        <div className="do-body">
+        <div className="form-body do-body">
           <Section
             title="Theme"
             name="do-theme"
