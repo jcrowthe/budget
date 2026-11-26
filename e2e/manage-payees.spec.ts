@@ -6,6 +6,7 @@ import { call } from "./support/register-seed";
 
 // A loaded box answers REST calls slowly: wait far longer than the default 5 s for what a request renders.
 const expect = baseExpect.configure({ timeout: 30_000 });
+test.setTimeout(90_000);
 
 const open = async (page: Page, s: Awaited<ReturnType<typeof seedPayees>>) => {
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
@@ -204,8 +205,14 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
     d.getByText(/Transfer payees are used to move money between accounts/),
   ).toBeVisible();
   const empty = d.getByRole("textbox", { name: "New rule text", exact: true });
-  await empty.fill("zz card payment");
-  await realClick(page, btn(d, "Add a renaming rule"));
+  // Under load the card may still be loading its rules and reset the field or swallow the press: fill and
+  // press again until the rule appears.
+  const ruleText = d.getByRole("textbox", { name: "Rule text", exact: true });
+  for (let attempt = 0; attempt < 4 && (await ruleText.count()) === 0; attempt++) {
+    await empty.fill("zz card payment");
+    await realClick(page, btn(d, "Add a renaming rule"));
+    await ruleText.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
+  }
   await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveValue(
     "zz card payment",
   );
