@@ -639,7 +639,7 @@
   padding: 8px 24px 16px;
   border-radius: var(--radius-xs);
   background: var(--backgroundTertiary);
-  box-shadow: 0 10px 20px var(--shadowTooltipLarge); /* source tooltip */
+  box-shadow: var(--shadowTooltipLarge); /* source tooltip */
   color: var(--labelPrimary);
   pointer-events: none;
   white-space: nowrap;

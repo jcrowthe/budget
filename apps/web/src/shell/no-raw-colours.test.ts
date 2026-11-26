@@ -51,3 +51,25 @@ describe("no raw colours outside the token files", () => {
     expect(bad).toEqual([]);
   });
 });
+
+// A token that holds lengths and a colour (a whole shadow) is used alone: `0 2px 5px var(--tooltipShadow)` computes to `none`.
+describe("tokens that hold lengths", () => {
+  it("are never written after a length", () => {
+    const tokenCss = readFileSync(join(SRC, "shell", "tokens.css"), "utf8");
+    const withLengths = new Set(
+      [...tokenCss.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)]
+        .filter((m) => /\d(px|rem|em)\b/.test(m[2] ?? "") && RAW.test(m[2] ?? ""))
+        .map((m) => m[1] as string),
+    );
+    expect(withLengths.size).toBeGreaterThan(0);
+    const bad: string[] = [];
+    for (const f of cssFiles(SRC)) {
+      for (const [n, line] of codeLines(readFileSync(f, "utf8"))) {
+        for (const m of line.matchAll(/\d[\w.]*\s+var\((--[\w-]+)\)/g)) {
+          if (withLengths.has(m[1] as string)) bad.push(`${relative(SRC, f)}:${n}: ${line.trim()}`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
