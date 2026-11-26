@@ -723,9 +723,14 @@
   color: var(--actionPrimary);
   font: inherit;
   font-weight: 600;
-}
-.edit-flags {
   cursor: pointer;
+}
+.edit-flags:hover {
+  text-decoration: underline;
+}
+.edit-flags:focus-visible {
+  outline: auto 2px var(--actionPrimary);
+  outline-offset: 2px;
 }
 
 /* Dialogs of the bar. */
