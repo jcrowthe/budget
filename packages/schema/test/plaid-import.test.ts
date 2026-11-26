@@ -3,6 +3,7 @@ import {
   bankDescriptionOf,
   categoryFor,
   daysApart,
+  enteredMatchValues,
   isDue,
   isRecoveryDuplicate,
   linkSet,
@@ -12,7 +13,9 @@ import {
   netChanges,
   type PlaidTxn,
   payeeNameOf,
+  pendingPlan,
   pickMatch,
+  postedPlan,
   removedPlan,
   skipReason,
   syncStatusForError,
@@ -27,6 +30,7 @@ const txn = (id: string, over: Partial<PlaidTxn> = {}): PlaidTxn => ({
   merchant_name: null,
   original_description: null,
   pending: false,
+  pending_transaction_id: null,
   ...over,
 });
 const acct = {
@@ -65,7 +69,7 @@ describe("syncStatusForError", () => {
 });
 
 describe("netChanges", () => {
-  it("later pages win, removed drops an earlier add, pending is dropped", () => {
+  it("later pages win, removed drops an earlier add, pending is split out of upserts", () => {
     const r = netChanges([
       { added: [txn("a"), txn("b"), txn("p", { pending: true })], modified: [], removed: [] },
       {
@@ -79,6 +83,74 @@ describe("netChanges", () => {
       ["m", "modified", 1],
     ]);
     expect(r.removed.sort()).toEqual(["b", "gone"]);
+    expect(r.pending.map((u) => [u.txn.transaction_id, u.kind])).toEqual([["p", "added"]]);
+  });
+
+  it("pending: later pages win and removed drops them", () => {
+    const r = netChanges([
+      {
+        added: [txn("p1", { pending: true }), txn("p2", { pending: true })],
+        modified: [],
+        removed: [],
+      },
+      {
+        added: [],
+        modified: [txn("p1", { pending: true, amount: 9 })],
+        removed: [{ transaction_id: "p2" }],
+      },
+    ]);
+    expect(r.upserts).toEqual([]);
+    expect(r.pending.map((u) => [u.txn.transaction_id, u.kind, u.txn.amount])).toEqual([
+      ["p1", "added", 9],
+    ]);
+    expect(r.removed).toEqual(["p2"]);
+  });
+});
+
+describe("pendingPlan", () => {
+  const bank = { date: "2026-03-01", amount: -5000, payeeName: "ZZ Shop" };
+  const live = { live: true, entered: false, ...bank };
+  it("covers each branch", () => {
+    expect(pendingPlan(undefined, bank)).toBe("insert");
+    expect(pendingPlan(live, bank)).toBe("noop");
+    expect(pendingPlan(live, { ...bank, amount: -6000 })).toBe("follow");
+    expect(pendingPlan(live, { ...bank, date: "2026-03-02" })).toBe("follow");
+    expect(pendingPlan(live, { ...bank, payeeName: "ZZ Other" })).toBe("follow");
+    expect(pendingPlan({ ...live, live: false, entered: true }, bank)).toBe("skip_entered");
+  });
+});
+
+describe("postedPlan", () => {
+  it("matches an entered row, else imports", () => {
+    expect(postedPlan(undefined)).toBe("import");
+    expect(postedPlan({ id: "e" })).toBe("match");
+  });
+});
+
+describe("enteredMatchValues", () => {
+  const row = { amount: -5000, cleared: "uncleared" as const, hasLines: false, transferAccountId: null };
+  it("plain: the bank's amount wins, and the old one is kept for unmatch", () => {
+    expect(enteredMatchValues(row, { amount: -6000 })).toEqual({
+      amount: -6000,
+      cleared: "cleared",
+      matchEntryAmount: -5000,
+    });
+  });
+  it("plain, same amount: no entry amount", () => {
+    expect(enteredMatchValues(row, { amount: -5000 }).matchEntryAmount).toBeNull();
+  });
+  it("reconciled keeps its amount and stays reconciled", () => {
+    expect(enteredMatchValues({ ...row, cleared: "reconciled" }, { amount: -6000 })).toEqual({
+      amount: -5000,
+      cleared: "reconciled",
+      matchEntryAmount: null,
+    });
+  });
+  it("a split or a transfer keeps its amount", () => {
+    expect(enteredMatchValues({ ...row, hasLines: true }, { amount: -6000 }).amount).toBe(-5000);
+    expect(enteredMatchValues({ ...row, transferAccountId: "a2" }, { amount: -6000 }).amount).toBe(
+      -5000,
+    );
   });
 });
 
