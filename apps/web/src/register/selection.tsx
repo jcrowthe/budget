@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { usePlanFormatter } from "../shell/plan-formats-context";
+import { scheduledRowKey } from "./scheduledKeys";
 
 type Row = TransactionDetail & { account_name?: string };
 
@@ -118,7 +119,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     (list: List): string[] =>
       list === "real"
         ? rowsRef.current.map((r) => r.id)
-        : scheduledRowsRef.current.map((r) => r.id),
+        : scheduledRowsRef.current.map(scheduledRowKey),
     [],
   );
   const apply = useCallback(

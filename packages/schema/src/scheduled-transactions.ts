@@ -43,6 +43,16 @@ export const ScheduledTransaction = z
     inflow_to_ready_to_assign: z.boolean(),
     memo: z.string().nullable(),
     flag_color: FlagColor.nullable(),
+    transfer_account_id: z
+      .string()
+      .nullable()
+      .describe("The other account when the schedule is a transfer; null for a plain schedule"),
+    transfer_account_name: z.string().nullable(),
+    mirror: z
+      .boolean()
+      .describe(
+        "True for the derived row an account lists for a transfer scheduled in another account: its id is the series id",
+      ),
     deleted: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),
@@ -63,6 +73,14 @@ const fields = {
   inflow_to_ready_to_assign: z.boolean().optional(),
   memo: z.string().max(500).nullable().optional(),
   flag_color: FlagColor.nullable().optional(),
+  transfer_account_id: z
+    .string()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe(
+      "Another account of the plan: the schedule is a transfer to it; its other side is derived, not stored.",
+    ),
 };
 
 export const ScheduledTransactionCreate = z
@@ -83,6 +101,7 @@ const updateFields = z
     inflow_to_ready_to_assign: fields.inflow_to_ready_to_assign,
     memo: fields.memo,
     flag_color: fields.flag_color,
+    transfer_account_id: fields.transfer_account_id,
   })
   .strict();
 /** The PATCH fields without the "at least one" rule, for the MCP tool's input shape. */

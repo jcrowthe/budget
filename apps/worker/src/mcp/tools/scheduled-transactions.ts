@@ -26,11 +26,11 @@ import { dates, Id, MONEY, MONTH, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const NOT_SUPPORTED =
-  "Scheduled splits and scheduled transfers are not supported (a later ticket): a schedule is a plain transaction, so there is no transfer_account_id and no subtransactions.";
+  "Scheduled splits are not supported (a later ticket): there are no subtransactions. A schedule can be a transfer: pass transfer_account_id (no payee); the other account's list shows a derived mirror row (mirror true, amount negated, same id); enter or delete either one by the series id. A transfer between on-plan accounts takes no category; with a tracking account the category belongs to the on-plan side.";
 const FREQUENCIES_TEXT =
   "frequency is never, daily, weekly, everyOtherWeek, twiceAMonth, every4Weeks, monthly, everyOtherMonth, every3Months, every4Months, twiceAYear, yearly or everyOtherYear.";
 const SHAPE =
-  "id, account_id, account_name, date_first (the anchor every date is computed from), date_next (the next date not yet entered), frequency, amount, payee_id, payee_name, category_id, category_name, category_group_name, inflow_to_ready_to_assign, memo, flag_color (red, orange, yellow, green, blue, purple, or null), deleted, created_at and updated_at";
+  "id, account_id, account_name, date_first (the anchor every date is computed from), date_next (the next date not yet entered), frequency, amount, payee_id, payee_name, category_id, category_name, category_group_name, inflow_to_ready_to_assign, memo, flag_color (red, orange, yellow, green, blue, purple, or null), transfer_account_id and transfer_account_name (the other account of a transfer, else null), mirror (true for the derived row of a transfer scheduled in another account), deleted, created_at and updated_at";
 const TODAY = "today (YYYY-MM-DD) is the caller's date; it defaults to the server's UTC date.";
 const STAMPS = timestamps(["created_at", "updated_at"]);
 

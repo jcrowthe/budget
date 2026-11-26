@@ -393,7 +393,7 @@ describe("rules and edges", () => {
     expect(q.transactions.map((t) => t.order)).toEqual([0, 1, 2, 3]);
   });
 
-  it("a split or transfer after the export date stays a transaction with a warning", () => {
+  it("a split after the export date stays a transaction with a warning; a paired transfer becomes one schedule", () => {
     const p = build(
       regOf(
         '"A","","12/20/2026","P","","","","Split (1/2) a",$1.00,$0.00,"Uncleared"',
@@ -403,7 +403,8 @@ describe("rules and edges", () => {
         '"A","","12/21/2026","Plain","","","","",$1.00,$0.00,"Uncleared"',
       ),
     );
-    expect(p.counts).toMatchObject({ splits: 1, transfers_paired: 1, scheduled: 1 });
+    expect(p.counts).toMatchObject({ splits: 1, transfers_paired: 0, scheduled: 2 });
+    expect(p.schedules.filter((s) => s.transferAccount !== null)).toHaveLength(1);
     expect(warnCodes(p)).toContain("scheduled_not_supported");
   });
 
@@ -422,7 +423,8 @@ describe("rules and edges", () => {
     const p = build(SAMPLE_REGISTER, SAMPLE_PLAN, { name: "Mine", export_date: "2026-11-01" });
     expect(p.name).toBe("Mine");
     expect(p.exportDate).toBe("2026-11-01");
-    expect(p.schedules.length).toBe(2);
+    // The 11/10 paired transfer is now after the export date: it is one transfer schedule (EXF-501).
+    expect(p.schedules.length).toBe(3);
     const q = buildImportPlan({
       plan: { name: "a.csv", text: SAMPLE_PLAN },
       register: { name: "b.csv", text: SAMPLE_REGISTER },

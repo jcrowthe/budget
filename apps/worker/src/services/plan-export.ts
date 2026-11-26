@@ -158,27 +158,52 @@ export async function exportPlan(
     });
   }
   for (const s of schedules) {
+    const other = s.transferAccountId ? acct.get(s.transferAccountId) : undefined;
+    const category = (onBudget: boolean, carries: boolean) =>
+      categoryCell({
+        onBudget,
+        categoryId: carries ? s.categoryId : null,
+        inflowToRta: carries ? s.inflowToReadyToAssign : false,
+        known: carries && s.categoryId ? known.get(s.categoryId) : undefined,
+        joined: carries
+          ? { group: s.groupName, name: s.categoryName }
+          : { group: null, name: null },
+      });
+    // A transfer schedule is two scheduled rows, one in each account, like the two sides of a transfer; the category
+    // belongs to the on-plan side of an on-plan to tracking transfer.
     entries.push({
       account: s.accountName,
       accountRank: acct.get(s.accountId)?.rank ?? 0,
       date: s.dateNext,
       amount: s.amount,
-      payee: s.payeeName ?? "",
+      payee: other ? transferPayeeName(other.name) : (s.payeeName ?? ""),
       flag: s.flagColor ?? null,
       cleared: "uncleared",
       memo: s.memo,
-      category: categoryCell({
-        onBudget: s.accountOnBudget,
-        categoryId: s.categoryId,
-        inflowToRta: s.inflowToReadyToAssign,
-        known: s.categoryId ? known.get(s.categoryId) : undefined,
-        joined: { group: s.groupName, name: s.categoryName },
-      }),
+      category: category(s.accountOnBudget, !other || (s.accountOnBudget && !other.onBudget)),
       lines: [],
       scheduled: true,
       createdAt: s.createdAt,
       id: s.id,
     });
+    if (other) {
+      entries.push({
+        account: other.name,
+        accountRank: other.rank,
+        date: s.dateNext,
+        // `0 - x` keeps zero positive.
+        amount: 0 - s.amount,
+        payee: transferPayeeName(s.accountName),
+        flag: null,
+        cleared: "uncleared",
+        memo: s.memo,
+        category: category(other.onBudget, !s.accountOnBudget && other.onBudget),
+        lines: [],
+        scheduled: true,
+        createdAt: s.createdAt,
+        id: `${s.id}:mirror`,
+      });
+    }
   }
 
   // EXF-480 passes flag names to registerFile.

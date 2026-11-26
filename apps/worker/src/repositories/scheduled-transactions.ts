@@ -1,5 +1,6 @@
 import type { UpcomingSource } from "@budget/schema/scheduled-upcoming";
 import { and, asc, eq, inArray, isNull, type SQL, type SQLWrapper, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { Db } from "../db/client";
 import { accounts } from "../db/schema/accounts";
 import { budgets } from "../db/schema/budgets";
@@ -14,12 +15,24 @@ export type ScheduledBase = typeof st.$inferSelect;
 /** A schedule with the names and account state its reads carry. `categoryId` and `payeeId` are null once the category or payee is deleted. */
 export type ScheduledRow = ScheduledBase & {
   accountName: string;
+  /** True when the series account or a transfer's other account is closed. */
   accountClosed: boolean;
+  /** True when a transfer's other account is closed. */
+  transferClosed: boolean;
   accountOnBudget: boolean;
   payeeName: string | null;
   categoryName: string | null;
   groupName: string | null;
+  /** The other account of a transfer schedule: null for a plain schedule or when it is deleted. */
+  transferAccountName: string | null;
+  transferAccountClosed: boolean;
+  transferAccountOnBudget: boolean;
 };
+
+const ta = alias(accounts, "ta");
+
+/** A transfer schedule counts only while its other account exists and is open. */
+const livePair = sql`(${st.transferAccountId} is null or (${ta.id} is not null and ${ta.deletedAt} is null and ${ta.closed} = 0))`;
 
 function selectRows(db: Db) {
   return db
@@ -28,6 +41,11 @@ function selectRows(db: Db) {
       accountName: accounts.name,
       accountClosed: accounts.closed,
       accountOnBudget: accounts.onBudget,
+      transferAccountName: ta.name,
+      transferAccountClosed: ta.closed,
+      transferAccountOnBudget: ta.onBudget,
+      transferAccountLive: ta.id,
+      transferAccountDeletedAt: ta.deletedAt,
       payeeId: payees.id,
       payeeName: payees.name,
       categoryId: categories.id,
@@ -37,6 +55,7 @@ function selectRows(db: Db) {
     .from(st)
     .innerJoin(accounts, and(eq(accounts.id, st.accountId), isNull(accounts.deletedAt)))
     .innerJoin(budgets, and(eq(budgets.id, st.budgetId), isNull(budgets.deletedAt)))
+    .leftJoin(ta, eq(ta.id, st.transferAccountId))
     .leftJoin(payees, and(eq(payees.id, st.payeeId), isNull(payees.deletedAt)))
     .leftJoin(categories, and(eq(categories.id, st.categoryId), isNull(categories.deletedAt)))
     .leftJoin(
@@ -53,13 +72,22 @@ function toRow(r: Joined): ScheduledRow {
     payeeId: r.payeeId ?? null,
     categoryId: r.categoryId ?? null,
     accountName: r.accountName,
-    accountClosed: r.accountClosed,
+    accountClosed: r.accountClosed || (r.transferAccountClosed ?? false),
+    transferClosed: r.transferAccountClosed ?? false,
     accountOnBudget: r.accountOnBudget,
     payeeName: r.payeeName ?? null,
     categoryName: r.categoryName ?? null,
     groupName: r.groupName ?? null,
+    transferAccountName: r.transferAccountName ?? null,
+    transferAccountClosed: r.transferAccountClosed ?? false,
+    transferAccountOnBudget: r.transferAccountOnBudget ?? false,
   };
 }
+
+/** A transfer's other account that is deleted (or gone): the row is absent from every read, as a deleted series account is. */
+const otherGone = (r: Joined) =>
+  r.s.transferAccountId !== null &&
+  (r.transferAccountLive === null || r.transferAccountDeletedAt !== null);
 
 /** The plan's live schedules on open accounts, by next date. */
 export async function listForPlan(
@@ -67,8 +95,17 @@ export async function listForPlan(
   budgetId: string,
   opts: { accountId?: string } = {},
 ): Promise<ScheduledRow[]> {
-  const conds = [eq(st.budgetId, budgetId), isNull(st.deletedAt), eq(accounts.closed, false)];
-  if (opts.accountId) conds.push(eq(st.accountId, opts.accountId));
+  const conds = [
+    eq(st.budgetId, budgetId),
+    isNull(st.deletedAt),
+    eq(accounts.closed, false),
+    livePair,
+  ];
+  if (opts.accountId) {
+    conds.push(
+      sql`(${st.accountId} = ${opts.accountId} or ${st.transferAccountId} = ${opts.accountId})`,
+    );
+  }
   const rows = await selectRows(db)
     .where(and(...conds))
     .orderBy(asc(st.dateNext), asc(st.id));
@@ -92,7 +129,7 @@ export async function findMany(
   ];
   if (!opts.includeDeleted) conds.push(isNull(st.deletedAt));
   const rows = await selectRows(db).where(and(...conds));
-  return new Map(rows.map((r) => [r.s.id, toRow(r)]));
+  return new Map(rows.filter((r) => !otherGone(r)).map((r) => [r.s.id, toRow(r)]));
 }
 
 /** Live schedules whose next date is `day` or earlier, oldest first: at most `limit + 1`. Closed and deleted accounts and plans are left out. */
@@ -104,6 +141,7 @@ export async function listDue(
     isNull(st.deletedAt),
     sql`${st.dateNext} <= ${opts.day}`,
     eq(accounts.closed, false),
+    livePair,
   ];
   if (opts.budgetIds !== "all") {
     if (opts.budgetIds.length === 0) return [];
@@ -133,10 +171,12 @@ type Set = Partial<
     | "inflowToReadyToAssign"
     | "memo"
     | "flagColor"
+    | "transferAccountId"
     | "deletedAt"
   >
 > &
-  Pick<ScheduledBase, "writeToken" | "updatedAt">;
+  Pick<ScheduledBase, "writeToken"> &
+  Partial<Pick<ScheduledBase, "updatedAt">>;
 
 /**
  * The gate of every change: it writes only while the row is live and still has the next date and token that
@@ -168,7 +208,8 @@ export function softDeleteIfStmt(
   token: string,
   read: { dateNext: string; writeToken: string },
 ) {
-  return updateIfStmt(db, id, { deletedAt: at, updatedAt: at, writeToken: token }, read);
+  // updated_at stays: undo of a delete checks the soft-deleted row against the log's `before`, which carries it.
+  return updateIfStmt(db, id, { deletedAt: at, writeToken: token }, read);
 }
 
 /** True while the schedule carries `token`: the guard of the statements that follow its gate. */
@@ -281,12 +322,15 @@ export async function listUpcomingSources(
   through: string,
   categoryId?: string,
 ): Promise<UpcomingSource[]> {
+  // A transfer counts on its on-plan side: the series account when it is on-plan, else the other account.
+  const onPlanSide = sql`(${accounts.onBudget} = 1 or (${st.transferAccountId} is not null and ${accounts.onBudget} = 0 and ${ta.onBudget} = 1))`;
   const conds = [
     eq(st.budgetId, budgetId),
     isNull(st.deletedAt),
     eq(st.inflowToReadyToAssign, false),
     eq(accounts.closed, false),
-    eq(accounts.onBudget, true),
+    livePair,
+    onPlanSide,
     sql`${st.dateNext} <= ${through}`,
   ];
   if (categoryId) conds.push(eq(st.categoryId, categoryId));
@@ -294,18 +338,19 @@ export async function listUpcomingSources(
     .select({
       id: st.id,
       categoryId: categories.id,
-      accountId: st.accountId,
-      accountName: accounts.name,
+      accountId: sql<string>`case when ${accounts.onBudget} = 1 then ${accounts.id} else ${ta.id} end`,
+      accountName: sql<string>`case when ${accounts.onBudget} = 1 then ${accounts.name} else ${ta.name} end`,
       dateFirst: st.dateFirst,
       dateNext: st.dateNext,
       frequency: st.frequency,
-      amount: st.amount,
+      amount: sql<number>`case when ${accounts.onBudget} = 1 then ${st.amount} else 0 - ${st.amount} end`,
       payeeId: payees.id,
       payeeName: payees.name,
       memo: st.memo,
     })
     .from(st)
     .innerJoin(accounts, and(eq(accounts.id, st.accountId), isNull(accounts.deletedAt)))
+    .leftJoin(ta, eq(ta.id, st.transferAccountId))
     .innerJoin(categories, and(eq(categories.id, st.categoryId), isNull(categories.deletedAt)))
     .leftJoin(payees, and(eq(payees.id, st.payeeId), isNull(payees.deletedAt)))
     .where(and(...conds))
@@ -323,4 +368,40 @@ export async function listUpcomingSources(
     payee_name: r.payeeName ?? null,
     memo: r.memo ?? null,
   }));
+}
+
+/** Ends (soft-deletes) the live schedules of a deleted account: its own transfers and the transfers to it. One change_log row each; put it before the update. */
+const endsWith = (budgetId: string, accountId: string) =>
+  sql`${st.budgetId} = ${budgetId} and ${st.deletedAt} is null and (${st.transferAccountId} = ${accountId} or (${st.accountId} = ${accountId} and ${st.transferAccountId} is not null))`;
+
+export function logEndForAccountStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  accountId: string,
+  guard: SQL,
+) {
+  const cols = (deleted: "true" | "false") =>
+    sql.raw(
+      `json_object('id', id, 'account_id', account_id, 'transfer_account_id', transfer_account_id, 'date_first', date_first, 'date_next', date_next, 'frequency', frequency, 'amount', amount, 'category_id', category_id, 'memo', memo, 'deleted', json('${deleted}'))`,
+    );
+  return logSelectStmt(
+    db,
+    base,
+    sql`select id, account_id, transfer_account_id, date_first, date_next, frequency, amount, category_id, memo from ${st} where ${endsWith(budgetId, accountId)} and ${guard}`,
+    { entityId: sql`id`, before: cols("false"), after: cols("true") },
+  );
+}
+
+export function endForAccountStmt(
+  db: Db,
+  budgetId: string,
+  accountId: string,
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(st)
+    .set({ deletedAt: now, updatedAt: now, writeToken: sql`lower(hex(randomblob(16)))` })
+    .where(sql`${endsWith(budgetId, accountId)} and ${guard}`);
 }

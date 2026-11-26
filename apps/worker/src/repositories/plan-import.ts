@@ -212,6 +212,7 @@ const SPEC: Record<ImportTable, Spec> = {
       "write_token",
       "created_at",
       "updated_at",
+      "transfer_account_id",
     ],
     {
       id: 0,
@@ -229,6 +230,7 @@ const SPEC: Record<ImportTable, Spec> = {
       writeToken: 10,
       createdAt: 11,
       updatedAt: 12,
+      transferAccountId: 13,
     },
   ),
 };

@@ -105,6 +105,7 @@ export const TYPE_MAPS: Record<UndoType, { table: string; keys: Key[] }> = {
         "inflow_to_ready_to_assign",
         "memo",
         "flag_color",
+        "transfer_account_id",
       ].map((k) => K(k)),
       { ...K("updated_at"), guardOnly: true },
     ],
@@ -334,7 +335,8 @@ export function postChecks(c: Ctx, present: ReadonlySet<UndoType>): BatchItem<"s
       where n.kind in ('update', 'delete') and t.deleted_at is null and (
         not exists (select 1 from accounts a where a.id = t.account_id and a.deleted_at is null)
         or (t.category_id is not null and not ${raw(liveCat("t"))})
-        or (t.payee_id is not null and not ${raw(livePayee("t"))})))`);
+        or (t.payee_id is not null and not ${raw(livePayee("t"))})
+        or (t.transfer_account_id is not null and not exists (select 1 from accounts a2 where a2.id = t.transfer_account_id and a2.deleted_at is null))))`);
   if (present.has("category"))
     refused(sql`exists (select 1 from ${net(c, "category")} join categories k on k.id = n.eid
       where n.kind in ('update', 'delete') and k.deleted_at is null

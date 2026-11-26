@@ -52,7 +52,7 @@ import {
 import { localToday } from "./format";
 import { ClearedFilledIcon, ClearedOutlineIcon, LockIcon } from "./icons";
 import { startMoved } from "./import-start";
-import { REPEAT_SPLIT_TRANSFER } from "./makeRepeating";
+import { SCHEDULED_SPLIT_NOT_YET } from "./makeRepeating";
 import { PayeeField } from "./PayeeField";
 import { useRegisterView } from "./register-view";
 import { SplitDialog } from "./SplitDialog";
@@ -247,8 +247,8 @@ export function EntryRow({
     const typedDate = fmt.parseDate(d.dateText, today) as string;
     if (mode === "add" && savesAsScheduled(typedDate, d.frequency, today)) {
       // The same rule as the API: a future date or a repeat is a schedule.
-      if (d.lines || d.transferAccountId) {
-        setMessage(REPEAT_SPLIT_TRANSFER);
+      if (d.lines) {
+        setMessage(SCHEDULED_SPLIT_NOT_YET);
         return;
       }
       saving.current = true;
@@ -439,7 +439,7 @@ export function EntryRow({
             disabled={lockStart}
             title={lockStart ? LOCK_TITLE : undefined}
             currentAccountId={account?.id ?? draft.accountId}
-            transfers={!isSplit && !isScheduledEdit}
+            transfers={!isSplit}
             // Typing over a transfer's payee makes it a plain row again.
             onChange={(payee) => patch({ payee, transferAccountId: null })}
             onPicked={fillCategory}
@@ -464,7 +464,7 @@ export function EntryRow({
               split={isSplit}
               splitDisabled={
                 isScheduledEdit
-                  ? "Scheduled splits are not available yet"
+                  ? SCHEDULED_SPLIT_NOT_YET
                   : draft.transferAccountId
                     ? "A transfer cannot be split"
                     : false

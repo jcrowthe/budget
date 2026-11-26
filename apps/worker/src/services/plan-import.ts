@@ -280,6 +280,7 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
         id(),
         at(s.order),
         at(s.order),
+        s.transferAccount === null ? null : accountIds[s.transferAccount],
       ]),
     },
   ];

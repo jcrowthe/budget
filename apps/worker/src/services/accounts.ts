@@ -38,6 +38,7 @@ import * as categoriesRepo from "../repositories/categories";
 import * as groupsRepo from "../repositories/category-groups";
 import { whenQuery } from "../repositories/guards";
 import * as payeesRepo from "../repositories/payees";
+import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
 import { CATEGORY_NAME_TAKEN, categoryToApi, GROUP_NAME_TAKEN, groupToApi } from "./categories";
 import {
@@ -753,7 +754,18 @@ export async function deleteAccount(
         }),
       );
     }
+    // Transfer schedules to or from the account end with it (EXF-501). They are logged and ended before the
+    // account's own statements: the account's soft-delete must stay the last statement of the batch.
+    const endsGuard = sql`exists ${accountsRepo.accountHolds(db, before, payClear(null))}`;
     stmts.push(
+      scheduledRepo.logEndForAccountStmt(
+        db,
+        { budgetId, actor, action: "delete", entityType: "scheduled_transaction", createdAt: at },
+        budgetId,
+        accountId,
+        endsGuard,
+      ),
+      scheduledRepo.endForAccountStmt(db, budgetId, accountId, at, endsGuard),
       changeLogInsertIf(
         db,
         {
