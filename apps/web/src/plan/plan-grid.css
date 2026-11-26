@@ -1,27 +1,5 @@
 /* Colours the grid needs that tokens.css does not have yet. A later Build moves them into tokens.css. */
 :root {
-  --separatorStandard: rgba(255, 255, 255, 0.1);
-  --labelHeading: #f1f1ff;
-  --labelAction: #a3acff;
-  --actionPrimaryDisabled: #383ca3;
-  --labelWarning: #daac00;
-  --segmentedTrack: rgba(114, 116, 132, 0.32);
-  --categoryBalanceZeroLabel: #9b9caa;
-  --categoryBalancePositiveLabel: #0c0d22;
-  --categoryBalancePositiveHover: #508316;
-  --categoryBalanceWarningBackground: #f6c91d;
-  --categoryBalanceWarningBackgroundActive: #daac00;
-  --categoryBalanceNegativeLabel: #fff;
-  --categoryBalanceNegativeHover: #912333;
-  --budgetBarFundedSpending: #346011;
-  --budgetBarFundedSpendingStripe: #1d300d;
-  --budgetBarOverspending: #912333;
-  --budgetBarOverspendingStripe: #4c0814;
-  --inputBorderActive: #545bfe;
-  --iconFillSecondary: #727484;
-  --buttonDestructiveBackground: #6a1020;
-  --buttonDestructiveLabel: #feedeb;
-  --buttonDestructiveBackgroundActive: #912333;
 }
 
 .plan-page {
@@ -43,7 +21,7 @@
   min-width: 0;
   overflow: auto;
   /* Source (dark): scrollbar-color rgb(60,62,83) transparent, color-scheme dark; #3c3e53 = --inputBackground */
-  color-scheme: dark;
+  color-scheme: var(--colorScheme);
   scrollbar-color: var(--inputBackground) transparent;
   --num-col: 18%;
 }
@@ -1172,4 +1150,55 @@ button.category-name {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * Balance Style "Differentiate Without Color" (EXF-472): the four Available pills differ by more than colour.
+ * zero: thin outline; positive: solid fill; cautious: dashed outline; negative: heavy solid outline, no fill.
+ * Colours and the minus sign stay. The outer box keeps its size (22px high, the padding gives up the border),
+ * so the grid does not move. Scoped by an ancestor class, so it also covers the pills of the inspector and of
+ * the Display Options preview (`.plain` is the default look wherever it must stay).
+ */
+.balance-no-color .available-pill:not(.plain) {
+  box-sizing: border-box;
+  height: 22px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-style: solid;
+  border-width: 1px;
+  border-color: transparent;
+  padding-inline: 6px;
+}
+.balance-no-color .available-pill:not(.plain).zero {
+  background: transparent;
+  border-color: var(--categoryBalanceZeroLabel);
+}
+.balance-no-color .available-pill:not(.plain).positive {
+  border-color: var(--statusPositive);
+}
+.balance-no-color .available-pill:not(.plain).positive:hover:not(:disabled) {
+  border-color: var(--categoryBalancePositiveHover);
+}
+.balance-no-color .available-pill:not(.plain).cautious {
+  padding-inline: 5px;
+  border-width: 2px;
+  border-style: dashed;
+  border-color: var(--pillCautiousOutline);
+  background: transparent;
+  color: var(--pillCautiousText);
+}
+.balance-no-color .available-pill:not(.plain).cautious:hover:not(:disabled) {
+  background: transparent;
+  border-color: var(--categoryBalanceWarningBackgroundActive);
+}
+.balance-no-color .available-pill:not(.plain).negative {
+  padding-inline: 4px;
+  border-width: 3px;
+  border-color: var(--statusNegative);
+  background: transparent;
+  color: var(--labelNegative);
+}
+.balance-no-color .available-pill:not(.plain).negative:hover:not(:disabled) {
+  background: transparent;
+  border-color: var(--categoryBalanceNegativeHover);
 }

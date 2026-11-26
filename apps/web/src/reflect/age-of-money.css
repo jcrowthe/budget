@@ -1,11 +1,4 @@
 .aom-report {
-  --aom-line: #f1f1ff;
-  --aom-ring: rgba(255, 255, 255, 0.149);
-  --aom-selected: #93d53e;
-  --aom-grid: rgba(255, 255, 255, 0.102);
-  --aom-area: rgba(147, 213, 62, 0.3);
-  --aom-callout-bg: rgba(60, 62, 83, 0.6);
-  --aom-heading: #f1f1ff;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -120,7 +113,7 @@
   padding: 16px;
   border-radius: var(--radius-lg);
   background: var(--aom-callout-bg);
-  color: #fff;
+  color: var(--labelPrimary);
   text-align: center;
 }
 .aom-empty-title {

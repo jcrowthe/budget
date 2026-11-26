@@ -1,0 +1,180 @@
+/* Display Options (EXF-472). Tokens only. The preview drawings use the --preview* tokens, which are the same in
+   every theme: a Light card must look light while the app is dark. */
+.dialog.form.display-options {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  box-sizing: border-box;
+  color: var(--labelPrimary);
+}
+.display-options .dialog-head .icon-button {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--actionPrimary);
+  cursor: pointer;
+}
+.display-options .dialog-head .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+/* The shared .dialog.form frame gives the head (rule under it) and the right-aligned footer; the body
+   sits in its padding. */
+.do-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.do-body .error {
+  margin: 0;
+}
+.do-section h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--labelHeading);
+}
+.do-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+@media (max-width: 480px) {
+  .do-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* .dialog.display-options outranks the .dialog.form label rule (block, margin, bold). */
+.dialog.display-options .do-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  padding: var(--space-2);
+  border: 2px solid var(--inputBorderSubtle);
+  border-radius: var(--radius-lg);
+  background: var(--backgroundSecondary);
+  cursor: pointer;
+}
+.dialog.display-options .do-card:hover {
+  background: var(--menuHover);
+}
+.dialog.display-options .do-card[data-active="true"] {
+  border-color: var(--actionPrimary);
+}
+.do-card[data-active="true"] .do-label {
+  font-weight: 600;
+}
+.do-card:has(input:focus-visible) {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+.do-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.do-choice input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--actionPrimary);
+}
+.do-preview {
+  display: flex;
+  box-sizing: border-box;
+  height: 84px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+.do-theme-half {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+}
+.do-theme-half-light {
+  background: var(--previewLightGround);
+}
+.do-theme-half-dark {
+  background: var(--previewDarkGround);
+}
+.do-line {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+}
+.do-line.wide {
+  width: 100%;
+}
+.do-line.short {
+  width: 50%;
+}
+.do-line:not(.wide):not(.short) {
+  width: 75%;
+}
+.do-theme-half-light .do-line {
+  background: var(--previewLightLine);
+}
+.do-theme-half-dark .do-line {
+  background: var(--previewDarkLine);
+}
+/* Default is all light, Dark is all dark, Match System is split. */
+.do-theme-default .do-theme-half-dark,
+.do-theme-dark .do-theme-half-light {
+  display: none;
+}
+.do-theme-match_system {
+  background: linear-gradient(115deg, var(--previewLightGround) 50%, var(--previewDarkGround) 50%);
+}
+.do-theme-match_system .do-theme-half {
+  background: transparent;
+}
+.do-bars {
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 var(--space-2);
+  background: var(--backgroundPrimary);
+}
+.do-bars-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.do-bars-row .do-line {
+  background: var(--inputBorderSubtle);
+}
+.do-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--statusPositive);
+}
+.do-balance {
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  background: var(--backgroundPrimary);
+}
+.do-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-1);
+}
+.do-balance .available-pill {
+  flex: none;
+}

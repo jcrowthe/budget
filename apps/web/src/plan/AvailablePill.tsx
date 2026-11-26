@@ -40,6 +40,7 @@ export function AvailablePill({
   amount,
   interactive = true,
   display = false,
+  plain = false,
   onOpen,
   tone,
   icon = null,
@@ -50,6 +51,8 @@ export function AvailablePill({
   interactive?: boolean;
   /** A plain span with the pill's look (no title: the source's inspector pill has none), for the inspector. */
   display?: boolean;
+  /** Always the default look, whatever the Balance Style (the Display Options preview of that style). */
+  plain?: boolean;
   onOpen?: (anchor: HTMLButtonElement) => void;
   tone?: PillTone;
   icon?: PillIcon;
@@ -59,7 +62,7 @@ export function AvailablePill({
   const fmt = usePlanFormatter();
   const kind = tone ?? (amount === 0 ? "zero" : amount > 0 ? "positive" : "negative");
   const Icon = icon ? ICONS[icon] : null;
-  const cls = `available-pill ${kind}${icon === "card" ? " credit" : ""}`;
+  const cls = `available-pill ${kind}${icon === "card" ? " credit" : ""}${plain ? " plain" : ""}`;
   const content = (
     <>
       {Icon && (

@@ -1,16 +1,6 @@
 /* Spending Breakdown. The slice colours are custom properties, by rank (the source's own could not be seen:
    the test plan has no spending). Eight slots checked for colour-blind separation and 3:1 contrast on #15172d. */
 .reflect {
-  --sb-slice-1: #3987e5;
-  --sb-slice-2: #d95926;
-  --sb-slice-3: #199e70;
-  --sb-slice-4: #c98500;
-  --sb-slice-5: #d55181;
-  --sb-slice-6: #008300;
-  --sb-slice-7: #9085e9;
-  --sb-slice-8: #e66767;
-  --sb-slice-other: #727484;
-  --sb-empty-ring: #f8f6f2; /* source: the empty ring, rgb(248, 246, 242) */
 }
 
 .sb-breadcrumb {

@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./theme-light.css";
 
 *,
 *::before,
@@ -506,7 +507,7 @@ a {
   cursor: default;
 }
 .error {
-  color: var(--statusNegative);
+  color: var(--labelError);
   margin: var(--space-2) 0 0;
 }
 
@@ -693,7 +694,7 @@ a {
 .account-modal-body {
   /* Source (dark): scrollbar-color rgb(60,62,83) transparent; #3c3e53 = --inputBackground */
   scrollbar-color: var(--inputBackground) transparent;
-  color-scheme: dark;
+  color-scheme: var(--colorScheme);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -847,7 +848,7 @@ a {
   box-sizing: border-box;
   padding: var(--space-3);
   background: var(--backgroundSecondary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--separatorFaint);
 }
 .account-header h1 {
   margin: 0;
@@ -961,7 +962,7 @@ a {
 }
 /* Source hover rgba(117,131,255,0.27) = --buttonSecondaryBackgroundActive */
 .account-modal .secondary.large:hover:not(:disabled) {
-  background: rgba(117, 131, 255, 0.27);
+  background: var(--buttonSecondaryBackgroundHover);
 }
 .bank-tile:disabled,
 .institution-row:disabled {
@@ -983,7 +984,7 @@ a {
 .or-divider::after {
   content: "";
   flex: 1;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--separatorFaint);
 }
 .institution-list {
   margin: 0 0 var(--space-3);
@@ -1014,8 +1015,6 @@ a {
   align-items: center;
   justify-content: center;
   /* Source (dark, pixel samples of the fallback image): disc rgb(227,230,231), glyph about rgb(83,86,88) */
-  --bankLogoFallback: rgb(227, 230, 231);
-  --bankLogoFallbackGlyph: rgb(83, 86, 88);
   background: var(--bankLogoFallback);
   color: var(--bankLogoFallbackGlyph);
 }
@@ -1036,7 +1035,7 @@ a {
   font-weight: 600;
 }
 .institution-row:hover:not(:disabled) .institution-name {
-  color: #a3acff; /* source hover rgb(163,172,255) = --labelAction */
+  color: var(--labelAction); /* source hover rgb(163,172,255) = --labelAction */
 }
 .institution-country {
   font-size: var(--font-size-sm);

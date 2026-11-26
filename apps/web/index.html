@@ -6,6 +6,23 @@
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Budget</title>
+    <script id="theme-first-paint">
+      /* First paint: the cached `theme` choice (written by the app) picks the root class before any CSS paints.
+         Same mapping as resolveTheme in src/settings/theme.ts; anything missing or unknown is dark. */
+      (() => {
+        const root = document.documentElement;
+        try {
+          const t = localStorage.getItem("theme");
+          const dark =
+            t === "match_system"
+              ? matchMedia("(prefers-color-scheme: dark)").matches
+              : t !== "default";
+          root.classList.add(dark ? "theme-dark" : "theme-light");
+        } catch (e) {
+          root.classList.add("theme-dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
