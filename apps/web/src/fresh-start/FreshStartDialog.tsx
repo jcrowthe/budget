@@ -114,7 +114,7 @@ export function FreshStartDialog({
           <ul>
             <li>All your accounts. Linked accounts remain linked in the Fresh Start</li>
             <li>
-              Today's balance for your linked accounts. Unlinked accounts will start with a $0
+              Today's balance for your linked accounts. Unlinked accounts will start with a &#36;0
               balance for you to update with today's balance
             </li>
             <li>Today's transactions in linked accounts</li>

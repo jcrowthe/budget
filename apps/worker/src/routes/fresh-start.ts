@@ -31,7 +31,7 @@ export default app.openapi(
     path: "/budgets/{id}/fresh-start",
     tags,
     description:
-      "Make a Fresh Start: copies the plan's structure (accounts, groups, categories, targets, scheduled transactions, payees, notes, expected income, flag names, renaming rules, custom views) into a new plan that starts today, with a $0 Starting Balance per unlinked account and no transactions or assigned amounts, and renames this plan `<name> (Archived on YYYY-MM-DD)`. Linked accounts stay linked in the new plan (Starting Balance = the bank's balance); with stop_importing_in_archive (default true) the archive's links are removed so imports continue only in the new plan. A name equal to an active plan's name (any case, spaces trimmed) is 422 plan_name_taken. Not undoable.",
+      "Make a Fresh Start: copies the plan's structure (accounts, groups, categories, targets, scheduled transactions, payees, notes, expected income, flag names, renaming rules, custom views) into a new plan that starts today, with a zero-amount Starting Balance per unlinked account and no transactions or assigned amounts, and renames this plan `<name> (Archived on YYYY-MM-DD)`. Linked accounts stay linked in the new plan (Starting Balance = the bank's balance); with stop_importing_in_archive (default true) the archive's links are removed so imports continue only in the new plan. A name equal to an active plan's name (any case, spaces trimmed) is 422 plan_name_taken. Not undoable.",
     request: {
       params: z.object({ id: z.uuid().openapi({ param: { name: "id", in: "path" } }) }),
       body: { content: { "application/json": { schema: FreshStartRequest } }, required: true },
