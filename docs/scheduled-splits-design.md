@@ -3,7 +3,7 @@
 A scheduled transaction can be a split across categories. Part 1 (scheduled transfers) is
 `docs/scheduled-transfers-design.md`. Tests: `apps/worker/test/scheduled-splits*.test.ts`,
 `upcoming-splits.test.ts`, `plan-split-roundtrip.test.ts`, `category-delete-scheduled-splits.test.ts`,
-`packages/schema/test/scheduled-splits.test.ts`,
+`payees-scheduled-splits.test.ts`, `packages/schema/test/scheduled-splits.test.ts`,
 `plan-export-scheduled-splits.test.ts`, `apps/web/src/register/scheduledSplits.test.ts`,
 `e2e/scheduled-splits.spec.ts`.
 
