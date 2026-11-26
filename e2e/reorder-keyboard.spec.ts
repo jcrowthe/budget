@@ -119,3 +119,71 @@ test("an account reorder is undone from the Plan toolbar, and by Ctrl+Z", async 
   await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => cashNames(page)).toEqual(["ZZ-TEST A", "ZZ-TEST B", "ZZ-TEST C"]);
 });
+
+// Moving a category across a group edge (our addition): the first category of a group goes to the end of the
+// previous visible group, the last to the start of the next; a payment category never leaves its group.
+const blockNames = (page: Page, group: string) =>
+  page
+    .locator(".group-block", { has: page.locator(".group-row .group-name", { hasText: group }) })
+    .locator(".category-row .category-name");
+const nameOf = async (page: Page, i: number) =>
+  ((await groupNames(page).nth(i).textContent()) ?? "").trim();
+const select = async (page: Page, name: string) => {
+  await page.locator(".category-name", { hasText: name }).click();
+  await expect(catRow(page, name)).toHaveAttribute("aria-selected", "true");
+};
+
+test("the first category of a group moves to the end of the previous group", async ({ page }) => {
+  await openPlan(page);
+  const names = await groupNames(page).allTextContents();
+  const gi = names.findIndex((n) => n.includes("Needs"));
+  expect(gi).toBeGreaterThan(0);
+  const prev = names[gi - 1].trim();
+  const prevCats = await blockNames(page, prev).allTextContents();
+  const [first, ...rest] = await blockNames(page, "Needs").allTextContents();
+  await select(page, first);
+  await page.keyboard.press("Alt+Shift+ArrowUp");
+  await expect(blockNames(page, prev)).toHaveText([...prevCats, first]);
+  await expect(blockNames(page, "Needs")).toHaveText(rest);
+  await expect(live(page)).toContainText(new RegExp(`Moved .* to ${prev}`));
+  await expect(catRow(page, first)).toHaveAttribute("aria-selected", "true");
+  await page.reload();
+  await expect(blockNames(page, prev)).toHaveText([...prevCats, first]);
+  await expect(blockNames(page, "Needs")).toHaveText(rest);
+});
+
+test("the last category of a group moves to the start of the next group", async ({ page }) => {
+  await openPlan(page);
+  const names = await groupNames(page).allTextContents();
+  const bi = names.findIndex((n) => n.includes("Bills"));
+  expect(bi).toBeLessThan(names.length - 1);
+  const next = names[bi + 1].trim();
+  const nextCats = await blockNames(page, next).allTextContents();
+  await select(page, UTILITIES);
+  await page.keyboard.press("Alt+Shift+ArrowDown");
+  await expect(blockNames(page, next)).toHaveText([UTILITIES, ...nextCats]);
+  await expect(bills(page)).toHaveText([RENT, PHONE]);
+  await expect(live(page)).toContainText(new RegExp(`Moved .*Utilities.* to ${next}`));
+  await expect(catRow(page, UTILITIES)).toHaveAttribute("aria-selected", "true");
+  await page.reload();
+  await expect(blockNames(page, next)).toHaveText([UTILITIES, ...nextCats]);
+});
+
+test("a payment category does not leave the Credit Card Payments group", async ({
+  page,
+  request,
+}) => {
+  await newAccount(request, planId, "ZZ-TEST Card", "creditCard");
+  await openPlan(page);
+  const first = await nameOf(page, 0);
+  expect(first).toContain("Credit Card Payments");
+  const pay = blockNames(page, "Credit Card Payments");
+  const before = await pay.allTextContents();
+  expect(before.length).toBeGreaterThan(0);
+  await select(page, before[before.length - 1]);
+  await page.keyboard.press("Alt+Shift+ArrowDown");
+  await select(page, before[0]);
+  await page.keyboard.press("Alt+Shift+ArrowUp");
+  await expect(pay).toHaveText(before);
+  await expect(live(page)).toHaveCount(0);
+});
