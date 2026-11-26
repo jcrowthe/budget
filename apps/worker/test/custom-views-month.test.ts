@@ -57,7 +57,10 @@ describe("month read with view_id", () => {
   it("a deleted category drops out", async () => {
     const s = await seed();
     const v = await s.make("ZZ Bills", "Rent", "Phone");
-    const del = await send("DELETE", api(s.bid, `/categories/${s.ids.Fun}`));
+    const del = await send(
+      "DELETE",
+      api(s.bid, `/categories/${s.ids.Fun}?reassign_to=${s.ids.Food}`),
+    );
     expect(del.status).toBe(200);
     expect(s.names((await s.read(`&view_id=${v}`)).body.data)).toEqual(["Rent", "Phone"]);
     const del2 = await send(

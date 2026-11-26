@@ -4,6 +4,7 @@ import { PlanView } from "@budget/schema/plan-views";
 import { Today } from "@budget/schema/targets";
 import { z } from "zod";
 import { NotFound } from "../../middleware/errors";
+import { getViewScope } from "../../services/custom-views";
 import {
   getMonthRange,
   getMonthSummary,
@@ -22,30 +23,42 @@ const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5,
 export const tools: McpToolDef[] = [
   {
     name: "get_plan_month",
-    description: `Read one month of a plan. ${MONTH} ${MONEY} Returns { month, note, ready_to_assign, rta_breakdown, groups, uncategorized }: each group and each of its categories has id, name, hidden, assigned, activity and available; categories also carried, target, note, target_snoozed (true while its target is snoozed this month), upcoming (the sum of the scheduled transactions dated inside the month; a repeating schedule counts every date in it), upcoming_count and available_after_upcoming (available + upcoming, not clamped; a credit card payment category has 0, 0 and its available). view (all, overspent, underfunded, overfunded, money_available, snoozed) narrows to the categories the Plan page's view shows; default all. A category's target holds its figures for the month. A month before 1970-01 or more than 10 years after today is an error. ${TODAY} Groups carry kind (credit_card_payments or null); categories also carry kind (credit_card_payment or null), account_id, cash_spending, credit_spending, overspent ({ cash, credit } or null) and state (ok, credit_overspent or cash_overspent); payment categories also carry payment ({ state, underfunded, overspent_categories, current_balance, prior_balance, spending_and_outflows, interest_charges, payments_and_inflows, available, paid }, null for other categories). Credit overspending is overspent card spending that becomes card debt and leaves Ready to Assign alone; cash overspending is taken from next month's Ready to Assign.`,
+    description: `Read one month of a plan. ${MONTH} ${MONEY} Returns { month, note, ready_to_assign, rta_breakdown, groups, uncategorized }: each group and each of its categories has id, name, hidden, assigned, activity and available; categories also carried, target, note, target_snoozed (true while its target is snoozed this month), upcoming (the sum of the scheduled transactions dated inside the month; a repeating schedule counts every date in it), upcoming_count and available_after_upcoming (available + upcoming, not clamped; a credit card payment category has 0, 0 and its available). view (all, overspent, underfunded, overfunded, money_available, snoozed) narrows to the categories the Plan page's view shows; default all. view_id (a custom view's id, see list_views) narrows to that view's visible categories, grouped, with subtotals over them and no uncategorized; an unknown, deleted or built-in id is an error, and view with view_id is an error. A category's target holds its figures for the month. A month before 1970-01 or more than 10 years after today is an error. ${TODAY} Groups carry kind (credit_card_payments or null); categories also carry kind (credit_card_payment or null), account_id, cash_spending, credit_spending, overspent ({ cash, credit } or null) and state (ok, credit_overspent or cash_overspent); payment categories also carry payment ({ state, underfunded, overspent_categories, current_balance, prior_balance, spending_and_outflows, interest_charges, payments_and_inflows, available, paid }, null for other categories). Credit overspending is overspent card spending that becomes card debt and leaves Ready to Assign alone; cash overspending is taken from next month's Ready to Assign.`,
     inputSchema: z.object({
       budget_id: Id,
       month: Month,
       view: PlanView.optional(),
+      view_id: Id.optional(),
       today: Today.optional(),
     }),
     run: async (
-      input: { budget_id: string; month: string; view?: PlanView; today?: string },
+      input: {
+        budget_id: string;
+        month: string;
+        view?: PlanView;
+        view_id?: string;
+        today?: string;
+      },
       { env },
     ) => {
       const bad = planMonthError(input.month, input.today);
       if (bad) throw new Error(bad);
-      return getPlanMonth(env, input.budget_id, input.month, input.today, input.view);
+      if (input.view && input.view_id) throw new Error("Give view or view_id, not both");
+      const scope = input.view_id
+        ? await getViewScope(env, input.budget_id, input.view_id)
+        : input.view;
+      return getPlanMonth(env, input.budget_id, input.month, input.today, scope);
     },
   },
   {
     name: "get_month_summary",
-    description: `Totals of one month of a plan: with category_ids, exactly those categories (hidden ones included); without, every category that is not hidden and not in a hidden group. ${MONTH} ${MONEY} Returns { leftover, assigned, activity, available, targets_total, next_month_targets_total, future_assigned?, future_assigned_total? }: leftover is the positive Available carried from the previous month; available = leftover + assigned + activity. targets_total and next_month_targets_total are the sum of every target's amount for the month and for the next month (snoozed targets count); they cover the whole plan's visible categories and ignore category_ids and view. An unknown category id is an error. view (all, overspent, underfunded, overfunded, money_available, snoozed) narrows to the categories the Plan page's view shows; default all. With view, totals cover only the categories that view shows; category_ids and view together are an error. future_assigned (each month's assigned total, from next month to the last month with money assigned) and future_assigned_total appear only when month is the current month of today; they cover the whole plan (hidden categories included) and ignore category_ids and view. ${TODAY}`,
+    description: `Totals of one month of a plan: with category_ids, exactly those categories (hidden ones included); without, every category that is not hidden and not in a hidden group. ${MONTH} ${MONEY} Returns { leftover, assigned, activity, available, targets_total, next_month_targets_total, future_assigned?, future_assigned_total? }: leftover is the positive Available carried from the previous month; available = leftover + assigned + activity. targets_total and next_month_targets_total are the sum of every target's amount for the month and for the next month (snoozed targets count); they cover the whole plan's visible categories and ignore category_ids and view. An unknown category id is an error. view (all, overspent, underfunded, overfunded, money_available, snoozed) narrows to the categories the Plan page's view shows; default all. With view, totals cover only the categories that view shows; category_ids and view together are an error. view_id (a custom view's id, see list_views) totals only that view's visible categories; an unknown, deleted or built-in id is an error, and view_id with view or category_ids is an error. future_assigned (each month's assigned total, from next month to the last month with money assigned) and future_assigned_total appear only when month is the current month of today; they cover the whole plan (hidden categories included) and ignore category_ids and view. ${TODAY}`,
     inputSchema: z.object({
       budget_id: Id,
       month: InputMonth,
       category_ids: z.array(Id).min(1).max(500).optional(),
       view: PlanView.optional(),
+      view_id: Id.optional(),
       today: Today.optional(),
     }),
     run: async (
@@ -54,18 +67,24 @@ export const tools: McpToolDef[] = [
         month: string;
         category_ids?: string[];
         view?: PlanView;
+        view_id?: string;
         today?: string;
       },
       { env },
     ) => {
+      if (input.view_id && (input.view || input.category_ids))
+        throw new Error("Give view_id on its own, not with view or category_ids");
       if (input.category_ids && input.view) throw new Error("Give category_ids or view, not both");
+      const scope = input.view_id
+        ? await getViewScope(env, input.budget_id, input.view_id)
+        : input.view;
       return getMonthSummary(
         env,
         input.budget_id,
         input.month,
         input.category_ids && [...new Set(input.category_ids)],
         input.today,
-        input.view,
+        scope,
       );
     },
   },

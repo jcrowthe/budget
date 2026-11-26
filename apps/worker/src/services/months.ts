@@ -19,7 +19,7 @@ import {
   type MonthSummary,
   type MonthSummaryTotals,
 } from "@budget/schema/months";
-import { type PlanView, viewDetail } from "@budget/schema/plan-views";
+import { type ViewSelection, viewDetail } from "@budget/schema/plan-views";
 import { dayBefore } from "@budget/schema/recurrence";
 import { type UpcomingSource, upcomingByCategory } from "@budget/schema/scheduled-upcoming";
 import { sql } from "drizzle-orm";
@@ -436,7 +436,7 @@ async function readPlanMonth(
   budgetId: string,
   month: Month,
   today: string,
-  view: PlanView,
+  view: ViewSelection,
   horizon: Month = addMonths(month, 1),
 ): Promise<{ detail: MonthDetail; sources: UpcomingSource[]; input: EngineInput }> {
   const db = getDb(env);
@@ -463,7 +463,7 @@ export async function getPlanMonthWithSources(
   budgetId: string,
   month: Month,
   today: string = todayUtc(),
-  view: PlanView = "all",
+  view: ViewSelection = "all",
 ): Promise<{ detail: MonthDetail; sources: UpcomingSource[] }> {
   const { detail, sources } = await readPlanMonth(env, budgetId, month, today, view);
   return { detail, sources };
@@ -474,7 +474,7 @@ export async function getPlanMonth(
   budgetId: string,
   month: Month,
   today: string = todayUtc(),
-  view: PlanView = "all",
+  view: ViewSelection = "all",
 ): Promise<MonthDetail> {
   return (await getPlanMonthWithSources(env, budgetId, month, today, view)).detail;
 }
@@ -512,7 +512,7 @@ export async function getMonthSummary(
   month: Month,
   categoryIds?: string[],
   today: string = todayUtc(),
-  view?: PlanView,
+  view?: ViewSelection,
 ): Promise<MonthSummaryTotals> {
   // One read reaching the end of the next month: the next month's targets need its activity and card flows.
   const { detail, input } = await readPlanMonth(
