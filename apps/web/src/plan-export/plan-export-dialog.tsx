@@ -9,6 +9,9 @@ import "./plan-export-dialog.css";
 
 type Phase = "wait" | "ask" | "working" | "failed";
 
+/** How long the setting read or the download may take before the dialog frame says it is working. */
+const SLOW_MS = 300;
+
 const returnTo = () => document.querySelector<HTMLElement>(".plan-button, .rail-logo");
 
 /** The plan menu's Export Plan: asks once (unless "Don't show again" was saved), then downloads the zip. */
@@ -25,6 +28,8 @@ export function PlanExportDialog({
   const [checked, setChecked] = useState(false);
   const [detail, setDetail] = useState("");
   const started = useRef(false);
+  const asked = useRef(false);
+  const [slow, setSlow] = useState(false);
 
   const run = () => {
     if (started.current || !budgetId) return;
@@ -49,10 +54,26 @@ export function PlanExportDialog({
     } else if (ui.isError) setPhase("ask");
   }, [phase, ui.isSuccess, ui.isError, ui.data]);
 
-  if (phase === "wait" || phase === "working") return null;
+  // Before the question has been shown, a slow setting read or download gets the frame and a quiet status line.
+  const unasked = phase === "wait" || (phase === "working" && !asked.current);
+  useEffect(() => {
+    if (!unasked) return;
+    const t = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(t);
+  }, [unasked]);
+
+  if (phase === "ask") asked.current = true;
+  if (phase === "working" && asked.current) return null;
+  if (unasked && !slow) return null;
   return (
-    <Frame onClose={onClose}>
-      {phase === "ask" ? (
+    <Frame key={unasked ? "status" : phase} onClose={onClose}>
+      {unasked ? (
+        <div className="form-body">
+          <p role="status" className="plan-export-dialog-status">
+            Preparing export…
+          </p>
+        </div>
+      ) : phase === "ask" ? (
         <>
           <div className="form-body">
             <p>
