@@ -175,7 +175,8 @@ type Set = Partial<
     | "deletedAt"
   >
 > &
-  Pick<ScheduledBase, "writeToken" | "updatedAt">;
+  Pick<ScheduledBase, "writeToken"> &
+  Partial<Pick<ScheduledBase, "updatedAt">>;
 
 /**
  * The gate of every change: it writes only while the row is live and still has the next date and token that
@@ -207,7 +208,8 @@ export function softDeleteIfStmt(
   token: string,
   read: { dateNext: string; writeToken: string },
 ) {
-  return updateIfStmt(db, id, { deletedAt: at, updatedAt: at, writeToken: token }, read);
+  // updated_at stays: undo of a delete checks the soft-deleted row against the log's `before`, which carries it.
+  return updateIfStmt(db, id, { deletedAt: at, writeToken: token }, read);
 }
 
 /** True while the schedule carries `token`: the guard of the statements that follow its gate. */
