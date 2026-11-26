@@ -224,3 +224,25 @@
   --register-scheduled-header-bg: #f3f4fa;
   --register-scheduled-label: #43455c;
 }
+
+/*
+ * Literals left in stylesheets that belong to other units (register/**, plan/panel/**): they cannot be edited
+ * here, so the light theme overrides each one by its selector. Remove an override when its source file uses a
+ * token (docs/display-options-design.md, "Leftover literals").
+ */
+:root.theme-light .panel-content {
+  color-scheme: light; /* plan-panel.css:36, scrollbars of the inspector */
+}
+:root.theme-light .panel-card-body {
+  border-top-color: var(--borderSubtle); /* plan-panel.css:124 */
+}
+:root.theme-light .panel-pencil {
+  color: var(--iconFillSecondary); /* plan-panel.css:232 */
+}
+:root.theme-light .bulk-popover.is-submenu .bulk-popover-body {
+  box-shadow: 0 0 16px rgba(20, 21, 43, 0.12); /* register.css:573 */
+}
+:root.theme-light .bulk-item[aria-disabled="true"] kbd {
+  background: var(--keyCapBackground); /* register.css:661 */
+}
+
