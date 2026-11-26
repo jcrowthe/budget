@@ -1,8 +1,10 @@
 import type { Page } from "@playwright/test";
 import { expect as baseExpect, test } from "./fixtures";
+import { delayRoute } from "./support/delay-route";
 import { openManagePayees, payees, seedPayees } from "./support/manage-payees-seed";
 import { realClick } from "./support/real-click";
 import { call } from "./support/register-seed";
+import { rulesOf } from "./support/rename-rules-seed";
 
 // A loaded box answers REST calls slowly: wait far longer than the default 5 s for what a request renders.
 const expect = baseExpect.configure({ timeout: 30_000 });
@@ -217,15 +219,8 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
   await expect(
     d.getByText(/Transfer payees are used to move money between accounts/),
   ).toBeVisible();
-  const empty = d.getByRole("textbox", { name: "New rule text", exact: true });
-  // Under load the card may still be loading its rules and reset the field or swallow the press: fill and
-  // press again until the rule appears.
-  const ruleText = d.getByRole("textbox", { name: "Rule text", exact: true });
-  for (let attempt = 0; attempt < 4 && (await ruleText.count()) === 0; attempt++) {
-    await empty.fill("zz card payment");
-    await realClick(page, btn(d, "Add a renaming rule"));
-    await ruleText.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
-  }
+  await d.getByRole("textbox", { name: "New rule text", exact: true }).fill("zz card payment");
+  await realClick(page, btn(d, "Add a renaming rule"));
   await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveValue(
     "zz card payment",
   );
@@ -244,6 +239,32 @@ test("8b a transfer payee has a Renaming card: a rule is added and removed; no o
   await realClick(page, btn(d, "Remove renaming rule"));
   await expect(d.getByRole("textbox", { name: "Rule text", exact: true })).toHaveCount(0);
   await expect(d.getByRole("img", { name: "Renaming rules applied", exact: true })).toHaveCount(0);
+});
+
+test("8c a rule added while the payee's rules list is still loading stays on screen, once", async ({
+  page,
+  request,
+}) => {
+  const s = await seedPayees(request);
+  const transfer = s.ids["Transfer : ZZ Card"];
+  await delayRoute(
+    page,
+    (url) => decodeURIComponent(url.pathname).endsWith(`/payees/${transfer}/rename-rules`),
+    1_000,
+  );
+  const d = await open(page, s);
+  await expandTransfers(page, d);
+  await realClick(page, pick(d, "Transfer : ZZ Card"));
+  await expect(d.getByRole("heading", { name: "Renaming", exact: true })).toBeVisible();
+  await d.getByRole("textbox", { name: "New rule text", exact: true }).fill("zz card payment");
+  await realClick(page, btn(d, "Add a renaming rule"));
+  const ruleText = d.getByRole("textbox", { name: "Rule text", exact: true });
+  await expect(ruleText).toHaveCount(1);
+  await expect(ruleText).toHaveValue("zz card payment");
+  await page.waitForTimeout(1_500);
+  await expect(ruleText).toHaveCount(1);
+  await expect(ruleText).toHaveValue("zz card payment");
+  expect(await rulesOf(request, s.plan, transfer)).toHaveLength(1);
 });
 
 test("9 hide and unhide: the picker follows", async ({ page, request }) => {
