@@ -4,6 +4,7 @@
  */
 import {
   PLAN_HEADER,
+  PLAN_SETTINGS_HEADER,
   REGISTER_HEADER,
   REGISTER_LOAN_HEADER,
   REGISTER_LOAN_RULES_HEADER,
@@ -382,14 +383,21 @@ export function identifyFiles(files: readonly NamedText[]): {
   register: NamedText;
   delimiter: "," | "\t";
   planDelimiter: "," | "\t";
+  /** The Settings file (flag names, expected income, views), when the zip has one. */
+  settings: NamedText | null;
+  settingsDelimiter: "," | "\t";
 } {
+  let settings: { file: NamedText; delimiter: "," | "\t" } | null = null;
   let plan: { file: NamedText; delimiter: "," | "\t" } | null = null;
   let register: { file: NamedText; delimiter: "," | "\t" } | null = null;
   for (const file of files) {
     const h = headerOf(file);
     if (!h) continue;
     const clean = h.fields.map((f) => f.trim());
-    if (same(clean, PLAN_HEADER)) {
+    if (same(clean, PLAN_SETTINGS_HEADER)) {
+      if (settings) throw new ImportError("not_recognized", NOT_RECOGNIZED);
+      settings = { file, delimiter: h.delimiter };
+    } else if (same(clean, PLAN_HEADER)) {
       if (plan) throw new ImportError("not_recognized", NOT_RECOGNIZED);
       plan = { file, delimiter: h.delimiter };
     } else if (
@@ -408,5 +416,7 @@ export function identifyFiles(files: readonly NamedText[]): {
     register: register.file,
     delimiter: register.delimiter,
     planDelimiter: plan.delimiter,
+    settings: settings?.file ?? null,
+    settingsDelimiter: settings?.delimiter ?? register.delimiter,
   };
 }

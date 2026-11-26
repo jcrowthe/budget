@@ -43,7 +43,7 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
     expect(JSON.stringify(r.result)).toContain(RANGE);
   });
 
-  it("writes no month past the server's month + 24, with 18 D1 calls", async () => {
+  it("writes no month past the server's month + 24, with 20 D1 calls", async () => {
     const f = await buildF();
     // Money assigned in May 2029 (30 months ahead) by SQL.
     await env.DB.prepare(
@@ -55,7 +55,8 @@ describe("EXF-670 Export Plan: now and the month bound", () => {
     const { bytes } = await exportPlan(c.env, f.bid, { now: "2026-11-16T09:05" });
     // EXF-545 adds one set query (paired loans): 17 -> 18.
     // EXF-885 5a adds one set query (renaming rules): 18 -> 19.
-    expect(c.calls()).toBe(19);
+    // Plan settings (EXF-480/525/502) add one read (the custom views): 19 -> 20.
+    expect(c.calls()).toBe(20);
     const plan = text(readZip(bytes)[0]?.data as Uint8Array);
     expect(plan).toContain('"Nov 2028"');
     expect(plan).not.toContain("2029");

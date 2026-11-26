@@ -171,6 +171,37 @@ as **three more trailing columns** after the loan columns: `"Rename Payee","Rena
   reads all four headers (base, loan, rules, loan and rules).
 - **One more D1 call** (one set query for the rules; 19 in all, pinned in `plan-export-calls.test.ts`).
 
+## Plan settings: flag names, expected income, custom views
+
+The Plan and Register files carry no plan-level data, so three pieces were lost on a round trip: the plan's custom
+flag names (EXF-480; the Flag column already writes the custom name, which the importer did not recognise), its
+expected income (EXF-525) and its custom views (EXF-502). They ride in a **third, small file of the zip**,
+`<base> - Settings.<ext>`, written **only when the plan has some of it**; any other plan is written exactly as
+before (two files). Why a file and not trailing columns or a row: it leaves the two existing headers and their
+column-index reading untouched, and an importer that does not know it skips it (its header is neither the Plan's nor
+the Register's), so such an importer still reads the new zips, without the data.
+
+Header `"Setting","Name","Value","Position","Category Group","Category"`; one row per fact:
+
+| Setting | Name | Value | Position | Group / Category |
+| --- | --- | --- | --- | --- |
+| `Flag Name` | the colour's own name (`Red`) | the plan's name for it | | |
+| `Expected Income` | | the amount, in the file's format | | |
+| `Built-in View` | the key (`underfunded`, `overfunded`, `money_available`, `snoozed`) | | stored place | |
+| `View` | the view's name | | stored place | |
+| `View Category` | the view's name | | the view's stored place | group and category names as the Plan file writes them (hidden: `Hidden Categories`) |
+
+Views are the plan's live view rows (custom views and built-ins the plan has moved), by `sort_order`, so the order
+including built-in keys is kept; an empty view is its `View` row alone; members keep their order. A category that
+no longer exists is not written.
+
+**Import**: a Flag cell is mapped to its colour through the file's flag-name table (case-insensitive), then by
+colour name; the table's names become the new plan's `flag_names` and the expected income its `expected_income`.
+Views are recreated with their stored places, their categories found by group and category name in the new plan (a
+name not found is left out, with the warning `view_category_unknown`). **D1 calls**: export reads the views with one
+more set query (`json_each`, labelled columns: 19 -> 20); import adds a `plan_views` part to the same batches, no
+call. Files written before this change import as they did.
+
 ## API (note 9)
 
 | | Request | Response |

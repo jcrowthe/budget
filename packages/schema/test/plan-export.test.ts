@@ -7,6 +7,7 @@ import {
   exportFormat,
   exportMonthCeiling,
   exportNames,
+  hasSettings,
   monthLabel,
   nowRangeText,
   nowWithinServerDays,
@@ -15,6 +16,7 @@ import {
   registerFile,
   SYSTEM_PAYEE_NAMES,
   safeName,
+  settingsFile,
   textField,
 } from "../src/plan-export";
 
@@ -123,7 +125,35 @@ describe("names", () => {
       zip: "Budget Export - ZZ TEST Ex port 7 as of 2026-11-16 09-05.zip",
       plan: "ZZ TEST Ex port 7 as of 2026-11-16 09-05 - Plan.csv",
       register: "ZZ TEST Ex port 7 as of 2026-11-16 09-05 - Register.csv",
+      settings: "ZZ TEST Ex port 7 as of 2026-11-16 09-05 - Settings.csv",
     });
+  });
+  it("writes the Settings file only when there is plan-level data, one row per fact", () => {
+    const fmt = exportFormat(DEFAULT_PLAN_FORMAT);
+    expect(hasSettings({ flagNames: {}, expectedIncome: null, views: [] })).toBe(false);
+    expect(hasSettings({ flagNames: {}, expectedIncome: 0, views: [] })).toBe(false);
+    const s = {
+      flagNames: { red: "ZZ Tax" },
+      expectedIncome: 4_000_000,
+      views: [
+        { position: 0, builtinKey: "snoozed", name: null, categories: [] },
+        {
+          position: 2,
+          builtinKey: null,
+          name: "ZZ Picks",
+          categories: [{ group: "Bills", name: "Rent" }],
+        },
+      ],
+    };
+    expect(hasSettings(s)).toBe(true);
+    expect(settingsFile(s, fmt).split("\r\n")).toEqual([
+      '\uFEFF"Setting","Name","Value","Position","Category Group","Category"',
+      '"Flag Name","Red","ZZ Tax",,"",""',
+      '"Expected Income","",$4000.00,,"",""',
+      '"Built-in View","snoozed","",0,"",""',
+      '"View","ZZ Picks","",2,"",""',
+      '"View Category","ZZ Picks","",2,"Bills","Rent"',
+    ]);
   });
   it("checks now", () => {
     expect(ExportNow.safeParse("2026-11-16T09:05").success).toBe(true);
