@@ -7,12 +7,13 @@ export type Settled = { x: number; y: number; width: number; height: number };
  * element at its centre, retrying until `timeout` ms. Under full-suite load a hit-test can miss while a card
  * above is still loading or a menu is still animating in; retrying turns that into a wait, not a failure.
  * Returns the last box measured, and whether every check held (`ok`), so the caller can assert with its own words.
- * `inside` also requires the box to lie wholly inside the viewport (mouseClick never scrolls).
+ * The point must be on the target or inside it; `allowAncestor` also accepts an ancestor of it (off by default: a
+ * clipped target whose point lands on body or a container must fail). `inside` also requires the box to lie wholly inside the viewport (mouseClick never scrolls).
  */
 export async function settle(
   page: Page,
   target: Locator,
-  { timeout = 30_000, inside = false, scroll = false } = {},
+  { timeout = 30_000, inside = false, scroll = false, allowAncestor = false } = {},
 ): Promise<{ ok: boolean; box: Settled | null; topmost: boolean; inView: boolean }> {
   const deadline = Date.now() + timeout;
   const vp = page.viewportSize();
@@ -34,11 +35,11 @@ export async function settle(
         const y = b.y + b.height / 2;
         const topmost = await target
           .evaluate(
-            (el, [px, py]) => {
+            (el, [px, py, anc]) => {
               const h = document.elementFromPoint(px as number, py as number);
-              return !!h && (h === el || el.contains(h) || h.contains(el));
+              return !!h && (h === el || el.contains(h) || (anc === true && h.contains(el)));
             },
-            [x, y],
+            [x, y, allowAncestor],
           )
           .catch(() => false);
         const inView =

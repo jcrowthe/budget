@@ -159,7 +159,7 @@ export async function realClick(
   target: import("@playwright/test").Locator,
 ) {
   // A list that is still loading moves its footer: wait (retrying) until the box is still and topmost.
-  const r = await settle(page, target, { scroll: true });
+  const r = await settle(page, target, { scroll: true, allowAncestor: true });
   expect(r.box, "the control has a box").not.toBeNull();
   const { x, y, width, height } = r.box as { x: number; y: number; width: number; height: number };
   const cx = x + width / 2;
