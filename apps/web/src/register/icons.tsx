@@ -260,3 +260,16 @@ export const ClockOutlineIcon = (p: P) => (
     />
   </svg>
 );
+export const PhotoIcon = (p: P) => (
+  <svg {...base} width={16} height={16} aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v8.600l3.500-3.600 3 3 4.500-5L20 13.200V6H4Zm0 11.400V17h16v-1.200l-6-5.500-4.500 5-3-3L4 17.400ZM16 7.500a1.500 1.500 0 1 1 0 3 1.500 1.500 0 0 1 0-3Z"
+    />
+  </svg>
+);
+export const DownloadIcon = (p: P) => (
+  <svg {...line} aria-hidden="true" {...p}>
+    <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+  </svg>
+);

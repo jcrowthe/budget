@@ -96,7 +96,7 @@ export function ScheduledSection({
   accounts: Account[];
 }) {
   const fmt = usePlanFormatter();
-  const { showFlags, showBalance } = useRegisterView();
+  const { showFlags, showImages, showBalance } = useRegisterView();
   const attentionCol = useAttentionColumn();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   useEffect(() => {
@@ -270,6 +270,7 @@ export function ScheduledSection({
               {s.flag_color ? <FlagFilledIcon className={`flag-${s.flag_color}`} /> : null}
             </td>
           )}
+          {showImages && <td className="cell-image" />}
           {plan && (
             <td data-field="account" title={s.account_name}>
               {s.account_name}
@@ -325,6 +326,7 @@ export function ScheduledSection({
               <td className="cell-check" />
               {attentionCol && <td className="cell-attention" />}
               {showFlags && <td className="cell-flag" />}
+              {showImages && <td className="cell-image" />}
               {plan && <td />}
               <td />
               <td data-field="payee" title={l.payee_name ?? undefined}>
