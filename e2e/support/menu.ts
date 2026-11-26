@@ -6,9 +6,13 @@ import { settle } from "./settled";
  * (or inside it) and that the box lies inside the window, then clicks. A locator click scrolls clipped
  * elements into view and so hid EXF-571; this does not.
  */
-export async function mouseClick(page: Page, target: Locator, { click = true } = {}) {
+export async function mouseClick(
+  page: Page,
+  target: Locator,
+  { click = true, allowDisabled = false } = {},
+) {
   // Under load the box may not exist yet, may still be moving, or be covered: retry until it settles.
-  const r = await settle(page, target, { inside: true });
+  const r = await settle(page, target, { inside: true, allowDisabled });
   const b = r.box;
   expect(b).not.toBeNull();
   const vp = page.viewportSize();

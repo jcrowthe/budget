@@ -179,7 +179,7 @@ test.describe("1440×900", () => {
       else await expect(rows.nth(i)).toHaveAttribute("aria-disabled", "true");
     }
     const flags = item(page, "Make a Fresh Start");
-    await mouseClick(page, flags, { click: false });
+    await mouseClick(page, flags, { click: false, allowDisabled: true });
     expect(await css(flags, "color")).toBe("rgb(155, 156, 170)");
     expect(await css(flags, "cursor")).toBe("default");
     expect(await css(flags, "background-color")).toBe("rgba(0, 0, 0, 0)");
