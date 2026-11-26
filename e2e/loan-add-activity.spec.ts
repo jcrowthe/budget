@@ -11,6 +11,7 @@ const MENU = [
   ["Add Credit", "For credits or refunds to your account"],
   ["Add Fee or Charge", "For late fees, annual fees, or withdrawals"],
   ["Add Interest", "For recording known interest accrual"],
+  ["Add Escrow", "For recording a known escrow amount"],
 ] as const;
 
 const dayLabel = new Date(`${TODAY}T00:00:00Z`).toLocaleDateString("en-US", {
@@ -88,7 +89,7 @@ test("AC1: the Add Activity menu has four items and Add Payment opens Record Pay
   await expect(add).toHaveAttribute("aria-haspopup", "menu");
   await realClick(page, add);
   const items = menu(page).getByRole("menuitem");
-  await expect(items).toHaveCount(4);
+  await expect(items).toHaveCount(5);
   for (const [i, [label, subtitle]] of MENU.entries()) {
     await expect(items.nth(i)).toContainText(label);
     await expect(items.nth(i)).toContainText(subtitle);
