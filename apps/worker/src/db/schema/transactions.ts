@@ -37,6 +37,8 @@ export const transactions = sqliteTable(
     flagColor: text("flag_color", { enum: FLAG_COLORS }),
     matchEntryAmount: integer("match_entry_amount"),
     importMemo: text("import_memo"),
+    pendingTransactionId: text("pending_transaction_id"),
+    status: text("status", { enum: ["entered"] }),
   },
   (t) => [
     index("transactions_budget_date").on(t.budgetId, t.date),
@@ -48,5 +50,8 @@ export const transactions = sqliteTable(
     uniqueIndex("transactions_budget_import")
       .on(t.budgetId, t.importId)
       .where(sql`import_id IS NOT NULL AND deleted_at IS NULL`),
+    index("transactions_pending")
+      .on(t.budgetId, t.pendingTransactionId)
+      .where(sql`pending_transaction_id IS NOT NULL`),
   ],
 );

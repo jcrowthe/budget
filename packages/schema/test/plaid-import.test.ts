@@ -128,7 +128,12 @@ describe("postedPlan", () => {
 });
 
 describe("enteredMatchValues", () => {
-  const row = { amount: -5000, cleared: "uncleared" as const, hasLines: false, transferAccountId: null };
+  const row = {
+    amount: -5000,
+    cleared: "uncleared" as const,
+    hasLines: false,
+    transferAccountId: null,
+  };
   it("plain: the bank's amount wins, and the old one is kept for unmatch", () => {
     expect(enteredMatchValues(row, { amount: -6000 })).toEqual({
       amount: -6000,

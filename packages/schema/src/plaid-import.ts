@@ -156,9 +156,7 @@ export function pendingPlan(
 ): "insert" | "follow" | "skip_entered" | "noop" {
   if (!have) return "insert";
   if (!have.live) return have.entered ? "skip_entered" : "insert";
-  return have.date === bank.date &&
-    have.amount === bank.amount &&
-    have.payeeName === bank.payeeName
+  return have.date === bank.date && have.amount === bank.amount && have.payeeName === bank.payeeName
     ? "noop"
     : "follow";
 }

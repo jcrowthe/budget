@@ -50,7 +50,9 @@ type LinkCols =
   | "importPayeeName"
   | "flagColor"
   | "importMemo"
-  | "matchEntryAmount";
+  | "matchEntryAmount"
+  | "pendingTransactionId"
+  | "status";
 /** The link columns are optional so a plain row can be built without them (they insert as null). */
 export type TransactionRow = Omit<Sel, LinkCols> & Partial<Pick<Sel, LinkCols>>;
 
@@ -94,6 +96,8 @@ export function insertIfStmt(db: Db, row: TransactionRow, guard: SQLWrapper, pay
       importPayeeName: r.importPayeeName ?? null,
       importMemo: r.importMemo ?? null,
       flagColor: r.flagColor ?? null,
+      pendingTransactionId: r.pendingTransactionId ?? null,
+      status: r.status ?? null,
     },
     sql`where exists ${guard}`,
   );
@@ -611,6 +615,8 @@ export type TxSet = Partial<
     | "importMemo"
     | "flagColor"
     | "matchEntryAmount"
+    | "status"
+    | "pendingTransactionId"
   >
 > & { payeeId?: string | null | SQL };
 
