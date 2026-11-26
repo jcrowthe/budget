@@ -75,7 +75,7 @@ describe("month read views", () => {
         api(s.bid, `/months/${NOV}/summary?view=${view}&today=${TODAY}`),
       );
       const body = ((await res.json()) as Json).data;
-      expect(body, view).toEqual({
+      expect(body, view).toMatchObject({
         leftover: sum("carried"),
         assigned: sum("assigned"),
         activity: sum("activity"),

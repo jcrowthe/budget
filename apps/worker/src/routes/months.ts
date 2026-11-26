@@ -7,7 +7,7 @@ import {
   MonthNoteResponse,
   MonthNoteUpdate,
   MonthRangeResponse,
-  MonthTotalsResponse,
+  MonthSummaryTotalsResponse,
 } from "@budget/schema/months";
 import { PlanView } from "@budget/schema/plan-views";
 import { Today } from "@budget/schema/targets";
@@ -74,7 +74,7 @@ export default app
           }),
           today: Today.optional().openapi({
             description:
-              "The owner's local date (YYYY-MM-DD); it decides the current month for target figures. Default: the server's UTC date",
+              "The owner's local date (YYYY-MM-DD); it decides the current month for target figures and for future_assigned. Default: the server's UTC date",
           }),
         }),
       },
@@ -112,12 +112,15 @@ export default app
           }),
           today: Today.optional().openapi({
             description:
-              "The owner's local date (YYYY-MM-DD); it decides the current month for target figures. Default: the server's UTC date",
+              "The owner's local date (YYYY-MM-DD); it decides the current month for target figures and for future_assigned. Default: the server's UTC date",
           }),
         }),
       },
       responses: {
-        200: json(MonthTotalsResponse, "Totals of the month over the categories"),
+        200: json(
+          MonthSummaryTotalsResponse,
+          "Totals of the month over the categories; for the current month also future_assigned (each later month's assigned total) and future_assigned_total, over the whole plan",
+        ),
         ...errors,
       },
     }),

@@ -7,6 +7,7 @@ import {
   MonthNoteResponse,
   type MonthRange,
   MonthRangeResponse,
+  MonthSummaryTotalsResponse,
 } from "@budget/schema/months";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
@@ -41,6 +42,29 @@ export const useCachedMonth = (budgetId: string, month: Month) =>
     enabled: false,
     // The same placeholder as useMonth: while the next month loads the list keeps its rows.
     placeholderData: keepPreviousInPlan<MonthDetail>(budgetId),
+  });
+
+/**
+ * EXF-527: each later month's assigned total, from the current month's summary (the read carries the local day,
+ * which decides the current month). The fields are absent for any other month.
+ */
+export const getFutureAssigned = async (budgetId: string, month: Month) => {
+  const { data } = await apiFetch(
+    `/api/v1/budgets/${budgetId}/months/${month}/summary?today=${localToday()}`,
+    { schema: MonthSummaryTotalsResponse },
+  );
+  return { rows: data.future_assigned ?? [], total: data.future_assigned_total ?? 0 };
+};
+
+/**
+ * Not under the `month` key prefix: the category writes put a MonthDetail into every query under it. The
+ * `month-list` prefix is invalidated by every Assigned write (monthCache.endWrite), so the card follows edits.
+ */
+export const useFutureAssigned = (budgetId: string, month: Month, enabled: boolean) =>
+  useQuery({
+    queryKey: ["month-list", budgetId, "future-assigned", month],
+    enabled,
+    queryFn: () => getFutureAssigned(budgetId, month),
   });
 
 export const getMonthRange = async (budgetId: string): Promise<MonthRange> =>
