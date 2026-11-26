@@ -20,6 +20,7 @@ export const scheduledTransactions = sqliteTable(
       .default(false),
     memo: text("memo"),
     flagColor: text("flag_color", { enum: FLAG_COLORS }),
+    transferAccountId: text("transfer_account_id"),
     writeToken: text("write_token").notNull(),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
@@ -29,5 +30,6 @@ export const scheduledTransactions = sqliteTable(
     index("scheduled_transactions_budget_next").on(t.budgetId, t.dateNext),
     index("scheduled_transactions_due").on(t.dateNext).where(sql`deleted_at IS NULL`),
     index("scheduled_transactions_account").on(t.accountId),
+    index("scheduled_transactions_transfer_account").on(t.transferAccountId),
   ],
 );
