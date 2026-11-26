@@ -48,10 +48,11 @@ describe("transaction images: MCP (EXF-536)", () => {
       { content_base64: toBase64(new Uint8Array(10 * 1024 * 1024 + 1)), content_type: "image/png" },
     ];
     for (const args of bad) {
-      const r = await tool("attach_transaction_image", { ...base, ...args });
-      expect(r.isError).toBe(true);
+      const body = await rpc("attach_transaction_image", { ...base, ...args });
+      // a schema failure is a JSON-RPC error; a service refusal is a tool result with isError
+      expect(body.error !== undefined || body.result?.isError === true).toBe(true);
     }
     expect((await get(b, t)).has_image).toBe(false);
-    expect(await objects()).toHaveLength(0);
+    expect(await objects(b)).toHaveLength(0);
   });
 });

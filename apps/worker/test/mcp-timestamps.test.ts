@@ -515,6 +515,17 @@ const CALLS: [string, (c: Ctx) => Json][] = [
       rule_id: ((results.get("create_payee_rename_rule") as Json).rule as Json).id,
     }),
   ],
+  [
+    "attach_transaction_image",
+    (c) => ({
+      budget_id: c.bid,
+      transaction_id: c.tx,
+      content_base64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      content_type: "image/png",
+    }),
+  ],
+  ["delete_transaction_image", (c) => ({ budget_id: c.bid, transaction_id: c.tx })],
   ["create_view", (c) => ({ budget_id: c.bid, name: "ZZ View", category_ids: [c.category] })],
   ["list_views", (c) => ({ budget_id: c.bid })],
   [

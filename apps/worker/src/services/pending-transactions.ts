@@ -45,6 +45,7 @@ export function pendingToApi(row: pendingRepo.PendingRow, accountName: string): 
     flag_color: null,
     status: "pending",
     pending_transaction_id: row.plaidTransactionId,
+    has_image: false,
     category_name: null,
     category_group_name: null,
     payee_system: null,

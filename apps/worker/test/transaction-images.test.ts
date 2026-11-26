@@ -106,7 +106,7 @@ describe("transaction images: REST (EXF-536)", () => {
     expect(((await res.json()) as Json).error.name).toBe("file_too_large");
     expect((await put(b, t, new Uint8Array(0), "image/png")).status).toBe(422);
     expect((await get(b, t)).has_image).toBe(false);
-    expect(await objects()).toHaveLength(0);
+    expect(await objects(b)).toHaveLength(0);
   });
 
   it("answers 404 for a missing, split-line, deleted or foreign transaction", async () => {
@@ -137,7 +137,7 @@ describe("transaction images: REST (EXF-536)", () => {
   it("a replace soft-deletes the first row and removes its object", async () => {
     const { b, t } = await seed();
     await put(b, t, PNG);
-    const [first] = await objects();
+    const [first] = await objects(b);
     await put(b, t, JPEG, "image/jpeg", "b.jpg");
     const rows = await q(
       "select deleted_at, content_type from transaction_images where transaction_id = ? order by created_at",
@@ -147,7 +147,7 @@ describe("transaction images: REST (EXF-536)", () => {
     expect(rows[0]?.deleted_at).not.toBeNull();
     expect(rows[1]?.deleted_at).toBeNull();
     expect(await env.FILES.get(first?.key as string)).toBeNull();
-    expect(await objects()).toHaveLength(1);
+    expect(await objects(b)).toHaveLength(1);
     const g = await getImage(b, t);
     expect(g.headers.get("content-type")).toBe("image/jpeg");
     await g.arrayBuffer();
@@ -159,7 +159,7 @@ describe("transaction images: REST (EXF-536)", () => {
     const res = await send(`/api/v1/budgets/${b}/transactions/${t}`, "DELETE");
     expect(res.status).toBe(200);
     const set = res.headers.get("Budget-Change-Set") as string;
-    expect(await objects()).toHaveLength(1);
+    expect(await objects(b)).toHaveLength(1);
     expect((await undo(b, set)).status).toBe(200);
     expect((await get(b, t)).has_image).toBe(true);
     expect((await getImage(b, t)).status).toBe(200);

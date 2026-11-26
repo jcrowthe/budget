@@ -27,6 +27,7 @@ function tx(over: Partial<TransactionDetail>): TransactionDetail {
     flag_color: null,
     status: null,
     pending_transaction_id: null,
+    has_image: false,
     created_at: `2026-11-10T00:00:00.${String(n).padStart(3, "0")}Z`,
     category_name: null,
     category_group_name: null,

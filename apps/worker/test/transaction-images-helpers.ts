@@ -45,7 +45,11 @@ export async function del(b: string, t: string) {
   return call(imagesUrl(b, t), await authed({ method: "DELETE" }));
 }
 
-export const objects = async () =>
-  (await env.FILES.list({ prefix: "transaction-images/" })).objects;
+export const objects = async (budgetId: string) =>
+  (await env.FILES.list({ prefix: `transaction-images/${budgetId}/` })).objects;
 
-export const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+export const toBase64 = (bytes: Uint8Array) => {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+};

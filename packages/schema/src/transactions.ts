@@ -107,6 +107,10 @@ export const Transaction = z
     pending_transaction_id: z.string().nullable().default(null).openapi({
       description: "The bank's id of the pending transaction this row is or came from",
     }),
+    has_image: z.boolean().default(false).openapi({
+      description:
+        "True when a receipt image is attached (PUT/GET/DELETE …/transactions/{id}/image)",
+    }),
   })
   .openapi("Transaction");
 
