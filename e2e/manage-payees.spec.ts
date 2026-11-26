@@ -1,8 +1,11 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect as baseExpect, test } from "./fixtures";
 import { openManagePayees, payees, seedPayees } from "./support/manage-payees-seed";
 import { realClick } from "./support/real-click";
 import { call } from "./support/register-seed";
+
+// A loaded box answers REST calls slowly: wait far longer than the default 5 s for what a request renders.
+const expect = baseExpect.configure({ timeout: 30_000 });
 
 const open = async (page: Page, s: Awaited<ReturnType<typeof seedPayees>>) => {
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
