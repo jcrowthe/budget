@@ -32,14 +32,13 @@ export const imageToApi = (row: repo.ImageRow): TransactionImage => ({
   created_at: row.createdAt,
 });
 
+const HEX = "0123456789abcdef";
 const randomHex = () =>
-  [...crypto.getRandomValues(new Uint8Array(16))]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => HEX[b >> 4] + HEX[b & 15]).join("");
 
 /** The key is scoped by plan and transaction and ends in 128 random bits, so it cannot be guessed. */
 const keyFor = (budgetId: string, transactionId: string) =>
-  `transaction-images/${budgetId}/${transactionId}/${randomHex()}`;
+  ["transaction-images", budgetId, transactionId, randomHex()].join("/");
 
 /** Checks the declared type, the size and the bytes; throws ImageRefused. */
 export function checkImage(bytes: Uint8Array, contentType: string): ImageContentType {

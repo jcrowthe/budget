@@ -21,7 +21,7 @@ export const TransactionImage = z
   .object({
     transaction_id: z.string(),
     content_type: z.enum(IMAGE_CONTENT_TYPES),
-    byte_size: z.number().int(),
+    byte_size: z.number().min(0).openapi({ description: "Size in bytes" }),
     file_name: z.string().nullable(),
     created_at: z.string(),
   })
