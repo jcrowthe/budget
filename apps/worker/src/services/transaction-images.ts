@@ -34,7 +34,10 @@ export const imageToApi = (row: repo.ImageRow): TransactionImage => ({
 
 const HEX = "0123456789abcdef";
 const randomHex = () =>
-  Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => HEX[b >> 4] + HEX[b & 15]).join("");
+  Array.from(
+    crypto.getRandomValues(new Uint8Array(16)),
+    (b) => HEX.charAt(b >> 4) + HEX.charAt(b & 15),
+  ).join("");
 
 /** The key is scoped by plan and transaction and ends in 128 random bits, so it cannot be guessed. */
 const keyFor = (budgetId: string, transactionId: string) =>
