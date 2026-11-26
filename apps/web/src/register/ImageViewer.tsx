@@ -57,7 +57,11 @@ export function ImageViewer({
         </p>
       ) : null}
       <div className="image-viewer-bar">
-        <button type="button" className="image-viewer-action" onClick={() => setConfirming(true)}>
+        <button
+          type="button"
+          className="image-viewer-action is-destructive"
+          onClick={() => setConfirming(true)}
+        >
           <TrashIcon width={16} height={16} />
           Delete Image
         </button>

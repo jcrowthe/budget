@@ -38,12 +38,15 @@
 .image-add-button:hover:not(:disabled) {
   color: var(--labelPrimary);
 }
+.image-add-button:focus-visible,
+.image-thumb-button:focus-visible,
+.image-viewer-action:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
+}
 .image-add-button:disabled {
   cursor: progress;
   opacity: 0.6;
-}
-.image-thumb-button {
-  padding: 0 var(--space-2);
 }
 .image-thumb {
   width: 22px;
@@ -66,12 +69,16 @@
 }
 .image-error {
   position: absolute;
+  z-index: 1;
   max-width: 220px;
-  padding: 2px var(--space-2);
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   border-radius: 4px;
   background: var(--backgroundTertiary);
+  box-shadow: var(--shadowTooltipLarge);
   color: var(--labelPrimary);
   font-size: 12px;
+  line-height: 1.4;
 }
 
 /* The viewer: dimmed, the image centred above a bottom bar. Under the delete confirm (.dialog-backdrop, 30). */
@@ -89,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-4);
 }
 .image-viewer-img {
   max-width: 100%;
@@ -97,10 +104,11 @@
   object-fit: contain;
   background: var(--backgroundTertiary);
   border-radius: 4px;
+  box-shadow: var(--shadowMenu);
 }
 .image-viewer-error {
   margin: 0;
-  padding: 0 24px 8px;
+  padding: 0 var(--space-4) var(--space-2);
   text-align: center;
   color: var(--labelPrimary);
 }
@@ -108,16 +116,16 @@
   display: flex;
   justify-content: center;
   gap: var(--space-2);
-  padding: 12px 24px;
+  padding: var(--space-2) var(--space-4);
   border-top: 1px solid var(--borderSubtle);
   background: var(--backgroundTertiary);
 }
 .image-viewer-action {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   height: 32px;
-  padding: 0 14px;
+  padding: 0 var(--space-3);
   border: 0;
   border-radius: 6px;
   background: var(--buttonSecondaryBackground);
@@ -127,6 +135,11 @@
 }
 .image-viewer-action:hover {
   background: var(--buttonSecondaryBackgroundHover);
+}
+/* Delete is the one destructive action: it takes the destructive colours on hover, as plan-grid.css does. */
+.image-viewer-action.is-destructive:hover {
+  background: var(--buttonDestructiveBackground);
+  color: var(--buttonDestructiveLabel);
 }
 
 /* Below 1280px the text columns give way so category keeps the room the image column takes (register.css:
