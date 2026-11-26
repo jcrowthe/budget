@@ -38,7 +38,7 @@ export const CustomView = z
     id: z.string(),
     name: z.string(),
     category_ids: z.array(z.string()),
-    sort_order: z.number().int(),
+    sort_order: z.number(),
     created_at: z.string(),
     updated_at: z.string(),
   })
