@@ -74,9 +74,9 @@ export function CostToBeMe({
   const bars = income ? costBars(total, income) : null;
   return (
     <section className="ctbm" aria-labelledby={`${inputId}-title`}>
-      <h3 id={`${inputId}-title`} className="ctbm-title">
+      <h4 id={`${inputId}-title`} className="ctbm-title">
         Cost to Be Me
-      </h3>
+      </h4>
       <PanelTooltip
         text={`The total of every target's amount for ${here}, snoozed targets included.`}
       >

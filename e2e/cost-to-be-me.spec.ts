@@ -92,7 +92,7 @@ test("AC1: the targets row is the sum of every target's amount for the month", a
   request,
 }) => {
   await openPlan(page, s);
-  await expect(section(page).getByRole("heading", { name: "Cost to Be Me" })).toBeVisible();
+  await expect(section(page).getByRole("heading", { name: "Cost to Be Me", level: 4 })).toBeVisible();
   await expect(targetsRow(page).locator(".panel-row-label")).toHaveText(`${here}'s Targets`);
   const baseline = money(await targetsValue(page).textContent());
 
