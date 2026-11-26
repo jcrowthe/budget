@@ -35,7 +35,7 @@ import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { importStartAfterMove, importStartStmts } from "./account-links";
 import { runGroups, type StatementGroup } from "./batch-groups";
-import { formatsOfRow } from "./budgets";
+import { formatsOfRow, parseFlagNames } from "./budgets";
 import { autoRuleStmts } from "./payee-rename-rules";
 import { payeeToApi, resolvePayee } from "./payees";
 import { mirror, newOtherSide, sameSide } from "./transaction-pairs";
@@ -334,11 +334,12 @@ export async function getAccountBalances(
 /** The tokens of a `q`, read in the plan's date format; a segment that cannot be read is a 422. */
 function searchTokens(
   q: string | undefined,
-  plan: { dateFormat: string },
+  plan: { dateFormat: string; flagNames?: string | null },
 ): SearchToken[] | undefined {
   if (!q?.trim()) return undefined;
   const { tokens, invalid } = parseSearch(q, {
     dateFormat: plan.dateFormat,
+    flagNames: parseFlagNames(plan.flagNames),
     today: new Date().toISOString().slice(0, 10),
   });
   const first = invalid[0];

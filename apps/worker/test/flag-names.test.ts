@@ -6,7 +6,10 @@ import { budgets } from "../src/db/schema/budgets";
 import type { Env } from "../src/env";
 import { setFlagNames } from "../src/services/budgets";
 import { actor, type Json, logs, mcp, plan, send } from "./category-helpers";
+import { pinPlanClock } from "./plan-export-helpers";
 import { listedToolNames } from "./surface";
+
+pinPlanClock();
 
 // EXF-480: flag_names on the plan. Per-colour custom names, null = the colour's own name.
 
@@ -230,5 +233,42 @@ describe("flag_names: D1 calls", () => {
     expect(await run()).toEqual(zero);
     for (let i = 0; i < 9; i++) await setFlagNames(env, actor, await plan(), { red: `T${i}` });
     expect(await run()).toEqual(zero);
+  });
+});
+
+describe("flag names in search and exports", () => {
+  it("search q=Flag: Tax lists the red row; Flag: Red still does; exports write Tax", async () => {
+    const { account, DAY, tx } = await import("./bulk-helpers");
+    const { exportPlan } = await import("../src/services/plan-export");
+    const { readZip, text } = await import("./plan-export-helpers");
+    const { json } = await import("./helpers");
+    const bid = await plan();
+    const acc = await account(bid);
+    const red = await tx(bid, { account_id: acc, date: DAY, amount: -1000, memo: "ZZ red" });
+    await tx(bid, { account_id: acc, date: DAY, amount: -2000, memo: "ZZ plain" });
+    await send("PATCH", `/api/v1/budgets/${bid}/transactions/${red.id}`, { flag_color: "red" });
+    await patch(bid, { flag_names: { red: "Tax" } });
+    const ids = async (q: string) => {
+      const res = await send(
+        "GET",
+        `/api/v1/budgets/${bid}/transactions?q=${encodeURIComponent(q)}`,
+      );
+      expect(res.status).toBe(200);
+      return (((await res.json()) as Json).data.transactions as Json[])
+        .filter((t) => t.memo?.startsWith("ZZ"))
+        .map((t) => t.id);
+    };
+    expect(await ids("Flag: Tax")).toEqual([red.id]);
+    expect(await ids("Flag: Red")).toEqual([red.id]);
+
+    const csv = await (
+      await json(`/api/v1/budgets/${bid}/transactions/export?ids=${red.id}`)
+    ).text();
+    expect(csv).toContain('"Tax"');
+    expect(csv).not.toContain('"Red"');
+
+    const { bytes } = await exportPlan(env, bid, { now: "2026-11-16T09:05" });
+    const register = readZip(bytes).find((e) => e.name.toLowerCase().includes("register"));
+    expect(text(register?.data as Uint8Array)).toContain("Tax");
   });
 });

@@ -10,7 +10,12 @@ import {
   type StoredFormats,
 } from "@budget/schema/plan-formats-catalogue";
 import type { DateFormat } from "@budget/schema/plan-import-read";
-import { FLAG_COLORS, type FlagNames } from "@budget/schema/transactions";
+import {
+  FLAG_COLORS,
+  type FlagColor,
+  type FlagNames,
+  flagLabelOf,
+} from "@budget/schema/transactions";
 import { type Db, getDb } from "../db/client";
 import type { Env } from "../env";
 import { type ChangeLogEntry, changeLogInsert, changeLogInsertIf } from "../history/change-log";
@@ -48,6 +53,11 @@ export function parseFlagNames(stored: string | null | undefined): FlagNames {
 /** The names of a plan row already read. */
 export function flagNamesOfRow(row: Pick<repo.BudgetRow, "flagNames">): FlagNames {
   return parseFlagNames(row.flagNames);
+}
+
+/** The label function of a plan row already read: its custom flag names, else the colour names. */
+export function flagLabelOfRow(row: Pick<repo.BudgetRow, "flagNames">): (c: FlagColor) => string {
+  return flagLabelOf(flagNamesOfRow(row));
 }
 
 const MAX_FLAG_NAME = 50;

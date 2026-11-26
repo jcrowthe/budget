@@ -8,7 +8,7 @@ import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as txRepo from "../repositories/transactions";
-import { formatsOfRow } from "./budgets";
+import { flagLabelOfRow, formatsOfRow } from "./budgets";
 import { TransactionRefused, transactionDetailToApi } from "./transactions";
 
 /** The CSV of the given transactions (1 to 100), in the order given, and the file's name (UTC time). */
@@ -40,7 +40,11 @@ export async function exportTransactions(
     };
   });
   return {
-    csv: registerCsv(out, exportFormat(planFormatter(formatsOfRow(plan)).planFormat())),
+    csv: registerCsv(
+      out,
+      exportFormat(planFormatter(formatsOfRow(plan)).planFormat()),
+      flagLabelOfRow(plan),
+    ),
     fileName: exportFileName(plan.name, new Date(), "utc"),
   };
 }

@@ -26,7 +26,7 @@ import * as budgetsRepo from "../repositories/budgets";
 import * as exportRepo from "../repositories/plan-export";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
-import { formatsOfRow } from "./budgets";
+import { flagLabelOfRow, formatsOfRow } from "./budgets";
 import { getMonthRange, getPlanMonths } from "./months";
 import { planClock } from "./plan-clock";
 
@@ -206,13 +206,15 @@ export async function exportPlan(
     }
   }
 
-  // EXF-480 passes flag names to registerFile.
   const fmt = exportFormat(planFormatter(formatsOfRow(plan)).planFormat());
   const names = exportNames(plan.name, now, fmt.extension);
   const bytes = storeZip(
     [
       { name: names.plan, data: utf8(planFile(details, fmt)) },
-      { name: names.register, data: utf8(registerFile(entries, fmt, undefined, loans, rules)) },
+      {
+        name: names.register,
+        data: utf8(registerFile(entries, fmt, flagLabelOfRow(plan), loans, rules)),
+      },
     ],
     today,
     now.slice(11, 16),
