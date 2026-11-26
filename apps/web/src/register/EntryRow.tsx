@@ -8,6 +8,7 @@ import {
 } from "@budget/schema/scheduled-transactions";
 import { autoDistribute, splitSum } from "@budget/schema/split";
 import type {
+  EnterNowRequest,
   TransactionCreateRequest,
   TransactionDetail,
   TransactionUpdateRequest,
@@ -21,7 +22,7 @@ import { ApiError } from "../api/client";
 import { useMonth } from "../api/months";
 import { usePayees } from "../api/payees";
 import { useCreateScheduled, useUpdateScheduled } from "../api/scheduledTransactions";
-import { useSaveTransaction } from "../api/transactions";
+import { useEnterPending, useSaveTransaction } from "../api/transactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { AccountField } from "./AccountField";
 import { AmountField } from "./AmountField";
@@ -86,7 +87,7 @@ export function EntryRow({
   onSaved,
 }: {
   budgetId: string;
-  mode: "add" | "edit" | "editScheduled";
+  mode: "add" | "edit" | "editScheduled" | "editPending";
   tx?: TransactionDetail;
   /** The series being edited (mode "editScheduled"). */
   scheduled?: ScheduledTransaction;
@@ -142,6 +143,8 @@ export function EntryRow({
   const saving = useRef(false);
   const payeesQ = usePayees(budgetId);
   const save = useSaveTransaction(budgetId);
+  const enterNow = useEnterPending(budgetId);
+  const isPendingEdit = mode === "editPending";
   const createScheduled = useCreateScheduled(budgetId);
   const updateScheduled = useUpdateScheduled(budgetId);
   const isScheduledEdit = mode === "editScheduled";
@@ -279,6 +282,22 @@ export function EntryRow({
       );
       return;
     }
+    if (isPendingEdit && tx) {
+      // Any edit of a pending bank transaction enters it: one request, what changed in its body.
+      const { account_id: _account, ...diff } = draftToPatch(tx, d, today, fmt);
+      saving.current = true;
+      enterNow.mutate(
+        { id: tx.id, body: diff as EnterNowRequest },
+        {
+          onSuccess: () => onSaved(next, typedDate),
+          onError: (e) => setMessage(`Couldn't enter the transaction. ${e.message}`),
+          onSettled: () => {
+            saving.current = false;
+          },
+        },
+      );
+      return;
+    }
     const body =
       mode === "edit" && tx
         ? draftToPatch(tx, d, today, fmt)
@@ -383,7 +402,8 @@ export function EntryRow({
     setUnbalanced(null);
     submit(next, updated);
   };
-  const busy = save.isPending || createScheduled.isPending || updateScheduled.isPending;
+  const busy =
+    save.isPending || createScheduled.isPending || updateScheduled.isPending || enterNow.isPending;
 
   return (
     <tbody ref={rows} className="entry-body" onKeyDown={onKeyDown}>
@@ -423,8 +443,10 @@ export function EntryRow({
             lastDate={draft.lastDate}
             today={today}
             onChange={(dateText, lastDate) => patch({ dateText, lastDate })}
-            frequency={mode === "edit" ? undefined : draft.frequency}
-            onFrequency={mode === "edit" ? undefined : (frequency) => patch({ frequency })}
+            frequency={mode === "edit" || isPendingEdit ? undefined : draft.frequency}
+            onFrequency={
+              mode === "edit" || isPendingEdit ? undefined : (frequency) => patch({ frequency })
+            }
           />
         </td>
         <td data-field="payee">
@@ -552,7 +574,11 @@ export function EntryRow({
               disabled={busy}
               onClick={() => submit("close")}
             >
-              {mode === "edit" && tx && !tx.approved ? "Approve" : "Save"}
+              {isPendingEdit
+                ? "Enter Now"
+                : mode === "edit" && tx && !tx.approved
+                  ? "Approve"
+                  : "Save"}
             </button>
             {mode === "add" && (
               <button

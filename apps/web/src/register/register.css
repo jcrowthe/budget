@@ -1,5 +1,7 @@
 :root {
   --register-row-selected: #1b1d48;
+  --register-pending-label: var(--labelSecondary);
+  --register-pending-header-bg: var(--backgroundSecondary);
   --register-scheduled-label: var(--labelSecondary);
   --register-scheduled-header-bg: var(--backgroundSecondary);
   /* Source placeholder colour of the register inputs (getComputedStyle ::placeholder). */
@@ -1388,4 +1390,95 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Pending Transactions (EXF-466): a header that collapses the section, muted rows that change no balance, a spacer. */
+.register-table .pending-header-cell {
+  height: 32px;
+  padding: 0;
+  background: var(--register-pending-header-bg);
+  border-bottom: 1px solid var(--separatorStandard);
+}
+.pending-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.pending-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pending-count {
+  color: var(--labelSecondary);
+  font-weight: 500;
+}
+.pending-chevron {
+  display: inline-flex;
+  align-items: center;
+}
+.pending-chevron svg {
+  width: 10px;
+  height: 10px;
+}
+.register-table tbody tr.pending-row td {
+  color: var(--register-pending-label);
+  cursor: pointer;
+}
+.register-table tr.pending-spacer td {
+  height: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+/* The clock of a row entered from a pending item (EXF-466): in the cleared cell, before the cleared icon. */
+.register-table.has-clock .col-cleared {
+  width: 58px;
+}
+.register-table.has-clock td.cell-cleared {
+  white-space: nowrap;
+}
+.clock-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 20px;
+  margin-right: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--register-label-action);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.clock-button.is-off {
+  color: var(--register-icon-muted);
+  opacity: 0;
+}
+.register-table tbody tr:hover .clock-button.is-off,
+.clock-button.is-off:focus-visible {
+  opacity: 1;
+}
+.clock-button:focus-visible {
+  outline: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--actionPrimary);
 }

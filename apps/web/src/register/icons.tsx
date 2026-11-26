@@ -238,3 +238,25 @@ export const InfoCircleFillIcon = (p: P) => (
     />
   </svg>
 );
+
+/** EXF-466: the clock of a row entered from a pending bank transaction (filled disc, hands cut out). */
+export const ClockIcon = (p: P) => (
+  <svg viewBox="0 0 16 16" width={14} height={14} fill="currentColor" aria-hidden="true" {...p}>
+    <path
+      fillRule="evenodd"
+      d="M8 .8a7.2 7.2 0 1 0 0 14.4A7.2 7.2 0 0 0 8 .8Zm-.75 3.2h1.5v3.7l2.4 1.4-.75 1.3-3.15-1.85V4Z"
+    />
+  </svg>
+);
+export const ClockOutlineIcon = (p: P) => (
+  <svg viewBox="0 0 16 16" width={14} height={14} fill="none" aria-hidden="true" {...p}>
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+    <path
+      d="M8 4.4V8l2.6 1.5"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

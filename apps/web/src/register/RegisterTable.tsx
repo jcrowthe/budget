@@ -22,8 +22,10 @@ import { localToday } from "../api/today";
 import {
   transactionsKey,
   useAccountTransactions,
+  usePendingTransactions,
   usePlanTransactions,
   useSetCleared,
+  useSetClock,
   useSetFlag,
 } from "../api/transactions";
 import { usePlanFormatter } from "../shell/plan-formats-context";
@@ -40,6 +42,8 @@ import {
   ChevronRightIcon,
   ClearedFilledIcon,
   ClearedOutlineIcon,
+  ClockIcon,
+  ClockOutlineIcon,
   FlagFilledIcon,
   InfoCircleFillIcon,
   LockIcon,
@@ -47,6 +51,7 @@ import {
 } from "./icons";
 import { MatchCell } from "./manual-match-details";
 import { useOpenAccounts } from "./openAccounts";
+import { PendingSection } from "./PendingSection";
 import type { RegisterSearchState } from "./RegisterSearch";
 import { firstTokenText } from "./register-search";
 import { useRegisterView } from "./register-view";
@@ -107,6 +112,41 @@ function ClearedCell({ tx, onToggle }: { tx: Row; onToggle: () => void }) {
   );
 }
 
+/**
+ * EXF-466: the clock of a row entered from a pending bank transaction. Shown, it hides on a click; hidden, an outline
+ * clock shows on hover or focus (until the bank posts the row) and shows it again.
+ */
+function ClockButton({ tx, onToggle }: { tx: Row; onToggle: (status: "entered" | null) => void }) {
+  if (tx.status === "entered") {
+    return (
+      <button
+        type="button"
+        className="clock-button is-on"
+        aria-label="Entered from a pending bank transaction: click to hide the clock"
+        aria-pressed={true}
+        title="Entered from a pending bank transaction"
+        onClick={() => onToggle(null)}
+      >
+        <ClockIcon />
+      </button>
+    );
+  }
+  if (tx.pending_transaction_id && tx.import_id === null) {
+    return (
+      <button
+        type="button"
+        className="clock-button is-off"
+        aria-label="Entered from a pending bank transaction: click to show the clock"
+        aria-pressed={false}
+        onClick={() => onToggle("entered")}
+      >
+        <ClockOutlineIcon />
+      </button>
+    );
+  }
+  return null;
+}
+
 // One array for "no scheduled rows": a new `[]` each render would reach the selection's setScheduledRows and
 // re-render the page without end (it also stalled navigation while the attention filter was on).
 const NO_SCHEDULED: ScheduledTransaction[] = [];
@@ -148,6 +188,7 @@ export function RegisterTable({
   const listKey = transactionsKey(budgetId, plan ? "all" : account.id, search.applied);
   const setCleared = useSetCleared(budgetId, listKey);
   const setFlag = useSetFlag(budgetId, listKey);
+  const setClock = useSetClock(budgetId);
   const [sort, setSort] = useState<{ column: PlanSortColumn; dir: SortDir }>({
     column: "date",
     dir: "desc",
@@ -165,6 +206,8 @@ export function RegisterTable({
   const { showFlags, showBalance } = view;
   const data = q.data;
   const scheduledRows = useScheduledRows(budgetId, account?.id, sort);
+  // EXF-466: a linked account's pending bank transactions (never in All Accounts, a search or the attention filter).
+  const pendingQ = usePendingTransactions(budgetId, account?.id ?? "", !plan && !!account?.linked);
   const reconcileMode = useReconcile()?.step === "mode";
   const attention = useAttentionFilter().on;
   const openIds = useMemo(() => new Set(openAccounts.map((a) => a.id)), [openAccounts]);
@@ -210,7 +253,14 @@ export function RegisterTable({
   ]);
 
   // Source: the attention column is display:none when no listed row needs approval.
-  const attentionCol = rows.some((r) => !r.approved || r.matched);
+  const pendingRows =
+    !plan && account?.linked && !(attention || searching)
+      ? (pendingQ.data?.transactions ?? [])
+      : [];
+  const attentionCol = rows.some((r) => !r.approved || r.matched) || pendingRows.length > 0;
+  const hasClock = rows.some(
+    (r) => r.status === "entered" || (r.pending_transaction_id && !r.import_id),
+  );
   const colCount =
     columns.length + 2 + (attentionCol ? 1 : 0) + (showFlags ? 1 : 0) + (showBalance ? 1 : 0);
 
@@ -511,6 +561,7 @@ export function RegisterTable({
             </td>
           )}
           <td className="cell-cleared">
+            <ClockButton tx={tx} onToggle={(status) => setClock.mutate({ id: tx.id, status })} />
             <ClearedCell
               tx={tx}
               onToggle={() =>
@@ -578,7 +629,7 @@ export function RegisterTable({
     <AttentionColumnContext.Provider value={attentionCol}>
       <div className="register-scroll">
         <table
-          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}`}
+          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}${hasClock ? " has-clock" : ""}`}
           aria-label={`${account?.name ?? "All Accounts"} transactions`}
           aria-busy={q.isPending || !view.ready}
         >
@@ -665,6 +716,20 @@ export function RegisterTable({
               onSaved={onSaved}
             />
           )}
+          {account && pendingRows.length > 0 && (
+            <PendingSection
+              budgetId={budgetId}
+              account={account}
+              showCategory={showCategory}
+              colCount={colCount}
+              rows={pendingRows}
+              open={open}
+              onOpen={onOpen}
+              onCloseEntry={onCloseEntry}
+              onSaved={onSaved}
+              accounts={openAccounts}
+            />
+          )}
           <ScheduledSection
             budgetId={budgetId}
             account={account}
@@ -684,6 +749,7 @@ export function RegisterTable({
           (rows.length === 0 &&
             hidden === 0 &&
             (attention || searching ? 0 : scheduledRows.length) === 0 &&
+            pendingRows.length === 0 &&
             !searching &&
             !open) ? (
             <tbody>
