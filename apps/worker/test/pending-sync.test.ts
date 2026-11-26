@@ -16,6 +16,7 @@ import {
   data,
   feed,
   type Json,
+  linked,
   logCount,
   q,
   rows,
@@ -197,7 +198,7 @@ describe("posted replaces or matches (S5-S11)", () => {
   it("S8: a split keeps its amount; a row moved to another account is imported anew (D14)", async () => {
     const w = await entered();
     const m = await month(w.plan);
-    const [c1, c2] = m.groups.flatMap((g: Json) => g.categories) as Json[];
+    const [c1, c2] = m.groups.flatMap((g: Json) => g.categories) as [Json, Json];
     const split = await json(
       `${TX(w.plan)}/${w.tx.id}`,
       { method: "PATCH" },
@@ -216,10 +217,7 @@ describe("posted replaces or matches (S5-S11)", () => {
     // moved
     await setupPlaid();
     const v = await entered();
-    const other = (
-      await q("select id from accounts where budget_id = ? and id <> ? limit 1", v.plan, v.account)
-    )[0]?.id;
-    expect(other).toBeDefined();
+    const other = await linked(v.plan, v.bankIds["ZZ Savings"] as string);
     await env.DB.prepare("update transactions set account_id = ? where id = ?")
       .bind(other, v.tx.id)
       .run();
@@ -252,9 +250,11 @@ describe("posted replaces or matches (S5-S11)", () => {
     await w.bank({ removed: ["ZZ-P1", "ZZ-P2"] });
     expect((await listPending(w.plan, w.account)).transactions).toEqual([]);
     const del = (await w.logs("pending_transaction")).filter(
-      (l) => l.action === "delete" && l.actor === "service:plaid",
+      (l) => l.action === "delete" && l.actor === "service:plaid" && l.budget_id === w.plan,
     );
-    expect(del).toHaveLength(1);
+    expect(del.map((l) => l.entity_id)).toEqual([
+      ps.find((x) => x.plaid_transaction_id === "ZZ-P1")?.id,
+    ]);
     const [t] = await q("select * from transactions where id = ?", tx.id);
     expect(t).toMatchObject({
       cleared: "uncleared",
@@ -304,7 +304,8 @@ describe("posted replaces or matches (S5-S11)", () => {
     expect(live.map((x) => x.plaid_transaction_id)).toEqual(["ZZ-P1", "ZZ-P2"]);
     expect(
       await count(
-        "select count(*) n from (select plaid_transaction_id from pending_transactions where deleted_at is null group by 1 having count(*) > 1)",
+        "select count(*) n from (select plaid_transaction_id from pending_transactions where account_id = ? and deleted_at is null group by 1 having count(*) > 1)",
+        w.account,
       ),
     ).toBe(0);
   });

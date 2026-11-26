@@ -192,6 +192,8 @@ export function matchCandidatesQuery(db: Db, accountId: string, from: string, to
         isNull(transactions.parentTransactionId),
         isNull(transactions.importId),
         isNull(transactions.source),
+        // a row entered from a pending item waits for its own posted version (EXF-466)
+        isNull(transactions.pendingTransactionId),
         // never the Starting Balance: it is not a purchase the bank can repeat
         sql`coalesce((select p.system from payees p where p.id = ${transactions.payeeId}), '') <> 'starting_balance'`,
         sql`${transactions.date} between ${from} and ${to}`,

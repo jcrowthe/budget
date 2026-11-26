@@ -66,8 +66,12 @@ export async function pendingWorld(pages: Json[] = []) {
   };
   for (const p of pages) await bank(p);
   const logs = (entity: string) =>
-    q("select * from change_log where entity_type = ? order by rowid", entity);
-  return { ...w, calls, bank, logs };
+    q(
+      "select * from change_log where entity_type = ? and budget_id = ? order by rowid",
+      entity,
+      w.plan,
+    );
+  return { ...w, bankIds: w.bank, calls, bank, logs };
 }
 
 export { env, expect, hand };

@@ -240,7 +240,7 @@ function mapWriteError(e: unknown): UndoRefused | null {
   if (m.includes("UNIQUE constraint failed: change_set_undos"))
     return new UndoRefused(409, "already_undone", UNDO_ERRORS.already_undone);
   if (
-    /UNIQUE constraint failed: (transactions|payees|payee_rename_rules|categories|category_groups)\b/.test(
+    /UNIQUE constraint failed: (transactions|pending_transactions|payees|payee_rename_rules|categories|category_groups)\b/.test(
       m,
     )
   )
@@ -254,6 +254,7 @@ const DETAIL_NAME: Record<string, string> = {
   scheduled_transaction: "scheduled transaction",
   scheduled_subtransaction: "scheduled transaction line",
   month_category: "month cell",
+  pending_transaction: "pending transaction",
 };
 
 /**

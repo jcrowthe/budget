@@ -15,6 +15,7 @@ interface RawTxn {
   merchant_name?: string | null;
   original_description?: string | null;
   pending?: boolean;
+  pending_transaction_id?: string | null;
 }
 
 export interface SyncPage {
@@ -49,6 +50,7 @@ const pick = (t: RawTxn): PlaidTxn => ({
   merchant_name: t.merchant_name ?? null,
   original_description: t.original_description ?? null,
   pending: t.pending === true,
+  pending_transaction_id: t.pending_transaction_id ?? null,
 });
 
 async function readPage(

@@ -1,6 +1,6 @@
 import { ErrorBody } from "@budget/schema/common/envelope";
 import { SettingsPatch, SettingsResponse } from "@budget/schema/settings";
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono, type z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import { getSettings, updateSettings } from "../services/settings";

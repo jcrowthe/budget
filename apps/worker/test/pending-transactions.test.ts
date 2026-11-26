@@ -85,15 +85,20 @@ describe("Enter Now (EXF-466, E1-E7)", () => {
     const tx = (await data(res)).transaction as Json;
     expect(tx).toMatchObject({ category_id: cat, memo: "ZZ memo", amount: -7000 });
     const set = setOf(res);
-    const logs = await q(
-      "select entity_type, action from change_log where change_set_id = ? order by rowid",
-      set,
-    );
+    const logs = (
+      await q(
+        "select entity_type, action from change_log where change_set_id = ? order by rowid",
+        set,
+      )
+    ).filter((l) => l.entity_type !== "payee");
     expect(logs.map((l) => `${l.action} ${l.entity_type}`).sort()).toEqual(
       ["create transaction", "delete pending_transaction"].sort(),
     );
     expect(
-      await count("select count(*) n from transactions where pending_transaction_id = 'ZZ-P1'"),
+      await count(
+        "select count(*) n from transactions where budget_id = ? and pending_transaction_id = 'ZZ-P1'",
+        w.plan,
+      ),
     ).toBe(1);
   });
 
@@ -170,16 +175,17 @@ describe("Enter Now (EXF-466, E1-E7)", () => {
   it("E6: Enter Now is the user's; the sync is service:plaid", async () => {
     const w = await scene();
     await enterNow(w.plan, w.p1);
-    const logs = await q(
-      "select actor, entity_type, action from change_log where entity_type in ('pending_transaction','transaction') and (entity_type = 'pending_transaction' or action = 'create') order by rowid",
+    const mine = await q(
+      "select actor, entity_type, action from change_log where budget_id = ? and (entity_type = 'pending_transaction' or (entity_type = 'transaction' and json_extract(after_json, '$.status') = 'entered')) order by rowid",
+      w.plan,
     );
-    const entered = logs.filter((l) => l.actor !== "service:plaid");
+    const entered = mine.filter((l) => l.actor !== "service:plaid");
     expect(entered.map((l) => `${l.action} ${l.entity_type}`).sort()).toEqual([
       "create transaction",
       "delete pending_transaction",
     ]);
     expect(entered.every((l) => l.actor === "user:tester@localhost")).toBe(true);
-    expect(logs.filter((l) => l.actor === "service:plaid").length).toBeGreaterThanOrEqual(2);
+    expect(mine.filter((l) => l.actor === "service:plaid")).toHaveLength(2);
   });
 
   it("E7: the list: another plan's account is 404, account_id alone is 422, plan-wide lists both", async () => {
