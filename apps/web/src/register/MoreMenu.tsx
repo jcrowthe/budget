@@ -1,5 +1,13 @@
 import { countLabel } from "@budget/schema/register-selection";
-import { type ReactNode, useRef, useState } from "react";
+import { SCHEDULED_LATER } from "@budget/schema/scheduled-transactions";
+import {
+  type KeyboardEvent as ReactKey,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   CaretRightIcon,
@@ -53,7 +61,8 @@ type Item = {
   onClick?: () => void;
 };
 
-function Row({ item }: { item: Item }) {
+/** `onHover`: the pointer entered the row (the Move to Account submenu closes at once). */
+function Row({ item, onHover }: { item: Item; onHover?: () => void }) {
   return (
     <button
       type="button"
@@ -63,6 +72,7 @@ function Row({ item }: { item: Item }) {
       aria-disabled={item.disabled ? "true" : undefined}
       data-ticket={item.disabled?.ticket}
       title={item.disabled?.title}
+      onMouseEnter={onHover}
       onClick={item.disabled ? undefined : item.onClick}
     >
       <span className="bulk-item-icon">{item.icon}</span>
@@ -95,7 +105,7 @@ export function MoreMenu({
   onExport,
   onDelete,
 }: {
-  /** The selection is scheduled rows: only Delete works in this Build. */
+  /** The selection is scheduled rows: Duplicate and Export stay disabled with their reason. */
   scheduled?: boolean;
   anchor: HTMLElement;
   count: number;
@@ -115,9 +125,68 @@ export function MoreMenu({
   onExport: () => void;
   onDelete: () => void;
 }) {
-  const [sub, setSub] = useState(false);
+  // EXF-679: the Move to Account submenu opens on hover, click, ArrowRight, Enter and Space; it closes on Escape
+  // (the first one: More stays) and when the pointer leaves the button and the submenu.
+  const [sub, setSub] = useState<null | "pointer" | "keyboard">(null);
   const moveBtn = useRef<HTMLButtonElement>(null);
-  const later = { ticket: "later", title: "Not available for scheduled transactions yet" };
+  const leaveTimer = useRef<number | undefined>(undefined);
+  const cancelLeave = useCallback(() => {
+    window.clearTimeout(leaveTimer.current);
+    leaveTimer.current = undefined;
+  }, []);
+  const closeSub = () => {
+    cancelLeave();
+    setSub(null);
+  };
+  const SUB_MENU = '[role="menu"][aria-label="Move to Account"]';
+  useEffect(() => {
+    if (sub === null) return;
+    const onMove = (e: PointerEvent) => {
+      const t = e.target instanceof Element ? e.target : null;
+      const inside = t !== null && (moveBtn.current?.contains(t) || t.closest(SUB_MENU) !== null);
+      if (inside) cancelLeave();
+      else if (leaveTimer.current === undefined) {
+        leaveTimer.current = window.setTimeout(() => {
+          leaveTimer.current = undefined;
+          setSub(null);
+        }, 150);
+      }
+    };
+    // Window capture runs before the Popovers' document listeners: the first Escape closes the submenu only.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      cancelLeave();
+      setSub(null);
+      moveBtn.current?.focus();
+    };
+    document.addEventListener("pointermove", onMove);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("pointermove", onMove);
+      window.removeEventListener("keydown", onKey, true);
+      cancelLeave();
+    };
+  }, [sub, cancelLeave]);
+  useEffect(() => {
+    if (sub !== "keyboard") return;
+    document.querySelector<HTMLElement>(`${SUB_MENU} [role="menuitem"]`)?.focus();
+  }, [sub]);
+  const onSubKey = (e: ReactKey) => {
+    const items = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      items[(at + step + items.length) % items.length]?.focus();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      closeSub();
+      moveBtn.current?.focus();
+    }
+  };
+  const later = { ticket: "later", title: SCHEDULED_LATER };
   const matchGroup: Item[] = [
     {
       label: "Match",
@@ -146,14 +215,7 @@ export function MoreMenu({
       { label: "Duplicate", icon: <DuplicateIcon />, keys: ["shift", "D"], disabled: later },
       repeatItem,
     ],
-    [
-      { label: "Memo...", icon: <MemoIcon />, disabled: later },
-      {
-        label: "Move to Account",
-        icon: <ExportIcon style={{ transform: "rotate(-90deg)" }} />,
-        disabled: later,
-      },
-    ],
+    [{ label: "Memo...", icon: <MemoIcon />, onClick: onMemo }],
     [{ label: `Export ${countLabel(count)}`, icon: <ExportIcon />, disabled: later }],
     [{ label: "Delete", icon: <TrashIcon />, keys: ["delete"], onClick: onDelete }],
   ];
@@ -206,18 +268,28 @@ export function MoreMenu({
           <li key={g[0]?.label} className="bulk-group">
             {gi > 0 && <hr />}
             {g.map((item) => (
-              <Row key={item.label} item={item} />
+              <Row key={item.label} item={item} onHover={closeSub} />
             ))}
             {moveTo && g[0]?.label === "Memo..." && (
               <button
                 ref={moveBtn}
                 type="button"
                 role="menuitem"
-                className="bulk-item"
+                className={`bulk-item${sub ? " is-active" : ""}`}
                 aria-label="Move to Account"
                 aria-haspopup="menu"
-                aria-expanded={sub}
-                onClick={() => setSub((s) => !s)}
+                aria-expanded={sub !== null}
+                onMouseEnter={() => {
+                  cancelLeave();
+                  setSub((cur) => cur ?? "pointer");
+                }}
+                onClick={(e) => setSub((cur) => (e.detail === 0 ? "keyboard" : (cur ?? "pointer")))}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSub("keyboard");
+                  }
+                }}
               >
                 <span className="bulk-item-icon">
                   <ExportIcon style={{ transform: "rotate(-90deg)" }} />
@@ -237,10 +309,17 @@ export function MoreMenu({
           placement="right"
           width={232}
           label="Move to Account"
-          onClose={() => setSub(false)}
+          onClose={closeSub}
         >
-          <ul className="bulk-list bulk-move">
-            {moveTo?.length === 0 && <li className="bulk-empty">No other accounts</li>}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: arrow keys move through the menu's items */}
+          <ul className="bulk-list bulk-move" onKeyDown={onSubKey}>
+            {moveTo?.length === 0 && (
+              <li>
+                <span className="bulk-empty" role="menuitem" aria-disabled="true" tabIndex={-1}>
+                  No other accounts
+                </span>
+              </li>
+            )}
             {moveTo?.map((a) => (
               <li key={a.id}>
                 <button

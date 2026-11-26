@@ -669,6 +669,7 @@
   overflow-y: auto;
 }
 .bulk-empty {
+  display: block;
   padding: 8px 12px;
   color: var(--register-menu-disabled);
 }
