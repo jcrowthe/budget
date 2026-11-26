@@ -57,6 +57,7 @@ export async function getLoanActivity(
     const isPayment =
       r.payeeSystem !== "starting_balance" && r.amount > 0 && r.otherOnBudget === true;
     if (isPayment) {
+      const reconciled = r.cleared === "reconciled" || r.sideCleared === "reconciled";
       payments.push({
         transaction_id: r.id,
         date: r.date,
@@ -65,6 +66,8 @@ export async function getLoanActivity(
         cleared: r.cleared,
         from_account_id: r.transferAccountId,
         from_account_name: r.otherName,
+        reconciled,
+        editable: !reconciled && r.sideId !== null && !r.otherClosed && !r.isSplit,
       });
     } else {
       other.push({

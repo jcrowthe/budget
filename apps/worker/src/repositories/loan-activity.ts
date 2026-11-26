@@ -22,6 +22,7 @@ const counts = and(isNull(transactions.deletedAt), isNull(transactions.parentTra
 
 const other = alias(accounts, "lo_other");
 const payee = alias(payees, "lo_payee");
+const side = alias(transactions, "lo_side");
 
 const kindOf = sql<string>`case
   when coalesce(${payee.system}, '') = 'starting_balance' then 'starting'
@@ -133,6 +134,11 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
       cleared: transactions.cleared,
       createdAt: transactions.createdAt,
       transferAccountId: transactions.transferAccountId,
+      transferTransactionId: transactions.transferTransactionId,
+      // The other side of a transfer (a payment's cash row): its id and cleared state, and whether its account is closed.
+      sideId: sql<string | null>`${side.id}`.as("side_ref"),
+      sideCleared: sql<string | null>`${side.cleared}`.as("side_cleared"),
+      otherClosed: sql<number | null>`${other.closed}`.as("other_closed"),
       // Distinct labels: a D1 batch maps rows by column name, so `lo_other.name`, `lo_payee.name` and `transactions.payee_name` must differ.
       otherName: sql<string | null>`${other.name}`.as("other_name"),
       otherOnBudget: other.onBudget,
@@ -148,6 +154,7 @@ export function monthRowsQuery(db: Db, budgetId: string, loanId: string, month: 
     .from(transactions)
     .leftJoin(payee, eq(payee.id, transactions.payeeId))
     .leftJoin(other, eq(other.id, transactions.transferAccountId))
+    .leftJoin(side, and(eq(side.id, transactions.transferTransactionId), isNull(side.deletedAt)))
     .where(
       and(
         eq(transactions.budgetId, budgetId),

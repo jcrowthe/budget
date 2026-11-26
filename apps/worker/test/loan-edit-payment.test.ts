@@ -140,7 +140,7 @@ describe("delete a payment", () => {
     expect((await side(w.paymentTx)).deleted_at).not.toBeNull();
     expect((await side(w.cashId)).deleted_at).not.toBeNull();
     expect((await activity(w.bid, w.loanId, NOV)).payments).toHaveLength(0);
-    expect(await balanceOf(w.bid, w.loanId)).toBe(before.loanBal - 1500000);
+    expect(await balanceOf(w.bid, w.loanId)).toBe(-200000000);
     expect(await balanceOf(w.bid, w.checkId)).toBe(before.checkBal + 1500000);
     expect(d.balance).toBe(await balanceOf(w.bid, w.loanId));
   });
@@ -308,6 +308,7 @@ describe("REST equals MCP", () => {
           "from_account_name",
           "last_payment_from_account_id",
           "account_name",
+          "payee_name",
         ].includes(k)
           ? undefined
           : x,

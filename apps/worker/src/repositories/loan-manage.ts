@@ -1,10 +1,15 @@
 import { LOAN_ESCROW_SYSTEM, LOAN_INTEREST_SYSTEM } from "@budget/core/loan-engine";
 import { addMonths, type Month } from "@budget/core/month";
+import { transferPayeeName } from "@budget/schema/transfers";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { Db } from "../db/client";
+import { accounts } from "../db/schema/accounts";
+import { categories } from "../db/schema/categories";
+import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
 import { transactions } from "../db/schema/transactions";
-import { countsInBalance } from "./transactions";
+import { countsInBalance, type TransactionDetailRow } from "./transactions";
 
 // Loan manage: the reads behind editing or deleting a recorded line. docs/loan-manage-design.md.
 
@@ -78,6 +83,73 @@ export function monthSystemRowsQuery(
         eq(payees.system, system),
         gte(transactions.date, month),
         lt(transactions.date, addMonths(month, 1)),
+      ),
+    );
+}
+
+const pmTa = alias(accounts, "pm_ta");
+
+/**
+ * A payment's two sides as the register reads them (`TransactionDetailRow`): the addressed loan row and the row its
+ * `transfer_transaction_id` names, both live, neither a split line, in this plan. No row when `txId` is not a loan
+ * row. One statement; every same-named column carries its own label, as a D1 batch maps rows by column name.
+ */
+export function paymentSidesQuery(db: Db, budgetId: string, loanId: string, txId: string) {
+  return db
+    .select({
+      t: transactions,
+      categoryName: sql<string | null>`${categories.name}`.as("category_label"),
+      groupName: sql<string | null>`${categoryGroups.name}`.as("group_label"),
+      payeeName: sql<string | null>`${payees.name}`.as("payee_label"),
+      payeeSystem: sql<string | null>`${payees.system}`.as("payee_system"),
+      transferAccountName: sql<string | null>`${pmTa.name}`.as("transfer_account_label"),
+    })
+    .from(transactions)
+    .leftJoin(categories, eq(categories.id, transactions.categoryId))
+    .leftJoin(categoryGroups, eq(categoryGroups.id, categories.groupId))
+    .leftJoin(payees, eq(payees.id, transactions.payeeId))
+    .leftJoin(pmTa, eq(pmTa.id, transactions.transferAccountId))
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        countsInBalance(),
+        sql`(${transactions.id} = ${txId} and ${transactions.accountId} = ${loanId}
+          or ${transactions.id} = (select o.transfer_transaction_id from transactions o where o.id = ${txId} and o.account_id = ${loanId}))`,
+      ),
+    );
+}
+
+/** The detail rows of `paymentSidesQuery`, shaped as `findDetail` shapes them (a transfer's payee is the other account). */
+export function toDetailRow(r: {
+  t: typeof transactions.$inferSelect;
+  categoryName: string | null;
+  groupName: string | null;
+  payeeName: string | null;
+  payeeSystem: string | null;
+  transferAccountName: string | null;
+}): TransactionDetailRow {
+  return {
+    ...r.t,
+    payeeName: r.transferAccountName
+      ? transferPayeeName(r.transferAccountName)
+      : (r.payeeName ?? r.t.payeeName),
+    categoryName: r.categoryName,
+    groupName: r.groupName,
+    payeeSystem: r.payeeSystem as TransactionDetailRow["payeeSystem"],
+    transferAccountName: r.transferAccountName,
+  };
+}
+
+/** The live account (this plan) that the addressed row transfers to: the payment's other account. No row for a non-transfer. */
+export function paymentOtherAccountQuery(db: Db, budgetId: string, loanId: string, txId: string) {
+  return db
+    .select({ account: accounts })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.budgetId, budgetId),
+        isNull(accounts.deletedAt),
+        sql`${accounts.id} = (select o.transfer_account_id from transactions o where o.id = ${txId} and o.account_id = ${loanId})`,
       ),
     );
 }
