@@ -152,6 +152,9 @@ export function EditLoanActivityDialog({
             </button>
           </div>
           <div className="form-body">
+            {payment && target.fromName ? (
+              <p className="loan-intro">{PAYMENT_FROM_LABEL(target.fromName)}</p>
+            ) : null}
             {monthLine ? (
               <p className="loan-intro">
                 {EDIT_ACTIVITY_LABELS.month}: {target.monthLabel}
@@ -193,9 +196,6 @@ export function EditLoanActivityDialog({
                 />
               </>
             )}
-            {payment ? (
-              <p className="loan-intro">{PAYMENT_FROM_LABEL(target.fromName ?? "")}</p>
-            ) : null}
             {error ? (
               <p className="error-bar" role="alert">
                 {error}

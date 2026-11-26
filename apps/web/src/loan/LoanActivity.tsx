@@ -185,8 +185,6 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
                 {a.payments.map((p) => (
                   <li key={p.transaction_id}>
                     <span className="loan-row-text">{paymentLine(p, mag)}</span>
-                    <span className="loan-row-amount">{fmt.signed(p.amount)}</span>
-                    <CheckIcon />
                     {p.editable ? (
                       <EditButton
                         label={`Edit payment on ${dayName(p.date)}`}
@@ -204,6 +202,8 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
                     ) : p.reconciled ? (
                       <LockIcon />
                     ) : null}
+                    <span className="loan-row-amount">{fmt.signed(p.amount)}</span>
+                    <CheckIcon />
                   </li>
                 ))}
               </ul>
