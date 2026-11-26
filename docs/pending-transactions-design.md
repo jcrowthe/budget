@@ -113,7 +113,7 @@ row can be made in the browser; Enter Now makes the real row, so balances really
 
 ## Pre-allowed edits made
 
-- `apps/worker/test/backup.test.ts:48`: table count 28 → 29.
+- `apps/worker/test/backup.test.ts:48` and `scripts/test/restore-backup.test.ts:179`: table count 28 → 29.
 - `packages/schema/test/plaid-import.test.ts`: the `netChanges` test "pending is dropped" now also asserts `pending`
   (its `upserts` expectation is unchanged); the `txn()` fixture gains `pending_transaction_id: null`.
 - `packages/schema/test/register.test.ts`, `packages/schema/test/register-export.test.ts`: fixtures typed as

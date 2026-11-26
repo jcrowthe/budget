@@ -160,7 +160,7 @@ describe("pending rows change no read (EXF-466 audit)", () => {
     const listed = await data(await json(`${TX(planA)}?status=pending`));
     expect(listed.transactions).toHaveLength(4);
     // and a pending id is not a transaction to export
-    const [one] = listed.transactions as Json[];
+    const one = (listed.transactions as Json[])[0] as Json;
     expect((await json(`${TX(planA)}/export?ids=${one.id}`)).status).toBe(404);
   }, 120_000);
 });
