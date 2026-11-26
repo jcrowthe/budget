@@ -305,6 +305,7 @@ export function ScheduledBar({
           {(anchor) => menu(anchor, "right")}
         </PointAnchor>
       ) : null}
+      {editFlags.dialog}
     </>
   );
 }
