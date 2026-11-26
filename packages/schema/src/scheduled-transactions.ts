@@ -144,15 +144,113 @@ export const ScheduledTransactionUpdate = updateFields
   .openapi("ScheduledTransactionUpdate");
 export type ScheduledTransactionUpdate = z.input<typeof ScheduledTransactionUpdate>;
 
-export const SCHEDULED_BULK_OPS = ["enter_now", "delete"] as const;
+export const SCHEDULED_BULK_OPS = [
+  "enter_now",
+  "delete",
+  "categorize",
+  "flag",
+  "memo",
+  "move",
+] as const;
+
+const ScheduledIds = z
+  .array(z.string().min(1))
+  .min(1)
+  .max(SCHEDULED_BULK_MAX)
+  .describe(
+    "Series ids of the scheduled transactions (1 to 100); a mirror row's id is its series id",
+  );
+
+const bulkVariant = <O extends string, T extends z.ZodRawShape>(op: O, shape: T) =>
+  z.object({ op: z.literal(op).describe("The operation"), ids: ScheduledIds, ...shape }).strict();
+
 export const ScheduledBulkRequest = z
-  .object({
-    op: z.enum(SCHEDULED_BULK_OPS),
-    ids: z.array(z.string().min(1)).min(1).max(SCHEDULED_BULK_MAX),
-  })
-  .strict()
+  .discriminatedUnion("op", [
+    bulkVariant("enter_now", {}),
+    bulkVariant("delete", {}),
+    bulkVariant("categorize", {
+      value: z.string().min(1).describe("A category id, or ready_to_assign"),
+    }),
+    bulkVariant("flag", {
+      value: FlagColor.nullable().describe("A flag colour, or null to clear the flag"),
+    }),
+    bulkVariant("memo", {
+      value: z.string().max(500).nullable().describe("The memo; null or blank clears it"),
+    }),
+    bulkVariant("move", {
+      value: z.string().min(1).describe("The id of the account to move the schedules to"),
+      mirror_ids: z
+        .array(z.string().min(1))
+        .max(SCHEDULED_BULK_MAX)
+        .optional()
+        .describe(
+          "Series ids in ids that were selected only through their mirror row; move skips them",
+        ),
+    }).superRefine((o, ctx) => {
+      for (const m of o.mirror_ids ?? []) {
+        if (!o.ids.includes(m)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["mirror_ids"],
+            message: "mirror_ids must be in ids",
+          });
+          return;
+        }
+      }
+    }),
+  ])
   .openapi("ScheduledBulkRequest");
 export type ScheduledBulkRequest = z.input<typeof ScheduledBulkRequest>;
+
+export const ScheduledBulkSkipReason = z
+  .enum(["changed", "unchanged", "split", "tracking_account", "category_not_needed", "mirror"])
+  .openapi("ScheduledBulkSkipReason");
+export type ScheduledBulkSkipReason = z.infer<typeof ScheduledBulkSkipReason>;
+
+export const SCHEDULED_CATEGORIZE_NONE =
+  "None of the selected scheduled transactions takes a category";
+/** Why Duplicate and Export are off for scheduled rows (one definition for both bars). */
+export const SCHEDULED_LATER = "Not available for scheduled transactions yet";
+export const scheduledMirrorMoveText = (seriesAccount: string) =>
+  `Scheduled in ${seriesAccount}: move it there`;
+
+/**
+ * Why categorize leaves a schedule alone, or null when it takes the category. The worker and the
+ * action bar both use it. Symmetric: a mirror row (account and other account swapped) answers the same.
+ */
+export function scheduledCategorizeSkip(r: {
+  split: boolean;
+  onBudget: boolean;
+  other: { onBudget: boolean } | null;
+}): "split" | "tracking_account" | "category_not_needed" | null {
+  if (r.split) return "split";
+  if (r.other) {
+    if (r.onBudget && r.other.onBudget) return "category_not_needed";
+    if (!r.onBudget && !r.other.onBudget) return "tracking_account";
+    return null;
+  }
+  return r.onBudget ? null : "tracking_account";
+}
+
+export function scheduledSkipText(
+  reason: ScheduledBulkSkipReason,
+  o: { seriesAccountName: string },
+): string {
+  switch (reason) {
+    case "split":
+      return "A split's category is in its lines";
+    case "tracking_account":
+      return "A tracking account's transactions take no category";
+    case "category_not_needed":
+      return "A transfer between on-plan accounts takes no category";
+    case "unchanged":
+      return "Already set";
+    case "changed":
+      return "The scheduled transaction changed; reload it";
+    case "mirror":
+      return scheduledMirrorMoveText(o.seriesAccountName);
+  }
+}
 
 export const TodayQuery = z.object({
   today: Today.optional().describe(
@@ -185,7 +283,7 @@ export const ScheduledBulkResponse = dataEnvelope(
         scheduled_transaction: ScheduledTransaction,
       }),
     ),
-    skipped: z.array(z.object({ id: z.string(), reason: z.literal("changed") })),
+    skipped: z.array(z.object({ id: z.string(), reason: ScheduledBulkSkipReason })),
   }),
 );
 export const EnterDueResponse = dataEnvelope(

@@ -629,8 +629,10 @@
 .bulk-item[aria-disabled="true"] .bulk-item-icon {
   color: var(--register-icon-disabled);
 }
-.bulk-item.is-active {
+.bulk-item.is-active,
+.bulk-item:focus-visible {
   background: var(--register-menu-hover);
+  outline: none;
 }
 .bulk-chevron {
   display: inline-flex;
@@ -661,7 +663,7 @@
   background: rgba(114, 116, 132, 0.18);
   color: var(--register-icon-muted);
 }
-.bulk-item:not([aria-disabled="true"]):hover kbd {
+.bulk-item:not([aria-disabled="true"]):is(:hover, :focus-visible) kbd {
   color: var(--labelPrimary);
 }
 .bulk-move {
@@ -669,6 +671,7 @@
   overflow-y: auto;
 }
 .bulk-empty {
+  display: block;
   padding: 8px 12px;
   color: var(--register-menu-disabled);
 }

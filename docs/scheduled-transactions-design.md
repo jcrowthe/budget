@@ -146,7 +146,7 @@ writes in the same millisecond cannot both pass. An edit or a delete also replac
 | `PATCH …/{scheduled_transaction_id}` (`?today`) | `update_scheduled_transaction` | 8 |
 | `DELETE …/{scheduled_transaction_id}` | `delete_scheduled_transaction` | 3 |
 | `POST …/{scheduled_transaction_id}/enter` (`?today`) → 201 | `enter_scheduled_transaction_now` | 5 |
-| `POST /budgets/{budget_id}/scheduled-transactions/bulk` (`?today`) | `enter_scheduled_transaction_now`, `delete_scheduled_transaction` (one id per call) | 5, whatever the number of ids |
+| `POST /budgets/{budget_id}/scheduled-transactions/bulk` (`?today`) | `enter_scheduled_transaction_now`, `delete_scheduled_transaction` (one id per call); `bulk_update_scheduled_transactions` for categorize, flag, memo and move | enter 5, delete 3; categorize 5, flag 4, memo 4, move 6; whatever the number of ids |
 | `POST /budgets/{budget_id}/scheduled-transactions/enter-due` (`?today`) | `enter_due_scheduled_transactions` | 3 |
 
 - **`/bulk` is an addition to note 2's list.** The action bar must act on several rows "in one request that
@@ -157,7 +157,7 @@ writes in the same millisecond cannot both pass. An edit or a delete also replac
 - Field lists, bodies and response shapes: spec, task 2.
 - **Tool descriptions** say that scheduled splits and transfers are not supported (EXF-501), and use `MONEY`,
   `DATE`, `dates(…)` and `timestamps(["created_at", "updated_at"])`.
-- **Coverage file:** `apps/worker/test/mcp-coverage/scheduled-transactions.ts`. All seven tools are called in
+- **Coverage file:** `apps/worker/test/mcp-coverage/scheduled-transactions.ts`. All eight tools are called in
   `mcp-timestamps.test.ts`.
 - **`app.ts` does not change:** the routes are collected with `import.meta.glob`.
 
@@ -209,9 +209,10 @@ writes in the same millisecond cannot both pass. An edit or a delete also replac
   - A click selects the row.
   - A click on the only selected row, or a double-click, opens the edit row (Cancel and Save) and sends a PATCH.
 - **The action bar for scheduled rows.**
-  - It shows `N Transaction(s)`, **Enter Now** (`E`), Categorize and Flag drawn disabled, and More.
-  - More: Match and Unmatch disabled; Duplicate, Memo..., Move to Account and Export drawn disabled with the
-    title "Not available for scheduled transactions yet"; **Delete** enabled with no confirmation.
+  - It shows `N Transaction(s)`, **Enter Now** (`E`), Categorize, Flag and More. Categorize, Flag, Memo... and
+    Move to Account work since EXF-657 (see "Bulk edits on scheduled rows").
+  - More: Match and Unmatch disabled; Duplicate and Export drawn disabled with the title "Not available for
+    scheduled transactions yet"; **Delete** enabled with no confirmation.
   - Enter Now and Delete each send one `/bulk` request.
   - `E` and `Delete`/`Backspace` act when focus is not in a field. The keys for real rows do nothing.
 - **Placeholders.** `keepPreviousInPlan(budgetId)` (EXF-499 AC 9).
@@ -219,6 +220,64 @@ writes in the same millisecond cannot both pass. An edit or a delete also replac
 Custom properties (`register.css`): `--register-scheduled-label: var(--labelSecondary)`,
 `--register-scheduled-header-bg: var(--backgroundSecondary)`. Icons (`register/icons.tsx`, Budget's own SVGs):
 `RepeatIcon` (14px), `CalendarIcon` (16px).
+
+## Bulk edits on scheduled rows (EXF-657, EXF-679)
+
+**Worker.** `POST …/scheduled-transactions/bulk` takes, besides `enter_now` and `delete`, four ops over 1 to 100
+series ids. `bulk_update_scheduled_transactions` is the MCP tool for them (REST = MCP).
+
+| Body | Effect |
+|---|---|
+| `{ op: "categorize", ids, value }` | `value` is a category id or `ready_to_assign` (clears the category, sets the mark) |
+| `{ op: "flag", ids, value }` | `value` is a colour or `null` |
+| `{ op: "memo", ids, value }` | `value` is text up to 500 characters; `null` or blank clears it |
+| `{ op: "move", ids, value, mirror_ids? }` | `value` is the target account id; `mirror_ids` (a subset of `ids`) were selected only through their mirror row |
+
+- **Writes.** Each changed schedule is one gated update (the token and next-date gate of every edit) and one
+  `change_log` row (`update`). All of them go in one `db.batch`, under the request's one change set, so one Undo
+  restores them. A schedule edited between the read and the batch is `skipped: changed`.
+- **D1 calls**, the same for 10 and 100 ids (`scheduled-bulk-update-calls.test.ts`): categorize 5, flag 4, memo 4,
+  move 6; a request that skips every row makes no batch call.
+- **Refused, nothing written:** 404 for an unknown id; 422 for a closed account (`account_closed`), a transfer
+  whose other account is closed, an unknown category or target account, a closed target, a card's own payment
+  category (`own_payment_category`), and the move refusals below. Per-row refusals read `Transaction <id>: …`.
+- **Skipped, with a reason** in `skipped`: `unchanged` (already set), `changed`, and for categorize `split`,
+  `tracking_account`, `category_not_needed`; for move `mirror`.
+- **Categorize rule.** It mirrors the register's real-row rule. A split takes no category (it is in its lines).
+  A plain schedule on a tracking account takes none. A transfer between two on-plan accounts takes none; between
+  two tracking accounts none; between an on-plan and a tracking account the category belongs to the on-plan side
+  (the own-payment-category check uses that side). `scheduledCategorizeSkip` (schema) decides, for the worker and
+  the bar alike; it is symmetric, so a mirror row answers as its series.
+- **Mirror rows.** A mirror shares its series id, so categorize, flag and memo through a mirror change the series.
+  A mirror never shows a flag, so a flag set from a mirror shows only in the owning account. Move acts on the
+  series' own account only: ids in `mirror_ids` are skipped (`mirror`, "Scheduled in <account>: move it there").
+- **Memo** changes the parent only; split lines keep their memos.
+- **Move rules**, in order: a `mirror_ids` id is skipped; a schedule already in the target is `unchanged`; a
+  transfer into its other account is refused; a split into a tracking account is refused; a categorized (or Ready
+  to Assign) schedule whose new sides take no category is refused; a card's own payment category into that card is
+  refused. A plain uncategorized schedule moves into a tracking account. Lines stay as they are.
+
+**Action bar.** `ScheduledBar` reads the selection itself and sends the four ops on the series ids.
+- Categorize opens the category picker whatever the count; it is disabled, with the title "None of the selected
+  scheduled transactions takes a category", when no selected row takes one. Flag opens the flag menu; Memo...
+  the memo dialog; Move to Account lists the open accounts except the one that holds every selected row.
+- A selection that mixes real and scheduled rows cannot exist: selecting one kind clears the other.
+- After an op the alert lists one line per skipped row: `<payee> on <date> (<amount>): <reason>`. A move that
+  skipped something keeps the selection, so the alert and the row stay visible; otherwise a move clears it.
+  Categorize, flag and memo keep the selection.
+- Duplicate and Export stay disabled for scheduled rows with the title "Not available for scheduled transactions
+  yet".
+
+**Move to Account submenu** (real and scheduled rows, EXF-679). It opens on hover, on click (never toggles), and
+on ArrowRight, Enter or Space from the keyboard, which also focuses its first item. It closes when the pointer
+leaves the button and the submenu (150 ms), when the pointer enters another More item, and on Escape: the first
+Escape closes the submenu and focuses the button, the second closes More. ArrowUp/ArrowDown move through the
+accounts (wrapping); ArrowLeft closes it. Opening and closing write nothing.
+
+**Edits to existing tests.** `e2e/scheduled-transactions.spec.ts` case 22 (pre-allowed) now asserts Categorize
+and Flag enabled, Duplicate and Export disabled with their title, Memo... and Move to Account enabled.
+`apps/worker/test/mcp-timestamps.test.ts` gains one `CALLS` line for the new tool (not on the may-touch list: a
+declared deviation, required by the one-line-per-tool convention).
 
 ## Downstream effects
 
@@ -235,7 +294,7 @@ Custom properties (`register.css`): `--register-scheduled-label: var(--labelSeco
 
 The right-click menu (the app has none), Undo after Delete (EXF-530), the approval icon, banner and sidebar dot
 (EXF-463), Make Repeating (EXF-503), scheduled splits and transfers (EXF-501), the Plan page (EXF-505), the
-disabled bulk actions for scheduled rows (a later ticket), due entry from the Plan page or the shell, and time
+due entry from the Plan page or the shell, and time
 zones.
 
 ## Acceptance
@@ -314,8 +373,9 @@ no open account). "Today" is fixed with `page.clock.setFixedTime` and sent as `t
     - the section header.
 22. **(497)** Selection and keys.
     - Select a real row, then click a scheduled one: only the scheduled one is selected.
-    - The bar shows Enter Now, with Categorize and Flag disabled. In More, Duplicate, Memo..., Move to Account and
-      Export are disabled, and Delete is enabled.
+    - The bar shows Enter Now, with Categorize and Flag enabled (EXF-657). In More, Duplicate and Export are
+      disabled with the title "Not available for scheduled transactions yet"; Memo... and Move to Account are
+      enabled, and Delete is enabled.
     - With two scheduled rows selected, `E` enters both.
     - `Delete` removes the selection.
     - `E` while typing in the memo field does nothing.

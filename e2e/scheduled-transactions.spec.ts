@@ -608,12 +608,18 @@ test("selecting one kind clears the other; the bar offers Enter Now and More's D
   );
   await expect(bar(page).getByRole("button", { name: "1 Transaction", exact: true })).toBeVisible();
   await expect(bar(page).getByRole("button", { name: "Enter Now", exact: true })).toBeEnabled();
-  await expect(bar(page).getByRole("button", { name: "Categorize", exact: true })).toBeDisabled();
-  await expect(bar(page).getByRole("button", { name: "Flag", exact: true })).toBeDisabled();
+  // EXF-657: Categorize, Flag, Memo and Move to Account work on scheduled rows; Duplicate and Export wait.
+  await expect(bar(page).getByRole("button", { name: "Categorize", exact: true })).toBeEnabled();
+  await expect(bar(page).getByRole("button", { name: "Flag", exact: true })).toBeEnabled();
   await realClick(page, bar(page).getByRole("button", { name: "More", exact: true }));
   const menu = page.getByRole("menu", { name: "More actions" });
-  for (const name of ["Duplicate", "Memo...", "Move to Account", "Export 1 Transaction"]) {
-    await expect(menu.getByRole("menuitem", { name, exact: true })).toHaveAttribute(
+  for (const name of ["Duplicate", "Export 1 Transaction"]) {
+    const item = menu.getByRole("menuitem", { name, exact: true });
+    await expect(item).toHaveAttribute("aria-disabled", "true");
+    await expect(item).toHaveAttribute("title", "Not available for scheduled transactions yet");
+  }
+  for (const name of ["Memo...", "Move to Account"]) {
+    await expect(menu.getByRole("menuitem", { name, exact: true })).not.toHaveAttribute(
       "aria-disabled",
       "true",
     );
