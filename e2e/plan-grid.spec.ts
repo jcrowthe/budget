@@ -2,12 +2,16 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { fixtureF, fixtureF0, stub } from "./plan-grid.fixtures";
 import { authHeaders, testName } from "./support/auth";
+import { ownUser } from "./support/own-user";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const now = new Date();
 const ISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
 
 type Req = import("@playwright/test").APIRequestContext;
+// Settings are per user (EXF-472): this spec pins the default look, so it runs as a user of its own.
+test.use({ storageState: (await ownUser("grid")).storageState });
+
 let planId = "";
 
 test.beforeEach(async ({ request }: { request: Req }) => {

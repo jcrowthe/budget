@@ -161,13 +161,15 @@ test.describe("1440×900", () => {
       const box = await rows.nth(i).locator("svg").first().boundingBox();
       expect([box?.width, box?.height]).toEqual([16, 16]);
       // Plan Settings is enabled by EXF-468 (menu-actions/plan-settings.tsx), Manage Bank Connections by EXF-460,
-      // Export Plan by EXF-476 (menu-actions/export-plan.tsx), Manage Payees by EXF-510 (menu-actions/manage-payees.tsx).
+      // Export Plan by EXF-476 (menu-actions/export-plan.tsx), Manage Payees by EXF-510 (menu-actions/manage-payees.tsx),
+      // Display Options by EXF-472 (menu-actions/display-options.tsx).
       const enabled = [
         "New Plan",
         "Open Plan",
         "Export Plan",
         "Plan Settings",
         "Manage Payees",
+        "Display Options",
         "Manage Bank Connections",
         "Keyboard Shortcuts",
         "Log Out",

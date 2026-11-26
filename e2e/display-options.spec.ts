@@ -42,8 +42,8 @@ const radio = (page: Page, section: string, name: string) =>
   group(page, section).getByRole("radio", { name, exact: true });
 const card = (page: Page, section: string, name: string) =>
   group(page, section)
-    .locator("[data-active]")
-    .filter({ has: radio(page, section, name) });
+    .locator("label[data-active]")
+    .filter({ has: page.getByRole("radio", { name, exact: true }) });
 
 async function openPlan(page: Page) {
   await page.goto(`/${planId}/budget`);
@@ -369,7 +369,7 @@ test("Dark tokens unchanged: key values pinned from the main branch", async ({ p
     "--labelNegative": "#ee5867",
     "--inputBackground": "#3c3e53",
     "--categoryBalanceWarningBackground": "#f6c91d",
-    "--overlay": "rgba(0, 0, 0, 0.33)",
+    "--overlay": "#00000054",
     "--colorScheme": "dark",
   };
   for (const [name, value] of Object.entries(pinned)) expect(await token(name), name).toBe(value);
@@ -410,4 +410,123 @@ test("Dark tokens unchanged: key values pinned from the main branch", async ({ p
     }, tone);
     expect(probe, tone).toEqual([bg, color]);
   }
+});
+
+// ---- Light theme: contrast of rendered text (contract item 3), computed from the page's own colours ----
+import { expectContrast, weakText } from "./support/contrast";
+import { call as apiCall, seed as seedRegister, TODAY } from "./support/register-seed";
+
+const goLight = async (request: APIRequestContext, balance_style = "default") => {
+  const res = await request.patch("/api/v1/settings", {
+    headers: userHeaders(),
+    data: { theme: "default", balance_style },
+  });
+  expect(res.ok()).toBe(true);
+};
+
+/** One category for each pill tone: positive (assigned), negative (outflow > assigned), cautious (underfunded target), zero (untouched). */
+async function seedTones(request: APIRequestContext) {
+  const base = `/api/v1/budgets/${planId}`;
+  const h = await authHeaders();
+  const post = async (path: string, data: unknown) =>
+    (await (await request.post(`${base}${path}`, { headers: h, data })).json()).data;
+  const checking = (
+    await post("/accounts", { name: "ZZ-TEST Checking", type: "checking", balance: 500000 })
+  ).account.id;
+  const iso = `${TODAY.slice(0, 7)}-01`;
+  const months = (await (await request.get(`${base}/months/${iso}`, { headers: h })).json()).data;
+  const cats = months.groups.flatMap((g: { categories: { id: string }[] }) => g.categories);
+  const [pos, neg, caut] = cats as { id: string }[];
+  const assign = (id: string, assigned: number) =>
+    request.patch(`${base}/months/${iso}/categories/${id}`, { headers: h, data: { assigned } });
+  await assign((pos as { id: string }).id, 50000);
+  await assign((neg as { id: string }).id, 10000);
+  await post("/transactions", {
+    account_id: checking,
+    date: TODAY,
+    amount: -30000,
+    category_id: (neg as { id: string }).id,
+  });
+  await request.put(
+    `${base}/categories/${(caut as { id: string }).id}/target?today=${new Date().toISOString().slice(0, 10)}`,
+    { headers: h, data: { cadence: "monthly", behavior: "set_aside", amount: 100000 } },
+  );
+}
+
+for (const style of ["default", "differentiate_without_color"]) {
+  test(`light contrast: the Plan, with Balance Style ${style}`, async ({ page, request }) => {
+    await seedTones(request);
+    await goLight(request, style);
+    await openPlan(page);
+    await expect(html(page)).toHaveClass(/\btheme-light\b/);
+    for (const tone of ["positive", "negative", "cautious", "zero"]) {
+      await expectContrast(page.locator(`.category-row .available-pill.${tone}`).first());
+    }
+    await expectContrast(page.locator(".group-name").first());
+    await expectContrast(page.locator(".category-name").first());
+    await expectContrast(page.locator(".category-row .cell-assigned").first());
+    await expectContrast(page.locator(".category-row .amount").first());
+    await expectContrast(page.getByRole("button", { name: "Recent Moves" }));
+    await expectContrast(page.locator(".month-button").first());
+    expect(await weakText(page)).toEqual([]);
+  });
+}
+
+test("light contrast: a register", async ({ page, request }) => {
+  const s = await seedRegister(request);
+  await apiCall(request, "POST", `/api/v1/budgets/${s.plan}/transactions`, {
+    account_id: s.checking,
+    date: TODAY,
+    amount: -25000,
+    category_id: s.category,
+    payee_name: "ZZ-TEST Payee",
+    memo: "ZZ-TEST memo",
+  });
+  await goLight(request);
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  await expect(page.getByText("ZZ-TEST Payee").first()).toBeVisible();
+  await expect(html(page)).toHaveClass(/\btheme-light\b/);
+  await expectContrast(page.getByText("ZZ-TEST Payee").first());
+  await expectContrast(page.getByText("ZZ-TEST memo").first());
+  await expectContrast(page.locator(".acct-label").first());
+  await expectContrast(page.locator(".acct-amount").first());
+  await expectContrast(page.getByRole("columnheader").first());
+  expect(await weakText(page)).toEqual([]);
+  await request.delete(`/api/v1/budgets/${s.plan}`, { headers: await authHeaders() });
+});
+
+test("light contrast: the Display Options and Plan Settings dialogs", async ({ page, request }) => {
+  await goLight(request);
+  await openPlan(page);
+  await openDialog(page);
+  const d = dialog(page);
+  await expectContrast(d.getByRole("heading", { name: "Display Options" }));
+  for (const h of ["Theme", "Progress Bars", "Balance Style"]) {
+    await expectContrast(d.getByRole("heading", { name: h, exact: true }));
+  }
+  await expectContrast(d.locator(".do-label").first());
+  await expectContrast(d.getByRole("button", { name: "Cancel", exact: true }));
+  await expectContrast(d.getByRole("button", { name: "Apply", exact: true }));
+  expect(await weakText(page, d)).toEqual([]);
+  await cancel(page);
+  await mouseClick(
+    page,
+    page.getByRole("navigation", { name: "Sidebar" }).getByRole("button", {
+      name: planName,
+      exact: true,
+    }),
+  );
+  await mouseClick(
+    page,
+    page.getByRole("menu", { name: "Plan", exact: true }).getByRole("menuitem", {
+      name: "Plan Settings",
+      exact: true,
+    }),
+  );
+  const ps = page.getByRole("dialog", { name: "Plan Settings" });
+  await expect(ps).toBeVisible();
+  await expectContrast(ps.getByRole("heading", { name: "Plan Settings" }));
+  await expectContrast(ps.getByRole("button", { name: "Cancel" }));
+  await expectContrast(ps.getByRole("button", { name: "Apply Settings" }));
+  expect(await weakText(page, ps)).toEqual([]);
 });

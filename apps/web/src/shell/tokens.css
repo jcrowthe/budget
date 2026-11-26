@@ -171,10 +171,20 @@
   /* EXF-472: colours that were inline literals; dark values unchanged */
   --labelOnColor: #fff;
   --labelPositive: #77ba21;
+  --labelError: #bf2e3b;
   --helpIcon: #545bfe;
   --separatorFaint: rgba(255, 255, 255, 0.1);
   --countPillBackground: #7583ff33;
   --countPillLabel: #d4d5ff;
   --shadowTooltipLarge: 0 10px 20px rgba(0, 0, 0, 0.15);
   --statusMarkHover: rgba(255, 255, 255, 0.3);
+  --colorScheme: dark;
+  /* The Display Options preview drawings: the same in every theme (a Light card looks light on a dark app). */
+  --previewLightGround: #ffffff;
+  --previewLightLine: #c9cde0;
+  --previewDarkGround: #0c0d22;
+  --previewDarkLine: #3c3e53;
+  /* Differentiate Without Color: the outline and text of the cautious and negative pills */
+  --pillCautiousOutline: #f6c91d;
+  --pillCautiousText: #f6c91d;
 }

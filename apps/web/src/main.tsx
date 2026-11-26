@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { router } from "./router";
+import { DisplaySync } from "./settings/DisplaySync";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -13,6 +14,7 @@ if (!root) throw new Error("#root missing");
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <DisplaySync />
       <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,

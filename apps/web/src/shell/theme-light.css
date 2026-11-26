@@ -1,0 +1,226 @@
+/*
+ * The light theme (EXF-472): an override set for every colour token of tokens.css and of the stylesheets that
+ * declare their own :root colours. `:root.theme-light` (specificity 0,2,0) beats every `:root` declaration
+ * whatever the order of the bundle. The dark values are the tokens themselves and are never edited here.
+ *
+ * The system: the ground is white, text is a deep indigo-black, the accent is indigo. Fills that carry a label
+ * (buttons, callouts, pills) are light or mid tones with a dark label, so a stylesheet that writes
+ * `color: var(--labelPrimary)` on a fill reads in both themes. Text colours are checked at 4.5:1 or better
+ * (e2e/display-options.spec.ts, "light contrast"). Tooltips stay dark in both themes.
+ * Not here, because they are the same in every theme: the --preview* tokens and --bankLogoFallback*.
+ */
+:root.theme-light {
+  --colorScheme: light;
+
+  /* grounds */
+  --backgroundPrimary: #ffffff;
+  --backgroundSecondary: #f3f4fa;
+  --backgroundTertiary: #ffffff;
+  --backgroundPrimaryElevated: #ffffff;
+  --backgroundSecondaryElevated: #eceef7;
+  --sidebarBackground: #eef0f8;
+  --sidebarHover: #e0e4f4;
+  --sidebarActive: #d3d9f7;
+  --menuHover: #eceef7;
+  --rowSelected: #e6e9fb;
+  --popupBackground: #ffffff;
+
+  /* labels */
+  --labelPrimary: #14152b;
+  --labelSecondary: #43455c;
+  --labelTertiary: #5b5d74;
+  --labelHeading: #14152b;
+  --labelMuted: rgba(20, 21, 43, 0.72);
+  --labelOnColor: #14152b;
+  --labelAction: #3640c7;
+  --labelActionDisabled: #8a90de;
+  --labelPositive: #3d6b0c;
+  --labelPositiveActive: #2f5a05;
+  --labelNegative: #b3202f;
+  --labelError: #b3202f;
+  --labelWarning: #7a5800;
+  --disabledPrimaryLabel: #8a90de;
+
+  /* accent and actions */
+  --actionPrimary: #5560f0;
+  --actionPrimaryActive: #3640c7;
+  --actionPrimaryDisabled: #aeb3ee;
+  --actionSecondary: #e4e6f0;
+  --buttonPrimaryBackground: #aab2ff;
+  --buttonPrimaryBackgroundActive: #8f99ff;
+  --buttonSecondaryBackground: rgba(85, 96, 240, 0.14);
+  --buttonSecondaryBackgroundHover: rgba(85, 96, 240, 0.24);
+  --buttonSecondaryBackgroundActive: rgba(85, 96, 240, 0.24);
+  --buttonSecondaryLabel: #2a31a8;
+  --buttonGhostLabel: #3640c7;
+  --buttonDestructiveBackground: #f7c1c6;
+  --buttonDestructiveBackgroundActive: #f2a0a8;
+  --buttonDestructiveLabel: #5c0b16;
+  --buttonDisabledBackground: #eceef7;
+  --buttonDisabledLabel: #6e7087;
+  --buttonSubtleBackground: rgba(20, 21, 43, 0.08);
+  --buttonSubtleBackgroundHover: rgba(20, 21, 43, 0.12);
+  --autoAssignButtonBackground: rgba(230, 232, 242, 0.7);
+  --autoAssignButtonBackgroundHover: rgba(230, 232, 242, 0.95);
+
+  /* inputs and lines */
+  --inputBackground: #e6e8f2;
+  --inputBorder: #8b8da3;
+  --inputBorderActive: #5560f0;
+  --inputBorderSubtle: #cfd2e3;
+  --iconFillSecondary: #6d6f86;
+  --borderSubtle: rgba(20, 21, 43, 0.1);
+  --separatorStandard: rgba(20, 21, 43, 0.14);
+  --separatorFaint: rgba(20, 21, 43, 0.12);
+  --segmentedTrack: rgba(20, 21, 43, 0.1);
+  --switchOffTrack: rgba(20, 21, 43, 0.2);
+  --keyCapBackground: rgba(20, 21, 43, 0.08);
+  --shadowMenu: 0 16px 48px rgba(20, 21, 43, 0.18);
+  --shadowTooltipLarge: 0 10px 20px rgba(20, 21, 43, 0.18);
+  --overlay: rgba(20, 21, 43, 0.4);
+  --scrimCardHover: rgba(20, 21, 43, 0.66);
+  --helpIcon: #4048d9;
+  --helpboxBackground: rgba(85, 96, 240, 0.12);
+
+  /* status */
+  /* green is the one dark fill: it is also a text colour (cleared marks, positive amounts), so it is a green that reads on white; its labels are white */
+  --statusPositive: #3d6b0c;
+  --statusNegative: #e8707b;
+  --statusCautious: #daac00;
+  --statusMarkHover: rgba(20, 21, 43, 0.12);
+
+  /* Available pills */
+  --categoryBalanceZeroLabel: #5b5d74;
+  --categoryBalancePositiveLabel: #ffffff;
+  --categoryBalancePositiveHover: #2f5a05;
+  --categoryBalanceWarningBackground: #f6c91d;
+  --categoryBalanceWarningBackgroundActive: #e2b400;
+  --categoryBalanceCautiousLabel: #14152b;
+  --categoryBalanceNegativeLabel: #14152b;
+  --categoryBalanceNegativeHover: #f08e97;
+  --pillCautiousOutline: #b58900;
+  --pillCautiousText: #7a5800;
+
+  /* callouts */
+  --calloutPrimarySubtleBackground: rgba(85, 96, 240, 0.12);
+  --calloutPrimaryProminentBackgroundEmphasis: #aab2ff;
+  --calloutStripBackground: #dfe3ff;
+  --calloutBadgeBackground: #dfe3ff;
+  --calloutPositiveBackground: rgba(119, 186, 33, 0.22);
+  --calloutPositiveProminentBackground: #b7e07a;
+  --calloutCautiousBackground: rgba(218, 172, 0, 0.22);
+  --calloutWarningSubtleBackground: #fdf0c0;
+  --calloutWarningSubtleBackgroundEmphasis: #f4d56b;
+  --calloutWarningSubtleBackgroundLabel: #14152b;
+  --calloutWarningAccent: #7a5800;
+  --calloutNegativeSubtleBackground: #fbdadd;
+  --calloutNegativeSubtleBackgroundEmphasis: #f5b3b9;
+  --calloutNegativeProminentBackground: #f3a1a9;
+  --calloutNegativeAccent: #b3202f;
+  --calloutNegativeLabel: #14152b;
+
+  /* Ready to Assign */
+  --rtaButtonPositive: #8fcc3c;
+  --rtaButtonPositiveHover: #a6dc58;
+  --rtaButtonNegative: #f08e97;
+  --rtaButtonNegativeHover: #f5a9b0;
+
+  /* budget bars */
+  --budgetBarBackground: #dfe2ee;
+  --budgetBarFundedSpending: #8cc84a;
+  --budgetBarFundedSpendingStripe: #6fae2c;
+  --budgetBarOverspending: #e8707b;
+  --budgetBarOverspendingStripe: #c9454f;
+  --budgetBarUnderfunded: #f6c91d;
+
+  /* tooltips stay dark: label and background are set together */
+  --tooltipBackground: #2a2c45;
+  --tooltipLabel: #ededf5;
+  --tooltipShadow: 0 2px 5px rgba(20, 21, 43, 0.25);
+  --panelTooltipLabel: #ededf5;
+  --panelTooltipShadow: 0 2px 5px rgba(20, 21, 43, 0.25);
+  --keyCapTooltipBackground: rgba(255, 255, 255, 0.15);
+  --account-tooltip-label: #ededf5;
+  --account-tooltip-shadow: 0 2px 5px rgba(20, 21, 43, 0.25);
+  --account-tooltip-shortcut-bg: #3c3e53;
+  --st-info-text: #ededf5;
+
+  /* account header */
+  --account-star-off: #8b8da3;
+  --account-star-on: #e0a800;
+  --account-rule: rgba(20, 21, 43, 0.12);
+  --account-secondary-hover: rgba(85, 96, 240, 0.24);
+  --account-payment-zero-label: #5b5d74;
+  --account-payment-positive-label: #ffffff;
+  --account-payment-negative-label: #14152b;
+
+  /* views, Manage Payees */
+  --viewChipBackground: #e4e6f0;
+  --viewChipBackgroundHover: #d3d6e6;
+  --viewChipSelectedBackground: #dfe3ff;
+  --viewChipSelectedBackgroundHover: #cdd3ff;
+  --viewChipSelectedBorder: #5560f0;
+  --mp-negative-bg: #f3a1a9;
+  --mp-destructive-label: #5c0b16;
+  --mp-destructive-hover: #f08e97;
+  --mp-label-heading: #14152b;
+
+  /* Reflect */
+  --aom-line: #2a31a8;
+  --aom-ring: rgba(20, 21, 43, 0.15);
+  --aom-selected: #3d6b0c;
+  --aom-grid: rgba(20, 21, 43, 0.12);
+  --aom-area: rgba(61, 107, 12, 0.25);
+  --aom-callout-bg: rgba(20, 21, 43, 0.06);
+  --aom-heading: #14152b;
+  --ie-row-line: rgba(20, 21, 43, 0.12);
+  --st-grid: rgba(20, 21, 43, 0.12);
+  --reflect-assets: #8f99ff;
+  --reflect-filter-active: rgba(85, 96, 240, 0.2);
+  --reflect-fill-secondary: rgba(20, 21, 43, 0.18);
+  --countPillBackground: rgba(85, 96, 240, 0.18);
+  --countPillLabel: #2a31a8;
+  --sb-slice-1: #1f6fd1;
+  --sb-slice-2: #c2410c;
+  --sb-slice-3: #0f766e;
+  --sb-slice-4: #a16207;
+  --sb-slice-5: #be185d;
+  --sb-slice-6: #15803d;
+  --sb-slice-7: #6d5fd8;
+  --sb-slice-8: #dc2626;
+  --sb-slice-other: #6d6f86;
+  --sb-empty-ring: #e4e6f0;
+
+  /* register.css (closed to this Build: overridden here, never edited) */
+  --register-actionbar-bg: #c9cfff;
+  --register-actionbar-hover: rgba(20, 21, 43, 0.12);
+  --register-actionbar-shadow: 0 2px 4px rgba(20, 21, 43, 0.12), 0 3px 6px rgba(20, 21, 43, 0.15);
+  --register-banner-bg: #dfe3ff;
+  --register-entry-row: #e6e9fb;
+  --register-flag-blue: #0a7ec2;
+  --register-flag-blue-pill: rgba(10, 126, 194, 0.18);
+  --register-flag-green: #1a8f34;
+  --register-flag-green-pill: rgba(26, 143, 52, 0.18);
+  --register-flag-orange: #c26a00;
+  --register-flag-orange-pill: rgba(194, 106, 0, 0.18);
+  --register-flag-purple: #9b3fd0;
+  --register-flag-purple-pill: rgba(155, 63, 208, 0.18);
+  --register-flag-red: #d62f26;
+  --register-flag-red-pill: rgba(214, 47, 38, 0.18);
+  --register-flag-yellow: #b38a00;
+  --register-flag-yellow-pill: rgba(179, 138, 0, 0.18);
+  --register-icon-disabled: #b4b7cb;
+  --register-icon-muted: #6d6f86;
+  --register-input-placeholder: #6b6d80;
+  --register-keycap-bg: rgba(20, 21, 43, 0.08);
+  --register-label-action: #3640c7;
+  --register-menu-bg: #ffffff;
+  --register-menu-disabled: #6e7087;
+  --register-menu-hover: #eceef7;
+  --register-needs-category: #f6c91d;
+  --register-needs-category-label: #362c05;
+  --register-primary-active: #5560f0;
+  --register-row-selected: #e6e9fb;
+  --register-scheduled-header-bg: #f3f4fa;
+  --register-scheduled-label: #43455c;
+}

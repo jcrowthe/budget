@@ -244,7 +244,7 @@
 }
 .mp-main {
   scrollbar-color: var(--inputBackground) transparent;
-  color-scheme: dark;
+  color-scheme: var(--colorScheme);
   flex: 1;
   min-width: 0;
   padding: var(--space-3);

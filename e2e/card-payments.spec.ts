@@ -2,10 +2,14 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { box, panel, removePlan, row } from "./plan-panel.fixtures";
 import { authHeaders, testName } from "./support/auth";
+import { ownUser } from "./support/own-user";
 import { realClick } from "./support/real-click";
 
 // EXF-537: the PAYMENT header and dialog, the payment pills and the five Payment states of the inspector at
 // 1440x900. The clock is fixed in November 2026; the plan and every row are made through the API.
+
+// Settings are per user (EXF-472): this spec toggles Progress Bars, so it runs as a user of its own.
+test.use({ storageState: (await ownUser("card")).storageState });
 
 const MONTH = "2026-11-01";
 const ENOUGH = "ZZ Enough";

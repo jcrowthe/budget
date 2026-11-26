@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./theme-light.css";
 
 *,
 *::before,
@@ -506,7 +507,7 @@ a {
   cursor: default;
 }
 .error {
-  color: var(--statusNegative);
+  color: var(--labelError);
   margin: var(--space-2) 0 0;
 }
 
@@ -693,7 +694,7 @@ a {
 .account-modal-body {
   /* Source (dark): scrollbar-color rgb(60,62,83) transparent; #3c3e53 = --inputBackground */
   scrollbar-color: var(--inputBackground) transparent;
-  color-scheme: dark;
+  color-scheme: var(--colorScheme);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
