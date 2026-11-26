@@ -108,5 +108,8 @@ expanded by default. Make Repeating is enabled for splits (lines copied with fre
   `apps/web/src/register/scheduledTransfers.test.ts` gains `subtransactions: []`.
 - Approved deviation: `packages/schema/test/plan-import.test.ts` (the two split-after-export-date cases now expect a
   schedule and no warning) and a third assertion of the same behaviour in the same file (`schedules.length` 3 → 4).
-- Not pre-allowed, declared: `apps/worker/test/manage-payees-calls.test.ts` (8 → 11 statements) and
-  `combine-payees-calls.test.ts` (14 → 17): the pinned statement counts follow the three new line statements.
+- Not pre-allowed, declared: `apps/worker/test/manage-payees-calls.test.ts` (8 → 11 statements),
+  `combine-payees-calls.test.ts` (14 → 17) and `rename-rules.test.ts` (8 → 11): the pinned statement counts follow
+  the three new line statements; `packages/schema/test/scheduled-transactions.test.ts` ("refuses fields it does not
+  support": `subtransactions: []` is now valid, an unknown line key is the refused case) and
+  `packages/schema/test/scheduled-transfers.test.ts` (the response fixture gains `subtransactions: []`).
