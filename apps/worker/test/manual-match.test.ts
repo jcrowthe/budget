@@ -1,4 +1,6 @@
+import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import { unmatchTransaction } from "../src/services/manual-match";
 import { tool } from "./account-helpers";
 import { json } from "./helpers";
 import {
@@ -549,6 +551,67 @@ describe("unmatch (EXF-464)", () => {
     expect(await q("select * from transactions where id = ?", tr.transfer_transaction_id)).toEqual(
       other,
     );
+  });
+});
+
+describe("unmatch payee guard (EXF-882)", () => {
+  it("a payee deleted after it was resolved fails the batch; nothing half-written, the retry resolves afresh", async () => {
+    const { plan, account, entry, imp } = await pairWorld();
+    expect((await post(MATCH(plan), { ids: [entry.id, imp.id] })).status).toBe(200);
+    const [gone] = await q(
+      "select id from payees where budget_id = ? and name = 'ZZ Bank Cafe' and deleted_at is null",
+      plan,
+    );
+    expect(gone?.id).toBeTruthy();
+    const before = await snapshot(plan);
+    // The window the guard protects: after the unmatch resolved the bank's payee, before its batch commits.
+    const outcomes: string[] = [];
+    let deletedOnce = false;
+    const db = new Proxy(env.DB, {
+      get(target, prop) {
+        if (prop !== "batch") {
+          const v = Reflect.get(target, prop, target);
+          return typeof v === "function" ? v.bind(target) : v;
+        }
+        return async (stmts: D1PreparedStatement[]) => {
+          if (deletedOnce) return target.batch(stmts);
+          deletedOnce = true;
+          await target
+            .prepare("update payees set deleted_at = 'x' where id = ?")
+            .bind(gone?.id)
+            .run();
+          try {
+            const out = await target.batch(stmts);
+            outcomes.push("committed");
+            return out;
+          } catch (e) {
+            outcomes.push("failed");
+            // nothing of the failed batch is left behind (the payee's delete is the test's own write)
+            const after = await snapshot(plan);
+            expect(after.tx).toEqual(before.tx);
+            expect(after.log).toBe(before.log);
+            throw e;
+          }
+        };
+      },
+    });
+    const out = await unmatchTransaction(
+      { ...env, DB: db } as typeof env,
+      REST_ACTOR,
+      plan,
+      entry.id,
+    );
+    expect(outcomes).toEqual(["failed"]);
+    // The retry found no live payee of that name and made a new one: the import never points at the deleted id.
+    const [imported] = await q(
+      "select payee_id from transactions where id = ? and deleted_at is null",
+      out.imported.id,
+    );
+    expect(imported?.payee_id).toBeTruthy();
+    expect(imported?.payee_id).not.toBe(gone?.id);
+    const [p] = await q("select deleted_at from payees where id = ?", imported?.payee_id);
+    expect(p?.deleted_at).toBeNull();
+    expect(await live(account)).toHaveLength(3);
   });
 });
 
