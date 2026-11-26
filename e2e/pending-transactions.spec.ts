@@ -281,19 +281,30 @@ test("the Pending and Scheduled headers match: 16px icon, same title position, a
   await expect(icon).toHaveCSS("height", "16px");
   const x = async (sel: string) => (await page.locator(sel).first().boundingBox())?.x ?? 0;
   expect(await x(".pending-title")).toBe(await x(".scheduled-title"));
-  const ring = await page.evaluate(() => {
-    const el = document.querySelector<HTMLElement>(".scheduled-header");
-    if (!el) return null;
-    el.focus();
-    return {
-      focused: el.matches(":focus-visible"),
-      shadow: getComputedStyle(el).boxShadow,
-      primary: getComputedStyle(document.documentElement)
-        .getPropertyValue("--actionPrimary")
-        .trim(),
-    };
-  });
-  expect(ring?.focused).toBe(true);
-  expect(ring?.shadow).toContain("inset");
-  expect(ring?.shadow).toContain("2px");
+  const ringOf = (sel: string) =>
+    page.evaluate((selector) => {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (!el) return null;
+      el.focus();
+      // --actionPrimary as the browser resolves it to a colour
+      const probe = document.createElement("span");
+      probe.style.color = "var(--actionPrimary)";
+      document.body.append(probe);
+      const primary = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        focused: el.matches(":focus-visible"),
+        shadow: getComputedStyle(el).boxShadow,
+        primary,
+      };
+    }, sel);
+  const scheduledRing = await ringOf(".scheduled-header");
+  const pendingRing = await ringOf(".pending-header");
+  expect(scheduledRing?.focused).toBe(true);
+  expect(scheduledRing?.primary).toMatch(/^rgb/);
+  // e.g. "rgb(10, 132, 255) 0px 0px 0px 2px inset": the token's colour, 2px, inset
+  expect(scheduledRing?.shadow).toContain(scheduledRing?.primary ?? "");
+  expect(scheduledRing?.shadow).toContain("inset");
+  expect(scheduledRing?.shadow).toContain("2px");
+  expect(scheduledRing?.shadow).toBe(pendingRing?.shadow);
 });
