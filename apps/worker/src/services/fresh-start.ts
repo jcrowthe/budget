@@ -27,6 +27,26 @@ export async function freshStartBudget(
   budgetId: string,
   input: FreshStartRequest,
 ): Promise<FreshStartResult> {
+  // The abort guard also trips on a change to any other plan (it holds the whole active-plan list, for the name
+  // check), so a raced attempt reads again and retries; a real clash then ends as 422 and a plan that keeps
+  // changing as 409. Without it a plan created in another tab, or a parallel e2e test, fails the copy.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await freshStartOnce(env, actor, budgetId, input);
+    } catch (e) {
+      if (!(e instanceof Conflict) || attempt >= FRESH_START_ATTEMPTS) throw e;
+    }
+  }
+}
+
+const FRESH_START_ATTEMPTS = 5;
+
+async function freshStartOnce(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  input: FreshStartRequest,
+): Promise<FreshStartResult> {
   const v: FreshStartInput = FreshStartRequest.parse(input);
   const db = getDb(env);
   const [
