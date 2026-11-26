@@ -45,7 +45,7 @@ describe("the nightly backup (EXF-976)", () => {
     expect(await backupRun(env, at("2031-01-02"), BIG)).toBe("done");
     const m = await readManifest("2031-01-02");
     const counts = await dbCounts();
-    expect(Object.keys(counts)).toHaveLength(27);
+    expect(Object.keys(counts)).toHaveLength(28);
     expect(m.tables.map((t) => t.name)).toEqual(Object.keys(counts));
     for (const t of m.tables) expect(t.rows, t.name).toBe(counts[t.name]);
     expect(m.rows_total).toBe(Object.values(counts).reduce((a, b) => a + b, 0));
