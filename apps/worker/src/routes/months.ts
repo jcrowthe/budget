@@ -14,6 +14,7 @@ import { Today } from "@budget/schema/targets";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
+import { getViewScope } from "../services/custom-views";
 import {
   getMonthRange,
   getMonthSummary,
@@ -72,6 +73,10 @@ export default app
             description:
               "Narrow to the categories one of the Plan page's views shows (all, overspent, underfunded, overfunded, money_available, snoozed); default all",
           }),
+          view_id: z.string().min(1).optional().openapi({
+            description:
+              "A custom view's id (see GET …/views): only its visible categories; an unknown id is 404",
+          }),
           today: Today.optional().openapi({
             description:
               "The owner's local date (YYYY-MM-DD); it decides the current month for target figures and for future_assigned. Default: the server's UTC date",
@@ -82,10 +87,13 @@ export default app
     }),
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
-      const { today, view } = c.req.valid("query");
+      const { today, view, view_id } = c.req.valid("query");
       const bad = planMonthError(month, today);
       if (bad) return apiError(c, 422, "unprocessable_entity", bad) as never;
-      return c.json({ data: await getPlanMonth(c.env, budget_id, month, today, view) }, 200);
+      if (view !== undefined && view_id !== undefined)
+        return apiError(c, 422, "unprocessable_entity", "Give view or view_id, not both") as never;
+      const scope = view_id ? await getViewScope(c.env, budget_id, view_id) : view;
+      return c.json({ data: await getPlanMonth(c.env, budget_id, month, today, scope) }, 200);
     },
   )
   .openapi(
@@ -110,6 +118,10 @@ export default app
             description:
               "Narrow to the categories one of the Plan page's views shows (all, overspent, underfunded, overfunded, money_available, snoozed); default all",
           }),
+          view_id: z.string().min(1).optional().openapi({
+            description:
+              "A custom view's id (see GET …/views): only its visible categories; an unknown id is 404",
+          }),
           today: Today.optional().openapi({
             description:
               "The owner's local date (YYYY-MM-DD); it decides the current month for target figures and for future_assigned. Default: the server's UTC date",
@@ -126,7 +138,15 @@ export default app
     }),
     async (c) => {
       const { budget_id, month } = c.req.valid("param");
-      const { category_ids, today, view } = c.req.valid("query");
+      const { category_ids, today, view, view_id } = c.req.valid("query");
+      if (view_id !== undefined && (view !== undefined || category_ids !== undefined)) {
+        return apiError(
+          c,
+          422,
+          "unprocessable_entity",
+          "Give view_id on its own, not with view or category_ids",
+        ) as never;
+      }
       if (category_ids !== undefined && view !== undefined) {
         return apiError(
           c,
@@ -143,8 +163,9 @@ export default app
           return apiError(c, 422, "unprocessable_entity", CATEGORY_IDS_MESSAGE) as never;
         }
       }
+      const scope = view_id ? await getViewScope(c.env, budget_id, view_id) : view;
       return c.json(
-        { data: await getMonthSummary(c.env, budget_id, month, ids, today, view) },
+        { data: await getMonthSummary(c.env, budget_id, month, ids, today, scope) },
         200,
       );
     },

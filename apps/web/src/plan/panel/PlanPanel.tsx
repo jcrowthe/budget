@@ -1,6 +1,11 @@
 import type { Month } from "@budget/core/month";
 import { monthTotals, viewTotals } from "@budget/schema/month-totals";
-import type { PlanView } from "@budget/schema/plan-views";
+import {
+  isCustomView,
+  type PlanView,
+  type ViewSelection,
+  viewCategories,
+} from "@budget/schema/plan-views";
 import { type RefObject, useRef, useState } from "react";
 import { useFutureAssigned, useMonth, useMonthTargets } from "../../api/months";
 import { localCurrentMonth } from "../../shell/planPaths";
@@ -37,7 +42,7 @@ export function PlanPanel({
   /** The selected category ids that are still in the grid, in grid order. */
   selected: readonly string[];
   /** The Plan view in use: with nothing selected the summary and Auto-Assign cover what it shows. */
-  view: PlanView;
+  view: ViewSelection;
   onViewAll: () => void;
   /** Switches the grid's view chip (Cover Overspent Categories). */
   onView: (v: PlanView) => void;
@@ -89,7 +94,16 @@ export function PlanPanel({
     <AutoAssignCard
       budgetId={budgetId}
       month={month}
-      scope={selected.length > 0 ? { categoryIds: [...selected] } : { view }}
+      scope={
+        selected.length > 0
+          ? { categoryIds: [...selected] }
+          : isCustomView(view)
+            ? {
+                categoryIds: detail ? viewCategories(detail, view).map((c) => c.id) : [],
+                plural: true,
+              }
+            : { view }
+      }
       collapsed={collapsed.autoAssign}
       onToggle={() => setCollapsed((c) => ({ ...c, autoAssign: !c.autoAssign }))}
       onViewAll={onViewAll}

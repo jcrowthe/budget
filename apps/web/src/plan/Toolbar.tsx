@@ -20,6 +20,7 @@ export function Toolbar({
   setBars,
   onAddGroup,
   addGroupDisabled = false,
+  onEditView,
   canUndo,
   canRedo,
   onUndo,
@@ -31,6 +32,8 @@ export function Toolbar({
   onAddGroup: (anchor: HTMLElement) => void;
   /** Disabled while a view other than All is shown. */
   addGroupDisabled?: boolean;
+  /** Set while a custom view is selected: shows the Edit View button. */
+  onEditView?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -51,6 +54,11 @@ export function Toolbar({
         <PlusCircleFillIcon />
         Category Group
       </button>
+      {onEditView && (
+        <button type="button" className="toolbar-button" title="Edit View" onClick={onEditView}>
+          ✎ Edit View
+        </button>
+      )}
       <button
         type="button"
         className="toolbar-button"

@@ -501,6 +501,36 @@ const CALLS: [string, (c: Ctx) => Json][] = [
       rule_id: ((results.get("create_payee_rename_rule") as Json).rule as Json).id,
     }),
   ],
+  ["create_view", (c) => ({ budget_id: c.bid, name: "ZZ View", category_ids: [c.category] })],
+  ["list_views", (c) => ({ budget_id: c.bid })],
+  [
+    "update_view",
+    (c) => ({
+      budget_id: c.bid,
+      view_id: ((results.get("create_view") as Json).view as Json).id,
+      name: "ZZ View two",
+    }),
+  ],
+  [
+    "reorder_views",
+    (c) => ({
+      budget_id: c.bid,
+      ids: [
+        ((results.get("create_view") as Json).view as Json).id,
+        "snoozed",
+        "money_available",
+        "overfunded",
+        "underfunded",
+      ],
+    }),
+  ],
+  [
+    "delete_view",
+    (c) => ({
+      budget_id: c.bid,
+      view_id: ((results.get("create_view") as Json).view as Json).id,
+    }),
+  ],
   [
     "set_category_target",
     (c) => ({

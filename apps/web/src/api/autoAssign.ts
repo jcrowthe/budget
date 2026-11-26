@@ -14,10 +14,12 @@ import { beginWrite, endWrite, inOrder } from "./monthCache";
 import { localToday } from "./today";
 
 /** Which categories an option works on: exactly these, or the ones a Plan view shows. */
-export type AutoAssignScope = { categoryIds: string[] } | { view: PlanView };
+export type AutoAssignScope = { categoryIds: string[]; plural?: boolean } | { view: PlanView };
 
 const scopeKey = (s: AutoAssignScope) =>
-  "view" in s ? `view:${s.view}` : `ids:${[...s.categoryIds].sort().join(",")}`;
+  "view" in s
+    ? `view:${s.view}`
+    : `ids${s.plural ? "+" : ""}:${[...s.categoryIds].sort().join(",")}`;
 
 const scopeQuery = (s: AutoAssignScope) =>
   "view" in s ? `view=${s.view}` : `category_ids=${s.categoryIds.join(",")}`;
@@ -47,7 +49,8 @@ export const useAutoAssignPreview = (
     queryKey: ["auto-assign", budgetId, month, scopeKey(scope)],
     queryFn: () => getAutoAssignPreview(budgetId, month, scope),
     // No placeholder: figures of another selection are never shown (the card draws a skeleton instead).
-    enabled,
+    // An empty id scope (a custom view with no categories) has nothing to ask the server.
+    enabled: enabled && ("view" in scope || scope.categoryIds.length > 0),
   });
 
 // Busy per plan and month: from the click until the month has been read again. Shared by every Auto-Assign

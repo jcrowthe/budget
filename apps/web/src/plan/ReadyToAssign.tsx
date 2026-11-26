@@ -1,5 +1,5 @@
 import type { Month } from "@budget/core/month";
-import type { PlanView } from "@budget/schema/plan-views";
+import type { ViewSelection } from "@budget/schema/plan-views";
 import { useEffect, useRef, useState } from "react";
 import { useMonth } from "../api/months";
 import { useMoveMoney } from "../api/moves";
@@ -21,7 +21,7 @@ export function ReadyToAssign({
 }: {
   budgetId: string;
   month: Month;
-  view: PlanView;
+  view: ViewSelection;
   onViewAll: () => void;
 }) {
   const fmt = usePlanFormatter();
