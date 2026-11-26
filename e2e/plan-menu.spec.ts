@@ -319,7 +319,10 @@ test.describe("1440×900", () => {
     // Manage Payees is enabled by EXF-510 (departure): it follows Plan Settings.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Manage Payees")).toBeFocused();
-    // Export Plan is enabled by EXF-476 (departure): the next enabled entry after Manage Payees.
+    // Display Options is enabled by EXF-472: the next enabled entry after Manage Payees.
+    await page.keyboard.press("ArrowDown");
+    await expect(item(page, "Display Options")).toBeFocused();
+    // Export Plan is enabled by EXF-476 (departure): the next enabled entry after Display Options.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Export Plan")).toBeFocused();
     // Manage Bank Connections is enabled by EXF-460: it sits between Export Plan and Keyboard Shortcuts.
@@ -329,8 +332,9 @@ test.describe("1440×900", () => {
     await expect(item(page, "Keyboard Shortcuts")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Log Out")).toBeFocused();
-    // Up from Log Out: Keyboard Shortcuts, Manage Bank Connections, Export Plan, Manage Payees, Plan Settings, Open Plan.
-    for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowUp");
+    // Up from Log Out: Keyboard Shortcuts, Manage Bank Connections, Export Plan, Display Options, Manage Payees,
+    // Plan Settings, Open Plan.
+    for (let i = 0; i < 7; i++) await page.keyboard.press("ArrowUp");
     await expect(open).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(sub(page)).toBeVisible();
