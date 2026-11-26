@@ -1,7 +1,21 @@
 import type { Month } from "@budget/core/month";
-import { overspentCount, type PlanView, viewCategories } from "@budget/schema/plan-views";
+import {
+  overspentCount,
+  PLAN_VIEWS,
+  type PlanView,
+  type ViewSelection,
+  viewCategories,
+} from "@budget/schema/plan-views";
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useParams } from "react-router";
+import {
+  chipOrder,
+  useCreateView,
+  useCustomViews,
+  useDeleteView,
+  useReorderViews,
+  useUpdateView,
+} from "../api/customViews";
 import { useMonth } from "../api/months";
 import { useEnterDueOnOpen } from "../api/scheduledTransactions";
 import { KeyboardTip } from "../plan/KeyboardTip";
@@ -11,6 +25,8 @@ import { PlanPanel } from "../plan/panel/PlanPanel";
 import { usePlanLayout } from "../plan/panel/planLayout";
 import { selectOnly, useSelection, visibleSelection } from "../plan/selection";
 import { ViewChips } from "../plan/ViewChips";
+import { CustomViewDialog } from "../plan/views/CustomViewDialog";
+import { ManageViewsDialog } from "../plan/views/ManageViewsDialog";
 import { localCurrentMonth, planPath, rememberMonth, usePlanMonth } from "../shell/planPaths";
 import { usePageTitle } from "../shell/useCurrentPlan";
 
@@ -28,19 +44,52 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const layout = usePlanLayout(bodyRef);
   const detail = useMonth(budgetId, month).data;
-  // The chip in use is not saved: All after a reload or a plan switch, kept across months.
-  const [view, setView] = useState<PlanView>("all");
-  const viewAll = () => setView("all");
+  // The chip in use is not saved: All after a reload or a plan switch, kept across months. A built-in key or a
+  // custom view's id.
+  const [viewKey, setViewKey] = useState<string>("all");
+  const viewAll = () => setViewKey("all");
+  const customViews = useCustomViews(budgetId).data;
+  const custom = customViews?.views.find((v) => v.id === viewKey);
+  const view: ViewSelection = custom
+    ? { id: custom.id, name: custom.name, category_ids: custom.category_ids }
+    : (PLAN_VIEWS as readonly string[]).includes(viewKey)
+      ? (viewKey as PlanView)
+      : "all";
   // Overspent leaves with its last category (not compared with the source).
   useEffect(() => {
-    if (view === "overspent" && detail && overspentCount(detail) === 0) setView("all");
+    if (view === "overspent" && detail && overspentCount(detail) === 0) setViewKey("all");
   }, [view, detail]);
+  // A custom view deleted elsewhere: back to All once the list has loaded without it.
+  useEffect(() => {
+    if (customViews && !custom && !(PLAN_VIEWS as readonly string[]).includes(viewKey))
+      setViewKey("all");
+  }, [customViews, custom, viewKey]);
+  // Dialogs: the editor opens on its own (menu, toolbar) or over Manage Views (`from: "manage"`).
+  const [manageOpen, setManageOpen] = useState(false);
+  const [editor, setEditor] = useState<
+    | { mode: "new"; from: "menu" | "manage" }
+    | { mode: "edit"; id: string; from: "menu" | "manage" }
+    | null
+  >(null);
+  const createView = useCreateView(budgetId);
+  const updateView = useUpdateView(budgetId);
+  const deleteView = useDeleteView(budgetId);
+  const reorderViews = useReorderViews(budgetId);
+  const editing =
+    editor?.mode === "edit" ? customViews?.views.find((v) => v.id === editor.id) : undefined;
   // Every selectable category: what the view shows (not hidden, in a group that is not hidden).
   const all = detail ? viewCategories(detail, view).map((c) => c.id) : [];
   return (
     <div className="plan-page">
       <PlanHeader budgetId={budgetId} month={month} view={view} onViewAll={viewAll} />
-      <ViewChips detail={detail} view={view} onView={setView} />
+      <ViewChips
+        detail={detail}
+        order={chipOrder(customViews)}
+        selected={viewKey}
+        onSelect={setViewKey}
+        onNewView={() => setEditor({ mode: "new", from: "menu" })}
+        onManageViews={() => setManageOpen(true)}
+      />
       <div className="plan-body" ref={bodyRef} {...layout}>
         <PlanGrid
           budgetId={budgetId}
@@ -50,6 +99,9 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
           editRequest={editRequest}
           view={view}
           onViewAll={viewAll}
+          onEditView={
+            custom ? () => setEditor({ mode: "edit", id: custom.id, from: "menu" }) : undefined
+          }
         />
         <PlanPanel
           budgetId={budgetId}
@@ -57,13 +109,46 @@ function PlanContent({ budgetId, month }: { budgetId: string; month: Month }) {
           selected={visibleSelection(selection, all)}
           view={view}
           onViewAll={viewAll}
-          onView={setView}
+          onView={setViewKey}
           folded={"data-fold" in layout}
           onEditCategory={(id, anchor) => setEditRequest({ id, anchor, at: Date.now() })}
           bodyRef={bodyRef}
         />
       </div>
       <KeyboardTip />
+      {manageOpen && (
+        <ManageViewsDialog
+          order={chipOrder(customViews)}
+          paused={editor !== null}
+          onReorder={(ids) => reorderViews.mutate(ids)}
+          onEdit={(id) => setEditor({ mode: "edit", id, from: "manage" })}
+          onDelete={async (id) => {
+            await deleteView.mutateAsync(id);
+            if (viewKey === id) setViewKey("all");
+          }}
+          onNew={() => setEditor({ mode: "new", from: "manage" })}
+          onDone={() => setManageOpen(false)}
+        />
+      )}
+      {editor && (editor.mode === "new" || editing) && (
+        <CustomViewDialog
+          key={editor.mode === "edit" ? editor.id : "new"}
+          mode={editor.mode}
+          groups={detail?.groups ?? []}
+          storedIds={editing?.category_ids ?? []}
+          initialName={editing?.name ?? ""}
+          onCancel={() => setEditor(null)}
+          onSave={async (name, categoryIds) => {
+            if (editor.mode === "new") {
+              const made = await createView.mutateAsync({ name, category_ids: categoryIds });
+              setViewKey(made.id);
+            } else {
+              await updateView.mutateAsync({ id: editor.id, name, category_ids: categoryIds });
+            }
+            setEditor(null);
+          }}
+        />
+      )}
     </div>
   );
 }

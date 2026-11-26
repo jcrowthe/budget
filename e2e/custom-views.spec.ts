@@ -169,7 +169,7 @@ test("AC3. Manage Views: cards, drag and keyboard reorder, edit, new, delete, Do
   await viewsButton(page).click();
   await page.getByRole("menuitem", { name: "Manage Views" }).click();
   await expect(manage(page)).toBeVisible();
-  expect(await cardNames(page)).toEqual([...BUILTINS, "ZZ One", "ZZ Two"]);
+  await expect.poll(() => cardNames(page)).toEqual([...BUILTINS, "ZZ One", "ZZ Two"]);
 
   const handle = (name: string) => manage(page).getByLabel(`Reorder ${name}`, { exact: true });
   await drag(page, handle("ZZ Two"), cards(page).first(), "top");
@@ -177,7 +177,7 @@ test("AC3. Manage Views: cards, drag and keyboard reorder, edit, new, delete, Do
   await page.reload();
   await viewsButton(page).click();
   await page.getByRole("menuitem", { name: "Manage Views" }).click();
-  expect(await cardNames(page)).toEqual(["ZZ Two", ...BUILTINS, "ZZ One"]);
+  await expect.poll(() => cardNames(page)).toEqual(["ZZ Two", ...BUILTINS, "ZZ One"]);
 
   await handle("ZZ Two").focus();
   await page.keyboard.press("Alt+Shift+ArrowDown");
@@ -196,7 +196,7 @@ test("AC3. Manage Views: cards, drag and keyboard reorder, edit, new, delete, Do
   await editor(page, "Edit Custom View").getByLabel("View Name").fill("ZZ Uno");
   await editor(page, "Edit Custom View").getByRole("button", { name: "Save" }).click();
   await expect(editor(page, "Edit Custom View")).toHaveCount(0);
-  expect(await cardNames(page)).toContain("ZZ Uno");
+  await expect.poll(() => cardNames(page)).toContain("ZZ Uno");
   await expect(chip(page, "All")).toHaveAttribute("aria-pressed", "true");
 
   // New View in the footer: the new chip is selected behind the dialog
@@ -206,7 +206,7 @@ test("AC3. Manage Views: cards, drag and keyboard reorder, edit, new, delete, Do
   await editor(page).getByRole("button", { name: "Save" }).click();
   await expect(editor(page)).toHaveCount(0);
   await expect(manage(page)).toBeVisible();
-  expect(await cardNames(page)).toContain("ZZ Three");
+  await expect.poll(() => cardNames(page)).toContain("ZZ Three");
   await expect(chip(page, "ZZ Three")).toHaveAttribute("aria-pressed", "true");
 
   // Delete: Cancel keeps it, Delete removes the card and the chip; deleting the selected view selects All
@@ -215,7 +215,7 @@ test("AC3. Manage Views: cards, drag and keyboard reorder, edit, new, delete, Do
   await expect(card("ZZ Three").getByRole("button", { name: "Cancel" })).toBeVisible();
   await card("ZZ Three").getByRole("button", { name: "Cancel" }).click();
   await expect(manage(page).getByRole("button", { name: "Delete ZZ Three" })).toBeVisible();
-  expect(await cardNames(page)).toContain("ZZ Three");
+  await expect.poll(() => cardNames(page)).toContain("ZZ Three");
   await manage(page).getByRole("button", { name: "Delete ZZ Three" }).click();
   await card("ZZ Three").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(card("ZZ Three")).toHaveCount(0);
@@ -234,7 +234,7 @@ test("AC4. built-in cards reorder only; the API refuses to edit or delete them",
   await openPlan(page, s);
   await viewsButton(page).click();
   await page.getByRole("menuitem", { name: "Manage Views" }).click();
-  expect(await cardNames(page)).toEqual(BUILTINS);
+  await expect.poll(() => cardNames(page)).toEqual(BUILTINS);
   for (const name of BUILTINS) {
     await expect(manage(page).getByLabel(`Reorder ${name}`, { exact: true })).toBeVisible();
     await expect(manage(page).getByRole("button", { name: `Edit ${name}` })).toHaveCount(0);
@@ -265,10 +265,13 @@ test("narrow layout: a long name truncates and its title is the full name", asyn
   await openPlan(page, s);
   const c = page.locator(".view-chip.is-custom");
   await expect(c).toHaveAttribute("title", name);
-  const overflow = await c.evaluate((el) => ({
-    clipped: el.scrollWidth > el.clientWidth || getComputedStyle(el).textOverflow === "ellipsis",
-    fits: el.getBoundingClientRect().right <= window.innerWidth,
-  }));
+  const overflow = await c.evaluate((el) => {
+    const n = el.querySelector(".view-chip-name") as HTMLElement;
+    return {
+      clipped: n.scrollWidth > n.clientWidth && getComputedStyle(n).textOverflow === "ellipsis",
+      fits: el.getBoundingClientRect().right <= window.innerWidth,
+    };
+  });
   expect(overflow).toEqual({ clipped: true, fits: true });
 });
 

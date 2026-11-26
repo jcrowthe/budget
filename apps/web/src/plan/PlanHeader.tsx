@@ -1,5 +1,5 @@
 import { addMonths, type Month } from "@budget/core/month";
-import type { PlanView } from "@budget/schema/plan-views";
+import type { ViewSelection } from "@budget/schema/plan-views";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useMonth, useMonthRange, useSetMonthNote } from "../api/months";
 import { localCurrentMonth, usePlanMonth } from "../shell/planPaths";
@@ -35,7 +35,7 @@ export function PlanHeader({
 }: {
   budgetId: string;
   month: Month;
-  view: PlanView;
+  view: ViewSelection;
   onViewAll: () => void;
 }) {
   const current = localCurrentMonth();

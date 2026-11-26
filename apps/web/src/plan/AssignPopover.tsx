@@ -1,7 +1,7 @@
 import type { Month } from "@budget/core/month";
 import type { MonthDetail } from "@budget/schema/months";
 import { READY_TO_ASSIGN } from "@budget/schema/moves";
-import type { PlanView } from "@budget/schema/plan-views";
+import type { ViewSelection } from "@budget/schema/plan-views";
 import { useState } from "react";
 import type { MoveRequest } from "../api/moves";
 import { AutoAssignOptions } from "./AutoAssignOptions";
@@ -23,7 +23,7 @@ export function AssignPopover({
   budgetId: string;
   detail: MonthDetail;
   /** The Plan view in use: the Auto tab works on the categories it shows. */
-  view: PlanView;
+  view: ViewSelection;
   onViewAll: () => void;
   month: Month;
   anchor: HTMLElement;

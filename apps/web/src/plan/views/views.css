@@ -1,0 +1,208 @@
+/* Plan custom views (EXF-502): the Views menu, the editor and Manage Views. Colours come from tokens only. */
+.views-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+.views-menu-item {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.views-menu-item:hover,
+.views-menu-item:focus-visible {
+  background: var(--menuHover);
+  outline: none;
+}
+
+.views-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* New / Edit Custom View */
+.custom-view-dialog {
+  color: var(--labelPrimary);
+}
+.custom-view-dialog .dialog-head h2 {
+  color: var(--labelPrimary);
+}
+.custom-view-sub,
+.custom-view-pick {
+  margin: 0 0 var(--space-2);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+}
+.custom-view-pick {
+  margin-top: var(--space-3);
+}
+.custom-view-error {
+  margin-top: var(--space-1);
+  color: var(--labelError);
+  font-size: var(--font-size-sm);
+}
+.custom-view-groups {
+  max-height: 40vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--borderSubtle);
+}
+.custom-view-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.custom-view-group legend {
+  padding: 0;
+  margin: var(--space-2) 0 var(--space-1);
+  color: var(--labelSecondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.dialog.form .custom-view-category {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 4px 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+/* Manage Views */
+.manage-views-dialog {
+  width: 420px;
+  color: var(--labelPrimary);
+}
+.manage-views-dialog:focus {
+  outline: none;
+}
+.manage-view-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0 var(--space-3);
+  overflow-y: auto;
+  list-style: none;
+}
+.manage-view-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 1px solid var(--borderSubtle);
+  border-radius: var(--radius-md);
+  background: var(--backgroundSecondary);
+}
+.manage-view-card.is-dragging {
+  opacity: 0.5;
+}
+.manage-view-card.gap-before::before,
+.manage-view-card.gap-after::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--viewChipSelectedBorder);
+}
+.manage-view-card.gap-before::before {
+  top: -4px;
+}
+.manage-view-card.gap-after::after {
+  bottom: -4px;
+}
+.manage-view-handle,
+.manage-view-icon,
+.manage-view-link {
+  border: 0;
+  background: transparent;
+  color: var(--labelSecondary);
+  font: inherit;
+  cursor: pointer;
+}
+.manage-view-handle {
+  display: inline-flex;
+  padding: 4px;
+  cursor: grab;
+}
+.manage-view-icon {
+  display: inline-flex;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+.manage-view-icon:hover,
+.manage-view-handle:hover {
+  color: var(--labelPrimary);
+}
+.manage-view-handle:focus-visible,
+.manage-view-icon:focus-visible,
+.manage-view-link:focus-visible {
+  outline: 2px solid var(--viewChipSelectedBorder);
+  outline-offset: 1px;
+}
+.manage-view-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+}
+.manage-view-actions,
+.manage-view-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--labelSecondary);
+}
+.manage-view-link {
+  padding: 4px 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.manage-view-link.is-destructive {
+  color: var(--labelNegative);
+}
+.manage-view-error {
+  padding: 0 var(--space-3);
+}
+.manage-views-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+.manage-views-footer button {
+  height: 32px;
+  margin: 0;
+  padding: 6px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+.view-empty-art {
+  color: var(--labelSecondary);
+}
+.view-empty .view-empty-actions {
+  display: flex;
+  gap: var(--space-2);
+}

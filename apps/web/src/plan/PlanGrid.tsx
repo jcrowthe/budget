@@ -1,10 +1,12 @@
 // biome-ignore-all lint/a11y/useSemanticElements: an ARIA treegrid of divs, as in the source; a table would break the flex rows and sticky head
 // biome-ignore-all lint/a11y/useFocusableInteractive: rows and headers are not focusable; their buttons are (EXF-498 adds keyboard selection)
 import type { Month } from "@budget/core/month";
+import { customViewEmptyText } from "@budget/schema/custom-views";
 import {
-  type PlanView,
+  isCustomView,
   VIEW_EMPTY_TEXT,
   VIEW_HIDDEN_FOOTER,
+  type ViewSelection,
   viewDetail,
 } from "@budget/schema/plan-views";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,6 +51,7 @@ import {
 import { usePlanShortcuts } from "./shortcuts";
 import { useToggleSnooze } from "./snooze";
 import { Toolbar } from "./Toolbar";
+import { EmptyViewIllustration } from "./views/EmptyViewIllustration";
 import "./plan-grid.css";
 
 /** The one open popover or dialog: opening another replaces it. */
@@ -82,6 +85,7 @@ export function PlanGrid({
   editRequest,
   view,
   onViewAll,
+  onEditView,
 }: {
   budgetId: string;
   month: Month;
@@ -89,8 +93,10 @@ export function PlanGrid({
   onSelection: (f: (s: Selection) => Selection) => void;
   editRequest: EditRequest | null;
   /** The Plan view in use; anything but "all" narrows the rows (see plan-views.ts). */
-  view: PlanView;
+  view: ViewSelection;
   onViewAll: () => void;
+  /** Opens the editor of the selected custom view (the toolbar's Edit View and the empty view's button). */
+  onEditView?: () => void;
 }) {
   const q = useMonth(budgetId, month);
   const moved = useMovedCategories(budgetId, month, q.dataUpdatedAt);
@@ -395,6 +401,7 @@ export function PlanGrid({
             setBars={setBars}
             onAddGroup={(anchor) => setPop({ kind: "add-group", anchor })}
             addGroupDisabled={inView}
+            onEditView={isCustomView(view) ? onEditView : undefined}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={() => void runStep("undo")}
@@ -580,10 +587,27 @@ export function PlanGrid({
             })}
             {inView && data && groups.length === 0 && (
               <div className="view-empty">
-                <p>{VIEW_EMPTY_TEXT[view]}</p>
-                <button type="button" className="view-all" onClick={onViewAll}>
-                  View All
-                </button>
+                {isCustomView(view) ? (
+                  <>
+                    <EmptyViewIllustration />
+                    <p>{customViewEmptyText(view.name)}</p>
+                    <div className="view-empty-actions">
+                      <button type="button" className="view-all" onClick={onEditView}>
+                        Edit View
+                      </button>
+                      <button type="button" className="view-all" onClick={onViewAll}>
+                        View All
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p>{VIEW_EMPTY_TEXT[view]}</p>
+                    <button type="button" className="view-all" onClick={onViewAll}>
+                      View All
+                    </button>
+                  </>
+                )}
               </div>
             )}
             {inView && groups.length > 0 && (

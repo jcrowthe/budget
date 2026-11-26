@@ -7,7 +7,12 @@ import {
   hiddenAmounts,
   monthHiddenInputs,
 } from "@budget/schema/auto-assign";
-import { VIEW_NO_CATEGORIES, viewCategories } from "@budget/schema/plan-views";
+import {
+  isCustomView,
+  VIEW_NO_CATEGORIES,
+  type ViewSelection,
+  viewCategories,
+} from "@budget/schema/plan-views";
 import { type AutoAssignScope, useAutoAssign, useAutoAssignPreview } from "../api/autoAssign";
 import { useCachedMonth } from "../api/months";
 import { usePlanFormatter } from "../shell/plan-formats-context";
@@ -19,18 +24,27 @@ import { usePlanFormatter } from "../shell/plan-formats-context";
 export function AutoAssignOptions({
   budgetId,
   month,
-  scope,
+  scope: given,
   onViewAll,
   onApplied,
 }: {
   budgetId: string;
   month: Month;
-  scope: AutoAssignScope;
+  scope: AutoAssignScope | { view: ViewSelection };
   onViewAll: () => void;
   onApplied?: () => void;
 }) {
   const fmt = usePlanFormatter();
   const detail = useCachedMonth(budgetId, month).data;
+  // A custom view works on the ids it shows right now, as a plan-wide set even when it holds one category.
+  const customIds =
+    "view" in given && isCustomView(given.view)
+      ? detail
+        ? viewCategories(detail, given.view).map((c) => c.id)
+        : []
+      : null;
+  const scope: AutoAssignScope =
+    customIds !== null ? { categoryIds: customIds, plural: true } : (given as AutoAssignScope);
   const preview = useAutoAssignPreview(budgetId, month, scope).data;
   const { apply, busy, failed } = useAutoAssign(budgetId, month);
   // The rows come from the cached month through the same pure function as the preview (EXF-616, EXF-624): the
@@ -52,7 +66,7 @@ export function AutoAssignOptions({
   );
   if (ids !== null && ids.length === 0) return empty;
   // One category means one ticked; a view that holds a single category is still plan-wide.
-  const lone = "categoryIds" in scope && ids?.length === 1;
+  const lone = "categoryIds" in scope && !scope.plural && ids?.length === 1;
   const only = lone ? ids?.[0] : undefined;
   const isPayment =
     detail !== undefined &&

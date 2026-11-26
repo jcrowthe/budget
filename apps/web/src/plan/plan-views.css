@@ -225,3 +225,38 @@
 #panel-auto-assign .auto-assign-group:last-of-type {
   margin-bottom: 2px;
 }
+
+/* Custom view chips (EXF-502): a long name truncates; the full name is the title. */
+.view-chip.is-custom {
+  max-width: 200px;
+}
+.view-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The Views menu button is not a chip (it carries no view-chip class). */
+.view-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--viewChipBackground);
+  color: var(--labelPrimary);
+  cursor: pointer;
+}
+.view-menu-button:hover,
+.view-menu-button[aria-expanded="true"] {
+  background: var(--viewChipBackgroundHover);
+}
+.view-menu-button:focus-visible,
+.view-chip:focus-visible {
+  outline: 2px solid var(--viewChipSelectedBorder);
+  outline-offset: 1px;
+}
