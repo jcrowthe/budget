@@ -51,7 +51,7 @@ describe("backup status", () => {
     });
   });
 
-  it("a failed run writes last_failure_at and a short code, nothing of the data, and keeps the last success", async () => {
+  it("a failed run writes last_failure_at and a short code, nothing of the data, and a prune failure keeps this run as the success", async () => {
     await seedPlan(5);
     await backupRun(env, at("2031-04-02"), BIG);
     captureErrors();
@@ -143,7 +143,7 @@ describe("backup status", () => {
     expect(await tool()).toEqual(r);
   });
 
-  it("a failed invocation stays within the R2 bound: the status is one put, no get, and keeps the last success", async () => {
+  it("a failed invocation stays within the R2 bound: the status is one put, no get, and a prune failure keeps this run as the success", async () => {
     await seedPlan(5);
     await backupRun(env, at("2031-05-01"), BIG);
     for (let i = 1; i <= 17; i++) {
@@ -164,8 +164,9 @@ describe("backup status", () => {
     expect(c.total()).toBeLessThanOrEqual(BACKUP_MAX_R2_CALLS);
     expect(c.calls.get).toBe(1);
     const s = await stored();
-    expect(s.last_error_code).toBe("finish_failed");
-    expect(s.last_success_at).toBe("2031-05-01T04:00:00.000Z");
+    // The backup itself finished: only the prune failed, so the success is this run's.
+    expect(s.last_error_code).toBe("prune_failed");
+    expect(s.last_success_at).toBe("2031-05-02T04:00:00.000Z");
   });
 
   it("the read is one R2 get, with no list and no D1", async () => {

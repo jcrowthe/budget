@@ -38,6 +38,20 @@ test("a failed backup names the failure", async ({ page }) => {
   await expect(warning(page)).toContainText("The last backup failed");
 });
 
+test("a prune failure says the backup finished and never that it failed", async ({ page }) => {
+  await stubStatus(page, {
+    last_success_at: hoursAgo(1),
+    last_failure_at: hoursAgo(1),
+    last_error_code: "prune_failed",
+    stale: false,
+  });
+  await page.goto("/plans");
+  await expect(warning(page)).toContainText(
+    "Last night's backup finished, but old backups could not be removed.",
+  );
+  await expect(warning(page)).not.toContainText("failed");
+});
+
 test("a recent successful backup shows no warning", async ({ page }) => {
   await stubStatus(page, {
     last_success_at: hoursAgo(5),

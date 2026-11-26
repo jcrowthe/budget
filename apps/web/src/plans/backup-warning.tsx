@@ -12,9 +12,12 @@ export function BackupWarning() {
   if (!data || (!data.stale && !data.last_error_code)) return null;
   const key = dismissedKey(data);
   if (sessionStorage.getItem(key)) return null;
-  const text = data.last_error_code
-    ? "The last backup failed. Your plans are safe, but the nightly backup needs attention."
-    : "No backup in the last 36 hours. Your plans are safe, but the nightly backup needs attention.";
+  const text =
+    data.last_error_code === "prune_failed"
+      ? "Last night's backup finished, but old backups could not be removed."
+      : data.last_error_code
+        ? "The last backup failed. Your plans are safe, but the nightly backup needs attention."
+        : "No backup in the last 36 hours. Your plans are safe, but the nightly backup needs attention.";
   return (
     <section className="backup-warning" role="status" aria-label="Backup warning">
       <p>{text}</p>

@@ -203,7 +203,7 @@ pnpm --filter @budget/worker exec wrangler r2 object get budget-files/backups/d1
 - `backupRun` records its outcome in one small R2 object, `backups/d1/status.json` (`BACKUP_STATUS_KEY`, next to the
   manifests; no migration): `{ last_success_at, last_failure_at, last_error_code }`. A run that ends `done` puts it
   with `last_success_at` set and the failure fields null. A run that ends `failed` puts the object with the
-  `last_success_at` it holds in the state file (`finish` stores it there; no get), the failure time and a short code (`read_failed`, `write_failed`, `finish_failed`,
+  `last_success_at` it holds in the state file (`finish` stores it there; no get), the failure time and a short code (`read_failed`, `write_failed`, `finish_failed`, `prune_failed`,
   `failed`): no message, id, table or value. `noop`, `continuing` and `abandoned` write nothing. The write never
   changes the outcome and logs no more than one quiet line if it fails.
 - Cost: one R2 put on the invocation that finishes a backup (`BACKUP_MAX_R2_CALLS` 11 to 12); a failed invocation adds one put
@@ -213,3 +213,9 @@ pnpm --filter @budget/worker exec wrangler r2 object get budget-files/backups/d1
   also when nothing was ever recorded. They never read the backup's parts or manifests.
 - The plans page (`/plans`) shows a small dismissible warning in the callout-warning tokens when `stale` is true
   or `last_error_code` is set. Dismissing lasts for the browser session and ends when the status changes.
+- A prune failure after a finished backup is not a failed backup. `finish` has by then written the parts, the
+  manifest and the state (with `last_success_at`), so the status is put with `last_success_at` = this run's time
+  and the code `prune_failed` (the same for the no-op run that drains a prune backlog). `finish_failed` stays for a
+  failure before the state is written. `stale` stays false while backups succeed. The plans page warns for
+  `prune_failed` too, in its own words ("Last night's backup finished, but old backups could not be removed.") and
+  never says the backup failed.

@@ -154,7 +154,13 @@ async function prune(env: Env, inProgress: string | null): Promise<boolean> {
   return doomed.length > BACKUP_PRUNE_PER_RUN;
 }
 
-async function finish(env: Env, p: Progress, state: StateFile, now: Date): Promise<number> {
+async function finish(
+  env: Env,
+  p: Progress,
+  state: StateFile,
+  now: Date,
+  at: { code: BackupErrorCode; lastSuccess: string | null },
+): Promise<number> {
   const tables = p.tables.map((t) => ({ ...t, rows: p.counts[t.name] ?? 0 }));
   const manifest: BackupManifest = {
     format: BACKUP_FORMAT,
@@ -183,7 +189,12 @@ async function finish(env: Env, p: Progress, state: StateFile, now: Date): Promi
   state.last_done = p.id;
   state.last_success_at = now.toISOString();
   await writeState(env, state);
-  if (failure) throw failure;
+  if (failure) {
+    // The backup is complete and its state written: only the removal of old sets failed, which is not a failed backup.
+    at.lastSuccess = state.last_success_at ?? null;
+    at.code = "prune_failed";
+    throw failure;
+  }
   return tables.length;
 }
 
@@ -203,6 +214,7 @@ async function step(
   if (!p) {
     if (state.last_done === today) {
       if (state.prune_pending) {
+        at.code = "prune_failed"; // the backup of today is done; only the removal of old sets can fail here
         state.prune_pending = await prune(env, null);
         await writeState(env, state);
       }
@@ -236,7 +248,7 @@ async function step(
   if (r.rows > 0) await writePart(env, p, r.text, r.rows);
   if (p.done.length === p.tables.length) {
     at.code = "finish_failed";
-    const tables = await finish(env, p, state, now);
+    const tables = await finish(env, p, state, now, at);
     const rows = Object.values(p.counts).reduce((n, c) => n + c, 0);
     console.log(`backup done ${p.id} tables=${tables} rows=${rows} parts=${p.parts.length}`);
     await recordStatus(() => recordBackupSuccess(env, now));

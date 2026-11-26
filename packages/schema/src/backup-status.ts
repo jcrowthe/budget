@@ -10,8 +10,14 @@ export const BACKUP_STATUS_KEY = `${BACKUP_PREFIX}status.json`;
 /** No success for this long is stale. */
 export const BACKUP_STALE_HOURS = 36;
 
-/** Where a failed run stopped: reading the schema or the rows, writing a part, or finishing (manifest, prune, state). */
-export const BackupErrorCode = z.enum(["read_failed", "write_failed", "finish_failed", "failed"]);
+/** Where a failed run stopped: reading the schema or the rows, writing a part, or finishing (manifest, state). prune_failed: the backup finished and its state is written; only removing old sets failed. */
+export const BackupErrorCode = z.enum([
+  "read_failed",
+  "write_failed",
+  "finish_failed",
+  "prune_failed",
+  "failed",
+]);
 export type BackupErrorCode = z.infer<typeof BackupErrorCode>;
 
 /** The stored object. */
