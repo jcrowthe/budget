@@ -65,7 +65,7 @@ test("AC1: the menu entry opens the dialog with the ticket's copy; Cancel change
   }
   const box = d.getByRole("checkbox", { name: "Stop importing transactions in my archived plan" });
   await expect(box).toBeChecked();
-  const info = d.getByRole("button", { name: /more information|info/i });
+  const info = d.getByRole("button", { name: "More about stopping imports" });
   await info.hover();
   await expect(page.getByRole("tooltip")).toHaveText(
     "If you plan to actively use both your Fresh Start plan and this archived plan, you may want to un-check this checkbox.",

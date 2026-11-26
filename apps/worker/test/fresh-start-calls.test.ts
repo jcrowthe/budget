@@ -73,6 +73,7 @@ async function world(size: number, accounts: number) {
      select ? || ':c' || i, ?, ?, 'ZZ Cat ' || i, i, ?, ?, 'ZZ note' from n`,
     size,
     bid,
+    bid,
     `${bid}:g`,
     now,
     now,
@@ -113,6 +114,7 @@ async function world(size: number, accounts: number) {
     bid,
     bid,
     bid,
+    bid,
     now,
     now,
   );
@@ -121,6 +123,7 @@ async function world(size: number, accounts: number) {
     `${cte} insert into scheduled_subtransactions (id, budget_id, scheduled_transaction_id, amount, payee_id, category_id, sort, created_at, updated_at)
      select ? || ':l' || i || ':' || k, ?, ? || ':s' || i, -500 * (i % 5 + 1), ? || ':p' || i, ? || ':c' || i, k, ?, ? from n, (select 0 as k union all select 1) where i % 5 = 2`,
     size,
+    bid,
     bid,
     bid,
     bid,

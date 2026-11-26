@@ -222,7 +222,7 @@ export async function seedSource(
   expect(view.status).toBe(201);
 
   const sched = async (body: Json) => {
-    const res = await send(`${A}/scheduled-transactions`, "POST", {
+    const res = await send(`${A}/scheduled-transactions?today=${T}`, "POST", {
       account_id: acct.Checking,
       date_first: "2026-03-20",
       frequency: "monthly",
@@ -335,8 +335,8 @@ export async function dump(bid: string, opts: { startingBalances?: boolean } = {
   if (opts.startingBalances) {
     out.transactions = await q(
       `select (select name from accounts where id = t.account_id) as account, t.date, t.amount, t.payee_name, t.cleared, t.approved, t.inflow_to_ready_to_assign as rta,
-         t.category_id, (select system from payees where id = t.payee_id) as payee_system
-       from transactions t where t.budget_id = ? and t.deleted_at is null order by 1`,
+         (select name from categories where id = t.category_id) as category, (select system from payees where id = t.payee_id) as payee_system
+       from transactions t where t.budget_id = ? and t.deleted_at is null order by account, t.date, t.amount, t.payee_name, t.memo`,
       bid,
     );
   }

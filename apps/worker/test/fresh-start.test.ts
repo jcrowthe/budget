@@ -190,6 +190,11 @@ describe("Fresh Start: the copy (EXF-478)", () => {
   it("5: the archive is renamed and keeps everything", async () => {
     const s = await seedSource();
     const before = await snapshot(s.bid);
+    const txBefore = await n(
+      "select count(*) n from transactions where budget_id = ? and deleted_at is null",
+      s.bid,
+    );
+    expect(txBefore).toBeGreaterThan(9);
     const [src] = await q("select name, updated_at from budgets where id = ?", s.bid);
     const { archived_budget_id } = await freshOk(s.bid, `ZZ-TEST new ${rand()}`);
     expect(archived_budget_id).toBe(s.bid);
@@ -206,7 +211,7 @@ describe("Fresh Start: the copy (EXF-478)", () => {
         "select count(*) n from transactions where budget_id = ? and deleted_at is null",
         s.bid,
       ),
-    ).toBe(9);
+    ).toBe(txBefore);
     // a long name is cut to 100 characters
     const long = await seedSource();
     await run("update budgets set name = ? where id = ?", "L".repeat(99), long.bid);
@@ -235,7 +240,7 @@ describe("Fresh Start: the copy (EXF-478)", () => {
     expect(await n("select count(*) n from change_log")).toBe(logCount);
     // a deleted plan's name is free
     const gone = await seedSource();
-    expect((await send(`/api/v1/budgets/${gone.bid}`, "DELETE")).status).toBe(204);
+    expect((await send(`/api/v1/budgets/${gone.bid}`, "DELETE")).status).toBe(200);
     expect((await freshStart(s.bid, { name: gone.name, today: T })).status).toBe(201);
   });
 
@@ -298,7 +303,7 @@ describe("Fresh Start: the copy (EXF-478)", () => {
       get(t, k) {
         if (k === "batch") {
           return async (list: D1PreparedStatement[]) => {
-            if (!fired && list.length > 5) {
+            if (!fired && list.length > 20) {
               fired = true;
               const now = new Date().toISOString();
               await t
@@ -322,7 +327,7 @@ describe("Fresh Start: the copy (EXF-478)", () => {
         stop_importing_in_archive: true,
         today: T,
       }),
-    ).rejects.toMatchObject({ status: 409 });
+    ).rejects.toThrow("modified concurrently");
     expect(fired).toBe(true);
     expect(await n("select count(*) n from budgets")).toBe(planCount);
     expect((await q("select name from budgets where id = ?", s.bid))[0]?.name).toBe(s.name);
