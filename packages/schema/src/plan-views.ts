@@ -31,11 +31,25 @@ export function underfundedGap(target: CategoryTargetMonth | null, shortfall: nu
   return Math.max(active ? target.to_go_this_month : 0, shortfall);
 }
 
+/** A custom view as the filter sees it: a name and its member category ids. */
+export interface CustomViewScope {
+  id: string;
+  name: string;
+  category_ids: readonly string[];
+}
+export type ViewSelection = PlanView | CustomViewScope;
+export const isCustomView = (v: ViewSelection): v is CustomViewScope => typeof v !== "string";
+
 /**
  * Whether a visible category belongs to a view. The one definition: the grid, the panel, both month reads and
  * Auto-Assign all use it. A snoozed target counts as no target.
  */
-export function inView(c: MonthCategoryDetail, view: PlanView): boolean {
+export function inView(
+  c: MonthCategoryDetail,
+  view: ViewSelection,
+  members?: ReadonlySet<string>,
+): boolean {
+  if (isCustomView(view)) return (members ?? new Set(view.category_ids)).has(c.id);
   const t = c.target;
   const active = t !== null && t.status !== "snoozed";
   // A credit card payment category keeps its own rule (Auto-Assign never adds an upcoming shortfall to it).
@@ -57,20 +71,23 @@ export function inView(c: MonthCategoryDetail, view: PlanView): boolean {
 }
 
 /** The visible categories (not hidden, in a group not hidden) the view shows, in grid order. */
-export function viewCategories(d: MonthDetail, view: PlanView): MonthCategoryDetail[] {
+export function viewCategories(d: MonthDetail, view: ViewSelection): MonthCategoryDetail[] {
   const all = d.groups
     .filter((g) => !g.hidden)
     .flatMap((g) => g.categories.filter((c) => !c.hidden));
-  return view === "all" ? all : all.filter((c) => inView(c, view));
+  if (view === "all") return all;
+  const members = isCustomView(view) ? new Set(view.category_ids) : undefined;
+  return all.filter((c) => inView(c, view, members));
 }
 
 /** The month read narrowed to a view: groups without a match gone, group subtotals over what is left. */
-export function viewDetail(d: MonthDetail, view: PlanView): MonthDetail {
+export function viewDetail(d: MonthDetail, view: ViewSelection): MonthDetail {
   if (view === "all") return d;
+  const members = isCustomView(view) ? new Set(view.category_ids) : undefined;
   const groups: MonthGroupDetail[] = [];
   for (const g of d.groups) {
     if (g.hidden) continue;
-    const categories = g.categories.filter((c) => !c.hidden && inView(c, view));
+    const categories = g.categories.filter((c) => !c.hidden && inView(c, view, members));
     if (categories.length === 0) continue;
     groups.push({
       ...g,
