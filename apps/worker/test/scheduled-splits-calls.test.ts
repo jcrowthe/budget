@@ -154,7 +154,7 @@ describe("scheduled splits: D1 calls", () => {
       out.push(c.calls());
     }
     expect(out[0]).toBe(out[1]);
-    expect(out[1]).toBeLessThanOrEqual(5);
+    expect(out).toEqual([5, 5]);
   });
 
   it("create and edit: calls grow only with the lines (one read each, as the register's)", async () => {
@@ -182,7 +182,7 @@ describe("scheduled splits: D1 calls", () => {
     const ten = await create(10);
     // validateLines reads each line's category once; the rest is constant.
     expect(ten - two).toBe(8);
-    expect(two).toBeLessThanOrEqual(12);
+    expect(two).toBe(7);
     const made = await listScheduled(env, b, { accountId: a });
     const id = made.find((x) => x.subtransactions.length === 2)?.id as string;
     const edit = async (k: number) => {
