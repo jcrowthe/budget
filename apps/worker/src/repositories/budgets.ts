@@ -2,7 +2,10 @@ import { and, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { budgets } from "../db/schema/budgets";
 
-export type BudgetRow = typeof budgets.$inferSelect;
+/** A plan row; `expectedIncome` may be left out when a row is built for an insert (plan import). */
+export type BudgetRow = Omit<typeof budgets.$inferSelect, "expectedIncome"> & {
+  expectedIncome?: number | null;
+};
 
 export async function listActive(db: Db): Promise<BudgetRow[]> {
   return db.select().from(budgets).where(isNull(budgets.deletedAt)).orderBy(budgets.createdAt);
@@ -21,9 +24,14 @@ export async function findActive(db: Db, id: string): Promise<BudgetRow | undefi
 /** A row to insert: the format columns may be left to their defaults. */
 export type NewBudgetRow = Omit<
   BudgetRow,
-  "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat"
+  "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat" | "expectedIncome"
 > &
-  Partial<Pick<BudgetRow, "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat">>;
+  Partial<
+    Pick<
+      BudgetRow,
+      "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat" | "expectedIncome"
+    >
+  >;
 
 export function insertStmt(db: Db, row: NewBudgetRow) {
   return db.insert(budgets).values(row);
@@ -49,6 +57,7 @@ export function updateStmt(
     numberFormat?: string;
     symbolPlacement?: "before" | "after" | "none";
     dateFormat?: string;
+    expectedIncome?: number | null;
   },
   updatedAt: string,
 ) {

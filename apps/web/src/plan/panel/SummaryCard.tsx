@@ -1,5 +1,6 @@
 import { addMonths, type Month } from "@budget/core/month";
 import type { MonthTotals } from "@budget/schema/months";
+import type { ReactNode } from "react";
 import { usePlanFormatter } from "../../shell/plan-formats-context";
 import { longMonth } from "../format";
 import { PanelCard } from "./PanelCard";
@@ -11,11 +12,14 @@ export function SummaryCard({
   totals,
   collapsed,
   onToggle,
+  children,
 }: {
   month: Month;
   totals: MonthTotals;
   collapsed: boolean;
   onToggle: () => void;
+  /** Rendered under the four rows (Cost to Be Me). */
+  children?: ReactNode;
 }) {
   const fmt = usePlanFormatter();
   const here = longMonth(month);
@@ -61,6 +65,7 @@ export function SummaryCard({
           )}
         </PanelTooltip>
       ))}
+      {children}
     </PanelCard>
   );
 }

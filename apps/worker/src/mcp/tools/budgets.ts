@@ -6,13 +6,14 @@ import {
   deleteBudget,
   getBudget,
   listBudgets,
+  setExpectedIncome,
   updateBudget,
 } from "../../services/budgets";
-import { Id, timestamps } from "../tool-text";
+import { Id, MONEY, timestamps } from "../tool-text";
 import type { McpToolDef } from "../types";
 
 const FIELDS =
-  "currency_format { iso_code, example_format, decimal_digits, decimal_separator, group_separator, symbol_first, currency_symbol, display_symbol } and date_format { format }";
+  "currency_format { iso_code, example_format, decimal_digits, decimal_separator, group_separator, symbol_first, currency_symbol, display_symbol } and date_format { format } and expected_income (milliunits, or null when not set)";
 const FORMATS_NOTE =
   "Formats are for screens and export files only: amounts stay integer milliunits (1000 = one currency unit) and dates ISO.";
 const FORMAT_RULES = `currency_format: { iso_code (a currency code, e.g. USD, EUR, JPY; read the plan's own with get_budget), example_format (the number format: with 2 decimal digits 123,456.78, 123.456,78, "123 456.78", 123'456.78, "123 456-78", "123 456,78", 123,456/78 or 1,23,456.78; with 3 digits (BHD IQD JOD KWD OMR TND) 123,456.789; with 0 digits (JPY KRW XAF XOF XPF LAK TZS CLP DJF HUF ISK IDR MMR TWD PYG UGX VND) 123.456, 123,456 or "123 456"), symbol_placement (before, after or none = Don't show) }; date_format: { format: one of ${DATE_FORMAT_OPTIONS.join(", ")} }. A changed currency without example_format or symbol_placement takes the currency's defaults; the date format is never changed by a currency change; amounts are never converted. An unknown currency, a number format the currency does not offer or an unknown date format is refused and nothing changes. Formats are for screens and export files only: amounts in every tool stay integer milliunits (1000 = one currency unit) and dates ISO.`;
@@ -88,6 +89,14 @@ export const tools: McpToolDef[] = [
       }
       return { budget: await updateBudget(env, actor, budget_id, rest) };
     },
+  },
+  {
+    name: "set_expected_income",
+    description: `Set the plan's expected monthly income: the figure the Plan's Cost to Be Me compares with the month's targets. ${MONEY} expected_income is milliunits; 0 or null clears it; a negative is refused and nothing changes. Returns { budget } with id, name, bank_environment, ${FIELDS}, created_at, last_modified_on and last_opened_at. ${timestamps(["created_at", "last_modified_on", "last_opened_at"], ["last_opened_at"])}`,
+    inputSchema: z.object({ budget_id: Id, expected_income: z.number().int().nullable() }),
+    run: async (input: { budget_id: string; expected_income: number | null }, { env, actor }) => ({
+      budget: await setExpectedIncome(env, actor, input.budget_id, input.expected_income),
+    }),
   },
   {
     name: "delete_budget",

@@ -286,6 +286,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["continue_budget_import", () => ({ import_id: results.get("import_budget_export")?.import_id })],
   ["create_budget", () => ({ name: "ZZ-TEST made by tool", bank_environment: "sandbox" })],
   ["update_budget", (c) => ({ budget_id: c.bid, name: "ZZ-TEST renamed" })],
+  ["set_expected_income", (c) => ({ budget_id: c.bid, expected_income: 500000 })],
   ["list_accounts", (c) => ({ budget_id: c.bid, include_closed: true })],
   ["reorder_accounts", (c) => ({ budget_id: c.bid, account_ids: [c.checking] })],
   ["get_account", (c) => ({ budget_id: c.bid, account_id: c.checking })],

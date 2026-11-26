@@ -1,0 +1,174 @@
+/* Cost to Be Me (EXF-525), under the month summary's rows. Colours from shell/tokens.css only; the buttons and
+   the field follow the Target form's (target.css) so the panel reads as one system. */
+.ctbm {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--borderSubtle);
+}
+.ctbm-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 21px;
+  color: var(--labelHeading);
+}
+
+/* Buttons: secondary (Enter your expected income), ghost (Cancel), primary (Save). */
+.ctbm-btn {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--buttonGhostLabel);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ctbm-btn:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackground);
+}
+.ctbm-enter {
+  width: 100%;
+  margin-top: var(--space-2);
+  background: var(--buttonSecondaryBackground);
+  color: var(--buttonSecondaryLabel);
+}
+.ctbm-enter:hover:not(:disabled) {
+  background: var(--buttonSecondaryBackgroundHover);
+}
+.ctbm-btn.is-primary {
+  background: var(--buttonPrimaryBackground);
+  color: var(--labelPrimary);
+}
+.ctbm-btn.is-primary:hover:not(:disabled) {
+  background: var(--actionPrimary);
+}
+.ctbm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ctbm-btn:focus-visible,
+.ctbm-edit:focus-visible {
+  outline: 2px solid var(--actionPrimary);
+  outline-offset: 2px;
+}
+
+/* The inline entry */
+.ctbm-form {
+  margin-top: var(--space-2);
+}
+.ctbm-label {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--labelSecondary);
+}
+.ctbm-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: var(--radius-xs);
+  background: var(--inputBackground);
+}
+.ctbm-input:focus-within {
+  border-color: var(--buttonPrimaryBackground);
+}
+.ctbm-input:has(input[aria-invalid="true"]) {
+  border-color: var(--labelNegative);
+}
+.ctbm-calculator {
+  flex: none;
+  color: var(--labelTertiary);
+}
+.ctbm-input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--labelPrimary);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.ctbm-error {
+  margin: var(--space-1) 0 0;
+  color: var(--labelNegative);
+}
+.ctbm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* The saved income: label, figure, then the pencil */
+.ctbm-income-row {
+  align-items: center;
+  margin-top: var(--space-2);
+}
+.ctbm-income-row .panel-row-value {
+  margin-left: auto;
+}
+.ctbm-edit {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--labelTertiary);
+  cursor: pointer;
+}
+.ctbm-edit:hover {
+  background: var(--buttonSubtleBackground);
+  color: var(--labelPrimary);
+}
+
+/* The two comparison bars: targets (funded blue, or the deficit red) over income */
+.ctbm-bars {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+.ctbm-track {
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--backgroundTertiary);
+  overflow: hidden;
+}
+.ctbm-fill {
+  height: 100%;
+  border-radius: var(--radius-xs);
+  transition: width 0.2s ease;
+}
+.ctbm-fill.is-targets {
+  background: var(--buttonPrimaryBackground);
+}
+.ctbm-fill.is-targets.has-deficit {
+  background: var(--statusNegative);
+}
+.ctbm-fill.is-income {
+  background: var(--labelTertiary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctbm-fill {
+    transition: none;
+  }
+}
+.ctbm-next {
+  margin: var(--space-2) 0 0;
+  color: var(--labelTertiary);
+  line-height: 1.4;
+}
+.ctbm-next strong {
+  color: var(--labelSecondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

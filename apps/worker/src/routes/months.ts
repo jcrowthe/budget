@@ -119,7 +119,7 @@ export default app
       responses: {
         200: json(
           MonthSummaryTotalsResponse,
-          "Totals of the month over the categories; for the current month also future_assigned (each later month's assigned total) and future_assigned_total, over the whole plan",
+          "Totals of the month over the categories, plus targets_total and next_month_targets_total (Cost to Be Me: the sum of every target's amount for the month and the next, whole plan); for the current month also future_assigned (each later month's assigned total) and future_assigned_total, over the whole plan",
         ),
         ...errors,
       },

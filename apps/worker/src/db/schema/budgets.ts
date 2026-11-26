@@ -1,4 +1,4 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const budgets = sqliteTable("budgets", {
   id: text("id").primaryKey(),
@@ -16,4 +16,5 @@ export const budgets = sqliteTable("budgets", {
     .notNull()
     .default("before"),
   dateFormat: text("date_format").notNull().default("MM/DD/YYYY"),
+  expectedIncome: integer("expected_income"),
 });

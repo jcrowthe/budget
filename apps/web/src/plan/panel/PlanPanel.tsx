@@ -2,10 +2,12 @@ import type { Month } from "@budget/core/month";
 import { monthTotals, viewTotals } from "@budget/schema/month-totals";
 import type { PlanView } from "@budget/schema/plan-views";
 import { type RefObject, useRef, useState } from "react";
-import { useFutureAssigned, useMonth } from "../../api/months";
+import { useFutureAssigned, useMonth, useMonthTargets } from "../../api/months";
 import { localCurrentMonth } from "../../shell/planPaths";
+import { useCurrentPlan } from "../../shell/useCurrentPlan";
 import { AutoAssignCard } from "./AutoAssignCard";
 import { CategoryInspector } from "./CategoryInspector";
+import { CostToBeMe } from "./CostToBeMe";
 import { FutureAssignedCard } from "./FutureAssignedCard";
 import { usePanelWidth } from "./panelWidth";
 import { ResizeHandle } from "./ResizeHandle";
@@ -58,6 +60,9 @@ export function PlanPanel({
   // EXF-527: only the current month with nothing selected; it reads the month summary once on its own.
   const showFuture = month === localCurrentMonth() && selected.length === 0;
   const future = useFutureAssigned(budgetId, month, showFuture).data;
+  // EXF-525: Cost to Be Me, in the summary card with nothing selected, in every month.
+  const targets = useMonthTargets(budgetId, month, selected.length === 0).data;
+  const income = useCurrentPlan().plan?.expected_income ?? null;
   const panelRef = useRef<HTMLElement>(null);
   const all = detail?.groups.flatMap((g) => g.categories) ?? [];
   const one = selected.length === 1 ? all.find((c) => c.id === selected[0]) : undefined;
@@ -68,7 +73,17 @@ export function PlanPanel({
       totals={selected.length > 0 ? monthTotals(detail, selected) : viewTotals(detail, view)}
       collapsed={collapsed.summary}
       onToggle={() => setCollapsed((c) => ({ ...c, summary: !c.summary }))}
-    />
+    >
+      {selected.length === 0 && targets && (
+        <CostToBeMe
+          budgetId={budgetId}
+          month={month}
+          total={targets.total}
+          next={targets.next}
+          income={income}
+        />
+      )}
+    </SummaryCard>
   );
   const autoAssign = (
     <AutoAssignCard
