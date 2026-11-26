@@ -1,7 +1,12 @@
 import type { Month } from "@budget/core/month";
 import { addMonths } from "@budget/core/month";
 import { evaluateAmountEntry } from "@budget/schema/amount-entry";
-import { RECORD_CHARGE, RECORD_CREDIT, RECORD_INTEREST } from "@budget/schema/loan-add-activity";
+import {
+  RECORD_CHARGE,
+  RECORD_CREDIT,
+  RECORD_ESCROW,
+  RECORD_INTEREST,
+} from "@budget/schema/loan-add-activity";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { useAddLoanActivity } from "../api/loans";
@@ -13,7 +18,7 @@ import { CloseIcon } from "../shell/icons";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import "./loan-activity.css";
 
-export type AddKind = "interest" | "fee" | "credit";
+export type AddKind = "interest" | "escrow" | "fee" | "credit";
 
 /** Months from `earliest` to `current`, newest first. */
 function monthChoices(earliest: Month, current: Month): Month[] {
@@ -22,7 +27,7 @@ function monthChoices(earliest: Month, current: Month): Month[] {
   return out;
 }
 
-/** Record Interest, Record New Charge and Record Credit or Refund on a loan's page (EXF-542). */
+/** Record Interest, Record Escrow, Record New Charge and Record Credit or Refund on a loan's page (EXF-542). */
 export function AddLoanActivityDialog({
   budgetId,
   loanId,
@@ -40,8 +45,15 @@ export function AddLoanActivityDialog({
   const limits = navLimits(useMonthRange(budgetId).data, current);
   const save = useAddLoanActivity(budgetId, loanId);
 
+  const monthly = kind === "interest" || kind === "escrow";
   const copy =
-    kind === "interest" ? RECORD_INTEREST : kind === "fee" ? RECORD_CHARGE : RECORD_CREDIT;
+    kind === "interest"
+      ? RECORD_INTEREST
+      : kind === "escrow"
+        ? RECORD_ESCROW
+        : kind === "fee"
+          ? RECORD_CHARGE
+          : RECORD_CREDIT;
   const [amount, setAmount] = useState("");
   const [month, setMonth] = useState<Month>(current);
   const [date, setDate] = useState(() => fmt.date(today));
@@ -49,7 +61,7 @@ export function AddLoanActivityDialog({
   const [error, setError] = useState<string | null>(null);
 
   const value = evaluateAmountEntry(fmt.typedAmount(amount), fmt.digits);
-  const iso = kind === "interest" ? today : fmt.parseDate(date, today);
+  const iso = monthly ? today : fmt.parseDate(date, today);
   const canSave = value !== null && value > 0 && iso !== null && !save.isPending;
 
   const closeRef = useRef(onClose);
@@ -65,10 +77,9 @@ export function AddLoanActivityDialog({
   const submit = () => {
     if (!canSave || value === null || iso === null) return;
     setError(null);
-    const input =
-      kind === "interest"
-        ? { kind, amount: value, month, today }
-        : { kind, amount: value, date: iso, memo: memo.trim() || undefined, today };
+    const input = monthly
+      ? { kind, amount: value, month, today }
+      : { kind, amount: value, date: iso, memo: memo.trim() || undefined, today };
     save.mutate(input, {
       onSuccess: onClose,
       onError: (e) => setError(e instanceof ApiError ? e.detail : "The activity was not saved."),
@@ -119,7 +130,7 @@ export function AddLoanActivityDialog({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
-          {kind === "interest" ? (
+          {monthly ? (
             <>
               <label htmlFor={`${id}-month`}>{RECORD_INTEREST.labels.month}</label>
               <select

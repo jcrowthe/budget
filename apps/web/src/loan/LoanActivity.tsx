@@ -105,6 +105,18 @@ function interestTarget(line: LoanActivityData["interest"], month: Month): EditT
   };
 }
 
+function escrowTarget(line: LoanActivityData["escrow"], month: Month): EditTarget | null {
+  if (!line?.editable || !line.transaction_id) return null;
+  return {
+    kind: "escrow",
+    transactionId: line.transaction_id,
+    amount: Math.abs(line.amount),
+    date: line.edited_on ?? month,
+    memo: null,
+    monthLabel: longMonth(month),
+  };
+}
+
 /** A loan's page: Account Activity for one month in place of the register (EXF-540). */
 export function LoanActivity({ budgetId, account }: { budgetId: string; account: Account }) {
   const fmt = usePlanFormatter();
@@ -148,6 +160,7 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
           Record Payment
         </button>
         <AddActivityMenu
+          mortgage={account.type === "mortgage"}
           onPick={(id: AddActivityId) => (id === "payment" ? setPaying(true) : setAdding(id))}
         />
       </div>
@@ -207,7 +220,14 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
                   <span className="loan-row-text">
                     {a.escrow.state === "estimated" ? ESCROW_NOTE : escrowNote(a.escrow)}
                   </span>
-                  {a.escrow.state === "reconciled" ? <LockIcon /> : null}
+                  {escrowTarget(a.escrow, month) ? (
+                    <EditButton
+                      label="Edit escrow"
+                      onClick={() => setEditing(escrowTarget(a.escrow, month))}
+                    />
+                  ) : a.escrow.state === "reconciled" ? (
+                    <LockIcon />
+                  ) : null}
                   <span className="loan-row-amount">{fmt.money(a.escrow.amount)}</span>
                 </li>
               </ul>

@@ -4,6 +4,7 @@ import {
   DELETE_LINE_TITLE,
   EDIT_ACTIVITY_LABELS,
   EDIT_CREDIT_TITLE,
+  EDIT_ESCROW_TITLE,
   EDIT_FEE_TITLE,
   EDIT_INTEREST_TITLE,
 } from "@budget/schema/loan-manage";
@@ -17,24 +18,25 @@ import { usePlanFormatter } from "../shell/plan-formats-context";
 import "./loan-activity.css";
 import { useEscape } from "./useEscape";
 
-/** The recorded line to change: an interest line (its month shown), a fee or a credit. `amount` is a magnitude. */
+/** The recorded line to change: an interest or escrow line (its month shown), a fee or a credit. `amount` is a magnitude. */
 export type EditTarget = {
-  kind: "interest" | "fee" | "credit";
+  kind: "interest" | "escrow" | "fee" | "credit";
   transactionId: string;
   amount: number;
   date: string;
   memo: string | null;
-  /** interest only: the month the line belongs to, as the page shows it. */
+  /** interest and escrow: the month the line belongs to, as the page shows it. */
   monthLabel?: string;
 };
 
 const TITLES = {
   interest: EDIT_INTEREST_TITLE,
+  escrow: EDIT_ESCROW_TITLE,
   fee: EDIT_FEE_TITLE,
   credit: EDIT_CREDIT_TITLE,
 } as const;
 
-/** Edit Interest, Edit Fee or Charge and Edit Credit on a loan's Account Activity, with Delete behind a confirm. */
+/** Edit Interest, Edit Escrow, Edit Fee or Charge and Edit Credit on a loan's Account Activity, with Delete behind a confirm. */
 export function EditLoanActivityDialog({
   budgetId,
   loanId,
@@ -49,7 +51,7 @@ export function EditLoanActivityDialog({
   const fmt = usePlanFormatter();
   const today = localToday();
   const { update, remove } = useManageLoanActivity(budgetId, loanId, target.transactionId);
-  const interest = target.kind === "interest";
+  const interest = target.kind === "interest" || target.kind === "escrow"; // a month line: amount only
   const [amount, setAmount] = useState(() => formatAmountEntry(target.amount, fmt));
   const [date, setDate] = useState(() => fmt.date(target.date));
   const [memo, setMemo] = useState(target.memo ?? "");

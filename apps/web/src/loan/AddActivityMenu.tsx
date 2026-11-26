@@ -8,8 +8,14 @@ import { Popover } from "../register/Popover";
 import "../register/register.css";
 import "./loan-activity.css";
 
-/** The loan page's primary "Add Activity" button and its menu of four items (EXF-542). */
-export function AddActivityMenu({ onPick }: { onPick: (id: AddActivityId) => void }) {
+/** The loan page's primary "Add Activity" button and its menu of four or five items (Add Escrow only for a mortgage) (EXF-542). */
+export function AddActivityMenu({
+  mortgage,
+  onPick,
+}: {
+  mortgage: boolean;
+  onPick: (id: AddActivityId) => void;
+}) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   return (
@@ -34,7 +40,7 @@ export function AddActivityMenu({ onPick }: { onPick: (id: AddActivityId) => voi
           onClose={() => setOpen(false)}
         >
           <ul className="bulk-list">
-            {ADD_ACTIVITY_ITEMS.map((item) => (
+            {ADD_ACTIVITY_ITEMS.filter((item) => mortgage || item.id !== "escrow").map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
