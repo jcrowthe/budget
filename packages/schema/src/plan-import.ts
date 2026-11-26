@@ -265,6 +265,18 @@ export interface ImportPlan {
   payees: { name: string; system: PayeeSystem | null }[];
   /** Renaming rules (EXF-885 5a) in order of creation; `payee` indexes `payees`. */
   renameRules: { payee: number; kind: RenameRuleKind; text: string; matchText: string }[];
+  /** What the Settings file carries (EXF-480, EXF-525, EXF-502); empty when the file has none. */
+  settings: {
+    flagNames: Partial<Record<FlagColor, string>>;
+    expectedIncome: number | null;
+    /** In the views' order; `categories` index `categories` and are in the view's order. */
+    views: {
+      position: number;
+      builtinKey: string | null;
+      name: string | null;
+      categories: number[];
+    }[];
+  };
   transactions: {
     account: number;
     date: string;
@@ -309,6 +321,8 @@ export interface ImportPlan {
   counts: ImportCounts;
 }
 
+const MAX_FLAG_NAME = 50;
+const BUILTIN_VIEW_KEYS = ["underfunded", "overfunded", "money_available", "snoozed"];
 const FLAG_BY_NAME = new Map<string, FlagColor>(
   (Object.entries(FLAG_NAMES) as [FlagColor, string][]).map(([c, n]) => [n.toLowerCase(), c]),
 );
@@ -344,6 +358,9 @@ interface LoanCells {
 
 export interface BuildInput {
   plan: NamedText;
+  /** The Settings file of the export (flag names, expected income, views), when it has one. */
+  settings?: NamedText | null;
+  settingsDelimiter?: "," | "\t";
   register: NamedText;
   delimiter: "," | "\t";
   planDelimiter?: "," | "\t";
@@ -557,6 +574,34 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
   const isoOf = new Map<string, string>();
   for (const t of dateTexts) isoOf.set(t, parseDate(t, dateFormat) as string);
 
+  // ---- Settings file: the plan's flag names first, so a Flag cell can be mapped back to its colour.
+  const settingsRaw = input.settings
+    ? readDelimited(stripBom(input.settings.text), input.settingsDelimiter ?? input.delimiter)
+    : [];
+  const flagNames: Partial<Record<FlagColor, string>> = {};
+  const flagByCustom = new Map<string, FlagColor>();
+  for (let i = 1; i < settingsRaw.length; i++) {
+    const r = settingsRaw[i] as string[];
+    if (unguard(r[0] ?? "").trim() !== "Flag Name") continue;
+    const color = FLAG_BY_NAME.get(
+      unguard(r[1] ?? "")
+        .trim()
+        .toLowerCase(),
+    );
+    const label = unguard(r[2] ?? "").trim();
+    if (!color || label === "") continue;
+    if (label.length > MAX_FLAG_NAME) {
+      warn(
+        "flag_name_too_long",
+        label,
+        `The flag name "${label}" is over ${MAX_FLAG_NAME} characters and is not kept`,
+      );
+      continue;
+    }
+    flagNames[color] = label;
+    flagByCustom.set(label.toLowerCase(), color);
+  }
+
   // ---- Register rows
   const accountIndex = new Map<string, number>();
   const accountNames: string[] = [];
@@ -580,7 +625,10 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     const flagText = unguard(r[1] as string).trim();
     let flag: FlagColor | null = null;
     if (flagText !== "") {
-      flag = FLAG_BY_NAME.get(flagText.toLowerCase()) ?? null;
+      flag =
+        flagByCustom.get(flagText.toLowerCase()) ??
+        FLAG_BY_NAME.get(flagText.toLowerCase()) ??
+        null;
       if (!flag)
         warn(
           "flag_name_unknown",
@@ -1406,6 +1454,50 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     renameRules.push({ payee: p, kind: r.kind as RenameRuleKind, text: checked.text, matchText });
   }
 
+  // ---- Settings: expected income, then the views, their categories found by group and category name.
+  let expectedIncome: number | null = null;
+  const viewList: {
+    builtinKey: string | null;
+    name: string | null;
+    categories: number[];
+    at: number;
+  }[] = [];
+  const viewAt = new Map<string, (typeof viewList)[number]>();
+  for (let i = 1; i < settingsRaw.length; i++) {
+    const r = settingsRaw[i] as string[];
+    const kind = unguard(r[0] ?? "").trim();
+    const name = unguard(r[1] ?? "");
+    const pos = Number((r[3] ?? "").trim());
+    const at = Number.isInteger(pos) && (r[3] ?? "").trim() !== "" ? pos : viewList.length;
+    if (kind === "Expected Income") {
+      const m = amount(r[2] ?? "", "Settings file", i + 1, "Value");
+      expectedIncome = m > 0 ? m : null;
+    } else if (kind === "Built-in View") {
+      if (BUILTIN_VIEW_KEYS.includes(name.trim()) && !viewAt.has(`b\u0000${name.trim()}`)) {
+        const v = { builtinKey: name.trim(), name: null, categories: [], at };
+        viewList.push(v);
+        viewAt.set(`b\u0000${name.trim()}`, v);
+      }
+    } else if (kind === "View") {
+      if (name.trim() === "") continue;
+      const v = { builtinKey: null, name: name.trim(), categories: [] as number[], at };
+      viewList.push(v);
+      viewAt.set(`v\u0000${at}`, v);
+    } else if (kind === "View Category") {
+      const v = viewAt.get(`v\u0000${at}`);
+      if (!v) continue;
+      const c = catByKey.get(`${unguard(r[4] ?? "")}\u0000${unguard(r[5] ?? "")}`);
+      if (c === undefined) {
+        warn(
+          "view_category_unknown",
+          `${v.name}\u0000${r[4]}\u0000${r[5]}`,
+          `A category of a custom view is not in the new plan: it is left out of the view`,
+        );
+      } else if (!v.categories.includes(c)) v.categories.push(c);
+    }
+  }
+  viewList.sort((a, b) => a.at - b.at);
+
   const kept = [...warnings.values()];
   const firstMonth = months[0] ?? null;
   return {
@@ -1431,6 +1523,16 @@ export function buildImportPlan(input: BuildInput): ImportPlan {
     assignments,
     payees,
     renameRules,
+    settings: {
+      flagNames,
+      expectedIncome,
+      views: viewList.map((v) => ({
+        position: v.at,
+        builtinKey: v.builtinKey,
+        name: v.name,
+        categories: v.categories,
+      })),
+    },
     transactions: out,
     schedules,
     planRows,

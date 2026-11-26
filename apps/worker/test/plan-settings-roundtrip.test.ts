@@ -3,7 +3,7 @@ import { account, category, type Json, plan, q, send, tx } from "./bulk-helpers"
 import { createView, listViews, planCategories } from "./custom-views-helpers";
 import { json } from "./helpers";
 import { NOW, pinPlanClock, readZip } from "./plan-export-helpers";
-import { body, importForm, postImport } from "./plan-import-helpers";
+import { body, importForm, postImport, sampleFiles } from "./plan-import-helpers";
 
 // Plan-level data through Export Plan and Import Plan: the plan's custom flag names (EXF-480), its expected
 // income (EXF-525) and its custom views (EXF-502). Design: docs/plan-export-design.md, "Plan settings".
@@ -109,7 +109,7 @@ describe("flag names, expected income and views survive export then import", () 
         b,
       )) as Json[];
     expect(await flags(nb)).toEqual(await flags(bid));
-    expect((await flags(nb)).map((r) => r.flag_color)).toEqual([null, "red", "blue", "red"]);
+    expect((await flags(nb)).map((r) => r.flag_color)).toEqual(["red", null, "blue", "red"]);
 
     expect(await viewsOf(nb)).toEqual(await viewsOf(bid));
     const imported = await viewsOf(nb);
@@ -118,5 +118,37 @@ describe("flag names, expected income and views survive export then import", () 
       "ZZ Empty",
     ]);
     expect(readZip(first.bytes).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("a plan with none of it is exported as two files, exactly as before", async () => {
+    const bid = await plan();
+    await account(bid);
+    expect(readZip((await exportOf(bid)).bytes).map((e) => e.name.replace(/.* - /, ""))).toEqual([
+      "Plan.csv",
+      "Register.csv",
+    ]);
+  });
+
+  it("an export written before this change (two files, colour names) still imports", async () => {
+    // main's format: Plan and Register only; the flag is a colour name; no Settings file.
+    const old = sampleFiles();
+    const form = importForm(
+      [
+        { name: "Budget Export - Old as of 2026-11-15 19-51 - Plan.csv", data: old.plan },
+        { name: "Budget Export - Old as of 2026-11-15 19-51 - Register.csv", data: old.register },
+      ],
+      { date_format: "MM/DD/YYYY" },
+    );
+    const data = await body(await postImport(form), 201);
+    const nb = data.budget_id as string;
+    const flags = (await q(
+      "select distinct flag_color from transactions where budget_id = ? and flag_color is not null",
+      nb,
+    )) as Json[];
+    expect(flags.map((f) => f.flag_color)).toEqual(["red"]);
+    const dst = ((await (await send(`/api/v1/budgets/${nb}`, "GET")).json()) as Json).data.budget;
+    expect(dst.expected_income).toBeNull();
+    expect(Object.values(dst.flag_names).every((n) => n === null)).toBe(true);
+    expect((await listViews(nb)).views).toEqual([]);
   });
 });

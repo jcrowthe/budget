@@ -10,6 +10,7 @@ import { monthCategories } from "../db/schema/month-categories";
 import { payeeRenameRules } from "../db/schema/payee-rename-rules";
 import { payees } from "../db/schema/payees";
 import { planImports } from "../db/schema/plan-imports";
+import { planViews } from "../db/schema/plan-views";
 import { scheduledSubtransactions } from "../db/schema/scheduled-subtransactions";
 import { scheduledTransactions } from "../db/schema/scheduled-transactions";
 import { transactions } from "../db/schema/transactions";
@@ -32,6 +33,7 @@ export type ImportTable =
   | "categories"
   | "payees"
   | "payee_rename_rules"
+  | "plan_views"
   | "month_categories"
   | "transactions"
   | "scheduled_transactions"
@@ -146,6 +148,20 @@ const SPEC: Record<ImportTable, Spec> = {
       matchText: 4,
       createdAt: 5,
       updatedAt: 5,
+    },
+  ),
+  plan_views: spec(
+    planViews,
+    ["id", "builtin_key", "name", "category_ids", "sort_order", "created_at", "updated_at"],
+    {
+      id: 0,
+      budgetId: "b",
+      builtinKey: 1,
+      name: 2,
+      categoryIds: 3,
+      sortOrder: 4,
+      createdAt: 5,
+      updatedAt: 6,
     },
   ),
   month_categories: spec(monthCategories, ["month", "category_id", "assigned", "updated_at"], {
@@ -372,6 +388,7 @@ export function cleanupStmts(
   const del = (t: ImportTable): BatchItem =>
     db.delete(SPEC[t].table as typeof accounts).where(sql`budget_id = ${p.budgetId} and ${guard}`);
   return [
+    del("plan_views"),
     del("scheduled_subtransactions"),
     del("scheduled_transactions"),
     del("transactions"),

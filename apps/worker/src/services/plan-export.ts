@@ -5,6 +5,7 @@ import {
   exportFormat,
   exportMonthCeiling,
   exportNames,
+  hasSettings,
   type LoanExport,
   nowRangeText,
   nowWithinServerDays,
@@ -12,10 +13,13 @@ import {
   type RegisterEntry,
   type RegisterLine,
   registerFile,
+  type SettingsExport,
   SYSTEM_PAYEE_NAMES,
+  settingsFile,
   utcMinute,
 } from "@budget/schema/plan-export";
 import { planFormatter } from "@budget/schema/plan-formats";
+import type { FlagColor } from "@budget/schema/transactions";
 import { transferPayeeName } from "@budget/schema/transfers";
 import { storeZip, utf8 } from "@budget/schema/zip";
 import { getDb } from "../db/client";
@@ -23,10 +27,11 @@ import type { Env } from "../env";
 import { NotFound } from "../middleware/errors";
 import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
+import * as viewsRepo from "../repositories/custom-views";
 import * as exportRepo from "../repositories/plan-export";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as txRepo from "../repositories/transactions";
-import { flagLabelOfRow, formatsOfRow } from "./budgets";
+import { flagLabelOfRow, flagNamesOfRow, formatsOfRow } from "./budgets";
 import { getMonthRange, getPlanMonths } from "./months";
 import { planClock } from "./plan-clock";
 
@@ -71,13 +76,14 @@ export async function exportPlan(
   const months: string[] = [];
   for (let m = first; m <= last; m = addMonths(m, 1)) months.push(m);
 
-  const [details, accounts, txs, lines, schedules, rules] = await Promise.all([
+  const [details, accounts, txs, lines, schedules, rules, viewRows] = await Promise.all([
     getPlanMonths(env, budgetId, months, today),
     accountsRepo.list(db, budgetId, { includeClosed: true }),
     txRepo.listDetailForPlan(db, budgetId),
     txRepo.listLines(db, budgetId, {}),
     scheduledRepo.listForPlan(db, budgetId),
     exportRepo.listRulesForExport(db, budgetId),
+    viewsRepo.listStmt(db, budgetId),
   ]);
 
   const known = new Map<string, { group: string; name: string; hidden: boolean }>();
@@ -218,6 +224,25 @@ export async function exportPlan(
     }
   }
 
+  // Plan-level data (flag names, expected income, custom views) rides in a third file, only when there is some.
+  const flagNames: SettingsExport["flagNames"] = {};
+  for (const [color, name] of Object.entries(flagNamesOfRow(plan))) {
+    if (name) flagNames[color as FlagColor] = name;
+  }
+  const settings: SettingsExport = {
+    flagNames,
+    expectedIncome: plan.expectedIncome ?? null,
+    views: viewRows.map((v) => ({
+      position: v.view_sort_order,
+      builtinKey: v.builtin_key,
+      name: v.view_name,
+      categories: (JSON.parse(v.live_ids) as string[]).flatMap((id) => {
+        const c = known.get(id);
+        return c ? [{ group: c.hidden ? "Hidden Categories" : c.group, name: c.name }] : [];
+      }),
+    })),
+  };
+
   const fmt = exportFormat(planFormatter(formatsOfRow(plan)).planFormat());
   const names = exportNames(plan.name, now, fmt.extension);
   const bytes = storeZip(
@@ -227,6 +252,9 @@ export async function exportPlan(
         name: names.register,
         data: utf8(registerFile(entries, fmt, flagLabelOfRow(plan), loans, rules)),
       },
+      ...(hasSettings(settings)
+        ? [{ name: names.settings, data: utf8(settingsFile(settings, fmt)) }]
+        : []),
     ],
     today,
     now.slice(11, 16),

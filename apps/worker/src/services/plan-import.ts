@@ -140,6 +140,8 @@ async function readPlan(
   const plan = buildImportPlan({
     plan: found.plan,
     register: found.register,
+    settings: found.settings,
+    settingsDelimiter: found.settingsDelimiter,
     delimiter: found.delimiter,
     planDelimiter: found.planDelimiter,
     zipName,
@@ -181,6 +183,11 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
     lastOpenedAt: null,
     bankEnvironment: "production",
     ...importedFormatColumns(plan.formats),
+    expectedIncome: plan.settings.expectedIncome,
+    flagNames:
+      Object.keys(plan.settings.flagNames).length === 0
+        ? null
+        : JSON.stringify(plan.settings.flagNames),
   };
   const id = () => crypto.randomUUID();
   const accountIds = plan.accounts.map(id);
@@ -219,6 +226,19 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
         c.hidden ? 1 : 0,
         c.paymentAccount === null ? null : "credit_card_payment",
         c.paymentAccount === null ? null : accountIds[c.paymentAccount],
+        started,
+        started,
+      ]),
+    },
+    {
+      // Saved built-in positions and custom views, each at its stored place; members are this plan's category ids.
+      t: "plan_views",
+      rows: plan.settings.views.map((v) => [
+        v.builtinKey === null ? id() : `builtin:${budgetId}:${v.builtinKey}`,
+        v.builtinKey,
+        v.name,
+        JSON.stringify(v.categories.map((c) => categoryIds[c])),
+        v.position,
         started,
         started,
       ]),

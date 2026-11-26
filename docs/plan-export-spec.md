@@ -64,7 +64,8 @@ export function exportNames(planName: string, now: string, ext: "csv" | "tsv"):
   month. Defaults to the server's UTC time"`.
 - `exportNames`: `stamp = now.slice(0, 10) + " " + now.slice(11, 13) + "-" + now.slice(14, 16)`; `base =
   \`${safeName(planName)} as of ${stamp}\``; `zip: \`Budget Export - ${base}.zip\``, `plan: \`${base} - Plan.${ext}\``,
-  `register: \`${base} - Register.${ext}\``.
+  `register: \`${base} - Register.${ext}\``, `settings: \`${base} - Settings.${ext}\`` (the third entry, written only when
+  `hasSettings(...)`: flag names, expected income or view rows; see the design's "Plan settings").
 
 ### Plan rows
 

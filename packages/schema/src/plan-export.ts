@@ -82,6 +82,89 @@ export const REGISTER_LOAN_RULES_HEADER: readonly string[] = [
   ...REGISTER_RULE_COLUMNS,
 ];
 
+/**
+ * Plan settings file (flag names EXF-480, expected income EXF-525, custom views EXF-502): a third, small file of the
+ * zip, written only when the plan has any of that data, so any other plan is written exactly as before. An importer
+ * that does not know it skips it (its header is neither the Plan's nor the Register's). One row per fact:
+ *  - `Flag Name`: Name = the colour's own name, Value = the plan's name for it;
+ *  - `Expected Income`: Value = the amount, in the file's format;
+ *  - `Built-in View`: Name = the key (`underfunded`...), Position = its stored place in the views' order (built-ins never moved are not listed);
+ *  - `View`: Name = the view's name, Position = its stored place in the same order;
+ *  - `View Category`: Name = the view's name, Position = the view's place, then the category's group and name as the
+ *    Plan file writes them (a hidden category under `Hidden Categories`); members keep the file's row order.
+ */
+export const PLAN_SETTINGS_HEADER: readonly string[] = [
+  "Setting",
+  "Name",
+  "Value",
+  "Position",
+  "Category Group",
+  "Category",
+];
+
+/** The plan-level data the Settings file carries. `views` is in the views' order, built-ins included. */
+export interface SettingsExport {
+  flagNames: Partial<Record<FlagColor, string>>;
+  expectedIncome: number | null;
+  views: readonly {
+    /** The view's stored place (`sort_order`); built-ins the plan never moved are not listed. */
+    position: number;
+    builtinKey: string | null;
+    name: string | null;
+    categories: readonly { group: string; name: string }[];
+  }[];
+}
+
+export function hasSettings(s: SettingsExport): boolean {
+  return Object.keys(s.flagNames).length > 0 || (s.expectedIncome ?? 0) > 0 || s.views.length > 0;
+}
+
+export function settingsFile(s: SettingsExport, fmt: ExportFormat): string {
+  const lines: string[] = [PLAN_SETTINGS_HEADER.map(textField).join(fmt.delimiter)];
+  const row = (cells: string[]) => lines.push(cells.join(fmt.delimiter));
+  const blank = textField("");
+  for (const [color, name] of Object.entries(s.flagNames)) {
+    row([
+      textField("Flag Name"),
+      textField(FLAG_NAMES[color as FlagColor]),
+      textField(name),
+      "",
+      blank,
+      blank,
+    ]);
+  }
+  if ((s.expectedIncome ?? 0) > 0) {
+    row([
+      textField("Expected Income"),
+      blank,
+      fmt.amount(s.expectedIncome as number),
+      "",
+      blank,
+      blank,
+    ]);
+  }
+  for (const v of s.views) {
+    const i = v.position;
+    if (v.builtinKey !== null) {
+      row([textField("Built-in View"), textField(v.builtinKey), blank, String(i), blank, blank]);
+      continue;
+    }
+    const name = textField(v.name ?? "");
+    row([textField("View"), name, blank, String(i), blank, blank]);
+    for (const c of v.categories) {
+      row([
+        textField("View Category"),
+        name,
+        blank,
+        String(i),
+        textField(c.group),
+        textField(c.name),
+      ]);
+    }
+  }
+  return delimitedFile(lines);
+}
+
 /** One renaming rule as the export writes it. */
 export interface RuleExport {
   payee: string;
@@ -262,13 +345,14 @@ export function exportNames(
   planName: string,
   now: string,
   ext: "csv" | "tsv",
-): { zip: string; plan: string; register: string } {
+): { zip: string; plan: string; register: string; settings: string } {
   const stamp = `${now.slice(0, 10)} ${now.slice(11, 13)}-${now.slice(14, 16)}`;
   const base = `${safeName(planName)} as of ${stamp}`;
   return {
     zip: `Budget Export - ${base}.zip`,
     plan: `${base} - Plan.${ext}`,
     register: `${base} - Register.${ext}`,
+    settings: `${base} - Settings.${ext}`,
   };
 }
 
