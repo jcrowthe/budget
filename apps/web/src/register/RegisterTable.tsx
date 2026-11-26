@@ -642,7 +642,7 @@ export function RegisterTable({
     <AttentionColumnContext.Provider value={attentionCol}>
       <div className="register-scroll">
         <table
-          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}${hasClock ? " has-clock" : ""}`}
+          className={`register-table${showCategory ? "" : " no-category"}${showBalance ? " has-balance" : ""}${showFlags ? "" : " no-flags"}${showImages ? " has-image" : ""}${scheduledRows.length > 0 ? " has-scheduled" : ""}${plan ? " has-account" : ""}${hasClock ? " has-clock" : ""}`}
           aria-label={`${account?.name ?? "All Accounts"} transactions`}
           aria-busy={q.isPending || !view.ready}
         >

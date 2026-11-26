@@ -61,6 +61,7 @@ export function ImageCell({
             ref={input}
             type="file"
             className="image-file-input"
+            hidden
             accept={IMAGE_ACCEPT}
             tabIndex={-1}
             aria-hidden="true"

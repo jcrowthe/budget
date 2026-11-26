@@ -128,3 +128,29 @@
 .image-viewer-action:hover {
   background: var(--buttonSecondaryBackgroundHover);
 }
+
+/* Below 1280px the text columns give way so category keeps the room the image column takes (register.css:
+   "Below 1280px the 96px minimums are in force"). Each width is register.css's own minus 3 points for payee and memo
+   (6 points of the grid, about the column's 44px at 1024px). Same conditions, one element more of specificity. */
+@media (max-width: 1279px) {
+  table.register-table.has-image .col-payee,
+  table.register-table.has-image .col-memo {
+    width: 11%;
+  }
+  table.register-table.has-image.has-balance .col-payee,
+  table.register-table.has-image.has-balance .col-memo {
+    width: 6.5%;
+  }
+  table.register-table.has-image.no-flags.has-balance .col-payee,
+  table.register-table.has-image.no-flags.has-balance .col-memo {
+    width: 8%;
+  }
+  table.register-table.has-image.has-account .col-payee,
+  table.register-table.has-image.has-account .col-memo {
+    width: 7%;
+  }
+  table.register-table.has-image.has-account.no-flags .col-payee,
+  table.register-table.has-image.has-account.no-flags .col-memo {
+    width: 9%;
+  }
+}

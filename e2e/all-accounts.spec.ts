@@ -51,6 +51,7 @@ test("All Accounts: header and register", async ({ page, request }) => {
   await expect(page.getByRole("columnheader")).toHaveText([
     "",
     "", // the flag column
+    "", // the image column
     "ACCOUNT",
     "DATE",
     "PAYEE",
@@ -65,8 +66,8 @@ test("All Accounts: header and register", async ({ page, request }) => {
     "descending",
   );
   await expect(rows(page)).toHaveCount(6);
-  expect((await col(page, 5)).slice(0, 3)).toEqual(["ZZ New", "ZZ Mid", "ZZ Old"]);
-  expect((await col(page, 3)).slice(0, 3)).toEqual(["ZZ Card", "ZZ Asset", "ZZ Chk"]);
+  expect((await col(page, 6)).slice(0, 3)).toEqual(["ZZ New", "ZZ Mid", "ZZ Old"]);
+  expect((await col(page, 4)).slice(0, 3)).toEqual(["ZZ Card", "ZZ Asset", "ZZ Chk"]);
   await expect(
     rows(page).filter({ hasText: "ZZ Mid" }).getByText("Category not needed"),
   ).toBeVisible();
@@ -76,7 +77,7 @@ test("All Accounts: sorting by account", async ({ page, request }) => {
   const s = await seed(request);
   await page.goto(`/${s.plan}/accounts`);
   await expect(rows(page)).toHaveCount(6);
-  const accountCells = page.locator(".register-table tbody tr td:nth-child(3)");
+  const accountCells = page.locator(".register-table tbody tr td:nth-child(4)");
   const asc = ["ZZ Asset", "ZZ Asset", "ZZ Card", "ZZ Card", "ZZ Chk", "ZZ Chk"];
   await page.getByRole("button", { name: "ACCOUNT", exact: true }).click();
   const head = page.getByRole("columnheader", { name: "ACCOUNT" });
