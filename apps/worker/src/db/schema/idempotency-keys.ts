@@ -10,6 +10,7 @@ export const idempotencyKeys = sqliteTable(
     requestHash: text("request_hash").notNull(),
     status: integer("status").notNull(),
     responseBody: text("response_body").notNull(),
+    changeSetId: text("change_set_id"),
     createdAt: text("created_at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.actor, t.key] })],

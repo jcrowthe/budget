@@ -3,6 +3,7 @@ import { createMiddleware } from "hono/factory";
 import { getDb } from "../db/client";
 import { idempotencyKeys } from "../db/schema/idempotency-keys";
 import type { AppEnv } from "../env";
+import { currentChangeSetId } from "../history/change-set";
 import { apiError } from "./errors";
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -82,10 +83,15 @@ export function idempotency() {
           "A request with this Idempotency-Key is still running",
         );
       }
-      return new Response(row.responseBody, {
-        status: row.status,
-        headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
-      });
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Idempotent-Replayed": "true",
+      };
+      // The replay owns no rows, but Undo needs the original change set's id.
+      if (row.changeSetId && row.status >= 200 && row.status <= 299) {
+        headers["Budget-Change-Set"] = row.changeSetId;
+      }
+      return new Response(row.responseBody, { status: row.status, headers });
     }
     if (!reserved) {
       return apiError(
@@ -111,7 +117,11 @@ export function idempotency() {
     if (c.res.status < 500) {
       await db
         .update(idempotencyKeys)
-        .set({ status: c.res.status, responseBody: await c.res.clone().text() })
+        .set({
+          status: c.res.status,
+          responseBody: await c.res.clone().text(),
+          changeSetId: currentChangeSetId(),
+        })
         .where(mine);
     } else {
       await db.delete(idempotencyKeys).where(mine);

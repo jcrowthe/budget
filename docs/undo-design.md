@@ -207,3 +207,9 @@ Never into `change_log`: the stamp test allows only `livePayeesCheck` there.
 `plan`: Plan page edits, category and group reorders, and the sidebar's account reorder (EXF-490 follow-up; it was
 `register`). `register`: register edits. `payees`: Manage Payees. Unscoped consumers (the Plan page, registers) act on
 the shared top entry whatever its origin, so the origin matters only to scoped ones.
+
+## Idempotent replays keep their change set (EXF-982)
+
+`idempotency_keys.change_set_id` (nullable) stores the change-set id of the original response. A replay returns it in
+`Budget-Change-Set` (with `Idempotent-Replayed: true`), so Undo works after a retry whose first response was lost. A write
+that ran outside a change set stores null and replays with no header.
