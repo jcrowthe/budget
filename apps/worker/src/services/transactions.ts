@@ -1,6 +1,7 @@
-import { CREDIT_ACCOUNT_TYPES } from "@budget/core/account-types";
+import { CREDIT_ACCOUNT_TYPES, isLoanType } from "@budget/core/account-types";
 import { OWN_PAYMENT_TEXT } from "@budget/schema/card-payments";
 import { isImportSource } from "@budget/schema/manual-match";
+import { categoryFor } from "@budget/schema/plaid-import";
 import { DEFAULT_FORMATTER, type PlanFormatter, planFormatter } from "@budget/schema/plan-formats";
 import {
   type PlanSortColumn,
@@ -64,6 +65,8 @@ export function transactionToApi(row: txRepo.TransactionRow): Transaction {
     bank_description: row.bankDescription ?? null,
     matched: (row.importId ?? null) !== null && (row.source ?? null) === null,
     flag_color: row.flagColor ?? null,
+    status: row.status ?? null,
+    pending_transaction_id: row.pendingTransactionId ?? null,
   };
 }
 
@@ -313,7 +316,11 @@ export function linesByParent(lines: readonly txRepo.LineRow[]) {
   return map;
 }
 
-async function balancesOf(db: Db, budgetId: string, accountId: string): Promise<AccountBalances> {
+export async function balancesOf(
+  db: Db,
+  budgetId: string,
+  accountId: string,
+): Promise<AccountBalances> {
   const b = (await txRepo.balancesByAccount(db, budgetId, accountId)).get(accountId);
   const cleared = b?.cleared ?? 0;
   const uncleared = b?.uncleared ?? 0;
@@ -540,6 +547,7 @@ async function insertPair(
   budgetId: string,
   a: txRepo.TransactionRow,
   b: txRepo.TransactionRow,
+  extra: unknown[] = [],
 ) {
   // Drizzle statements are thenable: build them after every await, never return one from an async function.
   const [na, nb] = await Promise.all([
@@ -557,15 +565,41 @@ async function insertPair(
       after: logShape({ ...r, ...names }),
     });
   await db.batch(
-    stmts([txRepo.insertStmt(db, a), txRepo.insertStmt(db, b), entry(a, na), entry(b, nb)]),
+    stmts([
+      ...extra,
+      txRepo.insertStmt(db, a),
+      txRepo.insertStmt(db, b),
+      entry(a, na),
+      entry(b, nb),
+    ]),
   );
 }
 
-export async function addTransaction(
+/** What Enter Now adds to a create: columns of the row, statements for the same batch, and the category rule. */
+export type CreateExtra = {
+  row: Partial<txRepo.TransactionRow>;
+  /** Statements for the batch (built from the new row's id and the write time). */
+  stmts: (row: txRepo.TransactionRow, now: string) => unknown[];
+  /** With no category in the request: the payee's default, else Ready to Assign for an inflow into cash. */
+  categoryFor: boolean;
+};
+
+export function addTransaction(
   env: Env,
   actor: string,
   budgetId: string,
   input: TransactionCreateRequest,
+): Promise<TransactionDetail> {
+  return createRow(env, actor, budgetId, input);
+}
+
+/** The create of `addTransaction`, shared with Enter Now (`extra`). */
+export async function createRow(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  input: TransactionCreateRequest,
+  extra?: CreateExtra,
 ): Promise<TransactionDetail> {
   const v = TransactionCreateRequest.parse(input);
   const db = getDb(env);
@@ -602,14 +636,16 @@ export async function addTransaction(
       createdAt: now,
       deletedAt: null,
       updatedAt: now,
+      ...extra?.row,
     };
+    const more = extra?.stmts(row, now) ?? [];
     if (other) {
       applyTransferRule(row, account, other, true);
       await validate(db, budgetId, row, account);
       const side = newOtherSide(row, other.id, account.name, now);
       row.transferAccountId = other.id;
       row.transferTransactionId = side.id;
-      await insertPair(db, actor, budgetId, row, side);
+      await insertPair(db, actor, budgetId, row, side, more);
       return detailOf(db, budgetId, row.id);
     }
     if (lineInputs) {
@@ -631,6 +667,7 @@ export async function addTransaction(
       try {
         await db.batch(
           stmts([
+            ...more,
             ...[...parentCreates, ...payeeCreates].flatMap((pc) => payeeInsert(db, actor, pc)),
             txRepo.insertStmt(db, row),
             ...rows.map((r) => txRepo.insertStmt(db, r)),
@@ -680,6 +717,24 @@ export async function addTransaction(
         defaulted = true;
       }
     }
+    if (
+      extra?.categoryFor &&
+      !row.categoryId &&
+      !row.inflowToReadyToAssign &&
+      !defaulted &&
+      account.onBudget
+    ) {
+      const c = categoryFor(
+        {
+          takesCategory: !isLoanType(account.type),
+          rtaInflow: account.type === "checking" || account.type === "savings",
+        },
+        row.amount,
+        null,
+      );
+      row.categoryId = c.categoryId;
+      row.inflowToReadyToAssign = c.inflowToReadyToAssign;
+    }
     try {
       await validate(db, budgetId, row, account);
     } catch (e) {
@@ -693,6 +748,7 @@ export async function addTransaction(
     try {
       await db.batch(
         stmts([
+          ...more,
           ...(payee?.create ? payeeInsert(db, actor, payee.create) : []),
           txRepo.insertStmt(db, row),
           changeLogInsert(db, {
@@ -816,6 +872,7 @@ const setOf = (r: txRepo.TransactionRow, updatedAt: string): txRepo.TxSet => ({
   transferAccountId: r.transferAccountId ?? null,
   transferTransactionId: r.transferTransactionId ?? null,
   flagColor: r.flagColor ?? null,
+  status: r.status ?? null,
   updatedAt,
 });
 
@@ -1197,7 +1254,11 @@ export async function prepare(
     // Saving an edit approves the row, unless the request says approved: false.
     approved: p.approved ?? true,
     flagColor: p.flag_color === undefined ? (before.flagColor ?? null) : p.flag_color,
+    status: p.status === undefined ? (before.status ?? null) : p.status,
   };
+  if (p.status !== undefined && !before.pendingTransactionId) {
+    throw unprocessable("Only a transaction entered from a pending bank transaction has a clock");
+  }
   plan.after = after;
   if (isTransfer && !transferAfterId) {
     // Leaving a transfer: the payee is the request's, else none.

@@ -32,6 +32,7 @@ type Ctx = {
   spareTx: string;
   bulkTx: string;
   importTx: string;
+  pendingTx: string;
   matchEntry: string;
   matchImport: string;
   conn: string;
@@ -105,6 +106,13 @@ async function seed(): Promise<Ctx> {
     "update transactions set import_id = 'zz-imp-1', source = 'plaid', approved = 0 where id = ?",
   )
     .bind(importTx)
+    .run();
+  // A pending bank transaction, for enter_pending_transaction (EXF-466).
+  const pendingTx = crypto.randomUUID();
+  await env.DB.prepare(
+    "insert into pending_transactions (id, budget_id, account_id, plaid_transaction_id, date, amount, payee_name, created_at, updated_at) values (?, ?, ?, ?, ?, -300, 'ZZ Pending', '2026-11-01T00:00:00.000Z', '2026-11-01T00:00:00.000Z')",
+  )
+    .bind(pendingTx, bid, checking, `zz-pend-${pendingTx}`, DAY)
     .run();
   // A hand entry and an unapproved import of the same account, for match_transactions and unmatch_transaction.
   const matchEntry = await mk({
@@ -222,6 +230,7 @@ async function seed(): Promise<Ctx> {
     spareTx,
     bulkTx,
     importTx,
+    pendingTx,
     matchEntry,
     matchImport,
     conn,
@@ -456,6 +465,7 @@ const CALLS: [string, (c: Ctx) => Json][] = [
   ["match_transactions", (c) => ({ budget_id: c.bid, ids: [c.matchEntry, c.matchImport] })],
   ["unmatch_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.matchEntry })],
   ["reject_transactions", (c) => ({ budget_id: c.bid, ids: [c.importTx] })],
+  ["enter_pending_transaction", (c) => ({ budget_id: c.bid, transaction_id: c.pendingTx })],
   ["delete_transactions", (c) => ({ budget_id: c.bid, ids: [c.bulkTx] })],
   [
     "rename_payee",

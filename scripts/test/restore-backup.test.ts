@@ -176,7 +176,7 @@ describe("backup then restore into an empty local D1 (EXF-976 A2)", () => {
           "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' and name not like '_cf_%' order by name",
         ).all<{ name: string }>()
       ).results.map((r) => r.name);
-      expect(tables).toHaveLength(28);
+      expect(tables).toHaveLength(29);
       const rows = async (d: D1Database, t: string) =>
         JSON.stringify(
           (await d.prepare(`select rowid as __r, * from "${t}" order by rowid`).all()).results,

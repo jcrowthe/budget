@@ -100,6 +100,13 @@ export const Transaction = z
       description:
         "The row's flag: red, orange, yellow, green, blue or purple; null when not flagged",
     }),
+    status: z.enum(["pending", "entered"]).nullable().default(null).openapi({
+      description:
+        "pending: a bank transaction not yet posted (affects no balance; enter-now or the posted version moves it into the register); entered: entered from a pending item and not yet posted (the clock); null otherwise",
+    }),
+    pending_transaction_id: z.string().nullable().default(null).openapi({
+      description: "The bank's id of the pending transaction this row is or came from",
+    }),
   })
   .openapi("Transaction");
 
@@ -256,6 +263,13 @@ const updateFields = z
     transfer_account_id: requestFields.transfer_account_id,
     subtransactions: requestFields.subtransactions,
     flag_color: FlagColor.nullable().optional(),
+    status: z
+      .enum(["entered"])
+      .nullable()
+      .optional()
+      .describe(
+        "The clock of a row entered from a pending bank transaction: null hides it, entered shows it; only for a row with a pending_transaction_id",
+      ),
     confirm_reconciled: z
       .boolean()
       .optional()
@@ -274,6 +288,28 @@ export const TransactionUpdateRequest = updateFields
     "Nothing to update",
   )
   .openapi("TransactionUpdateRequest");
+
+/** `status` filter of the plan-wide list: the bank's pending transactions (EXF-466). */
+export const TRANSACTION_STATUSES = ["pending"] as const;
+
+/** Enter Now: every field optional; what is not given comes from the pending item. */
+export const EnterNowRequest = z
+  .object({
+    date: requestFields.date.optional(),
+    amount: requestFields.amount.optional(),
+    payee_id: requestFields.payee_id,
+    payee_name: requestFields.payee_name,
+    category_id: requestFields.category_id,
+    inflow_to_ready_to_assign: requestFields.inflow_to_ready_to_assign,
+    memo: requestFields.memo,
+    cleared: PlainClearedStatus.optional(),
+    flag_color: FlagColor.nullable().optional(),
+    subtransactions: requestFields.subtransactions,
+    transfer_account_id: requestFields.transfer_account_id,
+  })
+  .strict()
+  .openapi("EnterNowRequest");
+export type EnterNowRequest = z.infer<typeof EnterNowRequest>;
 
 /** `needs` filter of the transaction lists. */
 export const TRANSACTION_NEEDS = ["approval_or_category"] as const;

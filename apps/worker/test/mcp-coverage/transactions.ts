@@ -7,13 +7,16 @@ const LIST_NOTE =
 export const operations: Partial<Record<OperationKey, Coverage>> = {
   "GET /budgets/{budget_id}/accounts/{account_id}/transactions": {
     tool: ["list_transactions", "list_unapproved_transactions", "search_transactions"],
-    note: `with account_id; ${LIST_NOTE}`,
+    note: `with account_id; ${LIST_NOTE}; status=pending is list_unapproved_transactions with include_pending`,
   },
   "GET /budgets/{budget_id}/transactions": {
     tool: ["list_transactions", "list_unapproved_transactions", "search_transactions"],
-    note: `without account_id; ${LIST_NOTE}`,
+    note: `without account_id; ${LIST_NOTE}; status=pending (with account_id) is list_unapproved_transactions with include_pending`,
   },
   "GET /budgets/{budget_id}/transactions/{transaction_id}": { tool: "get_transaction" },
+  "POST /budgets/{budget_id}/transactions/{transaction_id}/enter-now": {
+    tool: "enter_pending_transaction",
+  },
   "POST /budgets/{budget_id}/transactions": { tool: ["create_transaction", "create_transfer"] },
   "PATCH /budgets/{budget_id}/transactions/{transaction_id}": { tool: "update_transaction" },
   "DELETE /budgets/{budget_id}/transactions/{transaction_id}": { tool: "delete_transaction" },

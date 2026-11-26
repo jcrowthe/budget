@@ -5,6 +5,7 @@ import {
   bankDescriptionOf,
   CHECK_AFTER_MS,
   categoryFor,
+  enteredMatchValues,
   isRecoveryDuplicate,
   linkSet,
   linksCovered,
@@ -14,9 +15,12 @@ import {
   NEEDS_REPAIR,
   netChanges,
   type PayeeDefault,
+  type PendingHave,
   type PlaidTxn,
   payeeNameOf,
+  pendingPlan,
   pickMatch,
+  postedPlan,
   removedPlan,
   SCHEDULE_DUE_AFTER_MS,
   SCHEDULED_MAX_RUNS,
@@ -47,6 +51,7 @@ import * as importsRepo from "../repositories/imports";
 import { recomputeDefaultsStmt } from "../repositories/payee-category";
 import * as rulesRepo from "../repositories/payee-rename-rules";
 import * as payeesRepo from "../repositories/payees";
+import * as pendingRepo from "../repositories/pending-transactions";
 import * as txRepo from "../repositories/transactions";
 import { bankAccountRow, toApi } from "./bank-connections";
 import { batchCount, runGroups } from "./batch-groups";
@@ -305,7 +310,7 @@ async function syncConnection(
   };
 
   if (pages) {
-    const { upserts, removed } = netChanges(pages.pages);
+    const { upserts, pending, removed } = netChanges(pages.pages);
     const recovery = row.syncErrorSince !== null;
     const payeesOf = new Map<string, PlanPayees>();
     const planPayees = async (budgetId: string) => {
@@ -336,13 +341,14 @@ async function syncConnection(
         account,
         bank,
         mine: sorted.filter((u) => u.txn.account_id === bank.plaidAccountId),
+        minePending: pending.filter((u) => u.txn.account_id === bank.plaidAccountId),
       }))
-      .filter((w) => w.mine.length > 0);
+      .filter((w) => w.mine.length > 0 || w.minePending.length > 0);
     const planIds = [...new Set(work.map((w) => w.account.budgetId))];
     for (const id of planIds) await planPayees(id);
     const queries: unknown[] = [];
-    const at = work.map(({ account, mine }) => {
-      const dates = mine.map((u) => u.txn.date);
+    const at = work.map(({ account, mine, minePending }) => {
+      const dates = [...mine, ...minePending].map((u) => u.txn.date);
       const lo = dates.reduce((a, b) => (a < b ? a : b));
       const hi = dates.reduce((a, b) => (a > b ? a : b));
       const slot = {
@@ -350,6 +356,8 @@ async function syncConnection(
         hi,
         start: queries.length,
         recent: -1,
+        pend: -1,
+        entered: -1,
       };
       queries.push(
         accountsRepo.startingBalanceDateQuery(db, account.id),
@@ -364,6 +372,24 @@ async function syncConnection(
       if (recovery) {
         slot.recent = queries.length;
         queries.push(importsRepo.liveDateAmountsQuery(db, account.id, lo, hi));
+      }
+      // Pending items (EXF-466): the stored rows for this feed's pending ids and for the pending ids the posted
+      // entries name, and the rows entered from those. Same batch: no call is added.
+      const named = mine.flatMap((u) =>
+        u.txn.pending_transaction_id ? [u.txn.pending_transaction_id] : [],
+      );
+      const pids = [...new Set([...minePending.map((u) => u.txn.transaction_id), ...named])];
+      if (pids.length > 0) {
+        slot.pend = queries.length;
+        queries.push(pendingRepo.pendingByPlaidIdsQuery(db, account.budgetId, pids));
+      }
+      if (named.length > 0) {
+        slot.entered = queries.length;
+        queries.push(
+          pendingRepo.enteredByPendingIdsQuery(db, account.budgetId, account.id, [
+            ...new Set(named),
+          ]),
+        );
       }
       return slot;
     });
@@ -394,7 +420,99 @@ async function syncConnection(
       ]),
     );
 
+    // Pending items: stored, followed, withdrawn, in one write group per plan (a constant number of statements).
+    const pendingRows = new Map<string, pendingRepo.PendingRow[]>();
+    const pendingStmts: unknown[] = [];
+    {
+      const insertsOf = new Map<string, pendingRepo.PendingItem[]>();
+      const followsOf = new Map<string, pendingRepo.PendingItem[]>();
+      for (const [w, { account, bank, minePending }] of work.entries()) {
+        const slot = at[w] as (typeof at)[number];
+        const budgetId = account.budgetId;
+        const rowsHere = (slot.pend >= 0 ? (got[slot.pend] ?? []) : []) as pendingRepo.PendingRow[];
+        pendingRows.set(account.id, rowsHere);
+        if (minePending.length === 0) continue;
+        const startingBalanceDate =
+          (got[slot.start] as { d: string | null }[] | undefined)?.[0]?.d ?? null;
+        const latestReconciledDate =
+          (got[slot.start + 1] as { d: string | null }[] | undefined)?.[0]?.d ?? null;
+        const rules = {
+          closed: account.closed,
+          importStartDate: account.importStartDate,
+          startingBalanceDate,
+          latestReconciledDate,
+        };
+        const byPid = new Map<string, pendingRepo.PendingRow>();
+        for (const r of rowsHere) {
+          const cur = byPid.get(r.plaidTransactionId);
+          // live first, then an entered one (never recreated), then any
+          if (
+            !cur ||
+            (cur.deletedAt !== null && r.deletedAt === null) ||
+            (cur.deletedAt !== null && !cur.enteredTransactionId && r.enteredTransactionId)
+          )
+            byPid.set(r.plaidTransactionId, r);
+        }
+        for (const { txn } of minePending) {
+          if (skipReason(txn, rules, false)) continue;
+          const planRules = rulesOfPlan.get(budgetId) ?? [];
+          const payees = payeesOf.get(budgetId) as PlanPayees;
+          const name = payeeTarget(budgetId, payeeNameOf(txn), planRules, payees).name;
+          const amount = milli(txn.amount);
+          const have = byPid.get(txn.transaction_id);
+          const haveShape: PendingHave | undefined = have && {
+            live: have.deletedAt === null,
+            entered: have.enteredTransactionId !== null,
+            date: have.date,
+            amount: have.amount,
+            payeeName: have.payeeName,
+          };
+          const plan = pendingPlan(haveShape, { date: txn.date, amount, payeeName: name });
+          if (plan === "noop" || plan === "skip_entered") continue;
+          const it: pendingRepo.PendingItem = {
+            id: crypto.randomUUID(),
+            account_id: account.id,
+            bank_account_id: bank.id,
+            pid: txn.transaction_id,
+            date: txn.date,
+            amount,
+            payee_name: name,
+            imported_payee: txn.name,
+            import_payee_name: payeeNameOf(txn),
+            bank_description: bankDescriptionOf(txn),
+            ...(plan === "follow" && have ? { updated_at: have.updatedAt } : {}),
+          };
+          const into = plan === "insert" ? insertsOf : followsOf;
+          into.set(budgetId, [...(into.get(budgetId) ?? []), it]);
+        }
+      }
+      const base = (budgetId: string) => ({ budgetId, actor: PLAID_ACTOR, now });
+      for (const budgetId of new Set([
+        ...insertsOf.keys(),
+        ...followsOf.keys(),
+        ...(removed.length > 0 ? open.map((l) => l.account.budgetId) : []),
+      ])) {
+        const ins = insertsOf.get(budgetId);
+        if (ins) pendingStmts.push(...pendingRepo.insertPendingStmts(db, base(budgetId), ins));
+        const fol = followsOf.get(budgetId);
+        if (fol) pendingStmts.push(...pendingRepo.followPendingStmts(db, base(budgetId), fol));
+        if (removed.length > 0) {
+          pendingStmts.push(...pendingRepo.removePendingStmts(db, base(budgetId), removed));
+          pendingStmts.push(pendingRepo.resolveEnteredStmt(db, budgetId, removed, now));
+        }
+      }
+    }
+    if (pendingStmts.length > 0) {
+      if (!budget.fits(2)) stopped = true;
+      else {
+        const g = new Group();
+        for (const st of pendingStmts) g.add(st);
+        await write([g]);
+      }
+    }
+
     units: for (const [w, { account, bank, mine }] of work.entries()) {
+      if (stopped) break;
       const slot = at[w] as (typeof at)[number];
       const budgetId = account.budgetId;
       const payees = payeesOf.get(budgetId) as PlanPayees;
@@ -436,6 +554,16 @@ async function syncConnection(
         rtaInflow: account.type === "checking" || account.type === "savings",
       };
       const used = new Set<string>();
+      const enteredByPid = new Map(
+        (((slot.entered >= 0 ? got[slot.entered] : []) ?? []) as Row[]).flatMap((r) =>
+          r.pendingTransactionId ? [[r.pendingTransactionId, r] as const] : [],
+        ),
+      );
+      const untouchedPending = new Map(
+        (pendingRows.get(account.id) ?? [])
+          .filter((r) => r.deletedAt === null && r.enteredTransactionId === null)
+          .map((r) => [r.plaidTransactionId, r]),
+      );
 
       for (const unit of importsRepo.chunked(mine, SYNC_UNIT_SIZE)) {
         // Room for: the read batch, a lines read, one write batch and the final batch.
@@ -454,8 +582,21 @@ async function syncConnection(
         // Decide first (no reads), then read the lines of every parent the unit changes, then build.
         type Decision =
           | { kind: "follow"; have: Row; plan: NonNullable<ReturnType<typeof followPlan>> }
-          | { kind: "tombstone"; txn: PlaidTxn; amount: number; notKnown: SQLWrapper }
-          | { kind: "import"; txn: PlaidTxn; amount: number; pick: string | null };
+          | {
+              kind: "tombstone";
+              txn: PlaidTxn;
+              amount: number;
+              notKnown: SQLWrapper;
+              replaces: pendingRepo.PendingRow | null;
+            }
+          | {
+              kind: "import";
+              txn: PlaidTxn;
+              amount: number;
+              pick: string | null;
+              replaces: pendingRepo.PendingRow | null;
+              entered: Row | null;
+            };
         const decisions: Decision[] = [];
         for (const { txn } of unit) {
           const have = existing.get(txn.transaction_id);
@@ -469,7 +610,14 @@ async function syncConnection(
             continue;
           }
           const amount = milli(txn.amount);
-          const pick = pickMatch({ date: txn.date, amount }, candidateList, used);
+          const pid = txn.pending_transaction_id;
+          // The row entered from this entry's pending item waits for it: it is not matched by amount.
+          const entered =
+            pid && postedPlan(enteredByPid.get(pid)) === "match"
+              ? (enteredByPid.get(pid) as Row)
+              : null;
+          const replaces = (pid && !entered ? untouchedPending.get(pid) : null) ?? null;
+          const pick = entered ? null : pickMatch({ date: txn.date, amount }, candidateList, used);
           if (pick) used.add(pick);
           if (!pick && recovery && isRecoveryDuplicate({ date: txn.date, amount }, recent)) {
             counts.skipped++;
@@ -478,13 +626,18 @@ async function syncConnection(
               txn,
               amount,
               notKnown: importsRepo.notKnownSql(budgetId, txn.transaction_id),
+              replaces,
             });
             continue;
           }
-          decisions.push({ kind: "import", txn, amount, pick });
+          decisions.push({ kind: "import", txn, amount, pick, replaces, entered });
         }
         const parentIds = decisions.flatMap((d) =>
-          d.kind === "follow" ? [d.have.id] : d.kind === "import" && d.pick ? [d.pick] : [],
+          d.kind === "follow"
+            ? [d.have.id]
+            : d.kind === "import" && (d.entered || d.pick)
+              ? [(d.entered?.id ?? d.pick) as string]
+              : [],
         );
         const lineRows = await txRepo.listLines(db, budgetId, { parentIds });
         const linesOf = (id: string) => lineRows.filter((l) => l.parentTransactionId === id);
@@ -507,6 +660,16 @@ async function syncConnection(
           }
           if (d.kind === "tombstone") {
             const g = new Group();
+            if (d.replaces) {
+              for (const st of pendingRepo.replacePendingStmts(
+                db,
+                { budgetId, actor: PLAID_ACTOR, now },
+                d.replaces,
+                d.txn.transaction_id,
+                txRepo.allHold([d.notKnown, importsRepo.accountLinkedOpenSql(account.id, bank.id)]),
+              ))
+                g.add(st);
+            }
             g.add(
               importsRepo.tombstoneIfStmt(
                 db,
@@ -524,7 +687,8 @@ async function syncConnection(
             groups.push(g);
             continue;
           }
-          const { txn, amount, pick } = d;
+          const { txn, amount, pick, entered, replaces } = d;
+          const newId = crypto.randomUUID();
           const payeeName = payeeNameOf(txn);
           const notKnown = importsRepo.notKnownSql(budgetId, txn.transaction_id);
           const g = new Group();
@@ -533,13 +697,53 @@ async function syncConnection(
             importsRepo.accountLinkedOpenSql(account.id, bank.id),
           ]);
           const bankValues = importValues(txn, amount, payeeName);
-          if (pick) {
-            const c = (candidateById.get(pick) as importsRepo.MatchCandidate).row;
-            const cleared = c.cleared === "reconciled" ? "reconciled" : "cleared";
-            const matchGuard = txRepo.allHold([txRepo.holdsAt(db, c), guard]);
+          // The untouched pending item this entry replaces goes with it (same guard, so a lost race changes nothing).
+          if (replaces) {
+            for (const st of pendingRepo.replacePendingStmts(
+              db,
+              { budgetId, actor: PLAID_ACTOR, now },
+              replaces,
+              entered?.id ?? pick ?? newId,
+              guard,
+            ))
+              g.add(st);
+          }
+          if (pick || entered) {
+            const c =
+              entered ?? (candidateById.get(pick as string) as importsRepo.MatchCandidate).row;
             const lines = linesOf(c.id);
+            // A row entered from a pending item takes the bank's amount (not when reconciled, split or a transfer).
+            const ev = entered
+              ? enteredMatchValues(
+                  {
+                    amount: c.amount,
+                    cleared: c.cleared,
+                    hasLines: lines.length > 0,
+                    transferAccountId: c.transferAccountId ?? null,
+                  },
+                  { amount },
+                )
+              : null;
+            const cleared = ev ? ev.cleared : c.cleared === "reconciled" ? "reconciled" : "cleared";
+            const extra: txRepo.TxSet = ev
+              ? {
+                  amount: ev.amount,
+                  status: null,
+                  ...(ev.matchEntryAmount !== null
+                    ? { matchEntryAmount: ev.matchEntryAmount }
+                    : {}),
+                }
+              : {};
+            const matchGuard = txRepo.allHold([txRepo.holdsAt(db, c), guard]);
             const catNames = forExisting(names, c.categoryId);
-            const after: Row = { ...c, ...bankValues, cleared, approved: true, updatedAt: now };
+            const after: Row = {
+              ...c,
+              ...bankValues,
+              ...(extra as Partial<Row>),
+              cleared,
+              approved: true,
+              updatedAt: now,
+            };
             g.add(
               changeLogInsertIf(
                 db,
@@ -570,18 +774,30 @@ async function syncConnection(
               txRepo.updateIfStmt(
                 db,
                 c.id,
-                { ...bankValues, cleared, approved: true, updatedAt: now },
+                { ...bankValues, ...extra, cleared, approved: true, updatedAt: now },
                 matchGuard,
               ),
               "matched",
             );
+            if (entered && txn.pending_transaction_id) {
+              // The item an Enter Now consumed is now resolved by the bank's posted version.
+              g.add(
+                pendingRepo.resolveEnteredStmt(
+                  db,
+                  budgetId,
+                  [txn.pending_transaction_id],
+                  now,
+                  txRepo.writtenAt(db, c.id, now),
+                ),
+              );
+            }
           }
           // The insert: the import itself, or the fallback of a match whose candidate changed meanwhile.
           // Once the match is written the id is known, and every statement below is a no-op.
           const target = payeeTarget(budgetId, payeeName, planRules, payees);
           const cat = categoryFor(kinds, amount, target.entry);
           const newRow: Row = {
-            id: crypto.randomUUID(),
+            id: newId,
             budgetId,
             accountId: account.id,
             date: txn.date,
@@ -598,6 +814,7 @@ async function syncConnection(
             updatedAt: now,
             ...bankValues,
             source: "plaid",
+            pendingTransactionId: txn.pending_transaction_id ?? null,
           };
           if (target.createName)
             addPayee(

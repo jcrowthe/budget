@@ -3,7 +3,7 @@ import { bulkRefusalText } from "@budget/schema/register-selection";
 import type { TransactionDetail } from "@budget/schema/transactions";
 import { useRef, useState } from "react";
 import { ApiError } from "../api/client";
-import { useApproveReject } from "../api/transactions";
+import { useApproveReject, useEnterPending } from "../api/transactions";
 import { InfoCircleIcon } from "./icons";
 import { Popover } from "./Popover";
 
@@ -96,6 +96,96 @@ export function AttentionCell({ budgetId, tx }: { budgetId: string; tx: Transact
                 </button>
               </li>
             </ul>
+            {error && (
+              <p role="alert" className="attention-menu-error">
+                {error}
+              </p>
+            )}
+          </Popover>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** EXF-466: the circled "i" of a pending bank transaction: its one menu item, Enter Now. */
+export function PendingAttentionCell({
+  budgetId,
+  tx,
+}: {
+  budgetId: string;
+  tx: TransactionDetail;
+}) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const busy = useRef(false);
+  const mutation = useEnterPending(budgetId);
+
+  const close = () => {
+    setOpen(false);
+    setError(null);
+    button.current?.focus();
+  };
+  const enter = async () => {
+    if (busy.current) return;
+    busy.current = true;
+    setError(null);
+    try {
+      await mutation.mutateAsync({ id: tx.id });
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not work");
+    } finally {
+      busy.current = false;
+    }
+  };
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="attention-button"
+        aria-label="This is a pending bank transaction"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <InfoCircleIcon />
+      </button>
+      {open && button.current && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: the menu's button takes the keys; this only keeps portal clicks off the row
+        // biome-ignore lint/a11y/useKeyWithClickEvents: the same
+        <div onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+          <Popover
+            anchor={button.current}
+            placement="below"
+            width={320}
+            bodyClass="is-approval"
+            align="start"
+            label="Pending transaction"
+            onClose={close}
+          >
+            <ul className="bulk-list">
+              <li>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="bulk-item approval-button"
+                  onClick={() => void enter()}
+                >
+                  Enter Now
+                </button>
+              </li>
+            </ul>
+            <p className="pending-menu-hint">
+              Adds it to the register as uncleared. When the bank posts it, the two are matched.
+            </p>
             {error && (
               <p role="alert" className="attention-menu-error">
                 {error}

@@ -24,6 +24,8 @@ export const UNDO_TYPES = [
   "scheduled_transaction",
   // Lines of split schedules that moved on their own (category delete, payee delete/combine): parents first.
   "scheduled_subtransaction",
+  // EXF-466: a pending bank transaction (Enter Now deletes it; undo brings it back).
+  "pending_transaction",
   "transaction",
 ] as const;
 export type UndoType = (typeof UNDO_TYPES)[number];
@@ -57,6 +59,7 @@ const TX_KEYS = [
   "flag_color",
   "transfer_account_id",
   "transfer_transaction_id",
+  "status",
 ].map((k) => K(k));
 const LINE_KEYS = ["amount", "payee_id", "category_id", "inflow_to_ready_to_assign", "memo"].map(
   (k) => K(k),
@@ -79,6 +82,10 @@ const TARGET_KEYS: Key[] = [
 /** The key → column table of the rule table: the single source the guards and the writes are built from. */
 export const TYPE_MAPS: Record<UndoType, { table: string; keys: Key[] }> = {
   transaction: { table: "transactions", keys: TX_KEYS },
+  pending_transaction: {
+    table: "pending_transactions",
+    keys: ["date", "amount", "payee_name", "resolved_at"].map((k) => K(k)),
+  },
   payee: {
     table: "payees",
     keys: [
@@ -336,6 +343,10 @@ export function postChecks(c: Ctx, present: ReadonlySet<UndoType>): BatchItem<"s
         not exists (select 1 from accounts a where a.id = t.account_id and a.deleted_at is null and a.closed = 0)
         or (t.category_id is not null and not ${raw(liveCat("t"))})
         or (t.payee_id is not null and not ${raw(livePayee("t"))})))`);
+  if (present.has("pending_transaction"))
+    refused(sql`exists (select 1 from ${net(c, "pending_transaction")} join pending_transactions t on t.id = n.eid
+      where n.kind in ('update', 'delete') and t.deleted_at is null
+        and not exists (select 1 from accounts a where a.id = t.account_id and a.deleted_at is null and a.closed = 0 and a.bank_account_id is not null))`);
   if (present.has("scheduled_transaction"))
     refused(sql`exists (select 1 from ${net(c, "scheduled_transaction")} join scheduled_transactions t on t.id = n.eid
       where n.kind in ('update', 'delete') and t.deleted_at is null and (
@@ -473,6 +484,12 @@ export function restoreStmts(c: Ctx, type: UndoType): BatchItem<"sqlite">[] {
       ];
     case "transaction":
       return transactionRestores(c);
+    case "pending_transaction":
+      // Back as an untouched item: its link to the row it became is cut.
+      return [
+        run(sql`update pending_transactions set ${sets(keys, "n.before_json")}, deleted_at = null, entered_transaction_id = null, updated_at = ${c.now}
+          from ${net(c, type)} where pending_transactions.id = n.eid and n.kind in ('update', 'delete')`),
+      ];
     case "scheduled_transaction":
       return scheduledRestores(c);
     case "scheduled_subtransaction":

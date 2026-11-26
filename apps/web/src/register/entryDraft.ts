@@ -38,7 +38,9 @@ export type Open =
       prefill?: Draft;
     }
   | { mode: "edit"; id: string; focus: Field; openCategory?: boolean; split?: true }
-  | { mode: "editScheduled"; id: string; focus: Field };
+  | { mode: "editScheduled"; id: string; focus: Field }
+  /** EXF-466: a pending bank transaction opened for editing; saving it is Enter Now. */
+  | { mode: "editPending"; id: string; focus: Field };
 
 export type CategoryValue = { kind: "none" } | { kind: "rta" } | { kind: "category"; id: string };
 

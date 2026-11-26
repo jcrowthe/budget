@@ -75,6 +75,7 @@ export function plaidTxn(over: Record<string, unknown> = {}) {
     merchant_name: null as string | null,
     original_description: null as string | null,
     pending: false,
+    pending_transaction_id: null as string | null,
     ...over,
   };
 }

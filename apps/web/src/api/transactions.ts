@@ -1,4 +1,5 @@
 import {
+  type EnterNowRequest,
   type FlagColor,
   MatchResponse,
   PlanTransactionListResponse,
@@ -333,4 +334,63 @@ export async function downloadExport(
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
+/** The cache key of an account's pending bank transactions (EXF-466). */
+export const pendingKey = (budgetId: string, accountId: string) =>
+  ["pending-transactions", budgetId, accountId] as const;
+
+export const listPendingTransactions = async (budgetId: string, accountId: string) =>
+  (
+    await apiFetch(
+      `/api/v1/budgets/${budgetId}/transactions?status=pending&account_id=${encodeURIComponent(accountId)}`,
+      { schema: PlanTransactionListResponse },
+    )
+  ).data;
+
+/** The bank's pending transactions of a linked account: they affect no balance (the register's Pending section). */
+export const usePendingTransactions = (budgetId: string, accountId: string, enabled = true) =>
+  useQuery({
+    queryKey: pendingKey(budgetId, accountId),
+    queryFn: () => listPendingTransactions(budgetId, accountId),
+    retry: false,
+    enabled,
+    placeholderData:
+      keepPreviousInPlan<Awaited<ReturnType<typeof listPendingTransactions>>>(budgetId),
+  });
+
+export const enterPendingTransaction = async (
+  budgetId: string,
+  id: string,
+  body: EnterNowRequest,
+  onChangeSet?: (id: string) => void,
+) =>
+  (
+    await apiFetch(`/api/v1/budgets/${budgetId}/transactions/${encodeURIComponent(id)}/enter-now`, {
+      method: "POST",
+      body,
+      onChangeSet,
+      idempotencyKey: crypto.randomUUID(),
+      schema: TransactionResponse,
+    })
+  ).data.transaction;
+
+/** Enter Now (one request, one change set, undoable); every query of the plan refetches when it succeeds. */
+export function useEnterPending(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; body?: EnterNowRequest }) =>
+      enterPendingTransaction(budgetId, v.id, v.body ?? {}, record(budgetId)),
+    onSuccess: () => invalidatePlan(qc, budgetId),
+  });
+}
+
+/** The clock of a row entered from a pending item: hides or shows it (one PATCH, recorded for Undo). */
+export function useSetClock(budgetId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; status: "entered" | null }) =>
+      updateTransaction(budgetId, v.id, { status: v.status }, record(budgetId)),
+    onSuccess: () => invalidatePlan(qc, budgetId),
+  });
 }

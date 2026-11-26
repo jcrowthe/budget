@@ -28,6 +28,8 @@ const base: PlanTransaction = {
   bank_description: null,
   matched: false,
   flag_color: null,
+  status: null,
+  pending_transaction_id: null,
   payee_system: null,
   transfer_account_id: null,
   transfer_transaction_id: null,

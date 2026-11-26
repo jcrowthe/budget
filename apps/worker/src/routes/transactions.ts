@@ -3,9 +3,11 @@ import { ErrorBody } from "@budget/schema/common/envelope";
 import { PLAN_SORT_COLUMNS, REGISTER_SORT_COLUMNS } from "@budget/schema/register";
 import { SEARCH_QUERY_DESCRIPTION } from "@budget/schema/transaction-search";
 import {
+  EnterNowRequest,
   MatchResponse,
   PlanTransactionListResponse,
   TRANSACTION_NEEDS,
+  TRANSACTION_STATUSES,
   TransactionBulkRequest,
   TransactionBulkResponse,
   TransactionCreateRequest,
@@ -21,6 +23,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { AppEnv } from "../env";
 import { apiError } from "../middleware/errors";
 import { matchTransactions, unmatchTransaction } from "../services/manual-match";
+import { enterPendingTransaction, listPendingTransactions } from "../services/pending-transactions";
 import {
   addTransaction,
   approveTransactions,
@@ -145,12 +148,23 @@ export default app
               "approval_or_category: only transactions that are unapproved or need a category",
             ),
           q: z.string().max(500).optional().describe(SEARCH_QUERY_DESCRIPTION),
+          status: z
+            .enum(TRANSACTION_STATUSES)
+            .optional()
+            .describe(
+              "pending: the bank's pending transactions instead of the register's rows (they affect no balance); with account_id for one account",
+            ),
+          account_id: z
+            .string()
+            .min(1)
+            .optional()
+            .describe("With status=pending: only this account's pending transactions"),
         }),
       },
       responses: {
         200: json(
           PlanTransactionListResponse,
-          "Every account's transactions with account_name, and the open accounts' balances",
+          "Every account's transactions with account_name, and the open accounts' balances (with status=pending: the pending transactions)",
         ),
         ...errors,
       },
@@ -159,6 +173,24 @@ export default app
       const { budget_id } = c.req.valid("param");
       const q = c.req.valid("query");
       return refusals(c, async () => {
+        if (q.status === "pending") {
+          if (q.q !== undefined || q.needs !== undefined || q.since_date !== undefined) {
+            throw new TransactionRefused(
+              422,
+              "unprocessable_entity",
+              "status=pending takes no q, needs or since_date",
+            );
+          }
+          const data = await listPendingTransactions(c.env, budget_id, q.account_id);
+          return c.json({ data }, 200);
+        }
+        if (q.account_id !== undefined) {
+          throw new TransactionRefused(
+            422,
+            "unprocessable_entity",
+            "account_id needs status=pending; use the account's transactions list",
+          );
+        }
         const data = await listPlanTransactions(c.env, budget_id, {
           sinceDate: q.since_date,
           sort: q.sort,
@@ -255,6 +287,45 @@ export default app
       return refusals(c, async () => {
         const transaction = await addTransaction(c.env, actor, budget_id, body);
         return c.json({ data: { transaction } }, 201);
+      });
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/budgets/{budget_id}/transactions/{transaction_id}/enter-now",
+      tags,
+      request: {
+        params: z.object({
+          budget_id: param("budget_id"),
+          transaction_id: param("transaction_id"),
+        }),
+        body: {
+          content: { "application/json": { schema: EnterNowRequest } },
+          required: false,
+        },
+      },
+      responses: {
+        200: json(
+          TransactionResponse,
+          "The new transaction (approved, uncleared, status entered); the pending transaction is gone from the pending list. 409 pending_changed when the bank replaced or removed it meanwhile",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { budget_id, transaction_id } = c.req.valid("param");
+      const body = c.req.valid("json") ?? {};
+      const actor = c.get("identity").actor;
+      return refusals(c, async () => {
+        const transaction = await enterPendingTransaction(
+          c.env,
+          actor,
+          budget_id,
+          transaction_id,
+          body,
+        );
+        return c.json({ data: { transaction } }, 200);
       });
     },
   )
