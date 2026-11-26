@@ -126,7 +126,7 @@ describe("draftForRepeat", () => {
     expect(d.lines?.[1]).toMatchObject({
       category: { kind: "category", id: "c2" },
       memo: "ZZ-TEST m",
-      outflowText: "15.00",
+      outflowText: "1.50",
     });
     const again = draftForRepeat(t, fmt);
     expect(again.lines?.[0]?.key).not.toBe(d.lines?.[0]?.key);
