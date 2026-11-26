@@ -2,12 +2,14 @@ import type { Account } from "@budget/schema/accounts";
 import { ATTENTION_FILTER_LABEL } from "@budget/schema/attention";
 import { isCredit } from "@budget/schema/card-payments";
 import type { UndoWhere } from "@budget/schema/changes";
+import type { TransactionDetail } from "@budget/schema/transactions";
 import { useIsMutating } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { usePaymentAvailable } from "../account/usePaymentAvailable";
 import { ApiError } from "../api/client";
 import { FileImport, type FileImportHandle } from "../file-import/file-import";
+import { usePlanFormatter } from "../shell/plan-formats-context";
 import { accountPath, planPath } from "../shell/planPaths";
 import { useShortcut } from "../shortcuts/dispatcher";
 import { useUndo } from "../undo/useUndo";
@@ -15,6 +17,7 @@ import { ActionBar } from "./ActionBar";
 import { useAttentionFilter } from "./attention-filter";
 import type { Open } from "./entryDraft";
 import { CloseSmallIcon } from "./icons";
+import { draftForRepeat } from "./makeRepeating";
 import { useOpenAccounts } from "./openAccounts";
 import { ReconcileBar } from "./ReconcileBar";
 import { useRegisterSearchState } from "./RegisterSearch";
@@ -44,6 +47,11 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
   const openAdd = useCallback((date?: string) => {
     setOpen({ mode: "add", key: Date.now() + Math.random(), date });
   }, []);
+
+  // EXF-503: Make Repeating opens a new row from a real transaction, a month later and repeating monthly.
+  const fmt = usePlanFormatter();
+  const openRepeat = (tx: TransactionDetail) =>
+    setOpen({ mode: "add", key: Date.now() + Math.random(), prefill: draftForRepeat(tx, fmt) });
 
   // EXF-539: Record Payment opens a new row dated today with Inflow set to the payment Available (D2).
   const credit = !!account && isCredit(account.type);
@@ -191,6 +199,7 @@ export function Register({ budgetId, account }: { budgetId: string; account?: Ac
           budgetId={budgetId}
           account={account}
           entryOpen={open !== null}
+          onMakeRepeating={openRepeat}
           onCategorizeOne={(id) =>
             setOpen({ mode: "edit", id, focus: "category", openCategory: true })
           }

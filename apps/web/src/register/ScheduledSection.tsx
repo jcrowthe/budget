@@ -88,7 +88,7 @@ export function ScheduledSection({
       // The state is only remembered while storage works.
     }
   }, [collapsed]);
-  const { scheduled, setScheduled, pick, setScheduledRows } = useSelection();
+  const { scheduled, setScheduled, pick, setScheduledRows, openMenuAt } = useSelection();
   useEffect(() => setScheduledRows(rows), [rows, setScheduledRows]);
   // Ids that left the list (entered, deleted, another plan) drop out of the selection.
   useEffect(() => {
@@ -137,6 +137,15 @@ export function ScheduledSection({
           onClick={(e) => onRowClick(e, s)}
           onMouseDown={(e) => {
             if (e.shiftKey) e.preventDefault();
+          }}
+          onContextMenu={(e) => {
+            if (isControl(e)) return;
+            e.preventDefault();
+            if (!scheduled.has(s.id)) {
+              pick("scheduled", s.id, "only");
+              if (open) onCloseEntry();
+            }
+            openMenuAt(e.clientX, e.clientY);
           }}
           onDoubleClick={(e) => {
             if (!isControl(e)) openEdit(s, fieldOf(e));

@@ -7,6 +7,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -38,6 +39,10 @@ type Selection = {
   pick: (list: List, id: string, how: PickHow) => void;
   /** Shift+arrow: moves the cursor one row and selects anchor…cursor. Returns the cursor's id. */
   extend: (step: 1 | -1) => string | null;
+  /** A right-click opened the More menu at this point (EXF-503); null when no context menu is open. */
+  menuAt: { x: number; y: number; key: number } | null;
+  openMenuAt: (x: number, y: number) => void;
+  closeMenuAt: () => void;
 };
 
 const Ctx = createContext<Selection | null>(null);
@@ -153,6 +158,17 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     },
     [apply, orderOf],
   );
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; key: number } | null>(null);
+  const menuKey = useRef(0);
+  const openMenuAt = useCallback((x: number, y: number) => {
+    setMenuAt({ x, y, key: ++menuKey.current });
+  }, []);
+  const closeMenuAt = useCallback(() => setMenuAt(null), []);
+  // The menu belongs to a selection: it closes when nothing is selected.
+  const nothingSelected = selected.size === 0 && scheduled.size === 0;
+  useEffect(() => {
+    if (nothingSelected) setMenuAt(null);
+  }, [nothingSelected]);
   const clear = useCallback(() => {
     dropSelected();
     dropScheduled();
@@ -184,6 +200,9 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       anchor,
       pick,
       extend,
+      menuAt,
+      openMenuAt,
+      closeMenuAt,
     }),
     [
       selected,
@@ -200,6 +219,9 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       anchor,
       pick,
       extend,
+      menuAt,
+      openMenuAt,
+      closeMenuAt,
     ],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

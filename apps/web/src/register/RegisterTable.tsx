@@ -155,7 +155,7 @@ export function RegisterTable({
   const { openAccounts } = useOpenAccounts(budgetId);
   const navigate = useNavigate();
   const location = useLocation();
-  const { selected, set: setSelected, pick, setRows } = useSelection();
+  const { selected, set: setSelected, pick, setRows, openMenuAt } = useSelection();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const showCategory = plan || account.on_budget;
   const columns = [...(plan ? [ACCOUNT_HEADER] : []), ...HEADERS].filter(
@@ -308,6 +308,16 @@ export function RegisterTable({
       if (open) onCloseEntry();
     }
   };
+  /** EXF-503: a right-click selects the row (unless it is already selected) and opens the More menu there. */
+  const onRowContext = (e: React.MouseEvent, tx: Row) => {
+    if (isControl(e)) return;
+    e.preventDefault();
+    if (!selected.has(tx.id)) {
+      pick("real", tx.id, "only");
+      if (open) onCloseEntry();
+    }
+    openMenuAt(e.clientX, e.clientY);
+  };
   /** Shift+click must not start a text selection. */
   const noShiftSelect = (e: React.MouseEvent) => {
     if (e.shiftKey) e.preventDefault();
@@ -340,6 +350,7 @@ export function RegisterTable({
     const rowProps = {
       onClick: (e: React.MouseEvent) => onRowClick(e, tx),
       onMouseDown: noShiftSelect,
+      onContextMenu: (e: React.MouseEvent) => onRowContext(e, tx),
       onDoubleClick: (e: React.MouseEvent) => {
         if (isControl(e)) return;
         openEdit(tx, fieldOf(e));
@@ -630,7 +641,8 @@ export function RegisterTable({
               plan={plan}
               showCategory={showCategory}
               date={open.date}
-              initialFocus={plan ? "account" : "date"}
+              initialFocus={!open.prefill && plan ? "account" : "date"}
+              prefill={open.prefill}
               prefillInflow={open.payment ? paymentPrefill(open.payment.inflow, fmt) : undefined}
               onClose={onCloseEntry}
               onSaved={onSaved}

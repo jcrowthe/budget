@@ -418,15 +418,17 @@ test("the More menu for one row and for several (Lead)", async ({ page, request 
   for (const [name, ticket] of [
     ["Match", "EXF-464"],
     ["Unmatch", "EXF-464"],
-    ["Make Repeating", "EXF-503"],
   ] as const) {
     await expect(moreItem(page, name)).toHaveAttribute("aria-disabled", "true");
     await expect(moreItem(page, name)).toHaveAttribute("data-ticket", ticket);
   }
+  // EXF-503: Make Repeating works for one plain row.
+  await expect(moreItem(page, "Make Repeating")).not.toHaveAttribute("aria-disabled", "true");
   await page.keyboard.press("Escape");
   await tick(page, "ZZ Fee");
   await openMore(page);
-  await expect(moreItem(page, "Make Repeating")).toHaveCount(0);
+  // EXF-503: greyed out, not hidden, with several rows.
+  await expect(moreItem(page, "Make Repeating")).toHaveAttribute("aria-disabled", "true");
   await expect(moreItem(page, "Export 2 Transactions")).toBeVisible();
   // EXF-636 (departure from EXF-520): All Accounts offers Move to Account too.
   await expect(moreItem(page, "Move to Account")).toHaveCount(1);

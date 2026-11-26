@@ -1,5 +1,6 @@
 import { countLabel } from "@budget/schema/register-selection";
 import { type ReactNode, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   CaretRightIcon,
   ClearedCircleIcon,
@@ -12,6 +13,35 @@ import {
   TrashIcon,
 } from "./icons";
 import { Popover } from "./Popover";
+
+/**
+ * A zero-size fixed span at a point, handed to a Popover as its anchor: a right-click opens the menu there.
+ * The anchor is given to `children` once it is mounted.
+ */
+export function PointAnchor({
+  x,
+  y,
+  children,
+}: {
+  x: number;
+  y: number;
+  children: (anchor: HTMLElement) => ReactNode;
+}) {
+  const [el, setEl] = useState<HTMLElement | null>(null);
+  return (
+    <>
+      {createPortal(
+        <span
+          ref={setEl}
+          aria-hidden="true"
+          style={{ position: "fixed", left: x, top: y + 4, width: 0, height: 0 }}
+        />,
+        document.body,
+      )}
+      {el ? children(el) : null}
+    </>
+  );
+}
 
 const MATCH_TITLE = "To match, select two transactions, one you entered and one from your bank.";
 
@@ -54,7 +84,8 @@ export function MoreMenu({
   anchor,
   count,
   unclear,
-  oneRow,
+  makeRepeating,
+  placement = "above",
   moveTo,
   onClose,
   onUnclear,
@@ -70,7 +101,10 @@ export function MoreMenu({
   count: number;
   /** Every non-reconciled selected row is cleared: the menu offers "Mark as Uncleared". */
   unclear: boolean;
-  oneRow: boolean;
+  /** Make Repeating: enabled with its action, or greyed out with the reason. */
+  makeRepeating: { onClick: () => void } | { reason: string };
+  /** `right` with the point anchor of a right-click: the menu's top-left is at the pointer. */
+  placement?: "above" | "right";
   /** The other open accounts, for "Move to Account" (account registers only); null hides the entry. */
   moveTo: { id: string; name: string }[] | null;
   onClose: () => void;
@@ -98,9 +132,20 @@ export function MoreMenu({
       disabled: { ticket: "EXF-464" },
     },
   ];
+  const repeatItem: Item = {
+    label: "Make Repeating",
+    icon: <RepeatIcon />,
+    keys: ["shift", "T"],
+    ...("onClick" in makeRepeating
+      ? { onClick: makeRepeating.onClick }
+      : { disabled: { ticket: "EXF-503", title: makeRepeating.reason } }),
+  };
   const scheduledGroups: Item[][] = [
     matchGroup,
-    [{ label: "Duplicate", icon: <DuplicateIcon />, keys: ["shift", "D"], disabled: later }],
+    [
+      { label: "Duplicate", icon: <DuplicateIcon />, keys: ["shift", "D"], disabled: later },
+      repeatItem,
+    ],
     [
       { label: "Memo...", icon: <MemoIcon />, disabled: later },
       {
@@ -135,16 +180,7 @@ export function MoreMenu({
             keys: ["shift", "D"],
             onClick: onDuplicate,
           },
-          ...(oneRow
-            ? [
-                {
-                  label: "Make Repeating",
-                  icon: <RepeatIcon />,
-                  keys: ["shift", "T"],
-                  disabled: { ticket: "EXF-503" },
-                },
-              ]
-            : []),
+          repeatItem,
         ],
         [{ label: "Memo...", icon: <MemoIcon />, onClick: onMemo }],
         [
@@ -157,7 +193,14 @@ export function MoreMenu({
         [{ label: "Delete", icon: <TrashIcon />, keys: ["delete"], onClick: onDelete }],
       ];
   return (
-    <Popover anchor={anchor} placement="above" width={232} label="More actions" onClose={onClose}>
+    <Popover
+      anchor={anchor}
+      placement={placement}
+      dx={0}
+      width={232}
+      label="More actions"
+      onClose={onClose}
+    >
       <ul className="bulk-list">
         {groups.map((g, gi) => (
           <li key={g[0]?.label} className="bulk-group">

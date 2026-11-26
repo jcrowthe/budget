@@ -13,6 +13,7 @@ type Keys = {
   approve?: () => void;
   reject?: () => void;
   duplicate?: () => void;
+  makeRepeating?: () => void;
   flag?: () => void;
   del?: () => void;
   /** Enter Now, for a selection of scheduled rows. */
@@ -54,6 +55,7 @@ export function useRegisterKeys(keys: Keys) {
       else if (!e.shiftKey && key === "a") act = k.approve;
       else if (e.shiftKey && key === "r") act = k.reject;
       else if (e.shiftKey && key === "d") act = k.duplicate;
+      else if (e.shiftKey && key === "t") act = k.makeRepeating;
       else if (e.shiftKey && key === "f") act = k.flag;
       if (!act) return;
       e.preventDefault();
