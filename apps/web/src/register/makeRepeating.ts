@@ -6,10 +6,8 @@ import { type Draft, draftFromTx } from "./entryDraft";
 
 type Row = TransactionDetail;
 
-/** Shown by Make Repeating's menu item for a split or a transfer. */
-export const REPEAT_SPLIT_TRANSFER = "Scheduled splits and transfers are not available yet.";
-/** Shown when a split is saved as scheduled (a transfer can be scheduled since EXF-501 part 1). */
-export const SCHEDULED_SPLIT_NOT_YET = "Scheduled splits are not available yet";
+/** Shown by Make Repeating's menu item for a transfer (a split can repeat since EXF-501 part 2). */
+export const REPEAT_TRANSFER = "Make Repeating isn't available for transfers yet.";
 export const REPEAT_ON_SCHEDULED =
   "Make Repeating works on a recorded transaction, not on a scheduled one";
 export const REPEAT_SELECT_ONE = "Select one transaction to make it repeating";
@@ -31,24 +29,21 @@ export function makeRepeatingState(input: {
   if (scheduledCount > 0) return off(REPEAT_ON_SCHEDULED);
   const [source] = real;
   if (real.length !== 1 || !source) return off(REPEAT_SELECT_ONE);
-  if (source.subtransactions.length > 0 || source.transfer_account_id) {
-    return off(REPEAT_SPLIT_TRANSFER);
-  }
+  if (source.transfer_account_id) return off(REPEAT_TRANSFER);
   if (source.payee_system !== null) return off(REPEAT_SYSTEM_PAYEE);
   if (accountClosed(source.account_id)) return off(REPEAT_CLOSED);
   return { enabled: true, source };
 }
 
 /**
- * The add row's first draft for a new series made from `tx`: the same account, payee, category, memo and amount,
- * dated one month after the original (clamped to the month's end), repeating monthly. The flag and the cleared
+ * The add row's first draft for a new series made from `tx`: the same account, payee, category (or split lines, with
+ * fresh keys), memo and amount, dated one month after the original (clamped to the month's end), repeating monthly. The flag and the cleared
  * state are not carried over.
  */
 export function draftForRepeat(tx: Row, fmt: PlanFormatter): Draft {
   const next = occurrenceAfter(tx.date, "monthly", tx.date) ?? tx.date;
   return {
     ...draftFromTx(tx, fmt),
-    lines: null,
     transferAccountId: null,
     cleared: "uncleared",
     frequency: "monthly",

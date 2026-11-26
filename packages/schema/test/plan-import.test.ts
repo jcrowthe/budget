@@ -393,7 +393,7 @@ describe("rules and edges", () => {
     expect(q.transactions.map((t) => t.order)).toEqual([0, 1, 2, 3]);
   });
 
-  it("a split after the export date stays a transaction with a warning; a paired transfer becomes one schedule", () => {
+  it("a split after the export date is one split schedule; a paired transfer becomes one schedule", () => {
     const p = build(
       regOf(
         '"A","","12/20/2026","P","","","","Split (1/2) a",$1.00,$0.00,"Uncleared"',
@@ -403,28 +403,32 @@ describe("rules and edges", () => {
         '"A","","12/21/2026","Plain","","","","",$1.00,$0.00,"Uncleared"',
       ),
     );
-    expect(p.counts).toMatchObject({ splits: 1, transfers_paired: 0, scheduled: 2 });
+    expect(p.counts).toMatchObject({ splits: 0, transfers_paired: 0, scheduled: 3 });
     expect(p.schedules.filter((s) => s.transferAccount !== null)).toHaveLength(1);
-    expect(warnCodes(p)).toContain("scheduled_not_supported");
+    const split = p.schedules.find((s) => s.lines.length > 0);
+    expect(split?.lines).toHaveLength(2);
+    expect(split?.amount).toBe(-2000);
+    expect(warnCodes(p)).not.toContain("scheduled_not_supported");
   });
 
-  it("a split dated after the export date warns that it is not scheduled", () => {
+  it("a split dated after the export date becomes a schedule, without a warning", () => {
     const p = build(
       regOf(
         '"A","","12/14/2026","P","","","","Split (1/2) a",$1.00,$0.00,"Uncleared"',
         '"A","","12/14/2026","P","","","","Split (2/2) b",$1.00,$0.00,"Uncleared"',
       ),
     );
-    expect(p.counts).toMatchObject({ splits: 1, scheduled: 0 });
-    expect(warnCodes(p)).toContain("scheduled_not_supported");
+    expect(p.counts).toMatchObject({ splits: 0, scheduled: 1 });
+    expect(warnCodes(p)).not.toContain("scheduled_not_supported");
   });
 
   it("name and export_date options win; without file names the defaults warn", () => {
     const p = build(SAMPLE_REGISTER, SAMPLE_PLAN, { name: "Mine", export_date: "2026-11-01" });
     expect(p.name).toBe("Mine");
     expect(p.exportDate).toBe("2026-11-01");
-    // The 11/10 paired transfer is now after the export date: it is one transfer schedule (EXF-501).
-    expect(p.schedules.length).toBe(3);
+    // The 11/10 paired transfer is now after the export date: it is one transfer schedule (EXF-501), and the
+    // split dated after it is one split schedule (EXF-501 part 2).
+    expect(p.schedules.length).toBe(4);
     const q = buildImportPlan({
       plan: { name: "a.csv", text: SAMPLE_PLAN },
       register: { name: "b.csv", text: SAMPLE_REGISTER },

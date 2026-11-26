@@ -3,7 +3,7 @@ import { IsoDate } from "./common/dates";
 import { dataEnvelope } from "./common/envelope";
 import { Milliunits } from "./common/money";
 import { FREQUENCIES } from "./recurrence";
-import { FlagColor, isCalendarDate, TransactionDetail } from "./transactions";
+import { FlagColor, isCalendarDate, SubTransaction, TransactionDetail } from "./transactions";
 
 export const SCHEDULED_BULK_MAX = 100;
 /** The most schedules one call of "enter what is due" enters; the rest wait for the next call. */
@@ -25,6 +25,25 @@ const RealDate = IsoDate.regex(YEAR_RANGE, "Year must be between 1900 and 2199")
 );
 /** The day "today" means for a call: a real date, YYYY-MM-DD. */
 export const Today = RealDate;
+
+/** One line of a split schedule: the shape of a real split's line. */
+export const ScheduledSubTransaction = SubTransaction.openapi("ScheduledSubTransaction");
+export type ScheduledSubTransaction = z.infer<typeof ScheduledSubTransaction>;
+
+export const SCHEDULED_SPLIT_MAX = 50;
+
+/** A line in a request: the register's line (same keys, same limits). */
+const LineInput = z
+  .object({
+    amount: Milliunits,
+    payee_id: z.string().min(1).nullable().optional(),
+    payee_name: z.string().max(200).nullable().optional(),
+    category_id: z.string().min(1).nullable().optional(),
+    inflow_to_ready_to_assign: z.boolean().optional(),
+    memo: z.string().max(500).nullable().optional(),
+  })
+  .strict();
+export type ScheduledLineInput = z.infer<typeof LineInput>;
 
 export const ScheduledTransaction = z
   .object({
@@ -48,6 +67,10 @@ export const ScheduledTransaction = z
       .nullable()
       .describe("The other account when the schedule is a transfer; null for a plain schedule"),
     transfer_account_name: z.string().nullable(),
+    subtransactions: z
+      .array(ScheduledSubTransaction)
+      .default([])
+      .describe("Split lines; empty for a plain schedule or a transfer"),
     mirror: z
       .boolean()
       .describe(
@@ -59,6 +82,14 @@ export const ScheduledTransaction = z
   })
   .openapi("ScheduledTransaction");
 export type ScheduledTransaction = z.infer<typeof ScheduledTransaction>;
+
+const linesField = z
+  .array(LineInput)
+  .max(SCHEDULED_SPLIT_MAX)
+  .optional()
+  .describe(
+    "Split lines: at least two, whose signed amounts add up to amount. On update they replace all lines and an empty list makes the schedule plain. Not with transfer_account_id, category_id or inflow_to_ready_to_assign.",
+  );
 
 const fields = {
   account_id: z.string().min(1),
@@ -81,6 +112,7 @@ const fields = {
     .describe(
       "Another account of the plan: the schedule is a transfer to it; its other side is derived, not stored.",
     ),
+  subtransactions: linesField,
 };
 
 export const ScheduledTransactionCreate = z
@@ -102,6 +134,7 @@ const updateFields = z
     memo: fields.memo,
     flag_color: fields.flag_color,
     transfer_account_id: fields.transfer_account_id,
+    subtransactions: fields.subtransactions,
   })
   .strict();
 /** The PATCH fields without the "at least one" rule, for the MCP tool's input shape. */

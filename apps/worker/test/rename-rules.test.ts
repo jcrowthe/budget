@@ -168,7 +168,7 @@ describe("payee renaming rules: the operations (EXF-467)", () => {
       replacementId: repl,
       counts: { [a]: { t: 1, s: 0 } },
     });
-    expect(stmts).toHaveLength(8);
+    expect(stmts).toHaveLength(11);
     const failing = db.insert(changeLog).values({
       id: crypto.randomUUID(),
       budgetId: w.bid,

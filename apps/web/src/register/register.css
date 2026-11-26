@@ -823,6 +823,13 @@
 .register-table tbody tr.scheduled-row td {
   color: var(--register-scheduled-label);
 }
+/* A split series' lines sit a step below their series row, as a register split's lines do. */
+.register-table tbody tr.scheduled-row.split-line-row td {
+  color: var(--labelTertiary);
+}
+.register-table tbody tr.scheduled-row.split-line-row td[data-field="payee"] {
+  padding-left: calc(var(--space-2) + var(--space-3));
+}
 /* The derived mirror of a transfer scheduled in another account: read-only, its series is edited there. */
 .register-table tbody tr.scheduled-row.is-mirror {
   cursor: default;

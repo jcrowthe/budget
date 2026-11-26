@@ -188,6 +188,7 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
   const categoryIds = plan.categories.map(id);
   const payeeIds = plan.payees.map(id);
   const txIds = plan.transactions.map(id);
+  const schedIds = plan.schedules.map(id);
   const parts: repo.ChunkPart[] = [
     {
       t: "accounts",
@@ -266,8 +267,8 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
     },
     {
       t: "scheduled_transactions",
-      rows: plan.schedules.map((s) => [
-        id(),
+      rows: plan.schedules.map((s, i) => [
+        schedIds[i],
         accountIds[s.account],
         s.date,
         s.date,
@@ -282,6 +283,23 @@ function buildRows(plan: ImportPlan, started: string, budgetId: string): Built {
         at(s.order),
         s.transferAccount === null ? null : accountIds[s.transferAccount],
       ]),
+    },
+    {
+      t: "scheduled_subtransactions",
+      rows: plan.schedules.flatMap((s, i) =>
+        s.lines.map((l, k) => [
+          id(),
+          schedIds[i],
+          l.amount,
+          l.payee === null ? null : payeeIds[l.payee],
+          l.category === null ? null : categoryIds[l.category],
+          l.inflowToRta ? 1 : 0,
+          l.memo,
+          k,
+          at(s.order),
+          at(s.order),
+        ]),
+      ),
     },
   ];
   return { budget, parts, rows: parts.reduce((n, p) => n + p.rows.length, 0) };

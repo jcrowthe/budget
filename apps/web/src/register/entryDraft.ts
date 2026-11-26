@@ -114,22 +114,36 @@ export function emptyDraft(date: string, accountId: string | null, fmt: PlanForm
   };
 }
 
+/** The lines of a split as the editor holds them (a real split's and a schedule's have the same shape); null for none. */
+export function draftLines(
+  subs: readonly {
+    payee_id: string | null;
+    payee_name: string | null;
+    category_id: string | null;
+    inflow_to_ready_to_assign: boolean;
+    memo: string | null;
+    amount: number;
+  }[],
+  fmt: PlanFormatter,
+): LineDraft[] | null {
+  if (subs.length === 0) return null;
+  return subs.map((l) => ({
+    key: ++lineKey,
+    payee: { id: l.payee_id, name: l.payee_name ?? "" },
+    category: l.category_id
+      ? { kind: "category", id: l.category_id }
+      : l.inflow_to_ready_to_assign
+        ? { kind: "rta" }
+        : { kind: "none" },
+    memo: l.memo ?? "",
+    ...amountTexts(l.amount, fmt),
+  }));
+}
+
 export function draftFromTx(tx: TransactionDetail, fmt: PlanFormatter): Draft {
   return {
     transferAccountId: tx.transfer_account_id,
-    lines: tx.subtransactions.length
-      ? tx.subtransactions.map((l) => ({
-          key: ++lineKey,
-          payee: { id: l.payee_id, name: l.payee_name ?? "" },
-          category: l.category_id
-            ? { kind: "category", id: l.category_id }
-            : l.inflow_to_ready_to_assign
-              ? { kind: "rta" }
-              : { kind: "none" },
-          memo: l.memo ?? "",
-          ...amountTexts(l.amount, fmt),
-        }))
-      : null,
+    lines: draftLines(tx.subtransactions, fmt),
     accountId: tx.account_id,
     dateText: formatEntryDate(tx.date, fmt),
     lastDate: tx.date,
@@ -151,7 +165,7 @@ export function draftFromTx(tx: TransactionDetail, fmt: PlanFormatter): Draft {
 export function draftFromScheduled(s: ScheduledTransaction, fmt: PlanFormatter): Draft {
   return {
     transferAccountId: s.transfer_account_id,
-    lines: null,
+    lines: draftLines(s.subtransactions, fmt),
     accountId: s.account_id,
     dateText: formatEntryDate(s.date_next, fmt),
     lastDate: s.date_next,
@@ -321,7 +335,8 @@ export function draftToScheduledCreate(
       : "payee_id" in payee && payee.payee_id === null
         ? {}
         : payee),
-    ...(d.category.kind === "none" ? {} : categoryFields(d.category)),
+    ...(d.category.kind === "none" || d.lines ? {} : categoryFields(d.category)),
+    ...(d.lines ? { subtransactions: linesBody(d.lines, fmt) } : {}),
   };
 }
 
@@ -347,12 +362,22 @@ export function draftToScheduledPatch(
   if (!d.transferAccountId && (payeeChanged || transferChanged)) {
     Object.assign(patch, payeeFields(d.payee));
   }
-  if (JSON.stringify(d.category) !== JSON.stringify(was.category)) {
+  if (!d.lines && JSON.stringify(d.category) !== JSON.stringify(was.category)) {
     Object.assign(patch, categoryFields(d.category));
   }
   if (d.memo.trim() !== (before.memo ?? ""))
     patch.memo = d.memo.trim() === "" ? null : d.memo.trim();
   const amount = draftAmount(d, fmt);
   if (amount !== before.amount) patch.amount = amount;
+  // Lines are replaced as a whole, with the total they add up to; leaving a split sends an empty list.
+  if (
+    d.lines &&
+    (linesSignature(d.lines, fmt) !== linesSignature(was.lines, fmt) || amount !== before.amount)
+  ) {
+    patch.subtransactions = linesBody(d.lines, fmt);
+    patch.amount = amount;
+  } else if (!d.lines && was.lines) {
+    patch.subtransactions = [];
+  }
   return patch;
 }

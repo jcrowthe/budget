@@ -47,3 +47,27 @@ export function logScheduledMovesStmt(
     },
   );
 }
+
+/** The lines of live split schedules that `scheduledRepo.moveLinePayeeStmt` is about to move, as `update` rows. */
+export function logScheduledLineMovesStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  fromIds: readonly string[],
+  toId: string | null,
+  guard: SQL,
+) {
+  const inner = sql`select l.id as id, l.payee_id as payee_id from scheduled_subtransactions l
+    where l.budget_id = ${budgetId} and ${idsIn(sql.raw("l.payee_id"), fromIds)} and l.deleted_at is null
+      and l.scheduled_transaction_id in (select id from scheduled_transactions where deleted_at is null) and ${guard}`;
+  return logSelectStmt(
+    db,
+    { ...base, action: "update", entityType: "scheduled_subtransaction" },
+    inner,
+    {
+      entityId: sql`id`,
+      before: sql`json_object('id', id, 'payee_id', payee_id)`,
+      after: sql`json_object('id', id, 'payee_id', ${toId})`,
+    },
+  );
+}

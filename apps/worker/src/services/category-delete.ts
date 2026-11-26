@@ -104,6 +104,17 @@ export function buildDeleteBatch(db: Db, p: DeletePlan): BatchItem<"sqlite">[] {
         full,
       ),
       scheduledRepo.changeCategoryStmt(db, budgetId, ids, targetId, p.now, full),
+      // The lines of split schedules: logged, the parents' tokens renewed, then moved.
+      scheduledRepo.logLineCategoryChangeStmt(
+        db,
+        { ...log("scheduled_subtransaction", "update") },
+        budgetId,
+        ids,
+        targetId,
+        full,
+      ),
+      scheduledRepo.renewTokenOfLinesStmt(db, budgetId, ids, full),
+      scheduledRepo.changeLineCategoryStmt(db, budgetId, ids, targetId, p.now, full),
     );
   }
   // Loans paired with a deleted category: always present (no read), a no-op when none is paired.

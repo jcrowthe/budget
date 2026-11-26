@@ -12,7 +12,11 @@ describe("scheduled transaction shapes", () => {
     expect(ScheduledTransactionCreate.parse(ok).frequency).toBe("never");
   });
   it("refuses fields it does not support", () => {
-    for (const extra of [{ date_next: "2026-12-02" }, { subtransactions: [] }]) {
+    // subtransactions is supported since EXF-501 part 2: only an unknown line key is refused.
+    for (const extra of [
+      { date_next: "2026-12-02" },
+      { subtransactions: [{ amount: 1, bogus: 1 }] },
+    ]) {
       expect(ScheduledTransactionCreate.safeParse({ ...ok, ...extra }).success).toBe(false);
     }
   });

@@ -52,7 +52,6 @@ import {
 import { localToday } from "./format";
 import { ClearedFilledIcon, ClearedOutlineIcon, LockIcon } from "./icons";
 import { startMoved } from "./import-start";
-import { SCHEDULED_SPLIT_NOT_YET } from "./makeRepeating";
 import { PayeeField } from "./PayeeField";
 import { useRegisterView } from "./register-view";
 import { SplitDialog } from "./SplitDialog";
@@ -247,10 +246,6 @@ export function EntryRow({
     const typedDate = fmt.parseDate(d.dateText, today) as string;
     if (mode === "add" && savesAsScheduled(typedDate, d.frequency, today)) {
       // The same rule as the API: a future date or a repeat is a schedule.
-      if (d.lines) {
-        setMessage(SCHEDULED_SPLIT_NOT_YET);
-        return;
-      }
       saving.current = true;
       createScheduled.mutate(draftToScheduledCreate(d, accountId, today, fmt), {
         onSuccess: () => onSaved(next, typedDate),
@@ -462,13 +457,7 @@ export function EntryRow({
               startOpen={openCategory}
               placeholder={rule === "not_needed" ? "Category not needed" : "category"}
               split={isSplit}
-              splitDisabled={
-                isScheduledEdit
-                  ? SCHEDULED_SPLIT_NOT_YET
-                  : draft.transferAccountId
-                    ? "A transfer cannot be split"
-                    : false
-              }
+              splitDisabled={draft.transferAccountId ? "A transfer cannot be split" : false}
               onSplit={startSplitting}
               fixedText={isScheduledEdit ? undefined : pay?.category}
               // Picking a category drops the lines.

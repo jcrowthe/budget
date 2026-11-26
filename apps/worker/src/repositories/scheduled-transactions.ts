@@ -7,10 +7,27 @@ import { budgets } from "../db/schema/budgets";
 import { categories } from "../db/schema/categories";
 import { categoryGroups } from "../db/schema/category-groups";
 import { payees } from "../db/schema/payees";
+import { scheduledSubtransactions as sl } from "../db/schema/scheduled-subtransactions";
 import { scheduledTransactions as st } from "../db/schema/scheduled-transactions";
+import { transactions } from "../db/schema/transactions";
 import { idList, type LogBase, logSelectStmt } from "./guards";
+import { insertSelect } from "./insert-select";
 
 export type ScheduledBase = typeof st.$inferSelect;
+
+/** A line of a split schedule with the names its reads carry. A deleted payee or category reads as null. */
+export type ScheduledLineRow = {
+  id: string;
+  amount: number;
+  payeeId: string | null;
+  payeeName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  groupName: string | null;
+  inflowToReadyToAssign: boolean;
+  memo: string | null;
+  sort: number;
+};
 
 /** A schedule with the names and account state its reads carry. `categoryId` and `payeeId` are null once the category or payee is deleted. */
 export type ScheduledRow = ScheduledBase & {
@@ -27,12 +44,52 @@ export type ScheduledRow = ScheduledBase & {
   transferAccountName: string | null;
   transferAccountClosed: boolean;
   transferAccountOnBudget: boolean;
+  /** The live lines of a split schedule, in order; empty for a plain schedule. */
+  lines: ScheduledLineRow[];
 };
 
 const ta = alias(accounts, "ta");
 
 /** A transfer schedule counts only while its other account exists and is open. */
 const livePair = sql`(${st.transferAccountId} is null or (${ta.id} is not null and ${ta.deletedAt} is null and ${ta.closed} = 0))`;
+
+/** The schedule's live lines as one JSON column, so no read needs a second call. */
+const linesColumn =
+  sql<string>`(select coalesce(json_group_array(json_object('id', x.id, 'amount', x.amount, 'payee_id', x.payee_id, 'payee_name', x.payee_name, 'category_id', x.category_id, 'category_name', x.category_name, 'group_name', x.group_name, 'inflow', x.inflow, 'memo', x.memo, 'sort', x.sort)), '[]') from (
+  select l.id as id, l.amount as amount, lp.id as payee_id, lp.name as payee_name, lc.id as category_id, lc.name as category_name, lg.name as group_name, l.inflow_to_ready_to_assign as inflow, l.memo as memo, l.sort as sort
+  from ${sl} l
+  left join ${payees} lp on lp.id = l.payee_id and lp.deleted_at is null
+  left join ${categories} lc on lc.id = l.category_id and lc.deleted_at is null
+  left join ${categoryGroups} lg on lg.id = lc.group_id and lg.deleted_at is null
+  where l.scheduled_transaction_id = ${st.id} and l.deleted_at is null
+  order by l.sort) x)`.as("lines_json");
+
+function parseLines(json: string | null): ScheduledLineRow[] {
+  const raw = JSON.parse(json ?? "[]") as {
+    id: string;
+    amount: number;
+    payee_id: string | null;
+    payee_name: string | null;
+    category_id: string | null;
+    category_name: string | null;
+    group_name: string | null;
+    inflow: number;
+    memo: string | null;
+    sort: number;
+  }[];
+  return raw.map((l) => ({
+    id: l.id,
+    amount: l.amount,
+    payeeId: l.payee_id,
+    payeeName: l.payee_name,
+    categoryId: l.category_id,
+    categoryName: l.category_name,
+    groupName: l.group_name,
+    inflowToReadyToAssign: l.inflow === 1,
+    memo: l.memo,
+    sort: l.sort,
+  }));
+}
 
 function selectRows(db: Db) {
   return db
@@ -51,6 +108,7 @@ function selectRows(db: Db) {
       categoryId: categories.id,
       categoryName: categories.name,
       groupName: categoryGroups.name,
+      lines: linesColumn,
     })
     .from(st)
     .innerJoin(accounts, and(eq(accounts.id, st.accountId), isNull(accounts.deletedAt)))
@@ -81,6 +139,7 @@ function toRow(r: Joined): ScheduledRow {
     transferAccountName: r.transferAccountName ?? null,
     transferAccountClosed: r.transferAccountClosed ?? false,
     transferAccountOnBudget: r.transferAccountOnBudget ?? false,
+    lines: parseLines(r.lines),
   };
 }
 
@@ -311,6 +370,211 @@ export function changeCategoryStmt(
     .where(sql`${liveIn(budgetId, fromIds)} and ${guard}`);
 }
 
+export type LineInsert = {
+  id: string;
+  amount: number;
+  payeeId: string | null;
+  categoryId: string | null;
+  inflowToReadyToAssign: boolean;
+  memo: string | null;
+};
+
+/** Inserts a schedule's lines in one statement from one bound JSON parameter; `sort` is the position. Written only while `guard` holds. */
+export function insertLinesStmt(
+  db: Db,
+  scheduleId: string,
+  budgetId: string,
+  lines: readonly LineInsert[],
+  now: string,
+  guard?: SQLWrapper,
+) {
+  const j = (path: string) => sql`json_extract(v.value, ${path})`;
+  const json = JSON.stringify(
+    lines.map((l) => ({
+      id: l.id,
+      amount: l.amount,
+      payee_id: l.payeeId,
+      category_id: l.categoryId,
+      inflow: l.inflowToReadyToAssign ? 1 : 0,
+      memo: l.memo,
+    })),
+  );
+  return insertSelect(
+    db,
+    sl,
+    {
+      id: j("$.id"),
+      budgetId,
+      scheduledTransactionId: scheduleId,
+      amount: j("$.amount"),
+      payeeId: j("$.payee_id"),
+      categoryId: j("$.category_id"),
+      inflowToReadyToAssign: j("$.inflow"),
+      memo: j("$.memo"),
+      sort: sql`v.key`,
+      createdAt: now,
+      updatedAt: now,
+    },
+    sql`from json_each(${json}) v${guard ? sql` where exists ${guard}` : sql``}`,
+  );
+}
+
+/** The real lines of an entered split, all in one statement (one bound JSON parameter), written only while `guard` holds. */
+export function insertEnteredLinesStmt(
+  db: Db,
+  parent: {
+    id: string;
+    budgetId: string;
+    accountId: string;
+    date: string;
+    cleared: string;
+    approved: boolean;
+    createdAt: string;
+  },
+  lines: readonly {
+    id: string;
+    amount: number;
+    payeeId: string | null;
+    payeeName: string | null;
+    categoryId: string | null;
+    inflowToReadyToAssign: boolean;
+    memo: string | null;
+    splitIndex?: number | null;
+  }[],
+  guard: SQLWrapper,
+) {
+  const j = (path: string) => sql`json_extract(v.value, ${path})`;
+  const json = JSON.stringify(
+    lines.map((l) => ({
+      id: l.id,
+      amount: l.amount,
+      payee_id: l.payeeId,
+      payee_name: l.payeeName,
+      category_id: l.categoryId,
+      inflow: l.inflowToReadyToAssign ? 1 : 0,
+      memo: l.memo,
+      ix: l.splitIndex ?? 0,
+    })),
+  );
+  return insertSelect(
+    db,
+    transactions,
+    {
+      id: j("$.id"),
+      budgetId: parent.budgetId,
+      accountId: parent.accountId,
+      date: parent.date,
+      payeeName: j("$.payee_name"),
+      categoryId: j("$.category_id"),
+      inflowToReadyToAssign: j("$.inflow"),
+      memo: j("$.memo"),
+      amount: j("$.amount"),
+      cleared: parent.cleared,
+      approved: parent.approved ? 1 : 0,
+      createdAt: parent.createdAt,
+      updatedAt: parent.createdAt,
+      payeeId: j("$.payee_id"),
+      parentTransactionId: parent.id,
+      splitIndex: j("$.ix"),
+    },
+    sql`from json_each(${json}) v where exists ${guard}`,
+  );
+}
+
+/** Soft-deletes the live lines of one schedule (an edit replaces them), only while `guard` holds. */
+export function softDeleteLinesStmt(db: Db, scheduleId: string, now: string, guard: SQLWrapper) {
+  return db
+    .update(sl)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(
+      sql`${sl.scheduledTransactionId} = ${scheduleId} and ${sl.deletedAt} is null and exists ${guard}`,
+    );
+}
+
+/** A deleted category's live lines (EXF-659), of live schedules: moved to the replacement or cleared. */
+const lineLiveIn = (budgetId: string, fromIds: readonly string[]) =>
+  sql`${sl.budgetId} = ${budgetId} and ${sl.deletedAt} is null and ${sl.categoryId} in (select value from json_each(${JSON.stringify(fromIds)})) and ${sl.scheduledTransactionId} in (select id from scheduled_transactions where deleted_at is null)`;
+
+export function logLineCategoryChangeStmt(
+  db: Db,
+  base: LogBase,
+  budgetId: string,
+  fromIds: readonly string[],
+  targetId: string | null,
+  guard: SQL,
+) {
+  return logSelectStmt(
+    db,
+    base,
+    sql`select id, category_id from ${sl} where ${lineLiveIn(budgetId, fromIds)} and ${guard}`,
+    {
+      entityId: sql`id`,
+      before: sql`json_object('id', id, 'category_id', category_id)`,
+      after: sql`json_object('id', id, 'category_id', ${targetId}, 'reassigned_from', category_id)`,
+    },
+  );
+}
+
+/** Renews the write token (only) of the schedules whose lines are about to move, so an edit in flight gets a 409. Put it before the move. */
+export function renewTokenOfLinesStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  guard: SQL,
+) {
+  return db
+    .update(st)
+    .set({ writeToken: sql`lower(hex(randomblob(16)))` })
+    .where(
+      sql`${st.budgetId} = ${budgetId} and ${st.deletedAt} is null and ${st.id} in (select ${sl.scheduledTransactionId} from ${sl} where ${sl.deletedAt} is null and ${sl.categoryId} in (select value from json_each(${JSON.stringify(fromIds)}))) and ${guard}`,
+    );
+}
+
+export function changeLineCategoryStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  targetId: string | null,
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(sl)
+    .set({ categoryId: targetId, updatedAt: now })
+    .where(sql`${lineLiveIn(budgetId, fromIds)} and ${guard}`);
+}
+
+/** Points the lines of live schedules at another payee (payee delete or combine). Renew the parents' token first with `renewTokenOfPayeeLinesStmt`. */
+export function moveLinePayeeStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  toId: string | null,
+  now: string,
+  guard: SQL,
+) {
+  return db
+    .update(sl)
+    .set({ payeeId: toId, updatedAt: now })
+    .where(
+      sql`${sl.budgetId} = ${budgetId} and ${sl.deletedAt} is null and ${sl.payeeId} in (select value from json_each(${JSON.stringify(fromIds)})) and ${sl.scheduledTransactionId} in (select id from scheduled_transactions where deleted_at is null) and ${guard}`,
+    );
+}
+
+export function renewTokenOfPayeeLinesStmt(
+  db: Db,
+  budgetId: string,
+  fromIds: readonly string[],
+  guard: SQL,
+) {
+  return db
+    .update(st)
+    .set({ writeToken: sql`lower(hex(randomblob(16)))` })
+    .where(
+      sql`${st.budgetId} = ${budgetId} and ${st.deletedAt} is null and ${st.id} in (select ${sl.scheduledTransactionId} from ${sl} where ${sl.deletedAt} is null and ${sl.payeeId} in (select value from json_each(${JSON.stringify(fromIds)}))) and ${guard}`,
+    );
+}
+
 /**
  * Every schedule that can still show up in a month read, in one select (EXF-505): live, on an open, on-budget
  * account, with an active category, not an inflow to Ready to Assign, and `date_next` on or before `through`
@@ -323,49 +587,70 @@ export async function listUpcomingSources(
   categoryId?: string,
 ): Promise<UpcomingSource[]> {
   // A transfer counts on its on-plan side: the series account when it is on-plan, else the other account.
-  const onPlanSide = sql`(${accounts.onBudget} = 1 or (${st.transferAccountId} is not null and ${accounts.onBudget} = 0 and ${ta.onBudget} = 1))`;
-  const conds = [
-    eq(st.budgetId, budgetId),
-    isNull(st.deletedAt),
-    eq(st.inflowToReadyToAssign, false),
-    eq(accounts.closed, false),
-    livePair,
-    onPlanSide,
-    sql`${st.dateNext} <= ${through}`,
-  ];
-  if (categoryId) conds.push(eq(st.categoryId, categoryId));
-  const rows = await db
-    .select({
-      id: st.id,
-      categoryId: categories.id,
-      accountId: sql<string>`case when ${accounts.onBudget} = 1 then ${accounts.id} else ${ta.id} end`,
-      accountName: sql<string>`case when ${accounts.onBudget} = 1 then ${accounts.name} else ${ta.name} end`,
-      dateFirst: st.dateFirst,
-      dateNext: st.dateNext,
-      frequency: st.frequency,
-      amount: sql<number>`case when ${accounts.onBudget} = 1 then ${st.amount} else 0 - ${st.amount} end`,
-      payeeId: payees.id,
-      payeeName: payees.name,
-      memo: st.memo,
-    })
-    .from(st)
-    .innerJoin(accounts, and(eq(accounts.id, st.accountId), isNull(accounts.deletedAt)))
-    .leftJoin(ta, eq(ta.id, st.transferAccountId))
-    .innerJoin(categories, and(eq(categories.id, st.categoryId), isNull(categories.deletedAt)))
-    .leftJoin(payees, and(eq(payees.id, st.payeeId), isNull(payees.deletedAt)))
-    .where(and(...conds))
-    .orderBy(asc(st.dateNext), asc(st.id));
+  const plainCat = categoryId ? sql`and st.category_id = ${categoryId}` : sql``;
+  const lineCat = categoryId ? sql`and l.category_id = ${categoryId}` : sql``;
+  // One statement, two branches. Plain: the schedule's own category. Split: each line counts toward its own
+  // category (lines of one category merge into one occurrence); the parent counts nowhere. A line is never a
+  // transfer, and a Ready to Assign or uncategorized line counts nowhere.
+  const rows = await db.all<{
+    id: string;
+    category_id: string;
+    account_id: string;
+    account_name: string;
+    date_first: string;
+    date_next: string;
+    frequency: string;
+    amount: number;
+    payee_id: string | null;
+    payee_name: string | null;
+    memo: string | null;
+  }>(sql`select u.id as id, u.category_id as category_id, u.account_id as account_id, u.account_name as account_name,
+      u.date_first as date_first, u.date_next as date_next, u.frequency as frequency, u.amount as amount,
+      p.id as payee_id, p.name as payee_name, u.memo as memo
+    from (
+      select st.id as id, c.id as category_id,
+        case when a.on_budget = 1 then a.id else ta.id end as account_id,
+        case when a.on_budget = 1 then a.name else ta.name end as account_name,
+        st.date_first as date_first, st.date_next as date_next, st.frequency as frequency,
+        case when a.on_budget = 1 then st.amount else 0 - st.amount end as amount,
+        st.payee_id as pid, st.memo as memo
+      from scheduled_transactions st
+      join accounts a on a.id = st.account_id and a.deleted_at is null
+      left join accounts ta on ta.id = st.transfer_account_id
+      join categories c on c.id = st.category_id and c.deleted_at is null
+      where st.budget_id = ${budgetId} and st.deleted_at is null and st.inflow_to_ready_to_assign = 0
+        and a.closed = 0
+        and (st.transfer_account_id is null or (ta.id is not null and ta.deleted_at is null and ta.closed = 0))
+        and (a.on_budget = 1 or (st.transfer_account_id is not null and a.on_budget = 0 and ta.on_budget = 1))
+        and st.date_next <= ${through} ${plainCat}
+      union all
+      select st.id as id, c.id as category_id, a.id as account_id, a.name as account_name,
+        st.date_first as date_first, st.date_next as date_next, st.frequency as frequency,
+        sum(l.amount) as amount,
+        coalesce((select m.payee_id from scheduled_subtransactions m where m.scheduled_transaction_id = st.id and m.category_id = l.category_id and m.deleted_at is null and m.payee_id is not null order by m.sort limit 1), st.payee_id) as pid,
+        coalesce((select m.memo from scheduled_subtransactions m where m.scheduled_transaction_id = st.id and m.category_id = l.category_id and m.deleted_at is null and m.memo is not null order by m.sort limit 1), st.memo) as memo
+      from scheduled_transactions st
+      join accounts a on a.id = st.account_id and a.deleted_at is null
+      join scheduled_subtransactions l on l.scheduled_transaction_id = st.id and l.deleted_at is null
+      join categories c on c.id = l.category_id and c.deleted_at is null
+      where st.budget_id = ${budgetId} and st.deleted_at is null and st.transfer_account_id is null
+        and a.closed = 0 and a.on_budget = 1 and l.inflow_to_ready_to_assign = 0
+        and st.date_next <= ${through} ${lineCat}
+      group by st.id, l.category_id
+    ) u
+    left join payees p on p.id = u.pid and p.deleted_at is null
+    order by u.date_next, u.id, u.category_id`);
   return rows.map((r) => ({
     id: r.id,
-    category_id: r.categoryId,
-    account_id: r.accountId,
-    account_name: r.accountName,
-    date_first: r.dateFirst,
-    date_next: r.dateNext,
-    frequency: r.frequency,
+    category_id: r.category_id,
+    account_id: r.account_id,
+    account_name: r.account_name,
+    date_first: r.date_first,
+    date_next: r.date_next,
+    frequency: r.frequency as UpcomingSource["frequency"],
     amount: r.amount,
-    payee_id: r.payeeId ?? null,
-    payee_name: r.payeeName ?? null,
+    payee_id: r.payee_id ?? null,
+    payee_name: r.payee_name ?? null,
     memo: r.memo ?? null,
   }));
 }
