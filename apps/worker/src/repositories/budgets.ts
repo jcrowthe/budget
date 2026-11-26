@@ -21,9 +21,14 @@ export async function findActive(db: Db, id: string): Promise<BudgetRow | undefi
 /** A row to insert: the format columns may be left to their defaults. */
 export type NewBudgetRow = Omit<
   BudgetRow,
-  "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat"
+  "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat" | "expectedIncome"
 > &
-  Partial<Pick<BudgetRow, "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat">>;
+  Partial<
+    Pick<
+      BudgetRow,
+      "currencyIsoCode" | "numberFormat" | "symbolPlacement" | "dateFormat" | "expectedIncome"
+    >
+  >;
 
 export function insertStmt(db: Db, row: NewBudgetRow) {
   return db.insert(budgets).values(row);
@@ -49,6 +54,7 @@ export function updateStmt(
     numberFormat?: string;
     symbolPlacement?: "before" | "after" | "none";
     dateFormat?: string;
+    expectedIncome?: number | null;
   },
   updatedAt: string,
 ) {

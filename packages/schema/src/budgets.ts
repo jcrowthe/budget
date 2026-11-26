@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { dataEnvelope } from "./common/envelope";
+import { Milliunits } from "./common/money";
 import { currencyFormatOf, DATE_FORMAT_OPTIONS } from "./plan-formats-catalogue";
 
 export const BankEnvironment = z.enum(["production", "sandbox"]).openapi("BankEnvironment", {
@@ -66,6 +67,10 @@ export const Budget = z
     bank_environment: BankEnvironment,
     currency_format: CurrencyFormat.default(DEFAULT_CURRENCY_FORMAT),
     date_format: DateFormatObject.default({ format: "MM/DD/YYYY" }),
+    expected_income: Milliunits.nullable().default(null).openapi({
+      description:
+        "Monthly income the owner expects, in milliunits; null when not set. Compared with the month's targets on the Plan's Cost to Be Me",
+    }),
   })
   .openapi("Budget");
 
@@ -82,6 +87,9 @@ export const BudgetUpdate = BudgetCreate.partial()
     opened: z.literal(true).optional().openapi({
       description:
         "Set to true to record that the plan was opened (stamps last_opened_at = now). Not a change: no history entry.",
+    }),
+    expected_income: Milliunits.nullable().optional().openapi({
+      description: "0 or null clears it; a negative is 422 negative_expected_income",
     }),
   })
   .openapi("BudgetUpdate");

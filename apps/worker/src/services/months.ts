@@ -40,6 +40,7 @@ import { planActivity } from "../repositories/plan-activity";
 import * as scheduledRepo from "../repositories/scheduled-transactions";
 import * as snoozesRepo from "../repositories/target-snoozes";
 import * as targetsRepo from "../repositories/targets";
+import { targetsTotal } from "./months-targets";
 import { todayUtc } from "./targets";
 
 // Type-level check: the engine's read model and the API schema are the same shape, both ways.
@@ -436,10 +437,11 @@ async function readPlanMonth(
   month: Month,
   today: string,
   view: PlanView,
+  horizon: Month = addMonths(month, 1),
 ): Promise<{ detail: MonthDetail; sources: UpcomingSource[]; input: EngineInput }> {
   const db = getDb(env);
   await requirePlan(db, budgetId);
-  const input = await loadInput(db, budgetId, addMonths(month, 1), true);
+  const input = await loadInput(db, budgetId, horizon, true);
   return {
     input,
     detail: viewDetail(
@@ -512,18 +514,30 @@ export async function getMonthSummary(
   today: string = todayUtc(),
   view?: PlanView,
 ): Promise<MonthSummaryTotals> {
-  const { detail, input } = await readPlanMonth(env, budgetId, month, today, "all");
+  // One read reaching the end of the next month: the next month's targets need its activity and card flows.
+  const { detail, input } = await readPlanMonth(
+    env,
+    budgetId,
+    month,
+    today,
+    "all",
+    addMonths(month, 2),
+  );
   const future = month === toMonth(today) ? futureAssigned(input, month) : {};
+  const cost = {
+    targets_total: targetsTotal(detail),
+    next_month_targets_total: targetsTotal(computeMonth({ ...input, today }, addMonths(month, 1))),
+  };
   if (view !== undefined) {
     if (categoryIds)
       throw new HTTPException(422, { message: "Give category_ids or view, not both" });
-    return { ...viewTotals(detail, view), ...future };
+    return { ...viewTotals(detail, view), ...future, ...cost };
   }
   if (categoryIds) {
     const known = new Set(detail.groups.flatMap((g) => g.categories.map((c) => c.id)));
     if (categoryIds.some((id) => !known.has(id))) throw new NotFound("Category");
   }
-  return { ...monthTotals(detail, categoryIds), ...future };
+  return { ...monthTotals(detail, categoryIds), ...future, ...cost };
 }
 
 export async function listPlanMonths(

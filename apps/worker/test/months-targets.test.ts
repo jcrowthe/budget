@@ -43,7 +43,8 @@ describe("targetAmountForMonth", () => {
   it("weekly: the full month's weekdays, the creation month included", () => {
     expect(amount({ cadence: "weekly", day_of_week: 6 })).toBe(40000);
     expect(amount({ cadence: "weekly", day_of_week: 2 }, "2026-12-01")).toBe(50000);
-    expect(amount({ cadence: "weekly", day_of_week: null })).toBe(40000);
+    // no weekday means Sunday: five in November 2026
+    expect(amount({ cadence: "weekly", day_of_week: null })).toBe(50000);
   });
   it("yearly: a twelfth with a date, 0 without", () => {
     expect(amount({ cadence: "yearly", amount: 120000, due_date: "2027-10-31" })).toBe(10000);
@@ -66,8 +67,8 @@ describe("targetAmountForMonth", () => {
     // Period due 2027-01: three months left from November.
     expect(amount(rep)).toBe(10000);
   });
-  it("a month before creation is 0", () => {
-    expect(amount({ created_on: "2026-12-02" })).toBe(0);
+  it("a month before creation is 0 (the engine gives target: null there)", () => {
+    expect(amount(null, "2026-10-01")).toBe(0);
   });
   it("card payoff by date: the engine's figure", () => {
     const c = cat(

@@ -29,6 +29,7 @@ export function toApi(row: repo.BudgetRow): Budget {
     bank_environment: row.bankEnvironment,
     currency_format: currencyFormatOf(row.currencyIsoCode, row.numberFormat, row.symbolPlacement),
     date_format: { format: row.dateFormat as DateFormat },
+    expected_income: row.expectedIncome ?? null,
   };
 }
 
@@ -146,6 +147,7 @@ export async function createBudget(env: Env, actor: string, input: BudgetCreate)
     deletedAt: null,
     lastOpenedAt: null,
     bankEnvironment: input.bank_environment ?? "production",
+    expectedIncome: null,
     ...formatColumns(formats),
   };
   const batch = buildCreateBatch(db, row, {
@@ -188,12 +190,24 @@ export async function updateBudget(
     patch.name === undefined &&
     patch.bank_environment === undefined &&
     patch.currency_format === undefined &&
-    patch.date_format === undefined
+    patch.date_format === undefined &&
+    patch.expected_income === undefined
   ) {
     const res = await repo.markOpenedStmt(db, id, now);
     if (res.meta.changes === 0) throw new NotFound("Plan");
     return toApi({ ...before, lastOpenedAt: now });
   }
+  if (patch.expected_income !== undefined && patch.expected_income !== null) {
+    if (patch.expected_income < 0) {
+      throw new BudgetRefused(
+        "negative_expected_income",
+        "expected_income must be 0 or more (0 or null clears it)",
+      );
+    }
+  }
+  // 0 and null both clear it.
+  const expectedIncome =
+    patch.expected_income === undefined ? undefined : patch.expected_income || null;
   const lastOpenedAt = patch.opened === true ? now : undefined;
   const formatPatch =
     patch.currency_format === undefined && patch.date_format === undefined
@@ -204,6 +218,7 @@ export async function updateBudget(
     ...(patch.name === undefined ? {} : { name: patch.name }),
     ...(patch.bank_environment === undefined ? {} : { bankEnvironment: patch.bank_environment }),
     ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
+    ...(expectedIncome === undefined ? {} : { expectedIncome }),
     ...formatPatch,
     updatedAt: now,
   };
@@ -230,6 +245,7 @@ export async function updateBudget(
           ? {}
           : { bankEnvironment: patch.bank_environment }),
         ...(lastOpenedAt === undefined ? {} : { lastOpenedAt }),
+        ...(expectedIncome === undefined ? {} : { expectedIncome }),
         ...formatPatch,
       },
       now,
@@ -237,6 +253,16 @@ export async function updateBudget(
   ]);
   if (result.meta.changes === 0) return lostRace(db, id);
   return toApi(after);
+}
+
+/** EXF-525: sets the plan's expected monthly income (0 or null clears it; a negative is refused). */
+export async function setExpectedIncome(
+  env: Env,
+  actor: string,
+  id: string,
+  value: number | null,
+): Promise<Budget> {
+  return updateBudget(env, actor, id, { expected_income: value });
 }
 
 /**

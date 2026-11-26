@@ -128,6 +128,13 @@ export const MonthSummaryTotals = MonthTotals.extend({
     description:
       "Only for the current month: the sum of future_assigned; equals -rta_breakdown.assigned_in_future of the month read. Absent for any other month.",
   }),
+  targets_total: Milliunits.openapi({
+    description:
+      "Cost to Be Me: the sum over the visible categories (not hidden, in a group not hidden) of every target's amount for the month (monthly: the amount; weekly: the amount times the weekday's occurrences in the month; yearly: a twelfth; custom balance: spread to its date, 0 with none; snoozed targets count). The whole plan: category_ids and view do not change it.",
+  }),
+  next_month_targets_total: Milliunits.openapi({
+    description: "The same sum for the month after, whole plan, ignoring category_ids and view.",
+  }),
 }).openapi("MonthSummaryTotals");
 
 export const MonthSummaryTotalsResponse = dataEnvelope(MonthSummaryTotals).openapi(

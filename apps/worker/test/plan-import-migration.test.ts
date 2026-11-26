@@ -30,6 +30,7 @@ describe("plan_imports migration", () => {
       "currency_iso_code",
       "date_format",
       "deleted_at",
+      "expected_income",
       "id",
       "last_opened_at",
       "name",

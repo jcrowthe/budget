@@ -90,6 +90,8 @@ export default app
       method: "patch",
       path: "/budgets/{id}",
       tags,
+      description:
+        "Update a plan: name, bank_environment, formats, or expected_income (milliunits; 0 or null clears it; a negative is 422 negative_expected_income).",
       request: {
         params: Params,
         body: { content: { "application/json": { schema: BudgetUpdate } }, required: true },
