@@ -190,7 +190,7 @@ test("delete a category with history: pick a target, Ready to Assign holds", asy
   await expect(del).toBeDisabled();
   const picker = dialog.getByRole("combobox", { name: "Select category" });
   await picker.fill("vacat");
-  await expect(page.getByText("Plan Categories")).toBeVisible();
+  await expect(page.getByRole("listbox", { name: "Categories" })).toBeVisible();
   // The deleted category is not offered.
   await expect(page.getByRole("option", { name: new RegExp(ENTERTAINMENT) })).toHaveCount(0);
   await page.getByRole("option", { name: new RegExp(VACATION) }).click();
@@ -208,9 +208,9 @@ test("Escape closes the picker list first, then the dialog", async ({ page, requ
   await page.locator(".category-name", { hasText: ENTERTAINMENT }).click({ button: "right" });
   await popover(page, "Edit Category").getByRole("button", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Category" });
-  await expect(page.getByRole("listbox", { name: "Plan Categories" })).toBeVisible();
+  await expect(page.getByRole("listbox", { name: "Categories" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("listbox", { name: "Plan Categories" })).toHaveCount(0);
+  await expect(page.getByRole("listbox", { name: "Categories" })).toHaveCount(0);
   await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);

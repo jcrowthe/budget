@@ -187,11 +187,13 @@ test("the picker filters by name and group and shows Available", async ({ page }
     .getByRole("combobox", { name: "To", exact: true });
   await realClick(page, picker);
   await page.keyboard.type("wan");
-  await expect(page.locator(".picker-group-name")).toHaveText(["Wants"]);
+  await expect(page.locator(".entry-heading")).toHaveText(["Wants"]);
   await expect(page.getByRole("option")).toHaveCount(4);
   await page.keyboard.press("Control+a");
   await page.keyboard.type("zzzzz");
-  await expect(page.getByText("No matching categories", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("No categories found with that name.", { exact: true }),
+  ).toBeVisible();
 });
 
 for (const size of [

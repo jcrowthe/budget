@@ -15,3 +15,31 @@
 - R2 [applied]: the calendar's body has no padding-top and no bottom rule (`.entry-dropdown[role="dialog"]`), so the header sits 16px from the top.
 - R3 [applied]: `Create "<text>" Payee` and the hidden-payee line are a fixed header block above the scrolling list (`header` on Dropdown/PickerInput): padding 12px 16px, line-height 16.8px, 1px rule below, still `role="option"` at index 0.
 - R4 [applied]: the payee list's footer has no padding of its own and Manage Payees is as wide as its text with 16px padding; scoped by `:has(> [data-ticket="EXF-510"])` so the category footer keeps its 12px 16px.
+
+## Shared category picker (EXF-589)
+
+The category list of the Plan popovers (Assign, Move, Cover, Fix This, Delete Category) and of the register (entry row, split lines, payee categorisation) is one component, `CategoryList` in `apps/web/src/shared/picker/`, on `PickerInput` and `Dropdown` (same folder), with one stylesheet, `shared/picker/picker.css`. `plan/CategoryPicker.tsx` and `register/CategoryField.tsx` only filter, map values and set the field's text and footer. This supersedes the "Plan Categories" list and the Plan-only keys recorded in `categories-spec.md`, `rta-moves-spec.md` and `rta-moves-design.md`. Difference → winner → source:
+
+| # | Difference | Winner | Source |
+|---|---|---|---|
+| D1 | Search: Plan matched category or group per row (RTA as "Inflow: Ready to Assign"); register matches a group name (whole group stays) or a row name | Register (`categoryMenu`) | register-entry-design.md, Category field |
+| D2 | List shape: "Plan Categories" heading, bold groups, 24px indent, RTA row "Inflow: Ready to Assign"; register has Inflow → "Ready to Assign", 12/600 headings, 28.8px rows, check slot; listbox "Categories" | Register | P6 |
+| D3 | Zero Available: grey pill vs plain `--labelSecondary` text | Register | P7 |
+| D4 | Pill text tokens: `--categoryBalance*Label` vs `--backgroundPrimary`/`--labelPrimary` | Plan's tokens (same values in both themes) | tokens.css, theme-light.css |
+| D5 | Highlight colour and hover: `--buttonSecondaryBackground` with a second CSS hover vs `--menuHover`, hover moves the one highlight | Register | P6 |
+| D6 | Highlight on open: first row always vs none until typing or moving (the Selected row when a value is set) | Register | register-entry-design.md, Category field; P8 |
+| D7 | "Selected" section | Register | P8 |
+| D8 | ArrowUp/ArrowDown: wrap, opens and moves vs clamp, opens without moving | Register | register-entry-design.md, Keys in the row |
+| D9 | Enter: picks whenever open vs only after typing or moving | Register | register-entry-design.md, Keys in the row |
+| D10 | Tab: nothing vs picks the highlighted row after typing or moving | Register | register-entry-design.md, Category field |
+| D11 | Escape: closes the list and stops vs passes on | Caller-owned (`escapeClosesList`; the Plan sets it) | rta-moves-design.md; categories-spec.md T11; register-entry-design.md |
+| D12 | Blur and editing: list stays open, editing calls `onChange(null)` vs list closes, blur restores the shown value | Register | register-entry-design.md, Category field |
+| D13 | Empty text: "No matching categories" vs "No categories found with that name." | Register | register-entry-design.md |
+| D14 | Width and placement: inline, field-wide, max 240 vs body portal, 400, centred arrow, body max 210, flips | Register | P6, P7 |
+| D15 | Highlight scrolled into view | Register | `PickerInput` |
+| D16 | ARIA: `aria-controls` and `aria-activedescendant` (Plan) vs `aria-selected` = highlight and option `aria-label` (register) | Merged: all four | categories-spec.md T11; `PickerInput` |
+| D17 | Field text after a pick: category name vs `<Group>: <Category>` | Caller-owned (unchanged) | EXF-589 |
+| D18 | Field look: 32px, no caret vs 24px with caret | Caller-owned (unchanged) | EXF-589 |
+| D19 | Field tooltip (`title` = the text) | Register | `CategoryField` |
+
+Also fixed in `Dropdown`: scrolling inside the list no longer re-places it, and re-placing keeps the list's scroll position (before, a hover re-render of a long list jumped to the top, so a click landed on another row). `e2e/category-picker.spec.ts` runs one body in the Move popover and in the entry row, plus a dark/light contrast check.
