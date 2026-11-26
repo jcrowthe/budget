@@ -241,7 +241,8 @@ describe("Enter Now (EXF-466, E1-E7)", () => {
     });
     expect(got.transaction).toMatchObject({ status: "entered", approved: true });
     const actors = await q(
-      "select actor from change_log where entity_type = 'pending_transaction' and action = 'delete'",
+      "select actor from change_log where budget_id = ? and entity_type = 'pending_transaction' and action = 'delete'",
+      w.plan,
     );
     expect(actors[0]?.actor).toMatch(/^mcp:/);
     void feed;

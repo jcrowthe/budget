@@ -2,6 +2,7 @@ import { IsoDate } from "@budget/schema/common/dates";
 import { Milliunits } from "@budget/schema/common/money";
 import { SEARCH_QUERY_DESCRIPTION } from "@budget/schema/transaction-search";
 import {
+  EnterNowRequest,
   FlagColor,
   PlainClearedStatus,
   type TransactionBulkRequest,
@@ -11,6 +12,10 @@ import {
 } from "@budget/schema/transactions";
 import { z } from "zod";
 import { matchTransactions, unmatchTransaction } from "../../services/manual-match";
+import {
+  enterPendingTransaction,
+  listPendingTransactions,
+} from "../../services/pending-transactions";
 import {
   addTransaction,
   approveTransactions,
@@ -73,14 +78,39 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "list_unapproved_transactions",
-    description: `List the transactions that need you: the unapproved ones (imports from the bank to review) and those that need a category (an on-plan account, no category, not Ready to Assign, not a split or an on-plan transfer or a Starting Balance). With account_id: that account's rows; without: every account's rows with account_name. ${MONEY} Returns { transactions, balances: { cleared, uncleared, working } }; each row has the fields of list_transactions, including approved, flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an import), imported_payee, bank_description and matched. ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
-    inputSchema: z.object({ budget_id: Id, account_id: Id.optional() }),
-    run: async (input: { budget_id: string; account_id?: string }, { env }) =>
-      input.account_id
-        ? listAccountTransactions(env, input.budget_id, input.account_id, {
+    description: `List the transactions that need you: the unapproved ones (imports from the bank to review) and those that need a category (an on-plan account, no category, not Ready to Assign, not a split or an on-plan transfer or a Starting Balance). With account_id: that account's rows; without: every account's rows with account_name. ${MONEY} Returns { transactions, balances: { cleared, uncleared, working } }; each row has the fields of list_transactions, including approved, flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an import), imported_payee, bank_description and matched. include_pending: also the bank's pending transactions (status pending), which affect no balance and are entered with enter_pending_transaction; they are added to transactions after the rows that need you (with account_id, that account's). ${dates("date") + " " + timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      account_id: Id.optional(),
+      include_pending: z.boolean().optional(),
+    }),
+    run: async (
+      input: { budget_id: string; account_id?: string; include_pending?: boolean },
+      { env },
+    ) => {
+      const got = input.account_id
+        ? await listAccountTransactions(env, input.budget_id, input.account_id, {
             needs: "approval_or_category",
           })
-        : listPlanTransactions(env, input.budget_id, { needs: "approval_or_category" }),
+        : await listPlanTransactions(env, input.budget_id, { needs: "approval_or_category" });
+      if (!input.include_pending) return got;
+      const pending = await listPendingTransactions(env, input.budget_id, input.account_id);
+      return { ...got, transactions: [...got.transactions, ...pending.transactions] };
+    },
+  },
+  {
+    name: "enter_pending_transaction",
+    description: `Enter one of the bank's pending transactions now (its id is from list_unapproved_transactions with include_pending, or list_transactions): it becomes a real transaction (approved, uncleared, status entered, with the pending_transaction_id) that counts in the balances, and the pending item is gone from the pending list; when the bank later posts it, the row is matched, cleared and takes the bank's amount (not when reconciled, split or a transfer). Every field after transaction_id is optional and overrides the pending item: date, amount, payee_id or payee_name, category_id or inflow_to_ready_to_assign (with none of the category fields, the payee's default, else Ready to Assign for an inflow into checking or savings), memo, cleared (uncleared or cleared), flag_color, subtransactions, transfer_account_id; the rules of create_transaction apply. An unknown id, or an item already entered, is a tool error (not found); a pending item the bank replaced or removed meanwhile is a tool error (pending_changed); a closed account is a tool error (account_closed). ${MONEY} ${dates("date")} Returns { transaction } with id, account_id, date, payee_name, category_id, memo, amount, cleared, approved (true), status (entered), pending_transaction_id and updated_at. ${timestamps(["updated_at", "created_at"])}`,
+    inputSchema: z.object({ budget_id: Id, transaction_id: Id, ...EnterNowRequest.shape }),
+    run: async (
+      input: { budget_id: string; transaction_id: string } & z.input<typeof EnterNowRequest>,
+      { env, actor },
+    ) => {
+      const { budget_id, transaction_id, ...rest } = input;
+      return {
+        transaction: await enterPendingTransaction(env, actor, budget_id, transaction_id, rest),
+      };
+    },
   },
   {
     name: "approve_transactions",
@@ -124,7 +154,7 @@ export const tools: McpToolDef[] = [
   },
   {
     name: "get_transaction",
-    description: `Read one transaction of a plan. ${MONEY} ${dates("date")} Returns { transaction } with id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name and subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, import_payee_name (the name the bank import matched, as received; null when no import gave the row), bank_description and matched (true when an import was matched to a transaction entered by hand), and updated_at. A deleted transaction, or one of another plan, is a tool error (not found). ${timestamps(["updated_at", "created_at"])}`,
+    description: `Read one transaction of a plan. ${MONEY} ${dates("date")} Returns { transaction } with id, account_id, date, payee_id, payee_name, payee_system (starting_balance for an account's opening balance, otherwise null), category_id, category_name, category_group_name, memo, amount, cleared, approved, inflow_to_ready_to_assign, transfer_account_id and transfer_transaction_id (the other side of a transfer, else null), transfer_account_name and subtransactions (the lines of a split, else []), flag_color (red, orange, yellow, green, blue, purple, or null), import_id, source (plaid for an imported transaction, null when entered by hand), imported_payee, import_payee_name (the name the bank import matched, as received; null when no import gave the row), bank_description and matched (true when an import was matched to a transaction entered by hand), status (pending for a bank pending transaction, entered for a row entered from one and not yet posted, else null), pending_transaction_id (the bank's id of the pending item the row is or came from, else null), and updated_at. A deleted transaction, or one of another plan, is a tool error (not found). ${timestamps(["updated_at", "created_at"])}`,
     inputSchema: z.object({ budget_id: Id, transaction_id: Id }),
     run: async (input: { budget_id: string; transaction_id: string }, { env }) => ({
       transaction: await getTransaction(env, input.budget_id, input.transaction_id),
