@@ -311,24 +311,17 @@ describe("Fresh Start: the copy (EXF-478)", () => {
     expect(await snapshot(s.bid)).toEqual(snap);
   });
 
-  it("9: a plan changed between the read and the write is 409 and writes nothing", async () => {
-    const s = await seedSource();
-    const planCount = await n("select count(*) n from budgets");
+  /** A DB whose write batch (the one with more than 20 statements) is preceded by `race`, for the first `times` writes. */
+  function racingDb(times: number, race: (t: D1Database) => Promise<unknown>) {
     const real = env.DB;
-    let fired = false;
-    const racing = new Proxy(real, {
+    const state = { fired: 0 };
+    const db = new Proxy(real, {
       get(t, k) {
         if (k === "batch") {
           return async (list: D1PreparedStatement[]) => {
-            if (!fired && list.length > 20) {
-              fired = true;
-              const now = new Date().toISOString();
-              await t
-                .prepare(
-                  "insert into categories (id, budget_id, group_id, name, sort_order, hidden, created_at, updated_at) values (?, ?, ?, 'ZZ Raced', 99, 0, ?, ?)",
-                )
-                .bind(crypto.randomUUID(), s.bid, s.group["ZZ Group A"], now, now)
-                .run();
+            if (state.fired < times && list.length > 20) {
+              state.fired++;
+              await race(t);
             }
             return t.batch(list);
           };
@@ -337,17 +330,51 @@ describe("Fresh Start: the copy (EXF-478)", () => {
         return typeof v === "function" ? (v as (...x: unknown[]) => unknown).bind(t) : v;
       },
     });
+    return { db, state };
+  }
+
+  const startAs = async (db: D1Database, bid: string) => {
     const { freshStartBudget } = await import("../src/services/fresh-start");
-    await expect(
-      freshStartBudget({ ...env, DB: racing } as Env, actor, s.bid, {
-        name: `ZZ-TEST new ${rand()}`,
-        stop_importing_in_archive: true,
-        today: T,
-      }),
-    ).rejects.toThrow("modified concurrently");
-    expect(fired).toBe(true);
+    return freshStartBudget({ ...env, DB: db } as Env, actor, bid, {
+      name: `ZZ-TEST new ${rand()}`,
+      stop_importing_in_archive: true,
+      today: T,
+    });
+  };
+
+  it("9: a plan changed between the read and the write, every time, is 409 and writes nothing", async () => {
+    const s = await seedSource();
+    const planCount = await n("select count(*) n from budgets");
+    const { db, state } = racingDb(Number.POSITIVE_INFINITY, async (t) => {
+      const now = new Date().toISOString();
+      await t
+        .prepare(
+          "insert into categories (id, budget_id, group_id, name, sort_order, hidden, created_at, updated_at) values (?, ?, ?, 'ZZ Raced', 99, 0, ?, ?)",
+        )
+        .bind(crypto.randomUUID(), s.bid, s.group["ZZ Group A"], now, now)
+        .run();
+    });
+    await expect(startAs(db, s.bid)).rejects.toThrow("modified concurrently");
+    expect(state.fired).toBeGreaterThan(0);
     expect(await n("select count(*) n from budgets")).toBe(planCount);
     expect((await q("select name from budgets where id = ?", s.bid))[0]?.name).toBe(s.name);
+  });
+
+  it("9b: another plan created once between the read and the write does not fail the Fresh Start", async () => {
+    const s = await seedSource();
+    const planCount = await n("select count(*) n from budgets");
+    const { db, state } = racingDb(1, async (t) => {
+      const now = new Date().toISOString();
+      await t
+        .prepare("insert into budgets (id, name, created_at, updated_at) values (?, ?, ?, ?)")
+        .bind(crypto.randomUUID(), `ZZ-TEST other ${rand()}`, now, now)
+        .run();
+    });
+    const done = await startAs(db, s.bid);
+    expect(state.fired).toBe(1);
+    expect(done.archived_budget_id).toBe(s.bid);
+    // The other plan, the new plan; the source stays (renamed).
+    expect(await n("select count(*) n from budgets")).toBe(planCount + 2);
   });
 
   it("10: scheduled entering works in the new plan; the archive is skipped by the due-job", async () => {
