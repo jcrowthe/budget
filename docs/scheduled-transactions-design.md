@@ -157,7 +157,7 @@ writes in the same millisecond cannot both pass. An edit or a delete also replac
 - Field lists, bodies and response shapes: spec, task 2.
 - **Tool descriptions** say that scheduled splits and transfers are not supported (EXF-501), and use `MONEY`,
   `DATE`, `dates(…)` and `timestamps(["created_at", "updated_at"])`.
-- **Coverage file:** `apps/worker/test/mcp-coverage/scheduled-transactions.ts`. All seven tools are called in
+- **Coverage file:** `apps/worker/test/mcp-coverage/scheduled-transactions.ts`. All eight tools are called in
   `mcp-timestamps.test.ts`.
 - **`app.ts` does not change:** the routes are collected with `import.meta.glob`.
 
