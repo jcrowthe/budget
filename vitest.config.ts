@@ -13,6 +13,7 @@ export default defineConfig({
       },
       { test: { name: "web", include: ["apps/web/src/**/*.test.{ts,tsx}"] } },
       "apps/worker/vitest.config.ts",
+      "apps/worker/vitest.clock.config.ts",
     ],
   },
 });

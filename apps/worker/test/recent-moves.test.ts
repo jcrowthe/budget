@@ -5,10 +5,13 @@ import { createBudget } from "../src/services/budgets";
 import { setAssigned } from "../src/services/months";
 import { recentMovesClock } from "../src/services/recent-moves";
 import { actor as ACTOR } from "./category-helpers";
+import { pinClock } from "./clock";
 import { json } from "./helpers";
 import { DEC, MONTHLY100, NOV, seedPlan, TODAY } from "./plan-fixtures";
 import { apiPaths, listedToolNames, mcpRpc } from "./surface";
 import { undo } from "./undo-helpers";
+
+pinClock("2026-11-15T12:00:00Z"); // fixed-month fixtures (EXF-977)
 
 const PATH = "/api/v1/budgets/{budget_id}/moves";
 const RTA = "ready_to_assign";

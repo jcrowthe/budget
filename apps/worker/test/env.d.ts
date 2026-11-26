@@ -7,6 +7,7 @@ declare global {
       TEST_MIGRATIONS: D1Migration[];
       LOCAL_JWT_SECRET: string;
       SECRETS_ENCRYPTION_KEY: string;
+      WORKER_CLOCK: string;
     }
   }
 }

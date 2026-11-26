@@ -4,10 +4,13 @@ import { createBudget } from "../src/services/budgets";
 import { setAssigned } from "../src/services/months";
 import { recentMovesClock } from "../src/services/recent-moves";
 import { actor as ACTOR } from "./category-helpers";
+import { pinClock } from "./clock";
 import { json } from "./helpers";
 import { NOV } from "./plan-fixtures";
 import { mcpRpc } from "./surface";
 import { undo } from "./undo-helpers";
+
+pinClock("2026-11-15T12:00:00Z"); // fixed-month fixtures (EXF-977)
 
 const RTA = "ready_to_assign";
 const realNow = recentMovesClock.now;
