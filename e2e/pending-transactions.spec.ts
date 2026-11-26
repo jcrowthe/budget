@@ -201,3 +201,99 @@ test("editing a pending row enters it: one Enter Now request with the memo", asy
   await expect(realRows(page).filter({ hasText: "ZZ-TEST Pending Gas" })).toHaveCount(1);
   void TODAY;
 });
+
+// The attention menus work from the keyboard (F1-F4 of the check of EXF-466).
+const infoOf = (page: Page, payee: string) =>
+  pendingRows(page)
+    .filter({ hasText: payee })
+    .getByRole("button", { name: "This is a pending bank transaction" });
+const inRegister = (page: Page) =>
+  page.evaluate(
+    () =>
+      !!document.activeElement?.closest(".register-table") &&
+      document.activeElement !== document.body,
+  );
+
+test("keyboard: Enter on the info button opens the menu on Enter Now, Enter enters it, focus stays in the register", async ({
+  page,
+  request,
+}) => {
+  const s = await seed(page, request);
+  await page.goto(`/${s.plan}/accounts/${s.account}`);
+  await expect(pendingRows(page)).toHaveCount(2);
+  await infoOf(page, "ZZ-TEST Pending Cafe").focus();
+  await page.keyboard.press("Enter");
+  const enterNow = page.getByRole("menuitem", { name: "Enter Now" });
+  await expect(enterNow).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(pendingRows(page)).toHaveCount(1);
+  await expect(realRows(page).filter({ hasText: "ZZ-TEST Pending Cafe" })).toHaveCount(1);
+  await expect.poll(() => inRegister(page)).toBe(true);
+  expect(s.stub.enterPosts).toHaveLength(1);
+});
+
+test("keyboard: entering the last pending item leaves focus in the register", async ({
+  page,
+  request,
+}) => {
+  const s = await seed(page, request);
+  await page.goto(`/${s.plan}/accounts/${s.account}`);
+  for (const payee of ["ZZ-TEST Pending Cafe", "ZZ-TEST Pending Gas"]) {
+    await infoOf(page, payee).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Enter Now" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(realRows(page).filter({ hasText: payee })).toHaveCount(1);
+    await expect.poll(() => inRegister(page)).toBe(true);
+  }
+  await expect(pendingRows(page)).toHaveCount(0);
+});
+
+test("keyboard: Escape returns focus to the trigger and Tab closes the menu", async ({
+  page,
+  request,
+}) => {
+  const s = await seed(page, request);
+  await page.goto(`/${s.plan}/accounts/${s.account}`);
+  const info = infoOf(page, "ZZ-TEST Pending Cafe");
+  await info.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Enter Now" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(info).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Enter Now" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(info).toHaveAttribute("aria-expanded", "false");
+  expect(s.stub.enterPosts).toHaveLength(0);
+});
+
+test("the Pending and Scheduled headers match: 16px icon, same title position, an inset focus ring", async ({
+  page,
+  request,
+}) => {
+  const s = await seed(page, request);
+  await page.goto(`/${s.plan}/accounts/${s.account}`);
+  const icon = page.locator(".pending-header-icon");
+  await expect(icon).toHaveCSS("width", "16px");
+  await expect(icon).toHaveCSS("height", "16px");
+  const x = async (sel: string) => (await page.locator(sel).first().boundingBox())?.x ?? 0;
+  expect(await x(".pending-title")).toBe(await x(".scheduled-title"));
+  const ring = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>(".scheduled-header");
+    if (!el) return null;
+    el.focus();
+    return {
+      focused: el.matches(":focus-visible"),
+      shadow: getComputedStyle(el).boxShadow,
+      primary: getComputedStyle(document.documentElement)
+        .getPropertyValue("--actionPrimary")
+        .trim(),
+    };
+  });
+  expect(ring?.focused).toBe(true);
+  expect(ring?.shadow).toContain("inset");
+  expect(ring?.shadow).toContain("2px");
+});

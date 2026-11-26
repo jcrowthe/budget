@@ -352,3 +352,33 @@ test("reconcile mode keeps the column and banner and the menu approves; a schedu
   await realClick(page, item(page, "Approve Transaction"));
   await expect(banner(page)).toContainText(BANNER(2));
 });
+
+test("the approval menu works from the keyboard: focus on the first item, Arrow keys, Home/End, Escape, Tab", async ({
+  page,
+  request,
+}) => {
+  const s = await seedApprove(request);
+  await page.goto(`/${s.plan}/accounts/${s.checking}`);
+  await expect(banner(page)).toContainText(BANNER(3));
+  const trigger = icon(page, "ZZ New One");
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await expect(item(page, "Approve Transaction")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(item(page, "Reject Transaction")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(item(page, "Approve Transaction")).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(item(page, "Reject Transaction")).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(item(page, "Approve Transaction")).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(item(page, "Reject Transaction")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu(page)).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(item(page, "Approve Transaction")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(menu(page)).toHaveCount(0);
+});
