@@ -52,7 +52,8 @@ export default app
       method: "patch",
       path,
       tags: ["Accounts"],
-      summary: "Edit a recorded interest line, a fee or a credit on a loan",
+      summary:
+        "Edit a recorded interest or escrow line, a fee or a credit on a loan (an escrow line's amount is the month's total)",
       request: {
         params,
         body: {
@@ -87,7 +88,8 @@ export default app
       method: "delete",
       path,
       tags: ["Accounts"],
-      summary: "Delete a recorded interest line, a fee or a credit on a loan",
+      summary:
+        "Delete a recorded interest or escrow line, a fee or a credit on a loan (an escrow line returns to its estimate)",
       request: { params },
       responses,
     }),

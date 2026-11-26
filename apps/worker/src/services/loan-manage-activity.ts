@@ -1,7 +1,13 @@
 import { isLoanType } from "@budget/core/account-types";
-import { LOAN_INTEREST_SYSTEM, type LoanTerms, runLoan } from "@budget/core/loan-engine";
+import {
+  LOAN_ESCROW_SYSTEM,
+  LOAN_INTEREST_SYSTEM,
+  type LoanTerms,
+  runLoan,
+} from "@budget/core/loan-engine";
 import { NOT_A_LOAN_TEXT, RECONCILED_LINE_TEXT } from "@budget/schema/loan-activity";
 import {
+  ESCROW_BELOW_RECONCILED_TEXT,
   INTEREST_BELOW_RECONCILED_TEXT,
   type LoanActivityChangeResult,
   type LoanActivityPatchRequest as LoanActivityPatchInput,
@@ -37,9 +43,9 @@ async function read(env: Env, budgetId: string, loanId: string, txId: string) {
     throw refuse("not_a_loan_account", NOT_A_LOAN_TEXT(before.name));
   }
   if (before.closed) throw refuse("account_closed", "A closed account cannot take activity");
-  const [found, interestRows, grouped] = await db.batch([
+  const [found, frozenRows, grouped] = await db.batch([
     manageRepo.activityRowQuery(db, budgetId, loanId, txId),
-    manageRepo.monthInterestRowsQuery(db, budgetId, loanId, txId),
+    manageRepo.monthFrozenRowsQuery(db, budgetId, loanId, txId),
     loanRepo.balanceGroupsQuery(db, budgetId, { accountId: loanId }),
   ]);
   const row = found[0];
@@ -58,7 +64,7 @@ async function read(env: Env, budgetId: string, loanId: string, txId: string) {
     db,
     before,
     row,
-    interestRows: interestRows.map((r) => r.tx),
+    frozenRows: frozenRows.map((r) => r.tx),
     months: loanRepo.loanMonthsFromRows(loanRows).get(loanId)?.months ?? [],
     terms,
     stored: grouped.reduce((n, r) => n + r.amount, 0),
@@ -68,28 +74,34 @@ type Read = Awaited<ReturnType<typeof read>>;
 
 const reconciled = () => new TransactionRefused(409, "reconciled_line", RECONCILED_LINE_TEXT);
 
-/** What the addressed row is: an interest line (its rows), or a fee or credit; refuses anything else. */
-function classify(
-  r: Read,
-):
-  | { type: "interest"; month: ReturnType<typeof monthOf>; open: Row[]; sum: number; any: boolean }
+type FrozenSystem = typeof LOAN_INTEREST_SYSTEM | typeof LOAN_ESCROW_SYSTEM;
+
+/** What the addressed row is: an interest or escrow line (its rows), or a fee or credit; refuses anything else. */
+function classify(r: Read):
+  | {
+      type: "line";
+      system: FrozenSystem;
+      month: ReturnType<typeof monthOf>;
+      open: Row[];
+      sum: number;
+      any: boolean;
+    }
   | { type: "other"; kind: "fee" | "credit"; tx: Row } {
   const { tx, system, isSplit } = r.row;
-  if (system === LOAN_INTEREST_SYSTEM) {
-    const open = r.interestRows.filter((t) => t.cleared !== "reconciled");
+  if (system === LOAN_INTEREST_SYSTEM || system === LOAN_ESCROW_SYSTEM) {
+    const open = r.frozenRows.filter((t) => t.cleared !== "reconciled");
     if (tx.cleared === "reconciled" || open.length === 0) throw reconciled();
-    const rec = r.interestRows.filter((t) => t.cleared === "reconciled");
+    const rec = r.frozenRows.filter((t) => t.cleared === "reconciled");
     return {
-      type: "interest",
+      type: "line",
+      system,
       month: monthOf(tx.date),
       open,
       sum: rec.reduce((n, t) => n + t.amount, 0),
       any: rec.length > 0,
     };
   }
-  const reconciledKind =
-    tx.cleared === "reconciled" &&
-    (system === "loan_escrow" || system === "reconciliation_adjustment");
+  const reconciledKind = tx.cleared === "reconciled" && system === "reconciliation_adjustment";
   if (tx.payeeId === null && tx.transferAccountId === null && !isSplit) {
     if (tx.cleared === "reconciled") throw reconciled();
     return { type: "other", kind: tx.amount < 0 ? "fee" : "credit", tx };
@@ -114,7 +126,7 @@ const imgs = (rows: Row[]) =>
   JSON.stringify(rows.map((t) => ({ id: t.id, img: transactionToApi(t) })));
 
 /**
- * Edits a recorded interest line (all its not-reconciled rows become one new cleared row), a fee or a credit
+ * Edits a recorded interest or escrow line (all its not-reconciled rows become one new cleared row), a fee or a credit
  * (updated in place). D1 calls: the plan, the account, one read batch, one write batch, whatever the history.
  */
 export async function updateLoanActivity(
@@ -132,22 +144,29 @@ export async function updateLoanActivity(
   const now = new Date().toISOString();
   const guard = accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, r.stored));
 
-  if (what.type === "interest") {
+  if (what.type === "line") {
+    const { system } = what;
+    const name = system === LOAN_ESCROW_SYSTEM ? "escrow" : "interest";
     if (v.date !== undefined || v.memo !== undefined) {
-      throw refuse("unprocessable_entity", "date and memo do not apply to interest");
+      throw refuse("unprocessable_entity", `date and memo do not apply to ${name}`);
     }
     if (v.amount === undefined)
-      throw refuse("unprocessable_entity", "amount is required for interest");
+      throw refuse("unprocessable_entity", `amount is required for ${name}`);
     const amount = -v.amount - what.sum;
     if (amount >= 0) {
-      throw refuse("unprocessable_entity", INTEREST_BELOW_RECONCILED_TEXT(money(what.sum)));
+      throw refuse(
+        "unprocessable_entity",
+        system === LOAN_ESCROW_SYSTEM
+          ? ESCROW_BELOW_RECONCILED_TEXT(`$${money(what.sum)}`)
+          : INTEREST_BELOW_RECONCILED_TEXT(money(what.sum)),
+      );
     }
     const payeeId = r.row.tx.payeeId as string;
     const tx = frozenLoanRow({
       budgetId,
       accountId: loanId,
       payeeId,
-      system: LOAN_INTEREST_SYSTEM,
+      system,
       date: frozenRowDate(what.month, v.today ?? utcToday()),
       amount,
       cleared: "cleared",
@@ -157,7 +176,7 @@ export async function updateLoanActivity(
     const json = imgs(what.open);
     const log = { budgetId, actor, json, now, marker };
     const results = await db.batch([
-      txRepo.insertIfStmt(db, tx, guard, payeesRepo.systemIdSql(budgetId, LOAN_INTEREST_SYSTEM)),
+      txRepo.insertIfStmt(db, tx, guard, payeesRepo.systemIdSql(budgetId, system)),
       changeLogInsertIf(
         db,
         {
@@ -175,15 +194,17 @@ export async function updateLoanActivity(
       balanceRepo.editedDeleteStmt(db, { json, now, marker }),
     ] as unknown as [BatchItem, ...BatchItem[]]);
     if ((results[0]?.meta.changes ?? 0) === 0) await lostRace(r, budgetId, loanId);
+    const rows = { amount: what.sum + amount, reconciled: false };
     return {
-      kind: "interest",
+      kind: name,
       transaction: transactionToApi(tx),
       balance: closing(
         r,
-        changeMonth(r.months, what.month, (m) => ({
-          ...m,
-          interest_rows: { amount: what.sum + amount, reconciled: false },
-        })),
+        changeMonth(r.months, what.month, (m) =>
+          system === LOAN_ESCROW_SYSTEM
+            ? { ...m, escrow_rows: rows }
+            : { ...m, interest_rows: rows },
+        ),
       ),
     };
   }
@@ -233,7 +254,7 @@ export async function updateLoanActivity(
   };
 }
 
-/** Deletes a recorded interest line (its not-reconciled rows), a fee or a credit. Same D1 calls as an edit. */
+/** Deletes a recorded interest or escrow line (its not-reconciled rows), a fee or a credit. Same D1 calls as an edit. */
 export async function deleteLoanActivity(
   env: Env,
   actor: string,
@@ -247,22 +268,25 @@ export async function deleteLoanActivity(
   const now = new Date().toISOString();
   const guard = accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, r.stored));
 
-  if (what.type === "interest") {
+  if (what.type === "line") {
+    const { system } = what;
     const json = imgs(what.open);
     const results = await db.batch([
       balanceRepo.editedLogStmt(db, { budgetId, actor, json, now, marker: guard }),
       balanceRepo.editedDeleteStmt(db, { json, now, marker: guard }),
     ]);
     if ((results[1]?.meta.changes ?? 0) === 0) await lostRace(r, budgetId, loanId);
+    const rows = what.any ? { amount: what.sum, reconciled: true } : null;
     return {
-      kind: "interest",
+      kind: system === LOAN_ESCROW_SYSTEM ? "escrow" : "interest",
       transaction: null,
       balance: closing(
         r,
-        changeMonth(r.months, what.month, (m) => ({
-          ...m,
-          interest_rows: what.any ? { amount: what.sum, reconciled: true } : null,
-        })),
+        changeMonth(r.months, what.month, (m) =>
+          system === LOAN_ESCROW_SYSTEM
+            ? { ...m, escrow_rows: rows }
+            : { ...m, interest_rows: rows },
+        ),
       ),
     };
   }

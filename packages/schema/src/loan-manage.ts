@@ -5,12 +5,12 @@ import { Milliunits } from "./common/money";
 import { ADD_ACTIVITY_KINDS } from "./loan-add-activity";
 import { Transaction } from "./transactions";
 
-// Loan manage: edit or delete a recorded interest, fee or credit line. docs/loan-manage-design.md.
+// Loan manage: edit or delete a recorded interest, escrow, fee or credit line. docs/loan-manage-design.md.
 
 export const loanActivityPatchFields = {
   amount: Milliunits.positive().optional().openapi({
     description:
-      "The new amount, a magnitude > 0 (the row keeps its kind and sign). For an interest line it is the line's whole magnitude, as Account Activity shows it",
+      "The new amount, a magnitude > 0 (the row keeps its kind and sign). For an interest or escrow line it is the line's whole magnitude, as Account Activity shows it",
   }),
   date: PlanDate.optional().openapi({
     description:
@@ -21,7 +21,7 @@ export const loanActivityPatchFields = {
   }),
   today: PlanDate.optional().openapi({
     description:
-      "interest only: the caller's date (YYYY-MM-DD), the edited row's date in today's month; default the UTC date",
+      "interest and escrow only: the caller's date (YYYY-MM-DD), the edited row's date in today's month; default the UTC date",
   }),
 };
 
@@ -50,11 +50,14 @@ export const LoanActivityChangeResponse = dataEnvelope(LoanActivityChangeResult)
 
 export const INTEREST_BELOW_RECONCILED_TEXT = (reconciled: string) =>
   `Interest this month can't be less than its reconciled ${reconciled}`;
+export const ESCROW_BELOW_RECONCILED_TEXT = (reconciled: string) =>
+  `Escrow this month can't be less than its reconciled ${reconciled}`;
 export const NOT_EDITABLE_ACTIVITY_TEXT =
-  "Only a recorded interest line, a fee or a credit can be edited or deleted here";
+  "Only a recorded interest or escrow line, a fee or a credit can be edited or deleted here";
 
 // Copy of the edit dialog.
 export const EDIT_INTEREST_TITLE = "Edit Interest";
+export const EDIT_ESCROW_TITLE = "Edit Escrow";
 export const EDIT_FEE_TITLE = "Edit Fee or Charge";
 export const EDIT_CREDIT_TITLE = "Edit Credit";
 export const DELETE_LINE_TITLE = "Delete this line?";

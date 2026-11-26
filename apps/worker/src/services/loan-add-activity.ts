@@ -1,19 +1,22 @@
 import { isLoanType } from "@budget/core/account-types";
 import {
+  LOAN_ESCROW_SYSTEM,
   LOAN_INTEREST_SYSTEM,
-  type LoanMonthIn,
   type LoanTerms,
   loanAt,
   runLoan,
 } from "@budget/core/loan-engine";
 import { NOT_A_LOAN_TEXT } from "@budget/schema/loan-activity";
 import {
+  ESCROW_MORTGAGE_ONLY_TEXT,
+  FUTURE_ESCROW_MONTH_TEXT,
   FUTURE_MONTH_TEXT,
   type LoanAddActivityRequest as LoanAddActivityInput,
   LoanAddActivityRequest,
   type LoanAddActivityResult,
 } from "@budget/schema/loan-add-activity";
-import { LOAN_INTEREST_PAYEE } from "@budget/schema/loan-balance-update";
+import { LOAN_ESCROW_PAYEE, LOAN_INTEREST_PAYEE } from "@budget/schema/loan-balance-update";
+import { ESCROW_BELOW_RECONCILED_TEXT } from "@budget/schema/loan-manage";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
 import { changeLogInsertIf } from "../history/change-log";
@@ -22,10 +25,11 @@ import * as accountsRepo from "../repositories/accounts";
 import * as budgetsRepo from "../repositories/budgets";
 import * as loanRepo from "../repositories/loan-activity";
 import * as balanceRepo from "../repositories/loan-balance-update";
+import * as manageRepo from "../repositories/loan-manage";
 import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import { type BatchItem, systemPayee } from "./accounts";
-import { frozenLoanRow, frozenRowDate, monthOf, utcToday } from "./loan-frozen-rows";
+import { changeMonth, frozenLoanRow, frozenRowDate, monthOf, utcToday } from "./loan-frozen-rows";
 import { TransactionRefused, transactionToApi } from "./transactions";
 
 /**
@@ -53,13 +57,23 @@ export async function addLoanActivity(
   }
   const today = v.today ?? utcToday();
   const month = v.month ?? monthOf(today);
-  if (v.kind === "interest" && month > monthOf(today)) {
-    throw new TransactionRefused(422, "future_month", FUTURE_MONTH_TEXT);
+  const escrow = v.kind === "escrow";
+  if (escrow && before.type !== "mortgage") {
+    throw new TransactionRefused(422, "unprocessable_entity", ESCROW_MORTGAGE_ONLY_TEXT);
+  }
+  if ((v.kind === "interest" || escrow) && month > monthOf(today)) {
+    throw new TransactionRefused(
+      422,
+      "future_month",
+      escrow ? FUTURE_ESCROW_MONTH_TEXT : FUTURE_MONTH_TEXT,
+    );
   }
 
-  const [grouped, systemRows] = await db.batch([
+  const [grouped, systemRows, escrowRows] = await db.batch([
     loanRepo.balanceGroupsQuery(db, budgetId, { accountId: loanId }),
     balanceRepo.systemPayeesQuery(db, budgetId),
+    // Read for every kind, so the batch keeps one shape; only an escrow write uses it.
+    manageRepo.monthSystemRowsQuery(db, budgetId, loanId, LOAN_ESCROW_SYSTEM, month),
   ]);
   const loanRows = grouped.flatMap((r) =>
     r.ym !== null && r.kind !== null && r.type !== null
@@ -77,10 +91,49 @@ export async function addLoanActivity(
   const now = new Date().toISOString();
 
   const interest = v.kind === "interest";
+  const frozen = interest || escrow;
   let tx: txRepo.TransactionRow;
   let payeeStmts: BatchItem[] = [];
   let delta: number;
-  if (interest) {
+  let open: txRepo.TransactionRow[] = [];
+  let reconciledSum = 0;
+  if (escrow) {
+    // The amount is the month's total: the reconciled rows stay, the open ones are replaced by one row of the rest.
+    open = escrowRows.map((r) => r.tx).filter((t) => t.cleared !== "reconciled");
+    reconciledSum = escrowRows
+      .map((r) => r.tx)
+      .filter((t) => t.cleared === "reconciled")
+      .reduce((n, t) => n + t.amount, 0);
+    const amount = -v.amount - reconciledSum;
+    if (amount >= 0) {
+      throw new TransactionRefused(
+        422,
+        "unprocessable_entity",
+        ESCROW_BELOW_RECONCILED_TEXT(`$${(Math.abs(reconciledSum) / 1000).toFixed(2)}`),
+      );
+    }
+    const made = systemPayee(
+      db,
+      actor,
+      budgetId,
+      systemRows.find((p) => p.system === LOAN_ESCROW_SYSTEM),
+      LOAN_ESCROW_SYSTEM,
+      LOAN_ESCROW_PAYEE,
+      now,
+    );
+    payeeStmts = made.stmts;
+    tx = frozenLoanRow({
+      budgetId,
+      accountId: loanId,
+      payeeId: made.sys.id,
+      system: LOAN_ESCROW_SYSTEM,
+      date: frozenRowDate(month, today),
+      amount,
+      cleared: "cleared",
+      now,
+    });
+    delta = amount;
+  } else if (interest) {
     // D1: an estimated line is replaced by the stored rows' sum, so the estimate goes into the row.
     const line = loanAt(run, month).interest;
     const amount = line && line.state === "estimated" ? line.amount - v.amount : -v.amount;
@@ -127,13 +180,17 @@ export async function addLoanActivity(
     delta = amount;
   }
 
+  const marker = accountsRepo.transactionExistsStmt(db, tx.id);
+  const json = JSON.stringify(open.map((t) => ({ id: t.id, img: transactionToApi(t) })));
   const results = await db.batch([
     ...payeeStmts,
     txRepo.insertIfStmt(
       db,
       tx,
       accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, stored)),
-      interest ? payeesRepo.systemIdSql(budgetId, LOAN_INTEREST_SYSTEM) : undefined,
+      frozen
+        ? payeesRepo.systemIdSql(budgetId, escrow ? LOAN_ESCROW_SYSTEM : LOAN_INTEREST_SYSTEM)
+        : undefined,
     ),
     changeLogInsertIf(
       db,
@@ -146,8 +203,15 @@ export async function addLoanActivity(
         before: null,
         after: transactionToApi(tx),
       },
-      accountsRepo.transactionExistsStmt(db, tx.id),
+      marker,
     ),
+    // Escrow only: the open rows the new row replaces are logged and soft-deleted in the same batch.
+    ...(escrow
+      ? [
+          balanceRepo.editedLogStmt(db, { budgetId, actor, json, now, marker }),
+          balanceRepo.editedDeleteStmt(db, { json, now, marker }),
+        ]
+      : []),
   ] as unknown as [BatchItem, ...BatchItem[]]);
   if ((results[payeeStmts.length]?.meta.changes ?? 0) === 0) {
     const now2 = (await txRepo.balancesByAccount(db, budgetId, loanId)).get(loanId);
@@ -162,29 +226,18 @@ export async function addLoanActivity(
     kind: v.kind,
     transaction: transactionToApi(tx),
     balance:
-      runLoan(terms, withRow(months, monthOf(tx.date), interest, delta)).at(-1)?.closing ?? 0,
+      runLoan(
+        terms,
+        changeMonth(months, monthOf(tx.date), (m) => {
+          if (escrow) {
+            return { ...m, escrow_rows: { amount: reconciledSum + delta, reconciled: false } };
+          }
+          if (!interest) return { ...m, other: m.other + delta };
+          return {
+            ...m,
+            interest_rows: { amount: (m.interest_rows?.amount ?? 0) + delta, reconciled: false },
+          };
+        }),
+      ).at(-1)?.closing ?? 0,
   };
-}
-
-/** `months` with the written row counted in its month (a new month when missing). */
-function withRow(
-  months: readonly LoanMonthIn[],
-  month: string,
-  interest: boolean,
-  amount: number,
-): LoanMonthIn[] {
-  const base: LoanMonthIn[] = months.some((m) => m.month === month)
-    ? [...months]
-    : [
-        ...months,
-        { month, payments: 0, starting: 0, other: 0, interest_rows: null, escrow_rows: null },
-      ];
-  return base.map((m) => {
-    if (m.month !== month) return m;
-    if (!interest) return { ...m, other: m.other + amount };
-    return {
-      ...m,
-      interest_rows: { amount: (m.interest_rows?.amount ?? 0) + amount, reconciled: false },
-    };
-  });
 }
