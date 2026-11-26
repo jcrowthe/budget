@@ -1,0 +1,296 @@
+import { isLoanType } from "@budget/core/account-types";
+import { LOAN_INTEREST_SYSTEM, type LoanTerms, runLoan } from "@budget/core/loan-engine";
+import { NOT_A_LOAN_TEXT, RECONCILED_LINE_TEXT } from "@budget/schema/loan-activity";
+import {
+  INTEREST_BELOW_RECONCILED_TEXT,
+  type LoanActivityChangeResult,
+  type LoanActivityPatchRequest as LoanActivityPatchInput,
+  LoanActivityPatchRequest,
+  NOT_EDITABLE_ACTIVITY_TEXT,
+} from "@budget/schema/loan-manage";
+import { getDb } from "../db/client";
+import type { Env } from "../env";
+import { changeLogInsertIf } from "../history/change-log";
+import { NotFound } from "../middleware/errors";
+import * as accountsRepo from "../repositories/accounts";
+import * as budgetsRepo from "../repositories/budgets";
+import * as loanRepo from "../repositories/loan-activity";
+import * as balanceRepo from "../repositories/loan-balance-update";
+import * as manageRepo from "../repositories/loan-manage";
+import * as payeesRepo from "../repositories/payees";
+import * as txRepo from "../repositories/transactions";
+import type { BatchItem } from "./accounts";
+import { changeMonth, frozenLoanRow, frozenRowDate, monthOf, utcToday } from "./loan-frozen-rows";
+import { TransactionRefused, transactionToApi } from "./transactions";
+
+type Row = txRepo.TransactionRow;
+const refuse = (code: string, detail: string) => new TransactionRefused(422, code, detail);
+const money = (milliunits: number) => (Math.abs(milliunits) / 1000).toFixed(2);
+
+/** Everything both verbs read: the loan, its rows, and the line or row addressed. */
+async function read(env: Env, budgetId: string, loanId: string, txId: string) {
+  const db = getDb(env);
+  if (!(await budgetsRepo.findActive(db, budgetId))) throw new NotFound("Plan");
+  const before = await accountsRepo.findActive(db, budgetId, loanId);
+  if (!before) throw new NotFound("Account");
+  if (!isLoanType(before.type)) {
+    throw refuse("not_a_loan_account", NOT_A_LOAN_TEXT(before.name));
+  }
+  if (before.closed) throw refuse("account_closed", "A closed account cannot take activity");
+  const [found, interestRows, grouped] = await db.batch([
+    manageRepo.activityRowQuery(db, budgetId, loanId, txId),
+    manageRepo.monthInterestRowsQuery(db, budgetId, loanId, txId),
+    loanRepo.balanceGroupsQuery(db, budgetId, { accountId: loanId }),
+  ]);
+  const row = found[0];
+  if (!row) throw new NotFound("Activity row");
+  const loanRows = grouped.flatMap((r) =>
+    r.ym !== null && r.kind !== null && r.type !== null
+      ? [{ ...r, ym: r.ym, kind: r.kind, type: r.type }]
+      : [],
+  );
+  const terms: LoanTerms = {
+    type: before.type,
+    interest_rate: before.interestRate,
+    escrow_amount: before.escrowAmount,
+  };
+  return {
+    db,
+    before,
+    row,
+    interestRows: interestRows.map((r) => r.tx),
+    months: loanRepo.loanMonthsFromRows(loanRows).get(loanId)?.months ?? [],
+    terms,
+    stored: grouped.reduce((n, r) => n + r.amount, 0),
+  };
+}
+type Read = Awaited<ReturnType<typeof read>>;
+
+const reconciled = () => new TransactionRefused(409, "reconciled_line", RECONCILED_LINE_TEXT);
+
+/** What the addressed row is: an interest line (its rows), or a fee or credit; refuses anything else. */
+function classify(
+  r: Read,
+):
+  | { type: "interest"; month: ReturnType<typeof monthOf>; open: Row[]; sum: number; any: boolean }
+  | { type: "other"; kind: "fee" | "credit"; tx: Row } {
+  const { tx, system, isSplit } = r.row;
+  if (system === LOAN_INTEREST_SYSTEM) {
+    const open = r.interestRows.filter((t) => t.cleared !== "reconciled");
+    if (tx.cleared === "reconciled" || open.length === 0) throw reconciled();
+    const rec = r.interestRows.filter((t) => t.cleared === "reconciled");
+    return {
+      type: "interest",
+      month: monthOf(tx.date),
+      open,
+      sum: rec.reduce((n, t) => n + t.amount, 0),
+      any: rec.length > 0,
+    };
+  }
+  const reconciledKind =
+    tx.cleared === "reconciled" &&
+    (system === "loan_escrow" || system === "reconciliation_adjustment");
+  if (tx.payeeId === null && tx.transferAccountId === null && !isSplit) {
+    if (tx.cleared === "reconciled") throw reconciled();
+    return { type: "other", kind: tx.amount < 0 ? "fee" : "credit", tx };
+  }
+  if (reconciledKind) throw reconciled();
+  throw refuse("not_editable_activity", NOT_EDITABLE_ACTIVITY_TEXT);
+}
+
+async function lostRace(r: Read, budgetId: string, loanId: string): Promise<never> {
+  const now = (await txRepo.balancesByAccount(r.db, budgetId, loanId)).get(loanId);
+  throw new TransactionRefused(
+    409,
+    "balance_changed",
+    `The balance changed: it is now ${(now?.cleared ?? 0) + (now?.uncleared ?? 0)} milliunits. Review it and try again`,
+  );
+}
+
+/** The loan's balance with `months` as the engine reads them. */
+const closing = (r: Read, months: Read["months"]) => runLoan(r.terms, months).at(-1)?.closing ?? 0;
+
+const imgs = (rows: Row[]) =>
+  JSON.stringify(rows.map((t) => ({ id: t.id, img: transactionToApi(t) })));
+
+/**
+ * Edits a recorded interest line (all its not-reconciled rows become one new cleared row), a fee or a credit
+ * (updated in place). D1 calls: the plan, the account, one read batch, one write batch, whatever the history.
+ */
+export async function updateLoanActivity(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  loanId: string,
+  txId: string,
+  input: LoanActivityPatchInput,
+): Promise<LoanActivityChangeResult> {
+  const v = LoanActivityPatchRequest.parse(input);
+  const r = await read(env, budgetId, loanId, txId);
+  const { db, before } = r;
+  const what = classify(r);
+  const now = new Date().toISOString();
+  const guard = accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, r.stored));
+
+  if (what.type === "interest") {
+    if (v.date !== undefined || v.memo !== undefined) {
+      throw refuse("unprocessable_entity", "date and memo do not apply to interest");
+    }
+    if (v.amount === undefined)
+      throw refuse("unprocessable_entity", "amount is required for interest");
+    const amount = -v.amount - what.sum;
+    if (amount >= 0) {
+      throw refuse("unprocessable_entity", INTEREST_BELOW_RECONCILED_TEXT(money(what.sum)));
+    }
+    const payeeId = r.row.tx.payeeId as string;
+    const tx = frozenLoanRow({
+      budgetId,
+      accountId: loanId,
+      payeeId,
+      system: LOAN_INTEREST_SYSTEM,
+      date: frozenRowDate(what.month, v.today ?? utcToday()),
+      amount,
+      cleared: "cleared",
+      now,
+    });
+    const marker = accountsRepo.transactionExistsStmt(db, tx.id);
+    const json = imgs(what.open);
+    const log = { budgetId, actor, json, now, marker };
+    const results = await db.batch([
+      txRepo.insertIfStmt(db, tx, guard, payeesRepo.systemIdSql(budgetId, LOAN_INTEREST_SYSTEM)),
+      changeLogInsertIf(
+        db,
+        {
+          budgetId,
+          actor,
+          action: "create",
+          entityType: "transaction",
+          entityId: tx.id,
+          before: null,
+          after: transactionToApi(tx),
+        },
+        marker,
+      ),
+      balanceRepo.editedLogStmt(db, log),
+      balanceRepo.editedDeleteStmt(db, { json, now, marker }),
+    ] as unknown as [BatchItem, ...BatchItem[]]);
+    if ((results[0]?.meta.changes ?? 0) === 0) await lostRace(r, budgetId, loanId);
+    return {
+      kind: "interest",
+      transaction: transactionToApi(tx),
+      balance: closing(
+        r,
+        changeMonth(r.months, what.month, (m) => ({
+          ...m,
+          interest_rows: { amount: what.sum + amount, reconciled: false },
+        })),
+      ),
+    };
+  }
+
+  const old = what.tx;
+  const magnitude = v.amount ?? Math.abs(old.amount);
+  const after: Row = {
+    ...old,
+    amount: what.kind === "fee" ? -magnitude : magnitude,
+    date: v.date ?? old.date,
+    memo: v.memo !== undefined ? v.memo : old.memo,
+    updatedAt: now,
+  };
+  const results = await db.batch([
+    changeLogInsertIf(
+      db,
+      {
+        budgetId,
+        actor,
+        action: "update",
+        entityType: "transaction",
+        entityId: old.id,
+        before: transactionToApi(old),
+        after: transactionToApi(after),
+      },
+      guard,
+    ),
+    txRepo.updateIfStmt(
+      db,
+      old.id,
+      { amount: after.amount, date: after.date, memo: after.memo, updatedAt: now },
+      guard,
+    ),
+  ] as unknown as [BatchItem, ...BatchItem[]]);
+  if ((results[1]?.meta.changes ?? 0) === 0) await lostRace(r, budgetId, loanId);
+  const moved = changeMonth(r.months, monthOf(old.date), (m) => ({
+    ...m,
+    other: m.other - old.amount,
+  }));
+  return {
+    kind: what.kind,
+    transaction: transactionToApi(after),
+    balance: closing(
+      r,
+      changeMonth(moved, monthOf(after.date), (m) => ({ ...m, other: m.other + after.amount })),
+    ),
+  };
+}
+
+/** Deletes a recorded interest line (its not-reconciled rows), a fee or a credit. Same D1 calls as an edit. */
+export async function deleteLoanActivity(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  loanId: string,
+  txId: string,
+): Promise<LoanActivityChangeResult> {
+  const r = await read(env, budgetId, loanId, txId);
+  const { db, before } = r;
+  const what = classify(r);
+  const now = new Date().toISOString();
+  const guard = accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, r.stored));
+
+  if (what.type === "interest") {
+    const json = imgs(what.open);
+    const results = await db.batch([
+      balanceRepo.editedLogStmt(db, { budgetId, actor, json, now, marker: guard }),
+      balanceRepo.editedDeleteStmt(db, { json, now, marker: guard }),
+    ]);
+    if ((results[1]?.meta.changes ?? 0) === 0) await lostRace(r, budgetId, loanId);
+    return {
+      kind: "interest",
+      transaction: null,
+      balance: closing(
+        r,
+        changeMonth(r.months, what.month, (m) => ({
+          ...m,
+          interest_rows: what.any ? { amount: what.sum, reconciled: true } : null,
+        })),
+      ),
+    };
+  }
+
+  const old = what.tx;
+  const results = await db.batch([
+    changeLogInsertIf(
+      db,
+      {
+        budgetId,
+        actor,
+        action: "delete",
+        entityType: "transaction",
+        entityId: old.id,
+        before: transactionToApi(old),
+        after: null,
+      },
+      guard,
+    ),
+    txRepo.softDeleteIfStmt(db, old.id, now, guard),
+  ]);
+  if ((results[1]?.meta.changes ?? 0) === 0) await lostRace(r, budgetId, loanId);
+  return {
+    kind: what.kind,
+    transaction: null,
+    balance: closing(
+      r,
+      changeMonth(r.months, monthOf(old.date), (m) => ({ ...m, other: m.other - old.amount })),
+    ),
+  };
+}

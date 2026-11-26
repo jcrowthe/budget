@@ -825,6 +825,36 @@ const UNPAIRABLE_CATEGORY =
 const UNPAIRABLE_GROUP =
   "group_id must be an active, visible category group of this plan that is not Credit Card Payments";
 
+type NewCategoryInput = { name: string; group_id?: string; new_group_name?: string };
+
+/**
+ * A new paired category checked against the plan with constant reads (the batch guards repeat the checks): its
+ * group must be usable and the name free, or the new group's name free. Shared by the create flow and the loan
+ * page's "Create a new category" (EXF-482, loan manage).
+ */
+export async function checkNewCategory(
+  db: Db,
+  budgetId: string,
+  nc: NewCategoryInput,
+): Promise<NonNullable<LoanSpec["newCategory"]>> {
+  if (nc.group_id !== undefined) {
+    const group = await groupsRepo.findActive(db, budgetId, nc.group_id);
+    if (!group || group.hidden || group.kind !== null) throw new LoanRefused(UNPAIRABLE_GROUP);
+    if (await categoriesRepo.nameTaken(db, group.id, nc.name)) {
+      throw new LoanRefused(CATEGORY_NAME_TAKEN);
+    }
+  } else if (nc.new_group_name !== undefined) {
+    if (await groupsRepo.nameTaken(db, budgetId, nc.new_group_name)) {
+      throw new LoanRefused(GROUP_NAME_TAKEN);
+    }
+  }
+  return {
+    name: nc.name,
+    groupId: nc.group_id ?? null,
+    newGroupName: nc.new_group_name ?? null,
+  };
+}
+
 /** The loan fields as stored, and the pairing checked with constant reads (the batch guards repeat the checks). */
 async function resolveLoan(
   db: Db,
@@ -846,25 +876,7 @@ async function resolveLoan(
     }
     spec.pairedCategoryId = cat.id;
   }
-  const nc = v.new_category;
-  if (nc) {
-    if (nc.group_id !== undefined) {
-      const group = await groupsRepo.findActive(db, budgetId, nc.group_id);
-      if (!group || group.hidden || group.kind !== null) throw new LoanRefused(UNPAIRABLE_GROUP);
-      if (await categoriesRepo.nameTaken(db, group.id, nc.name)) {
-        throw new LoanRefused(CATEGORY_NAME_TAKEN);
-      }
-    } else if (nc.new_group_name !== undefined) {
-      if (await groupsRepo.nameTaken(db, budgetId, nc.new_group_name)) {
-        throw new LoanRefused(GROUP_NAME_TAKEN);
-      }
-    }
-    spec.newCategory = {
-      name: nc.name,
-      groupId: nc.group_id ?? null,
-      newGroupName: nc.new_group_name ?? null,
-    };
-  }
+  if (v.new_category) spec.newCategory = await checkNewCategory(db, budgetId, v.new_category);
   return spec;
 }
 
@@ -1044,7 +1056,7 @@ export async function insertAccountWithStartingBalance(
  * guarded on the account guard `g1` so the group, the category and the account are written together or not at
  * all. The category's guard also needs its group, which a failed group guard leaves missing.
  */
-async function pairingStmts(
+export async function pairingStmts(
   db: Db,
   actor: string,
   budgetId: string,
@@ -1130,8 +1142,15 @@ async function explainLoanRefusal(db: Db, budgetId: string, loan: LoanSpec): Pro
     const group = cat ? await groupsRepo.findActive(db, budgetId, cat.groupId) : undefined;
     if (!cat || !group || cat.hidden || group.hidden) throw new LoanRefused(UNPAIRABLE_CATEGORY);
   }
-  const nc = loan.newCategory;
-  if (!nc) return;
+  if (loan.newCategory) await explainNewCategoryRefusal(db, budgetId, loan.newCategory);
+}
+
+/** After a batch that wrote nothing: say which new-category rule was lost to a concurrent change. */
+export async function explainNewCategoryRefusal(
+  db: Db,
+  budgetId: string,
+  nc: NonNullable<LoanSpec["newCategory"]>,
+): Promise<void> {
   if (nc.groupId !== null) {
     const group = await groupsRepo.findActive(db, budgetId, nc.groupId);
     if (!group || group.hidden || group.kind !== null) throw new LoanRefused(UNPAIRABLE_GROUP);

@@ -10,7 +10,15 @@ import {
   type LoanBalanceUpdateRequest,
   LoanBalanceUpdateResponse,
 } from "@budget/schema/loan-balance-update";
-import { LoanPairingResponse, LoanSummaryResponse } from "@budget/schema/loan-summary";
+import {
+  LoanActivityChangeResponse,
+  type LoanActivityPatchRequest,
+} from "@budget/schema/loan-manage";
+import {
+  type LoanPairingRequest,
+  LoanPairingResponse,
+  LoanSummaryResponse,
+} from "@budget/schema/loan-summary";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 import { recordChange } from "../undo/store";
@@ -85,6 +93,49 @@ export function useAddLoanActivity(budgetId: string, loanId: string) {
   });
 }
 
+export const updateLoanActivity = async (
+  budgetId: string,
+  loanId: string,
+  transactionId: string,
+  input: LoanActivityPatchRequest,
+) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/activity/${encodeURIComponent(transactionId)}`, {
+      method: "PATCH",
+      body: input,
+      idempotencyKey: crypto.randomUUID(),
+      onChangeSet: (id) => recordChange(budgetId, id, "register"),
+      schema: LoanActivityChangeResponse,
+    })
+  ).data;
+
+export const deleteLoanActivity = async (budgetId: string, loanId: string, transactionId: string) =>
+  (
+    await apiFetch(`${url(budgetId, loanId)}/activity/${encodeURIComponent(transactionId)}`, {
+      method: "DELETE",
+      idempotencyKey: crypto.randomUUID(),
+      onChangeSet: (id) => recordChange(budgetId, id, "register"),
+      schema: LoanActivityChangeResponse,
+    })
+  ).data;
+
+/** Edit and Delete of a recorded line. On success every query of the plan refetches. */
+export function useManageLoanActivity(budgetId: string, loanId: string, transactionId: string) {
+  const qc = useQueryClient();
+  const done = () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) });
+  return {
+    update: useMutation({
+      mutationFn: (input: LoanActivityPatchRequest) =>
+        updateLoanActivity(budgetId, loanId, transactionId, input),
+      onSuccess: done,
+    }),
+    remove: useMutation({
+      mutationFn: () => deleteLoanActivity(budgetId, loanId, transactionId),
+      onSuccess: done,
+    }),
+  };
+}
+
 export const getLoanSummary = async (budgetId: string, loanId: string, month: Month) =>
   (
     await apiFetch(`${url(budgetId, loanId)}/summary?month=${month}`, {
@@ -100,22 +151,26 @@ export const useLoanSummary = (budgetId: string, loanId: string, month: Month) =
     placeholderData: keepPreviousInPlan<Awaited<ReturnType<typeof getLoanSummary>>>(budgetId),
   });
 
-export const pairLoanCategory = async (budgetId: string, loanId: string, categoryId: string) =>
+export const pairLoanCategory = async (
+  budgetId: string,
+  loanId: string,
+  body: LoanPairingRequest,
+) =>
   (
     await apiFetch(`${url(budgetId, loanId)}/paired-category`, {
       method: "PUT",
-      body: { category_id: categoryId },
+      body,
       idempotencyKey: crypto.randomUUID(),
       onChangeSet: (id) => recordChange(budgetId, id, "register"),
       schema: LoanPairingResponse,
     })
   ).data.account;
 
-/** On success every query of the plan refetches (the account, the summary, Record Payment's categorizing). */
+/** Pair with a category or a new category, or unpair (`category_id: null`). On success every query of the plan refetches. */
 export function usePairLoanCategory(budgetId: string, loanId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (categoryId: string) => pairLoanCategory(budgetId, loanId, categoryId),
+    mutationFn: (body: LoanPairingRequest) => pairLoanCategory(budgetId, loanId, body),
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(budgetId) }),
   });
 }

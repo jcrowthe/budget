@@ -1,17 +1,21 @@
-import type { MonthGroupDetail } from "@budget/schema/months";
 import { useState } from "react";
 import { ApiError } from "../api/client";
 import { usePairLoanCategory } from "../api/loans";
-import { useMonth } from "../api/months";
-import { localToday } from "../api/today";
 import "../account/edit-account.css";
+import {
+  emptyPair,
+  PairCategoryStep,
+  pairReady,
+  pairRequest,
+} from "../shell/add-account-loan-steps";
 import { CloseIcon } from "../shell/icons";
 import "./loan-page.css";
 import { useEscape } from "./useEscape";
 
-const usable = (g: MonthGroupDetail) => !g.hidden && g.kind === null;
-
-/** "Get Started" on an unpaired loan: pair it with an existing category (the EXF-482 pairing step's select). */
+/**
+ * "Get Started" on an unpaired loan: pair it with an existing category or create a new one (the create flow's
+ * pairing step, shared). The select keeps its label "Select a category".
+ */
 export function PairLoanDialog({
   budgetId,
   loanId,
@@ -21,19 +25,22 @@ export function PairLoanDialog({
   loanId: string;
   onClose: () => void;
 }) {
-  const month = useMonth(budgetId, `${localToday().slice(0, 7)}-01`);
-  const groups = (month.data?.groups ?? []).filter(usable);
   const save = usePairLoanCategory(budgetId, loanId);
-  const [categoryId, setCategoryId] = useState("");
+  const [pair, setPair] = useState(emptyPair);
   const [error, setError] = useState<string | null>(null);
   useEscape(onClose);
+  const ready = pairReady(pair) && !save.isPending;
   const submit = () => {
-    if (categoryId === "" || save.isPending) return;
+    if (!ready) return;
     setError(null);
-    save.mutate(categoryId, {
-      onSuccess: onClose,
-      onError: (e) => setError(e instanceof ApiError ? e.detail : "The pairing was not saved."),
-    });
+    const { paired_category_id, new_category } = pairRequest(pair);
+    save.mutate(
+      paired_category_id !== undefined ? { category_id: paired_category_id } : { new_category },
+      {
+        onSuccess: onClose,
+        onError: (e) => setError(e instanceof ApiError ? e.detail : "The pairing was not saved."),
+      },
+    );
   };
   return (
     <div className="dialog-backdrop">
@@ -60,32 +67,7 @@ export function PairLoanDialog({
           </button>
         </div>
         <div className="form-body">
-          <h3 className="loan-step-heading">Pair your loan with a plan category</h3>
-          <p className="loan-intro">
-            Pairing with a plan category helps better show how your payments will affect your debt.
-            Pairing works best when there is a one-to-one relationship between your loan account and
-            a plan category.
-          </p>
-          <label htmlFor="pair-loan-category">Select a category</label>
-          <select
-            id="pair-loan-category"
-            className="field"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="" />
-            {groups.map((g) => (
-              <optgroup key={g.id} label={g.name}>
-                {g.categories
-                  .filter((c) => !c.hidden && c.kind === null)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
+          <PairCategoryStep budgetId={budgetId} value={pair} onChange={setPair} />
           {error ? (
             <p className="error-bar" role="alert">
               {error}
@@ -96,7 +78,7 @@ export function PairLoanDialog({
           <button type="button" className="secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="primary" disabled={categoryId === "" || save.isPending}>
+          <button type="submit" className="primary" disabled={!ready}>
             Save
           </button>
         </div>
