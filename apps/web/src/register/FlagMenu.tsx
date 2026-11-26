@@ -1,15 +1,19 @@
-import { FLAG_COLORS, FLAG_NAMES, type FlagColor } from "@budget/schema/transactions";
+import { FLAG_COLORS, type FlagColor } from "@budget/schema/transactions";
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
+import { useFlagNames } from "../api/budgets";
+import { useEditFlagsDialog } from "../flag-names/useEditFlagsDialog";
 import { FlagFilledIcon, FlagOutlineIcon } from "./icons";
 import { Popover } from "./Popover";
 
-/** The six colours with their digit keys, then "Edit Flags" (EXF-480, drawn disabled). A digit picks while it is open. */
+/** The six colours (the plan's flag names) with their digit keys, then "Edit Flags", which opens its dialog. A digit picks while it is open. */
 export function FlagMenu({
   anchor,
   placement,
   flagged,
   onPick,
   onClose,
+  onEditFlags,
   belowTrim,
 }: {
   anchor: HTMLElement;
@@ -20,7 +24,10 @@ export function FlagMenu({
   flagged: boolean;
   onPick: (color: FlagColor | null) => void;
   onClose: () => void;
+  /** "Edit Flags" in the footer; the menu closes first. */
+  onEditFlags: () => void;
 }) {
+  const { label } = useFlagNames();
   const pick = useRef(onPick);
   pick.current = onPick;
   useEffect(() => {
@@ -69,11 +76,11 @@ export function FlagMenu({
               type="button"
               role="menuitem"
               className="flag-pill"
-              aria-label={FLAG_NAMES[c]}
+              aria-label={label(c)}
               onClick={() => onPick(c)}
             >
               <FlagFilledIcon className={`flag-${c}`} />
-              <span className="label">{FLAG_NAMES[c]}</span>
+              <span className="label">{label(c)}</span>
             </button>
             <kbd>{i + 1}</kbd>
           </li>
@@ -85,8 +92,10 @@ export function FlagMenu({
           type="button"
           role="menuitem"
           className="edit-flags"
-          aria-disabled="true"
-          data-ticket="EXF-480"
+          onClick={() => {
+            onClose();
+            onEditFlags();
+          }}
         >
           Edit Flags
         </button>
@@ -95,7 +104,7 @@ export function FlagMenu({
   );
 }
 
-/** One row's flag cell: the outline flag, or the colour on its pill (title and label = the colour's name). */
+/** One row's flag cell: the outline flag, or the colour on its pill (title and label = the flag's name in the plan). */
 export function FlagCell({
   color,
   onPick,
@@ -105,7 +114,10 @@ export function FlagCell({
 }) {
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
-  const name = color ? FLAG_NAMES[color] : "Flag";
+  const { budgetId } = useParams();
+  const { label } = useFlagNames();
+  const edit = useEditFlagsDialog(budgetId ?? null);
+  const name = color ? label(color) : "Flag";
   return (
     <>
       <button
@@ -127,12 +139,14 @@ export function FlagCell({
           belowTrim={5}
           flagged={color !== null}
           onClose={() => setOpen(false)}
+          onEditFlags={edit.open}
           onPick={(c) => {
             setOpen(false);
             onPick(c);
           }}
         />
       ) : null}
+      {edit.dialog}
     </>
   );
 }

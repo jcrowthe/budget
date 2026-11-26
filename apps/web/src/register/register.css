@@ -724,9 +724,8 @@
   font: inherit;
   font-weight: 600;
 }
-.edit-flags[aria-disabled="true"] {
-  color: var(--register-menu-disabled);
-  cursor: default;
+.edit-flags {
+  cursor: pointer;
 }
 
 /* Dialogs of the bar. */

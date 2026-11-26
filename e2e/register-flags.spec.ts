@@ -14,7 +14,7 @@ const flagOf = async (
   id: string,
 ) => (await accountRows(request, plan, acct)).find((t) => t.id === id)?.flag_color;
 
-test("an unflagged row's flag menu lists Red to Purple with keys, a disabled Edit Flags and no Clear (EXF-522 AC1)", async ({
+test("an unflagged row's flag menu lists Red to Purple with keys, an enabled Edit Flags and no Clear (EXF-522 AC1)", async ({
   page,
   request,
 }) => {
@@ -35,8 +35,8 @@ test("an unflagged row's flag menu lists Red to Purple with keys, a disabled Edi
   await expect(menu(page).locator("kbd")).toHaveText(["1", "2", "3", "4", "5", "6"]);
   await expect(menu(page).getByRole("menuitem", { name: "Clear", exact: true })).toHaveCount(0);
   const edit = menu(page).getByRole("menuitem", { name: "Edit Flags", exact: true });
-  await expect(edit).toHaveAttribute("aria-disabled", "true");
-  await expect(edit).toHaveAttribute("data-ticket", "EXF-480");
+  await expect(edit).not.toHaveAttribute("aria-disabled", "true");
+  await expect(edit).not.toHaveAttribute("data-ticket");
   // The menu is 238px wide, with 24px pills (source: All Accounts flag menu, dark, 1600x813, notes 8b).
   expect((await menu(page).locator(".bulk-popover-body").boundingBox())?.width).toBe(238);
   expect(

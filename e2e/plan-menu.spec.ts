@@ -162,13 +162,14 @@ test.describe("1440×900", () => {
       expect([box?.width, box?.height]).toEqual([16, 16]);
       // Plan Settings is enabled by EXF-468 (menu-actions/plan-settings.tsx), Manage Bank Connections by EXF-460,
       // Export Plan by EXF-476 (menu-actions/export-plan.tsx), Manage Payees by EXF-510 (menu-actions/manage-payees.tsx),
-      // Display Options by EXF-472 (menu-actions/display-options.tsx).
+      // Edit Flags by EXF-480 (menu-actions/edit-flags.tsx), Display Options by EXF-472 (menu-actions/display-options.tsx).
       const enabled = [
         "New Plan",
         "Open Plan",
         "Export Plan",
         "Plan Settings",
         "Manage Payees",
+        "Edit Flags",
         "Display Options",
         "Manage Bank Connections",
         "Keyboard Shortcuts",
@@ -177,7 +178,7 @@ test.describe("1440×900", () => {
       if (enabled) await expect(rows.nth(i)).not.toHaveAttribute("aria-disabled", "true");
       else await expect(rows.nth(i)).toHaveAttribute("aria-disabled", "true");
     }
-    const flags = item(page, "Edit Flags");
+    const flags = item(page, "Make a Fresh Start");
     await mouseClick(page, flags, { click: false });
     expect(await css(flags, "color")).toBe("rgb(155, 156, 170)");
     expect(await css(flags, "cursor")).toBe("default");
@@ -319,7 +320,10 @@ test.describe("1440×900", () => {
     // Manage Payees is enabled by EXF-510 (departure): it follows Plan Settings.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Manage Payees")).toBeFocused();
-    // Display Options is enabled by EXF-472: the next enabled entry after Manage Payees.
+    // Edit Flags is enabled by EXF-480: the next enabled entry after Manage Payees.
+    await page.keyboard.press("ArrowDown");
+    await expect(item(page, "Edit Flags")).toBeFocused();
+    // Display Options is enabled by EXF-472: the next enabled entry after Edit Flags.
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Display Options")).toBeFocused();
     // Export Plan is enabled by EXF-476 (departure): the next enabled entry after Display Options.
@@ -332,9 +336,9 @@ test.describe("1440×900", () => {
     await expect(item(page, "Keyboard Shortcuts")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(item(page, "Log Out")).toBeFocused();
-    // Up from Log Out: Keyboard Shortcuts, Manage Bank Connections, Export Plan, Display Options, Manage Payees,
-    // Plan Settings, Open Plan.
-    for (let i = 0; i < 7; i++) await page.keyboard.press("ArrowUp");
+    // Up from Log Out: Keyboard Shortcuts, Manage Bank Connections, Export Plan, Display Options, Edit Flags,
+    // Manage Payees, Plan Settings, Open Plan.
+    for (let i = 0; i < 8; i++) await page.keyboard.press("ArrowUp");
     await expect(open).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(sub(page)).toBeVisible();

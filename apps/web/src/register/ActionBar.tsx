@@ -27,6 +27,7 @@ import {
   useUnmatchTransaction,
 } from "../api/transactions";
 import { useSaveUiState, useUiState } from "../api/ui-state";
+import { useEditFlagsDialog } from "../flag-names/useEditFlagsDialog";
 import { usePlanFormatter } from "../shell/plan-formats-context";
 import { useCurrentPlan } from "../shell/useCurrentPlan";
 import { useShortcut } from "../shortcuts/dispatcher";
@@ -122,6 +123,7 @@ export function ActionBar({
   const matcher = useMatchTransactions(budgetId);
   const unmatcher = useUnmatchTransaction(budgetId);
   const scheduledBulk = useScheduledBulk(budgetId);
+  const editFlags = useEditFlagsDialog(budgetId);
   const box = useRegisterBox();
   const [menu, setMenu] = useState<null | "more" | "flag" | "categorize">(null);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -582,6 +584,7 @@ export function ActionBar({
           placement="above"
           flagged={actions.anyFlagged}
           onClose={close}
+          onEditFlags={editFlags.open}
           onPick={doFlag}
         />
       ) : null}
@@ -616,6 +619,7 @@ export function ActionBar({
           onDelete={() => void sendDelete(true)}
         />
       ) : null}
+      {editFlags.dialog}
     </>
   );
 }

@@ -142,5 +142,7 @@ test("the register search suggests the plan's flag name", async ({ page, request
   await expect(rowOf(page, "ZZ Fee")).toBeVisible();
   const search = page.getByLabel("Find the transactions you're looking for...");
   await search.fill("flag");
-  await expect(page.getByRole("option").filter({ hasText: "Flag: Tax" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("option").filter({ hasText: "Flag:" }).filter({ hasText: "Tax" }).first(),
+  ).toBeVisible();
 });

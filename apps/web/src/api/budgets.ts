@@ -5,7 +5,14 @@ import {
   BudgetResponse,
   type BudgetUpdate,
 } from "@budget/schema/budgets";
+import {
+  DEFAULT_FLAG_NAMES,
+  FLAG_NAMES,
+  type FlagColor,
+  type FlagNames,
+} from "@budget/schema/transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router";
 import { z } from "zod";
 import { apiFetch } from "./client";
 
@@ -92,4 +99,19 @@ export function useDeleteBudget() {
       qc.setQueryData<Budget[]>(["budgets"], (list) => list?.filter((b) => b.id !== id));
     },
   });
+}
+
+/**
+ * The plan's flag names (EXF-480) and a label for each colour: the custom name, else the colour's own.
+ * `budgetId` defaults to the route's `:budgetId`; while the plans load every colour has its own name.
+ */
+export function useFlagNames(budgetId?: string): {
+  names: FlagNames;
+  label: (c: FlagColor) => string;
+} {
+  const params = useParams();
+  const id = budgetId ?? params.budgetId;
+  const { data } = useBudgets();
+  const names = data?.find((b) => b.id === id)?.flag_names ?? DEFAULT_FLAG_NAMES;
+  return { names, label: (c) => names[c] || FLAG_NAMES[c] };
 }
