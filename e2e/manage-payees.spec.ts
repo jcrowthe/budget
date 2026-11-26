@@ -19,7 +19,7 @@ const open = async (page: Page, s: Awaited<ReturnType<typeof seedPayees>>) => {
 const expandTransfers = async (page: Page, d: ReturnType<Page["locator"]>) => {
   for (let attempt = 0; attempt < 4; attempt++) {
     if ((await btn(d, "Collapse Transfer Payees").count()) > 0) return;
-    await expandTransfers(page, d);
+    await realClick(page, btn(d, "Expand Transfer Payees"));
     await btn(d, "Collapse Transfer Payees")
       .waitFor({ state: "visible", timeout: 8_000 })
       .catch(() => {});
