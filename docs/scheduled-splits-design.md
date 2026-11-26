@@ -63,8 +63,12 @@ The occurrence's payee and memo come from the lowest-sort line of that category 
 - Category delete (EXF-659): the delete preview counts a schedule once when it or a live line uses the category; the
   lines of live schedules move to the replacement (or are cleared), logged as `scheduled_subtransaction` updates, the
   parent's write token renewed so an edit in flight gets a 409.
-- Payees are outside this unit's scope: deleting or combining a payee does not move line payees. A line whose payee
-  was deleted reads as having none (as a parent's does) until the payee is undeleted. Follow-up ticket.
+- Payee delete and combine move the lines of live schedules the same way (logged as `scheduled_subtransaction`
+  updates, the parents' write tokens renewed, undoable; with no replacement the line's payee is cleared); the payee
+  list's `scheduled_count` counts a schedule once, whether the parent or a line uses the payee; the payee's
+  transactions pane lists it. This adds three constant statements to each batch.
+  Pins: delete batch 8 → 11 (`manage-payees-calls.test.ts`), combine batch 14 → 17 (`combine-payees-calls.test.ts`),
+  payee delete in `rename-rules.test.ts` 8 → 11. The counts stay the same for 10 and 100 payees, schedules and lines.
 
 ## Undo
 
@@ -108,5 +112,6 @@ expanded by default. Make Repeating is enabled for splits (lines copied with fre
   `apps/web/src/register/scheduledTransfers.test.ts` gains `subtransactions: []`.
 - Approved deviation: `packages/schema/test/plan-import.test.ts` (the two split-after-export-date cases now expect a
   schedule and no warning) and a third assertion of the same behaviour in the same file (`schedules.length` 3 → 4).
+- Approved by the approver (payee line handling): the three statement-count pins above.
 - Not pre-allowed, declared: `packages/schema/test/scheduled-transactions.test.ts` ("refuses fields it does not
   support": `subtransactions: []` is now valid by the feature itself; an unknown line key is the refused case).

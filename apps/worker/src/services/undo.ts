@@ -115,7 +115,9 @@ function refusals(nets: readonly Net[], system: ReadonlySet<string>) {
           nets.some((m) => m.type === type && m.kind !== "noop" && m.before?.payee_id === n.id);
         if (
           ((a?.transactions_moved ?? 0) > 0 && !logged("transaction")) ||
-          ((a?.scheduled_moved ?? 0) > 0 && !logged("scheduled_transaction"))
+          ((a?.scheduled_moved ?? 0) > 0 &&
+            !logged("scheduled_transaction") &&
+            !logged("scheduled_subtransaction"))
         )
           refuse("Its transactions moved to another payee and can't be moved back");
       }
