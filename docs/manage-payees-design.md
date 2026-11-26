@@ -265,3 +265,7 @@ For each state below, at 1440×900 and at 1024×700: the Tester drives the clone
 touches: [apps/worker/src/routes/payees.ts, apps/worker/src/services/payees.ts, apps/worker/src/repositories/payees.ts, apps/worker/src/repositories/transactions.ts, apps/worker/src/repositories/scheduled-transactions.ts, apps/worker/src/mcp/tools/payees.ts, apps/worker/test/manage-payees*.test.ts, apps/worker/test/mcp-coverage/payees.ts, apps/worker/test/mcp-timestamps.test.ts, packages/schema/src/payees.ts, packages/schema/test/payees.test.ts, packages/schema/test/manage-payees.test.ts, apps/web/src/payees/**, apps/web/src/menu-actions/manage-payees.tsx, apps/web/src/api/payees.ts, apps/web/src/register/PayeeField.tsx, apps/web/src/register/entry.css, e2e/manage-payees*.spec.ts, e2e/support/manage-payees-seed.ts, e2e/payee-picker.spec.ts, e2e/plan-menu.spec.ts, docs/manage-payees-design.md, docs/manage-payees-spec.md, docs/manage-payees-polish.md, docs/README.md]
 shared: []
 migrations: 0
+
+## The register follows a change made while it loads
+
+`invalidatePayeeViews` cancels the payee views' queries before it invalidates them (`refetchAfterWrite`, `apps/web/src/api/refetch-after-write.ts`). A plain invalidate joins a first load still in flight, which was answered before the write, so its stale list would land and nothing would refetch it. Proven by `e2e/manage-payees-register.spec.ts` (transactions GET held 1.5 s; delete and rename).

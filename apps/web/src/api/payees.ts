@@ -19,6 +19,7 @@ import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { recordChange } from "../undo/store";
 import { apiFetch } from "./client";
 import { keepPreviousInPlan } from "./placeholder";
+import { refetchAfterWrite } from "./refetch-after-write";
 
 /** Every payee of the plan, hidden and system ones included: the picker filters them itself. */
 export const listPayees = async (budgetId: string) =>
@@ -241,6 +242,6 @@ const VIEWS = new Set([
 
 /** After a change: every screen that shows payees or their names refetches once, without a reload. */
 export const invalidatePayeeViews = (qc: QueryClient, b: string) =>
-  qc.invalidateQueries({
+  refetchAfterWrite(qc, {
     predicate: (q) => VIEWS.has(String(q.queryKey[0])) && q.queryKey.includes(b),
   });
