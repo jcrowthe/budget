@@ -2,11 +2,15 @@ import { evaluateAmountEntry, formatAmountEntry } from "@budget/schema/amount-en
 import {
   DELETE_LINE_BODY,
   DELETE_LINE_TITLE,
+  DELETE_PAYMENT_BODY,
+  DELETE_PAYMENT_TITLE,
   EDIT_ACTIVITY_LABELS,
   EDIT_CREDIT_TITLE,
   EDIT_ESCROW_TITLE,
   EDIT_FEE_TITLE,
   EDIT_INTEREST_TITLE,
+  EDIT_PAYMENT_TITLE,
+  PAYMENT_FROM_LABEL,
 } from "@budget/schema/loan-manage";
 import { useState } from "react";
 import { ApiError } from "../api/client";
@@ -18,15 +22,17 @@ import { usePlanFormatter } from "../shell/plan-formats-context";
 import "./loan-activity.css";
 import { useEscape } from "./useEscape";
 
-/** The recorded line to change: an interest or escrow line (its month shown), a fee or a credit. `amount` is a magnitude. */
+/** The recorded line to change: an interest or escrow line (its month shown), a fee, a credit or a payment. `amount` is a magnitude. */
 export type EditTarget = {
-  kind: "interest" | "escrow" | "fee" | "credit";
+  kind: "interest" | "escrow" | "fee" | "credit" | "payment";
   transactionId: string;
   amount: number;
   date: string;
   memo: string | null;
   /** interest and escrow: the month the line belongs to, as the page shows it. */
   monthLabel?: string;
+  /** payment: the name of the account it came from; the cash side changes with it. */
+  fromName?: string;
 };
 
 const TITLES = {
@@ -34,6 +40,7 @@ const TITLES = {
   escrow: EDIT_ESCROW_TITLE,
   fee: EDIT_FEE_TITLE,
   credit: EDIT_CREDIT_TITLE,
+  payment: EDIT_PAYMENT_TITLE,
 } as const;
 
 /** Edit Interest, Edit Escrow, Edit Fee or Charge and Edit Credit on a loan's Account Activity, with Delete behind a confirm. */
@@ -88,6 +95,9 @@ export function EditLoanActivityDialog({
   };
 
   const title = TITLES[target.kind];
+  const payment = target.kind === "payment";
+  const confirmTitle = payment ? DELETE_PAYMENT_TITLE : DELETE_LINE_TITLE;
+  const confirmBody = payment ? DELETE_PAYMENT_BODY(target.fromName ?? "") : DELETE_LINE_BODY;
   const id = `loan-edit-${target.kind}`;
   return (
     <div className="dialog-backdrop">
@@ -96,13 +106,13 @@ export function EditLoanActivityDialog({
           className="dialog form edit-account loan-confirm"
           role="alertdialog"
           aria-modal="true"
-          aria-label={DELETE_LINE_TITLE}
+          aria-label={confirmTitle}
         >
           <div className="dialog-head">
-            <h2>{DELETE_LINE_TITLE}</h2>
+            <h2>{confirmTitle}</h2>
           </div>
           <div className="form-body">
-            <p className="loan-intro">{DELETE_LINE_BODY}</p>
+            <p className="loan-intro">{confirmBody}</p>
           </div>
           <div className="dialog-footer">
             <button
@@ -142,6 +152,9 @@ export function EditLoanActivityDialog({
             </button>
           </div>
           <div className="form-body">
+            {payment && target.fromName ? (
+              <p className="loan-intro">{PAYMENT_FROM_LABEL(target.fromName)}</p>
+            ) : null}
             {monthLine ? (
               <p className="loan-intro">
                 {EDIT_ACTIVITY_LABELS.month}: {target.monthLabel}

@@ -13,6 +13,9 @@ import {
   type LoanActivityPatchRequest as LoanActivityPatchInput,
   LoanActivityPatchRequest,
   NOT_EDITABLE_ACTIVITY_TEXT,
+  PAYMENT_OTHER_CLOSED_TEXT,
+  PAYMENT_RECONCILED_TEXT,
+  TODAY_NOT_FOR_PAYMENT_TEXT,
 } from "@budget/schema/loan-manage";
 import { getDb } from "../db/client";
 import type { Env } from "../env";
@@ -27,7 +30,7 @@ import * as payeesRepo from "../repositories/payees";
 import * as txRepo from "../repositories/transactions";
 import type { BatchItem } from "./accounts";
 import { changeMonth, frozenLoanRow, frozenRowDate, monthOf, utcToday } from "./loan-frozen-rows";
-import { TransactionRefused, transactionToApi } from "./transactions";
+import { planWrites, prepare, TransactionRefused, transactionToApi } from "./transactions";
 
 type Row = txRepo.TransactionRow;
 const refuse = (code: string, detail: string) => new TransactionRefused(422, code, detail);
@@ -43,10 +46,12 @@ async function read(env: Env, budgetId: string, loanId: string, txId: string) {
     throw refuse("not_a_loan_account", NOT_A_LOAN_TEXT(before.name));
   }
   if (before.closed) throw refuse("account_closed", "A closed account cannot take activity");
-  const [found, frozenRows, grouped] = await db.batch([
+  const [found, frozenRows, grouped, sideRows, otherAccounts] = await db.batch([
     manageRepo.activityRowQuery(db, budgetId, loanId, txId),
     manageRepo.monthFrozenRowsQuery(db, budgetId, loanId, txId),
     loanRepo.balanceGroupsQuery(db, budgetId, { accountId: loanId }),
+    manageRepo.paymentSidesQuery(db, budgetId, loanId, txId),
+    manageRepo.paymentOtherAccountQuery(db, budgetId, loanId, txId),
   ]);
   const row = found[0];
   if (!row) throw new NotFound("Activity row");
@@ -65,6 +70,8 @@ async function read(env: Env, budgetId: string, loanId: string, txId: string) {
     before,
     row,
     frozenRows: frozenRows.map((r) => r.tx),
+    sides: new Map(sideRows.map((r) => [r.t.id, manageRepo.toDetailRow(r)])),
+    otherAccount: otherAccounts[0]?.account,
     months: loanRepo.loanMonthsFromRows(loanRows).get(loanId)?.months ?? [],
     terms,
     stored: grouped.reduce((n, r) => n + r.amount, 0),
@@ -86,7 +93,13 @@ function classify(r: Read):
       sum: number;
       any: boolean;
     }
-  | { type: "other"; kind: "fee" | "credit"; tx: Row } {
+  | { type: "other"; kind: "fee" | "credit"; tx: Row }
+  | {
+      type: "payment";
+      loanRow: txRepo.TransactionDetailRow;
+      cash: txRepo.TransactionDetailRow;
+      other: accountsRepo.AccountRow;
+    } {
   const { tx, system, isSplit } = r.row;
   if (system === LOAN_INTEREST_SYSTEM || system === LOAN_ESCROW_SYSTEM) {
     const open = r.frozenRows.filter((t) => t.cleared !== "reconciled");
@@ -100,6 +113,20 @@ function classify(r: Read):
       sum: rec.reduce((n, t) => n + t.amount, 0),
       any: rec.length > 0,
     };
+  }
+  const other = r.otherAccount;
+  if (tx.transferAccountId !== null && tx.amount > 0 && other?.onBudget && !isSplit) {
+    const loanRow = r.sides.get(tx.id);
+    const cash = tx.transferTransactionId ? r.sides.get(tx.transferTransactionId) : undefined;
+    if (!loanRow || !cash) throw refuse("not_editable_activity", NOT_EDITABLE_ACTIVITY_TEXT);
+    if (cash.cleared === "reconciled") {
+      throw new TransactionRefused(409, "reconciled_line", PAYMENT_RECONCILED_TEXT(other.name));
+    }
+    if (loanRow.cleared === "reconciled") {
+      throw new TransactionRefused(409, "reconciled_line", PAYMENT_RECONCILED_TEXT(r.before.name));
+    }
+    if (other.closed) throw refuse("account_closed", PAYMENT_OTHER_CLOSED_TEXT);
+    return { type: "payment", loanRow, cash, other };
   }
   const reconciledKind = tx.cleared === "reconciled" && system === "reconciliation_adjustment";
   if (tx.payeeId === null && tx.transferAccountId === null && !isSplit) {
@@ -122,6 +149,102 @@ async function lostRace(r: Read, budgetId: string, loanId: string): Promise<neve
 /** The loan's balance with `months` as the engine reads them. */
 const closing = (r: Read, months: Read["months"]) => runLoan(r.terms, months).at(-1)?.closing ?? 0;
 
+/**
+ * Edits or deletes a payment through the register's own builders (`prepare`, `planWrites`): the loan row and its cash
+ * side change in one batch, with a change_log row for each, so Undo restores both. `prepare` makes no call: the sides
+ * and accounts were read in `read()`. D1 calls here: the one write batch.
+ */
+async function paymentWrite(
+  r: Read,
+  what: Extract<ReturnType<typeof classify>, { type: "payment" }>,
+  kind: "update" | "delete",
+  v: LoanActivityPatchInput | undefined,
+  actor: string,
+  budgetId: string,
+  loanId: string,
+): Promise<LoanActivityChangeResult> {
+  const { db, before } = r;
+  const { loanRow, cash, other } = what;
+  const now = new Date().toISOString();
+  const patch =
+    kind === "update" && v
+      ? Object.fromEntries(
+          Object.entries({ amount: v.amount, date: v.date, memo: v.memo }).filter(
+            ([, x]) => x !== undefined,
+          ),
+        )
+      : undefined;
+  const plan = await prepare(db, budgetId, loanRow, before, kind, patch, now, {
+    singleUpdate: true,
+    reads: {
+      lines: new Map(),
+      others: new Map([[cash.id, cash]]),
+      accounts: new Map([
+        [other.id, other],
+        [before.id, before],
+      ]),
+      categories: cash.categoryId
+        ? new Map([
+            [
+              cash.categoryId,
+              {
+                categoryName: cash.categoryName ?? "",
+                groupName: cash.groupName ?? "",
+                kind: null,
+                accountId: null,
+              },
+            ],
+          ])
+        : new Map(),
+    },
+  });
+  const loanHolds = accountsRepo.accountHolds(
+    db,
+    before,
+    accountsRepo.accountSumIs(loanId, r.stored),
+  );
+  const guard = txRepo.allHold([loanHolds, txRepo.holdsAt(db, loanRow), txRepo.holdsAt(db, cash)]);
+  const last = plan.others[plan.others.length - 1];
+  const selfGuard = last
+    ? txRepo.allHold([loanHolds, txRepo.holdsAt(db, loanRow), txRepo.writtenAt(db, cash.id, now)])
+    : guard;
+  const w = planWrites(db, { budgetId, actor, id: loanRow.id, kind, plan, now, guard, selfGuard });
+  const results = await db.batch([...w.payees, ...w.logs, ...w.rest, w.self] as unknown as [
+    BatchItem,
+    ...BatchItem[],
+  ]);
+  if ((results[results.length - 1]?.meta.changes ?? 0) === 0) {
+    await lostRace(r, budgetId, loanId);
+  }
+  const old = r.row.tx;
+  const without = changeMonth(r.months, monthOf(old.date), (m) => ({
+    ...m,
+    payments: m.payments - old.amount,
+  }));
+  if (kind === "delete") {
+    return {
+      kind: "payment",
+      transaction: null,
+      from_transaction: null,
+      balance: closing(r, without),
+    };
+  }
+  const after = plan.after;
+  const written = plan.others[0]?.row ?? cash;
+  return {
+    kind: "payment",
+    transaction: transactionToApi({ ...after, updatedAt: now }),
+    from_transaction: transactionToApi(plan.others[0] ? { ...written, updatedAt: now } : written),
+    balance: closing(
+      r,
+      changeMonth(without, monthOf(after.date), (m) => ({
+        ...m,
+        payments: m.payments + after.amount,
+      })),
+    ),
+  };
+}
+
 const imgs = (rows: Row[]) =>
   JSON.stringify(rows.map((t) => ({ id: t.id, img: transactionToApi(t) })));
 
@@ -141,6 +264,10 @@ export async function updateLoanActivity(
   const r = await read(env, budgetId, loanId, txId);
   const { db, before } = r;
   const what = classify(r);
+  if (what.type === "payment") {
+    if (v.today !== undefined) throw refuse("unprocessable_entity", TODAY_NOT_FOR_PAYMENT_TEXT);
+    return paymentWrite(r, what, "update", v, actor, budgetId, loanId);
+  }
   const now = new Date().toISOString();
   const guard = accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, r.stored));
 
@@ -265,6 +392,8 @@ export async function deleteLoanActivity(
   const r = await read(env, budgetId, loanId, txId);
   const { db, before } = r;
   const what = classify(r);
+  if (what.type === "payment")
+    return paymentWrite(r, what, "delete", undefined, actor, budgetId, loanId);
   const now = new Date().toISOString();
   const guard = accountsRepo.accountHolds(db, before, accountsRepo.accountSumIs(loanId, r.stored));
 

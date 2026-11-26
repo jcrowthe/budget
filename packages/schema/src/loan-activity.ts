@@ -19,6 +19,13 @@ export const LoanPayment = z
     cleared: z.enum(["uncleared", "cleared", "reconciled"]),
     from_account_id: z.string().nullable(),
     from_account_name: z.string().nullable(),
+    editable: z.boolean().openapi({
+      description:
+        "true when the payment can be edited or deleted here: neither side reconciled, the other account open, not a split",
+    }),
+    reconciled: z.boolean().openapi({
+      description: "either side is reconciled: shown with the lock",
+    }),
   })
   .openapi("LoanPayment");
 

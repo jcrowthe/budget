@@ -232,7 +232,7 @@ describe("refusals write nothing", () => {
         expect((await errorOf(res)).name).toBe("reconciled_line");
       }
     }
-    for (const id of [startId, w.paymentTx] as string[]) {
+    for (const id of [startId] as string[]) {
       for (const res of [
         await patch(w.bid, w.loan.id, id, { amount: 5000 }),
         await del(w.bid, w.loan.id, id),

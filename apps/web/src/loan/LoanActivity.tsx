@@ -55,7 +55,7 @@ function CheckIcon() {
   );
 }
 
-/** The lock on a reconciled line: Update Balance froze it, so it has no Edit button. */
+/** The lock on a reconciled line or payment (Update Balance froze it, or a side is reconciled): no Edit button. */
 function LockIcon() {
   return (
     <span
@@ -185,6 +185,23 @@ export function LoanActivity({ budgetId, account }: { budgetId: string; account:
                 {a.payments.map((p) => (
                   <li key={p.transaction_id}>
                     <span className="loan-row-text">{paymentLine(p, mag)}</span>
+                    {p.editable ? (
+                      <EditButton
+                        label={`Edit payment on ${dayName(p.date)}`}
+                        onClick={() =>
+                          setEditing({
+                            kind: "payment",
+                            transactionId: p.transaction_id,
+                            amount: p.amount,
+                            date: p.date,
+                            memo: p.memo,
+                            fromName: p.from_account_name ?? "",
+                          })
+                        }
+                      />
+                    ) : p.reconciled ? (
+                      <LockIcon />
+                    ) : null}
                     <span className="loan-row-amount">{fmt.signed(p.amount)}</span>
                     <CheckIcon />
                   </li>
