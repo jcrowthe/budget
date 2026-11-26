@@ -169,7 +169,7 @@ Live flow tests reach the clone with `scripts/access-browser.mjs`.
   shell's 10 minutes, `bash scripts/e2e-load-bg.sh start|wait|stop <label> on`. The table line and every failed test
   are in `/workspace/scratch/e2e-load/<label>/summary.md`.
 - Clicks under load: `mouseClick` and both `realClick`s go through `e2e/support/settled.ts`, which waits (up to 30 s) until
-  the target is visible, has the same box on two animation frames and is topmost at its centre. Where a press can still be
+  the target is visible, has the same box on two animation frames and is topmost at its centre, and enabled (pass `{ allowDisabled: true }` only where a spec presses a disabled control to assert nothing happens). Where a press can still be
   lost (a list or card re-renders right after it loads), the spec waits for the list, then presses again until the result
   shows (`openExport`, `expandTransfers`). Retry the action, never loosen the assertion; never skip a test.
 

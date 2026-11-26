@@ -160,7 +160,7 @@ test("two hand entries: Match is disabled with its reason and sends nothing", as
   await expect(match).toHaveAttribute("aria-disabled", "true");
   await match.hover();
   await expect(page.getByRole("tooltip")).toHaveText(MATCH_TEXT.needOneOfEach);
-  await realClick(page, match);
+  await realClick(page, match, { allowDisabled: true });
   await page.waitForTimeout(300);
   expect(stub.posts).toHaveLength(0);
 });

@@ -51,7 +51,7 @@ for (const size of [
       await expect(next(page)).toBeDisabled();
       await realClick(page, monthButton(page));
       await expect(picker(page)).toBeVisible();
-      await realClick(page, next(page));
+      await realClick(page, next(page), { allowDisabled: true });
       await expect(picker(page)).toHaveCount(0);
       await expect(page).toHaveURL(`/${id}/budget/${M1.key}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(M1.label);
@@ -67,7 +67,7 @@ for (const size of [
       await expect(next(page)).toBeDisabled();
       await realClick(page, page.locator(".month-note"));
       await expect(note(page)).toBeVisible();
-      await realClick(page, next(page));
+      await realClick(page, next(page), { allowDisabled: true });
       await expect(note(page)).toHaveCount(0);
       await expect(page).toHaveURL(`/${id}/budget/${M1.key}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(M1.label);
@@ -98,7 +98,7 @@ test.describe("outside press on an option still loading, 1440x900", () => {
     await expect(option).toBeDisabled();
     await realClick(page, monthButton(page));
     await expect(picker(page)).toBeVisible();
-    await realClick(page, option);
+    await realClick(page, option, { allowDisabled: true });
     await expect(picker(page)).toHaveCount(0);
     release();
     await expect(option).toBeEnabled();

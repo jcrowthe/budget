@@ -157,9 +157,10 @@ export const accountData = async (request: APIRequestContext, plan: string, acco
 export async function realClick(
   page: import("@playwright/test").Page,
   target: import("@playwright/test").Locator,
+  { allowDisabled = false } = {},
 ) {
   // A list that is still loading moves its footer: wait (retrying) until the box is still and topmost.
-  const r = await settle(page, target, { scroll: true, allowAncestor: true });
+  const r = await settle(page, target, { scroll: true, allowAncestor: true, allowDisabled });
   expect(r.box, "the control has a box").not.toBeNull();
   const { x, y, width, height } = r.box as { x: number; y: number; width: number; height: number };
   const cx = x + width / 2;
