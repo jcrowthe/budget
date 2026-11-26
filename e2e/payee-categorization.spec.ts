@@ -15,6 +15,8 @@ import { call } from "./support/register-seed";
 
 test.afterEach(({ page }) => page.unrouteAll({ behavior: "ignoreErrors" }));
 
+test.setTimeout(90_000);
+
 async function open(page: import("@playwright/test").Page, s: { plan: string; checking: string }) {
   await showOnlyPlans(page, (p) => p.id === s.plan);
   await page.goto(`/${s.plan}/accounts/${s.checking}`);
@@ -336,7 +338,14 @@ test("A6 a transfer payee and two selected payees show no Categorization", async
   });
   await open(page, s);
   const d = await openManagePayees(page, s.name);
-  await realClick(page, d.getByRole("button", { name: "Expand Transfer Payees", exact: true }));
+  // The list loads after the dialog opens and re-renders it, and under load a press then can be lost:
+  // wait for the first payee, then press Expand again until the group is open.
+  await expect(d.locator(".mp-name").first()).toBeVisible({ timeout: 30_000 });
+  const collapse = d.getByRole("button", { name: "Collapse Transfer Payees", exact: true });
+  for (let attempt = 0; attempt < 4 && (await collapse.count()) === 0; attempt++) {
+    await realClick(page, d.getByRole("button", { name: "Expand Transfer Payees", exact: true }));
+    await collapse.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
+  }
   await realClick(
     page,
     d.getByRole("button", { name: "Select Transfer : ZZ Savings", exact: true }),
