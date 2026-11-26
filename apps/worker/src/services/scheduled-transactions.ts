@@ -7,10 +7,12 @@ import {
   SCHEDULER_MAX_PER_RUN,
   ScheduledBulkRequest,
   type ScheduledBulkResult,
+  type ScheduledBulkSkipReason,
   type ScheduledLineInput,
   type ScheduledTransaction,
   ScheduledTransactionCreate,
   ScheduledTransactionUpdate,
+  scheduledCategorizeSkip,
 } from "@budget/schema/scheduled-transactions";
 import { type CategoryUpcoming, upcomingList } from "@budget/schema/scheduled-upcoming";
 import type { TransactionDetail } from "@budget/schema/transactions";
@@ -32,6 +34,7 @@ import { type ResolvedPayee, resolvePayee } from "./payees";
 import { newOtherSide } from "./transaction-pairs";
 import { validateLines } from "./transaction-splits";
 import {
+  CLOSED_NO_MOVE,
   CLOSED_NO_NEW,
   CLOSED_OTHER,
   enteredTransactionWrites,
@@ -870,6 +873,9 @@ export async function bulkScheduled(
   hooks?: { beforeWrite?: () => Promise<void> },
 ): Promise<ScheduledBulkResult> {
   const req = ScheduledBulkRequest.parse(input);
+  if (req.op !== "enter_now" && req.op !== "delete") {
+    return bulkUpdateScheduled(env, actor, budgetId, req, hooks);
+  }
   const db = getDb(env);
   await activePlan(db, budgetId);
   const ids = [...new Set(req.ids)];
@@ -882,7 +888,7 @@ export async function bulkScheduled(
       throw new TransactionRefused(
         422,
         "account_closed",
-        req.op !== "enter_now" ? CLOSED_NO_CHANGE : r.transferClosed ? CLOSED_OTHER : CLOSED_NO_NEW,
+        req.op === "delete" ? CLOSED_NO_CHANGE : r.transferClosed ? CLOSED_OTHER : CLOSED_NO_NEW,
       );
     }
     rows.push(r);
@@ -984,6 +990,199 @@ export async function bulkScheduled(
       ];
     }),
     skipped,
+  };
+}
+
+type UpdateReq = Exclude<ScheduledBulkRequest, { op: "enter_now" | "delete" }>;
+type RowPatch = Partial<
+  Pick<
+    repo.ScheduledBase,
+    "categoryId" | "inflowToReadyToAssign" | "flagColor" | "memo" | "accountId"
+  >
+>;
+
+/**
+ * Categorize, flag, memo or move several schedules: every refusal is thrown before any write; each changed
+ * schedule is one gated update plus one change_log row, all in one batch (one change set through the middleware).
+ * D1 calls: the plan, the schedules, at most two op reads, one batch and one read-back, whatever the ids.
+ */
+async function bulkUpdateScheduled(
+  env: Env,
+  actor: string,
+  budgetId: string,
+  req: UpdateReq,
+  hooks?: { beforeWrite?: () => Promise<void> },
+): Promise<ScheduledBulkResult> {
+  const db = getDb(env);
+  await activePlan(db, budgetId);
+  const ids = [...new Set(req.ids)];
+  const found = await repo.findMany(db, budgetId, ids);
+  const rows: repo.ScheduledRow[] = [];
+  for (const id of ids) {
+    const r = found.get(id);
+    if (!r) throw new NotFound("Scheduled transaction");
+    if (r.accountClosed) {
+      throw new TransactionRefused(
+        422,
+        "account_closed",
+        r.transferClosed ? CLOSED_OTHER : CLOSED_NO_CHANGE,
+      );
+    }
+    rows.push(r);
+  }
+  const refuse = (s: repo.ScheduledRow, text: string) =>
+    unprocessable(`Transaction ${s.id}: ${text}`);
+
+  // The op's reads, one call at most each.
+  let cat: Awaited<ReturnType<typeof repo.categoryNames>>;
+  let target: accountsRepo.AccountReadRow | undefined;
+  let cats = new Map<string, { kind: string | null; accountId: string | null }>();
+  if (req.op === "categorize" && req.value !== "ready_to_assign") {
+    cat = await repo.categoryNames(db, budgetId, req.value);
+    if (!cat) throw unprocessable("Category not found in this plan");
+  }
+  if (req.op === "move") {
+    target = await accountsRepo.findActive(db, budgetId, req.value);
+    if (!target) throw unprocessable("Account not found in this plan");
+    if (target.closed) throw new TransactionRefused(422, "account_closed", CLOSED_NO_MOVE);
+    const catIds = [...new Set(rows.flatMap((s) => (s.categoryId ? [s.categoryId] : [])))];
+    if (catIds.length > 0) cats = await txRepo.categoryNamesMany(db, budgetId, catIds);
+  }
+
+  const now = new Date().toISOString();
+  const skippedAt = new Map<string, ScheduledBulkSkipReason>();
+  const writes: unknown[] = [];
+  const planned: { row: repo.ScheduledRow; gateIx: number }[] = [];
+  const mirrors = new Set(req.op === "move" ? (req.mirror_ids ?? []) : []);
+  const plan = (s: repo.ScheduledRow, patch: RowPatch, view: Partial<repo.ScheduledRow>) => {
+    const token = crypto.randomUUID();
+    const after: repo.ScheduledRow = { ...s, ...patch, ...view, updatedAt: now, writeToken: token };
+    planned.push({ row: s, gateIx: writes.length });
+    writes.push(
+      repo.updateIfStmt(
+        db,
+        s.id,
+        { ...patch, updatedAt: now, writeToken: token },
+        { dateNext: s.dateNext, writeToken: s.writeToken },
+      ),
+      changeLogInsertIf(db, logEntry(actor, "update", s, after), repo.writtenWith(s.id, token)),
+    );
+  };
+
+  for (const s of rows) {
+    const other = s.transferAccountId
+      ? {
+          id: s.transferAccountId,
+          name: s.transferAccountName ?? "",
+          onBudget: s.transferAccountOnBudget,
+        }
+      : null;
+    switch (req.op) {
+      case "categorize": {
+        const skip = scheduledCategorizeSkip({
+          split: s.lines.length > 0,
+          onBudget: s.accountOnBudget,
+          other: other ? { onBudget: other.onBudget } : null,
+        });
+        if (skip) {
+          skippedAt.set(s.id, skip);
+          break;
+        }
+        const onPlanSide =
+          other && !s.accountOnBudget ? other : { id: s.accountId, name: s.accountName };
+        if (cat) refuseOwnPaymentCategory(onPlanSide, cat);
+        const toRta = req.value === "ready_to_assign";
+        if (
+          toRta
+            ? s.inflowToReadyToAssign && s.categoryId === null
+            : s.categoryId === req.value && !s.inflowToReadyToAssign
+        ) {
+          skippedAt.set(s.id, "unchanged");
+          break;
+        }
+        plan(
+          s,
+          { categoryId: toRta ? null : req.value, inflowToReadyToAssign: toRta },
+          { categoryName: cat?.name ?? null, groupName: cat?.groupName ?? null },
+        );
+        break;
+      }
+      case "flag": {
+        if ((s.flagColor ?? null) === req.value) skippedAt.set(s.id, "unchanged");
+        else plan(s, { flagColor: req.value }, {});
+        break;
+      }
+      case "memo": {
+        const memo = clean(req.value) ?? null;
+        if (memo === (s.memo ?? null)) skippedAt.set(s.id, "unchanged");
+        else plan(s, { memo }, {});
+        break;
+      }
+      case "move": {
+        const t = target as accountsRepo.AccountReadRow;
+        if (mirrors.has(s.id)) {
+          skippedAt.set(s.id, "mirror");
+          break;
+        }
+        if (s.accountId === t.id) {
+          skippedAt.set(s.id, "unchanged");
+          break;
+        }
+        if (s.transferAccountId === t.id) {
+          throw refuse(s, "a transfer cannot be moved into its other account");
+        }
+        if (s.lines.length > 0 && !t.onBudget) {
+          throw refuse(
+            s,
+            `${t.name} is a tracking account, so its transactions can't be split. Make it a plain transaction first.`,
+          );
+        }
+        const hasCategory = s.categoryId !== null || s.inflowToReadyToAssign;
+        if (hasCategory) {
+          const allowed = other ? t.onBudget !== other.onBudget : t.onBudget;
+          if (!allowed) {
+            throw refuse(
+              s,
+              other && t.onBudget && other.onBudget
+                ? NO_TRANSFER_CATEGORY
+                : `${t.name} is a tracking account, so its transactions can't have a category. Remove the category first.`,
+            );
+          }
+          const side = other && !t.onBudget ? other : t;
+          try {
+            refuseOwnPaymentCategory(side, s.categoryId ? cats.get(s.categoryId) : undefined);
+          } catch (e) {
+            if (e instanceof TransactionRefused) {
+              throw new TransactionRefused(e.status, e.code, `Transaction ${s.id}: ${e.message}`);
+            }
+            throw e;
+          }
+        }
+        plan(s, { accountId: t.id }, { accountName: t.name, accountOnBudget: t.onBudget });
+        break;
+      }
+    }
+  }
+
+  if (planned.length > 0) {
+    await hooks?.beforeWrite?.();
+    const out = (await db.batch(stmts(writes))) as unknown as { meta: { changes?: number } }[];
+    for (const p of planned) {
+      if ((out[p.gateIx]?.meta.changes ?? 0) === 0) skippedAt.set(p.row.id, "changed");
+    }
+  }
+  const writtenIds = planned.map((p) => p.row.id).filter((id) => !skippedAt.has(id));
+  const fresh = await repo.findMany(db, budgetId, writtenIds);
+  return {
+    op: req.op,
+    results: writtenIds.flatMap((id) => {
+      const r = fresh.get(id);
+      return r ? [{ id, transaction: null, scheduled_transaction: scheduledToApi(r) }] : [];
+    }),
+    skipped: ids.flatMap((id) => {
+      const reason = skippedAt.get(id);
+      return reason ? [{ id, reason }] : [];
+    }),
   };
 }
 

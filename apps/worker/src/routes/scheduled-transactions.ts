@@ -144,6 +144,9 @@ export default app
       method: "post",
       path: `${base}/bulk`,
       tags,
+      summary: "Change several scheduled transactions at once",
+      description:
+        "Ops: enter_now and delete (as before), and, for 1 to 100 series ids, categorize (value: a category id or ready_to_assign), flag (value: a colour or null), memo (value: text or null) and move (value: an account id; mirror_ids lists ids selected only through their mirror row). A mirror row's id is its series id, so categorize, flag and memo act on the series. Skipped, not refused: categorize skips splits (split), tracking-account rows (tracking_account) and transfers between on-plan accounts (category_not_needed); every op skips what is already set (unchanged) and a schedule edited meanwhile (changed); move skips mirror_ids (mirror). Refused with nothing written: 404 for an unknown id; 422 for a closed account (account_closed), an unknown category or account, a card's own payment category (own_payment_category), a transfer moved into its other account, and a categorized or split schedule moved where it cannot keep its category or lines. One change_log row per changed schedule and one change set per request, so Undo restores them all. `today` is ignored by the four new ops.",
       request: { params: budgetParam, query: TodayQuery, body: body(ScheduledBulkRequest) },
       responses: {
         200: json(ScheduledBulkResponse, "Deleted: the schedules removed"),

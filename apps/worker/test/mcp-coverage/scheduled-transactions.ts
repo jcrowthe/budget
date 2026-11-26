@@ -16,8 +16,12 @@ export const operations: Partial<Record<OperationKey, Coverage>> = {
     tool: "enter_scheduled_transaction_now",
   },
   "POST /budgets/{budget_id}/scheduled-transactions/bulk": {
-    tool: ["enter_scheduled_transaction_now", "delete_scheduled_transaction"],
-    note: "the register's selection; the tools take one id per call",
+    tool: [
+      "enter_scheduled_transaction_now",
+      "delete_scheduled_transaction",
+      "bulk_update_scheduled_transactions",
+    ],
+    note: "the register's selection; enter and delete take one id per call, categorize, flag, memo and move go through the bulk tool",
   },
   "POST /budgets/{budget_id}/scheduled-transactions/enter-due": {
     tool: "enter_due_scheduled_transactions",

@@ -13,6 +13,7 @@ import { NotFound } from "../../middleware/errors";
 import * as budgetsRepo from "../../repositories/budgets";
 import { planMonthError } from "../../services/months";
 import {
+  bulkScheduled,
   createScheduled,
   deleteScheduled,
   enterDue,
@@ -89,6 +90,40 @@ export const tools: McpToolDef[] = [
     inputSchema: z.object({ budget_id: Id, id: Id }),
     run: async (input: { budget_id: string; id: string }, { env, actor }) =>
       deleteScheduled(env, actor, input.budget_id, input.id),
+  },
+  {
+    name: "bulk_update_scheduled_transactions",
+    description: `Change 1 to 100 scheduled transactions of a plan at once, in one change set (one Undo). op categorize: value is a category id, or ready_to_assign (clears the category and marks the inflow). op flag: value is red, orange, yellow, green, blue, purple, or null to clear. op memo: value is text up to 500 characters, or null or blank to clear. op move: value is the id of the account to move the schedules to; mirror_ids lists ids in ids that were selected only through their mirror row (they are skipped). Pass a mirror row's id as its series id: categorize, flag and memo then change the series. Skipped, not refused (in skipped with a reason): unchanged (already set), changed (edited meanwhile; reload it), split, tracking_account and category_not_needed (categorize only: a split's category is in its lines, a tracking account's transactions take no category, a transfer between on-plan accounts takes none), mirror (move only). These refuse the whole request and write nothing: an unknown id or category or account, a closed account (account_closed), a card's own payment category on that card (own_payment_category), a transfer moved into its other account, a categorized schedule moved into a tracking account, a split moved into a tracking account. ${MONEY} ${dates("date_first", "date_next")} Returns { op, results: [{ id, transaction (null), scheduled_transaction }], skipped: [{ id, reason }] }, where scheduled_transaction is as get_scheduled_transaction returns it (${SHAPE}). ${STAMPS}`,
+    inputSchema: z.object({
+      budget_id: Id,
+      ids: z.array(Id).min(1).max(100).describe("Series ids, 1 to 100"),
+      op: z.enum(["categorize", "flag", "memo", "move"]),
+      value: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe(
+          "categorize: a category id or ready_to_assign; flag: red, orange, yellow, green, blue, purple or null; memo: text or null; move: an account id",
+        ),
+      mirror_ids: z
+        .array(Id)
+        .optional()
+        .describe("move only: ids in ids selected only through their mirror row; they are skipped"),
+    }),
+    run: async (
+      input: {
+        budget_id: string;
+        ids: string[];
+        op: "categorize" | "flag" | "memo" | "move";
+        value?: string | null;
+        mirror_ids?: string[];
+      },
+      { env, actor },
+    ) => {
+      const { budget_id, ...rest } = input;
+      return bulkScheduled(env, actor, budget_id, rest as never);
+    },
   },
   {
     name: "enter_scheduled_transaction_now",

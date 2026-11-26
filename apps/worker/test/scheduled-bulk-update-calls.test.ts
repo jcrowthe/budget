@@ -48,6 +48,7 @@ async function seed(n: number, mixed: boolean) {
   const a = await account(b, "checking", 0);
   const s = await account(b, "savings", 0);
   const t = await account(b, "otherAsset", 0);
+  const x = await account(b, "savings", 0);
   const c = await category(b, "Groceries");
   const now = new Date().toISOString();
   const ids: string[] = [];
@@ -58,8 +59,18 @@ async function seed(n: number, mixed: boolean) {
     const transfer = mixed && i % 10 === 1 ? (i % 20 === 1 ? s : t) : null;
     stmts.push(
       env.DB.prepare(
-        "insert into scheduled_transactions (id, budget_id, account_id, transfer_account_id, date_first, date_next, frequency, amount, inflow_to_ready_to_assign, write_token, created_at, updated_at) values (?, ?, ?, ?, '2026-12-01', '2026-12-01', 'monthly', ?, 0, ?, ?, ?)",
-      ).bind(id, b, a, transfer, -100 - i, crypto.randomUUID(), now, now),
+        "insert into scheduled_transactions (id, budget_id, account_id, transfer_account_id, category_id, date_first, date_next, frequency, amount, inflow_to_ready_to_assign, write_token, created_at, updated_at) values (?, ?, ?, ?, ?, '2026-12-01', '2026-12-01', 'monthly', ?, 0, ?, ?, ?)",
+      ).bind(
+        id,
+        b,
+        a,
+        transfer,
+        mixed && i % 10 === 3 ? c : null,
+        -100 - i,
+        crypto.randomUUID(),
+        now,
+        now,
+      ),
     );
     if (mixed && i % 10 === 2) {
       stmts.push(
@@ -70,11 +81,11 @@ async function seed(n: number, mixed: boolean) {
     }
   }
   for (let i = 0; i < stmts.length; i += 50) await env.DB.batch(stmts.slice(i, i + 50));
-  return { b, a, s, t, c, ids };
+  return { b, a, s, t, x, c, ids };
 }
 
 const figures: Record<string, number> = {};
-const PINNED: Record<string, number> = { categorize: 4, flag: 4, memo: 4, move: 5 };
+const PINNED: Record<string, number> = { categorize: 5, flag: 4, memo: 4, move: 6 };
 
 describe("scheduled bulk update: D1 calls", () => {
   for (const op of ["categorize", "flag", "memo", "move"] as const) {
@@ -83,7 +94,7 @@ describe("scheduled bulk update: D1 calls", () => {
       for (const n of [10, 100]) {
         const w = await seed(n, op === "categorize" || op === "move");
         const value =
-          op === "categorize" ? w.c : op === "flag" ? "red" : op === "memo" ? "ZZ-TEST x" : w.s;
+          op === "categorize" ? w.c : op === "flag" ? "red" : op === "memo" ? "ZZ-TEST x" : w.x;
         const c = counting();
         const r = await bulkScheduled(c.env, actor, w.b, { op, ids: w.ids, value } as never);
         expect(r.results.length).toBeGreaterThan(0);

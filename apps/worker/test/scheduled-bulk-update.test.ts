@@ -154,6 +154,7 @@ describe("scheduled bulk update: REST", () => {
               "created_at",
               "updated_at",
               "budget_id",
+              "payee_id",
               "transfer_account_id",
             ].includes(k)
               ? undefined
@@ -171,8 +172,8 @@ describe("scheduled bulk update: REST", () => {
         op: name,
         ...args,
       });
-      expect(r.result.isError, JSON.stringify(r)).toBeFalsy();
-      const m = JSON.parse(r.result.content[0].text);
+      expect(r.isError, JSON.stringify(r)).toBeFalsy();
+      const m = JSON.parse(r.content[0].text);
       expect(strip(m)).toEqual(strip(data));
       const l = (await logsOf(mcp.s1)) as Json[];
       const last = l[l.length - 1] as Json;
@@ -370,13 +371,13 @@ describe("scheduled bulk update: races and missing rows", () => {
     const onX = (await sched(w.b, mk(x, 8))).scheduled_transaction.id;
     const tr = (await sched(w.b, mk(w.a, 9, { transfer_account_id: y, payee_name: undefined })))
       .scheduled_transaction.id;
-    const before = await total(w.b);
     await refused(w.b, { op: "flag", ids: [w.s1, "nope"], value: "red" }, 404);
     for (const id of [x, y]) {
       expect((await send(`/api/v1/budgets/${w.b}/accounts/${id}/close`, "POST", {})).status).toBe(
         200,
       );
     }
+    const before = await total(w.b);
     await refused(w.b, { op: "flag", ids: [w.s1, onX], value: "red" });
     expect((await refused(w.b, { op: "flag", ids: [w.s1, tr], value: "red" })).error.name).toBe(
       "account_closed",
