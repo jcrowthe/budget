@@ -8,7 +8,7 @@ const WRITES = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 /**
  * Opens a change set for a write request: every change_log row written while the rest of the chain runs carries
  * the id, and a 2xx response names it in `Budget-Change-Set`. Makes no D1 call. A replayed idempotent response
- * (it owns no rows) gets no header.
+ * keeps the header of the original response (idempotency.ts stores and replays it).
  */
 export function changeSet() {
   return createMiddleware<AppEnv>(async (c, next) => {

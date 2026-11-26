@@ -3,7 +3,11 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type { AppEnv } from "../src/env";
 import { idempotency } from "../src/middleware/idempotency";
-import { authed, call } from "./helpers";
+import { setAssigned } from "../src/services/months";
+import { actor as TESTER } from "./category-helpers";
+import { authed, call, json } from "./helpers";
+import { NOV } from "./plan-fixtures";
+import { setOf, undo } from "./undo-helpers";
 
 const post = async (key: string, body: unknown) =>
   call(
@@ -47,6 +51,62 @@ describe("idempotency", () => {
     const res = await post("k3", { name: "ZZ-TEST old again" });
     expect(res.status).toBe(201);
     expect(res.headers.get("Idempotent-Replayed")).toBeNull();
+  });
+});
+
+describe("idempotent replay keeps its change set", () => {
+  it("replays Budget-Change-Set, and Undo works on it after a retry", async () => {
+    const make = await post("cs1", { name: "ZZ-TEST cs1" });
+    const bid = ((await make.json()) as { data: { budget: { id: string } } }).data.budget.id;
+    const cats = (await (await json(`/api/v1/budgets/${bid}/months/${NOV}`)).json()) as {
+      data: { groups: { categories: { id: string }[] }[] };
+    };
+    const ids = cats.data.groups.flatMap((g) => g.categories.map((c) => c.id));
+    await setAssigned(env, TESTER, {
+      budget_id: bid,
+      month: NOV,
+      category_id: ids[0] as string,
+      assigned: 100000,
+    });
+    const req = async () =>
+      call(
+        `/api/v1/budgets/${bid}/months/${NOV}/moves`,
+        await authed({
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Idempotency-Key": "cs1-move" },
+          body: JSON.stringify({ from: ids[0], to: ids[1], amount: 40000 }),
+        }),
+      );
+    const a = await req();
+    const b = await req();
+    expect(a.status).toBeLessThan(300);
+    expect(b.status).toBe(a.status);
+    expect(b.headers.get("Idempotent-Replayed")).toBe("true");
+    expect(setOf(b)).toBe(setOf(a));
+    const u = await undo(bid, setOf(b));
+    expect(u.status).toBe(200);
+  });
+});
+
+describe("replay of a write with no change set", () => {
+  it("carries no Budget-Change-Set header", async () => {
+    const app = new Hono<AppEnv>();
+    app.use("*", async (c, next) => {
+      c.set("identity", { kind: "user", actor: "user:nocs@example.test" });
+      return next();
+    });
+    app.use("/api/v1/*", idempotency());
+    app.post("/api/v1/thing", (c) => c.json({ data: { ok: true } }, 201));
+    const send = () =>
+      app.request(
+        "/api/v1/thing",
+        { method: "POST", headers: { "Idempotency-Key": "nocs1" }, body: "{}" },
+        env,
+      );
+    expect((await send()).headers.get("Budget-Change-Set")).toBeNull();
+    const b = await send();
+    expect(b.headers.get("Idempotent-Replayed")).toBe("true");
+    expect(b.headers.get("Budget-Change-Set")).toBeNull();
   });
 });
 

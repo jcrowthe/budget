@@ -205,7 +205,7 @@ describe("change sets (acc. 4)", () => {
     expect(res.headers.get(HEADER)).toBeNull();
   });
 
-  it("an idempotent replay carries no header", async () => {
+  it("an idempotent replay carries the original change set", async () => {
     const bid = await plan();
     const c = cats(await month(bid, NOV))[0] as Cat;
     const go = async () =>
@@ -216,10 +216,10 @@ describe("change sets (acc. 4)", () => {
       );
     const first = await go();
     expect(first.status).toBe(200);
-    setId(first);
+    const original = setId(first);
     const again = await go();
     expect(again.status).toBe(200);
     expect(again.headers.get("Idempotent-Replayed")).toBe("true");
-    expect(again.headers.get(HEADER)).toBeNull();
+    expect(again.headers.get(HEADER)).toBe(original);
   });
 });
