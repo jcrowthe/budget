@@ -65,10 +65,7 @@ describe("future_assigned on the month summary", () => {
     const withHidden = await s.summary();
     expect(withHidden.future_assigned_total).toBe(66000);
     // delete the category with the Jan assignment, moving its money to another one
-    const del = await send(
-      "DELETE",
-      api(s.bid, `/categories/${s.groceries}?reassign_to=${s.fun}`),
-    );
+    const del = await send("DELETE", api(s.bid, `/categories/${s.groceries}?reassign_to=${s.fun}`));
     expect([200, 409, 422]).toContain(del.status);
     const d = await s.summary();
     const res = await send("GET", api(s.bid, `/months/${NOV}?today=${TODAY}`));

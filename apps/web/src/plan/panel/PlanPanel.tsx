@@ -2,9 +2,11 @@ import type { Month } from "@budget/core/month";
 import { monthTotals, viewTotals } from "@budget/schema/month-totals";
 import type { PlanView } from "@budget/schema/plan-views";
 import { type RefObject, useRef, useState } from "react";
-import { useMonth } from "../../api/months";
+import { useFutureAssigned, useMonth } from "../../api/months";
+import { localCurrentMonth } from "../../shell/planPaths";
 import { AutoAssignCard } from "./AutoAssignCard";
 import { CategoryInspector } from "./CategoryInspector";
+import { FutureAssignedCard } from "./FutureAssignedCard";
 import { usePanelWidth } from "./panelWidth";
 import { ResizeHandle } from "./ResizeHandle";
 import { SummaryCard } from "./SummaryCard";
@@ -13,7 +15,8 @@ import "./plan-panel.css";
 /**
  * The right panel of the Plan page: the month summary with nothing selected, the selection summary with two
  * or more, the category inspector with one. Every figure is derived from the cached month, so the panel follows
- * optimistic edits at once and sends no request of its own. With no month loaded (first load, or a plan
+ * optimistic edits at once and sends no request of its own, except the current month's Assigned in Future
+ * Months card (docs/future-assigned-design.md). With no month loaded (first load, or a plan
  * switch) it shows nothing but its edge.
  */
 export function PlanPanel({
@@ -48,9 +51,13 @@ export function PlanPanel({
     balance: false,
     target: false,
     autoAssign: false,
+    futureAssigned: false,
     paymentBalance: false,
     forPayment: true,
   });
+  // EXF-527: only the current month with nothing selected; it reads the month summary once on its own.
+  const showFuture = month === localCurrentMonth() && selected.length === 0;
+  const future = useFutureAssigned(budgetId, month, showFuture).data;
   const panelRef = useRef<HTMLElement>(null);
   const all = detail?.groups.flatMap((g) => g.categories) ?? [];
   const one = selected.length === 1 ? all.find((c) => c.id === selected[0]) : undefined;
@@ -113,6 +120,17 @@ export function PlanPanel({
               )}
               {summary}
               {autoAssign}
+              {showFuture && future && (
+                <FutureAssignedCard
+                  current={month}
+                  rows={future.rows}
+                  total={future.total}
+                  collapsed={collapsed.futureAssigned}
+                  onToggle={() =>
+                    setCollapsed((c) => ({ ...c, futureAssigned: !c.futureAssigned }))
+                  }
+                />
+              )}
             </>
           )}
         </div>

@@ -274,7 +274,12 @@ test("the REST summary, the category month and the tool agree with the panel", a
     return { status: res.status(), body: (await res.json()).data };
   };
   const all = await get("/summary");
-  expect(all.body).toMatchObject({ leftover: 0, assigned: 100000, activity: -30000, available: 70000 });
+  expect(all.body).toMatchObject({
+    leftover: 0,
+    assigned: 100000,
+    activity: -30000,
+    available: 70000,
+  });
   await expect(value(page, "Available")).toHaveText("$70.00");
   const one = await get(`/summary?category_ids=${s.cat[GROCERIES]},${s.cat[RENT]}`);
   expect(one.body.available).toBe(70000);

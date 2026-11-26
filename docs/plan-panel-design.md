@@ -179,7 +179,7 @@ of note 6 has nothing to apply to.
 
 ## Out of scope
 
-"Cost to Be Me" (EXF-525); the Auto-Assign cards (EXF-519); "Assigned in Future Months" (EXF-527); "For You";
+"Cost to Be Me" (EXF-525); the Auto-Assign cards (EXF-519); "For You";
 the Target card (built in EXF-508, EXF-514); grid filters (EXF-500); the shortcut
 registry (EXF-473); credit spending (EXF-532); opening the Assigned editor on a name click or ↓.
 
