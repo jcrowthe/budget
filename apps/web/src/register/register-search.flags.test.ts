@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type SearchCtx, suggestions } from "./register-search";
 
 const base: SearchCtx = {
-  dateFormat: "MM/DD/YYYY",
+  dateFormat: "YYYY-MM-DD",
   today: "2026-11-26",
   money: (n) => String(n),
   date: (s) => s,
