@@ -157,9 +157,13 @@ Tools: 89 today, 94 after. Exact words in the spec.
 `Categorization` card (EXF-515); `Renaming` card and gear icon, `has_rules` (EXF-467); `Combine and Rename` (EXF-512);
 Undo/Redo (EXF-530, EXF-504).
 
+Deliberate departure (EXF-882, decided): transfer payees as a replacement are not built. A transfer payee implies a
+paired side in another account, so it would turn a purchase into a transfer; deleting a payee with a transfer payee as
+replacement stays refused with 422.
+
 ## Found, not built
 
-1. Transfer payees as a replacement (the source lists them; one would turn a purchase into a transfer).
+1. ~~Transfer payees as a replacement~~ Not built, by decision: see the departure under *Out of scope*.
 2. ~~The several-selected `Show N Transactions` and its PAYEE-column popover~~ Built: `GET …/payees/transactions?payee_ids=a,b`
    (a sibling of the single-payee path; same four D1 calls for any number of payees, `json_each`) and `list_payee_transactions`
    with an optional `payee_ids` (same tool, so the tool count is unchanged). Rows carry `payee_name`; the popover adds a
